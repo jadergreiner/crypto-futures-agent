@@ -113,6 +113,29 @@ class BinanceCollector:
                     logger.error(f"Request failed after {API_MAX_RETRIES} attempts: {e}")
                     raise
     
+    def _extract_data(self, response):
+        """
+        Extrai dados do wrapper ApiResponse do SDK.
+        
+        O SDK Binance encapsula respostas em um objeto ApiResponse.
+        Este método extrai com segurança o payload de dados real.
+        
+        Args:
+            response: Resposta bruta do SDK (ApiResponse ou dados diretos)
+            
+        Returns:
+            Os dados reais (list, dict, etc.)
+        """
+        if response is None:
+            return None
+        
+        # ApiResponse tem um atributo .data contendo o payload real
+        if hasattr(response, 'data'):
+            return response.data
+        
+        # Se já são os dados brutos (list, dict), retorna como está
+        return response
+    
     def fetch_klines(
         self,
         symbol: str,
@@ -158,7 +181,8 @@ class BinanceCollector:
             
             return response
         
-        raw_data = self._retry_request(_fetch)
+        response = self._retry_request(_fetch)
+        raw_data = self._extract_data(response)
         df = self._parse_klines(raw_data, symbol)
         
         logger.info(f"Fetched {len(df)} {interval} candles for {symbol}")

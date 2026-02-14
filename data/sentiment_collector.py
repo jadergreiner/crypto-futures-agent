@@ -96,6 +96,29 @@ class SentimentCollector:
                     logger.error(f"Sentiment request failed after {API_MAX_RETRIES} attempts: {e}")
                     raise
     
+    def _extract_data(self, response):
+        """
+        Extrai dados do wrapper ApiResponse do SDK.
+        
+        O SDK Binance encapsula respostas em um objeto ApiResponse.
+        Este método extrai com segurança o payload de dados real.
+        
+        Args:
+            response: Resposta bruta do SDK (ApiResponse ou dados diretos)
+            
+        Returns:
+            Os dados reais (list, dict, etc.)
+        """
+        if response is None:
+            return None
+        
+        # ApiResponse tem um atributo .data contendo o payload real
+        if hasattr(response, 'data'):
+            return response.data
+        
+        # Se já são os dados brutos (list, dict), retorna como está
+        return response
+    
     def fetch_long_short_ratio(
         self,
         symbol: str,
@@ -125,10 +148,16 @@ class SentimentCollector:
                     limit=limit,
                 )
             
-            data = self._retry_request(_fetch)
+            response = self._retry_request(_fetch)
+            data = self._extract_data(response)
             
-            if data and len(data) > 0:
-                latest = data[0] if isinstance(data, list) else data
+            if data:
+                # Se é uma lista, pegar o primeiro item
+                if isinstance(data, list) and len(data) > 0:
+                    latest = data[0]
+                else:
+                    latest = data
+                
                 result = {
                     'long_short_ratio': float(getattr(latest, 'long_short_ratio', 0)),
                     'long_account': float(getattr(latest, 'long_account', 0)),
@@ -172,10 +201,16 @@ class SentimentCollector:
                     limit=limit,
                 )
             
-            data = self._retry_request(_fetch)
+            response = self._retry_request(_fetch)
+            data = self._extract_data(response)
             
-            if data and len(data) > 0:
-                latest = data[0] if isinstance(data, list) else data
+            if data:
+                # Se é uma lista, pegar o primeiro item
+                if isinstance(data, list) and len(data) > 0:
+                    latest = data[0]
+                else:
+                    latest = data
+                
                 result = {
                     'top_long_short_ratio': float(getattr(latest, 'long_short_ratio', 0)),
                     'top_long_account': float(getattr(latest, 'long_account', 0)),
@@ -204,7 +239,8 @@ class SentimentCollector:
             def _fetch():
                 return self._client.rest_api.open_interest(symbol=symbol)
             
-            data = self._retry_request(_fetch)
+            response = self._retry_request(_fetch)
+            data = self._extract_data(response)
             
             if data:
                 result = {
@@ -242,10 +278,16 @@ class SentimentCollector:
                     limit=limit,
                 )
             
-            data = self._retry_request(_fetch)
+            response = self._retry_request(_fetch)
+            data = self._extract_data(response)
             
-            if data and len(data) > 0:
-                latest = data[0] if isinstance(data, list) else data
+            if data:
+                # Se é uma lista, pegar o primeiro item
+                if isinstance(data, list) and len(data) > 0:
+                    latest = data[0]
+                else:
+                    latest = data
+                
                 result = {
                     'funding_rate': float(getattr(latest, 'funding_rate', 0)),
                     'funding_time': int(getattr(latest, 'funding_time', 0)),
@@ -294,10 +336,16 @@ class SentimentCollector:
                     limit=limit,
                 )
             
-            data = self._retry_request(_fetch)
+            response = self._retry_request(_fetch)
+            data = self._extract_data(response)
             
-            if data and len(data) > 0:
-                latest = data[0] if isinstance(data, list) else data
+            if data:
+                # Se é uma lista, pegar o primeiro item
+                if isinstance(data, list) and len(data) > 0:
+                    latest = data[0]
+                else:
+                    latest = data
+                
                 result = {
                     'buy_sell_ratio': float(getattr(latest, 'buy_sell_ratio', 0)),
                     'buy_vol': float(getattr(latest, 'buy_vol', 0)),
