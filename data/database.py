@@ -226,6 +226,10 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_smc_liquidity ON smc_liquidity(symbol, swept)")
             
             # Table 10: Trade Log
+            # NOTA: Novos campos adicionados (leverage, margin_type, liquidation_price, 
+            # position_size_usdt, unrealized_pnl_at_snapshot). Se a tabela já existe,
+            # os campos serão NULL para registros antigos. Em produção, considerar
+            # usar ALTER TABLE para adicionar as colunas de forma incremental.
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS trade_log (
                     trade_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -242,13 +246,89 @@ class DatabaseManager:
                     r_multiple REAL,
                     score_confluencia INTEGER,
                     reward_total REAL,
-                    motivo_saida TEXT
+                    motivo_saida TEXT,
+                    leverage INTEGER,
+                    margin_type TEXT,
+                    liquidation_price REAL,
+                    position_size_usdt REAL,
+                    unrealized_pnl_at_snapshot REAL
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_log_symbol ON trade_log(symbol)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_log_timestamp ON trade_log(timestamp_entrada)")
             
-            # Table 11: WebSocket Events
+            # Table 11: Position Snapshots
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS position_snapshots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    
+                    -- Position data (from Binance)
+                    direction TEXT NOT NULL,
+                    entry_price REAL NOT NULL,
+                    mark_price REAL NOT NULL,
+                    liquidation_price REAL,
+                    position_size_qty REAL NOT NULL,
+                    position_size_usdt REAL NOT NULL,
+                    leverage INTEGER NOT NULL,
+                    margin_type TEXT NOT NULL,
+                    unrealized_pnl REAL NOT NULL,
+                    unrealized_pnl_pct REAL NOT NULL,
+                    margin_balance REAL,
+                    
+                    -- Technical indicators snapshot
+                    rsi_14 REAL,
+                    ema_17 REAL,
+                    ema_34 REAL,
+                    ema_72 REAL,
+                    ema_144 REAL,
+                    macd_line REAL,
+                    macd_signal REAL,
+                    macd_histogram REAL,
+                    bb_upper REAL,
+                    bb_lower REAL,
+                    bb_percent_b REAL,
+                    atr_14 REAL,
+                    adx_14 REAL,
+                    di_plus REAL,
+                    di_minus REAL,
+                    
+                    -- SMC snapshot
+                    market_structure TEXT,
+                    bos_recent INTEGER DEFAULT 0,
+                    choch_recent INTEGER DEFAULT 0,
+                    nearest_ob_distance_pct REAL,
+                    nearest_fvg_distance_pct REAL,
+                    premium_discount_zone TEXT,
+                    liquidity_above_pct REAL,
+                    liquidity_below_pct REAL,
+                    
+                    -- Sentiment snapshot
+                    funding_rate REAL,
+                    long_short_ratio REAL,
+                    open_interest_change_pct REAL,
+                    
+                    -- Decision output
+                    agent_action TEXT NOT NULL,
+                    decision_confidence REAL,
+                    decision_reasoning TEXT,
+                    
+                    -- Risk assessment
+                    risk_score REAL,
+                    stop_loss_suggested REAL,
+                    take_profit_suggested REAL,
+                    trailing_stop_price REAL,
+                    
+                    -- For RL training
+                    reward_calculated REAL,
+                    outcome_label TEXT
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_symbol ON position_snapshots(symbol, timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_action ON position_snapshots(agent_action)")
+            
+            # Table 12: WebSocket Events
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS eventos_websocket (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -261,7 +341,7 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_eventos_timestamp ON eventos_websocket(timestamp)")
             
-            # Table 12: Reports
+            # Table 13: Reports
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS relatorios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -613,6 +693,132 @@ class DatabaseManager:
             """, (int(datetime.now().timestamp() * 1000), tipo, json.dumps(dados)))
         
         logger.info(f"Inserted report: {tipo}")
+    
+    def insert_position_snapshot(self, data: Dict[str, Any]) -> int:
+        """
+        Insert position snapshot and return its ID.
+        
+        Args:
+            data: Position snapshot dictionary with all fields
+            
+        Returns:
+            ID of inserted snapshot
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO position_snapshots
+                (timestamp, symbol, direction, entry_price, mark_price, liquidation_price,
+                 position_size_qty, position_size_usdt, leverage, margin_type,
+                 unrealized_pnl, unrealized_pnl_pct, margin_balance,
+                 rsi_14, ema_17, ema_34, ema_72, ema_144,
+                 macd_line, macd_signal, macd_histogram,
+                 bb_upper, bb_lower, bb_percent_b,
+                 atr_14, adx_14, di_plus, di_minus,
+                 market_structure, bos_recent, choch_recent,
+                 nearest_ob_distance_pct, nearest_fvg_distance_pct,
+                 premium_discount_zone, liquidity_above_pct, liquidity_below_pct,
+                 funding_rate, long_short_ratio, open_interest_change_pct,
+                 agent_action, decision_confidence, decision_reasoning,
+                 risk_score, stop_loss_suggested, take_profit_suggested, trailing_stop_price,
+                 reward_calculated, outcome_label)
+                VALUES (:timestamp, :symbol, :direction, :entry_price, :mark_price, :liquidation_price,
+                        :position_size_qty, :position_size_usdt, :leverage, :margin_type,
+                        :unrealized_pnl, :unrealized_pnl_pct, :margin_balance,
+                        :rsi_14, :ema_17, :ema_34, :ema_72, :ema_144,
+                        :macd_line, :macd_signal, :macd_histogram,
+                        :bb_upper, :bb_lower, :bb_percent_b,
+                        :atr_14, :adx_14, :di_plus, :di_minus,
+                        :market_structure, :bos_recent, :choch_recent,
+                        :nearest_ob_distance_pct, :nearest_fvg_distance_pct,
+                        :premium_discount_zone, :liquidity_above_pct, :liquidity_below_pct,
+                        :funding_rate, :long_short_ratio, :open_interest_change_pct,
+                        :agent_action, :decision_confidence, :decision_reasoning,
+                        :risk_score, :stop_loss_suggested, :take_profit_suggested, :trailing_stop_price,
+                        :reward_calculated, :outcome_label)
+            """, data)
+            snapshot_id = cursor.lastrowid
+            logger.debug(f"Inserted position snapshot {snapshot_id} for {data['symbol']}")
+            return snapshot_id
+    
+    def get_position_snapshots(self, symbol: str, start_time: Optional[int] = None, 
+                               limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve position snapshots.
+        
+        Args:
+            symbol: Trading pair symbol
+            start_time: Optional start timestamp
+            limit: Optional limit on number of records
+            
+        Returns:
+            List of snapshot dictionaries
+        """
+        query = "SELECT * FROM position_snapshots WHERE symbol = ?"
+        params = [symbol]
+        
+        if start_time:
+            query += " AND timestamp >= ?"
+            params.append(start_time)
+        
+        query += " ORDER BY timestamp DESC"
+        
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    
+    def update_snapshot_outcome(self, snapshot_id: int, reward: float, outcome_label: str) -> None:
+        """
+        Update snapshot with outcome data retroactively.
+        
+        Args:
+            snapshot_id: ID of the snapshot
+            reward: Calculated reward value
+            outcome_label: Outcome label (win/loss/hold)
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE position_snapshots
+                SET reward_calculated = ?, outcome_label = ?
+                WHERE id = ?
+            """, (reward, outcome_label, snapshot_id))
+        
+        logger.debug(f"Updated snapshot {snapshot_id} outcome: {outcome_label}, reward: {reward}")
+    
+    def get_snapshots_for_training(self, symbol: Optional[str] = None, 
+                                   limit: int = 1000) -> List[Dict[str, Any]]:
+        """
+        Get snapshots with outcome filled for RL training.
+        
+        Args:
+            symbol: Optional symbol filter
+            limit: Maximum number of records to return
+            
+        Returns:
+            List of snapshots with outcome_label not NULL
+        """
+        query = "SELECT * FROM position_snapshots WHERE outcome_label IS NOT NULL"
+        params = []
+        
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        
+        query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
     
     def cleanup_old_data(self, days_to_keep: int = 90) -> None:
         """

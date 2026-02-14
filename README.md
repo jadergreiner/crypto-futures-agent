@@ -53,7 +53,25 @@ crypto-futures-agent/
 
 ## 🚀 Quick Start
 
-### 1. Instalação
+### Opção A: Windows - Script Automático (Recomendado)
+
+```batch
+# 1. Execute o setup (apenas uma vez)
+setup.bat
+
+# 2. Inicie o agente com menu interativo
+iniciar.bat
+```
+
+O script `iniciar.bat` oferece um menu interativo com todas as opções:
+- ✅ Verifica e ativa o ambiente virtual automaticamente
+- ✅ Valida pré-requisitos (.env, banco de dados)
+- ✅ Menu com 7 opções: Paper Trading, Live, Monitor, Backtest, Train, Setup, Sair
+- ✅ Confirmações de segurança para modo LIVE
+
+### Opção B: Manual (Linux/Mac ou Avançado)
+
+#### 1. Instalação
 
 ```bash
 # Clone o repositório
@@ -68,7 +86,7 @@ cp .env.example .env
 # Edite .env com suas API keys da Binance
 ```
 
-### 2. Setup Inicial
+#### 2. Setup Inicial
 
 ```bash
 # Inicializar database e coletar dados históricos
@@ -82,14 +100,14 @@ Este comando irá:
 - Coletar 90 dias de dados H1
 - Calcular todos os indicadores técnicos
 
-### 3. Treinar o Modelo (Opcional)
+#### 3. Treinar o Modelo (Opcional)
 
 ```bash
 # Treinar o agente RL (3 fases: exploração, refinamento, validação)
 python main.py --train
 ```
 
-### 4. Executar
+#### 4. Executar
 
 ```bash
 # Modo paper trading (padrão)
@@ -97,9 +115,12 @@ python main.py --mode paper
 
 # Modo live (requer capital real)
 python main.py --mode live
+
+# Monitorar posições abertas
+python main.py --monitor --monitor-symbol C98USDT --monitor-interval 300
 ```
 
-### 5. Backtest
+#### 5. Backtest
 
 ```bash
 # Executar backtest em período específico

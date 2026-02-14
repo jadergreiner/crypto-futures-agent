@@ -16,7 +16,7 @@ RISK_PARAMS: Dict[str, Any] = {
     
     # Position Limits
     "max_simultaneous_positions": 3,
-    "max_leverage": 5,  # Isolated margin
+    "max_leverage": 10,  # Isolated margin — atualizado para 10x
     
     # Stop Loss & Take Profit
     "stop_loss_atr_multiplier": 1.5,
@@ -43,4 +43,8 @@ RISK_PARAMS: Dict[str, Any] = {
     # R-Multiple Targets
     "target_r_multiple": 2.0,  # Target 2:1 reward:risk minimum
     "excellent_r_multiple": 3.0,  # Excellent trades at 3:1
+    
+    # Monitoring Thresholds
+    "extreme_funding_rate_threshold": 0.05,  # 0.05% funding rate considerado extremo
+    "trailing_stop_activation_r_multiple": 1.5,  # Ativar trailing stop após 1.5R
 }

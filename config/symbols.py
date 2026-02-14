@@ -90,6 +90,19 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "payments",
             "stable_correlation"
         ]
+    },
+    "C98USDT": {
+        "papel": "Token DeFi (Coin98). Multi-chain wallet/DeFi gateway.",
+        "ciclo_proprio": "Segue ciclo altcoin geral. Sensível a narrativa DeFi.",
+        "correlacao_btc": [0.50, 0.75],
+        "beta_estimado": 3.0,
+        "classificacao": "low_cap_defi",
+        "caracteristicas": [
+            "defi_narrative",
+            "low_liquidity",
+            "high_beta",
+            "multi_chain"
+        ]
     }
 }
 
