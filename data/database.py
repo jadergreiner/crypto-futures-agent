@@ -5,10 +5,11 @@ Manages all data persistence including OHLCV, indicators, sentiment, macro data,
 
 import sqlite3
 import json
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -354,15 +355,28 @@ class DatabaseManager:
             
             logger.info("Database initialized successfully")
     
-    def insert_ohlcv(self, timeframe: str, data: List[Dict[str, Any]]) -> None:
+    def insert_ohlcv(self, timeframe: str, data: Union[List[Dict[str, Any]], pd.DataFrame]) -> None:
         """
-        Insert OHLCV data into the appropriate table.
+        Insere dados OHLCV na tabela apropriada.
         
         Args:
-            timeframe: "D1", "H4", or "H1"
-            data: List of OHLCV dictionaries
+            timeframe: "D1", "H4", ou "H1"
+            data: Lista de dicts OHLCV ou pd.DataFrame
         """
         table_name = f"ohlcv_{timeframe.lower()}"
+        
+        # Converter DataFrame para lista de dicts se necessário
+        if isinstance(data, pd.DataFrame):
+            if data.empty:
+                logger.debug(f"DataFrame vazio, nenhum dado para inserir em {timeframe}")
+                return
+            records = data.to_dict('records')
+        else:
+            records = data
+        
+        if not records:
+            logger.debug(f"Lista vazia, nenhum dado para inserir em {timeframe}")
+            return
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -370,9 +384,9 @@ class DatabaseManager:
                 INSERT OR REPLACE INTO {table_name} 
                 (timestamp, symbol, open, high, low, close, volume, quote_volume, trades_count)
                 VALUES (:timestamp, :symbol, :open, :high, :low, :close, :volume, :quote_volume, :trades_count)
-            """, data)
+            """, records)
         
-        logger.debug(f"Inserted {len(data)} {timeframe} candles")
+        logger.debug(f"{len(records)} candles {timeframe} inseridos")
     
     def get_ohlcv(self, timeframe: str, symbol: str, start_time: Optional[int] = None, 
                    end_time: Optional[int] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
