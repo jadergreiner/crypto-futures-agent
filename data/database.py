@@ -472,9 +472,8 @@ class DatabaseManager:
             cursor = conn.cursor()
             
             # Normalizar registros — preencher campos ausentes com None
-            registros_normalizados = []
-            for registro in data:
-                registros_normalizados.append({
+            registros_normalizados = [
+                {
                     'timestamp': registro.get('timestamp'),
                     'symbol': registro.get('symbol'),
                     'long_short_ratio': registro.get('long_short_ratio'),
@@ -484,7 +483,9 @@ class DatabaseManager:
                     'liquidations_long_vol': registro.get('liquidations_long_vol'),
                     'liquidations_short_vol': registro.get('liquidations_short_vol'),
                     'liquidations_total_vol': registro.get('liquidations_total_vol'),
-                })
+                }
+                for registro in data
+            ]
             
             cursor.executemany("""
                 INSERT OR REPLACE INTO sentimento_mercado
