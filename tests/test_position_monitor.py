@@ -98,18 +98,20 @@ def test_fetch_open_positions_long(position_monitor, mock_client):
 
 def test_fetch_open_positions_short(position_monitor, mock_client):
     """Testa fetch de posição SHORT."""
-    # Mock resposta da API com posição SHORT
-    mock_client.rest_api.position_information.return_value = {
-        'symbol': 'BTCUSDT',
-        'positionAmt': '-0.5',  # Negativo = SHORT
-        'entryPrice': '50000',
-        'markPrice': '49000',
-        'unRealizedProfit': '500',
-        'liquidationPrice': '52000',
-        'leverage': '5',
-        'marginType': 'ISOLATED',
-        'isolatedWallet': '10000'
-    }
+    # Mock resposta da API com posição SHORT (retornar lista para consistência)
+    mock_client.rest_api.position_information.return_value = [
+        {
+            'symbol': 'BTCUSDT',
+            'positionAmt': '-0.5',  # Negativo = SHORT
+            'entryPrice': '50000',
+            'markPrice': '49000',
+            'unRealizedProfit': '500',
+            'liquidationPrice': '52000',
+            'leverage': '5',
+            'marginType': 'ISOLATED',
+            'isolatedWallet': '10000'
+        }
+    ]
     
     positions = position_monitor.fetch_open_positions('BTCUSDT')
     

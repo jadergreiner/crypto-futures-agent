@@ -43,4 +43,8 @@ RISK_PARAMS: Dict[str, Any] = {
     # R-Multiple Targets
     "target_r_multiple": 2.0,  # Target 2:1 reward:risk minimum
     "excellent_r_multiple": 3.0,  # Excellent trades at 3:1
+    
+    # Monitoring Thresholds
+    "extreme_funding_rate_threshold": 0.05,  # 0.05% funding rate considerado extremo
+    "trailing_stop_activation_r_multiple": 1.5,  # Ativar trailing stop após 1.5R
 }

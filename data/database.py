@@ -226,6 +226,10 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_smc_liquidity ON smc_liquidity(symbol, swept)")
             
             # Table 10: Trade Log
+            # NOTA: Novos campos adicionados (leverage, margin_type, liquidation_price, 
+            # position_size_usdt, unrealized_pnl_at_snapshot). Se a tabela já existe,
+            # os campos serão NULL para registros antigos. Em produção, considerar
+            # usar ALTER TABLE para adicionar as colunas de forma incremental.
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS trade_log (
                     trade_id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -391,17 +391,19 @@ class PositionMonitor:
         
         # 5. VERIFICAR FUNDING RATE EXTREMO
         funding_rate = indicators.get('funding_rate', 0)
+        funding_threshold = RISK_PARAMS.get('extreme_funding_rate_threshold', 0.05)
+        
         if funding_rate:
             funding_pct = funding_rate * 100
             
             # Funding muito positivo = muitos LONGs (ruim para LONG)
-            if direction == 'LONG' and funding_pct > 0.05:
+            if direction == 'LONG' and funding_pct > funding_threshold:
                 decision['agent_action'] = 'REDUCE_50'
                 reasoning.append(f"Funding rate extremo contra LONG ({funding_pct:.4f}%)")
                 risk_score += 1.0
             
             # Funding muito negativo = muitos SHORTs (ruim para SHORT)
-            elif direction == 'SHORT' and funding_pct < -0.05:
+            elif direction == 'SHORT' and funding_pct < -funding_threshold:
                 decision['agent_action'] = 'REDUCE_50'
                 reasoning.append(f"Funding rate extremo contra SHORT ({funding_pct:.4f}%)")
                 risk_score += 1.0
@@ -434,8 +436,9 @@ class PositionMonitor:
                 decision['stop_loss_suggested'] = entry_price + (atr * stop_multiplier)
                 decision['take_profit_suggested'] = entry_price - (atr * tp_multiplier)
             
-            # Trailing stop (ativar se PnL > 1.5R)
-            if pnl_pct > (stop_multiplier * 1.5):
+            # Trailing stop (ativar se PnL > activation_r)
+            activation_r = RISK_PARAMS.get('trailing_stop_activation_r_multiple', 1.5)
+            if pnl_pct > (stop_multiplier * activation_r):
                 trail_multiplier = RISK_PARAMS['trailing_stop_atr_multiplier']
                 if direction == 'LONG':
                     decision['trailing_stop_price'] = mark_price - (atr * trail_multiplier)
