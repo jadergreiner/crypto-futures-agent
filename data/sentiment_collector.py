@@ -1,15 +1,24 @@
 """
-Sentiment data collector from Binance Futures API.
+Sentiment data collector from Binance Futures API using official SDK.
 """
+
+from __future__ import annotations
 
 import time
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
-import requests
+
+from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
+    DerivativesTradingUsdsFutures,
+)
+from binance_sdk_derivatives_trading_usds_futures.rest_api.models import (
+    LongShortRatioPeriodEnum,
+    TopTraderLongShortRatioPositionsPeriodEnum,
+)
 from config.settings import (
-    BINANCE_BASE_URL, API_RETRY_ATTEMPTS, API_RETRY_BACKOFF,
-    SENTIMENT_LIMIT, FORCE_ORDERS_LIMIT
+    API_MAX_RETRIES,
+    API_RETRY_DELAYS,
 )
 
 logger = logging.getLogger(__name__)
@@ -17,38 +26,82 @@ logger = logging.getLogger(__name__)
 
 class SentimentCollector:
     """
-    Collects market sentiment data from Binance Futures API.
-    Includes Long/Short Ratio, Open Interest, Funding Rate, and Liquidations.
+    Collects market sentiment data from Binance Futures API using official SDK.
+    Includes Long/Short Ratio, Open Interest, Funding Rate, and Taker Buy/Sell Volume.
     """
     
-    def __init__(self, api_key: Optional[str] = None):
-        """Initialize sentiment collector."""
-        self.base_url = BINANCE_BASE_URL
-        self.api_key = api_key
-        self.session = requests.Session()
-        if api_key:
-            self.session.headers.update({'X-MBX-APIKEY': api_key})
+    # Map period strings to SDK enum values for Long/Short Ratio
+    PERIOD_MAP_LS = {
+        "5m": LongShortRatioPeriodEnum.PERIOD_5m,
+        "15m": LongShortRatioPeriodEnum.PERIOD_15m,
+        "30m": LongShortRatioPeriodEnum.PERIOD_30m,
+        "1h": LongShortRatioPeriodEnum.PERIOD_1h,
+        "2h": LongShortRatioPeriodEnum.PERIOD_2h,
+        "4h": LongShortRatioPeriodEnum.PERIOD_4h,
+        "6h": LongShortRatioPeriodEnum.PERIOD_6h,
+        "12h": LongShortRatioPeriodEnum.PERIOD_12h,
+        "1d": LongShortRatioPeriodEnum.PERIOD_1d,
+    }
     
-    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Any:
-        """Make HTTP request with retry logic."""
-        url = f"{self.base_url}{endpoint}"
+    # Map period strings to SDK enum values for Top Trader Ratio
+    PERIOD_MAP_TOP_TRADER = {
+        "5m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_5m,
+        "15m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_15m,
+        "30m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_30m,
+        "1h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_1h,
+        "2h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_2h,
+        "4h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_4h,
+        "6h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_6h,
+        "12h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_12h,
+        "1d": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_1d,
+    }
+    
+    def __init__(self, client: DerivativesTradingUsdsFutures):
+        """
+        Initialize sentiment collector with SDK client.
         
-        for attempt in range(API_RETRY_ATTEMPTS):
+        Args:
+            client: Configured DerivativesTradingUsdsFutures client
+        """
+        self._client = client
+        logger.info("SentimentCollector initialized with SDK client")
+    
+    def _retry_request(self, func, *args, **kwargs):
+        """
+        Execute request with retry logic and exponential backoff.
+        
+        Args:
+            func: Function to call
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+            
+        Returns:
+            Function result
+            
+        Raises:
+            Exception: If all retry attempts fail
+        """
+        for attempt in range(API_MAX_RETRIES):
             try:
-                response = self.session.get(url, params=params, timeout=30)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as e:
-                if attempt < API_RETRY_ATTEMPTS - 1:
-                    backoff_time = API_RETRY_BACKOFF[attempt]
-                    logger.warning(f"Sentiment request failed (attempt {attempt + 1}): {e}. "
-                                 f"Retrying in {backoff_time}s...")
+                return func(*args, **kwargs)
+            except Exception as e:
+                if attempt < API_MAX_RETRIES - 1:
+                    backoff_time = API_RETRY_DELAYS[attempt]
+                    logger.warning(
+                        f"Sentiment request failed (attempt {attempt + 1}/{API_MAX_RETRIES}): {e}. "
+                        f"Retrying in {backoff_time}s..."
+                    )
                     time.sleep(backoff_time)
                 else:
-                    logger.error(f"Sentiment request failed after {API_RETRY_ATTEMPTS} attempts: {e}")
+                    logger.error(f"Sentiment request failed after {API_MAX_RETRIES} attempts: {e}")
                     raise
     
-    def fetch_long_short_ratio(self, symbol: str, period: str = "4h", limit: int = 1) -> List[Dict[str, Any]]:
+    def fetch_long_short_ratio(
+        self,
+        symbol: str,
+        period: str = "4h",
+        limit: int = 1,
+    ) -> Dict[str, Any]:
         """
         Fetch global long/short account ratio.
         
@@ -58,21 +111,84 @@ class SentimentCollector:
             limit: Number of data points
             
         Returns:
-            List of long/short ratio data
+            Dict with long_short_ratio, long_account, short_account, timestamp
         """
-        params = {
-            'symbol': symbol,
-            'period': period,
-            'limit': limit
-        }
+        period_enum = self.PERIOD_MAP_LS.get(period)
+        if not period_enum:
+            raise ValueError(f"Invalid period: {period}. Must be one of {list(self.PERIOD_MAP_LS.keys())}")
         
         try:
-            data = self._make_request('/futures/data/globalLongShortAccountRatio', params)
-            logger.debug(f"Fetched long/short ratio for {symbol}")
-            return data
+            def _fetch():
+                return self._client.rest_api.long_short_ratio(
+                    symbol=symbol,
+                    period=period_enum,
+                    limit=limit,
+                )
+            
+            data = self._retry_request(_fetch)
+            
+            if data and len(data) > 0:
+                latest = data[0] if isinstance(data, list) else data
+                result = {
+                    'long_short_ratio': float(getattr(latest, 'long_short_ratio', 0)),
+                    'long_account': float(getattr(latest, 'long_account', 0)),
+                    'short_account': float(getattr(latest, 'short_account', 0)),
+                    'timestamp': int(getattr(latest, 'timestamp', 0)),
+                }
+                logger.debug(f"Fetched long/short ratio for {symbol}: {result['long_short_ratio']}")
+                return result
+            
+            return {}
         except Exception as e:
             logger.error(f"Failed to fetch long/short ratio for {symbol}: {e}")
-            return []
+            return {}
+    
+    def fetch_top_trader_ls_ratio(
+        self,
+        symbol: str,
+        period: str = "4h",
+        limit: int = 1,
+    ) -> Dict[str, Any]:
+        """
+        Fetch top trader long/short ratio (positions).
+        
+        Args:
+            symbol: Trading pair symbol
+            period: Period ("5m", "15m", "30m", "1h", "2h", "4h", "6h", "12h", "1d")
+            limit: Number of data points
+            
+        Returns:
+            Dict with top trader ratio data
+        """
+        period_enum = self.PERIOD_MAP_TOP_TRADER.get(period)
+        if not period_enum:
+            raise ValueError(f"Invalid period: {period}. Must be one of {list(self.PERIOD_MAP_TOP_TRADER.keys())}")
+        
+        try:
+            def _fetch():
+                return self._client.rest_api.top_trader_long_short_ratio_positions(
+                    symbol=symbol,
+                    period=period_enum,
+                    limit=limit,
+                )
+            
+            data = self._retry_request(_fetch)
+            
+            if data and len(data) > 0:
+                latest = data[0] if isinstance(data, list) else data
+                result = {
+                    'top_long_short_ratio': float(getattr(latest, 'long_short_ratio', 0)),
+                    'top_long_account': float(getattr(latest, 'long_account', 0)),
+                    'top_short_account': float(getattr(latest, 'short_account', 0)),
+                    'timestamp': int(getattr(latest, 'timestamp', 0)),
+                }
+                logger.debug(f"Fetched top trader L/S ratio for {symbol}: {result['top_long_short_ratio']}")
+                return result
+            
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to fetch top trader L/S ratio for {symbol}: {e}")
+            return {}
     
     def fetch_open_interest(self, symbol: str) -> Dict[str, Any]:
         """
@@ -82,21 +198,75 @@ class SentimentCollector:
             symbol: Trading pair symbol
             
         Returns:
-            Open interest data
+            Dict with open interest data
         """
-        params = {'symbol': symbol}
-        
         try:
-            data = self._make_request('/fapi/v1/openInterest', params)
-            logger.debug(f"Fetched open interest for {symbol}")
-            return data
+            def _fetch():
+                return self._client.rest_api.open_interest(symbol=symbol)
+            
+            data = self._retry_request(_fetch)
+            
+            if data:
+                result = {
+                    'open_interest': float(getattr(data, 'open_interest', 0)),
+                    'symbol': getattr(data, 'symbol', symbol),
+                    'timestamp': int(getattr(data, 'time', 0)),
+                }
+                logger.debug(f"Fetched open interest for {symbol}: {result['open_interest']}")
+                return result
+            
+            return {}
         except Exception as e:
             logger.error(f"Failed to fetch open interest for {symbol}: {e}")
             return {}
     
-    def fetch_open_interest_hist(self, symbol: str, period: str = "4h", limit: int = 30) -> List[Dict[str, Any]]:
+    def fetch_funding_rate(
+        self,
+        symbol: str,
+        limit: int = 1,
+    ) -> Dict[str, Any]:
         """
-        Fetch historical open interest.
+        Fetch funding rate history.
+        
+        Args:
+            symbol: Trading pair symbol
+            limit: Number of records
+            
+        Returns:
+            Dict with funding rate data
+        """
+        try:
+            def _fetch():
+                return self._client.rest_api.get_funding_rate_history(
+                    symbol=symbol,
+                    limit=limit,
+                )
+            
+            data = self._retry_request(_fetch)
+            
+            if data and len(data) > 0:
+                latest = data[0] if isinstance(data, list) else data
+                result = {
+                    'funding_rate': float(getattr(latest, 'funding_rate', 0)),
+                    'funding_time': int(getattr(latest, 'funding_time', 0)),
+                    'symbol': getattr(latest, 'symbol', symbol),
+                }
+                logger.debug(f"Fetched funding rate for {symbol}: {result['funding_rate']}")
+                return result
+            
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to fetch funding rate for {symbol}: {e}")
+            return {}
+    
+    def fetch_taker_buy_sell_volume(
+        self,
+        symbol: str,
+        period: str = "4h",
+        limit: int = 1,
+    ) -> Dict[str, Any]:
+        """
+        Fetch taker buy/sell volume ratio.
         
         Args:
             symbol: Trading pair symbol
@@ -104,162 +274,130 @@ class SentimentCollector:
             limit: Number of data points
             
         Returns:
-            List of historical OI data
+            Dict with taker volume data
+            
+        Note:
+            Using PERIOD_MAP_LS enum for period. If SDK uses different enum for this endpoint,
+            this may need to be updated based on SDK documentation.
         """
-        params = {
-            'symbol': symbol,
-            'period': period,
-            'limit': limit
-        }
+        # Note: The SDK period enum might be different for this endpoint
+        # Using the same mapping as long_short_ratio. Verify with SDK docs if issues occur.
+        period_enum = self.PERIOD_MAP_LS.get(period)
+        if not period_enum:
+            raise ValueError(f"Invalid period: {period}. Must be one of {list(self.PERIOD_MAP_LS.keys())}")
         
         try:
-            data = self._make_request('/futures/data/openInterestHist', params)
-            logger.debug(f"Fetched OI history for {symbol}")
-            return data
+            def _fetch():
+                return self._client.rest_api.taker_buy_sell_volume(
+                    symbol=symbol,
+                    period=period_enum,
+                    limit=limit,
+                )
+            
+            data = self._retry_request(_fetch)
+            
+            if data and len(data) > 0:
+                latest = data[0] if isinstance(data, list) else data
+                result = {
+                    'buy_sell_ratio': float(getattr(latest, 'buy_sell_ratio', 0)),
+                    'buy_vol': float(getattr(latest, 'buy_vol', 0)),
+                    'sell_vol': float(getattr(latest, 'sell_vol', 0)),
+                    'timestamp': int(getattr(latest, 'timestamp', 0)),
+                }
+                logger.debug(f"Fetched taker volume for {symbol}: {result['buy_sell_ratio']}")
+                return result
+            
+            return {}
         except Exception as e:
-            logger.error(f"Failed to fetch OI history for {symbol}: {e}")
-            return []
-    
-    def fetch_funding_rate(self, symbol: str, limit: int = 1) -> List[Dict[str, Any]]:
-        """
-        Fetch funding rate.
-        
-        Args:
-            symbol: Trading pair symbol
-            limit: Number of records
-            
-        Returns:
-            List of funding rate data
-        """
-        params = {
-            'symbol': symbol,
-            'limit': limit
-        }
-        
-        try:
-            data = self._make_request('/fapi/v1/fundingRate', params)
-            logger.debug(f"Fetched funding rate for {symbol}")
-            return data
-        except Exception as e:
-            logger.error(f"Failed to fetch funding rate for {symbol}: {e}")
-            return []
-    
-    def fetch_force_orders(self, symbol: str, limit: int = FORCE_ORDERS_LIMIT,
-                          start_time: Optional[int] = None, end_time: Optional[int] = None) -> List[Dict[str, Any]]:
-        """
-        Fetch forced liquidation orders.
-        
-        Args:
-            symbol: Trading pair symbol
-            limit: Number of records
-            start_time: Start time in milliseconds
-            end_time: End time in milliseconds
-            
-        Returns:
-            List of liquidation data
-        """
-        params = {
-            'symbol': symbol,
-            'limit': limit
-        }
-        
-        if start_time:
-            params['startTime'] = start_time
-        if end_time:
-            params['endTime'] = end_time
-        
-        try:
-            data = self._make_request('/fapi/v1/allForceOrders', params)
-            logger.debug(f"Fetched {len(data)} liquidations for {symbol}")
-            return data
-        except Exception as e:
-            logger.error(f"Failed to fetch liquidations for {symbol}: {e}")
-            return []
-    
-    def aggregate_liquidations(self, liquidations: List[Dict[str, Any]]) -> Dict[str, float]:
-        """
-        Aggregate liquidations by side.
-        
-        Args:
-            liquidations: List of liquidation orders
-            
-        Returns:
-            Aggregated liquidation volumes
-        """
-        long_vol = 0.0
-        short_vol = 0.0
-        
-        for liq in liquidations:
-            qty = float(liq.get('origQty', 0))
-            side = liq.get('side', '')
-            
-            if side == 'SELL':  # Long liquidation
-                long_vol += qty
-            elif side == 'BUY':  # Short liquidation
-                short_vol += qty
-        
-        return {
-            'liquidations_long_vol': long_vol,
-            'liquidations_short_vol': short_vol,
-            'liquidations_total_vol': long_vol + short_vol
-        }
+            logger.error(f"Failed to fetch taker volume for {symbol}: {e}")
+            return {}
     
     def fetch_all_sentiment(self, symbol: str) -> Dict[str, Any]:
         """
         Fetch all sentiment data for a symbol.
         
+        Consolidates data from multiple endpoints with individual error handling.
+        
         Args:
             symbol: Trading pair symbol
             
         Returns:
-            Consolidated sentiment data
+            Consolidated sentiment data dictionary
         """
         result = {
             'timestamp': int(datetime.now().timestamp() * 1000),
             'symbol': symbol,
-            'long_short_ratio': None,
-            'open_interest': None,
-            'open_interest_change_pct': None,
-            'funding_rate': None,
-            'liquidations_long_vol': 0.0,
-            'liquidations_short_vol': 0.0,
-            'liquidations_total_vol': 0.0
         }
         
+        # Long/Short Ratio
         try:
-            # Long/Short Ratio
-            ls_data = self.fetch_long_short_ratio(symbol)
-            if ls_data:
-                result['long_short_ratio'] = float(ls_data[0].get('longShortRatio', 0))
-            
-            # Open Interest
-            oi_data = self.fetch_open_interest(symbol)
-            if oi_data:
-                result['open_interest'] = float(oi_data.get('openInterest', 0))
-            
-            # OI Change
-            oi_hist = self.fetch_open_interest_hist(symbol, period="4h", limit=2)
-            if len(oi_hist) >= 2:
-                current_oi = float(oi_hist[-1].get('sumOpenInterest', 0))
-                prev_oi = float(oi_hist[-2].get('sumOpenInterest', 1))
-                if prev_oi > 0:
-                    result['open_interest_change_pct'] = ((current_oi - prev_oi) / prev_oi) * 100
-            
-            # Funding Rate
-            funding_data = self.fetch_funding_rate(symbol)
-            if funding_data:
-                result['funding_rate'] = float(funding_data[0].get('fundingRate', 0))
-            
-            # Liquidations (last 4 hours)
-            end_time = int(datetime.now().timestamp() * 1000)
-            start_time = end_time - (4 * 60 * 60 * 1000)
-            liquidations = self.fetch_force_orders(symbol, start_time=start_time, end_time=end_time)
-            liq_summary = self.aggregate_liquidations(liquidations)
-            result.update(liq_summary)
-            
-            logger.info(f"Collected all sentiment data for {symbol}")
-            
+            ls_data = self.fetch_long_short_ratio(symbol, period="4h")
+            result.update({
+                'long_short_ratio': ls_data.get('long_short_ratio'),
+                'long_account': ls_data.get('long_account'),
+                'short_account': ls_data.get('short_account'),
+            })
         except Exception as e:
-            logger.error(f"Error collecting sentiment for {symbol}: {e}")
+            logger.warning(f"Could not fetch long/short ratio for {symbol}: {e}")
+            result.update({
+                'long_short_ratio': None,
+                'long_account': None,
+                'short_account': None,
+            })
         
+        # Top Trader Ratio
+        try:
+            top_trader_data = self.fetch_top_trader_ls_ratio(symbol, period="4h")
+            result.update({
+                'top_long_short_ratio': top_trader_data.get('top_long_short_ratio'),
+                'top_long_account': top_trader_data.get('top_long_account'),
+                'top_short_account': top_trader_data.get('top_short_account'),
+            })
+        except Exception as e:
+            logger.warning(f"Could not fetch top trader ratio for {symbol}: {e}")
+            result.update({
+                'top_long_short_ratio': None,
+                'top_long_account': None,
+                'top_short_account': None,
+            })
+        
+        # Open Interest
+        try:
+            oi_data = self.fetch_open_interest(symbol)
+            result['open_interest'] = oi_data.get('open_interest')
+        except Exception as e:
+            logger.warning(f"Could not fetch open interest for {symbol}: {e}")
+            result['open_interest'] = None
+        
+        # Funding Rate
+        try:
+            funding_data = self.fetch_funding_rate(symbol)
+            result.update({
+                'funding_rate': funding_data.get('funding_rate'),
+                'funding_time': funding_data.get('funding_time'),
+            })
+        except Exception as e:
+            logger.warning(f"Could not fetch funding rate for {symbol}: {e}")
+            result.update({
+                'funding_rate': None,
+                'funding_time': None,
+            })
+        
+        # Taker Buy/Sell Volume
+        try:
+            taker_data = self.fetch_taker_buy_sell_volume(symbol, period="4h")
+            result.update({
+                'buy_sell_ratio': taker_data.get('buy_sell_ratio'),
+                'buy_vol': taker_data.get('buy_vol'),
+                'sell_vol': taker_data.get('sell_vol'),
+            })
+        except Exception as e:
+            logger.warning(f"Could not fetch taker volume for {symbol}: {e}")
+            result.update({
+                'buy_sell_ratio': None,
+                'buy_vol': None,
+                'sell_vol': None,
+            })
+        
+        logger.info(f"Collected all sentiment data for {symbol}")
         return result

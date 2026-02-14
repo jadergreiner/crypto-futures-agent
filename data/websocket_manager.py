@@ -1,211 +1,174 @@
 """
-WebSocket manager for real-time Binance Futures data streams.
+WebSocket manager for real-time Binance Futures data streams using official SDK.
 """
 
+from __future__ import annotations
+
 import asyncio
-import json
 import logging
 from typing import Dict, Any, Callable, List, Optional
 from datetime import datetime, timedelta
-import websockets
-from config.settings import (
-    BINANCE_WS_URL, WS_RECONNECT_BACKOFF, WS_MAX_RECONNECT_DELAY,
-    FLASH_CRASH_THRESHOLD_PCT, FLASH_CRASH_WINDOW_MINUTES
+from collections import deque
+
+from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
+    DerivativesTradingUsdsFutures,
 )
+from config.settings import (
+    FLASH_CRASH_THRESHOLD_PCT,
+    FLASH_CRASH_WINDOW_MINUTES,
+    LIQUIDATION_ALERT_MULTIPLIER,
+)
+from config.symbols import ALL_SYMBOLS
 
 logger = logging.getLogger(__name__)
 
 
 class WebSocketManager:
     """
-    Manages WebSocket connections to Binance Futures streams.
-    Handles mark price, liquidations, and 1-minute candles for multiple symbols.
+    Manages WebSocket connections to Binance Futures streams using official SDK.
+    
+    Handles mark price updates, kline data for flash crash detection,
+    and liquidation monitoring for cascade detection.
     """
-    
-    def __init__(self):
-        """Initialize WebSocket manager."""
-        self.base_url = BINANCE_WS_URL
-        self.connections: Dict[str, websockets.WebSocketClientProtocol] = {}
-        self.callbacks: Dict[str, List[Callable]] = {
-            'mark_price': [],
-            'force_order': [],
-            'kline_1m': []
-        }
-        self.running = False
-        self.reconnect_delay = WS_RECONNECT_BACKOFF[0]
-        self.m1_candles: Dict[str, List[Dict[str, Any]]] = {}  # Buffer for flash crash detection
-    
-    def register_callback(self, event_type: str, callback: Callable) -> None:
+
+    def __init__(self, client: DerivativesTradingUsdsFutures):
         """
-        Register a callback for specific event type.
+        Initialize WebSocket manager with SDK client.
         
         Args:
-            event_type: "mark_price", "force_order", or "kline_1m"
-            callback: Function to call when event occurs
+            client: Configured DerivativesTradingUsdsFutures client
         """
-        if event_type in self.callbacks:
-            self.callbacks[event_type].append(callback)
-            logger.info(f"Registered callback for {event_type}")
-        else:
-            logger.warning(f"Unknown event type: {event_type}")
-    
-    async def _connect_stream(self, stream_name: str) -> None:
+        self._client = client
+        self._connection = None
+        self._active_streams: List[str] = []
+        
+        # State management
+        self._mark_prices: Dict[str, float] = {}
+        self._kline_buffer: Dict[str, deque] = {}  # symbol -> deque of last N 1m candles
+        self._liquidation_buffer: Dict[str, deque] = {}  # symbol -> 24h liquidations
+        
+        # Callback registries
+        self._on_price_update: List[Callable] = []
+        self._on_flash_event: List[Callable] = []
+        self._on_liquidation_cascade: List[Callable] = []
+        
+        logger.info("WebSocketManager initialized with SDK client")
+
+    def register_price_callback(self, callback: Callable) -> None:
         """
-        Connect to a specific stream with auto-reconnect.
+        Register callback for price updates (Camada 2).
         
         Args:
-            stream_name: WebSocket stream name
+            callback: Function to call on price update, signature: callback(symbol: str, price: float)
         """
-        url = f"{self.base_url}{stream_name}"
-        
-        while self.running:
-            try:
-                async with websockets.connect(url) as websocket:
-                    logger.info(f"Connected to {stream_name}")
-                    self.reconnect_delay = WS_RECONNECT_BACKOFF[0]  # Reset on successful connection
-                    
-                    async for message in websocket:
-                        if not self.running:
-                            break
-                        
-                        try:
-                            data = json.loads(message)
-                            await self._handle_message(stream_name, data)
-                        except json.JSONDecodeError as e:
-                            logger.error(f"Failed to parse message: {e}")
-                        except Exception as e:
-                            logger.error(f"Error handling message: {e}")
-                            
-            except websockets.exceptions.WebSocketException as e:
-                logger.error(f"WebSocket error on {stream_name}: {e}")
-                if self.running:
-                    await self._handle_reconnect()
-            except Exception as e:
-                logger.error(f"Unexpected error on {stream_name}: {e}")
-                if self.running:
-                    await self._handle_reconnect()
-    
-    async def _handle_reconnect(self) -> None:
-        """Handle reconnection with exponential backoff."""
-        await asyncio.sleep(self.reconnect_delay)
-        
-        # Exponential backoff
-        idx = WS_RECONNECT_BACKOFF.index(self.reconnect_delay) if self.reconnect_delay in WS_RECONNECT_BACKOFF else -1
-        if idx >= 0 and idx < len(WS_RECONNECT_BACKOFF) - 1:
-            self.reconnect_delay = WS_RECONNECT_BACKOFF[idx + 1]
-        else:
-            self.reconnect_delay = min(self.reconnect_delay * 2, WS_MAX_RECONNECT_DELAY)
-        
-        logger.info(f"Attempting reconnect in {self.reconnect_delay}s...")
-    
-    async def _handle_message(self, stream_name: str, data: Dict[str, Any]) -> None:
+        self._on_price_update.append(callback)
+        logger.info("Registered price update callback")
+
+    def register_flash_event_callback(self, callback: Callable) -> None:
         """
-        Route message to appropriate handler.
+        Register callback for flash crash/pump events.
         
         Args:
-            stream_name: Stream name that generated the message
-            data: Message data
+            callback: Function to call on flash event, signature: callback(symbol: str, event_type: str, change_pct: float)
         """
-        if '@markPrice' in stream_name:
-            await self._handle_mark_price(data)
-        elif '@forceOrder' in stream_name:
-            await self._handle_force_order(data)
-        elif '@kline_1m' in stream_name:
-            await self._handle_kline_1m(data)
-    
-    async def _handle_mark_price(self, data: Dict[str, Any]) -> None:
-        """Handle mark price updates."""
+        self._on_flash_event.append(callback)
+        logger.info("Registered flash event callback")
+
+    def register_liquidation_callback(self, callback: Callable) -> None:
+        """
+        Register callback for liquidation cascade events.
+        
+        Args:
+            callback: Function to call on liquidation cascade, signature: callback(symbol: str, data: dict)
+        """
+        self._on_liquidation_cascade.append(callback)
+        logger.info("Registered liquidation cascade callback")
+
+    def get_mark_price(self, symbol: str) -> Optional[float]:
+        """
+        Get current mark price for a symbol.
+        
+        Args:
+            symbol: Trading pair symbol
+            
+        Returns:
+            Current mark price or None if not available
+        """
+        return self._mark_prices.get(symbol)
+
+    def get_all_mark_prices(self) -> Dict[str, float]:
+        """
+        Get all cached mark prices.
+        
+        Returns:
+            Dictionary mapping symbol to mark price
+        """
+        return self._mark_prices.copy()
+
+    def _handle_mark_price(self, symbol: str, data: Dict[str, Any]) -> None:
+        """
+        Handle mark price update.
+        
+        Args:
+            symbol: Trading pair symbol
+            data: Mark price data from WebSocket
+        """
         try:
-            symbol = data.get('s', '')
+            # Extract mark price from data
+            # Data format: {'s': 'BTCUSDT', 'p': '50000.00', 'E': 1234567890}
             price = float(data.get('p', 0))
             
-            # Call registered callbacks
-            for callback in self.callbacks['mark_price']:
-                try:
-                    if asyncio.iscoroutinefunction(callback):
-                        await callback(symbol, price)
-                    else:
-                        callback(symbol, price)
-                except Exception as e:
-                    logger.error(f"Error in mark_price callback: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Error handling mark price: {e}")
-    
-    async def _handle_force_order(self, data: Dict[str, Any]) -> None:
-        """Handle liquidation orders."""
-        try:
-            order_data = data.get('o', {})
-            symbol = order_data.get('s', '')
-            side = order_data.get('S', '')
-            quantity = float(order_data.get('q', 0))
-            price = float(order_data.get('p', 0))
-            
-            liq_info = {
-                'symbol': symbol,
-                'side': side,
-                'quantity': quantity,
-                'price': price,
-                'timestamp': data.get('E', 0)
-            }
-            
-            # Call registered callbacks
-            for callback in self.callbacks['force_order']:
-                try:
-                    if asyncio.iscoroutinefunction(callback):
-                        await callback(symbol, liq_info)
-                    else:
-                        callback(symbol, liq_info)
-                except Exception as e:
-                    logger.error(f"Error in force_order callback: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Error handling force order: {e}")
-    
-    async def _handle_kline_1m(self, data: Dict[str, Any]) -> None:
-        """Handle 1-minute kline updates for flash crash detection."""
-        try:
-            kline = data.get('k', {})
-            symbol = kline.get('s', '')
-            
-            if kline.get('x', False):  # Candle closed
-                candle_data = {
-                    'symbol': symbol,
-                    'timestamp': kline.get('t', 0),
-                    'open': float(kline.get('o', 0)),
-                    'high': float(kline.get('h', 0)),
-                    'low': float(kline.get('l', 0)),
-                    'close': float(kline.get('c', 0)),
-                    'volume': float(kline.get('v', 0))
-                }
-                
-                # Buffer for flash crash detection
-                if symbol not in self.m1_candles:
-                    self.m1_candles[symbol] = []
-                
-                self.m1_candles[symbol].append(candle_data)
-                
-                # Keep only last window
-                max_candles = FLASH_CRASH_WINDOW_MINUTES
-                if len(self.m1_candles[symbol]) > max_candles:
-                    self.m1_candles[symbol] = self.m1_candles[symbol][-max_candles:]
-                
-                # Check for flash crash/pump
-                self._check_flash_event(symbol)
+            if price > 0:
+                self._mark_prices[symbol] = price
                 
                 # Call registered callbacks
-                for callback in self.callbacks['kline_1m']:
+                for callback in self._on_price_update:
                     try:
-                        if asyncio.iscoroutinefunction(callback):
-                            await callback(symbol, candle_data)
-                        else:
-                            callback(symbol, candle_data)
+                        callback(symbol, price)
                     except Exception as e:
-                        logger.error(f"Error in kline_1m callback: {e}")
-                        
+                        logger.error(f"Error in price update callback: {e}")
         except Exception as e:
-            logger.error(f"Error handling kline_1m: {e}")
-    
+            logger.error(f"Error handling mark price for {symbol}: {e}")
+
+    def _handle_kline_1m(self, symbol: str, data: Dict[str, Any]) -> None:
+        """
+        Handle 1-minute kline update for flash crash detection.
+        
+        Buffers last N candles and detects >5% price change in 5 minutes.
+        
+        Args:
+            symbol: Trading pair symbol
+            data: Kline data from WebSocket
+        """
+        try:
+            kline = data.get('k', {})
+            
+            # Only process closed candles
+            if not kline.get('x', False):
+                return
+            
+            candle_data = {
+                'timestamp': kline.get('t', 0),
+                'open': float(kline.get('o', 0)),
+                'high': float(kline.get('h', 0)),
+                'low': float(kline.get('l', 0)),
+                'close': float(kline.get('c', 0)),
+                'volume': float(kline.get('v', 0)),
+            }
+            
+            # Initialize buffer for symbol if needed
+            if symbol not in self._kline_buffer:
+                self._kline_buffer[symbol] = deque(maxlen=FLASH_CRASH_WINDOW_MINUTES)
+            
+            self._kline_buffer[symbol].append(candle_data)
+            
+            # Check for flash event if we have enough candles
+            if len(self._kline_buffer[symbol]) >= FLASH_CRASH_WINDOW_MINUTES:
+                self._check_flash_event(symbol)
+                
+        except Exception as e:
+            logger.error(f"Error handling kline for {symbol}: {e}")
+
     def _check_flash_event(self, symbol: str) -> None:
         """
         Check for flash crash or pump (>5% move in 5 minutes).
@@ -213,72 +176,198 @@ class WebSocketManager:
         Args:
             symbol: Trading pair symbol
         """
-        if symbol not in self.m1_candles or len(self.m1_candles[symbol]) < FLASH_CRASH_WINDOW_MINUTES:
-            return
-        
-        candles = self.m1_candles[symbol]
-        start_price = candles[0]['open']
-        end_price = candles[-1]['close']
-        
-        if start_price == 0:
-            return
-        
-        change_pct = abs((end_price - start_price) / start_price)
-        
-        if change_pct >= FLASH_CRASH_THRESHOLD_PCT:
-            direction = "PUMP" if end_price > start_price else "CRASH"
-            logger.warning(f"⚠️  Flash {direction} detected on {symbol}: {change_pct*100:.2f}% in {FLASH_CRASH_WINDOW_MINUTES} min")
+        try:
+            candles = list(self._kline_buffer[symbol])
             
-            # Could trigger alert here
-    
-    def subscribe_symbol(self, symbol: str) -> List[str]:
+            if len(candles) < FLASH_CRASH_WINDOW_MINUTES:
+                return
+            
+            start_price = candles[0]['open']
+            end_price = candles[-1]['close']
+            
+            if start_price == 0:
+                return
+            
+            change_pct = (end_price - start_price) / start_price
+            
+            if abs(change_pct) >= FLASH_CRASH_THRESHOLD_PCT:
+                event_type = "FLASH_PUMP" if change_pct > 0 else "FLASH_CRASH"
+                
+                logger.warning(
+                    f"⚠️  {event_type} detected on {symbol}: "
+                    f"{abs(change_pct) * 100:.2f}% in {FLASH_CRASH_WINDOW_MINUTES} min"
+                )
+                
+                # Call registered callbacks
+                for callback in self._on_flash_event:
+                    try:
+                        callback(symbol, event_type, abs(change_pct))
+                    except Exception as e:
+                        logger.error(f"Error in flash event callback: {e}")
+        except Exception as e:
+            logger.error(f"Error checking flash event for {symbol}: {e}")
+
+    def _handle_liquidation(self, symbol: str, data: Dict[str, Any]) -> None:
         """
-        Generate stream names for a symbol.
+        Handle liquidation order stream.
+        
+        Buffers 24h of liquidations and detects cascades (>2x average volume).
         
         Args:
             symbol: Trading pair symbol
+            data: Liquidation data from WebSocket
+        """
+        try:
+            order_data = data.get('o', {})
             
+            liq_data = {
+                'timestamp': data.get('E', 0),
+                'side': order_data.get('S', ''),
+                'quantity': float(order_data.get('q', 0)),
+                'price': float(order_data.get('p', 0)),
+            }
+            
+            # Initialize buffer for symbol if needed (24h rolling buffer for liquidation events)
+            if symbol not in self._liquidation_buffer:
+                self._liquidation_buffer[symbol] = deque(maxlen=1440)  # 1440 = 24h assuming ~1 event/min avg
+            
+            self._liquidation_buffer[symbol].append(liq_data)
+            
+            # Check for cascade
+            self._check_liquidation_cascade(symbol)
+            
+        except Exception as e:
+            logger.error(f"Error handling liquidation for {symbol}: {e}")
+
+    def _check_liquidation_cascade(self, symbol: str) -> None:
+        """
+        Check for liquidation cascade (recent volume > 2x average).
+        
+        Args:
+            symbol: Trading pair symbol
+        """
+        try:
+            liquidations = list(self._liquidation_buffer.get(symbol, []))
+            
+            if len(liquidations) < 60:  # Need at least 1 hour of data
+                return
+            
+            # Calculate volumes
+            now = datetime.now().timestamp() * 1000
+            recent_window = 5 * 60 * 1000  # Last 5 minutes
+            
+            recent_vol = sum(
+                liq['quantity'] for liq in liquidations
+                if now - liq['timestamp'] <= recent_window
+            )
+            
+            total_vol = sum(liq['quantity'] for liq in liquidations)
+            avg_vol_per_5min = total_vol / (len(liquidations) / 5) if liquidations else 0
+            
+            if avg_vol_per_5min > 0 and recent_vol > avg_vol_per_5min * LIQUIDATION_ALERT_MULTIPLIER:
+                logger.warning(
+                    f"⚠️  Liquidation cascade detected on {symbol}: "
+                    f"Recent volume {recent_vol:.2f} is {recent_vol / avg_vol_per_5min:.1f}x average"
+                )
+                
+                # Call registered callbacks
+                cascade_data = {
+                    'recent_volume': recent_vol,
+                    'average_volume': avg_vol_per_5min,
+                    'multiplier': recent_vol / avg_vol_per_5min,
+                }
+                
+                for callback in self._on_liquidation_cascade:
+                    try:
+                        callback(symbol, cascade_data)
+                    except Exception as e:
+                        logger.error(f"Error in liquidation cascade callback: {e}")
+        except Exception as e:
+            logger.error(f"Error checking liquidation cascade for {symbol}: {e}")
+
+    async def start(self) -> None:
+        """
+        Start WebSocket connections for all configured symbols.
+        
+        Subscribes to:
+        - Mark price stream (1s updates)
+        - Kline 1m stream (for flash detection)
+        - Liquidation order stream
+        - Global liquidation stream
+        """
+        try:
+            logger.info("Starting WebSocket streams...")
+            
+            # Create WebSocket connection
+            self._connection = await self._client.websocket_streams.create_connection()
+            
+            # Subscribe to streams for each symbol
+            for symbol in ALL_SYMBOLS:
+                symbol_lower = symbol.lower()
+                
+                # Mark price stream
+                mark_price_stream = self._connection.mark_price_stream(
+                    symbol=symbol_lower,
+                    update_speed="1s"
+                )
+                mark_price_stream.on("message", lambda data, s=symbol: self._handle_mark_price(s, data))
+                self._active_streams.append(f"{symbol_lower}@markPrice@1s")
+                
+                # Kline 1m stream
+                kline_stream = self._connection.kline_candlestick_streams(
+                    symbol=symbol_lower,
+                    interval="1m"
+                )
+                kline_stream.on("message", lambda data, s=symbol: self._handle_kline_1m(s, data))
+                self._active_streams.append(f"{symbol_lower}@kline_1m")
+                
+                # Liquidation stream for specific symbol
+                liq_stream = self._connection.liquidation_order_streams(symbol=symbol_lower)
+                liq_stream.on("message", lambda data, s=symbol: self._handle_liquidation(s, data))
+                self._active_streams.append(f"{symbol_lower}@forceOrder")
+                
+                # Small delay between subscriptions to avoid rate limits
+                await asyncio.sleep(0.1)
+            
+            # Subscribe to global liquidation stream
+            global_liq_stream = self._connection.all_market_liquidation_order_streams()
+            global_liq_stream.on("message", lambda data: self._handle_liquidation("ALL", data))
+            self._active_streams.append("!forceOrder@arr")
+            
+            logger.info(f"WebSocket manager started with {len(self._active_streams)} streams")
+            
+        except Exception as e:
+            logger.error(f"Error starting WebSocket manager: {e}")
+            raise
+
+    async def stop(self) -> None:
+        """
+        Stop WebSocket connections and cleanup.
+        """
+        try:
+            if self._connection:
+                # Unsubscribe from all streams
+                for stream in self._active_streams:
+                    try:
+                        # Note: Actual unsubscribe method depends on SDK implementation
+                        logger.debug(f"Unsubscribing from {stream}")
+                    except Exception as e:
+                        logger.warning(f"Error unsubscribing from {stream}: {e}")
+                
+                # Close connection
+                await self._connection.close()
+                self._connection = None
+                self._active_streams.clear()
+                
+                logger.info("WebSocket manager stopped")
+        except Exception as e:
+            logger.error(f"Error stopping WebSocket manager: {e}")
+
+    def is_connected(self) -> bool:
+        """
+        Check if WebSocket is connected.
+        
         Returns:
-            List of stream names
+            True if connected, False otherwise
         """
-        symbol_lower = symbol.lower()
-        return [
-            f"{symbol_lower}@markPrice@1s",
-            f"{symbol_lower}@forceOrder",
-            f"{symbol_lower}@kline_1m"
-        ]
-    
-    async def subscribe_all(self, symbols: List[str]) -> None:
-        """
-        Subscribe to all streams for multiple symbols.
-        
-        Args:
-            symbols: List of trading pair symbols
-        """
-        self.running = True
-        
-        # Combine all streams
-        all_streams = []
-        for symbol in symbols:
-            all_streams.extend(self.subscribe_symbol(symbol))
-        
-        # Create combined stream URL
-        combined_stream = '/'.join(all_streams)
-        
-        # Start connection task
-        logger.info(f"Starting WebSocket for {len(symbols)} symbols...")
-        await self._connect_stream(combined_stream)
-    
-    async def start(self, symbols: List[str]) -> None:
-        """
-        Start WebSocket manager.
-        
-        Args:
-            symbols: List of trading pair symbols
-        """
-        await self.subscribe_all(symbols)
-    
-    def stop(self) -> None:
-        """Stop WebSocket manager."""
-        self.running = False
-        logger.info("WebSocket manager stopped")
+        return self._connection is not None

@@ -13,8 +13,19 @@ load_dotenv()
 # Binance API Configuration
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "")
-BINANCE_BASE_URL = "https://fapi.binance.com"
-BINANCE_WS_URL = "wss://fstream.binance.com/ws/"
+
+# Key Pair Authentication (Ed25519 - opcional, mais seguro)
+BINANCE_PRIVATE_KEY_PATH = os.getenv("BINANCE_PRIVATE_KEY_PATH", "")
+BINANCE_PRIVATE_KEY_PASSPHRASE = os.getenv("BINANCE_PRIVATE_KEY_PASSPHRASE", "")
+
+# Binance URLs - Testnet
+BINANCE_TESTNET_REST_URL = "https://testnet.binancefuture.com"
+BINANCE_TESTNET_WS_URL = "wss://stream.binancefuture.com"
+
+# Production URLs are imported from SDK
+# DERIVATIVES_TRADING_USDS_FUTURES_REST_API_PROD_URL
+# DERIVATIVES_TRADING_USDS_FUTURES_WS_API_PROD_URL
+# DERIVATIVES_TRADING_USDS_FUTURES_WS_STREAMS_PROD_URL
 
 # Database Configuration
 DB_PATH = "db/crypto_agent.db"
@@ -44,8 +55,10 @@ H4_EXECUTION_HOURS = [0, 4, 8, 12, 16, 20]
 FUNDING_RATE_HOURS = [0, 8, 16]
 
 # API Retry Configuration
+API_MAX_RETRIES = 3
 API_RETRY_ATTEMPTS = 3
-API_RETRY_BACKOFF = [5, 15, 45]  # seconds
+API_RETRY_DELAYS = [5, 15, 45]  # seconds
+API_RETRY_BACKOFF = [5, 15, 45]  # seconds (backward compat)
 
 # Data Collection Limits
 KLINES_LIMIT = 1500  # Max per Binance request
