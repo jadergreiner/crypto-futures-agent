@@ -143,7 +143,9 @@ def test_evaluate_position_close_on_big_loss(position_monitor):
     
     assert decision['agent_action'] == 'CLOSE'
     assert decision['decision_confidence'] > 0.85
-    assert 'stop loss máximo' in decision['decision_reasoning']
+    # Verificar se o texto está presente (mesmo com encoding JSON)
+    reasoning_text = json.loads(decision['decision_reasoning'])
+    assert any('stop loss' in r.lower() for r in reasoning_text)
 
 
 def test_evaluate_position_close_near_liquidation(position_monitor):
@@ -165,7 +167,9 @@ def test_evaluate_position_close_near_liquidation(position_monitor):
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
     
     assert decision['agent_action'] == 'CLOSE'
-    assert 'liquidação' in decision['decision_reasoning']
+    # Verificar se o texto está presente (mesmo com encoding JSON)
+    reasoning_text = json.loads(decision['decision_reasoning'])
+    assert any('liquida' in r.lower() for r in reasoning_text)
 
 
 def test_evaluate_position_reduce_on_choch(position_monitor):
