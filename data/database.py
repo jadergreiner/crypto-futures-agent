@@ -467,18 +467,35 @@ class DatabaseManager:
             return [dict(row) for row in rows]
     
     def insert_sentiment(self, data: List[Dict[str, Any]]) -> None:
-        """Insert market sentiment data."""
+        """Insere dados de sentimento do mercado."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Normalizar registros — preencher campos ausentes com None
+            registros_normalizados = [
+                {
+                    'timestamp': registro.get('timestamp'),
+                    'symbol': registro.get('symbol'),
+                    'long_short_ratio': registro.get('long_short_ratio'),
+                    'open_interest': registro.get('open_interest'),
+                    'open_interest_change_pct': registro.get('open_interest_change_pct'),
+                    'funding_rate': registro.get('funding_rate'),
+                    'liquidations_long_vol': registro.get('liquidations_long_vol'),
+                    'liquidations_short_vol': registro.get('liquidations_short_vol'),
+                    'liquidations_total_vol': registro.get('liquidations_total_vol'),
+                }
+                for registro in data
+            ]
+            
             cursor.executemany("""
                 INSERT OR REPLACE INTO sentimento_mercado
                 (timestamp, symbol, long_short_ratio, open_interest, open_interest_change_pct,
                  funding_rate, liquidations_long_vol, liquidations_short_vol, liquidations_total_vol)
                 VALUES (:timestamp, :symbol, :long_short_ratio, :open_interest, :open_interest_change_pct,
                         :funding_rate, :liquidations_long_vol, :liquidations_short_vol, :liquidations_total_vol)
-            """, data)
+            """, registros_normalizados)
         
-        logger.debug(f"Inserted {len(data)} sentiment records")
+        logger.debug(f"{len(registros_normalizados)} registros de sentimento inseridos")
     
     def get_sentiment(self, symbol: str, start_time: Optional[int] = None, 
                       limit: Optional[int] = None) -> List[Dict[str, Any]]:
