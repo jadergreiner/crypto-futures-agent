@@ -269,6 +269,26 @@ def main():
         help='Backtest end date (YYYY-MM-DD)'
     )
     
+    parser.add_argument(
+        '--monitor',
+        action='store_true',
+        help='Monitor open positions in real-time'
+    )
+    
+    parser.add_argument(
+        '--monitor-symbol',
+        type=str,
+        default=None,
+        help='Symbol to monitor (e.g., C98USDT). If omitted, monitors all.'
+    )
+    
+    parser.add_argument(
+        '--monitor-interval',
+        type=int,
+        default=300,
+        help='Monitor interval in seconds (default: 300 = 5min)'
+    )
+    
     args = parser.parse_args()
     
     # Banner
@@ -300,6 +320,15 @@ def main():
             logger.error("Backtest requires --start-date and --end-date")
             sys.exit(1)
         run_backtest(args.start_date, args.end_date)
+        sys.exit(0)
+    
+    if args.monitor:
+        # Modo monitoramento de posições
+        from monitoring.position_monitor import PositionMonitor
+        client = create_binance_client(mode=args.mode)
+        logger.info(f"Binance client created in {args.mode} mode")
+        monitor = PositionMonitor(client, db, mode=args.mode)
+        monitor.run_continuous(symbol=args.monitor_symbol, interval_seconds=args.monitor_interval)
         sys.exit(0)
     
     # Modo operacional padrão - criar client para operação
