@@ -61,7 +61,9 @@ def main():
         if not df.empty:
             logger.info(f"✓ Coletados {len(df)} candles")
             logger.info(f"   Primeiro timestamp: {df['timestamp'].iloc[0]}")
-            logger.info(f"   Último close: ${df['close'].iloc[-1]:,.2f}")
+            # Safe access to last close price
+            if len(df) > 0:
+                logger.info(f"   Último close: ${df['close'].iloc[-1]:,.2f}")
             
             # Validar dados
             is_valid, issues = collector.validate_data(df, interval)

@@ -275,9 +275,13 @@ class SentimentCollector:
             
         Returns:
             Dict with taker volume data
+            
+        Note:
+            Using PERIOD_MAP_LS enum for period. If SDK uses different enum for this endpoint,
+            this may need to be updated based on SDK documentation.
         """
         # Note: The SDK period enum might be different for this endpoint
-        # Using the same mapping as long_short_ratio for now
+        # Using the same mapping as long_short_ratio. Verify with SDK docs if issues occur.
         period_enum = self.PERIOD_MAP_LS.get(period)
         if not period_enum:
             raise ValueError(f"Invalid period: {period}. Must be one of {list(self.PERIOD_MAP_LS.keys())}")

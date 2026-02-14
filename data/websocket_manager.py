@@ -227,9 +227,9 @@ class WebSocketManager:
                 'price': float(order_data.get('p', 0)),
             }
             
-            # Initialize buffer for symbol if needed (24h window)
+            # Initialize buffer for symbol if needed (24h rolling buffer for liquidation events)
             if symbol not in self._liquidation_buffer:
-                self._liquidation_buffer[symbol] = deque(maxlen=1440)  # ~24h of 1-minute data
+                self._liquidation_buffer[symbol] = deque(maxlen=1440)  # 1440 = 24h assuming ~1 event/min avg
             
             self._liquidation_buffer[symbol].append(liq_data)
             

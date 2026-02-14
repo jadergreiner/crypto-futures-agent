@@ -68,7 +68,7 @@ class BinanceCollector:
         "1d": 24 * 60 * 60 * 1000,
         "3d": 3 * 24 * 60 * 60 * 1000,
         "1w": 7 * 24 * 60 * 60 * 1000,
-        "1M": 30 * 24 * 60 * 60 * 1000,  # Approximation
+        "1M": 30 * 24 * 60 * 60 * 1000,  # Approximation (may vary by actual month length)
     }
     
     MAX_KLINES_PER_REQUEST = 1000
