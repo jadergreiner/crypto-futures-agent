@@ -278,15 +278,14 @@ def main():
     print("="*60)
     print()
     
-    # Create Binance client based on mode
-    client = create_binance_client(mode=args.mode)
-    logger.info(f"Binance client created in {args.mode} mode")
-    
     # Setup database
     db = setup_database()
     
     # Fluxo de execução
     if args.setup:
+        # Create Binance client for setup
+        client = create_binance_client(mode=args.mode)
+        logger.info(f"Binance client created in {args.mode} mode")
         collect_historical_data(db, client)
         calculate_indicators(db)
         logger.info("Setup completed successfully")
@@ -303,7 +302,9 @@ def main():
         run_backtest(args.start_date, args.end_date)
         sys.exit(0)
     
-    # Modo operacional padrão
+    # Modo operacional padrão - criar client para operação
+    client = create_binance_client(mode=args.mode)
+    logger.info(f"Binance client created in {args.mode} mode")
     start_operation(args.mode, client)
 
 

@@ -157,12 +157,13 @@ echo For more information, see README.md
 echo ==============================================================================
 echo.
 
-REM Ask if user wants to run database setup
-set /p SETUP_DB="Do you want to run database setup now? (y/n): "
-if /i "%SETUP_DB%"=="y" (
+REM Ask if user wants to run initial setup
+set /p RUN_SETUP="Do you want to run initial setup now? (y/n): "
+if /i "%RUN_SETUP%"=="y" (
     echo.
-    echo Running database setup...
-    echo This will collect historical data and may take several minutes...
+    echo Running initial setup...
+    echo This will initialize the database, collect historical data, and calculate indicators...
+    echo This may take several minutes...
     echo.
     python main.py --setup
     if %errorlevel% neq 0 (
@@ -170,11 +171,11 @@ if /i "%SETUP_DB%"=="y" (
         echo [WARNING] Setup encountered errors. Please check the logs.
     ) else (
         echo.
-        echo [OK] Database setup completed successfully!
+        echo [OK] Initial setup completed successfully!
     )
 ) else (
     echo.
-    echo Skipping database setup. Run it later with: python main.py --setup
+    echo Skipping initial setup. Run it later with: python main.py --setup
 )
 
 echo.
