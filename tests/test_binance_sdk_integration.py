@@ -174,6 +174,44 @@ class TestBinanceCollector:
         is_valid, issues = collector.validate_data(df, "1h")
         assert is_valid is False
         assert any('negative' in issue.lower() for issue in issues)
+    
+    def test_extract_data_with_api_response(self):
+        """Testa extração de dados de um objeto ApiResponse mockado."""
+        mock_client = Mock()
+        collector = BinanceCollector(mock_client)
+        
+        # Mock de ApiResponse com atributo .data
+        mock_response = Mock()
+        mock_response.data = [1, 2, 3]
+        
+        result = collector._extract_data(mock_response)
+        assert result == [1, 2, 3]
+    
+    def test_extract_data_with_raw_list(self):
+        """Testa extração quando já é uma lista (sem ApiResponse)."""
+        mock_client = Mock()
+        collector = BinanceCollector(mock_client)
+        
+        raw_data = [1, 2, 3]
+        result = collector._extract_data(raw_data)
+        assert result == [1, 2, 3]
+    
+    def test_extract_data_with_raw_dict(self):
+        """Testa extração quando já é um dict (sem ApiResponse)."""
+        mock_client = Mock()
+        collector = BinanceCollector(mock_client)
+        
+        raw_data = {'key': 'value'}
+        result = collector._extract_data(raw_data)
+        assert result == {'key': 'value'}
+    
+    def test_extract_data_with_none(self):
+        """Testa extração quando resposta é None."""
+        mock_client = Mock()
+        collector = BinanceCollector(mock_client)
+        
+        result = collector._extract_data(None)
+        assert result is None
 
 
 class TestSentimentCollector:
@@ -196,6 +234,35 @@ class TestSentimentCollector:
         mock_client = Mock()
         collector = SentimentCollector(mock_client)
         assert collector._client == mock_client
+    
+    def test_extract_data_with_api_response(self):
+        """Testa extração de dados de um objeto ApiResponse mockado."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+        
+        # Mock de ApiResponse com atributo .data
+        mock_response = Mock()
+        mock_response.data = [{'long_short_ratio': 1.5}]
+        
+        result = collector._extract_data(mock_response)
+        assert result == [{'long_short_ratio': 1.5}]
+    
+    def test_extract_data_with_raw_list(self):
+        """Testa extração quando já é uma lista (sem ApiResponse)."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+        
+        raw_data = [{'open_interest': 1000}]
+        result = collector._extract_data(raw_data)
+        assert result == [{'open_interest': 1000}]
+    
+    def test_extract_data_with_none(self):
+        """Testa extração quando resposta é None."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+        
+        result = collector._extract_data(None)
+        assert result is None
 
     def test_fetch_all_sentiment_structure(self):
         """Test that fetch_all_sentiment returns proper structure."""

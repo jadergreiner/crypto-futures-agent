@@ -58,6 +58,29 @@ class PositionMonitor:
         
         logger.info(f"PositionMonitor inicializado em modo {mode}")
     
+    def _extract_data(self, response):
+        """
+        Extrai dados do wrapper ApiResponse do SDK.
+        
+        O SDK Binance encapsula respostas em um objeto ApiResponse.
+        Este método extrai com segurança o payload de dados real.
+        
+        Args:
+            response: Resposta bruta do SDK (ApiResponse ou dados diretos)
+            
+        Returns:
+            Os dados reais (list, dict, etc.)
+        """
+        if response is None:
+            return None
+        
+        # ApiResponse tem um atributo .data contendo o payload real
+        if hasattr(response, 'data'):
+            return response.data
+        
+        # Se já são os dados brutos (list, dict), retorna como está
+        return response
+    
     def fetch_open_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Busca posições abertas na Binance via SDK.
@@ -71,14 +94,15 @@ class PositionMonitor:
         try:
             # Usar endpoint positionRisk do SDK
             response = self._client.rest_api.position_information(symbol=symbol)
+            data = self._extract_data(response)
             
             positions = []
             
             # Processar resposta - pode ser lista ou dict dependendo se symbol foi passado
-            if isinstance(response, dict):
-                response = [response]
+            if isinstance(data, dict):
+                data = [data]
             
-            for pos_data in response:
+            for pos_data in data:
                 # Filtrar apenas posições abertas (positionAmt != 0)
                 position_amt = float(pos_data.get('positionAmt', 0))
                 if position_amt == 0:
