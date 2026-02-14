@@ -317,21 +317,21 @@ class PositionMonitor:
                     indicators['premium_discount_zone'] = 'equilibrium'
                 
                 # 7. Liquidez (calcular a partir dos swings, detect_liquidity não existe)
-                # Estimar liquidez a partir dos swing highs e lows
+                # Estimar liquidez a partir dos swing points
                 if swings:
-                    # Buy Side Liquidity (BSL) = swing highs
-                    swing_highs = [s.price for s in swings if s.type in [SwingType.HH, SwingType.LH]]
-                    # Sell Side Liquidity (SSL) = swing lows  
-                    swing_lows = [s.price for s in swings if s.type in [SwingType.LL, SwingType.HL]]
+                    # Buy Side Liquidity (BSL) = pontos de swing high (HH e LH)
+                    bsl_points = [s.price for s in swings if s.type in [SwingType.HH, SwingType.LH]]
+                    # Sell Side Liquidity (SSL) = pontos de swing low (LL e HL)
+                    ssl_points = [s.price for s in swings if s.type in [SwingType.LL, SwingType.HL]]
                     
-                    if swing_highs:
-                        max_bsl = max(swing_highs)
+                    if bsl_points:
+                        max_bsl = max(bsl_points)
                         indicators['liquidity_above_pct'] = ((max_bsl - current_price) / current_price) * 100
                     else:
                         indicators['liquidity_above_pct'] = None
                     
-                    if swing_lows:
-                        min_ssl = min(swing_lows)
+                    if ssl_points:
+                        min_ssl = min(ssl_points)
                         indicators['liquidity_below_pct'] = ((current_price - min_ssl) / current_price) * 100
                     else:
                         indicators['liquidity_below_pct'] = None
