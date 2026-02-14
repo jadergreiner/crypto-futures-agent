@@ -44,7 +44,7 @@ def collect_historical_data(db: DatabaseManager, client) -> None:
         client: Binance SDK client instance
     """
     logger.info("="*60)
-    logger.info("COLLECTING HISTORICAL DATA")
+    logger.info("COLETANDO DADOS HISTÓRICOS")
     logger.info("="*60)
     
     collector = BinanceCollector(client)
@@ -52,47 +52,47 @@ def collect_historical_data(db: DatabaseManager, client) -> None:
     macro_collector = MacroCollector()
     
     for symbol in ALL_SYMBOLS:
-        logger.info(f"Collecting data for {symbol}...")
+        logger.info(f"Coletando dados para {symbol}...")
         
         try:
             # OHLCV D1 (365 dias)
             d1_data = collector.fetch_historical(symbol, "1d", 365)
-            if d1_data:
+            if d1_data is not None and not d1_data.empty:
                 db.insert_ohlcv("d1", d1_data)
-                logger.info(f"  {len(d1_data)} D1 candles inserted")
+                logger.info(f"  {len(d1_data)} candles D1 inseridos")
             
             # OHLCV H4 (180 dias)
             h4_data = collector.fetch_historical(symbol, "4h", 180)
-            if h4_data:
+            if h4_data is not None and not h4_data.empty:
                 db.insert_ohlcv("h4", h4_data)
-                logger.info(f"  {len(h4_data)} H4 candles inserted")
+                logger.info(f"  {len(h4_data)} candles H4 inseridos")
             
             # OHLCV H1 (90 dias)
             h1_data = collector.fetch_historical(symbol, "1h", 90)
-            if h1_data:
+            if h1_data is not None and not h1_data.empty:
                 db.insert_ohlcv("h1", h1_data)
-                logger.info(f"  {len(h1_data)} H1 candles inserted")
+                logger.info(f"  {len(h1_data)} candles H1 inseridos")
             
             # Sentiment
             sentiment = sentiment_collector.fetch_all_sentiment(symbol)
             if sentiment:
                 db.insert_sentiment([sentiment])
-                logger.info(f"  Sentiment data inserted")
+                logger.info(f"  Dados de sentimento inseridos")
             
         except Exception as e:
-            logger.error(f"Error collecting data for {symbol}: {e}")
+            logger.error(f"Erro ao coletar dados para {symbol}: {e}")
     
     # Macro data
-    logger.info("Collecting macro data...")
+    logger.info("Coletando dados macro...")
     try:
         macro = macro_collector.fetch_all_macro()
         if macro:
             db.insert_macro(macro)
-            logger.info("  Macro data inserted")
+            logger.info("  Dados macro inseridos")
     except Exception as e:
-        logger.error(f"Error collecting macro data: {e}")
+        logger.error(f"Erro ao coletar dados macro: {e}")
     
-    logger.info("Historical data collection completed")
+    logger.info("Coleta de dados históricos concluída")
 
 
 def calculate_indicators(db: DatabaseManager) -> None:
@@ -103,7 +103,7 @@ def calculate_indicators(db: DatabaseManager) -> None:
         db: DatabaseManager
     """
     logger.info("="*60)
-    logger.info("CALCULATING INDICATORS")
+    logger.info("CALCULANDO INDICADORES")
     logger.info("="*60)
     
     from indicators.technical import TechnicalIndicators
@@ -111,12 +111,12 @@ def calculate_indicators(db: DatabaseManager) -> None:
     import pandas as pd
     
     for symbol in ALL_SYMBOLS:
-        logger.info(f"Calculating indicators for {symbol}...")
+        logger.info(f"Calculando indicadores para {symbol}...")
         
         try:
             # Calcular para H4
             h4_data = db.get_ohlcv("h4", symbol)
-            if h4_data:
+            if h4_data is not None and len(h4_data) > 0:
                 df = pd.DataFrame(h4_data)
                 df = TechnicalIndicators.calculate_all(df)
                 
@@ -153,12 +153,12 @@ def calculate_indicators(db: DatabaseManager) -> None:
                     })
                 
                 db.insert_indicators(indicators_data)
-                logger.info(f"  {len(indicators_data)} H4 indicator records inserted")
+                logger.info(f"  {len(indicators_data)} registros de indicadores H4 inseridos")
         
         except Exception as e:
-            logger.error(f"Error calculating indicators for {symbol}: {e}")
+            logger.error(f"Erro ao calcular indicadores para {symbol}: {e}")
     
-    logger.info("Indicator calculation completed")
+    logger.info("Cálculo de indicadores concluído")
 
 
 def train_model() -> None:
