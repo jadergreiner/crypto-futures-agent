@@ -101,7 +101,7 @@ class SentimentCollector:
         Extrai dados do wrapper ApiResponse do SDK.
         
         O SDK Binance encapsula respostas em um objeto ApiResponse.
-        Este método extrai com segurança o payload de dados real.
+        O atributo .data pode ser uma property (acesso direto) ou um método (precisa chamar).
         
         Args:
             response: Resposta bruta do SDK (ApiResponse ou dados diretos)
@@ -114,7 +114,11 @@ class SentimentCollector:
         
         # ApiResponse tem um atributo .data contendo o payload real
         if hasattr(response, 'data'):
-            return response.data
+            data = response.data
+            # .data pode ser um método que precisa ser chamado
+            if callable(data):
+                return data()
+            return data
         
         # Se já são os dados brutos (list, dict), retorna como está
         return response

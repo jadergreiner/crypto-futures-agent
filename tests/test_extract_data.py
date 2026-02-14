@@ -15,7 +15,7 @@ class MockBinanceCollector:
         Extrai dados do wrapper ApiResponse do SDK.
         
         O SDK Binance encapsula respostas em um objeto ApiResponse.
-        Este método extrai com segurança o payload de dados real.
+        O atributo .data pode ser uma property (acesso direto) ou um método (precisa chamar).
         
         Args:
             response: Resposta bruta do SDK (ApiResponse ou dados diretos)
@@ -28,7 +28,11 @@ class MockBinanceCollector:
         
         # ApiResponse tem um atributo .data contendo o payload real
         if hasattr(response, 'data'):
-            return response.data
+            data = response.data
+            # .data pode ser um método que precisa ser chamado
+            if callable(data):
+                return data()
+            return data
         
         # Se já são os dados brutos (list, dict), retorna como está
         return response
@@ -117,21 +121,66 @@ class TestExtractDataMethod:
         assert isinstance(result, dict)
     
     def test_extract_data_with_nested_api_response(self):
-        """Testa que não faz unwrap duplo (apenas primeiro nível)."""
+        """Testa que não faz unwrap duplo quando .data não é callable."""
         collector = MockBinanceCollector()
         
-        # Mock de um objeto nested que também tem .data
-        inner_mock = Mock()
-        inner_mock.data = "inner_value"
+        # Mock de um objeto nested que também tem .data (non-callable)
+        inner_object = {'nested': 'data', 'value': 123}
         
         mock_response = Mock()
-        mock_response.data = inner_mock
+        # Usando spec para garantir que .data não seja callable
+        mock_response.data = inner_object
         
         result = collector._extract_data(mock_response)
         
-        # Deve retornar o objeto interno, NÃO fazer unwrap recursivo
-        assert result == inner_mock
-        assert hasattr(result, 'data')
+        # Deve retornar o objeto interno diretamente (não fazer unwrap recursivo)
+        assert result == inner_object
+        assert result is inner_object
+    
+    def test_extract_data_with_callable_data_method(self):
+        """Testa extração quando .data é um método callable (cenário real do SDK Binance)."""
+        collector = MockBinanceCollector()
+        
+        # Mock de ApiResponse onde .data é um método callable
+        mock_response = Mock()
+        expected_data = [
+            {'timestamp': 1234567890, 'symbol': 'BTCUSDT', 'price': 50000}
+        ]
+        mock_response.data = Mock(return_value=expected_data)
+        
+        result = collector._extract_data(mock_response)
+        
+        # Deve chamar o método .data() e retornar o resultado
+        assert result == expected_data
+        assert isinstance(result, list)
+        mock_response.data.assert_called_once()
+    
+    def test_extract_data_with_callable_data_returns_dict(self):
+        """Testa extração quando .data() retorna um dict."""
+        collector = MockBinanceCollector()
+        
+        mock_response = Mock()
+        expected_data = {'funding_rate': 0.0001, 'timestamp': 1234567890}
+        mock_response.data = Mock(return_value=expected_data)
+        
+        result = collector._extract_data(mock_response)
+        
+        assert result == expected_data
+        assert isinstance(result, dict)
+        mock_response.data.assert_called_once()
+    
+    def test_extract_data_with_callable_data_returns_empty_list(self):
+        """Testa extração quando .data() retorna lista vazia."""
+        collector = MockBinanceCollector()
+        
+        mock_response = Mock()
+        mock_response.data = Mock(return_value=[])
+        
+        result = collector._extract_data(mock_response)
+        
+        assert result == []
+        assert isinstance(result, list)
+        mock_response.data.assert_called_once()
 
 
 if __name__ == '__main__':
