@@ -18,7 +18,7 @@ from data.database import DatabaseManager
 from data.collector import BinanceCollector
 from data.sentiment_collector import SentimentCollector
 from indicators.technical import TechnicalIndicators
-from indicators.smc import SmartMoneyConcepts
+from indicators.smc import SmartMoneyConcepts, SwingType
 from agent.risk_manager import RiskManager
 from monitoring.alerts import AlertManager
 from monitoring.logger import AgentLogger
@@ -85,18 +85,28 @@ class PositionMonitor:
         # Se já são os dados brutos (list, dict), retorna como está
         return response
     
-    def _safe_get(self, obj, attr: str, default=0):
+    def _safe_get(self, obj, attr, default=None):
         """
         Extrai atributo de objeto SDK ou dict de forma segura.
+        Suporta múltiplas variantes de nomes (camelCase e snake_case).
         
         Args:
             obj: Objeto SDK ou dict
-            attr: Nome do atributo
-            default: Valor padrão se não encontrado
+            attr: Nome do atributo ou lista de variantes (ex: ['positionAmt', 'position_amt'])
+            default: Valor padrão se não encontrado (None por padrão)
             
         Returns:
             Valor do atributo ou default
         """
+        # Se attr é uma lista, tenta cada variante
+        if isinstance(attr, list):
+            for attr_name in attr:
+                result = self._safe_get(obj, attr_name, default=None)
+                if result is not None:
+                    return result
+            return default
+        
+        # Caso base: attr é uma string
         if isinstance(obj, dict):
             return obj.get(attr, default)
         return getattr(obj, attr, default)
@@ -125,8 +135,7 @@ class PositionMonitor:
             for pos_data in data:
                 # Filtrar apenas posições abertas (positionAmt != 0)
                 # SDK pode usar snake_case ou camelCase dependendo da versão
-                position_amt = float(self._safe_get(pos_data, 'positionAmt', 
-                                                   self._safe_get(pos_data, 'position_amt', 0)))
+                position_amt = float(self._safe_get(pos_data, ['positionAmt', 'position_amt'], 0))
                 if position_amt == 0:
                     continue
                 
@@ -137,20 +146,14 @@ class PositionMonitor:
                 position = {
                     'symbol': self._safe_get(pos_data, 'symbol', ''),
                     'direction': direction,
-                    'entry_price': float(self._safe_get(pos_data, 'entryPrice', 
-                                                       self._safe_get(pos_data, 'entry_price', 0))),
-                    'mark_price': float(self._safe_get(pos_data, 'markPrice', 
-                                                      self._safe_get(pos_data, 'mark_price', 0))),
-                    'liquidation_price': float(self._safe_get(pos_data, 'liquidationPrice', 
-                                                             self._safe_get(pos_data, 'liquidation_price', 0))),
+                    'entry_price': float(self._safe_get(pos_data, ['entryPrice', 'entry_price'], 0)),
+                    'mark_price': float(self._safe_get(pos_data, ['markPrice', 'mark_price'], 0)),
+                    'liquidation_price': float(self._safe_get(pos_data, ['liquidationPrice', 'liquidation_price'], 0)),
                     'position_size_qty': abs(position_amt),
                     'leverage': int(self._safe_get(pos_data, 'leverage', 1)),
-                    'margin_type': self._safe_get(pos_data, 'marginType', 
-                                                 self._safe_get(pos_data, 'margin_type', 'ISOLATED')),
-                    'unrealized_pnl': float(self._safe_get(pos_data, 'unRealizedProfit', 
-                                                          self._safe_get(pos_data, 'un_realized_profit', 0))),
-                    'isolated_wallet': float(self._safe_get(pos_data, 'isolatedWallet', 
-                                                           self._safe_get(pos_data, 'isolated_wallet', 0))),
+                    'margin_type': self._safe_get(pos_data, ['marginType', 'margin_type'], 'ISOLATED'),
+                    'unrealized_pnl': float(self._safe_get(pos_data, ['unRealizedProfit', 'un_realized_profit'], 0)),
+                    'isolated_wallet': float(self._safe_get(pos_data, ['isolatedWallet', 'isolated_wallet'], 0)),
                 }
                 
                 # Calcular tamanho em USDT
@@ -313,8 +316,6 @@ class PositionMonitor:
                 # 7. Liquidez (calcular a partir dos swings, detect_liquidity não existe)
                 # Estimar liquidez a partir dos swing highs e lows
                 if swings:
-                    from indicators.smc import SwingType
-                    
                     # Buy Side Liquidity (BSL) = swing highs
                     swing_highs = [s.price for s in swings if s.type in [SwingType.HH, SwingType.LH]]
                     # Sell Side Liquidity (SSL) = swing lows  
