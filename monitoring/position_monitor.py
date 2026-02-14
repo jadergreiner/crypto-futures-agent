@@ -254,18 +254,21 @@ class PositionMonitor:
                 swings = self.smc.detect_swing_points(df_h1, lookback=5)
                 
                 # 2. Detectar estrutura de mercado (precisa de lista de swings, não DataFrame)
-                structure = self.smc.detect_market_structure(swings)
-                indicators['market_structure'] = structure.type.value  # StructureType enum -> string
+                if swings:
+                    structure = self.smc.detect_market_structure(swings)
+                    indicators['market_structure'] = structure.type.value if structure else 'range'
+                else:
+                    indicators['market_structure'] = 'range'
                 
                 # 3. Detectar BOS e CHoCH
-                bos_list = self.smc.detect_bos(df_h1, swings)
-                choch_list = self.smc.detect_choch(df_h1, swings)
+                bos_list = self.smc.detect_bos(df_h1, swings) if swings else []
+                choch_list = self.smc.detect_choch(df_h1, swings) if swings else []
                 
                 indicators['bos_recent'] = 1 if bos_list else 0
                 indicators['choch_recent'] = 1 if choch_list else 0
                 
                 # 4. Order Blocks (precisa de df, swings, bos_list)
-                obs = self.smc.detect_order_blocks(df_h1, swings, bos_list)
+                obs = self.smc.detect_order_blocks(df_h1, swings, bos_list) if swings else []
                 current_price = df_h1.iloc[-1]['close']
                 
                 # Calcular distância até OB mais próximo
