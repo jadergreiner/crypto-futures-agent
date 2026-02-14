@@ -35,21 +35,21 @@ class BinanceCollector:
     
     # Map interval strings to SDK enum values
     INTERVAL_MAP = {
-        "1m": KlineCandlestickDataIntervalEnum._1M,
-        "3m": KlineCandlestickDataIntervalEnum._3M,
-        "5m": KlineCandlestickDataIntervalEnum._5M,
-        "15m": KlineCandlestickDataIntervalEnum._15M,
-        "30m": KlineCandlestickDataIntervalEnum._30M,
-        "1h": KlineCandlestickDataIntervalEnum._1H,
-        "2h": KlineCandlestickDataIntervalEnum._2H,
-        "4h": KlineCandlestickDataIntervalEnum._4H,
-        "6h": KlineCandlestickDataIntervalEnum._6H,
-        "8h": KlineCandlestickDataIntervalEnum._8H,
-        "12h": KlineCandlestickDataIntervalEnum._12H,
-        "1d": KlineCandlestickDataIntervalEnum._1D,
-        "3d": KlineCandlestickDataIntervalEnum._3D,
-        "1w": KlineCandlestickDataIntervalEnum._1W,
-        "1M": KlineCandlestickDataIntervalEnum._1MONTH,
+        "1m": KlineCandlestickDataIntervalEnum.INTERVAL_1m,
+        "3m": KlineCandlestickDataIntervalEnum.INTERVAL_3m,
+        "5m": KlineCandlestickDataIntervalEnum.INTERVAL_5m,
+        "15m": KlineCandlestickDataIntervalEnum.INTERVAL_15m,
+        "30m": KlineCandlestickDataIntervalEnum.INTERVAL_30m,
+        "1h": KlineCandlestickDataIntervalEnum.INTERVAL_1h,
+        "2h": KlineCandlestickDataIntervalEnum.INTERVAL_2h,
+        "4h": KlineCandlestickDataIntervalEnum.INTERVAL_4h,
+        "6h": KlineCandlestickDataIntervalEnum.INTERVAL_6h,
+        "8h": KlineCandlestickDataIntervalEnum.INTERVAL_8h,
+        "12h": KlineCandlestickDataIntervalEnum.INTERVAL_12h,
+        "1d": KlineCandlestickDataIntervalEnum.INTERVAL_1d,
+        "3d": KlineCandlestickDataIntervalEnum.INTERVAL_3d,
+        "1w": KlineCandlestickDataIntervalEnum.INTERVAL_1w,
+        "1M": KlineCandlestickDataIntervalEnum.INTERVAL_1M,
     }
     
     # Interval durations in milliseconds

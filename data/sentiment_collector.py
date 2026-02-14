@@ -32,28 +32,28 @@ class SentimentCollector:
     
     # Map period strings to SDK enum values for Long/Short Ratio
     PERIOD_MAP_LS = {
-        "5m": LongShortRatioPeriodEnum._5M,
-        "15m": LongShortRatioPeriodEnum._15M,
-        "30m": LongShortRatioPeriodEnum._30M,
-        "1h": LongShortRatioPeriodEnum._1H,
-        "2h": LongShortRatioPeriodEnum._2H,
-        "4h": LongShortRatioPeriodEnum._4H,
-        "6h": LongShortRatioPeriodEnum._6H,
-        "12h": LongShortRatioPeriodEnum._12H,
-        "1d": LongShortRatioPeriodEnum._1D,
+        "5m": LongShortRatioPeriodEnum.PERIOD_5m,
+        "15m": LongShortRatioPeriodEnum.PERIOD_15m,
+        "30m": LongShortRatioPeriodEnum.PERIOD_30m,
+        "1h": LongShortRatioPeriodEnum.PERIOD_1h,
+        "2h": LongShortRatioPeriodEnum.PERIOD_2h,
+        "4h": LongShortRatioPeriodEnum.PERIOD_4h,
+        "6h": LongShortRatioPeriodEnum.PERIOD_6h,
+        "12h": LongShortRatioPeriodEnum.PERIOD_12h,
+        "1d": LongShortRatioPeriodEnum.PERIOD_1d,
     }
     
     # Map period strings to SDK enum values for Top Trader Ratio
     PERIOD_MAP_TOP_TRADER = {
-        "5m": TopTraderLongShortRatioPositionsPeriodEnum._5M,
-        "15m": TopTraderLongShortRatioPositionsPeriodEnum._15M,
-        "30m": TopTraderLongShortRatioPositionsPeriodEnum._30M,
-        "1h": TopTraderLongShortRatioPositionsPeriodEnum._1H,
-        "2h": TopTraderLongShortRatioPositionsPeriodEnum._2H,
-        "4h": TopTraderLongShortRatioPositionsPeriodEnum._4H,
-        "6h": TopTraderLongShortRatioPositionsPeriodEnum._6H,
-        "12h": TopTraderLongShortRatioPositionsPeriodEnum._12H,
-        "1d": TopTraderLongShortRatioPositionsPeriodEnum._1D,
+        "5m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_5m,
+        "15m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_15m,
+        "30m": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_30m,
+        "1h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_1h,
+        "2h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_2h,
+        "4h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_4h,
+        "6h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_6h,
+        "12h": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_12h,
+        "1d": TopTraderLongShortRatioPositionsPeriodEnum.PERIOD_1d,
     }
     
     def __init__(self, client: DerivativesTradingUsdsFutures):
