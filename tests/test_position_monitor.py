@@ -45,6 +45,29 @@ def test_position_monitor_initialization(position_monitor):
     assert position_monitor.risk_manager is not None
 
 
+def test_extract_data_with_api_response(position_monitor):
+    """Testa extração de dados de um objeto ApiResponse mockado."""
+    # Mock de ApiResponse com atributo .data
+    mock_response = Mock()
+    mock_response.data = [{'symbol': 'BTCUSDT', 'positionAmt': '1.5'}]
+    
+    result = position_monitor._extract_data(mock_response)
+    assert result == [{'symbol': 'BTCUSDT', 'positionAmt': '1.5'}]
+
+
+def test_extract_data_with_raw_list(position_monitor):
+    """Testa extração quando já é uma lista (sem ApiResponse)."""
+    raw_data = [{'symbol': 'ETHUSDT', 'positionAmt': '2.0'}]
+    result = position_monitor._extract_data(raw_data)
+    assert result == [{'symbol': 'ETHUSDT', 'positionAmt': '2.0'}]
+
+
+def test_extract_data_with_none(position_monitor):
+    """Testa extração quando resposta é None."""
+    result = position_monitor._extract_data(None)
+    assert result is None
+
+
 def test_fetch_open_positions_empty(position_monitor, mock_client):
     """Testa fetch de posições quando não há posições abertas."""
     # Mock resposta da API sem posições abertas
