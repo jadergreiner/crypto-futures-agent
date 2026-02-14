@@ -256,7 +256,8 @@ class PositionMonitor:
                 # 2. Detectar estrutura de mercado (precisa de lista de swings, não DataFrame)
                 if swings:
                     structure = self.smc.detect_market_structure(swings)
-                    indicators['market_structure'] = structure.type.value if structure else 'range'
+                    # Defensive: verificar se structure e structure.type existem
+                    indicators['market_structure'] = structure.type.value if (structure and hasattr(structure, 'type') and structure.type) else 'range'
                 else:
                     indicators['market_structure'] = 'range'
                 
