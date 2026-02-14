@@ -1,238 +1,389 @@
 """
-Binance Futures API collector for OHLCV data.
+Binance Futures API collector for OHLCV data using official SDK.
 """
+
+from __future__ import annotations
 
 import time
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
-import requests
-from config.settings import (
-    BINANCE_BASE_URL, API_RETRY_ATTEMPTS, API_RETRY_BACKOFF,
-    KLINES_LIMIT, TIMEFRAMES, HISTORICAL_PERIODS
+import pandas as pd
+
+from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
+    DerivativesTradingUsdsFutures,
 )
+from binance_sdk_derivatives_trading_usds_futures.rest_api.models import (
+    KlineCandlestickDataIntervalEnum,
+)
+from config.settings import (
+    API_MAX_RETRIES,
+    API_RETRY_DELAYS,
+    TIMEFRAMES,
+    HISTORICAL_PERIODS,
+)
+from config.symbols import ALL_SYMBOLS
 
 logger = logging.getLogger(__name__)
 
 
 class BinanceCollector:
     """
-    Collects OHLCV data from Binance Futures API.
+    Collects OHLCV data from Binance Futures API using official SDK.
     Implements retry logic with exponential backoff.
     """
     
-    def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None):
-        """
-        Initialize Binance collector.
-        
-        Args:
-            api_key: Binance API key (optional for public endpoints)
-            api_secret: Binance API secret (optional for public endpoints)
-        """
-        self.base_url = BINANCE_BASE_URL
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.session = requests.Session()
-        if api_key:
-            self.session.headers.update({'X-MBX-APIKEY': api_key})
+    # Map interval strings to SDK enum values
+    INTERVAL_MAP = {
+        "1m": KlineCandlestickDataIntervalEnum._1M,
+        "3m": KlineCandlestickDataIntervalEnum._3M,
+        "5m": KlineCandlestickDataIntervalEnum._5M,
+        "15m": KlineCandlestickDataIntervalEnum._15M,
+        "30m": KlineCandlestickDataIntervalEnum._30M,
+        "1h": KlineCandlestickDataIntervalEnum._1H,
+        "2h": KlineCandlestickDataIntervalEnum._2H,
+        "4h": KlineCandlestickDataIntervalEnum._4H,
+        "6h": KlineCandlestickDataIntervalEnum._6H,
+        "8h": KlineCandlestickDataIntervalEnum._8H,
+        "12h": KlineCandlestickDataIntervalEnum._12H,
+        "1d": KlineCandlestickDataIntervalEnum._1D,
+        "3d": KlineCandlestickDataIntervalEnum._3D,
+        "1w": KlineCandlestickDataIntervalEnum._1W,
+        "1M": KlineCandlestickDataIntervalEnum._1MONTH,
+    }
     
-    def _make_request(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    # Interval durations in milliseconds
+    INTERVAL_MS = {
+        "1m": 60 * 1000,
+        "3m": 3 * 60 * 1000,
+        "5m": 5 * 60 * 1000,
+        "15m": 15 * 60 * 1000,
+        "30m": 30 * 60 * 1000,
+        "1h": 60 * 60 * 1000,
+        "2h": 2 * 60 * 60 * 1000,
+        "4h": 4 * 60 * 60 * 1000,
+        "6h": 6 * 60 * 60 * 1000,
+        "8h": 8 * 60 * 60 * 1000,
+        "12h": 12 * 60 * 60 * 1000,
+        "1d": 24 * 60 * 60 * 1000,
+        "3d": 3 * 24 * 60 * 60 * 1000,
+        "1w": 7 * 24 * 60 * 60 * 1000,
+        "1M": 30 * 24 * 60 * 60 * 1000,  # Approximation
+    }
+    
+    MAX_KLINES_PER_REQUEST = 1000
+    
+    def __init__(self, client: DerivativesTradingUsdsFutures):
         """
-        Make HTTP request with retry logic.
+        Initialize Binance collector with SDK client.
         
         Args:
-            endpoint: API endpoint path
-            params: Query parameters
+            client: Configured DerivativesTradingUsdsFutures client
+        """
+        self._client = client
+        logger.info("BinanceCollector initialized with SDK client")
+    
+    def _retry_request(self, func, *args, **kwargs):
+        """
+        Execute request with retry logic and exponential backoff.
+        
+        Args:
+            func: Function to call
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
             
         Returns:
-            Response JSON data
+            Function result
+            
+        Raises:
+            Exception: If all retry attempts fail
         """
-        url = f"{self.base_url}{endpoint}"
-        
-        for attempt in range(API_RETRY_ATTEMPTS):
+        for attempt in range(API_MAX_RETRIES):
             try:
-                response = self.session.get(url, params=params, timeout=30)
-                response.raise_for_status()
-                return response.json()
-            except requests.exceptions.RequestException as e:
-                if attempt < API_RETRY_ATTEMPTS - 1:
-                    backoff_time = API_RETRY_BACKOFF[attempt]
-                    logger.warning(f"Request failed (attempt {attempt + 1}/{API_RETRY_ATTEMPTS}): {e}. "
-                                 f"Retrying in {backoff_time}s...")
+                return func(*args, **kwargs)
+            except Exception as e:
+                if attempt < API_MAX_RETRIES - 1:
+                    backoff_time = API_RETRY_DELAYS[attempt]
+                    logger.warning(
+                        f"Request failed (attempt {attempt + 1}/{API_MAX_RETRIES}): {e}. "
+                        f"Retrying in {backoff_time}s..."
+                    )
                     time.sleep(backoff_time)
                 else:
-                    logger.error(f"Request failed after {API_RETRY_ATTEMPTS} attempts: {e}")
+                    logger.error(f"Request failed after {API_MAX_RETRIES} attempts: {e}")
                     raise
     
-    def fetch_klines(self, symbol: str, interval: str, limit: int = 500,
-                     start_time: Optional[int] = None, end_time: Optional[int] = None) -> List[Dict[str, Any]]:
+    def fetch_klines(
+        self,
+        symbol: str,
+        interval: str,
+        limit: int = 500,
+        start_time: Optional[int] = None,
+        end_time: Optional[int] = None,
+    ) -> pd.DataFrame:
         """
-        Fetch kline/candlestick data from Binance.
+        Fetch kline/candlestick data from Binance using SDK.
         
         Args:
             symbol: Trading pair symbol (e.g., "BTCUSDT")
             interval: Kline interval ("1h", "4h", "1d")
-            limit: Number of klines to fetch (max 1500)
+            limit: Number of klines to fetch (max 1000)
             start_time: Start time in milliseconds
             end_time: End time in milliseconds
             
         Returns:
-            List of OHLCV dictionaries
+            DataFrame with columns: timestamp, symbol, open, high, low, close, 
+                                   volume, quote_volume, trades_count
         """
-        params = {
-            'symbol': symbol,
-            'interval': interval,
-            'limit': min(limit, KLINES_LIMIT)
-        }
+        # Map interval string to enum
+        interval_enum = self.INTERVAL_MAP.get(interval)
+        if not interval_enum:
+            raise ValueError(f"Invalid interval: {interval}. Must be one of {list(self.INTERVAL_MAP.keys())}")
         
-        if start_time:
-            params['startTime'] = start_time
-        if end_time:
-            params['endTime'] = end_time
+        # Limit to max per request
+        limit = min(limit, self.MAX_KLINES_PER_REQUEST)
         
-        raw_data = self._make_request('/fapi/v1/klines', params)
+        def _fetch():
+            response = self._client.rest_api.kline_candlestick_data(
+                symbol=symbol,
+                interval=interval_enum,
+                limit=limit,
+                start_time=start_time,
+                end_time=end_time,
+            )
+            
+            # Log rate limits if available
+            if hasattr(response, 'rate_limits'):
+                logger.debug(f"Rate limits: {response.rate_limits}")
+            
+            return response
         
-        # Parse Binance kline format
-        parsed_data = []
-        for kline in raw_data:
-            parsed_data.append({
-                'timestamp': kline[0],
-                'symbol': symbol,
-                'open': float(kline[1]),
-                'high': float(kline[2]),
-                'low': float(kline[3]),
-                'close': float(kline[4]),
-                'volume': float(kline[5]),
-                'quote_volume': float(kline[7]),
-                'trades_count': int(kline[8])
-            })
+        raw_data = self._retry_request(_fetch)
+        df = self._parse_klines(raw_data, symbol)
         
-        logger.info(f"Fetched {len(parsed_data)} {interval} candles for {symbol}")
-        return parsed_data
+        logger.info(f"Fetched {len(df)} {interval} candles for {symbol}")
+        return df
     
-    def fetch_historical(self, symbol: str, interval: str, days: int) -> List[Dict[str, Any]]:
+    def _parse_klines(self, raw_data: Any, symbol: str) -> pd.DataFrame:
         """
-        Fetch historical data with pagination.
+        Parse klines data from SDK response to DataFrame.
+        
+        Supports both Pydantic model objects and raw arrays.
+        
+        Args:
+            raw_data: Response from SDK (list of klines)
+            symbol: Trading pair symbol
+            
+        Returns:
+            Parsed DataFrame
+        """
+        if not raw_data:
+            return pd.DataFrame(columns=[
+                'timestamp', 'symbol', 'open', 'high', 'low', 'close',
+                'volume', 'quote_volume', 'trades_count'
+            ])
+        
+        parsed_data = []
+        
+        for kline in raw_data:
+            # Check if it's a Pydantic model or raw array
+            if hasattr(kline, 'open_time'):
+                # Pydantic model
+                parsed_data.append({
+                    'timestamp': kline.open_time,
+                    'symbol': symbol,
+                    'open': float(kline.open),
+                    'high': float(kline.high),
+                    'low': float(kline.low),
+                    'close': float(kline.close),
+                    'volume': float(kline.volume),
+                    'quote_volume': float(kline.quote_asset_volume),
+                    'trades_count': int(kline.number_of_trades),
+                })
+            else:
+                # Raw array format [timestamp, open, high, low, close, volume, ...]
+                parsed_data.append({
+                    'timestamp': kline[0],
+                    'symbol': symbol,
+                    'open': float(kline[1]),
+                    'high': float(kline[2]),
+                    'low': float(kline[3]),
+                    'close': float(kline[4]),
+                    'volume': float(kline[5]),
+                    'quote_volume': float(kline[7]) if len(kline) > 7 else 0.0,
+                    'trades_count': int(kline[8]) if len(kline) > 8 else 0,
+                })
+        
+        df = pd.DataFrame(parsed_data)
+        
+        # Sort by timestamp
+        if not df.empty:
+            df = df.sort_values('timestamp').reset_index(drop=True)
+        
+        return df
+    
+    def fetch_historical(
+        self,
+        symbol: str,
+        interval: str,
+        days: Optional[int] = None,
+    ) -> pd.DataFrame:
+        """
+        Fetch historical data with automatic pagination.
         
         Args:
             symbol: Trading pair symbol
             interval: Kline interval ("1h", "4h", "1d")
-            days: Number of days to fetch
+            days: Number of days to fetch. If None, uses HISTORICAL_PERIODS defaults.
             
         Returns:
-            List of OHLCV dictionaries
+            DataFrame with historical OHLCV data
         """
+        # Determine days based on interval if not specified
+        if days is None:
+            # Map interval to timeframe key in HISTORICAL_PERIODS
+            interval_to_key = {
+                "1d": "D1",
+                "4h": "H4",
+                "1h": "H1",
+            }
+            key = interval_to_key.get(interval, "H1")
+            days = HISTORICAL_PERIODS.get(key, 90)
+        
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
         
-        all_data = []
+        all_dfs = []
         current_start = start_time
         
+        logger.info(f"Fetching {days} days of {interval} data for {symbol}")
+        
         while current_start < end_time:
-            chunk = self.fetch_klines(symbol, interval, limit=KLINES_LIMIT, 
-                                     start_time=current_start, end_time=end_time)
+            chunk_df = self.fetch_klines(
+                symbol,
+                interval,
+                limit=self.MAX_KLINES_PER_REQUEST,
+                start_time=current_start,
+                end_time=end_time,
+            )
             
-            if not chunk:
+            if chunk_df.empty:
                 break
             
-            all_data.extend(chunk)
+            all_dfs.append(chunk_df)
             
-            # Update start time for next iteration
-            current_start = chunk[-1]['timestamp'] + 1
+            # Update start time for next iteration (add 1ms to last timestamp)
+            current_start = int(chunk_df['timestamp'].iloc[-1]) + 1
             
-            # Respect rate limits
-            time.sleep(0.5)
+            # Rate limiting between paginated requests
+            time.sleep(0.2)
         
-        # Validate data
-        validated_data = self.validate_data(all_data)
+        if not all_dfs:
+            logger.warning(f"No historical data fetched for {symbol} {interval}")
+            return pd.DataFrame(columns=[
+                'timestamp', 'symbol', 'open', 'high', 'low', 'close',
+                'volume', 'quote_volume', 'trades_count'
+            ])
         
-        logger.info(f"Fetched {len(validated_data)} historical {interval} candles for {symbol} ({days} days)")
-        return validated_data
+        # Concatenate all chunks
+        df = pd.concat(all_dfs, ignore_index=True)
+        
+        # Remove duplicates and sort
+        df = df.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
+        
+        logger.info(f"Fetched {len(df)} historical {interval} candles for {symbol} ({days} days)")
+        return df
     
-    def validate_data(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def fetch_all_symbols(
+        self,
+        interval: str,
+        limit: int = 500,
+    ) -> Dict[str, pd.DataFrame]:
         """
-        Validate OHLCV data for gaps and integrity.
+        Fetch data for all configured symbols.
         
         Args:
-            data: List of OHLCV dictionaries
-            
-        Returns:
-            Validated data (gaps logged but NOT interpolated)
-        """
-        if not data:
-            return data
-        
-        # Check for nulls
-        for i, candle in enumerate(data):
-            if any(v is None for k, v in candle.items() if k != 'symbol'):
-                logger.warning(f"Null value found in candle {i}: {candle}")
-        
-        # Check for timestamp gaps
-        if len(data) > 1:
-            sorted_data = sorted(data, key=lambda x: x['timestamp'])
-            
-            for i in range(1, len(sorted_data)):
-                prev_ts = sorted_data[i-1]['timestamp']
-                curr_ts = sorted_data[i]['timestamp']
-                
-                # Expected time diff depends on interval (this is simplified)
-                expected_diff = sorted_data[1]['timestamp'] - sorted_data[0]['timestamp']
-                actual_diff = curr_ts - prev_ts
-                
-                if actual_diff > expected_diff * 1.5:  # Allow some tolerance
-                    logger.warning(f"Gap detected between {prev_ts} and {curr_ts} for {sorted_data[i]['symbol']}")
-            
-            return sorted_data
-        
-        return data
-    
-    def fetch_all_symbols(self, symbols: List[str], interval: str, limit: int = 500) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Fetch data for multiple symbols.
-        
-        Args:
-            symbols: List of trading pair symbols
             interval: Kline interval
             limit: Number of klines per symbol
             
         Returns:
-            Dictionary mapping symbol to OHLCV data
+            Dictionary mapping symbol to DataFrame
         """
         result = {}
         
-        for symbol in symbols:
+        for symbol in ALL_SYMBOLS:
             try:
-                data = self.fetch_klines(symbol, interval, limit)
-                result[symbol] = data
-                time.sleep(0.2)  # Rate limiting
+                df = self.fetch_klines(symbol, interval, limit)
+                result[symbol] = df
+                
+                # Rate limiting between symbols
+                time.sleep(0.1)
             except Exception as e:
                 logger.error(f"Failed to fetch data for {symbol}: {e}")
-                result[symbol] = []
+                result[symbol] = pd.DataFrame()
         
+        logger.info(f"Fetched data for {len(result)} symbols")
         return result
     
-    def get_exchange_info(self, symbol: Optional[str] = None) -> Dict[str, Any]:
+    def validate_data(
+        self,
+        df: pd.DataFrame,
+        interval: str,
+    ) -> tuple[bool, list[str]]:
         """
-        Get exchange information for symbol(s).
+        Validate OHLCV data for integrity issues.
+        
+        NEVER interpolates missing data - only reports issues.
         
         Args:
-            symbol: Optional specific symbol
+            df: DataFrame to validate
+            interval: Interval string for gap detection
             
         Returns:
-            Exchange information
+            Tuple of (is_valid, list_of_issues)
         """
-        params = {}
-        if symbol:
-            params['symbol'] = symbol
+        issues = []
         
-        return self._make_request('/fapi/v1/exchangeInfo', params)
-    
-    def get_server_time(self) -> int:
-        """
-        Get Binance server time.
+        if df.empty:
+            issues.append("DataFrame is empty")
+            return False, issues
         
-        Returns:
-            Server timestamp in milliseconds
-        """
-        response = self._make_request('/fapi/v1/time')
-        return response['serverTime']
+        # Check for null values
+        null_cols = df.columns[df.isnull().any()].tolist()
+        if null_cols:
+            issues.append(f"Null values found in columns: {null_cols}")
+        
+        # Check for negative values in price/volume columns
+        numeric_cols = ['open', 'high', 'low', 'close', 'volume', 'quote_volume']
+        for col in numeric_cols:
+            if col in df.columns:
+                if (df[col] < 0).any():
+                    issues.append(f"Negative values found in {col}")
+        
+        # Check for timestamp gaps
+        if len(df) > 1:
+            expected_diff_ms = self.INTERVAL_MS.get(interval)
+            
+            if expected_diff_ms:
+                df_sorted = df.sort_values('timestamp')
+                timestamps = df_sorted['timestamp'].values
+                diffs = timestamps[1:] - timestamps[:-1]
+                
+                # Allow 50% tolerance for gaps
+                max_allowed_diff = expected_diff_ms * 1.5
+                gaps = diffs > max_allowed_diff
+                
+                if gaps.any():
+                    gap_count = gaps.sum()
+                    issues.append(
+                        f"Found {gap_count} timestamp gaps (>{max_allowed_diff}ms) in {interval} data"
+                    )
+        
+        is_valid = len(issues) == 0
+        
+        if issues:
+            logger.warning(f"Data validation issues: {', '.join(issues)}")
+        else:
+            logger.debug("Data validation passed")
+        
+        return is_valid, issues
