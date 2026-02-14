@@ -10,6 +10,7 @@ from pathlib import Path
 from config.settings import DB_PATH, TRADING_MODE
 from config.symbols import ALL_SYMBOLS
 from data.database import DatabaseManager
+from data.binance_client import create_binance_client
 from data.collector import BinanceCollector
 from data.sentiment_collector import SentimentCollector
 from data.macro_collector import MacroCollector
@@ -34,19 +35,20 @@ def setup_database() -> DatabaseManager:
     return db
 
 
-def collect_historical_data(db: DatabaseManager) -> None:
+def collect_historical_data(db: DatabaseManager, client) -> None:
     """
     Captura dados históricos iniciais.
     
     Args:
         db: DatabaseManager
+        client: Binance SDK client instance
     """
     logger.info("="*60)
     logger.info("COLLECTING HISTORICAL DATA")
     logger.info("="*60)
     
-    collector = BinanceCollector()
-    sentiment_collector = SentimentCollector()
+    collector = BinanceCollector(client)
+    sentiment_collector = SentimentCollector(client)
     macro_collector = MacroCollector()
     
     for symbol in ALL_SYMBOLS:
@@ -169,12 +171,13 @@ def train_model() -> None:
     logger.info("See agent/trainer.py for training implementation")
 
 
-def start_operation(mode: str) -> None:
+def start_operation(mode: str, client) -> None:
     """
     Inicia operação do agente.
     
     Args:
         mode: Modo de operação ("paper" ou "live")
+        client: Binance SDK client instance
     """
     logger.info("="*60)
     logger.info(f"STARTING OPERATION - MODE: {mode.upper()}")
@@ -188,7 +191,7 @@ def start_operation(mode: str) -> None:
     
     # Iniciar WebSocket (assíncrono)
     # from data.websocket_manager import WebSocketManager
-    # ws_manager = WebSocketManager()
+    # ws_manager = WebSocketManager(client)
     # asyncio.run(ws_manager.start(ALL_SYMBOLS))
     
     try:
@@ -275,12 +278,16 @@ def main():
     print("="*60)
     print()
     
+    # Create Binance client based on mode
+    client = create_binance_client(mode=args.mode)
+    logger.info(f"Binance client created in {args.mode} mode")
+    
     # Setup database
     db = setup_database()
     
     # Fluxo de execução
     if args.setup:
-        collect_historical_data(db)
+        collect_historical_data(db, client)
         calculate_indicators(db)
         logger.info("Setup completed successfully")
         sys.exit(0)
@@ -297,7 +304,7 @@ def main():
         sys.exit(0)
     
     # Modo operacional padrão
-    start_operation(args.mode)
+    start_operation(args.mode, client)
 
 
 if __name__ == "__main__":
