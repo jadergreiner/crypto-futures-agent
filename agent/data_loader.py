@@ -211,7 +211,8 @@ class DataLoader:
                 'd1': d1_data,
                 'sentiment': sentiment,
                 'macro': macro,
-                'smc': smc_structures
+                'smc': smc_structures,
+                'symbol': symbol
             }
             
         except Exception as e:
@@ -305,7 +306,8 @@ class DataLoader:
             'd1': d1_data,
             'sentiment': sentiment,
             'macro': macro,
-            'smc': smc_structures
+            'smc': smc_structures,
+            'symbol': symbol
         }
     
     def _slice_data(
@@ -349,6 +351,7 @@ class DataLoader:
         result['sentiment'] = data.get('sentiment', self._get_default_sentiment())
         result['macro'] = data.get('macro', self._get_default_macro())
         result['smc'] = data.get('smc', {'order_blocks': [], 'fvgs': [], 'liquidity': []})
+        result['symbol'] = data.get('symbol', 'BTCUSDT')
         
         return result
     
