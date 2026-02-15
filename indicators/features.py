@@ -340,6 +340,8 @@ class FeatureEngineer:
         # BTC return, correlation, beta from multi_tf_result
         if multi_tf_result:
             # BTC return from D1 data
+            # Note: For non-BTC symbols, btc_return requires BTC's D1 data which is not passed
+            # Currently only BTCUSDT calculates its own return; other symbols use 0.0
             btc_return = 0.0
             if d1_data is not None and not d1_data.empty and len(d1_data) >= 2:
                 if symbol == "BTCUSDT":
@@ -347,13 +349,14 @@ class FeatureEngineer:
                     close_d1 = d1_data['close'].values
                     btc_return = (close_d1[-1] - close_d1[-2]) / close_d1[-2] if close_d1[-2] != 0 else 0
                     btc_return = btc_return * 100  # Convert to percentage
-                # Note: For non-BTC symbols, btc_return would need BTC's D1 data
-                # which is not passed here. We'll use 0.0 as placeholder for now.
             
             correlation_btc = multi_tf_result.get('correlation_btc', 0.0)
             beta_btc = multi_tf_result.get('beta_btc', 1.0)
             
-            # Normalize: btc_return (-10 to 10%), correlation (-1 to 1), beta (0 to 3 -> 0 to 1)
+            # Normalize features:
+            # - btc_return: Percentage return, expected range [-10%, 10%], clipped and normalized to [-1, 1]
+            # - correlation: Already in [-1, 1], just clipped for safety
+            # - beta: Divide by 3 first (expected range [0, 3]), then clip to [0, 1]
             features.extend([
                 np.clip(btc_return / 10, -1, 1),
                 np.clip(correlation_btc, -1, 1),

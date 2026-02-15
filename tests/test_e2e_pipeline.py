@@ -242,8 +242,8 @@ def test_build_observation_without_multi_tf_result():
     block7_start = 11 + 6 + 11 + 19 + 4 + 4  # 55
     assert observation[block7_start] == 0.0  # btc_return placeholder
     assert observation[block7_start + 1] == 0.0  # correlation placeholder
-    # Beta placeholder is 1.0 (representing neutral beta, not normalized)
-    assert observation[block7_start + 2] == 1.0
+    # Beta placeholder is 1.0 (representing neutral beta)
+    assert np.isclose(observation[block7_start + 2], 1.0)
     
     # Block 8 features are at indices 58-59 (after block 7)
     block8_start = block7_start + 3  # 58
@@ -309,11 +309,12 @@ def test_build_observation_with_multi_tf_result():
     block8_start = block7_start + 3  # 58
     
     # Block 7: correlation should be between -1 and 1, beta should be reasonable
+    # Beta is divided by 3 first, then clipped to [0, 1]
     correlation_val = observation[block7_start + 1]
     beta_val = observation[block7_start + 2]
     
     assert -1.0 <= correlation_val <= 1.0
-    assert 0.0 <= beta_val <= 1.0  # Beta is clipped to [0, 3] then divided by 3
+    assert 0.0 <= beta_val <= 1.0  # Beta divided by 3 then clipped to [0, 1]
     
     # Block 8: d1_bias and regime should be -1, 0, or 1
     d1_bias_val = observation[block8_start]

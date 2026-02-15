@@ -277,7 +277,7 @@ def run_dry_run() -> None:
             logger.info(f"\n  [OK] {symbol} pipeline completed successfully!")
             
         except Exception as e:
-            logger.error(f"  [FALHA] Error processing {symbol}: {e}")
+            logger.error(f"  [ERROR] Error processing {symbol}: {e}")
             import traceback
             traceback.print_exc()
     
