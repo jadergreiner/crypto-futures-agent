@@ -38,6 +38,37 @@ class TestFeatureEngineer:
         assert FeatureEngineer._safe_get(d, 'key1', 99) == 0
         assert FeatureEngineer._safe_get(d, 'key2', 99) == 0.0
     
+    def test_safe_get_with_falsy_values(self):
+        """Test _safe_get NÃO substitui outros valores falsy (apenas None)."""
+        d = {
+            'zero': 0,
+            'empty_string': '',
+            'false': False,
+            'empty_list': []
+        }
+        # Estes valores falsy devem ser retornados como estão, não substituídos
+        assert FeatureEngineer._safe_get(d, 'zero', 99) == 0
+        assert FeatureEngineer._safe_get(d, 'empty_string', 'default') == ''
+        assert FeatureEngineer._safe_get(d, 'false', True) == False
+        assert FeatureEngineer._safe_get(d, 'empty_list', [1, 2, 3]) == []
+    
+    def test_safe_get_with_different_types(self):
+        """Test _safe_get funciona com diferentes tipos de dados."""
+        d = {
+            'int_val': 42,
+            'float_val': 3.14,
+            'string_val': 'test',
+            'bool_val': True,
+            'list_val': [1, 2, 3],
+            'dict_val': {'nested': 'value'}
+        }
+        assert FeatureEngineer._safe_get(d, 'int_val', 0) == 42
+        assert FeatureEngineer._safe_get(d, 'float_val', 0.0) == 3.14
+        assert FeatureEngineer._safe_get(d, 'string_val', '') == 'test'
+        assert FeatureEngineer._safe_get(d, 'bool_val', False) == True
+        assert FeatureEngineer._safe_get(d, 'list_val', []) == [1, 2, 3]
+        assert FeatureEngineer._safe_get(d, 'dict_val', {}) == {'nested': 'value'}
+    
     def test_get_feature_names_count(self):
         """Test that get_feature_names returns exactly 104 names."""
         names = FeatureEngineer.get_feature_names()
