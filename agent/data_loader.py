@@ -40,7 +40,7 @@ class DataLoader:
         self, 
         symbol: str = "BTCUSDT",
         train_ratio: float = 0.8,
-        min_length: int = 1000
+        min_length: int = 500
     ) -> Dict[str, Any]:
         """
         Carrega dados de treinamento.
@@ -168,10 +168,20 @@ class DataLoader:
             smc_structures = None
             if not h4_data.empty and len(h4_data) >= 50:
                 try:
-                    smc_structures = self.smc.calculate_all(h4_data, symbol)
+                    smc_structures = SmartMoneyConcepts.calculate_all_smc(h4_data)
                 except Exception as e:
                     logger.warning(f"SMC calculation failed: {e}")
-                    smc_structures = {'order_blocks': [], 'fvgs': [], 'liquidity': []}
+                    smc_structures = {
+                        'structure': None,
+                        'swings': [],
+                        'bos': [],
+                        'choch': [],
+                        'order_blocks': [],
+                        'fvgs': [],
+                        'liquidity_levels': [],
+                        'liquidity_sweeps': [],
+                        'premium_discount': None
+                    }
             
             # Carregar sentiment e macro
             sentiment_data = self.db.get_sentiment(symbol, limit=1000)
@@ -268,10 +278,20 @@ class DataLoader:
         
         # Calcular SMC no H4
         try:
-            smc_structures = self.smc.calculate_all(h4_data, symbol)
+            smc_structures = SmartMoneyConcepts.calculate_all_smc(h4_data)
         except Exception as e:
             logger.warning(f"SMC calculation failed on synthetic data: {e}")
-            smc_structures = {'order_blocks': [], 'fvgs': [], 'liquidity': []}
+            smc_structures = {
+                'structure': None,
+                'swings': [],
+                'bos': [],
+                'choch': [],
+                'order_blocks': [],
+                'fvgs': [],
+                'liquidity_levels': [],
+                'liquidity_sweeps': [],
+                'premium_discount': None
+            }
         
         # Gerar sentiment e macro sintéticos
         sentiment = create_synthetic_sentiment_data()
