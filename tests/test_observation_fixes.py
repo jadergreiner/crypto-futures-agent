@@ -89,7 +89,7 @@ def test_observation_with_none_sentiment():
         
         data=data,
         initial_capital=1000.0,
-        # max_leverage removed
+        
     )
     
     # Reset deve funcionar sem erro
@@ -135,7 +135,7 @@ def test_observation_with_none_macro():
         
         data=data,
         initial_capital=1000.0,
-        # max_leverage removed
+        
     )
     
     # Reset deve funcionar sem erro
@@ -176,7 +176,7 @@ def test_observation_with_none_smc():
         
         data=data,
         initial_capital=1000.0,
-        # max_leverage removed
+        
     )
     
     # Reset deve funcionar sem erro
@@ -206,7 +206,7 @@ def test_observation_with_all_none():
         
         data=data,
         initial_capital=1000.0,
-        # max_leverage removed
+        
     )
     
     # Reset deve funcionar sem erro

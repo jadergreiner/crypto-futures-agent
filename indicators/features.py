@@ -256,6 +256,7 @@ class FeatureEngineer:
             # Distância para OB mais próximo
             if h4_data is not None and not h4_data.empty:
                 current_price = h4_data['close'].iloc[-1]
+                # Calcular distância apenas se current_price não for zero
                 if bullish_obs and current_price != 0:
                     closest_bull_ob = min(bullish_obs, key=lambda ob: abs(current_price - ob.zone_high))
                     dist_pct = ((current_price - closest_bull_ob.zone_high) / current_price) * 100
@@ -276,6 +277,7 @@ class FeatureEngineer:
             # Distância para FVG mais próximo
             if h4_data is not None and not h4_data.empty:
                 current_price = h4_data['close'].iloc[-1]
+                # Calcular distância apenas se current_price não for zero
                 if bullish_fvgs and current_price != 0:
                     closest_bull_fvg = min(bullish_fvgs, key=lambda fvg: abs(current_price - fvg.zone_high))
                     dist_pct = ((current_price - closest_bull_fvg.zone_high) / current_price) * 100
