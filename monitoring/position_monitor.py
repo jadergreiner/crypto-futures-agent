@@ -810,7 +810,7 @@ class PositionMonitor:
         elif rsi < 55:
             return "Neutro"
         elif rsi < 70:
-            return "Moderado para Alta"
+            return "Moderado"
         else:
             return "Sobrecomprado"
     
@@ -1088,7 +1088,11 @@ class PositionMonitor:
         take_profit = decision.get('take_profit_suggested')
         if take_profit is not None:
             tp_pct = abs((take_profit - mark) / mark * 100)
-            logger.info(f"  [REALIZACAO PARCIAL] Considerar em: {take_profit:.4f} (proximo da resistencia/suporte) +{tp_pct:.1f}%")
+            # Para LONG, TP é acima (positivo); para SHORT, TP é abaixo (negativo)
+            if direction == 'LONG':
+                logger.info(f"  [REALIZACAO PARCIAL] Considerar em: {take_profit:.4f} (proximo da resistencia) +{tp_pct:.1f}%")
+            else:
+                logger.info(f"  [REALIZACAO PARCIAL] Considerar em: {take_profit:.4f} (proximo do suporte) -{tp_pct:.1f}%")
         else:
             logger.info(f"  [REALIZACAO PARCIAL] Considerar em: N/D")
         

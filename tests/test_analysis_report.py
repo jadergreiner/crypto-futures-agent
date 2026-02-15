@@ -28,6 +28,7 @@ def temp_db():
         db_path = os.path.join(tmpdir, "test.db")
         db = DatabaseManager(db_path)
         yield db
+        # Cleanup não é necessário, o TemporaryDirectory cuida da limpeza
 
 
 @pytest.fixture
