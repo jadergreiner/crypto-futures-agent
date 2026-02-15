@@ -1109,6 +1109,71 @@ class PositionMonitor:
         
         logger.info("=" * 60)
     
+    def _generate_analysis_summary(self, position: Dict[str, Any], indicators: Dict[str, Any], 
+                                   decision: Dict[str, Any]) -> str:
+        """
+        Gera resumo estruturado da análise para persistência e RL.
+        Este resumo facilita a revisão dos dados de treinamento.
+        
+        Args:
+            position: Dados da posição
+            indicators: Indicadores calculados
+            decision: Decisão gerada
+            
+        Returns:
+            String JSON com resumo estruturado da análise
+        """
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'position': {
+                'symbol': position['symbol'],
+                'direction': position['direction'],
+                'entry': position['entry_price'],
+                'mark': position['mark_price'],
+                'pnl_pct': position['unrealized_pnl_pct'],
+                'leverage': position['leverage'],
+                'margin_type': position.get('margin_type', 'ISOLATED')
+            },
+            'technical': {
+                'rsi': indicators.get('rsi_14'),
+                'rsi_interpretation': self._format_rsi_interpretation(indicators.get('rsi_14')) if indicators.get('rsi_14') else None,
+                'macd_histogram': indicators.get('macd_histogram'),
+                'macd_signal': self._format_macd_interpretation(indicators.get('macd_histogram')),
+                'ema_alignment': self._check_ema_alignment(
+                    indicators.get('ema_17'), 
+                    indicators.get('ema_34'), 
+                    indicators.get('ema_72'), 
+                    indicators.get('ema_144')
+                ),
+                'adx': indicators.get('adx_14'),
+                'bb_percent': indicators.get('bb_percent_b')
+            },
+            'smc': {
+                'market_structure': indicators.get('market_structure', 'range'),
+                'bos_recent': bool(indicators.get('bos_recent', 0)),
+                'choch_recent': bool(indicators.get('choch_recent', 0)),
+                'premium_discount': self._format_premium_discount(indicators.get('premium_discount_zone')),
+                'nearest_ob_pct': indicators.get('nearest_ob_distance_pct'),
+                'nearest_fvg_pct': indicators.get('nearest_fvg_distance_pct'),
+                'liquidity_above_pct': indicators.get('liquidity_above_pct'),
+                'liquidity_below_pct': indicators.get('liquidity_below_pct')
+            },
+            'sentiment': {
+                'funding_rate': indicators.get('funding_rate'),
+                'long_short_ratio': indicators.get('long_short_ratio'),
+                'oi_change_pct': indicators.get('open_interest_change_pct')
+            },
+            'decision': {
+                'action': decision['agent_action'],
+                'confidence': decision['decision_confidence'],
+                'risk_score': decision['risk_score'],
+                'stop_loss': decision.get('stop_loss_suggested'),
+                'take_profit': decision.get('take_profit_suggested')
+            }
+        }
+        
+        return json.dumps(summary, ensure_ascii=False)
+    
     def create_snapshot(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                        sentiment: Dict[str, Any], decision: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -1186,7 +1251,10 @@ class PositionMonitor:
             
             # Para treinamento RL (preenchido depois)
             'reward_calculated': None,
-            'outcome_label': None
+            'outcome_label': None,
+            
+            # Resumo estruturado da análise para RL e revisão
+            'analysis_summary': self._generate_analysis_summary(position, indicators, decision)
         }
         
         return snapshot
