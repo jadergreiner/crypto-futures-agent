@@ -6,6 +6,31 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ## [Unreleased] — v0.3 (Training Ready)
 
+### Adicionado
+- **Diagnóstico de Disponibilidade de Dados**: Novo método `diagnose_data_readiness()` no `DataLoader` que verifica se há dados suficientes ANTES de iniciar o treinamento
+  - Analisa quantidade de candles disponíveis por timeframe (H1, H4, D1)
+  - Calcula requisitos considerando split treino/validação e min_length
+  - Verifica requisitos de indicadores (ex: EMA_610 precisa de 610+ candles D1)
+  - Verifica atualização dos dados (detecta dados desatualizados >24h)
+  - Retorna diagnóstico detalhado com recomendações acionáveis
+- Integração do diagnóstico no `train_model()` - agora para com mensagem clara se dados insuficientes (sem fallback silencioso)
+- Script de demonstração `test_diagnosis_demo.py` para visualizar o diagnóstico
+- Testes abrangentes em `tests/test_data_diagnostics.py` (6 testes, 100% cobertura)
+
+### Modificado
+- `HISTORICAL_PERIODS` em `config/settings.py`:
+  - H4: 180 → 250 dias (para suportar min_length=1000 com split 80/20)
+  - D1: 365 → 730 dias (para suportar EMA_610 com margem)
+  - H1: 90 → 120 dias (ajuste para consistência)
+- `_validate_data()` em `agent/data_loader.py` agora exibe mensagens mais informativas com cálculo de dias necessários e recomendações
+- `collect_historical_data()` em `main.py` agora usa valores de `HISTORICAL_PERIODS` do settings.py
+- `RL_TRAINING_GUIDE.md` atualizado com seção sobre diagnóstico de dados e requisitos mínimos
+
+### Corrigido
+- 🐛 **FIX:** Problema do fallback silencioso para dados sintéticos quando usuário esperava treinar com dados reais
+- 🐛 **FIX:** Mensagens de erro genéricas substituídas por diagnósticos detalhados e acionáveis
+- 🐛 **FIX:** Falta de visibilidade sobre requisitos de dados antes de iniciar treinamento demorado
+
 ### A fazer
 - Implementar `step()` completo no `CryptoFuturesEnv`
 - Implementar `_get_observation()` usando `FeatureEngineer`
