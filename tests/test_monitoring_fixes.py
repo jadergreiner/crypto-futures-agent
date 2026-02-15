@@ -76,7 +76,7 @@ def test_module_logger_can_log():
     with patch('logging.StreamHandler.emit') as mock_emit:
         module_logger.info("Test message from module")
         # O handler foi chamado (prova que não foi silenciosamente descartado)
-        assert mock_emit.called, "StreamHandler.emit should have been called"
+        assert mock_emit.called, "StreamHandler.emit was not called - logs are being silently dropped"
 
 
 # ============================================================================
@@ -243,6 +243,8 @@ def test_evaluate_position_critical_close_not_downgraded(position_monitor):
     # Deve ser CLOSE por liquidação, não REDUCE_50 por funding
     assert decision['agent_action'] == 'CLOSE'
     # A confiança pode ser ajustada por múltiplas verificações, mas deve ser alta
+    # Verificação de liquidação define 0.95, mas outras verificações (stop loss, CHoCH, etc)
+    # podem ser aplicadas e ajustar o valor final. Garantimos que permanece >= 0.75.
     assert decision['decision_confidence'] >= 0.75
 
 

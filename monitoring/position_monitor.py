@@ -373,7 +373,10 @@ class PositionMonitor:
         Atualiza a ação apenas se a nova ação tem prioridade estritamente maior.
         Isso evita downgrade de decisões críticas (ex: CLOSE -> REDUCE_50).
         
-        Nota: Prioridades iguais NÃO atualizam a ação (mantém a primeira decisão).
+        Comportamento por prioridade:
+        - Upgrade (new > current): Atualiza ação e confiança, adiciona reasoning [UPGRADE]
+        - Igual (new == current): Mantém ação, atualiza confiança se maior, adiciona [CONFIRMAÇÃO]
+        - Downgrade (new < current): Bloqueia completamente, não adiciona reasoning
         
         Args:
             decision: Dict da decisão a ser atualizado
