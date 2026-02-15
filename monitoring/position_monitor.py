@@ -308,9 +308,12 @@ class PositionMonitor:
         """
         try:
             # 1. Buscar dados históricos do banco
-            timeframe_upper = timeframe.upper()
+            # Converter timeframe para formato do banco: "1h" -> "H1", "4h" -> "H4"
+            timeframe_db = timeframe.upper().replace('H', '').replace('h', '')  # "1h" -> "1"
+            timeframe_db = f"H{timeframe_db}"  # "1" -> "H1"
+            
             db_records = self.db.get_ohlcv(
-                timeframe=timeframe_upper,
+                timeframe=timeframe_db,
                 symbol=symbol,
                 limit=min_candles
             )
@@ -341,7 +344,7 @@ class PositionMonitor:
             
             # 3. Inserir candles frescos no banco para manter histórico atualizado
             if not df_fresh.empty:
-                self.db.insert_ohlcv(timeframe=timeframe_upper, data=df_fresh)
+                self.db.insert_ohlcv(timeframe=timeframe_db, data=df_fresh)
             
             # 4. Combinar dados históricos com frescos
             if df_historical.empty:

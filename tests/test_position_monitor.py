@@ -537,3 +537,264 @@ def test_monitor_cycle_no_positions(position_monitor, mock_client):
     snapshots = position_monitor.monitor_cycle()
     
     assert len(snapshots) == 0
+
+
+# =====================================================================
+# Testes para fetch_combined_klines (Issue: Candles insuficientes)
+# =====================================================================
+
+def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
+    """Testa combinação de dados do banco com dados frescos da API."""
+    import pandas as pd
+    
+    symbol = 'BTCUSDT'
+    timeframe = '4h'
+    
+    # 1. Inserir dados históricos no banco
+    historical_data = []
+    base_timestamp = 1609459200000  # 2021-01-01 00:00:00
+    for i in range(700):
+        historical_data.append({
+            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),  # 4h intervals
+            'symbol': symbol,
+            'open': 30000.0 + i,
+            'high': 30100.0 + i,
+            'low': 29900.0 + i,
+            'close': 30000.0 + i,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    temp_db.insert_ohlcv('H4', historical_data)
+    
+    # 2. Mock da API retornando candles frescos (últimos 50)
+    fresh_data = []
+    for i in range(50):
+        fresh_data.append({
+            'timestamp': base_timestamp + ((690 + i) * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30690.0 + i,
+            'high': 30790.0 + i,
+            'low': 30590.0 + i,
+            'close': 30690.0 + i,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    df_fresh = pd.DataFrame(fresh_data)
+    
+    position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
+    
+    # 3. Executar fetch combinado
+    df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=700)
+    
+    # 4. Validações
+    assert len(df_combined) >= 700, f"Esperado >= 700 candles, obtido {len(df_combined)}"
+    assert 'timestamp' in df_combined.columns
+    assert df_combined['symbol'].iloc[0] == symbol
+    
+    # Verificar que está ordenado por timestamp
+    timestamps = df_combined['timestamp'].tolist()
+    assert timestamps == sorted(timestamps), "Candles não estão ordenados por timestamp"
+    
+    # Verificar que não há duplicatas
+    assert len(df_combined) == len(df_combined['timestamp'].unique()), "Existem timestamps duplicados"
+
+
+def test_fetch_combined_klines_empty_db(position_monitor):
+    """Testa fallback quando banco está vazio (buscar mais da API)."""
+    import pandas as pd
+    
+    symbol = 'ETHUSDT'
+    timeframe = '1h'
+    min_candles = 250
+    
+    # Mock da API retornando 250 candles
+    api_data = []
+    base_timestamp = 1609459200000
+    for i in range(min_candles):
+        api_data.append({
+            'timestamp': base_timestamp + (i * 60 * 60 * 1000),  # 1h intervals
+            'symbol': symbol,
+            'open': 2000.0 + i,
+            'high': 2010.0 + i,
+            'low': 1990.0 + i,
+            'close': 2000.0 + i,
+            'volume': 50.0,
+            'quote_volume': 100000.0,
+            'trades_count': 500
+        })
+    df_api = pd.DataFrame(api_data)
+    
+    position_monitor.collector.fetch_klines = Mock(return_value=df_api)
+    
+    # Executar fetch combinado (banco vazio)
+    df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles)
+    
+    # Validações
+    assert len(df_combined) == min_candles
+    assert df_combined['symbol'].iloc[0] == symbol
+    
+    # Verificar que chamou a API com limit correto (min_candles quando banco vazio)
+    position_monitor.collector.fetch_klines.assert_called_once_with(symbol, timeframe, limit=min_candles)
+
+
+def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
+    """Testa que não há duplicatas quando timestamps se sobrepõem."""
+    import pandas as pd
+    
+    symbol = 'BTCUSDT'
+    timeframe = '4h'
+    
+    # 1. Inserir dados históricos com sobreposição
+    historical_data = []
+    base_timestamp = 1609459200000
+    for i in range(100):
+        historical_data.append({
+            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30000.0 + i,
+            'high': 30100.0 + i,
+            'low': 29900.0 + i,
+            'close': 30000.0 + i,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    temp_db.insert_ohlcv('H4', historical_data)
+    
+    # 2. Mock da API retornando candles que sobrepõem (últimos 20 do histórico + 30 novos)
+    fresh_data = []
+    # Sobrepor últimos 20
+    for i in range(80, 100):
+        fresh_data.append({
+            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30000.0 + i + 0.5,  # Valores ligeiramente diferentes (preço atualizado)
+            'high': 30100.0 + i + 0.5,
+            'low': 29900.0 + i + 0.5,
+            'close': 30000.0 + i + 0.5,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    # Adicionar 30 novos
+    for i in range(100, 130):
+        fresh_data.append({
+            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30000.0 + i,
+            'high': 30100.0 + i,
+            'low': 29900.0 + i,
+            'close': 30000.0 + i,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    df_fresh = pd.DataFrame(fresh_data)
+    
+    position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
+    
+    # 3. Executar fetch combinado
+    df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=100)
+    
+    # 4. Validações
+    # Total esperado: 100 históricos + 30 novos = 130 (sobreposição removida)
+    assert len(df_combined) == 130, f"Esperado 130 candles únicos, obtido {len(df_combined)}"
+    
+    # Verificar que não há duplicatas
+    assert len(df_combined) == len(df_combined['timestamp'].unique()), "Existem timestamps duplicados"
+    
+    # Verificar que manteve os valores mais recentes (keep='last')
+    # Para timestamp sobreposto, deve ter valores da API (com +0.5)
+    overlapping_timestamp = base_timestamp + (90 * 4 * 60 * 60 * 1000)
+    row_with_overlap = df_combined[df_combined['timestamp'] == overlapping_timestamp]
+    if not row_with_overlap.empty:
+        # Valor deve ser o da API (com +0.5)
+        assert row_with_overlap.iloc[0]['open'] == 30090.5
+
+
+def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
+    """Testa que retorna candles suficientes para EMA(610)."""
+    import pandas as pd
+    
+    symbol = 'BTCUSDT'
+    timeframe = '4h'
+    min_candles = 700
+    
+    # 1. Inserir 700 candles no banco
+    historical_data = []
+    base_timestamp = 1609459200000
+    for i in range(700):
+        historical_data.append({
+            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30000.0,
+            'high': 30100.0,
+            'low': 29900.0,
+            'close': 30000.0,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    temp_db.insert_ohlcv('H4', historical_data)
+    
+    # 2. Mock da API retornando 50 candles frescos
+    fresh_data = []
+    for i in range(50):
+        fresh_data.append({
+            'timestamp': base_timestamp + ((690 + i) * 4 * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 30000.0,
+            'high': 30100.0,
+            'low': 29900.0,
+            'close': 30000.0,
+            'volume': 100.0,
+            'quote_volume': 3000000.0,
+            'trades_count': 1000
+        })
+    df_fresh = pd.DataFrame(fresh_data)
+    
+    position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
+    
+    # 3. Executar fetch combinado
+    df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles)
+    
+    # 4. Validar que temos candles suficientes para EMA(610)
+    assert len(df_combined) >= 610, f"Insuficiente para EMA(610): {len(df_combined)} < 610"
+    assert len(df_combined) >= 700, f"Esperado >= 700 candles, obtido {len(df_combined)}"
+
+
+def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
+    """Testa que candles frescos são inseridos no banco."""
+    import pandas as pd
+    
+    symbol = 'ETHUSDT'
+    timeframe = '1h'
+    
+    # Mock da API retornando candles frescos
+    fresh_data = []
+    base_timestamp = 1609459200000
+    for i in range(50):
+        fresh_data.append({
+            'timestamp': base_timestamp + (i * 60 * 60 * 1000),
+            'symbol': symbol,
+            'open': 2000.0 + i,
+            'high': 2010.0 + i,
+            'low': 1990.0 + i,
+            'close': 2000.0 + i,
+            'volume': 50.0,
+            'quote_volume': 100000.0,
+            'trades_count': 500
+        })
+    df_fresh = pd.DataFrame(fresh_data)
+    
+    position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
+    
+    # Executar fetch combinado
+    position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=100)
+    
+    # Verificar que dados foram inseridos no banco
+    db_records = temp_db.get_ohlcv('H1', symbol)
+    assert len(db_records) == 50, f"Esperado 50 registros no banco, obtido {len(db_records)}"
+    assert db_records[0]['symbol'] == symbol
