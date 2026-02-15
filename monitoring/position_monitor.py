@@ -749,6 +749,7 @@ class PositionMonitor:
                 atr_stop = entry_price - (atr * stop_multiplier)
                 
                 # Se temos OB próximo, usar ele com um buffer de ATR
+                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante abaixo para LONG
                 if nearest_ob_dist is not None:
                     ob_price = mark_price * (1 - nearest_ob_dist / 100)
                     # Stop abaixo do OB com buffer de 0.5 ATR
@@ -764,6 +765,7 @@ class PositionMonitor:
                 atr_stop = entry_price + (atr * stop_multiplier)
                 
                 # Se temos OB próximo, usar ele com um buffer de ATR
+                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante acima para SHORT
                 if nearest_ob_dist is not None:
                     ob_price = mark_price * (1 + nearest_ob_dist / 100)
                     # Stop acima do OB com buffer de 0.5 ATR
@@ -808,7 +810,7 @@ class PositionMonitor:
         elif rsi < 55:
             return "Neutro"
         elif rsi < 70:
-            return "Moderado Bullish"
+            return "Moderado para Alta"
         else:
             return "Sobrecomprado"
     
@@ -993,6 +995,8 @@ class PositionMonitor:
         
         nearest_ob = indicators.get('nearest_ob_distance_pct')
         if nearest_ob is not None:
+            # Nota: nearest_ob_distance_pct é distância absoluta, não indica direção
+            # Para LONG, assumimos OB abaixo; para SHORT, OB acima
             ob_price = mark * (1 + nearest_ob / 100) if direction == 'SHORT' else mark * (1 - nearest_ob / 100)
             logger.info(f"  Order Block mais proximo: {ob_price:.4f} (distancia: {nearest_ob:.1f}%)")
         else:
@@ -1072,7 +1076,11 @@ class PositionMonitor:
         stop_loss = decision.get('stop_loss_suggested')
         if stop_loss is not None:
             stop_pct = abs((stop_loss - mark) / mark * 100)
-            logger.info(f"  [STOP LOSS] Sugerido: {stop_loss:.4f} (abaixo do OB bullish ou swing low) -{stop_pct:.1f}%")
+            # Para LONG, stop é abaixo (negativo); para SHORT, stop é acima (positivo)
+            if direction == 'LONG':
+                logger.info(f"  [STOP LOSS] Sugerido: {stop_loss:.4f} (abaixo do OB bullish ou swing low) -{stop_pct:.1f}%")
+            else:
+                logger.info(f"  [STOP LOSS] Sugerido: {stop_loss:.4f} (acima do OB bearish ou swing high) +{stop_pct:.1f}%")
         else:
             logger.info(f"  [STOP LOSS] Sugerido: N/D")
         
