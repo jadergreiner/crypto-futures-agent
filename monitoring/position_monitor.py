@@ -575,6 +575,203 @@ class PositionMonitor:
             reasoning.append(f"[CONFIRMAÇÃO] {reasoning_msg}")
         # Se new_priority < current_priority, não faz nada (downgrade bloqueado)
     
+    @staticmethod
+    def _is_market_structure_adverse(direction: str, market_structure: str) -> bool:
+        """
+        Verifica se a estrutura de mercado SMC é adversa para a direção da posição.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            market_structure: 'bullish', 'bearish' ou 'range'
+            
+        Returns:
+            True se a estrutura é adversa (bearish para LONG ou bullish para SHORT)
+        """
+        if direction == 'LONG':
+            return market_structure == 'bearish'
+        else:  # SHORT
+            return market_structure == 'bullish'
+    
+    @staticmethod
+    def _is_market_structure_favorable(direction: str, market_structure: str) -> bool:
+        """
+        Verifica se a estrutura de mercado SMC é favorável para a direção da posição.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            market_structure: 'bullish', 'bearish' ou 'range'
+            
+        Returns:
+            True se a estrutura é favorável (bullish para LONG ou bearish para SHORT)
+        """
+        if direction == 'LONG':
+            return market_structure == 'bullish'
+        else:  # SHORT
+            return market_structure == 'bearish'
+    
+    @staticmethod
+    def _interpret_rsi(direction: str, rsi: float, mark_price: float, ema_72: float) -> Dict[str, Any]:
+        """
+        Interpreta o RSI e posição do preço contextualizado pela direção da posição.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            rsi: Valor do RSI (0-100)
+            mark_price: Preço atual de mercado
+            ema_72: Valor da EMA 72
+            
+        Returns:
+            Dict com 'is_reversal_signal' (bool), 'is_favorable' (bool), 'message' (str)
+        """
+        result = {
+            'is_reversal_signal': False,
+            'is_favorable': False,
+            'message': ''
+        }
+        
+        if direction == 'LONG':
+            # LONG: sinal de reversão se RSI < 30 OU preço abaixo da EMA72
+            if rsi < 30 or mark_price < ema_72:
+                result['is_reversal_signal'] = True
+                result['message'] = f"LONG em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
+            # LONG favorável: RSI > 50, preço acima EMAs
+            elif rsi > 50 and mark_price > ema_72:
+                result['is_favorable'] = True
+                result['message'] = f"LONG em estrutura favorável (RSI: {rsi:.1f}, preco acima EMAs)"
+        else:  # SHORT
+            # SHORT: sinal de reversão se RSI > 70 OU preço acima da EMA72
+            if rsi > 70 or mark_price > ema_72:
+                result['is_reversal_signal'] = True
+                result['message'] = f"SHORT em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
+            # SHORT favorável: RSI < 50, preço abaixo EMAs
+            elif rsi < 50 and mark_price < ema_72:
+                result['is_favorable'] = True
+                result['message'] = f"SHORT em estrutura favorável (RSI: {rsi:.1f}, preco abaixo EMAs)"
+        
+        return result
+    
+    @staticmethod
+    def _interpret_ema_alignment(direction: str, ema_17: float, ema_34: float, 
+                                ema_72: float, ema_144: float) -> Dict[str, Any]:
+        """
+        Interpreta o alinhamento das EMAs contextualizado pela direção da posição.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            ema_17, ema_34, ema_72, ema_144: Valores das EMAs
+            
+        Returns:
+            Dict com 'is_favorable' (bool), 'is_adverse' (bool), 'message' (str), 'risk_adjustment' (float)
+        """
+        result = {
+            'is_favorable': False,
+            'is_adverse': False,
+            'message': '',
+            'risk_adjustment': 0.0
+        }
+        
+        if direction == 'LONG':
+            if ema_17 > ema_34 > ema_72 > ema_144:
+                result['is_favorable'] = True
+                result['message'] = "EMAs alinhadas para alta - tendencia bullish confirmada"
+                result['risk_adjustment'] = -0.5
+            elif ema_17 < ema_34 < ema_72 < ema_144:
+                result['is_adverse'] = True
+                result['message'] = "[AVISO] EMAs alinhadas para baixa - contra posicao LONG"
+                result['risk_adjustment'] = 1.0
+        else:  # SHORT
+            if ema_17 < ema_34 < ema_72 < ema_144:
+                result['is_favorable'] = True
+                result['message'] = "EMAs alinhadas para baixa - tendencia bearish confirmada"
+                result['risk_adjustment'] = -0.5
+            elif ema_17 > ema_34 > ema_72 > ema_144:
+                result['is_adverse'] = True
+                result['message'] = "[AVISO] EMAs alinhadas para alta - contra posicao SHORT"
+                result['risk_adjustment'] = 1.0
+        
+        return result
+    
+    @staticmethod
+    def _is_funding_rate_adverse(direction: str, funding_rate: float, threshold: float) -> bool:
+        """
+        Verifica se o funding rate é adverso para a direção da posição.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            funding_rate: Taxa de funding em decimal (ex: 0.0001 = 0.01%)
+            threshold: Threshold de funding considerado extremo (em % como 0.05 = 0.05%)
+            
+        Returns:
+            True se funding é adverso (alto positivo para LONG ou alto negativo para SHORT)
+        """
+        # Converter funding_rate para percentual (0.0001 -> 0.01)
+        funding_pct = funding_rate * 100
+        
+        if direction == 'LONG':
+            # Funding muito positivo = muitos LONGs (ruim para LONG)
+            # Comparar funding_pct com threshold (ambos em %)
+            return funding_pct > threshold
+        else:  # SHORT
+            # Funding muito negativo = muitos SHORTs (ruim para SHORT)
+            return funding_pct < -threshold
+    
+    @staticmethod
+    def _calculate_suggested_stops(direction: str, entry_price: float, mark_price: float, 
+                                  atr: float, stop_multiplier: float, tp_multiplier: float,
+                                  nearest_ob_dist: Optional[float] = None) -> Dict[str, Optional[float]]:
+        """
+        Calcula stop loss e take profit sugeridos baseado em ATR e níveis SMC.
+        
+        Args:
+            direction: 'LONG' ou 'SHORT'
+            entry_price: Preço de entrada da posição
+            mark_price: Preço atual de mercado
+            atr: Average True Range
+            stop_multiplier: Multiplicador de ATR para stop loss
+            tp_multiplier: Multiplicador de ATR para take profit
+            nearest_ob_dist: Distância percentual até o Order Block mais próximo (opcional)
+            
+        Returns:
+            Dict com 'stop_loss' e 'take_profit'
+        """
+        result = {
+            'stop_loss': None,
+            'take_profit': None
+        }
+        
+        if direction == 'LONG':
+            # Para LONG: stop abaixo do nearest OB ou swing low
+            atr_stop = entry_price - (atr * stop_multiplier)
+            
+            # Se temos OB próximo, usar ele com um buffer de ATR
+            if nearest_ob_dist is not None:
+                ob_price = mark_price * (1 - nearest_ob_dist / 100)
+                # Stop abaixo do OB com buffer de 0.5 ATR
+                smc_stop = ob_price - (atr * 0.5)
+                # Usar o stop mais conservador (mais próximo do preço atual para limitar perda)
+                result['stop_loss'] = max(smc_stop, atr_stop)
+            else:
+                result['stop_loss'] = atr_stop
+            
+            result['take_profit'] = entry_price + (atr * tp_multiplier)
+        else:  # SHORT
+            # Para SHORT: stop acima do nearest OB ou swing high
+            atr_stop = entry_price + (atr * stop_multiplier)
+            
+            # Se temos OB próximo, usar ele com um buffer de ATR
+            if nearest_ob_dist is not None:
+                ob_price = mark_price * (1 + nearest_ob_dist / 100)
+                # Stop acima do OB com buffer de 0.5 ATR
+                smc_stop = ob_price + (atr * 0.5)
+                # Usar o stop mais conservador (mais próximo do preço atual)
+                result['stop_loss'] = min(smc_stop, atr_stop)
+            else:
+                result['stop_loss'] = atr_stop
+            
+            result['take_profit'] = entry_price - (atr * tp_multiplier)
+        
+        return result
+    
     def evaluate_position(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                          sentiment: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -682,46 +879,32 @@ class PositionMonitor:
         choch_recent = indicators.get('choch_recent', 0)
         bos_recent = indicators.get('bos_recent', 0)
         
-        # Verificar se estrutura SMC favorece a posição
-        if direction == 'LONG':
-            if market_structure == 'bullish':
-                if bos_recent:
-                    reasoning.append(f"Estrutura bullish com BOS confirmado - favoravel para LONG")
-                    risk_score -= 0.5
-                else:
-                    reasoning.append(f"Estrutura de mercado bullish - alinhada com LONG")
-                    risk_score -= 0.3
-            elif market_structure == 'bearish':
-                reasoning.append(f"[AVISO] Estrutura bearish contra posicao LONG")
-                risk_score += 1.0
-        else:  # SHORT
-            if market_structure == 'bearish':
-                if bos_recent:
-                    reasoning.append(f"Estrutura bearish com BOS confirmado - favoravel para SHORT")
-                    risk_score -= 0.5
-                else:
-                    reasoning.append(f"Estrutura de mercado bearish - alinhada com SHORT")
-                    risk_score -= 0.3
-            elif market_structure == 'bullish':
-                reasoning.append(f"[AVISO] Estrutura bullish contra posicao SHORT")
-                risk_score += 1.0
+        # Verificar se estrutura SMC favorece a posição usando helper
+        if self._is_market_structure_favorable(direction, market_structure):
+            if bos_recent:
+                reasoning.append(f"Estrutura {market_structure} com BOS confirmado - favoravel para {direction}")
+                risk_score -= 0.5
+            else:
+                reasoning.append(f"Estrutura de mercado {market_structure} - alinhada com {direction}")
+                risk_score -= 0.3
+        elif self._is_market_structure_adverse(direction, market_structure):
+            reasoning.append(f"[AVISO] Estrutura {market_structure} contra posicao {direction}")
+            risk_score += 1.0
         
         # Verificar CHoCH (mudança de caráter - sinal de reversão)
-        if choch_recent:
-            if (direction == 'LONG' and market_structure == 'bearish') or \
-               (direction == 'SHORT' and market_structure == 'bullish'):
-                if pnl_pct > 0:
-                    self._update_action_if_higher_priority(
-                        decision, 'REDUCE_50', 0.75, reasoning,
-                        f"CHoCH detectado contra posição {direction} (estrutura: {market_structure})"
-                    )
-                    risk_score += 2.0
-                else:
-                    self._update_action_if_higher_priority(
-                        decision, 'CLOSE', 0.85, reasoning,
-                        f"CHoCH + PnL negativo em {direction}"
-                    )
-                    risk_score += 3.0
+        if choch_recent and self._is_market_structure_adverse(direction, market_structure):
+            if pnl_pct > 0:
+                self._update_action_if_higher_priority(
+                    decision, 'REDUCE_50', 0.75, reasoning,
+                    f"CHoCH detectado contra posição {direction} (estrutura: {market_structure})"
+                )
+                risk_score += 2.0
+            else:
+                self._update_action_if_higher_priority(
+                    decision, 'CLOSE', 0.85, reasoning,
+                    f"CHoCH + PnL negativo em {direction}"
+                )
+                risk_score += 3.0
         
         # 4. VERIFICAR INDICADORES TÉCNICOS
         rsi = indicators.get('rsi_14')
@@ -731,88 +914,49 @@ class PositionMonitor:
         ema_144 = indicators.get('ema_144')
         
         # Verificar alinhamento de EMAs
+        # Verificar alinhamento de EMAs usando helper
         if all(v is not None for v in [ema_17, ema_34, ema_72, ema_144]):
-            if direction == 'LONG':
-                if ema_17 > ema_34 > ema_72 > ema_144:
-                    reasoning.append(f"EMAs alinhadas para alta - tendencia bullish confirmada")
-                    risk_score -= 0.5
-                elif ema_17 < ema_34 < ema_72 < ema_144:
-                    reasoning.append(f"[AVISO] EMAs alinhadas para baixa - contra posicao LONG")
-                    risk_score += 1.0
-            else:  # SHORT
-                if ema_17 < ema_34 < ema_72 < ema_144:
-                    reasoning.append(f"EMAs alinhadas para baixa - tendencia bearish confirmada")
-                    risk_score -= 0.5
-                elif ema_17 > ema_34 > ema_72 > ema_144:
-                    reasoning.append(f"[AVISO] EMAs alinhadas para alta - contra posicao SHORT")
-                    risk_score += 1.0
+            ema_interpretation = self._interpret_ema_alignment(direction, ema_17, ema_34, ema_72, ema_144)
+            if ema_interpretation['message']:
+                reasoning.append(ema_interpretation['message'])
+                risk_score += ema_interpretation['risk_adjustment']
         
+        # Verificar RSI e posição do preço usando helper
         if rsi and ema_17 and ema_72:
-            if direction == 'LONG':
-                # LONG: sinal de reversão se RSI < 30 OU preço abaixo da EMA72
-                if rsi < 30 or mark_price < ema_72:
-                    if pnl_pct > 5:
-                        # Lucro bom, reduzir para garantir
-                        self._update_action_if_higher_priority(
-                            decision, 'REDUCE_50', 0.70, reasoning,
-                            f"LONG em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
-                        )
-                        risk_score += 1.5
-                    elif pnl_pct < 0:
-                        self._update_action_if_higher_priority(
-                            decision, 'CLOSE', 0.80, reasoning,
-                            f"LONG em prejuízo e indicadores negativos (RSI: {rsi:.1f})"
-                        )
-                        risk_score += 2.5
-                        
-                # LONG favorável: RSI > 50, preço acima EMAs
-                elif rsi > 50 and mark_price > ema_17 and mark_price > ema_72:
-                    reasoning.append(f"LONG em estrutura favorável (RSI: {rsi:.1f}, preco acima EMAs)")
-                    risk_score -= 1.0
+            rsi_interpretation = self._interpret_rsi(direction, rsi, mark_price, ema_72)
             
-            elif direction == 'SHORT':
-                # SHORT: sinal de reversão se RSI > 70 OU preço acima da EMA72
-                if rsi > 70 or mark_price > ema_72:
-                    if pnl_pct > 5:
-                        self._update_action_if_higher_priority(
-                            decision, 'REDUCE_50', 0.70, reasoning,
-                            f"SHORT em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
-                        )
-                        risk_score += 1.5
-                    elif pnl_pct < 0:
-                        self._update_action_if_higher_priority(
-                            decision, 'CLOSE', 0.80, reasoning,
-                            f"SHORT em prejuízo e indicadores negativos (RSI: {rsi:.1f})"
-                        )
-                        risk_score += 2.5
-                
-                # SHORT favorável: RSI < 50, preço abaixo EMAs
-                elif rsi < 50 and mark_price < ema_17 and mark_price < ema_72:
-                    reasoning.append(f"SHORT em estrutura favorável (RSI: {rsi:.1f}, preco abaixo EMAs)")
+            if rsi_interpretation['is_reversal_signal']:
+                if pnl_pct > 5:
+                    # Lucro bom, reduzir para garantir
+                    self._update_action_if_higher_priority(
+                        decision, 'REDUCE_50', 0.70, reasoning,
+                        rsi_interpretation['message']
+                    )
+                    risk_score += 1.5
+                elif pnl_pct < 0:
+                    self._update_action_if_higher_priority(
+                        decision, 'CLOSE', 0.80, reasoning,
+                        f"{direction} em prejuízo e indicadores negativos (RSI: {rsi:.1f})"
+                    )
+                    risk_score += 2.5
+            elif rsi_interpretation['is_favorable']:
+                # Verificar também se está acima/abaixo da EMA17 conforme direção
+                if (direction == 'LONG' and mark_price > ema_17) or \
+                   (direction == 'SHORT' and mark_price < ema_17):
+                    reasoning.append(rsi_interpretation['message'])
                     risk_score -= 1.0
         
-        # 5. VERIFICAR FUNDING RATE EXTREMO
+        # 5. VERIFICAR FUNDING RATE EXTREMO usando helper
         funding_rate = indicators.get('funding_rate', 0)
         funding_threshold = RISK_PARAMS.get('extreme_funding_rate_threshold', 0.05)
         
-        if funding_rate:
+        if funding_rate and self._is_funding_rate_adverse(direction, funding_rate, funding_threshold):
             funding_pct = funding_rate * 100
-            
-            # Funding muito positivo = muitos LONGs (ruim para LONG)
-            if direction == 'LONG' and funding_pct > funding_threshold:
-                self._update_action_if_higher_priority(
-                    decision, 'REDUCE_50', 0.65, reasoning,
-                    f"Funding rate extremo contra LONG ({funding_pct:.4f}%)"
-                )
-                risk_score += 1.0
-            
-            # Funding muito negativo = muitos SHORTs (ruim para SHORT)
-            elif direction == 'SHORT' and funding_pct < -funding_threshold:
-                self._update_action_if_higher_priority(
-                    decision, 'REDUCE_50', 0.65, reasoning,
-                    f"Funding rate extremo contra SHORT ({funding_pct:.4f}%)"
-                )
-                risk_score += 1.0
+            self._update_action_if_higher_priority(
+                decision, 'REDUCE_50', 0.65, reasoning,
+                f"Funding rate extremo contra {direction} ({funding_pct:.4f}%)"
+            )
+            risk_score += 1.0
         
         # 6. VERIFICAR ATR EXPANSION (volatilidade aumentando)
         atr = indicators.get('atr_14')
@@ -840,42 +984,17 @@ class PositionMonitor:
         nearest_ob_dist = indicators.get('nearest_ob_distance_pct')
         
         if atr:
-            # Stop loss baseado em ATR como fallback
+            # Calcular stops e targets usando helper
             stop_multiplier = RISK_PARAMS['stop_loss_atr_multiplier']
             tp_multiplier = RISK_PARAMS['take_profit_atr_multiplier']
             
-            if direction == 'LONG':
-                # Para LONG: stop abaixo do nearest OB ou swing low
-                atr_stop = entry_price - (atr * stop_multiplier)
-                
-                # Se temos OB próximo, usar ele com um buffer de ATR
-                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante abaixo para LONG
-                if nearest_ob_dist is not None:
-                    ob_price = mark_price * (1 - nearest_ob_dist / 100)
-                    # Stop abaixo do OB com buffer de 0.5 ATR
-                    smc_stop = ob_price - (atr * 0.5)
-                    # Usar o stop mais conservador (mais próximo do preço atual para limitar perda)
-                    decision['stop_loss_suggested'] = max(smc_stop, atr_stop)
-                else:
-                    decision['stop_loss_suggested'] = atr_stop
-                
-                decision['take_profit_suggested'] = entry_price + (atr * tp_multiplier)
-            else:  # SHORT
-                # Para SHORT: stop acima do nearest OB ou swing high
-                atr_stop = entry_price + (atr * stop_multiplier)
-                
-                # Se temos OB próximo, usar ele com um buffer de ATR
-                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante acima para SHORT
-                if nearest_ob_dist is not None:
-                    ob_price = mark_price * (1 + nearest_ob_dist / 100)
-                    # Stop acima do OB com buffer de 0.5 ATR
-                    smc_stop = ob_price + (atr * 0.5)
-                    # Usar o stop mais conservador (mais próximo do preço atual)
-                    decision['stop_loss_suggested'] = min(smc_stop, atr_stop)
-                else:
-                    decision['stop_loss_suggested'] = atr_stop
-                
-                decision['take_profit_suggested'] = entry_price - (atr * tp_multiplier)
+            stops = self._calculate_suggested_stops(
+                direction, entry_price, mark_price, atr, 
+                stop_multiplier, tp_multiplier, nearest_ob_dist
+            )
+            
+            decision['stop_loss_suggested'] = stops['stop_loss']
+            decision['take_profit_suggested'] = stops['take_profit']
             
             # Trailing stop (ativar se PnL > activation_r)
             activation_r = RISK_PARAMS.get('trailing_stop_activation_r_multiple', 1.5)
