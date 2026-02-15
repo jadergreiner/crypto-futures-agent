@@ -22,15 +22,14 @@ def test_logger_handles_unicode_gracefully():
     mesmo quando o stream subjacente não suporta a codificação.
     """
     # Importar diretamente a classe para evitar imports de dependências
-    import sys
-    sys_path_backup = sys.path.copy()
-    
-    # Importar apenas o módulo logger, não todo o pacote monitoring
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "logger_module", 
-        "/home/runner/work/crypto-futures-agent/crypto-futures-agent/monitoring/logger.py"
-    )
+    
+    # Usar caminho relativo ao diretório do teste
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(test_dir)
+    logger_path = os.path.join(project_root, 'monitoring', 'logger.py')
+    
+    spec = importlib.util.spec_from_file_location("logger_module", logger_path)
     logger_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(logger_module)
     AgentLogger = logger_module.AgentLogger
@@ -63,10 +62,13 @@ def test_logger_stream_configuration():
     """
     # Importar apenas o módulo logger
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "logger_module", 
-        "/home/runner/work/crypto-futures-agent/crypto-futures-agent/monitoring/logger.py"
-    )
+    
+    # Usar caminho relativo ao diretório do teste
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(test_dir)
+    logger_path = os.path.join(project_root, 'monitoring', 'logger.py')
+    
+    spec = importlib.util.spec_from_file_location("logger_module", logger_path)
     logger_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(logger_module)
     AgentLogger = logger_module.AgentLogger
@@ -96,8 +98,12 @@ def test_position_monitor_logs_ascii_only():
     Testa que as mensagens de log no run_continuous() usam apenas caracteres ASCII
     em vez de emojis que falham em codificações limitadas.
     """
-    # Ler o arquivo do position_monitor
-    with open('/home/runner/work/crypto-futures-agent/crypto-futures-agent/monitoring/position_monitor.py', 'r', encoding='utf-8') as f:
+    # Usar caminho relativo ao diretório do teste
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(test_dir)
+    position_monitor_path = os.path.join(project_root, 'monitoring', 'position_monitor.py')
+    
+    with open(position_monitor_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Verificar que não há emojis comuns
@@ -115,8 +121,12 @@ def test_position_monitor_run_continuous_messages():
     """
     Testa que as mensagens específicas do run_continuous estão usando ASCII.
     """
-    # Ler o arquivo do position_monitor
-    with open('/home/runner/work/crypto-futures-agent/crypto-futures-agent/monitoring/position_monitor.py', 'r', encoding='utf-8') as f:
+    # Usar caminho relativo ao diretório do teste
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(test_dir)
+    position_monitor_path = os.path.join(project_root, 'monitoring', 'position_monitor.py')
+    
+    with open(position_monitor_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Buscar o método run_continuous
@@ -132,7 +142,12 @@ def test_logger_file_has_unicode_handling():
     """
     Testa que o arquivo logger.py contém código para lidar com Unicode.
     """
-    with open('/home/runner/work/crypto-futures-agent/crypto-futures-agent/monitoring/logger.py', 'r', encoding='utf-8') as f:
+    # Usar caminho relativo ao diretório do teste
+    test_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(test_dir)
+    logger_path = os.path.join(project_root, 'monitoring', 'logger.py')
+    
+    with open(logger_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Verificar que há menções ao tratamento de Unicode/encoding
