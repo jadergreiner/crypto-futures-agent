@@ -45,8 +45,20 @@ class AgentLogger:
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
         
-        # Console handler
-        console_handler = logging.StreamHandler()
+        # Console handler com suporte a Unicode
+        # No Windows, o sys.stdout pode usar cp1252 por padrão.
+        # Usar errors='replace' garante que caracteres não suportados sejam substituídos
+        # em vez de causar UnicodeEncodeError.
+        import sys
+        console_handler = logging.StreamHandler(sys.stdout)
+        # Configurar o stream para lidar com erros de codificação graciosamente
+        if hasattr(console_handler.stream, 'reconfigure'):
+            # Python 3.7+ permite reconfigurar a codificação do stream
+            try:
+                console_handler.stream.reconfigure(encoding='utf-8', errors='replace')
+            except Exception:
+                # Se falhar, continuamos com o comportamento padrão mas com errors='replace'
+                pass
         console_formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
         )
