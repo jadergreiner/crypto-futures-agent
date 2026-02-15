@@ -76,7 +76,7 @@ def test_module_logger_can_log():
     with patch('logging.StreamHandler.emit') as mock_emit:
         module_logger.info("Test message from module")
         # O handler foi chamado (prova que não foi silenciosamente descartado)
-        assert mock_emit.called or len(logging.getLogger().handlers) > 0
+        assert mock_emit.called, "StreamHandler.emit should have been called"
 
 
 # ============================================================================
@@ -150,8 +150,8 @@ def test_update_action_respects_priority(position_monitor):
     assert decision['agent_action'] == 'CLOSE'
     assert decision['decision_confidence'] == 0.95  # Confiança não mudou
     
-    # Mas o reasoning foi adicionado
-    assert len(reasoning) == 1
+    # Como o downgrade foi bloqueado, reasoning não é adicionado
+    assert len(reasoning) == 0
 
 
 def test_update_action_allows_upgrade(position_monitor):
@@ -175,6 +175,35 @@ def test_update_action_allows_upgrade(position_monitor):
     # A ação deve ter sido atualizada
     assert decision['agent_action'] == 'REDUCE_50'
     assert decision['decision_confidence'] == 0.75
+    # Reasoning foi adicionado com marcador [UPGRADE]
+    assert len(reasoning) == 1
+    assert '[UPGRADE]' in reasoning[0]
+
+
+def test_update_action_same_priority_updates_confidence(position_monitor):
+    """
+    Testa que ações com mesma prioridade atualizam confiança se maior.
+    """
+    decision = {
+        'agent_action': 'REDUCE_50',
+        'decision_confidence': 0.60,
+        'decision_reasoning': [],
+        'risk_score': 5.0
+    }
+    reasoning = []
+    
+    # Tentar outra REDUCE_50 com confiança maior
+    position_monitor._update_action_if_higher_priority(
+        decision, 'REDUCE_50', 0.80, reasoning,
+        "Segunda verificação REDUCE_50"
+    )
+    
+    # A ação permanece, mas confiança aumenta
+    assert decision['agent_action'] == 'REDUCE_50'
+    assert decision['decision_confidence'] == 0.80
+    # Reasoning foi adicionado com marcador [CONFIRMAÇÃO]
+    assert len(reasoning) == 1
+    assert '[CONFIRMAÇÃO]' in reasoning[0]
 
 
 def test_evaluate_position_critical_close_not_downgraded(position_monitor):

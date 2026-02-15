@@ -370,8 +370,10 @@ class PositionMonitor:
                                          new_confidence: float, reasoning: List[str], 
                                          reasoning_msg: str) -> None:
         """
-        Atualiza a ação apenas se a nova ação tem prioridade maior ou igual.
+        Atualiza a ação apenas se a nova ação tem prioridade estritamente maior.
         Isso evita downgrade de decisões críticas (ex: CLOSE -> REDUCE_50).
+        
+        Nota: Prioridades iguais NÃO atualizam a ação (mantém a primeira decisão).
         
         Args:
             decision: Dict da decisão a ser atualizado
@@ -383,11 +385,17 @@ class PositionMonitor:
         current_priority = ACTION_PRIORITY.get(decision['agent_action'], 0)
         new_priority = ACTION_PRIORITY.get(new_action, 0)
         
-        if new_priority >= current_priority:
+        if new_priority > current_priority:
+            # Upgrade permitido
             decision['agent_action'] = new_action
             decision['decision_confidence'] = new_confidence
-        
-        reasoning.append(reasoning_msg)
+            reasoning.append(f"[UPGRADE] {reasoning_msg}")
+        elif new_priority == current_priority:
+            # Mesma prioridade - atualizar confiança se for maior
+            if new_confidence > decision['decision_confidence']:
+                decision['decision_confidence'] = new_confidence
+            reasoning.append(f"[CONFIRMAÇÃO] {reasoning_msg}")
+        # Se new_priority < current_priority, não faz nada (downgrade bloqueado)
     
     def evaluate_position(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                          sentiment: Dict[str, Any]) -> Dict[str, Any]:
