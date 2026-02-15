@@ -73,7 +73,12 @@ class PositionMonitor:
         self.alert_manager = AlertManager()
         self._running = False
         
+        # Inicializar OrderExecutor para execução automática de ordens
+        from execution.order_executor import OrderExecutor
+        self.order_executor = OrderExecutor(client, db, mode=mode)
+        
         logger.info(f"PositionMonitor inicializado em modo {mode}")
+
     
     def _extract_data(self, response):
         """
@@ -1539,6 +1544,35 @@ class PositionMonitor:
                 # e. Persistir no banco
                 snapshot_id = self.db.insert_position_snapshot(snapshot)
                 snapshot['id'] = snapshot_id
+                
+                # e2. EXECUTAR DECISÃO (se não for HOLD)
+                if decision['agent_action'] != 'HOLD':
+                    execution_result = self.order_executor.execute_decision(
+                        position=position,
+                        decision=decision,
+                        snapshot_id=snapshot_id
+                    )
+                    
+                    if execution_result['executed']:
+                        logger.info(
+                            f"[EXECUÇÃO] {execution_result['action']} {pos_symbol}: "
+                            f"side={execution_result['side']}, qty={execution_result['quantity']:.6f}, "
+                            f"mode={execution_result['mode']}"
+                        )
+                        
+                        # Se foi CLOSE e executou com sucesso, atualizar past outcomes
+                        if execution_result['action'] == 'CLOSE' and execution_result.get('order_response'):
+                            fill_price = execution_result.get('fill_price', position['mark_price'])
+                            self.update_past_outcomes(
+                                symbol=pos_symbol,
+                                exit_price=fill_price,
+                                exit_timestamp=int(datetime.now().timestamp() * 1000)
+                            )
+                    else:
+                        logger.info(
+                            f"[EXECUÇÃO BLOQUEADA] {decision['agent_action']} {pos_symbol}: "
+                            f"{execution_result['reason']}"
+                        )
                 
                 # f. Verificar alertas de risco
                 risk_score = decision['risk_score']

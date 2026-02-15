@@ -342,7 +342,49 @@ class DatabaseManager:
                 cursor.execute("ALTER TABLE position_snapshots ADD COLUMN analysis_summary TEXT")
                 logger.info("Coluna 'analysis_summary' adicionada à tabela position_snapshots")
             
-            # Table 12: WebSocket Events
+            # Table 12: Execution Log (Order Execution Audit Trail)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS execution_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    direction TEXT NOT NULL,          -- Position direction: LONG or SHORT
+                    action TEXT NOT NULL,             -- Agent action: CLOSE or REDUCE_50
+                    side TEXT NOT NULL,               -- Order side: BUY or SELL
+                    quantity REAL NOT NULL,           -- Order quantity
+                    order_type TEXT NOT NULL,         -- MARKET
+                    reduce_only INTEGER NOT NULL DEFAULT 1,  -- Always 1
+                    
+                    -- Execution result
+                    executed INTEGER NOT NULL,        -- 1=success, 0=failed/blocked
+                    mode TEXT NOT NULL,               -- paper or live
+                    reason TEXT,                      -- Why executed or why blocked
+                    
+                    -- Order response (from Binance)
+                    order_id TEXT,                    -- Binance order ID
+                    fill_price REAL,                  -- Actual fill price
+                    fill_quantity REAL,               -- Actual filled quantity
+                    commission REAL,                  -- Commission paid
+                    
+                    -- Context at time of execution
+                    entry_price REAL,
+                    mark_price REAL,
+                    unrealized_pnl REAL,
+                    unrealized_pnl_pct REAL,
+                    risk_score REAL,
+                    decision_confidence REAL,
+                    decision_reasoning TEXT,
+                    
+                    -- Links
+                    snapshot_id INTEGER,              -- FK to position_snapshots.id
+                    
+                    FOREIGN KEY (snapshot_id) REFERENCES position_snapshots(id)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_execution_log_symbol ON execution_log(symbol, timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_execution_log_action ON execution_log(action, executed)")
+            
+            # Table 14: WebSocket Events
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS eventos_websocket (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -355,7 +397,7 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_eventos_timestamp ON eventos_websocket(timestamp)")
             
-            # Table 13: Reports
+            # Table 15: Reports
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS relatorios (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -887,3 +929,87 @@ class DatabaseManager:
                     logger.info(f"Cleaned {deleted} old records from {table}")
         
         logger.info(f"Database cleanup completed (keeping {days_to_keep} days)")
+    
+    def insert_execution_log(self, data: Dict[str, Any]) -> int:
+        """
+        Insert execution log record and return its ID.
+        
+        Args:
+            data: Execution data dictionary
+            
+        Returns:
+            ID of inserted execution record
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO execution_log
+                (timestamp, symbol, direction, action, side, quantity, order_type, reduce_only,
+                 executed, mode, reason, order_id, fill_price, fill_quantity, commission,
+                 entry_price, mark_price, unrealized_pnl, unrealized_pnl_pct,
+                 risk_score, decision_confidence, decision_reasoning, snapshot_id)
+                VALUES 
+                (:timestamp, :symbol, :direction, :action, :side, :quantity, :order_type, :reduce_only,
+                 :executed, :mode, :reason, :order_id, :fill_price, :fill_quantity, :commission,
+                 :entry_price, :mark_price, :unrealized_pnl, :unrealized_pnl_pct,
+                 :risk_score, :decision_confidence, :decision_reasoning, :snapshot_id)
+            """, data)
+            execution_id = cursor.lastrowid
+            logger.debug(f"Inserted execution log {execution_id} for {data['symbol']}")
+            return execution_id
+    
+    def get_execution_log(self, symbol: Optional[str] = None, start_time: Optional[int] = None,
+                         executed_only: bool = False) -> List[Dict[str, Any]]:
+        """
+        Retrieve execution log records.
+        
+        Args:
+            symbol: Optional symbol filter
+            start_time: Optional timestamp filter (only records after this time)
+            executed_only: If True, only return successful executions (executed=1)
+            
+        Returns:
+            List of execution log records
+        """
+        query = "SELECT * FROM execution_log WHERE 1=1"
+        params = []
+        
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        
+        if start_time:
+            query += " AND timestamp >= ?"
+            params.append(start_time)
+        
+        if executed_only:
+            query += " AND executed = 1"
+        
+        query += " ORDER BY timestamp DESC"
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    
+    def count_executions_today(self) -> int:
+        """
+        Count successful executions today (UTC timezone).
+        
+        Returns:
+            Number of successful executions today
+        """
+        # Calcular timestamp do início do dia (00:00:00 UTC)
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start_ms = int(today_start.timestamp() * 1000)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) FROM execution_log 
+                WHERE executed = 1 AND timestamp >= ?
+            """, (today_start_ms,))
+            count = cursor.fetchone()[0]
+            return count
+
