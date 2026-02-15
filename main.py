@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from datetime import datetime
 import numpy as np
 
 from config.settings import DB_PATH, TRADING_MODE
@@ -297,8 +298,87 @@ def train_model() -> None:
     logger.info("TRAINING RL MODEL")
     logger.info("="*60)
     
-    logger.info("Model training skipped (use --train flag to force)")
-    logger.info("See agent/trainer.py for training implementation")
+    from agent.data_loader import DataLoader
+    from agent.trainer import Trainer
+    
+    try:
+        # Inicializar database
+        db = setup_database()
+        
+        # Inicializar data loader
+        logger.info("Inicializando Data Loader...")
+        data_loader = DataLoader(db=db)
+        
+        # Carregar dados de treino
+        logger.info("Carregando dados de treinamento...")
+        train_data = data_loader.load_training_data(symbol="BTCUSDT", min_length=1000)
+        
+        # Mostrar resumo dos dados
+        summary = data_loader.get_data_summary(train_data)
+        logger.info(f"Dados de treino carregados:")
+        logger.info(f"  - H4: {summary['h4']['length']} candles")
+        logger.info(f"  - H1: {summary['h1']['length']} candles")
+        logger.info(f"  - D1: {summary['d1']['length']} candles")
+        
+        # Carregar dados de validação
+        logger.info("Carregando dados de validação...")
+        val_data = data_loader.load_validation_data(symbol="BTCUSDT", min_length=200)
+        val_summary = data_loader.get_data_summary(val_data)
+        logger.info(f"Dados de validação carregados:")
+        logger.info(f"  - H4: {val_summary['h4']['length']} candles")
+        
+        # Inicializar trainer
+        logger.info("Inicializando Trainer...")
+        trainer = Trainer(save_dir="models")
+        
+        # Fase 1: Exploração (500k steps)
+        logger.info("Iniciando Fase 1: Exploração...")
+        trainer.train_phase1_exploration(
+            train_data=train_data,
+            total_timesteps=500000,
+            episode_length=500
+        )
+        
+        # Fase 2: Refinamento (1M steps)
+        logger.info("Iniciando Fase 2: Refinamento...")
+        trainer.train_phase2_refinement(
+            train_data=train_data,
+            total_timesteps=1000000,
+            load_phase1=True,
+            episode_length=500
+        )
+        
+        # Fase 3: Validação
+        logger.info("Iniciando Fase 3: Validação...")
+        metrics = trainer.train_phase3_validation(
+            test_data=val_data,
+            n_episodes=100,
+            episode_length=500
+        )
+        
+        # Verificar se modelo passou nos critérios
+        if metrics['sharpe_ratio'] > 1.0 and metrics['max_drawdown'] < 0.15:
+            logger.info("[OK] Modelo passou nos critérios de validação")
+            logger.info(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
+            logger.info(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}%")
+            logger.info(f"  - Win Rate: {metrics['win_rate']*100:.2f}%")
+            logger.info(f"  - Avg R-Multiple: {metrics['avg_r_multiple']:.2f}")
+            
+            # Salvar modelo final
+            final_path = "models/crypto_agent_ppo_final.zip"
+            trainer.save_model(final_path)
+            logger.info(f"[OK] Modelo final salvo: {final_path}")
+        else:
+            logger.warning("[FALHA] Modelo não passou nos critérios de validação")
+            logger.warning(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f} (requer > 1.0)")
+            logger.warning(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}% (requer < 15%)")
+        
+        logger.info("="*60)
+        logger.info("TREINAMENTO CONCLUÍDO")
+        logger.info("="*60)
+        
+    except Exception as e:
+        logger.error(f"Erro durante treinamento: {e}", exc_info=True)
 
 
 def start_operation(mode: str, client, db: DatabaseManager) -> None:
@@ -335,7 +415,7 @@ def start_operation(mode: str, client, db: DatabaseManager) -> None:
 
 def run_backtest(start_date: str, end_date: str) -> None:
     """
-    Executa backtest.
+    Executa backtest com modelo treinado.
     
     Args:
         start_date: Data inicial (YYYY-MM-DD)
@@ -346,14 +426,73 @@ def run_backtest(start_date: str, end_date: str) -> None:
     logger.info("="*60)
     
     from backtest.backtester import Backtester
+    from agent.data_loader import DataLoader
+    from agent.trainer import Trainer
+    import os
     
-    backtester = Backtester(initial_capital=10000)
-    
-    # Carregar dados
-    # Carregar modelo
-    # Executar backtest
-    
-    logger.info("Backtest completed")
+    try:
+        # Verificar se existe modelo treinado
+        model_path = "models/crypto_agent_ppo_final.zip"
+        if not os.path.exists(model_path):
+            # Tentar modelo da fase 2
+            model_path = "models/phase2_refinement.zip"
+            if not os.path.exists(model_path):
+                logger.error("Nenhum modelo treinado encontrado. Execute --train primeiro.")
+                return
+        
+        logger.info(f"Carregando modelo: {model_path}")
+        
+        # Inicializar database
+        db = setup_database()
+        
+        # Carregar dados
+        logger.info("Carregando dados para backtest...")
+        data_loader = DataLoader(db=db)
+        test_data = data_loader.load_validation_data(symbol="BTCUSDT", min_length=500)
+        
+        summary = data_loader.get_data_summary(test_data)
+        logger.info(f"Dados carregados: H4={summary['h4']['length']} candles")
+        
+        # Carregar modelo
+        trainer = Trainer()
+        trainer.load_model(model_path)
+        
+        # Executar backtest
+        backtester = Backtester(initial_capital=10000)
+        results = backtester.run(
+            start_date=start_date,
+            end_date=end_date,
+            model=trainer.model,
+            data=test_data
+        )
+        
+        # Mostrar resultados
+        logger.info("="*60)
+        logger.info("BACKTEST RESULTS")
+        logger.info("="*60)
+        logger.info(f"Initial Capital: ${results['initial_capital']:.2f}")
+        logger.info(f"Final Capital: ${results['final_capital']:.2f}")
+        logger.info(f"Total Return: {results['metrics']['total_return_pct']:.2f}%")
+        logger.info(f"Total Trades: {results['total_trades']}")
+        logger.info("")
+        logger.info("Metrics:")
+        logger.info(f"  Win Rate: {results['metrics']['win_rate']*100:.2f}%")
+        logger.info(f"  Profit Factor: {results['metrics']['profit_factor']:.2f}")
+        logger.info(f"  Sharpe Ratio: {results['metrics']['sharpe_ratio']:.2f}")
+        logger.info(f"  Max Drawdown: {results['metrics']['max_drawdown_pct']:.2f}%")
+        logger.info(f"  Avg R-Multiple: {results['metrics']['avg_r_multiple']:.2f}")
+        
+        # Gerar relatório visual
+        report_path = f"backtest_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        backtester.generate_report(results, save_path=report_path)
+        logger.info(f"[OK] Relatório salvo: {report_path}")
+        
+        logger.info("="*60)
+        logger.info("BACKTEST CONCLUÍDO")
+        logger.info("="*60)
+        
+    except Exception as e:
+        logger.error(f"Erro durante backtest: {e}", exc_info=True)
 
 
 def main():
