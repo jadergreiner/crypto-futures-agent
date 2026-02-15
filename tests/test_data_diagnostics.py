@@ -57,7 +57,7 @@ class TestDataDiagnostics:
         assert not diagnosis['ready']
         assert 'h4' in diagnosis['timeframes']
         assert diagnosis['timeframes']['h4']['available'] == 500
-        assert diagnosis['timeframes']['h4']['status'] == '❌ INSUFICIENTE'
+        assert diagnosis['timeframes']['h4']['status'] == '[FALHA] INSUFICIENTE'
         assert diagnosis['timeframes']['h4']['gap'] < 0
         assert 'recommendation' in diagnosis['timeframes']['h4']
     
@@ -98,9 +98,9 @@ class TestDataDiagnostics:
         )
         
         assert diagnosis['ready']
-        assert diagnosis['timeframes']['h4']['status'] == '✅ OK'
+        assert diagnosis['timeframes']['h4']['status'] == '[OK]'
         assert diagnosis['timeframes']['h4']['gap'] >= 0
-        assert diagnosis['indicators']['ema_610_d1']['status'] == '✅ OK'
+        assert diagnosis['indicators']['ema_610_d1']['status'] == '[OK]'
         assert "PRONTO" in diagnosis['summary']
     
     def test_diagnose_insufficient_d1_for_ema610(self):
@@ -138,10 +138,10 @@ class TestDataDiagnostics:
         )
         
         # H4 deve estar OK
-        assert diagnosis['timeframes']['h4']['status'] == '✅ OK'
+        assert diagnosis['timeframes']['h4']['status'] == '[OK]'
         
         # Mas D1 insuficiente para EMA_610
-        assert diagnosis['indicators']['ema_610_d1']['status'] == '❌ INSUFICIENTE'
+        assert diagnosis['indicators']['ema_610_d1']['status'] == '[FALHA] INSUFICIENTE'
         assert diagnosis['indicators']['ema_610_d1']['available'] == 365
         assert diagnosis['indicators']['ema_610_d1']['required_candles'] == 610
         

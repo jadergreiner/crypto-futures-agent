@@ -344,7 +344,7 @@ def train_model() -> None:
                 logger.info(f"    Após split 80/20: {info['after_split']} candles")
             logger.info(f"    Status: {info['status']}")
             if info.get('recommendation'):
-                logger.info(f"    → {info['recommendation']}")
+                logger.info(f"    -> {info['recommendation']}")
         
         # Exibir status de indicadores
         if diagnosis.get('indicators'):
@@ -355,8 +355,8 @@ def train_model() -> None:
                 logger.info(f"    Necessário: {info['required_candles']} candles")
                 logger.info(f"    Disponível: {info['available']} candles")
                 logger.info(f"    Status: {info['status']}")
-                if '❌' in info.get('status', ''):
-                    logger.info(f"    → {info['recommendation']}")
+                if '[FALHA]' in info.get('status', ''):
+                    logger.info(f"    -> {info['recommendation']}")
         
         # Exibir atualização dos dados
         if diagnosis.get('data_freshness'):
@@ -366,7 +366,7 @@ def train_model() -> None:
             logger.info(f"  Último candle H4: {freshness['last_h4_timestamp']}")
             logger.info(f"  Horas desde última atualização: {freshness['hours_since_last']}")
             if freshness['is_stale']:
-                logger.warning("  ⚠️  DADOS DESATUALIZADOS (>24h)")
+                logger.warning("  [AVISO] DADOS DESATUALIZADOS (>24h)")
         
         logger.info("")
         logger.info("="*60)
@@ -395,7 +395,7 @@ def train_model() -> None:
             return
         
         # Continuar com o treino normal se dados OK
-        logger.info("✅ Dados suficientes, iniciando carregamento...")
+        logger.info("[OK] Dados suficientes, iniciando carregamento...")
         logger.info("")
         
         # Carregar dados de treino
