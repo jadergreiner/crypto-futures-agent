@@ -60,7 +60,8 @@ class FeatureEngineer:
         sentiment: Optional[Dict[str, Any]],
         macro: Optional[Dict[str, Any]],
         smc: Optional[Dict[str, Any]],
-        position_state: Optional[Dict[str, Any]] = None
+        position_state: Optional[Dict[str, Any]] = None,
+        multi_tf_result: Optional[Dict[str, Any]] = None
     ) -> np.ndarray:
         """
         Constrói vetor de observação de 104 features.
@@ -74,6 +75,11 @@ class FeatureEngineer:
             macro: Dados macro
             smc: Estruturas SMC
             position_state: Estado da posição atual
+            multi_tf_result: Resultado da análise multi-timeframe contendo:
+                - 'd1_bias': Bias D1 (BULLISH, BEARISH, NEUTRO)
+                - 'market_regime': Regime de mercado (RISK_ON, RISK_OFF, NEUTRO)
+                - 'correlation_btc': Correlação com BTC (-1 a 1)
+                - 'beta_btc': Beta em relação ao BTC
             
         Returns:
             Array numpy de 104 features normalizadas
@@ -331,14 +337,59 @@ class FeatureEngineer:
             features.extend([0.0] * 4)
         
         # --- BLOCO 7: Correlação (3 features) ---
-        # Esses viriam de multi_timeframe analysis
-        # Por simplicidade, usando placeholders
-        features.extend([0.0, 0.0, 1.0])  # btc_return, correlation, beta
+        # BTC return, correlation, beta from multi_tf_result
+        if multi_tf_result:
+            # BTC return from D1 data
+            # Note: For non-BTC symbols, btc_return requires BTC's D1 data which is not passed
+            # Currently only BTCUSDT calculates its own return; other symbols use 0.0
+            btc_return = 0.0
+            if d1_data is not None and not d1_data.empty and len(d1_data) >= 2:
+                if symbol == "BTCUSDT":
+                    # Use own return for BTC
+                    close_d1 = d1_data['close'].values
+                    btc_return = (close_d1[-1] - close_d1[-2]) / close_d1[-2] if close_d1[-2] != 0 else 0
+                    btc_return = btc_return * 100  # Convert to percentage
+            
+            correlation_btc = multi_tf_result.get('correlation_btc', 0.0)
+            beta_btc = multi_tf_result.get('beta_btc', 1.0)
+            
+            # Normalize features:
+            # - btc_return: Percentage return, expected range [-10%, 10%], clipped and normalized to [-1, 1]
+            # - correlation: Already in [-1, 1], just clipped for safety
+            # - beta: Divide by 3 first (expected range [0, 3]), then clip to [0, 1]
+            features.extend([
+                np.clip(btc_return / 10, -1, 1),
+                np.clip(correlation_btc, -1, 1),
+                np.clip(beta_btc / 3, 0, 1)
+            ])
+        else:
+            # Fallback to placeholders if multi_tf_result not provided
+            features.extend([0.0, 0.0, 1.0])  # btc_return, correlation, beta
         
         # --- BLOCO 8: Contexto D1 (2 features) ---
-        # D1 bias e regime (one-hot simplificado)
-        d1_bias_score = 0.0  # -1 bearish, 0 neutro, 1 bullish
-        regime_score = 0.0  # -1 risk_off, 0 neutro, 1 risk_on
+        # D1 bias e regime (numeric scores)
+        if multi_tf_result:
+            # Map d1_bias: BULLISH -> 1, BEARISH -> -1, NEUTRO -> 0
+            d1_bias = multi_tf_result.get('d1_bias', 'NEUTRO')
+            if d1_bias == 'BULLISH':
+                d1_bias_score = 1.0
+            elif d1_bias == 'BEARISH':
+                d1_bias_score = -1.0
+            else:
+                d1_bias_score = 0.0
+            
+            # Map market_regime: RISK_ON -> 1, RISK_OFF -> -1, NEUTRO -> 0
+            market_regime = multi_tf_result.get('market_regime', 'NEUTRO')
+            if market_regime == 'RISK_ON':
+                regime_score = 1.0
+            elif market_regime == 'RISK_OFF':
+                regime_score = -1.0
+            else:
+                regime_score = 0.0
+        else:
+            # Fallback to neutral if multi_tf_result not provided
+            d1_bias_score = 0.0
+            regime_score = 0.0
         
         features.extend([d1_bias_score, regime_score])
         

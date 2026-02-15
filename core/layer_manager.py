@@ -274,6 +274,14 @@ class LayerManager:
                 
                 # Step 8: Build observation vector
                 try:
+                    # Build multi_tf_result from d1_context
+                    multi_tf_result = {
+                        'd1_bias': d1_bias,
+                        'market_regime': market_regime,
+                        'correlation_btc': d1_context.get('correlation_btc', 0.0),
+                        'beta_btc': d1_context.get('beta_btc', 1.0),
+                    }
+                    
                     observation = FeatureEngineer.build_observation(
                         symbol=symbol,
                         h1_data=h1_df,
@@ -282,7 +290,8 @@ class LayerManager:
                         sentiment=sentiment,
                         macro=macro,
                         smc=smc_result,
-                        position_state=position_state
+                        position_state=position_state,
+                        multi_tf_result=multi_tf_result
                     )
                     
                     # Store feature vector for RL training
