@@ -584,9 +584,10 @@ class DataLoader:
                 'required_candles': 610,
                 'available': d1_available,
                 'status': '❌ INSUFICIENTE',
-                'recommendation': f"D1 precisa de 610+ candles para EMA(610), colete mais {610 - d1_available} dias"
+                'recommendation': f"D1 precisa de 610+ candles para EMA(610), colete mais {610 - d1_available} candles D1 ({610 - d1_available} dias)"
             }
             issues.append(f"D1: insuficiente para EMA(610)")
+            all_ready = False  # Marcar como não pronto quando indicadores críticos faltam
         else:
             diagnosis['indicators']['ema_610_d1'] = {
                 'required_candles': 610,

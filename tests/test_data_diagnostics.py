@@ -146,8 +146,8 @@ class TestDataDiagnostics:
         assert diagnosis['indicators']['ema_610_d1']['required_candles'] == 610
         
         # Overall não está pronto devido ao problema com EMA_610
-        # (O diagnóstico só marca como não pronto se H4 estiver insuficiente,
-        # mas registra o problema com indicadores)
+        # O diagnóstico marca como não pronto quando indicadores críticos estão insuficientes
+        assert not diagnosis['ready']
         assert 'EMA(610)' in diagnosis['indicators']['ema_610_d1']['recommendation']
     
     def test_diagnose_stale_data(self):
