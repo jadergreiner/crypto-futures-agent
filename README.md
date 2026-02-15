@@ -320,6 +320,36 @@ pytest tests/test_indicators.py -v
 - O autor NÃO se responsabiliza por perdas financeiras
 - SEMPRE teste em paper trading antes de usar capital real
 
+## 📚 Documentação
+
+Este projeto possui documentação extensiva organizada em `docs/`:
+
+### Documentação do Projeto
+- **[ROADMAP.md](docs/ROADMAP.md)** — Roadmap do projeto, releases planejadas e status atual
+- **[RELEASES.md](docs/RELEASES.md)** — Detalhes de cada release (v0.1 a v1.1+)
+- **[FEATURES.md](docs/FEATURES.md)** — Listagem de todas as features por release
+- **[USER_STORIES.md](docs/USER_STORIES.md)** — User stories e critérios de aceite
+- **[TRACKER.md](docs/TRACKER.md)** — Sprint tracker com tasks e progresso
+- **[LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Lições aprendidas durante o desenvolvimento
+- **[CHANGELOG.md](CHANGELOG.md)** — Registro de mudanças seguindo Keep a Changelog
+
+### Documentação Técnica
+- **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** — Integração com Binance SDK
+- **[CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md)** — Correções de cross margin
+- **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação das camadas de decisão
+
+### Status do Projeto
+**v0.2 (Pipeline Fix)** ✅ CONCLUÍDO (15/02/2026)
+- Feature Engineering com 104 features totalmente funcional
+- Multi-timeframe analysis integrada (D1 Bias, Market Regime, Correlação BTC)
+- Reward Calculator com lógica de R-multiple corrigida
+- Testes unitários completos
+
+**Próxima Release:** v0.3 (Training Ready) 🎯
+- Foco: Ambiente de treinamento RL funcional
+- Pipeline de dados para treinamento
+- Script de treinamento operacional
+
 ## 📄 Licença
 
 MIT License - Veja o arquivo LICENSE para detalhes.

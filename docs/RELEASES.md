@@ -3,10 +3,10 @@
 ## v0.1 — Foundation ✅ _DONE_
 > Arquitetura completa, pipeline E2E com dados sintéticos, dry-run funcional.
 
-## v0.2 — Pipeline Fix 🎯 _PRÓXIMO PASSO_
-> Corrigir placeholders, integrar features reais, garantir pipeline 100% funcional com dados reais.
+## v0.2 — Pipeline Fix ✅ _DONE_
+> Correção de placeholders, integração de features reais, garantia de pipeline 100% funcional com dados reais.
 
-## v0.3 — Training Ready
+## v0.3 — Training Ready 🎯 _PRÓXIMO PASSO_
 > Ambiente de treinamento funcional, reward function refinada, treinamento completo em dados históricos.
 
 ## v0.4 — Backtest Engine

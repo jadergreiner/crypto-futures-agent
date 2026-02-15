@@ -61,10 +61,10 @@ class RewardCalculator:
             
             # Bonus para R-multiples positivos
             r_multiple = trade_result.get('r_multiple', 0)
-            if r_multiple > 2.0:
-                components['r_pnl'] += 2.0  # Bonus para 2R+
-            elif r_multiple > 3.0:
+            if r_multiple > 3.0:
                 components['r_pnl'] += 5.0  # Bonus extra para 3R+
+            elif r_multiple > 2.0:
+                components['r_pnl'] += 2.0  # Bonus para 2R+
         
         # Componente 2: Gestão de Risco
         if position_state:
