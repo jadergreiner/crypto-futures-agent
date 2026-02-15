@@ -57,17 +57,13 @@ class NILPlaybook(BasePlaybook):
     
     def should_trade(self, market_regime: str, d1_bias: str, 
                     btc_bias: str = None) -> bool:
-        """NILUSDT trading conditions - ultra conservative (RISK_ON + fear_greed > 50)."""
+        """NILUSDT trading conditions - ultra conservative, only in RISK_ON."""
         if d1_bias == "NEUTRO":
             return False
         
-        # Apenas operar em risk-on (beta 4.0)
+        # Apenas operar em risk-on (beta 4.0 muito alto)
         if market_regime != "RISK_ON":
             logger.debug("NILUSDT: Skipping (not RISK_ON)")
             return False
-        
-        # Adicional: apenas se fear_greed > 50 (ultra conservador)
-        # Nota: context nao esta disponivel aqui, entao essa verificacao
-        # sera feita no monitor quando aplicar os adjustments
         
         return True
