@@ -329,13 +329,18 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_symbol ON position_snapshots(symbol, timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_action ON position_snapshots(agent_action)")
             
-            # Adicionar coluna margin_invested se não existir (para bancos existentes)
-            # Verifica se a coluna já existe antes de tentar adicionar
+            # Adicionar colunas adicionais se não existirem (para bancos existentes)
+            # Verifica se as colunas já existem antes de tentar adicionar
             cursor.execute("PRAGMA table_info(position_snapshots)")
             columns = [col[1] for col in cursor.fetchall()]
+            
             if 'margin_invested' not in columns:
                 cursor.execute("ALTER TABLE position_snapshots ADD COLUMN margin_invested REAL")
                 logger.info("Coluna 'margin_invested' adicionada à tabela position_snapshots")
+            
+            if 'analysis_summary' not in columns:
+                cursor.execute("ALTER TABLE position_snapshots ADD COLUMN analysis_summary TEXT")
+                logger.info("Coluna 'analysis_summary' adicionada à tabela position_snapshots")
             
             # Table 12: WebSocket Events
             cursor.execute("""
@@ -760,7 +765,7 @@ class DatabaseManager:
                  funding_rate, long_short_ratio, open_interest_change_pct,
                  agent_action, decision_confidence, decision_reasoning,
                  risk_score, stop_loss_suggested, take_profit_suggested, trailing_stop_price,
-                 reward_calculated, outcome_label)
+                 reward_calculated, outcome_label, analysis_summary)
                 VALUES (:timestamp, :symbol, :direction, :entry_price, :mark_price, :liquidation_price,
                         :position_size_qty, :position_size_usdt, :leverage, :margin_type,
                         :margin_invested, :unrealized_pnl, :unrealized_pnl_pct, :margin_balance,
@@ -774,7 +779,7 @@ class DatabaseManager:
                         :funding_rate, :long_short_ratio, :open_interest_change_pct,
                         :agent_action, :decision_confidence, :decision_reasoning,
                         :risk_score, :stop_loss_suggested, :take_profit_suggested, :trailing_stop_price,
-                        :reward_calculated, :outcome_label)
+                        :reward_calculated, :outcome_label, :analysis_summary)
             """, data)
             snapshot_id = cursor.lastrowid
             logger.debug(f"Inserted position snapshot {snapshot_id} for {data['symbol']}")

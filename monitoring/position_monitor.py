@@ -577,10 +577,36 @@ class PositionMonitor:
             reasoning.append(f"PnL excedeu stop loss máximo ({pnl_pct:.2f}% < -{max_stop_distance}%)")
             risk_score += 3.0
         
-        # 3. VERIFICAR REVERSÃO DE ESTRUTURA (CHoCH contra a posição)
+        # 3. VERIFICAR ESTRUTURA SMC
         market_structure = indicators.get('market_structure', 'range')
         choch_recent = indicators.get('choch_recent', 0)
+        bos_recent = indicators.get('bos_recent', 0)
         
+        # Verificar se estrutura SMC favorece a posição
+        if direction == 'LONG':
+            if market_structure == 'bullish':
+                if bos_recent:
+                    reasoning.append(f"Estrutura bullish com BOS confirmado - favoravel para LONG")
+                    risk_score -= 0.5
+                else:
+                    reasoning.append(f"Estrutura de mercado bullish - alinhada com LONG")
+                    risk_score -= 0.3
+            elif market_structure == 'bearish':
+                reasoning.append(f"[AVISO] Estrutura bearish contra posicao LONG")
+                risk_score += 1.0
+        else:  # SHORT
+            if market_structure == 'bearish':
+                if bos_recent:
+                    reasoning.append(f"Estrutura bearish com BOS confirmado - favoravel para SHORT")
+                    risk_score -= 0.5
+                else:
+                    reasoning.append(f"Estrutura de mercado bearish - alinhada com SHORT")
+                    risk_score -= 0.3
+            elif market_structure == 'bullish':
+                reasoning.append(f"[AVISO] Estrutura bullish contra posicao SHORT")
+                risk_score += 1.0
+        
+        # Verificar CHoCH (mudança de caráter - sinal de reversão)
         if choch_recent:
             if (direction == 'LONG' and market_structure == 'bearish') or \
                (direction == 'SHORT' and market_structure == 'bullish'):
@@ -600,7 +626,26 @@ class PositionMonitor:
         # 4. VERIFICAR INDICADORES TÉCNICOS
         rsi = indicators.get('rsi_14')
         ema_17 = indicators.get('ema_17')
+        ema_34 = indicators.get('ema_34')
         ema_72 = indicators.get('ema_72')
+        ema_144 = indicators.get('ema_144')
+        
+        # Verificar alinhamento de EMAs
+        if all(v is not None for v in [ema_17, ema_34, ema_72, ema_144]):
+            if direction == 'LONG':
+                if ema_17 > ema_34 > ema_72 > ema_144:
+                    reasoning.append(f"EMAs alinhadas para alta - tendencia bullish confirmada")
+                    risk_score -= 0.5
+                elif ema_17 < ema_34 < ema_72 < ema_144:
+                    reasoning.append(f"[AVISO] EMAs alinhadas para baixa - contra posicao LONG")
+                    risk_score += 1.0
+            else:  # SHORT
+                if ema_17 < ema_34 < ema_72 < ema_144:
+                    reasoning.append(f"EMAs alinhadas para baixa - tendencia bearish confirmada")
+                    risk_score -= 0.5
+                elif ema_17 > ema_34 > ema_72 > ema_144:
+                    reasoning.append(f"[AVISO] EMAs alinhadas para alta - contra posicao SHORT")
+                    risk_score += 1.0
         
         if rsi and ema_17 and ema_72:
             if direction == 'LONG':
@@ -610,19 +655,19 @@ class PositionMonitor:
                         # Lucro bom, reduzir para garantir
                         self._update_action_if_higher_priority(
                             decision, 'REDUCE_50', 0.70, reasoning,
-                            f"LONG em zona de risco (RSI: {rsi:.1f}, preço abaixo EMA72)"
+                            f"LONG em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
                         )
                         risk_score += 1.5
                     elif pnl_pct < 0:
                         self._update_action_if_higher_priority(
                             decision, 'CLOSE', 0.80, reasoning,
-                            f"LONG em prejuízo e indicadores negativos"
+                            f"LONG em prejuízo e indicadores negativos (RSI: {rsi:.1f})"
                         )
                         risk_score += 2.5
                         
                 # LONG favorável: RSI > 50, preço acima EMAs
                 elif rsi > 50 and mark_price > ema_17 and mark_price > ema_72:
-                    reasoning.append(f"LONG em estrutura favorável (RSI: {rsi:.1f})")
+                    reasoning.append(f"LONG em estrutura favorável (RSI: {rsi:.1f}, preco acima EMAs)")
                     risk_score -= 1.0
             
             elif direction == 'SHORT':
@@ -631,19 +676,19 @@ class PositionMonitor:
                     if pnl_pct > 5:
                         self._update_action_if_higher_priority(
                             decision, 'REDUCE_50', 0.70, reasoning,
-                            f"SHORT em zona de risco (RSI: {rsi:.1f}, preço acima EMA72)"
+                            f"SHORT em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
                         )
                         risk_score += 1.5
                     elif pnl_pct < 0:
                         self._update_action_if_higher_priority(
                             decision, 'CLOSE', 0.80, reasoning,
-                            f"SHORT em prejuízo e indicadores negativos"
+                            f"SHORT em prejuízo e indicadores negativos (RSI: {rsi:.1f})"
                         )
                         risk_score += 2.5
                 
                 # SHORT favorável: RSI < 50, preço abaixo EMAs
                 elif rsi < 50 and mark_price < ema_17 and mark_price < ema_72:
-                    reasoning.append(f"SHORT em estrutura favorável (RSI: {rsi:.1f})")
+                    reasoning.append(f"SHORT em estrutura favorável (RSI: {rsi:.1f}, preco abaixo EMAs)")
                     risk_score -= 1.0
         
         # 5. VERIFICAR FUNDING RATE EXTREMO
@@ -691,16 +736,45 @@ class PositionMonitor:
         decision['decision_reasoning'] = json.dumps(reasoning)
         
         # 8. CALCULAR STOPS E TARGETS SUGERIDOS
+        # Usar níveis SMC quando disponíveis, caso contrário usar ATR
+        nearest_ob_dist = indicators.get('nearest_ob_distance_pct')
+        
         if atr:
-            # Stop loss baseado em ATR
+            # Stop loss baseado em ATR como fallback
             stop_multiplier = RISK_PARAMS['stop_loss_atr_multiplier']
             tp_multiplier = RISK_PARAMS['take_profit_atr_multiplier']
             
             if direction == 'LONG':
-                decision['stop_loss_suggested'] = entry_price - (atr * stop_multiplier)
+                # Para LONG: stop abaixo do nearest OB ou swing low
+                atr_stop = entry_price - (atr * stop_multiplier)
+                
+                # Se temos OB próximo, usar ele com um buffer de ATR
+                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante abaixo para LONG
+                if nearest_ob_dist is not None:
+                    ob_price = mark_price * (1 - nearest_ob_dist / 100)
+                    # Stop abaixo do OB com buffer de 0.5 ATR
+                    smc_stop = ob_price - (atr * 0.5)
+                    # Usar o stop mais conservador (mais próximo do preço atual para limitar perda)
+                    decision['stop_loss_suggested'] = max(smc_stop, atr_stop)
+                else:
+                    decision['stop_loss_suggested'] = atr_stop
+                
                 decision['take_profit_suggested'] = entry_price + (atr * tp_multiplier)
             else:  # SHORT
-                decision['stop_loss_suggested'] = entry_price + (atr * stop_multiplier)
+                # Para SHORT: stop acima do nearest OB ou swing high
+                atr_stop = entry_price + (atr * stop_multiplier)
+                
+                # Se temos OB próximo, usar ele com um buffer de ATR
+                # Nota: nearest_ob_dist é distância absoluta; assumimos OB relevante acima para SHORT
+                if nearest_ob_dist is not None:
+                    ob_price = mark_price * (1 + nearest_ob_dist / 100)
+                    # Stop acima do OB com buffer de 0.5 ATR
+                    smc_stop = ob_price + (atr * 0.5)
+                    # Usar o stop mais conservador (mais próximo do preço atual)
+                    decision['stop_loss_suggested'] = min(smc_stop, atr_stop)
+                else:
+                    decision['stop_loss_suggested'] = atr_stop
+                
                 decision['take_profit_suggested'] = entry_price - (atr * tp_multiplier)
             
             # Trailing stop (ativar se PnL > activation_r)
@@ -726,6 +800,391 @@ class PositionMonitor:
                    f"(confiança: {decision['decision_confidence']:.2f}, risco: {risk_score:.1f}/10)")
         
         return decision
+    
+    def _format_rsi_interpretation(self, rsi: float) -> str:
+        """Interpreta valor do RSI."""
+        if rsi < 30:
+            return "Sobrevendido"
+        elif rsi < 45:
+            return "Fraco"
+        elif rsi < 55:
+            return "Neutro"
+        elif rsi < 70:
+            return "Moderado"
+        else:
+            return "Sobrecomprado"
+    
+    def _format_macd_interpretation(self, histogram: float) -> str:
+        """Interpreta MACD histogram."""
+        if histogram is None:
+            return "N/D"
+        return "Bullish" if histogram > 0 else "Bearish"
+    
+    def _format_adx_interpretation(self, adx: float, di_plus: float, di_minus: float) -> str:
+        """Interpreta ADX e direção da tendência."""
+        if adx is None:
+            return "N/D"
+        
+        # Força da tendência
+        if adx < 20:
+            strength = "Sem Tendencia"
+        elif adx < 25:
+            strength = "Tendencia Fraca"
+        elif adx < 40:
+            strength = "Tendencia Moderada"
+        else:
+            strength = "Tendencia Forte"
+        
+        # Direção da tendência
+        direction = ""
+        if di_plus is not None and di_minus is not None:
+            if di_plus > di_minus:
+                direction = " - Bullish"
+            else:
+                direction = " - Bearish"
+        
+        return f"{strength}{direction}"
+    
+    def _format_bb_interpretation(self, percent_b: float) -> str:
+        """Interpreta posição nas Bollinger Bands."""
+        if percent_b is None:
+            return "N/D"
+        
+        if percent_b > 0.8:
+            return "Zona Superior"
+        elif percent_b > 0.5:
+            return "Acima da Media"
+        elif percent_b > 0.2:
+            return "Abaixo da Media"
+        else:
+            return "Zona Inferior"
+    
+    def _check_ema_alignment(self, ema_17: float, ema_34: float, ema_72: float, ema_144: float) -> str:
+        """Verifica alinhamento das EMAs."""
+        if None in [ema_17, ema_34, ema_72, ema_144]:
+            return "N/D"
+        
+        if ema_17 > ema_34 > ema_72 > ema_144:
+            return "Alinhadas para ALTA"
+        elif ema_17 < ema_34 < ema_72 < ema_144:
+            return "Alinhadas para BAIXA"
+        else:
+            return "Misturadas (sem tendencia clara)"
+    
+    def _format_premium_discount(self, zone: str) -> str:
+        """Formata zona de premium/discount para exibição."""
+        zone_map = {
+            'deep_premium': 'DEEP PREMIUM',
+            'premium': 'PREMIUM',
+            'equilibrium': 'EQUILIBRIO',
+            'discount': 'DISCOUNT',
+            'deep_discount': 'DEEP DISCOUNT'
+        }
+        return zone_map.get(zone, zone.upper() if zone else 'N/D')
+    
+    def _log_analysis_report(self, position: Dict[str, Any], indicators: Dict[str, Any], 
+                            sentiment: Dict[str, Any], decision: Dict[str, Any]) -> None:
+        """
+        Registra relatório detalhado da análise da posição.
+        
+        Args:
+            position: Dados da posição
+            indicators: Indicadores calculados
+            sentiment: Dados de sentimento
+            decision: Decisão gerada
+        """
+        symbol = position['symbol']
+        direction = position['direction']
+        
+        # Cabeçalho
+        logger.info("=" * 60)
+        logger.info(f"ANALISE DETALHADA: {symbol} {direction}")
+        logger.info("=" * 60)
+        
+        # --- POSIÇÃO ---
+        logger.info("")
+        logger.info("--- POSICAO ---")
+        entry = position['entry_price']
+        mark = position['mark_price']
+        margin = position.get('margin_invested', 0)
+        pnl = position['unrealized_pnl']
+        pnl_pct = position['unrealized_pnl_pct']
+        leverage = position['leverage']
+        margin_type = position.get('margin_type', 'ISOLATED')
+        
+        logger.info(f"  Direcao: {direction} | Entrada: {entry:.4f} | Mark: {mark:.4f} | Margem: {margin:.2f} USDT")
+        logger.info(f"  PnL: {pnl:+.2f} USDT ({pnl_pct:+.2f}%) | Alavancagem: {leverage}x | Tipo: {margin_type}")
+        
+        # --- INDICADORES TÉCNICOS (H4) ---
+        logger.info("")
+        logger.info("--- INDICADORES TECNICOS (H4) ---")
+        
+        rsi = indicators.get('rsi_14')
+        if rsi is not None:
+            rsi_label = self._format_rsi_interpretation(rsi)
+            logger.info(f"  RSI(14): {rsi:.1f} [{rsi_label}]")
+        else:
+            logger.info(f"  RSI(14): N/D")
+        
+        macd_line = indicators.get('macd_line')
+        macd_signal = indicators.get('macd_signal')
+        macd_hist = indicators.get('macd_histogram')
+        if macd_line is not None and macd_signal is not None and macd_hist is not None:
+            macd_label = self._format_macd_interpretation(macd_hist)
+            logger.info(f"  MACD: Linha={macd_line:.6f} Sinal={macd_signal:.6f} Hist={macd_hist:+.6f} [{macd_label}]")
+        else:
+            logger.info(f"  MACD: N/D")
+        
+        ema_17 = indicators.get('ema_17')
+        ema_34 = indicators.get('ema_34')
+        ema_72 = indicators.get('ema_72')
+        ema_144 = indicators.get('ema_144')
+        if all(v is not None for v in [ema_17, ema_34, ema_72, ema_144]):
+            logger.info(f"  EMAs: 17={ema_17:.4f} | 34={ema_34:.4f} | 72={ema_72:.4f} | 144={ema_144:.4f}")
+            ema_alignment = self._check_ema_alignment(ema_17, ema_34, ema_72, ema_144)
+            logger.info(f"  Tendencia EMA: {ema_alignment}")
+        else:
+            logger.info(f"  EMAs: N/D")
+        
+        adx = indicators.get('adx_14')
+        di_plus = indicators.get('di_plus')
+        di_minus = indicators.get('di_minus')
+        if adx is not None:
+            adx_label = self._format_adx_interpretation(adx, di_plus, di_minus)
+            di_plus_str = f"{di_plus:.1f}" if di_plus is not None else "N/D"
+            di_minus_str = f"{di_minus:.1f}" if di_minus is not None else "N/D"
+            logger.info(f"  ADX(14): {adx:.1f} | DI+: {di_plus_str} | DI-: {di_minus_str} [{adx_label}]")
+        else:
+            logger.info(f"  ADX(14): N/D")
+        
+        bb_upper = indicators.get('bb_upper')
+        bb_lower = indicators.get('bb_lower')
+        bb_percent_b = indicators.get('bb_percent_b')
+        if all(v is not None for v in [bb_upper, bb_lower, bb_percent_b]):
+            bb_label = self._format_bb_interpretation(bb_percent_b)
+            logger.info(f"  Bollinger: Upper={bb_upper:.4f} | Lower={bb_lower:.4f} | %B={bb_percent_b:.2f} [{bb_label}]")
+        else:
+            logger.info(f"  Bollinger: N/D")
+        
+        atr = indicators.get('atr_14')
+        if atr is not None:
+            logger.info(f"  ATR(14): {atr:.6f}")
+        else:
+            logger.info(f"  ATR(14): N/D")
+        
+        # --- ANÁLISE SMC (H1) ---
+        logger.info("")
+        logger.info("--- ANALISE SMC (H1) ---")
+        
+        market_structure = indicators.get('market_structure', 'range')
+        logger.info(f"  Estrutura de Mercado: {market_structure.upper()}")
+        
+        bos_recent = indicators.get('bos_recent', 0)
+        logger.info(f"  BOS Recente: {'Sim (Break of Structure confirmado)' if bos_recent else 'Nao'}")
+        
+        choch_recent = indicators.get('choch_recent', 0)
+        logger.info(f"  CHoCH Recente: {'Sim (Change of Character detectado)' if choch_recent else 'Nao'}")
+        
+        premium_discount = indicators.get('premium_discount_zone')
+        if premium_discount:
+            zone_label = self._format_premium_discount(premium_discount)
+            # Calculate position in range percentage if possible
+            logger.info(f"  Zona Premium/Discount: {zone_label}")
+        else:
+            logger.info(f"  Zona Premium/Discount: N/D")
+        
+        nearest_ob = indicators.get('nearest_ob_distance_pct')
+        if nearest_ob is not None:
+            # Nota: nearest_ob_distance_pct é distância absoluta, não indica direção
+            # Para LONG, assumimos OB abaixo; para SHORT, OB acima
+            ob_price = mark * (1 + nearest_ob / 100) if direction == 'SHORT' else mark * (1 - nearest_ob / 100)
+            logger.info(f"  Order Block mais proximo: {ob_price:.4f} (distancia: {nearest_ob:.1f}%)")
+        else:
+            logger.info(f"  Order Block mais proximo: N/D")
+        
+        nearest_fvg = indicators.get('nearest_fvg_distance_pct')
+        if nearest_fvg is not None:
+            fvg_price = mark * (1 + nearest_fvg / 100) if direction == 'SHORT' else mark * (1 - nearest_fvg / 100)
+            logger.info(f"  Fair Value Gap mais proximo: {fvg_price:.4f} (distancia: {nearest_fvg:.1f}%)")
+        else:
+            logger.info(f"  Fair Value Gap mais proximo: N/D")
+        
+        liq_above = indicators.get('liquidity_above_pct')
+        if liq_above is not None:
+            bsl_price = mark * (1 + liq_above / 100)
+            logger.info(f"  Liquidez acima: +{liq_above:.1f}% (BSL em {bsl_price:.4f})")
+        else:
+            logger.info(f"  Liquidez acima: N/D")
+        
+        liq_below = indicators.get('liquidity_below_pct')
+        if liq_below is not None:
+            ssl_price = mark * (1 - liq_below / 100)
+            logger.info(f"  Liquidez abaixo: -{liq_below:.1f}% (SSL em {ssl_price:.4f})")
+        else:
+            logger.info(f"  Liquidez abaixo: N/D")
+        
+        # --- SENTIMENTO ---
+        logger.info("")
+        logger.info("--- SENTIMENTO ---")
+        
+        funding_rate = indicators.get('funding_rate')
+        if funding_rate is not None:
+            funding_pct = funding_rate * 100
+            funding_label = "Neutro" if abs(funding_pct) < 0.01 else ("Positivo" if funding_pct > 0 else "Negativo")
+            logger.info(f"  Funding Rate: {funding_pct:+.4f}% [{funding_label}]")
+        else:
+            logger.info(f"  Funding Rate: N/D")
+        
+        long_short_ratio = indicators.get('long_short_ratio')
+        if long_short_ratio is not None:
+            ratio_label = "Maioria Long" if long_short_ratio > 1 else "Maioria Short"
+            logger.info(f"  Long/Short Ratio: {long_short_ratio:.2f} [{ratio_label}]")
+        else:
+            logger.info(f"  Long/Short Ratio: N/D")
+        
+        oi_change = indicators.get('open_interest_change_pct')
+        if oi_change is not None:
+            logger.info(f"  Variacao Open Interest: {oi_change:+.1f}%")
+        else:
+            logger.info(f"  Variacao Open Interest: N/D")
+        
+        # --- NÍVEIS DE DECISÃO ---
+        logger.info("")
+        logger.info("--- NIVEIS DE DECISAO ---")
+        
+        # Target baseado em SMC
+        if direction == 'LONG':
+            if liq_above is not None:
+                target_price = mark * (1 + liq_above / 100)
+                logger.info(f"  [ALVO SMC] Proximo alvo: {target_price:.4f} (BSL - Buy Side Liquidity) +{liq_above:.1f}%")
+            elif nearest_ob is not None:
+                target_price = mark * (1 + nearest_ob / 100)
+                logger.info(f"  [ALVO SMC] Proximo alvo: {target_price:.4f} (OB de resistencia) +{nearest_ob:.1f}%")
+            else:
+                logger.info(f"  [ALVO SMC] Proximo alvo: N/D")
+        else:  # SHORT
+            if liq_below is not None:
+                target_price = mark * (1 - liq_below / 100)
+                logger.info(f"  [ALVO SMC] Proximo alvo: {target_price:.4f} (SSL - Sell Side Liquidity) -{liq_below:.1f}%")
+            elif nearest_ob is not None:
+                target_price = mark * (1 - nearest_ob / 100)
+                logger.info(f"  [ALVO SMC] Proximo alvo: {target_price:.4f} (OB de suporte) -{nearest_ob:.1f}%")
+            else:
+                logger.info(f"  [ALVO SMC] Proximo alvo: N/D")
+        
+        # Stop Loss sugerido
+        stop_loss = decision.get('stop_loss_suggested')
+        if stop_loss is not None:
+            stop_pct = abs((stop_loss - mark) / mark * 100)
+            # Para LONG, stop é abaixo (negativo); para SHORT, stop é acima (positivo)
+            if direction == 'LONG':
+                logger.info(f"  [STOP LOSS] Sugerido: {stop_loss:.4f} (abaixo do OB bullish ou swing low) -{stop_pct:.1f}%")
+            else:
+                logger.info(f"  [STOP LOSS] Sugerido: {stop_loss:.4f} (acima do OB bearish ou swing high) +{stop_pct:.1f}%")
+        else:
+            logger.info(f"  [STOP LOSS] Sugerido: N/D")
+        
+        # Take Profit / Realização Parcial
+        take_profit = decision.get('take_profit_suggested')
+        if take_profit is not None:
+            tp_pct = abs((take_profit - mark) / mark * 100)
+            # Para LONG, TP é acima (positivo); para SHORT, TP é abaixo (negativo)
+            if direction == 'LONG':
+                logger.info(f"  [REALIZACAO PARCIAL] Considerar em: {take_profit:.4f} (proximo da resistencia) +{tp_pct:.1f}%")
+            else:
+                logger.info(f"  [REALIZACAO PARCIAL] Considerar em: {take_profit:.4f} (proximo do suporte) -{tp_pct:.1f}%")
+        else:
+            logger.info(f"  [REALIZACAO PARCIAL] Considerar em: N/D")
+        
+        # --- DECISÃO ---
+        logger.info("")
+        logger.info("--- DECISAO ---")
+        
+        action = decision['agent_action']
+        confidence = decision['decision_confidence']
+        risk_score = decision['risk_score']
+        
+        logger.info(f"  Acao: {action}")
+        logger.info(f"  Confianca: {confidence:.2f}")
+        logger.info(f"  Risco: {risk_score:.1f}/10")
+        
+        # Parse reasoning
+        reasoning_json = decision.get('decision_reasoning', '[]')
+        try:
+            reasoning = json.loads(reasoning_json) if isinstance(reasoning_json, str) else reasoning_json
+            if reasoning:
+                logger.info(f"  Razoes:")
+                for i, reason in enumerate(reasoning, 1):
+                    logger.info(f"    {i}. {reason}")
+        except:
+            pass
+        
+        logger.info("=" * 60)
+    
+    def _generate_analysis_summary(self, position: Dict[str, Any], indicators: Dict[str, Any], 
+                                   decision: Dict[str, Any]) -> str:
+        """
+        Gera resumo estruturado da análise para persistência e RL.
+        Este resumo facilita a revisão dos dados de treinamento.
+        
+        Args:
+            position: Dados da posição
+            indicators: Indicadores calculados
+            decision: Decisão gerada
+            
+        Returns:
+            String JSON com resumo estruturado da análise
+        """
+        summary = {
+            'timestamp': datetime.now().isoformat(),
+            'position': {
+                'symbol': position['symbol'],
+                'direction': position['direction'],
+                'entry': position['entry_price'],
+                'mark': position['mark_price'],
+                'pnl_pct': position['unrealized_pnl_pct'],
+                'leverage': position['leverage'],
+                'margin_type': position.get('margin_type', 'ISOLATED')
+            },
+            'technical': {
+                'rsi': indicators.get('rsi_14'),
+                'rsi_interpretation': self._format_rsi_interpretation(indicators.get('rsi_14')) if indicators.get('rsi_14') else None,
+                'macd_histogram': indicators.get('macd_histogram'),
+                'macd_signal': self._format_macd_interpretation(indicators.get('macd_histogram')),
+                'ema_alignment': self._check_ema_alignment(
+                    indicators.get('ema_17'), 
+                    indicators.get('ema_34'), 
+                    indicators.get('ema_72'), 
+                    indicators.get('ema_144')
+                ),
+                'adx': indicators.get('adx_14'),
+                'bb_percent': indicators.get('bb_percent_b')
+            },
+            'smc': {
+                'market_structure': indicators.get('market_structure', 'range'),
+                'bos_recent': bool(indicators.get('bos_recent', 0)),
+                'choch_recent': bool(indicators.get('choch_recent', 0)),
+                'premium_discount': self._format_premium_discount(indicators.get('premium_discount_zone')),
+                'nearest_ob_pct': indicators.get('nearest_ob_distance_pct'),
+                'nearest_fvg_pct': indicators.get('nearest_fvg_distance_pct'),
+                'liquidity_above_pct': indicators.get('liquidity_above_pct'),
+                'liquidity_below_pct': indicators.get('liquidity_below_pct')
+            },
+            'sentiment': {
+                'funding_rate': indicators.get('funding_rate'),
+                'long_short_ratio': indicators.get('long_short_ratio'),
+                'oi_change_pct': indicators.get('open_interest_change_pct')
+            },
+            'decision': {
+                'action': decision['agent_action'],
+                'confidence': decision['decision_confidence'],
+                'risk_score': decision['risk_score'],
+                'stop_loss': decision.get('stop_loss_suggested'),
+                'take_profit': decision.get('take_profit_suggested')
+            }
+        }
+        
+        return json.dumps(summary, ensure_ascii=False)
     
     def create_snapshot(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                        sentiment: Dict[str, Any], decision: Dict[str, Any]) -> Dict[str, Any]:
@@ -804,7 +1263,10 @@ class PositionMonitor:
             
             # Para treinamento RL (preenchido depois)
             'reward_calculated': None,
-            'outcome_label': None
+            'outcome_label': None,
+            
+            # Resumo estruturado da análise para RL e revisão
+            'analysis_summary': self._generate_analysis_summary(position, indicators, decision)
         }
         
         return snapshot
@@ -849,6 +1311,9 @@ class PositionMonitor:
                 # c. Avaliar posição e gerar decisão
                 sentiment = market_data.get('sentiment', {})
                 decision = self.evaluate_position(position, indicators, sentiment)
+                
+                # c2. Exibir relatório detalhado da análise
+                self._log_analysis_report(position, indicators, sentiment, decision)
                 
                 # d. Criar snapshot completo
                 snapshot = self.create_snapshot(position, indicators, sentiment, decision)
