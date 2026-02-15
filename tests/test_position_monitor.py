@@ -12,6 +12,10 @@ from datetime import datetime
 from monitoring.position_monitor import PositionMonitor
 from data.database import DatabaseManager
 
+# Constantes para testes de candles
+HOUR_IN_MS = 60 * 60 * 1000  # 1 hora em milissegundos
+FOUR_HOURS_IN_MS = 4 * 60 * 60 * 1000  # 4 horas em milissegundos
+
 
 @pytest.fixture
 def mock_client():
@@ -555,7 +559,7 @@ def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
     base_timestamp = 1609459200000  # 2021-01-01 00:00:00
     for i in range(700):
         historical_data.append({
-            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),  # 4h intervals
+            'timestamp': base_timestamp + (i * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0 + i,
             'high': 30100.0 + i,
@@ -571,7 +575,7 @@ def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
     fresh_data = []
     for i in range(50):
         fresh_data.append({
-            'timestamp': base_timestamp + ((690 + i) * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + ((690 + i) * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30690.0 + i,
             'high': 30790.0 + i,
@@ -614,7 +618,7 @@ def test_fetch_combined_klines_empty_db(position_monitor):
     base_timestamp = 1609459200000
     for i in range(min_candles):
         api_data.append({
-            'timestamp': base_timestamp + (i * 60 * 60 * 1000),  # 1h intervals
+            'timestamp': base_timestamp + (i * HOUR_IN_MS),
             'symbol': symbol,
             'open': 2000.0 + i,
             'high': 2010.0 + i,
@@ -651,7 +655,7 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
     base_timestamp = 1609459200000
     for i in range(100):
         historical_data.append({
-            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + (i * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0 + i,
             'high': 30100.0 + i,
@@ -668,7 +672,7 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
     # Sobrepor últimos 20
     for i in range(80, 100):
         fresh_data.append({
-            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + (i * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0 + i + 0.5,  # Valores ligeiramente diferentes (preço atualizado)
             'high': 30100.0 + i + 0.5,
@@ -681,7 +685,7 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
     # Adicionar 30 novos
     for i in range(100, 130):
         fresh_data.append({
-            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + (i * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0 + i,
             'high': 30100.0 + i,
@@ -707,7 +711,7 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
     
     # Verificar que manteve os valores mais recentes (keep='last')
     # Para timestamp sobreposto, deve ter valores da API (com +0.5)
-    overlapping_timestamp = base_timestamp + (90 * 4 * 60 * 60 * 1000)
+    overlapping_timestamp = base_timestamp + (90 * FOUR_HOURS_IN_MS)
     row_with_overlap = df_combined[df_combined['timestamp'] == overlapping_timestamp]
     if not row_with_overlap.empty:
         # Valor deve ser o da API (com +0.5)
@@ -727,7 +731,7 @@ def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
     base_timestamp = 1609459200000
     for i in range(700):
         historical_data.append({
-            'timestamp': base_timestamp + (i * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + (i * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0,
             'high': 30100.0,
@@ -743,7 +747,7 @@ def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
     fresh_data = []
     for i in range(50):
         fresh_data.append({
-            'timestamp': base_timestamp + ((690 + i) * 4 * 60 * 60 * 1000),
+            'timestamp': base_timestamp + ((690 + i) * FOUR_HOURS_IN_MS),
             'symbol': symbol,
             'open': 30000.0,
             'high': 30100.0,
@@ -777,7 +781,7 @@ def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
     base_timestamp = 1609459200000
     for i in range(50):
         fresh_data.append({
-            'timestamp': base_timestamp + (i * 60 * 60 * 1000),
+            'timestamp': base_timestamp + (i * HOUR_IN_MS),
             'symbol': symbol,
             'open': 2000.0 + i,
             'high': 2010.0 + i,

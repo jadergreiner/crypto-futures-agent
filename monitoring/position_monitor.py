@@ -306,11 +306,19 @@ class PositionMonitor:
         Returns:
             DataFrame com candles históricos + frescos, sem duplicatas
         """
+        # Mapeamento de timeframe API para formato do banco
+        TIMEFRAME_MAPPING = {
+            '1h': 'H1',
+            '4h': 'H4',
+            '1d': 'D1'
+        }
+        
         try:
             # 1. Buscar dados históricos do banco
             # Converter timeframe para formato do banco: "1h" -> "H1", "4h" -> "H4"
-            timeframe_db = timeframe.upper().replace('H', '').replace('h', '')  # "1h" -> "1"
-            timeframe_db = f"H{timeframe_db}"  # "1" -> "H1"
+            timeframe_db = TIMEFRAME_MAPPING.get(timeframe.lower())
+            if not timeframe_db:
+                raise ValueError(f"Timeframe não suportado: {timeframe}. Use '1h', '4h' ou '1d'")
             
             db_records = self.db.get_ohlcv(
                 timeframe=timeframe_db,
@@ -343,6 +351,7 @@ class PositionMonitor:
             logger.debug(f"API: {len(df_fresh)} candles {timeframe} para {symbol}")
             
             # 3. Inserir candles frescos no banco para manter histórico atualizado
+            # Nota: db.insert_ohlcv usa INSERT OR REPLACE, portanto duplicatas são tratadas automaticamente
             if not df_fresh.empty:
                 self.db.insert_ohlcv(timeframe=timeframe_db, data=df_fresh)
             
