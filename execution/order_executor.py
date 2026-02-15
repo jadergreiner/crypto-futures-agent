@@ -6,6 +6,7 @@ Profit Guardian mode: only reduces/closes existing positions, never opens new on
 import time
 import logging
 import traceback
+import math
 from typing import Dict, Any, Optional
 from datetime import datetime
 
@@ -54,6 +55,9 @@ class OrderExecutor:
         
         # Rastreamento de cooldown por símbolo (dict: symbol -> last_execution_timestamp)
         self._cooldown_tracker = {}
+        
+        # Cache de precision por símbolo (dict: symbol -> quantity_precision)
+        self._symbol_precision_cache: Dict[str, int] = {}
         
         logger.info(f"OrderExecutor inicializado em modo {mode}")
         logger.info(f"Símbolos autorizados: {sorted(self.authorized_symbols)}")
@@ -168,15 +172,15 @@ class OrderExecutor:
                 
                 executed = True
                 reason = f"Ordem executada com sucesso - ID: {order_id}"
-                logger.info(f"[EXECUTOR] ✅ Ordem executada ({self._mode} mode): {side} {fill_quantity:.8f} {symbol} @ {fill_price:.2f}")
+                logger.info(f"[EXECUTOR] [OK] Ordem executada ({self._mode} mode): {side} {fill_quantity:.8f} {symbol} @ {fill_price:.2f}")
             else:
                 executed = False
                 reason = "Falha ao executar ordem - resposta vazia"
-                logger.error(f"[EXECUTOR] ❌ Falha: resposta vazia")
+                logger.error(f"[EXECUTOR] [FALHA] Falha: resposta vazia")
         except Exception as e:
             executed = False
             reason = f"Erro ao executar ordem: {e}"
-            logger.error(f"[EXECUTOR] ❌ Erro: {e}")
+            logger.error(f"[EXECUTOR] [FALHA] Erro: {e}")
             traceback.print_exc()
         
         # 4. Atualizar rastreadores se executado com sucesso
@@ -248,6 +252,66 @@ class OrderExecutor:
         
         return True, "Todos os safety guards passaram"
     
+    def _get_quantity_precision(self, symbol: str) -> int:
+        """
+        Obtém a quantity precision específica do símbolo consultando a Exchange Info da Binance.
+        Usa cache para evitar chamadas repetidas à API.
+        
+        Args:
+            symbol: Símbolo do par (e.g., 'BTCUSDT')
+            
+        Returns:
+            Quantity precision (número de casas decimais) para o símbolo.
+            Retorna 8 (padrão) como fallback em caso de erro.
+        """
+        # Verificar cache primeiro
+        if symbol in self._symbol_precision_cache:
+            return self._symbol_precision_cache[symbol]
+        
+        # Buscar da API
+        try:
+            logger.debug(f"[EXECUTOR] Buscando quantity_precision para {symbol} da Exchange Info API...")
+            
+            response = self._client.rest_api.exchange_information()
+            data = self._extract_data(response)
+            
+            # Extrair a lista de símbolos
+            symbols_list = None
+            if data:
+                if hasattr(data, 'symbols'):
+                    symbols_list = data.symbols
+                elif isinstance(data, dict) and 'symbols' in data:
+                    symbols_list = data['symbols']
+            
+            if symbols_list:
+                # Iterar pelos símbolos para encontrar o correto
+                for symbol_info in symbols_list:
+                    # symbol_info pode ser um dict ou um objeto
+                    if isinstance(symbol_info, dict):
+                        symbol_name = symbol_info.get('symbol')
+                        quantity_precision = symbol_info.get('quantityPrecision') or symbol_info.get('quantity_precision')
+                    else:
+                        symbol_name = getattr(symbol_info, 'symbol', None)
+                        quantity_precision = getattr(symbol_info, 'quantity_precision', None)
+                    
+                    if symbol_name == symbol and quantity_precision is not None:
+                        precision = int(quantity_precision)
+                        self._symbol_precision_cache[symbol] = precision
+                        logger.info(f"[EXECUTOR] Quantity precision para {symbol}: {precision}")
+                        return precision
+            
+            # Se não encontrou o símbolo, usar fallback conservador de 8
+            logger.warning(f"[EXECUTOR] Não encontrou quantity_precision para {symbol} na Exchange Info. Usando fallback: 8")
+            self._symbol_precision_cache[symbol] = 8
+            return 8
+            
+        except Exception as e:
+            logger.error(f"[EXECUTOR] Erro ao buscar quantity_precision para {symbol}: {e}. Usando fallback: 8")
+            # Fallback: 8 casas decimais (padrão comum)
+            # Isso mantém compatibilidade com comportamento anterior
+            self._symbol_precision_cache[symbol] = 8
+            return 8
+    
     def _calculate_order_params(self, position: Dict[str, Any], action: str) -> Dict[str, Any]:
         """
         Calculates side and quantity for the order.
@@ -261,6 +325,7 @@ class OrderExecutor:
         Returns:
             Dict with 'side' ('BUY' or 'SELL') and 'quantity' (float)
         """
+        symbol = position['symbol']
         direction = position['direction']
         position_qty = position['position_size_qty']
         
@@ -285,9 +350,14 @@ class OrderExecutor:
         else:
             raise ValueError(f"Ação desconhecida: {action}")
         
-        # Arredondar quantity para 8 casas decimais (precisão comum na Binance)
-        # TODO: Implement symbol-specific precision in the future
-        quantity = round(quantity, 8)
+        # Obter quantity precision específica do símbolo
+        precision = self._get_quantity_precision(symbol)
+        
+        # Truncar quantity para baixo (não arredondar para cima)
+        # Isso evita tentar vender mais do que se tem disponível
+        # Exemplo: 6.5 KAIA com precision=0 → 6.0 (não 7.0)
+        multiplier = 10**precision
+        quantity = math.floor(quantity * multiplier) / multiplier
         
         return {
             'side': side,
