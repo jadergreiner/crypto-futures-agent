@@ -156,7 +156,7 @@ class BinanceCollector:
             return None
         
         # Se já é dict ou tipo primitivo, retornar como está
-        if isinstance(obj, (dict, str, int, float, bool)):
+        if isinstance(obj, (dict, str, int, float, bool, bytes, type(None))):
             return obj
         
         # Se é lista, processar cada elemento recursivamente
@@ -201,26 +201,8 @@ class BinanceCollector:
         Returns:
             Dict com chaves adicionais em camelCase
         """
-        # Mapeamento explícito dos campos comuns da API Binance
+        # Mapeamento de campos relevantes para klines/candlestick data
         snake_to_camel = {
-            'order_id': 'orderId',
-            'avg_price': 'avgPrice',
-            'executed_qty': 'executedQty',
-            'orig_qty': 'origQty',
-            'cum_qty': 'cumQty',
-            'cum_quote': 'cumQuote',
-            'reduce_only': 'reduceOnly',
-            'close_position': 'closePosition',
-            'stop_price': 'stopPrice',
-            'working_type': 'workingType',
-            'price_protect': 'priceProtect',
-            'orig_type': 'origType',
-            'update_time': 'updateTime',
-            'activate_price': 'activatePrice',
-            'price_rate': 'priceRate',
-            'self_trade_prevention_mode': 'selfTradePreventionMode',
-            'good_till_date': 'goodTillDate',
-            'price_match': 'priceMatch',
             'open_time': 'openTime',
             'close_time': 'closeTime',
             'quote_volume': 'quoteVolume',

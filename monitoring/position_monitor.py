@@ -123,7 +123,7 @@ class PositionMonitor:
             return None
         
         # Se já é dict ou tipo primitivo, retornar como está
-        if isinstance(obj, (dict, str, int, float, bool)):
+        if isinstance(obj, (dict, str, int, float, bool, bytes, type(None))):
             return obj
         
         # Se é lista, processar cada elemento recursivamente

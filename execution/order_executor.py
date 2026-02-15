@@ -9,6 +9,7 @@ import traceback
 import math
 from typing import Dict, Any, Optional
 from datetime import datetime
+from decimal import Decimal
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 
@@ -459,7 +460,7 @@ class OrderExecutor:
             return None
         
         # Se já é dict ou tipo primitivo, retornar como está
-        if isinstance(obj, (dict, str, int, float, bool)):
+        if isinstance(obj, (dict, str, int, float, bool, bytes, type(None), Decimal)):
             return obj
         
         # Se é lista, processar cada elemento recursivamente
