@@ -324,5 +324,11 @@ def test_no_emoji_in_logs(order_executor, mock_client):
         # Deve conter texto ASCII
         assert '[OK]' in log_text or 'OK' in log_text
         
+        # Verificar que pode ser encodado em cp1252 (Windows)
+        try:
+            log_text.encode('cp1252')
+        except UnicodeEncodeError as e:
+            pytest.fail(f"Log text cannot be encoded in cp1252: {e}")
+        
     finally:
         logger.removeHandler(handler)

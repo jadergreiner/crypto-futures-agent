@@ -356,7 +356,8 @@ class OrderExecutor:
         # Truncar quantity para baixo (não arredondar para cima)
         # Isso evita tentar vender mais do que se tem disponível
         # Exemplo: 6.5 KAIA com precision=0 → 6.0 (não 7.0)
-        quantity = math.floor(quantity * 10**precision) / 10**precision
+        multiplier = 10**precision
+        quantity = math.floor(quantity * multiplier) / multiplier
         
         return {
             'side': side,
