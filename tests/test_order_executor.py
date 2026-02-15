@@ -892,3 +892,111 @@ def test_map_to_camel_case_common_fields(order_executor):
     assert result['reduceOnly'] is True
     assert result['stopPrice'] == '49000'
     assert result['updateTime'] == 1234567890
+
+
+def test_integration_sdk_response_scenario_from_production(order_executor, mock_client, temp_db):
+    """
+    Teste de integração: Simula cenário de produção reportado no bug.
+    
+    Cenário:
+    1. Posição 0GUSDT LONG com position_amt='2'
+    2. Decisão de REDUCE_50 com confiança 0.75
+    3. SDK retorna NewOrderResponse com atributos (não dict)
+    4. Código deve extrair order_id, avgPrice, executedQty corretamente
+    5. Execução deve ser marcada como executed=1 no banco
+    """
+    # 1. Posição problemática do 0GUSDT (relatada no bug)
+    position_0g = {
+        'symbol': '0GUSDT',
+        'direction': 'LONG',
+        'entry_price': 0.025,
+        'mark_price': 0.030,
+        'position_size_qty': 2.0,  # position_amt do log de produção
+        'leverage': 5,
+        'margin_type': 'ISOLATED',
+        'unrealized_pnl': 10.0,
+        'unrealized_pnl_pct': 20.0,
+        'margin_balance': 0.15,
+    }
+    
+    # 2. Decisão de REDUCE_50
+    decision = {
+        'agent_action': 'REDUCE_50',
+        'decision_confidence': 0.75,
+        'decision_reasoning': 'Reduzir exposição em símbolo high-beta',
+        'risk_score': 4.5,
+    }
+    
+    # 3. Mock da resposta como SDK object (cenário que causava o bug)
+    class MockNewOrderResponse:
+        """Simula NewOrderResponse real do SDK Binance."""
+        def __init__(self):
+            self.order_id = 987654321
+            self.client_order_id = 'test_order_123'
+            self.symbol = '0GUSDT'
+            self.status = 'FILLED'
+            self.side = 'SELL'
+            self.type = 'MARKET'
+            self.price = '0'  # MARKET orders têm price 0
+            self.avg_price = '0.030'
+            self.orig_qty = '1.0'
+            self.executed_qty = '1.0'  # 50% de 2.0
+            self.cum_qty = '1.0'
+            self.cum_quote = '0.030'
+            self.time_in_force = 'GTC'
+            self.reduce_only = True
+            self.close_position = False
+            self.update_time = 1707995123456
+            # Campo privado que deve ser filtrado
+            self._internal_state = 'should_not_appear'
+    
+    # Mock do ApiResponse wrapper
+    mock_api_response = Mock()
+    mock_api_response.data = MockNewOrderResponse()
+    mock_client.rest_api.new_order.return_value = mock_api_response
+    
+    # 4. Executar decisão
+    result = order_executor.execute_decision(position_0g, decision, snapshot_id=999)
+    
+    # 5. Validações
+    # Deve ter executado COM SUCESSO (o bug fazia falhar aqui)
+    assert result['executed'] is True, f"Execução falhou: {result.get('reason')}"
+    assert result['action'] == 'REDUCE_50'
+    assert result['symbol'] == '0GUSDT'
+    assert result['side'] == 'SELL'
+    assert result['quantity'] == 1.0  # 50% de 2.0
+    
+    # order_response deve ser um dict (convertido do SDK object)
+    order_response = result['order_response']
+    assert isinstance(order_response, dict), "order_response deve ser dict, não SDK object"
+    
+    # Deve ter ambas as versões de cada campo (snake_case E camelCase)
+    assert 'order_id' in order_response
+    assert 'orderId' in order_response
+    assert order_response['order_id'] == 987654321
+    assert order_response['orderId'] == 987654321
+    
+    assert 'avg_price' in order_response
+    assert 'avgPrice' in order_response
+    assert order_response['avg_price'] == '0.030'
+    assert order_response['avgPrice'] == '0.030'
+    
+    assert 'executed_qty' in order_response
+    assert 'executedQty' in order_response
+    assert order_response['executed_qty'] == '1.0'
+    assert order_response['executedQty'] == '1.0'
+    
+    # Campos privados NÃO devem aparecer
+    assert '_internal_state' not in order_response
+    
+    # Verificar que foi persistido corretamente no banco
+    executions = temp_db.get_execution_log(symbol='0GUSDT')
+    assert len(executions) == 1
+    execution = executions[0]
+    
+    # CRÍTICO: executed deve ser 1 (o bug fazia ficar 0)
+    assert execution['executed'] == 1, "Execução deve estar marcada como sucesso no banco"
+    assert execution['order_id'] is not None, "order_id não deve ser null no banco"
+    assert execution['snapshot_id'] == 999
+    assert execution['symbol'] == '0GUSDT'
+    assert execution['action'] == 'REDUCE_50'
