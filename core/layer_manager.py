@@ -95,7 +95,7 @@ class LayerManager:
             'stop': stop,
             'tp': tp,
             'size': size,
-            'timestamp': datetime.utcnow(),
+            'timestamp': datetime.now(),
             'h1_candles_elapsed': 0
         }
         
@@ -124,7 +124,7 @@ class LayerManager:
         # Mover para posições abertas
         self.open_positions[symbol] = {
             **signal,
-            'entry_timestamp': datetime.utcnow(),
+            'entry_timestamp': datetime.now(),
             'entry_price': 0.0  # Seria preço de execução
         }
         
@@ -170,7 +170,7 @@ class LayerManager:
     
     def heartbeat_check(self) -> None:
         """Layer 1: Heartbeat - Health check."""
-        self.last_heartbeat = datetime.utcnow()
+        self.last_heartbeat = datetime.now()
         
         # Verificar conexões
         # - API Binance
@@ -873,7 +873,7 @@ class LayerManager:
             Dicionário com resumo
         """
         return {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'open_positions': len(self.open_positions),
             'pending_signals': len(self.pending_signals),
             'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
