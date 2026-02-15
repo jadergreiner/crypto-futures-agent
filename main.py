@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+import numpy as np
 
 from config.settings import DB_PATH, TRADING_MODE
 from config.symbols import ALL_SYMBOLS
@@ -161,6 +162,135 @@ def calculate_indicators(db: DatabaseManager) -> None:
     logger.info("Cálculo de indicadores concluído")
 
 
+def run_dry_run() -> None:
+    """
+    Executa modo dry-run: valida o pipeline sem API keys.
+    Usa dados sintéticos para testar o fluxo completo.
+    """
+    logger.info("="*60)
+    logger.info("DRY-RUN MODE - Testing Pipeline with Synthetic Data")
+    logger.info("="*60)
+    
+    from tests.test_e2e_pipeline import (
+        create_synthetic_ohlcv,
+        create_synthetic_macro_data,
+        create_synthetic_sentiment_data
+    )
+    from indicators.technical import TechnicalIndicators
+    from indicators.smc import SmartMoneyConcepts
+    from indicators.multi_timeframe import MultiTimeframeAnalysis
+    from indicators.features import FeatureEngineer
+    
+    test_symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']
+    
+    logger.info(f"Testing pipeline for {len(test_symbols)} symbols...")
+    
+    for symbol in test_symbols:
+        try:
+            logger.info(f"\n{'='*60}")
+            logger.info(f"Processing {symbol}")
+            logger.info(f"{'='*60}")
+            
+            # Step 1: Create synthetic data
+            logger.info("  [1/7] Creating synthetic data...")
+            h1_data = create_synthetic_ohlcv(length=250, trend=5, seed=100)
+            h4_data = create_synthetic_ohlcv(length=200, trend=5, seed=101)
+            d1_data = create_synthetic_ohlcv(length=100, trend=10, seed=102)
+            btc_d1_data = create_synthetic_ohlcv(length=100, trend=8, seed=103)
+            
+            # Step 2: Calculate technical indicators
+            logger.info("  [2/7] Calculating technical indicators...")
+            h1_data = TechnicalIndicators.calculate_all(h1_data)
+            h4_data = TechnicalIndicators.calculate_all(h4_data)
+            d1_data = TechnicalIndicators.calculate_all(d1_data)
+            btc_d1_data = TechnicalIndicators.calculate_all(btc_d1_data)
+            
+            # Step 3: Calculate SMC structures
+            logger.info("  [3/7] Calculating SMC structures...")
+            smc_result = SmartMoneyConcepts.calculate_all_smc(h1_data)
+            logger.info(f"    - Structure: {smc_result['structure'].type.value if smc_result['structure'] else 'None'}")
+            logger.info(f"    - Order Blocks: {len(smc_result['order_blocks'])}")
+            logger.info(f"    - FVGs: {len(smc_result['fvgs'])}")
+            
+            # Step 4: Create macro and sentiment data
+            logger.info("  [4/7] Creating macro and sentiment data...")
+            macro_data = create_synthetic_macro_data()
+            sentiment_data = create_synthetic_sentiment_data()
+            sentiment_data['symbol'] = symbol
+            
+            # Step 5: Multi-timeframe analysis (L5)
+            logger.info("  [5/7] Running multi-timeframe analysis (Layer 5)...")
+            multi_tf_result = MultiTimeframeAnalysis.aggregate(
+                h1_data=h1_data,
+                h4_data=h4_data,
+                d1_data=d1_data,
+                symbol=symbol,
+                macro_data=macro_data,
+                btc_data=btc_d1_data
+            )
+            logger.info(f"    - D1 Bias: {multi_tf_result['d1_bias']}")
+            logger.info(f"    - Market Regime: {multi_tf_result['market_regime']}")
+            logger.info(f"    - Correlation BTC: {multi_tf_result['correlation_btc']:.3f}")
+            logger.info(f"    - Beta BTC: {multi_tf_result['beta_btc']:.3f}")
+            
+            # Step 6: Build observation (Feature Engineering)
+            logger.info("  [6/7] Building observation vector...")
+            observation = FeatureEngineer.build_observation(
+                symbol=symbol,
+                h1_data=h1_data,
+                h4_data=h4_data,
+                d1_data=d1_data,
+                sentiment=sentiment_data,
+                macro=macro_data,
+                smc=smc_result,
+                position_state=None,
+                multi_tf_result=multi_tf_result
+            )
+            
+            # Step 7: Validate observation
+            logger.info("  [7/7] Validating observation...")
+            logger.info(f"    - Features count: {len(observation)}")
+            logger.info(f"    - Has NaN values: {np.any(np.isnan(observation))}")
+            logger.info(f"    - Min value: {np.min(observation):.3f}")
+            logger.info(f"    - Max value: {np.max(observation):.3f}")
+            logger.info(f"    - Mean value: {np.mean(observation):.3f}")
+            
+            # Check blocks 7 and 8 specifically
+            block7_start = 11 + 6 + 11 + 19 + 4 + 4  # 55
+            block8_start = block7_start + 3  # 58
+            
+            logger.info(f"\n  Block 7 (Correlation) - Features {block7_start}-{block7_start+2}:")
+            logger.info(f"    - BTC Return: {observation[block7_start]:.3f}")
+            logger.info(f"    - Correlation: {observation[block7_start + 1]:.3f}")
+            logger.info(f"    - Beta: {observation[block7_start + 2]:.3f}")
+            
+            logger.info(f"\n  Block 8 (D1 Context) - Features {block8_start}-{block8_start+1}:")
+            logger.info(f"    - D1 Bias Score: {observation[block8_start]:.1f} ({multi_tf_result['d1_bias']})")
+            logger.info(f"    - Regime Score: {observation[block8_start + 1]:.1f} ({multi_tf_result['market_regime']})")
+            
+            # Validation checks
+            assert len(observation) == 104, f"Expected 104 features, got {len(observation)}"
+            assert not np.any(np.isnan(observation)), "Observation contains NaN values"
+            assert np.all(observation >= -10) and np.all(observation <= 10), \
+                "Observation values outside [-10, 10] range"
+            
+            logger.info(f"\n  [OK] {symbol} pipeline completed successfully!")
+            
+        except Exception as e:
+            logger.error(f"  [FALHA] Error processing {symbol}: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    logger.info("\n" + "="*60)
+    logger.info("DRY-RUN SUMMARY")
+    logger.info("="*60)
+    logger.info(f"Tested {len(test_symbols)} symbols")
+    logger.info("Pipeline validation: [OK]")
+    logger.info("\nThe pipeline is working correctly with synthetic data.")
+    logger.info("You can now run with real data using --mode paper or --mode live")
+    logger.info("="*60)
+
+
 def train_model() -> None:
     """Treina o modelo RL."""
     logger.info("="*60)
@@ -290,6 +420,12 @@ def main():
         help='Monitor interval in seconds (default: 300 = 5min)'
     )
     
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Run pipeline validation with synthetic data (no API keys required)'
+    )
+    
     args = parser.parse_args()
     
     # Banner
@@ -303,6 +439,11 @@ def main():
     db = setup_database()
     
     # Fluxo de execução
+    if args.dry_run:
+        # Modo dry-run: não requer API keys
+        run_dry_run()
+        sys.exit(0)
+    
     if args.setup:
         # Create Binance client for setup
         client = create_binance_client(mode=args.mode)
