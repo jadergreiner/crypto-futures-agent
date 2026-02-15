@@ -699,3 +699,196 @@ def test_database_get_execution_log(temp_db):
     # Buscar apenas executadas
     logs = temp_db.get_execution_log(executed_only=True)
     assert len(logs) == 1
+
+
+# ============================================================================
+# Testes de Conversão de SDK Objects
+# ============================================================================
+
+def test_extract_data_converts_sdk_object_to_dict(order_executor):
+    """Testa que _extract_data converte SDK objects em dicts."""
+    # Mock de um objeto SDK (como NewOrderResponse) com atributos snake_case
+    class MockNewOrderResponse:
+        def __init__(self):
+            self.order_id = 12345
+            self.symbol = 'BTCUSDT'
+            self.status = 'FILLED'
+            self.avg_price = '52000.0'
+            self.executed_qty = '0.5'
+            self.orig_qty = '0.5'
+            self._internal_field = 'should be filtered'  # Atributo privado
+    
+    sdk_object = MockNewOrderResponse()
+    result = order_executor._extract_data(sdk_object)
+    
+    # Deve ser um dict
+    assert isinstance(result, dict)
+    
+    # Deve conter os campos em snake_case originais
+    assert result['order_id'] == 12345
+    assert result['symbol'] == 'BTCUSDT'
+    assert result['avg_price'] == '52000.0'
+    assert result['executed_qty'] == '0.5'
+    
+    # Deve conter também as versões camelCase
+    assert result['orderId'] == 12345
+    assert result['avgPrice'] == '52000.0'
+    assert result['executedQty'] == '0.5'
+    
+    # Não deve conter campos privados
+    assert '_internal_field' not in result
+
+
+def test_extract_data_with_api_response_wrapper(order_executor):
+    """Testa _extract_data com ApiResponse wrapper contendo SDK object."""
+    # Mock de SDK object
+    class MockOrderResponse:
+        def __init__(self):
+            self.order_id = 67890
+            self.avg_price = '51000.0'
+            self.executed_qty = '1.0'
+    
+    # Mock de ApiResponse wrapper
+    mock_api_response = Mock()
+    mock_api_response.data = MockOrderResponse()
+    
+    result = order_executor._extract_data(mock_api_response)
+    
+    assert isinstance(result, dict)
+    assert result['order_id'] == 67890
+    assert result['orderId'] == 67890  # camelCase também presente
+    assert result['avgPrice'] == '51000.0'
+
+
+def test_extract_data_with_list_of_sdk_objects(order_executor):
+    """Testa conversão de lista de SDK objects (como position_information_v2)."""
+    # Mock de SDK objects em uma lista
+    class MockPositionInfo:
+        def __init__(self, symbol, position_amt):
+            self.symbol = symbol
+            self.position_amt = position_amt
+            self.unrealized_profit = '100.0'
+    
+    position_list = [
+        MockPositionInfo('BTCUSDT', '0.5'),
+        MockPositionInfo('ETHUSDT', '2.0')
+    ]
+    
+    result = order_executor._extract_data(position_list)
+    
+    # Deve ser uma lista de dicts
+    assert isinstance(result, list)
+    assert len(result) == 2
+    
+    # Cada elemento deve ser um dict
+    assert isinstance(result[0], dict)
+    assert result[0]['symbol'] == 'BTCUSDT'
+    assert result[0]['position_amt'] == '0.5'
+    
+    assert isinstance(result[1], dict)
+    assert result[1]['symbol'] == 'ETHUSDT'
+    assert result[1]['position_amt'] == '2.0'
+
+
+def test_execute_decision_with_sdk_object_response(order_executor, sample_position_long, sample_decision_close, mock_client):
+    """
+    Teste end-to-end: execute_decision com SDK object response.
+    
+    Simula o cenário real onde new_order() retorna um SDK object (não dict),
+    e valida que execute_decision consegue extrair order_id, avgPrice, etc.
+    """
+    # Mock de SDK object como resposta
+    class MockNewOrderResponse:
+        def __init__(self):
+            self.order_id = 999888
+            self.symbol = 'BTCUSDT'
+            self.status = 'FILLED'
+            self.side = 'SELL'
+            self.type = 'MARKET'
+            self.avg_price = '52500.0'
+            self.executed_qty = '0.5'
+            self.orig_qty = '0.5'
+            self.cum_qty = '0.5'
+            self.cum_quote = '26250.0'
+            self.reduce_only = True
+    
+    # Mock da API retorna SDK object (não dict)
+    mock_response = Mock()
+    mock_response.data = MockNewOrderResponse()
+    mock_client.rest_api.new_order.return_value = mock_response
+    
+    # Executar decisão
+    result = order_executor.execute_decision(sample_position_long, sample_decision_close)
+    
+    # Deve ter executado com sucesso
+    assert result['executed'] is True
+    assert result['action'] == 'CLOSE'
+    assert result['symbol'] == 'BTCUSDT'
+    
+    # order_response deve ser um dict (convertido do SDK object)
+    order_response = result['order_response']
+    assert isinstance(order_response, dict)
+    
+    # Deve ter extraído os campos corretamente
+    assert order_response['order_id'] == 999888
+    assert order_response['orderId'] == 999888  # Ambas as versões
+    assert order_response['avg_price'] == '52500.0'
+    assert order_response['avgPrice'] == '52500.0'
+    assert order_response['executed_qty'] == '0.5'
+    assert order_response['executedQty'] == '0.5'
+
+
+def test_convert_sdk_object_preserves_nested_structures(order_executor):
+    """Testa que conversão preserva estruturas aninhadas."""
+    class MockFill:
+        def __init__(self, price, qty, commission):
+            self.price = price
+            self.qty = qty
+            self.commission = commission
+    
+    class MockOrderWithFills:
+        def __init__(self):
+            self.order_id = 111
+            self.fills = [
+                MockFill('50000', '0.3', '0.001'),
+                MockFill('50100', '0.2', '0.0008')
+            ]
+    
+    sdk_object = MockOrderWithFills()
+    result = order_executor._extract_data(sdk_object)
+    
+    assert isinstance(result, dict)
+    assert result['order_id'] == 111
+    
+    # Fills deve ser uma lista de dicts
+    assert isinstance(result['fills'], list)
+    assert len(result['fills']) == 2
+    assert isinstance(result['fills'][0], dict)
+    assert result['fills'][0]['price'] == '50000'
+    assert result['fills'][0]['commission'] == '0.001'
+
+
+def test_map_to_camel_case_common_fields(order_executor):
+    """Testa mapeamento explícito de campos comuns."""
+    snake_dict = {
+        'order_id': 123,
+        'avg_price': '50000',
+        'executed_qty': '1.0',
+        'reduce_only': True,
+        'stop_price': '49000',
+        'update_time': 1234567890
+    }
+    
+    result = order_executor._map_to_camel_case(snake_dict)
+    
+    # Deve manter snake_case original
+    assert result['order_id'] == 123
+    assert result['avg_price'] == '50000'
+    
+    # Deve adicionar camelCase
+    assert result['orderId'] == 123
+    assert result['avgPrice'] == '50000'
+    assert result['executedQty'] == '1.0'
+    assert result['reduceOnly'] is True
+    assert result['stopPrice'] == '49000'
+    assert result['updateTime'] == 1234567890
