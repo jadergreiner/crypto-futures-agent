@@ -71,7 +71,7 @@ def test_extract_data_with_none(position_monitor):
 def test_fetch_open_positions_empty(position_monitor, mock_client):
     """Testa fetch de posições quando não há posições abertas."""
     # Mock resposta da API sem posições abertas
-    mock_client.rest_api.position_information.return_value = [
+    mock_client.rest_api.position_information_v2.return_value = [
         {
             'symbol': 'BTCUSDT',
             'positionAmt': '0',
@@ -92,7 +92,7 @@ def test_fetch_open_positions_empty(position_monitor, mock_client):
 def test_fetch_open_positions_long(position_monitor, mock_client):
     """Testa fetch de posição LONG."""
     # Mock resposta da API com posição LONG
-    mock_client.rest_api.position_information.return_value = [
+    mock_client.rest_api.position_information_v2.return_value = [
         {
             'symbol': 'C98USDT',
             'positionAmt': '100',  # Positivo = LONG
@@ -122,7 +122,7 @@ def test_fetch_open_positions_long(position_monitor, mock_client):
 def test_fetch_open_positions_short(position_monitor, mock_client):
     """Testa fetch de posição SHORT."""
     # Mock resposta da API com posição SHORT (retornar lista para consistência)
-    mock_client.rest_api.position_information.return_value = [
+    mock_client.rest_api.position_information_v2.return_value = [
         {
             'symbol': 'BTCUSDT',
             'positionAmt': '-0.5',  # Negativo = SHORT
@@ -142,6 +142,47 @@ def test_fetch_open_positions_short(position_monitor, mock_client):
     pos = positions[0]
     assert pos['direction'] == 'SHORT'
     assert pos['position_size_qty'] == 0.5
+
+
+def test_fetch_open_positions_with_pydantic_objects(position_monitor, mock_client):
+    """Testa fetch de posições com objetos Pydantic (atributos snake_case)."""
+    # Mock de objeto Pydantic com atributos snake_case
+    class MockPydanticPosition:
+        def __init__(self):
+            self.symbol = 'ETHUSDT'
+            self.position_amt = '2.5'
+            self.entry_price = '2000'
+            self.mark_price = '2100'
+            self.un_realized_profit = '250'
+            self.liquidation_price = '1800'
+            self.leverage = '10'
+            self.margin_type = 'ISOLATED'
+            self.isolated_wallet = '5000'
+    
+    mock_client.rest_api.position_information_v2.return_value = [MockPydanticPosition()]
+    
+    positions = position_monitor.fetch_open_positions('ETHUSDT')
+    
+    assert len(positions) == 1
+    pos = positions[0]
+    assert pos['symbol'] == 'ETHUSDT'
+    assert pos['direction'] == 'LONG'
+    assert pos['entry_price'] == 2000
+    assert pos['mark_price'] == 2100
+    assert pos['position_size_qty'] == 2.5
+    assert pos['leverage'] == 10
+    assert pos['unrealized_pnl'] == 250
+    assert pos['isolated_wallet'] == 5000
+
+
+def test_fetch_open_positions_with_none_response(position_monitor, mock_client):
+    """Testa fetch de posições quando resposta é None."""
+    mock_client.rest_api.position_information_v2.return_value = None
+    
+    positions = position_monitor.fetch_open_positions()
+    
+    assert len(positions) == 0
+    assert positions == []
 
 
 def test_evaluate_position_close_on_big_loss(position_monitor):

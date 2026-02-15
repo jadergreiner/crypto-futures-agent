@@ -122,20 +122,25 @@ class PositionMonitor:
             Lista de dicts com dados das posições
         """
         try:
-            # Usar endpoint positionRisk do SDK
-            response = self._client.rest_api.position_information(symbol=symbol)
+            # Método correto do SDK: position_information_v2()
+            response = self._client.rest_api.position_information_v2(symbol=symbol)
             data = self._extract_data(response)
             
             positions = []
             
-            # Processar resposta - pode ser lista ou dict dependendo se symbol foi passado
-            if isinstance(data, dict):
+            if data is None:
+                return positions
+            
+            # Garantir que é lista
+            if not isinstance(data, list):
                 data = [data]
             
             for pos_data in data:
+                # Extrair position_amt — pode ser atributo Pydantic ou dict
+                # SDK retorna objetos Pydantic com atributos snake_case
+                position_amt = float(self._safe_get(pos_data, ['position_amt', 'positionAmt'], 0))
+                
                 # Filtrar apenas posições abertas (positionAmt != 0)
-                # SDK pode usar snake_case ou camelCase dependendo da versão
-                position_amt = float(self._safe_get(pos_data, ['positionAmt', 'position_amt'], 0))
                 if position_amt == 0:
                     continue
                 
@@ -143,17 +148,18 @@ class PositionMonitor:
                 direction = "LONG" if position_amt > 0 else "SHORT"
                 
                 # Construir dict estruturado usando _safe_get para compatibilidade
+                # Nota: SDK v2 retorna objetos Pydantic com snake_case, mas mantemos fallback para camelCase
                 position = {
                     'symbol': self._safe_get(pos_data, 'symbol', ''),
                     'direction': direction,
-                    'entry_price': float(self._safe_get(pos_data, ['entryPrice', 'entry_price'], 0)),
-                    'mark_price': float(self._safe_get(pos_data, ['markPrice', 'mark_price'], 0)),
-                    'liquidation_price': float(self._safe_get(pos_data, ['liquidationPrice', 'liquidation_price'], 0)),
+                    'entry_price': float(self._safe_get(pos_data, ['entry_price', 'entryPrice'], 0)),
+                    'mark_price': float(self._safe_get(pos_data, ['mark_price', 'markPrice'], 0)),
+                    'liquidation_price': float(self._safe_get(pos_data, ['liquidation_price', 'liquidationPrice'], 0)),
                     'position_size_qty': abs(position_amt),
                     'leverage': int(self._safe_get(pos_data, 'leverage', 1)),
-                    'margin_type': self._safe_get(pos_data, ['marginType', 'margin_type'], 'ISOLATED'),
-                    'unrealized_pnl': float(self._safe_get(pos_data, ['unRealizedProfit', 'un_realized_profit'], 0)),
-                    'isolated_wallet': float(self._safe_get(pos_data, ['isolatedWallet', 'isolated_wallet'], 0)),
+                    'margin_type': self._safe_get(pos_data, ['margin_type', 'marginType'], 'ISOLATED'),
+                    'unrealized_pnl': float(self._safe_get(pos_data, ['un_realized_profit', 'unRealizedProfit'], 0)),
+                    'isolated_wallet': float(self._safe_get(pos_data, ['isolated_wallet', 'isolatedWallet'], 0)),
                 }
                 
                 # Calcular tamanho em USDT
@@ -176,6 +182,8 @@ class PositionMonitor:
             
         except Exception as e:
             logger.error(f"Erro ao buscar posições: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def fetch_current_market_data(self, symbol: str) -> Dict[str, Any]:
