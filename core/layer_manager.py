@@ -15,8 +15,16 @@ class LayerManager:
     Rastreia posições, sinais pendentes e decide quando executar cada layer.
     """
     
-    def __init__(self):
-        """Inicializa layer manager."""
+    def __init__(self, db=None, client=None):
+        """
+        Inicializa layer manager.
+        
+        Args:
+            db: DatabaseManager (opcional)
+            client: Binance SDK client (opcional)
+        """
+        self.db = db
+        self.client = client
         self.agent_state = {}  # Estado por símbolo
         self.pending_signals = {}  # Sinais pendentes por símbolo
         self.open_positions = {}  # Posições abertas por símbolo

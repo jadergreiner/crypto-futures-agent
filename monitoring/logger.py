@@ -18,6 +18,7 @@ class AgentLogger:
     def setup_logger(name: str = "crypto_agent") -> logging.Logger:
         """
         Configura logger com handlers.
+        Também configura o root logger para capturar logs de todos os módulos.
         
         Args:
             name: Nome do logger
@@ -51,6 +52,16 @@ class AgentLogger:
         )
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
+        
+        # Configurar root logger para capturar logs de todos os módulos
+        # (monitoring.position_monitor, data.collector, etc.)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(getattr(logging, LOG_LEVEL))
+        
+        # Adicionar os mesmos handlers ao root logger se ainda não existirem
+        if not root_logger.handlers:
+            root_logger.addHandler(file_handler)
+            root_logger.addHandler(console_handler)
         
         return logger
     
