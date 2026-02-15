@@ -37,6 +37,10 @@ ACTION_PRIORITY = {
     'CLOSE': 2
 }
 
+# Threshold de PnL para considerar posição muito lucrativa
+# Usado para ajuste de risk_score quando saldo da conta está indisponível
+VERY_PROFITABLE_PNL_THRESHOLD = 10.0  # 10% PnL
+
 
 class PositionMonitor:
     """
@@ -534,7 +538,7 @@ class PositionMonitor:
                 # account_balance == 0 significa que a API falhou
                 # Para posições lucrativas, reduzir risk_score para compensar multiplicador cross margin
                 # Para posições em prejuízo, adicionar pequena penalidade
-                if pnl_pct > 10:
+                if pnl_pct > VERY_PROFITABLE_PNL_THRESHOLD:
                     # Posição muito lucrativa: reduzir risco significativamente
                     # para compensar o efeito do multiplicador cross margin (1.5x)
                     risk_score -= 2.5
@@ -884,6 +888,33 @@ class PositionMonitor:
         logger.info(f"\nCiclo completo. {len(snapshots)} snapshot(s) criado(s).")
         return snapshots
     
+    def stop(self):
+        """
+        Para o loop de monitoramento contínuo de forma segura.
+        Útil para testes e shutdown gracioso.
+        """
+        self._running = False
+        logger.info("Monitor solicitado a parar")
+    
+    def _sleep_with_countdown(self, interval_seconds: int):
+        """
+        Aguarda interval_seconds com progresso a cada 30 segundos.
+        
+        Args:
+            interval_seconds: Tempo total de espera em segundos
+        """
+        elapsed = 0
+        while elapsed < interval_seconds and self._running:
+            remaining = interval_seconds - elapsed
+            if remaining > 30:
+                time.sleep(30)
+                elapsed += 30
+                remaining = interval_seconds - elapsed
+                logger.info(f"  Aguardando... {remaining}s restantes")
+            else:
+                time.sleep(remaining)
+                elapsed = interval_seconds
+    
     def run_continuous(self, symbol: Optional[str] = None, interval_seconds: int = 300):
         """
         Loop contínuo que roda monitor_cycle a cada interval_seconds.
@@ -930,35 +961,13 @@ class PositionMonitor:
                 # Aguardar próximo ciclo
                 if self._running:
                     logger.info(f"\n[AGUARDANDO] Próximo ciclo em {interval_seconds}s...")
-                    # Countdown ativo com progresso a cada 30 segundos
-                    elapsed = 0
-                    while elapsed < interval_seconds and self._running:
-                        remaining = interval_seconds - elapsed
-                        if remaining > 30:
-                            time.sleep(30)
-                            elapsed += 30
-                            remaining = interval_seconds - elapsed
-                            logger.info(f"  Aguardando... {remaining}s restantes")
-                        else:
-                            time.sleep(remaining)
-                            elapsed = interval_seconds
+                    self._sleep_with_countdown(interval_seconds)
                     
             except Exception as e:
                 logger.error(f"Erro no ciclo de monitoramento: {e}")
                 if self._running:
                     logger.info(f"Aguardando {interval_seconds}s antes de tentar novamente...")
-                    # Countdown ativo mesmo em caso de erro
-                    elapsed = 0
-                    while elapsed < interval_seconds and self._running:
-                        remaining = interval_seconds - elapsed
-                        if remaining > 30:
-                            time.sleep(30)
-                            elapsed += 30
-                            remaining = interval_seconds - elapsed
-                            logger.info(f"  Aguardando... {remaining}s restantes")
-                        else:
-                            time.sleep(remaining)
-                            elapsed = interval_seconds
+                    self._sleep_with_countdown(interval_seconds)
         
         logger.info("Monitor finalizado com sucesso")
     

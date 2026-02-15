@@ -137,16 +137,15 @@ class TestCountdownTimer:
             nonlocal call_count
             call_count += 1
             if call_count > 2:  # Parar após primeiro sleep
-                monitor._running = False
+                monitor.stop()  # Usar método público ao invés de manipular _running
         
         mock_sleep.side_effect = stop_after_one_cycle
         
         # Executar com intervalo de 90 segundos (deve gerar 3 sleeps de 30s cada)
-        with patch.object(monitor, '_running', True):
-            try:
-                monitor.run_continuous(interval_seconds=90)
-            except:
-                pass  # Ignorar exceções de mock
+        try:
+            monitor.run_continuous(interval_seconds=90)
+        except:
+            pass  # Ignorar exceções de mock
         
         # Verificar que sleep foi chamado múltiplas vezes (não apenas 1x)
         assert mock_sleep.call_count >= 2, "Sleep deveria ser chamado múltiplas vezes para countdown"
