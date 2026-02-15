@@ -36,7 +36,6 @@ class TestDataLoaderBugFixes:
                 'choch': [],
                 'order_blocks': [],
                 'fvgs': [],
-                'breaker_blocks': [],
                 'liquidity_levels': [],
                 'liquidity_sweeps': [],
                 'premium_discount': None
@@ -88,7 +87,7 @@ class TestDataLoaderBugFixes:
         Bug 3: Verifica que o dict de fallback SMC contém todas as chaves esperadas.
         
         A correção adiciona todas as chaves que FeatureEngineer.build_observation() espera:
-        - structure, swings, bos, choch, order_blocks, fvgs, breaker_blocks,
+        - structure, swings, bos, choch, order_blocks, fvgs,
           liquidity_levels, liquidity_sweeps, premium_discount
         """
         # Forçar erro no cálculo SMC para testar o fallback
