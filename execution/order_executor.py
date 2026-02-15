@@ -250,16 +250,16 @@ class OrderExecutor:
     
     def _calculate_order_params(self, position: Dict[str, Any], action: str) -> Dict[str, Any]:
         """
-        Calcula side e quantity para a ordem.
+        Calculates side and quantity for the order.
         
-        Lógica:
+        Logic:
         - CLOSE LONG = SELL 100% qty, reduceOnly=True
         - CLOSE SHORT = BUY 100% qty, reduceOnly=True
         - REDUCE_50 LONG = SELL 50% qty, reduceOnly=True
         - REDUCE_50 SHORT = BUY 50% qty, reduceOnly=True
         
         Returns:
-            Dict com 'side' ('BUY' ou 'SELL') e 'quantity' (float)
+            Dict with 'side' ('BUY' or 'SELL') and 'quantity' (float)
         """
         direction = position['direction']
         position_qty = position['position_size_qty']
@@ -286,7 +286,7 @@ class OrderExecutor:
             raise ValueError(f"Ação desconhecida: {action}")
         
         # Arredondar quantity para 8 casas decimais (precisão comum na Binance)
-        # TODO: Implementar precisão específica por símbolo no futuro
+        # TODO: Implement symbol-specific precision in the future
         quantity = round(quantity, 8)
         
         return {
