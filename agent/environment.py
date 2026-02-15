@@ -52,7 +52,7 @@ class CryptoFuturesEnv(gym.Env):
         self.reward_calculator = RewardCalculator()
         self.feature_engineer = FeatureEngineer()
         
-        # Pre-compute multi-timeframe analysis (static context for the episode)
+        # Pré-computar análise multi-timeframe (contexto estático para o episódio)
         self.symbol = data.get('symbol', 'BTCUSDT')
         self.multi_tf_result = self._compute_multi_tf_result()
         
@@ -88,19 +88,19 @@ class CryptoFuturesEnv(gym.Env):
     
     def _compute_multi_tf_result(self) -> Dict[str, Any]:
         """
-        Pre-compute multi-timeframe analysis from available data.
-        Called once during __init__ and provides D1 bias, market regime,
-        BTC correlation and beta to the observation builder.
+        Pré-computa análise multi-timeframe a partir dos dados disponíveis.
+        Chamado uma vez durante __init__ e fornece bias D1, regime de mercado,
+        correlação e beta BTC para o builder de observação.
         
         Returns:
-            Dict with d1_bias, market_regime, correlation_btc, beta_btc
+            Dict com d1_bias, market_regime, correlation_btc, beta_btc
         """
         try:
             h1_data = self.data.get('h1', pd.DataFrame())
             h4_data = self.data.get('h4', pd.DataFrame())
             d1_data = self.data.get('d1', pd.DataFrame())
             macro = self.data.get('macro')
-            btc_data = self.data.get('btc_d1')  # Optional BTC reference data
+            btc_data = self.data.get('btc_d1')  # Dados de referência BTC opcionais
             
             result = MultiTimeframeAnalysis.aggregate(
                 h1_data=h1_data if isinstance(h1_data, pd.DataFrame) else pd.DataFrame(),
@@ -111,14 +111,14 @@ class CryptoFuturesEnv(gym.Env):
                 btc_data=btc_data if isinstance(btc_data, pd.DataFrame) else None
             )
             
-            logger.info(f"Multi-TF analysis computed: D1={result['d1_bias']}, "
+            logger.info(f"Análise multi-TF computada: D1={result['d1_bias']}, "
                         f"Regime={result['market_regime']}, "
                         f"Corr={result['correlation_btc']:.3f}, "
                         f"Beta={result['beta_btc']:.3f}")
             return result
             
         except Exception as e:
-            logger.warning(f"Failed to compute multi-TF analysis: {e}")
+            logger.warning(f"Falha ao computar análise multi-TF: {e}")
             return {
                 'd1_bias': 'NEUTRO',
                 'market_regime': 'NEUTRO',

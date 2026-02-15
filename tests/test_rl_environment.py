@@ -1,5 +1,5 @@
 """
-Tests for CryptoFuturesEnv to verify multi_tf_result integration.
+Testes para CryptoFuturesEnv para verificar integração de multi_tf_result.
 """
 
 import pytest
@@ -16,18 +16,18 @@ from indicators.smc import SmartMoneyConcepts
 
 
 def create_test_data_with_indicators(symbol='BTCUSDT'):
-    """Create test data with all required indicators."""
-    # Generate OHLCV data
+    """Cria dados de teste com todos os indicadores necessários."""
+    # Gerar dados OHLCV
     h1_data = create_synthetic_ohlcv(length=200, seed=41)
     h4_data = create_synthetic_ohlcv(length=200, seed=42)
     d1_data = create_synthetic_ohlcv(length=50, seed=43)
     
-    # Calculate indicators
+    # Calcular indicadores
     h1_data = TechnicalIndicators.calculate_all(h1_data)
     h4_data = TechnicalIndicators.calculate_all(h4_data)
     d1_data = TechnicalIndicators.calculate_all(d1_data)
     
-    # Calculate SMC
+    # Calcular SMC
     try:
         smc_result = SmartMoneyConcepts.calculate_all_smc(h4_data)
     except Exception:
@@ -60,11 +60,11 @@ def create_test_data_with_indicators(symbol='BTCUSDT'):
 
 
 def test_environment_computes_multi_tf_result():
-    """Verify that environment computes multi_tf_result during initialization."""
+    """Verifica que o environment computa multi_tf_result durante inicialização."""
     data = create_test_data_with_indicators()
     env = CryptoFuturesEnv(data, episode_length=50)
     
-    # Verify multi_tf_result was computed
+    # Verificar que multi_tf_result foi computado
     assert hasattr(env, 'multi_tf_result')
     assert env.multi_tf_result is not None
     assert 'd1_bias' in env.multi_tf_result
@@ -72,13 +72,13 @@ def test_environment_computes_multi_tf_result():
     assert 'correlation_btc' in env.multi_tf_result
     assert 'beta_btc' in env.multi_tf_result
     
-    # Verify symbol was extracted correctly
+    # Verificar que symbol foi extraído corretamente
     assert hasattr(env, 'symbol')
     assert env.symbol == 'BTCUSDT'
 
 
 def test_environment_uses_symbol_from_data():
-    """Verify that environment uses the symbol from data dict."""
+    """Verifica que o environment usa o symbol do dict de dados."""
     data = create_test_data_with_indicators(symbol='ETHUSDT')
     env = CryptoFuturesEnv(data, episode_length=50)
     
@@ -87,31 +87,31 @@ def test_environment_uses_symbol_from_data():
 
 
 def test_observation_has_multi_tf_features():
-    """Verify Block 7 and 8 features are non-placeholder during training."""
-    # Create env with data that has d1 indicators
+    """Verifica que features dos Blocos 7 e 8 não são placeholders durante treinamento."""
+    # Criar env com dados que têm indicadores d1
     data = create_test_data_with_indicators()
     env = CryptoFuturesEnv(data, episode_length=50)
     obs, info = env.reset()
     
-    # Verify observation shape
+    # Verificar shape da observação
     assert obs.shape == (104,)
     assert not np.any(np.isnan(obs))
     
-    # Block 7 starts at index 55 (11+6+11+19+4+4)
+    # Bloco 7 começa no índice 55 (11+6+11+19+4+4)
     block7_start = 55
     block8_start = 58
     
-    # Block 7: correlation should be between -1 and 1, beta should be reasonable
+    # Bloco 7: correlação deve estar entre -1 e 1, beta deve ser razoável
     btc_return = obs[block7_start]
     correlation_val = obs[block7_start + 1]
     beta_val = obs[block7_start + 2]
     
-    # These should be within valid ranges (not all zeros)
+    # Estes devem estar em faixas válidas (não todos zeros)
     assert -1.0 <= btc_return <= 1.0
     assert -1.0 <= correlation_val <= 1.0
-    assert 0.0 <= beta_val <= 1.0  # Beta divided by 3 then clipped to [0, 1]
+    assert 0.0 <= beta_val <= 1.0  # Beta dividido por 3 depois clipped para [0, 1]
     
-    # Block 8: d1_bias and regime should be -1, 0, or 1
+    # Bloco 8: d1_bias e regime devem ser -1, 0, ou 1
     d1_bias_val = obs[block8_start]
     regime_val = obs[block8_start + 1]
     
@@ -120,14 +120,14 @@ def test_observation_has_multi_tf_features():
 
 
 def test_observation_multi_tf_across_steps():
-    """Verify that multi_tf_result is consistent across steps in an episode."""
+    """Verifica que multi_tf_result é consistente entre steps em um episódio."""
     data = create_test_data_with_indicators()
     env = CryptoFuturesEnv(data, episode_length=50)
     
-    # Reset and get first observation
+    # Reset e pegar primeira observação
     obs1, _ = env.reset()
     
-    # Take a few steps and check observations
+    # Dar alguns steps e verificar observações
     for _ in range(5):
         action = env.action_space.sample()
         obs2, reward, terminated, truncated, info = env.step(action)
@@ -135,11 +135,11 @@ def test_observation_multi_tf_across_steps():
         if terminated or truncated:
             break
         
-        # Verify observation is valid
+        # Verificar que observação é válida
         assert obs2.shape == (104,)
         assert not np.any(np.isnan(obs2))
         
-        # Block 7 and 8 should still have valid values
+        # Blocos 7 e 8 ainda devem ter valores válidos
         block7_start = 55
         block8_start = 58
         
@@ -155,51 +155,51 @@ def test_observation_multi_tf_across_steps():
 
 
 def test_environment_handles_missing_data_gracefully():
-    """Verify that environment handles missing D1 data gracefully."""
-    # Create data with empty D1
+    """Verifica que environment trata dados D1 ausentes graciosamente."""
+    # Criar dados com D1 vazio
     data = create_test_data_with_indicators()
     data['d1'] = pd.DataFrame()
     
     env = CryptoFuturesEnv(data, episode_length=50)
     
-    # Should still initialize with fallback values
+    # Ainda deve inicializar com valores de fallback
     assert env.multi_tf_result is not None
     assert env.multi_tf_result['d1_bias'] == 'NEUTRO'
     assert env.multi_tf_result['market_regime'] == 'NEUTRO'
     
-    # Should still be able to reset and step
+    # Ainda deve ser capaz de fazer reset e step
     obs, info = env.reset()
     assert obs.shape == (104,)
     assert not np.any(np.isnan(obs))
 
 
 def test_environment_handles_btcusdt_symbol():
-    """Verify that environment correctly handles BTCUSDT symbol."""
+    """Verifica que environment trata corretamente o symbol BTCUSDT."""
     data = create_test_data_with_indicators(symbol='BTCUSDT')
     env = CryptoFuturesEnv(data, episode_length=50)
     
-    # For BTCUSDT, correlation and beta should be 1.0 (self-correlation)
-    # But this depends on having btc_data, which we don't have here
-    # So it should use fallback values
+    # Para BTCUSDT, correlação e beta devem ser 1.0 (auto-correlação)
+    # Mas isso depende de ter btc_data, que não temos aqui
+    # Então deve usar valores de fallback
     assert env.symbol == 'BTCUSDT'
     assert env.multi_tf_result is not None
 
 
 def test_data_loader_includes_symbol():
-    """Verify that DataLoader includes 'symbol' key in returned data."""
+    """Verifica que DataLoader inclui chave 'symbol' nos dados retornados."""
     from agent.data_loader import DataLoader
     
-    # Test with synthetic data (no DB)
+    # Testar com dados sintéticos (sem DB)
     loader = DataLoader(db=None)
     
-    # Load training data
+    # Carregar dados de treinamento
     data = loader.load_training_data(symbol='ETHUSDT', min_length=100)
     
-    # Verify symbol is included
+    # Verificar que symbol está incluído
     assert 'symbol' in data
     assert data['symbol'] == 'ETHUSDT'
     
-    # Verify other keys are present
+    # Verificar que outras chaves estão presentes
     assert 'h1' in data
     assert 'h4' in data
     assert 'd1' in data
