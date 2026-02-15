@@ -799,17 +799,17 @@ class PositionMonitor:
                 
                 # Resumo do ciclo
                 if snapshots:
-                    logger.info(f"\n📊 RESUMO DO CICLO #{cycle_count}:")
+                    logger.info(f"\n[RESUMO] CICLO #{cycle_count}:")
                     for snap in snapshots:
                         logger.info(f"  • {snap['symbol']} {snap['direction']}: "
                                    f"{snap['agent_action']} (risco: {snap['risk_score']:.1f}/10, "
                                    f"PnL: {snap['unrealized_pnl_pct']:.2f}%)")
                 else:
-                    logger.info(f"\n✓ Ciclo #{cycle_count} completo - Nenhuma posição aberta")
+                    logger.info(f"\n[OK] Ciclo #{cycle_count} completo - Nenhuma posição aberta")
                 
                 # Aguardar próximo ciclo
                 if self._running:
-                    logger.info(f"\n⏳ Próximo ciclo em {interval_seconds}s...")
+                    logger.info(f"\n[AGUARDANDO] Próximo ciclo em {interval_seconds}s...")
                     time.sleep(interval_seconds)
                     
             except Exception as e:
