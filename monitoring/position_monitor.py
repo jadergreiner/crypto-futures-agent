@@ -82,30 +82,118 @@ class PositionMonitor:
     
     def _extract_data(self, response):
         """
-        Extrai dados do wrapper ApiResponse do SDK.
+        Extrai dados do wrapper ApiResponse do SDK e converte SDK objects em dicts.
         
-        O SDK Binance encapsula respostas em um objeto ApiResponse.
-        O atributo .data pode ser uma property (acesso direto) ou um método (precisa chamar).
+        O SDK Binance retorna objetos com atributos snake_case mas o código pode
+        esperar dicts com método .get() e chaves camelCase.
         
-        Args:
-            response: Resposta bruta do SDK (ApiResponse ou dados diretos)
-            
-        Returns:
-            Os dados reais (list, dict, etc.)
+        Esta função:
+        1. Extrai .data do ApiResponse wrapper
+        2. Converte SDK objects em dicts Python
+        3. Mapeia atributos snake_case → camelCase para compatibilidade
+        4. Trata listas de SDK objects recursivamente
         """
         if response is None:
             return None
         
-        # ApiResponse tem um atributo .data contendo o payload real
+        # Passo 1: ApiResponse tem um atributo .data contendo o payload real
         if hasattr(response, 'data'):
             data = response.data
             # .data pode ser um método que precisa ser chamado
             if callable(data):
-                return data()
-            return data
+                data = data()
+        else:
+            # Se não tem .data, assumir que já são os dados diretos
+            data = response
         
-        # Se já são os dados brutos (list, dict), retorna como está
-        return response
+        # Passo 2: Converter SDK objects para dicts
+        return self._convert_sdk_object_to_dict(data)
+    
+    def _convert_sdk_object_to_dict(self, obj):
+        """
+        Converte objetos SDK da Binance em dicts Python com mapeamento snake_case → camelCase.
+        
+        Args:
+            obj: Pode ser None, dict, list, ou SDK object com atributos
+            
+        Returns:
+            Dict, list de dicts, ou valor primitivo
+        """
+        if obj is None:
+            return None
+        
+        # Se já é dict ou tipo primitivo, retornar como está
+        if isinstance(obj, (dict, str, int, float, bool, bytes, type(None))):
+            return obj
+        
+        # Se é lista, processar cada elemento recursivamente
+        if isinstance(obj, list):
+            return [self._convert_sdk_object_to_dict(item) for item in obj]
+        
+        # Se é um SDK object (tem __dict__ mas não é dict), converter para dict
+        if hasattr(obj, '__dict__'):
+            # Extrair atributos, filtrando os privados (começam com _)
+            raw_dict = {
+                key: value for key, value in vars(obj).items()
+                if not key.startswith('_')
+            }
+            
+            # Converter valores aninhados recursivamente
+            converted_dict = {
+                key: self._convert_sdk_object_to_dict(value)
+                for key, value in raw_dict.items()
+            }
+            
+            # Mapear snake_case → camelCase para compatibilidade com código existente
+            camel_dict = self._map_to_camel_case(converted_dict)
+            
+            # Log para debug
+            if converted_dict:  # Só logar se não for vazio
+                logger.debug(f"[POSITION] SDK object convertido para dict: {type(obj).__name__} → {len(camel_dict)} campos")
+            
+            return camel_dict
+        
+        # Fallback: retornar o objeto como está
+        return obj
+    
+    def _map_to_camel_case(self, data: dict) -> dict:
+        """
+        Mapeia chaves snake_case para camelCase mantendo ambas as versões.
+        
+        Mantemos tanto snake_case quanto camelCase para máxima compatibilidade.
+        
+        Args:
+            data: Dict com chaves em snake_case
+            
+        Returns:
+            Dict com chaves adicionais em camelCase
+        """
+        # Mapeamento explícito dos campos comuns da API Binance (position info)
+        snake_to_camel = {
+            'position_amt': 'positionAmt',
+            'entry_price': 'entryPrice',
+            'mark_price': 'markPrice',
+            'unrealized_profit': 'unrealizedProfit',
+            'liquidation_price': 'liquidationPrice',
+            'isolated_wallet': 'isolatedWallet',
+            'position_side': 'positionSide',
+            'max_notional_value': 'maxNotionalValue',
+            'update_time': 'updateTime',
+            'notional': 'notional',
+            'isolated_margin': 'isolatedMargin',
+            'is_auto_add_margin': 'isAutoAddMargin',
+            'margin_type': 'marginType',
+            'break_even_price': 'breakEvenPrice',
+        }
+        
+        result = dict(data)  # Cópia para não modificar original
+        
+        # Adicionar versões camelCase das chaves snake_case
+        for snake_key, camel_key in snake_to_camel.items():
+            if snake_key in result and camel_key not in result:
+                result[camel_key] = result[snake_key]
+        
+        return result
     
     def _safe_get(self, obj, attr, default=None):
         """
