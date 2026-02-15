@@ -633,20 +633,20 @@ class PositionMonitor:
             # LONG: sinal de reversão se RSI < 30 OU preço abaixo da EMA72
             if rsi < 30 or mark_price < ema_72:
                 result['is_reversal_signal'] = True
-                result['message'] = f"LONG em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
+                result['message'] = f"LONG em zona de risco (RSI: {rsi:.1f}, mark_price {mark_price:.4f} vs EMA72 {ema_72:.4f})"
             # LONG favorável: RSI > 50, preço acima EMAs
             elif rsi > 50 and mark_price > ema_72:
                 result['is_favorable'] = True
-                result['message'] = f"LONG em estrutura favorável (RSI: {rsi:.1f}, preco acima EMAs)"
+                result['message'] = f"LONG em estrutura favorável (RSI: {rsi:.1f}, preço acima EMAs)"
         else:  # SHORT
             # SHORT: sinal de reversão se RSI > 70 OU preço acima da EMA72
             if rsi > 70 or mark_price > ema_72:
                 result['is_reversal_signal'] = True
-                result['message'] = f"SHORT em zona de risco (RSI: {rsi:.1f}, mark {mark_price:.4f} vs EMA72 {ema_72:.4f})"
+                result['message'] = f"SHORT em zona de risco (RSI: {rsi:.1f}, mark_price {mark_price:.4f} vs EMA72 {ema_72:.4f})"
             # SHORT favorável: RSI < 50, preço abaixo EMAs
             elif rsi < 50 and mark_price < ema_72:
                 result['is_favorable'] = True
-                result['message'] = f"SHORT em estrutura favorável (RSI: {rsi:.1f}, preco abaixo EMAs)"
+                result['message'] = f"SHORT em estrutura favorável (RSI: {rsi:.1f}, preço abaixo EMAs)"
         
         return result
     
@@ -677,7 +677,7 @@ class PositionMonitor:
                 result['risk_adjustment'] = -0.5
             elif ema_17 < ema_34 < ema_72 < ema_144:
                 result['is_adverse'] = True
-                result['message'] = "[AVISO] EMAs alinhadas para baixa - contra posicao LONG"
+                result['message'] = "[AVISO] EMAs alinhadas para baixa - contra posição LONG"
                 result['risk_adjustment'] = 1.0
         else:  # SHORT
             if ema_17 < ema_34 < ema_72 < ema_144:
@@ -686,7 +686,7 @@ class PositionMonitor:
                 result['risk_adjustment'] = -0.5
             elif ema_17 > ema_34 > ema_72 > ema_144:
                 result['is_adverse'] = True
-                result['message'] = "[AVISO] EMAs alinhadas para alta - contra posicao SHORT"
+                result['message'] = "[AVISO] EMAs alinhadas para alta - contra posição SHORT"
                 result['risk_adjustment'] = 1.0
         
         return result
@@ -913,7 +913,6 @@ class PositionMonitor:
         ema_72 = indicators.get('ema_72')
         ema_144 = indicators.get('ema_144')
         
-        # Verificar alinhamento de EMAs
         # Verificar alinhamento de EMAs usando helper
         if all(v is not None for v in [ema_17, ema_34, ema_72, ema_144]):
             ema_interpretation = self._interpret_ema_alignment(direction, ema_17, ema_34, ema_72, ema_144)
