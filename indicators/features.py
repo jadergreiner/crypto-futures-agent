@@ -269,12 +269,12 @@ class FeatureEngineer:
             if h4_data is not None and not h4_data.empty:
                 current_price = h4_data['close'].iloc[-1]
                 if bullish_fvgs:
-                    closest_bull_fvg = min(bullish_fvgs, key=lambda fvg: abs(current_price - fvg.high))
-                    dist_pct = ((current_price - closest_bull_fvg.high) / current_price) * 100
+                    closest_bull_fvg = min(bullish_fvgs, key=lambda fvg: abs(current_price - fvg.zone_high))
+                    dist_pct = ((current_price - closest_bull_fvg.zone_high) / current_price) * 100
                     smc_features[13] = np.clip(dist_pct, -10, 10) / 10
                 if bearish_fvgs:
-                    closest_bear_fvg = min(bearish_fvgs, key=lambda fvg: abs(current_price - fvg.low))
-                    dist_pct = ((current_price - closest_bear_fvg.low) / current_price) * 100
+                    closest_bear_fvg = min(bearish_fvgs, key=lambda fvg: abs(current_price - fvg.zone_low))
+                    dist_pct = ((current_price - closest_bear_fvg.zone_low) / current_price) * 100
                     smc_features[14] = np.clip(dist_pct, -10, 10) / 10
             
             # Liquidity (2 features): sweeps recentes

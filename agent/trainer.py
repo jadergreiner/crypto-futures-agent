@@ -15,6 +15,14 @@ from .environment import CryptoFuturesEnv
 
 logger = logging.getLogger(__name__)
 
+# Verificar se tensorboard está disponível
+try:
+    import tensorboard.summary
+    TENSORBOARD_AVAILABLE = True
+except ImportError:
+    TENSORBOARD_AVAILABLE = False
+    logger.warning("TensorBoard não instalado. Treinamento continuará sem logging do TensorBoard.")
+
 
 class TrainingCallback(BaseCallback):
     """Callback para logging durante o treinamento."""
@@ -100,6 +108,9 @@ class Trainer:
         self.env = self.create_env(train_data, **env_kwargs)
         vec_env = DummyVecEnv([lambda: self.env])
         
+        # Determinar tensorboard_log baseado na disponibilidade
+        tb_log = f"{self.save_dir}/tensorboard/phase1" if TENSORBOARD_AVAILABLE else None
+        
         # Criar modelo PPO com alta entropia para exploração
         self.model = PPO(
             "MlpPolicy",
@@ -115,7 +126,7 @@ class Trainer:
             vf_coef=0.5,
             max_grad_norm=0.5,
             verbose=1,
-            tensorboard_log=f"{self.save_dir}/tensorboard/phase1"
+            tensorboard_log=tb_log
         )
         
         # Callback
