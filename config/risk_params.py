@@ -47,4 +47,7 @@ RISK_PARAMS: Dict[str, Any] = {
     # Monitoring Thresholds
     "extreme_funding_rate_threshold": 0.05,  # 0.05% funding rate considerado extremo
     "trailing_stop_activation_r_multiple": 1.5,  # Ativar trailing stop após 1.5R
+    
+    # Cross Margin Risk
+    "cross_margin_risk_multiplier": 1.5,  # Multiplicador de risco para posições em cross margin
 }

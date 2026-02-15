@@ -157,6 +157,12 @@ class PositionMonitor:
                 
                 # Construir dict estruturado usando _safe_get para compatibilidade
                 # Nota: SDK v2 retorna objetos Pydantic com snake_case, mas mantemos fallback para camelCase
+                
+                # Normalizar margin_type: API pode retornar 'cross', 'CROSS', 'isolated', 'ISOLATED', None, ou ''
+                raw_margin_type = self._safe_get(pos_data, ['margin_type', 'marginType'], 'isolated')
+                # Tratar None e strings vazias como 'ISOLATED'
+                margin_type = str(raw_margin_type).upper() if raw_margin_type and str(raw_margin_type).strip() else 'ISOLATED'
+                
                 position = {
                     'symbol': self._safe_get(pos_data, 'symbol', ''),
                     'direction': direction,
@@ -165,25 +171,34 @@ class PositionMonitor:
                     'liquidation_price': float(self._safe_get(pos_data, ['liquidation_price', 'liquidationPrice'], 0)),
                     'position_size_qty': abs(position_amt),
                     'leverage': int(self._safe_get(pos_data, 'leverage', 1)),
-                    'margin_type': self._safe_get(pos_data, ['margin_type', 'marginType'], 'ISOLATED'),
+                    'margin_type': margin_type,
                     'unrealized_pnl': float(self._safe_get(pos_data, ['un_realized_profit', 'unRealizedProfit'], 0)),
                     'isolated_wallet': float(self._safe_get(pos_data, ['isolated_wallet', 'isolatedWallet'], 0)),
                 }
                 
-                # Calcular tamanho em USDT
+                # Calcular tamanho em USDT (valor nocional)
                 position['position_size_usdt'] = position['position_size_qty'] * position['mark_price']
                 
-                # Calcular PnL %
-                if position['position_size_usdt'] > 0:
-                    position['unrealized_pnl_pct'] = (position['unrealized_pnl'] / position['position_size_usdt']) * 100
+                # Calcular margem investida (notional / leverage)
+                # Esta é a margem real usada para abrir a posição
+                if position['leverage'] > 0:
+                    position['margin_invested'] = position['position_size_usdt'] / position['leverage']
+                else:
+                    position['margin_invested'] = position['position_size_usdt']
+                
+                # Calcular PnL % baseado na margem investida (não no valor nocional)
+                # Isso reflete o retorno real sobre o capital investido
+                if position['margin_invested'] > 0:
+                    position['unrealized_pnl_pct'] = (position['unrealized_pnl'] / position['margin_invested']) * 100
                 else:
                     position['unrealized_pnl_pct'] = 0
                 
-                # Margin balance
+                # Margin balance (para isolated) ou wallet isolada
                 position['margin_balance'] = position['isolated_wallet']
                 
                 positions.append(position)
                 logger.info(f"Posição encontrada: {position['symbol']} {position['direction']} "
+                           f"[{position['margin_type']}] Margem: {position['margin_invested']:.2f} USDT "
                            f"PnL: {position['unrealized_pnl']:.2f} USDT ({position['unrealized_pnl_pct']:.2f}%)")
             
             return positions
@@ -192,6 +207,32 @@ class PositionMonitor:
             logger.error(f"Erro ao buscar posições: {e}")
             traceback.print_exc()
             return []
+    
+    def fetch_account_balance(self) -> float:
+        """
+        Busca o saldo total da conta (para cálculo de risco em cross margin).
+        
+        Returns:
+            Saldo total disponível em USDT, ou 0 em caso de erro
+        """
+        try:
+            # Buscar informações da conta usando o método do SDK
+            response = self._client.rest_api.account_information_v2()
+            data = self._extract_data(response)
+            
+            if data is None:
+                return 0
+            
+            # Extrair available balance (total disponível)
+            # SDK retorna objeto com atributo available_balance ou availableBalance
+            available_balance = float(self._safe_get(data, ['available_balance', 'availableBalance'], 0))
+            
+            logger.debug(f"Saldo disponível na conta: {available_balance:.2f} USDT")
+            return available_balance
+            
+        except Exception as e:
+            logger.warning(f"Erro ao buscar saldo da conta: {e}")
+            return 0
     
     def fetch_current_market_data(self, symbol: str) -> Dict[str, Any]:
         """
@@ -441,15 +482,48 @@ class PositionMonitor:
         mark_price = position['mark_price']
         entry_price = position['entry_price']
         liquidation_price = position['liquidation_price']
+        margin_type = position.get('margin_type', 'ISOLATED')
+        
+        # VERIFICAR SE É CROSS MARGIN E AJUSTAR RISCO
+        # Cross margin significa que TODO o saldo da conta está em risco, não apenas a margem isolada
+        if margin_type == 'CROSS':
+            cross_margin_multiplier = RISK_PARAMS.get('cross_margin_risk_multiplier', 1.5)
+            risk_score += 2.0  # Risco base aumentado para cross margin
+            reasoning.append(f"[AVISO] Posição em CROSS MARGIN - todo saldo da conta está em risco")
+            
+            # Buscar saldo total da conta para contexto de risco
+            account_balance = self.fetch_account_balance()
+            if account_balance > 0:
+                # Calcular margem ratio baseado no saldo total
+                margin_invested = position.get('margin_invested', 0)
+                if margin_invested > 0:
+                    account_risk_pct = (margin_invested / account_balance) * 100
+                    reasoning.append(f"Exposição da conta: {account_risk_pct:.1f}% do saldo total")
+                    
+                    # Se a posição usa uma grande parte do saldo, aumentar ainda mais o risco
+                    if account_risk_pct > 50:
+                        risk_score += 1.5
+                        reasoning.append(f"[ATENÇÃO] Alta exposição em cross margin (>{account_risk_pct:.0f}% do saldo)")
+                else:
+                    # margin_invested ausente ou zero indica inconsistência nos dados
+                    logger.warning(f"margin_invested ausente ou zero para posição cross margin {position.get('symbol')}")
+                    reasoning.append(f"[AVISO] Não foi possível calcular exposição da conta (margin_invested ausente)")
         
         # 1. VERIFICAR PROXIMIDADE DA LIQUIDAÇÃO (CRÍTICO)
         if liquidation_price and liquidation_price > 0:
             distance_to_liq_pct = abs((mark_price - liquidation_price) / mark_price) * 100
             
-            if distance_to_liq_pct < 5:
+            # Para cross margin, o risco é ainda maior pois afeta todo o saldo
+            liquidation_threshold = 5  # 5% base
+            if margin_type == 'CROSS':
+                liquidation_threshold = 8  # Mais margem de segurança para cross
+                
+            if distance_to_liq_pct < liquidation_threshold:
                 decision['agent_action'] = 'CLOSE'
                 decision['decision_confidence'] = 0.95
                 reasoning.append(f"Preço muito próximo da liquidação ({distance_to_liq_pct:.1f}%)")
+                if margin_type == 'CROSS':
+                    reasoning.append(f"[CRÍTICO] Liquidação em cross margin afetaria TODO o saldo da conta")
                 risk_score += 5.0
         
         # 2. VERIFICAR STOP LOSS (PnL NEGATIVO GRANDE)
@@ -564,6 +638,12 @@ class PositionMonitor:
         # 7. CALCULAR RISK SCORE FINAL
         risk_score = max(0.0, min(10.0, 5.0 + risk_score))  # Normalizar 0-10
         
+        # Aplicar multiplicador de risco para cross margin
+        if margin_type == 'CROSS':
+            cross_margin_multiplier = RISK_PARAMS.get('cross_margin_risk_multiplier', 1.5)
+            risk_score = min(10.0, risk_score * cross_margin_multiplier)
+            logger.debug(f"Risk score ajustado para cross margin: {risk_score:.2f}")
+        
         decision['risk_score'] = risk_score
         decision['decision_reasoning'] = json.dumps(reasoning)
         
@@ -631,6 +711,7 @@ class PositionMonitor:
             'position_size_usdt': position['position_size_usdt'],
             'leverage': position['leverage'],
             'margin_type': position['margin_type'],
+            'margin_invested': position.get('margin_invested'),  # Margem real investida
             'unrealized_pnl': position['unrealized_pnl'],
             'unrealized_pnl_pct': position['unrealized_pnl_pct'],
             'margin_balance': position.get('margin_balance'),

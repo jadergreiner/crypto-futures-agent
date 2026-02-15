@@ -329,6 +329,14 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_symbol ON position_snapshots(symbol, timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_action ON position_snapshots(agent_action)")
             
+            # Adicionar coluna margin_invested se não existir (para bancos existentes)
+            # Verifica se a coluna já existe antes de tentar adicionar
+            cursor.execute("PRAGMA table_info(position_snapshots)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'margin_invested' not in columns:
+                cursor.execute("ALTER TABLE position_snapshots ADD COLUMN margin_invested REAL")
+                logger.info("Coluna 'margin_invested' adicionada à tabela position_snapshots")
+            
             # Table 12: WebSocket Events
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS eventos_websocket (
@@ -741,7 +749,7 @@ class DatabaseManager:
                 INSERT INTO position_snapshots
                 (timestamp, symbol, direction, entry_price, mark_price, liquidation_price,
                  position_size_qty, position_size_usdt, leverage, margin_type,
-                 unrealized_pnl, unrealized_pnl_pct, margin_balance,
+                 margin_invested, unrealized_pnl, unrealized_pnl_pct, margin_balance,
                  rsi_14, ema_17, ema_34, ema_72, ema_144,
                  macd_line, macd_signal, macd_histogram,
                  bb_upper, bb_lower, bb_percent_b,
@@ -755,7 +763,7 @@ class DatabaseManager:
                  reward_calculated, outcome_label)
                 VALUES (:timestamp, :symbol, :direction, :entry_price, :mark_price, :liquidation_price,
                         :position_size_qty, :position_size_usdt, :leverage, :margin_type,
-                        :unrealized_pnl, :unrealized_pnl_pct, :margin_balance,
+                        :margin_invested, :unrealized_pnl, :unrealized_pnl_pct, :margin_balance,
                         :rsi_14, :ema_17, :ema_34, :ema_72, :ema_144,
                         :macd_line, :macd_signal, :macd_histogram,
                         :bb_upper, :bb_lower, :bb_percent_b,

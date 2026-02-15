@@ -385,6 +385,7 @@ def test_insert_and_retrieve_snapshot(position_monitor, temp_db):
         'position_size_usdt': 55,
         'leverage': 10,
         'margin_type': 'ISOLATED',
+        'margin_invested': 5.5,  # 55 / 10
         'unrealized_pnl': 5,
         'unrealized_pnl_pct': 10.0,
         'margin_balance': 100,
@@ -453,6 +454,7 @@ def test_update_snapshot_outcome(position_monitor, temp_db):
         'position_size_usdt': 25500,
         'leverage': 5,
         'margin_type': 'ISOLATED',
+        'margin_invested': 5100,  # 25500 / 5
         'unrealized_pnl': 500,
         'unrealized_pnl_pct': 2.0,
         'margin_balance': 5000,
@@ -494,7 +496,8 @@ def test_get_snapshots_for_training(position_monitor, temp_db):
         'direction': 'LONG',
         'entry_price': 3000, 'mark_price': 3100, 'liquidation_price': 2500,
         'position_size_qty': 1, 'position_size_usdt': 3100, 'leverage': 5,
-        'margin_type': 'ISOLATED', 'unrealized_pnl': 100, 'unrealized_pnl_pct': 3.33,
+        'margin_type': 'ISOLATED', 'margin_invested': 620,  # 3100 / 5
+        'unrealized_pnl': 100, 'unrealized_pnl_pct': 3.33,
         'margin_balance': 1000,
         'rsi_14': None, 'ema_17': None, 'ema_34': None, 'ema_72': None, 'ema_144': None,
         'macd_line': None, 'macd_signal': None, 'macd_histogram': None,
