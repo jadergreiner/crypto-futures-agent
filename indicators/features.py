@@ -18,6 +18,28 @@ class FeatureEngineer:
     """
     
     @staticmethod
+    def _safe_get(d: dict, key: str, default=0.0):
+        """
+        Retorna valor do dicionário, substituindo None pelo default.
+        
+        O dict.get(key, default) do Python retorna default apenas quando
+        a chave NÃO existe. Quando a chave existe mas tem valor None,
+        o .get() retorna None, não o default.
+        
+        Esta função garante que None seja substituído pelo default.
+        
+        Args:
+            d: Dicionário
+            key: Chave a buscar
+            default: Valor padrão se chave não existe ou é None
+            
+        Returns:
+            Valor da chave ou default se não existe ou é None
+        """
+        val = d.get(key, default)
+        return default if val is None else val
+    
+    @staticmethod
     def normalize_zscore(values: np.ndarray, window: int = 120) -> np.ndarray:
         """
         Normaliza usando Z-score com janela rolante.
@@ -315,23 +337,20 @@ class FeatureEngineer:
         # --- BLOCO 5: Sentimento (4 features) ---
         if sentiment:
             # Long/Short Ratio (normalizar em torno de 1.0)
-            ls_ratio = sentiment.get('long_short_ratio', 1.0)
+            ls_ratio = FeatureEngineer._safe_get(sentiment, 'long_short_ratio', 1.0)
             features.append(np.clip((ls_ratio - 1.0) * 2, -1, 1))
             
             # OI Change
-            oi_change = sentiment.get('open_interest_change_pct', 0)
-            if oi_change is not None:
-                features.append(np.clip(oi_change / 10, -1, 1))
-            else:
-                features.append(0.0)
+            oi_change = FeatureEngineer._safe_get(sentiment, 'open_interest_change_pct', 0)
+            features.append(np.clip(oi_change / 10, -1, 1))
             
             # Funding Rate (normalizar -0.01 a 0.01)
-            funding = sentiment.get('funding_rate', 0)
+            funding = FeatureEngineer._safe_get(sentiment, 'funding_rate', 0)
             features.append(np.clip(funding * 100, -1, 1))
             
             # Liquidation Imbalance
-            liq_long = sentiment.get('liquidations_long_vol', 0)
-            liq_short = sentiment.get('liquidations_short_vol', 0)
+            liq_long = FeatureEngineer._safe_get(sentiment, 'liquidations_long_vol', 0)
+            liq_short = FeatureEngineer._safe_get(sentiment, 'liquidations_short_vol', 0)
             total_liq = liq_long + liq_short
             if total_liq > 0:
                 liq_imbalance = (liq_long - liq_short) / total_liq
@@ -344,32 +363,20 @@ class FeatureEngineer:
         # --- BLOCO 6: Macro (4 features) ---
         if macro:
             # DXY change
-            dxy_change = macro.get('dxy_change_pct', 0)
-            if dxy_change is not None:
-                features.append(np.clip(dxy_change, -2, 2) / 2)
-            else:
-                features.append(0.0)
+            dxy_change = FeatureEngineer._safe_get(macro, 'dxy_change_pct', 0)
+            features.append(np.clip(dxy_change, -2, 2) / 2)
             
             # Fear & Greed (0-100 -> -1 a 1, com 50 = 0)
-            fgi = macro.get('fear_greed_value', 50)
-            if fgi is not None:
-                features.append((fgi - 50) / 50)
-            else:
-                features.append(0.0)
+            fgi = FeatureEngineer._safe_get(macro, 'fear_greed_value', 50)
+            features.append((fgi - 50) / 50)
             
             # BTC Dominance (normalizar em torno de 50%)
-            btc_dom = macro.get('btc_dominance', 50)
-            if btc_dom is not None:
-                features.append((btc_dom - 50) / 50)
-            else:
-                features.append(0.0)
+            btc_dom = FeatureEngineer._safe_get(macro, 'btc_dominance', 50)
+            features.append((btc_dom - 50) / 50)
             
             # Stablecoin flow (normalizar)
-            sc_flow = macro.get('stablecoin_exchange_flow_net', 0)
-            if sc_flow is not None:
-                features.append(np.tanh(sc_flow / 1e9))  # Bilhões
-            else:
-                features.append(0.0)
+            sc_flow = FeatureEngineer._safe_get(macro, 'stablecoin_exchange_flow_net', 0)
+            features.append(np.tanh(sc_flow / 1e9))  # Bilhões
         else:
             features.extend([0.0] * 4)
         
@@ -387,8 +394,8 @@ class FeatureEngineer:
                     btc_return = (close_d1[-1] - close_d1[-2]) / close_d1[-2] if close_d1[-2] != 0 else 0
                     btc_return = btc_return * 100  # Convert to percentage
             
-            correlation_btc = multi_tf_result.get('correlation_btc', 0.0)
-            beta_btc = multi_tf_result.get('beta_btc', 1.0)
+            correlation_btc = FeatureEngineer._safe_get(multi_tf_result, 'correlation_btc', 0.0)
+            beta_btc = FeatureEngineer._safe_get(multi_tf_result, 'beta_btc', 1.0)
             
             # Normalize features:
             # - btc_return: Percentage return, expected range [-10%, 10%], clipped and normalized to [-1, 1]
@@ -407,7 +414,7 @@ class FeatureEngineer:
         # D1 bias e regime (numeric scores)
         if multi_tf_result:
             # Map d1_bias: BULLISH -> 1, BEARISH -> -1, NEUTRO -> 0
-            d1_bias = multi_tf_result.get('d1_bias', 'NEUTRO')
+            d1_bias = FeatureEngineer._safe_get(multi_tf_result, 'd1_bias', 'NEUTRO')
             if d1_bias == 'BULLISH':
                 d1_bias_score = 1.0
             elif d1_bias == 'BEARISH':
@@ -416,7 +423,7 @@ class FeatureEngineer:
                 d1_bias_score = 0.0
             
             # Map market_regime: RISK_ON -> 1, RISK_OFF -> -1, NEUTRO -> 0
-            market_regime = multi_tf_result.get('market_regime', 'NEUTRO')
+            market_regime = FeatureEngineer._safe_get(multi_tf_result, 'market_regime', 'NEUTRO')
             if market_regime == 'RISK_ON':
                 regime_score = 1.0
             elif market_regime == 'RISK_OFF':
@@ -437,19 +444,19 @@ class FeatureEngineer:
             features.append(direction)
             
             # PnL %
-            pnl_pct = position_state.get('pnl_pct', 0)
+            pnl_pct = FeatureEngineer._safe_get(position_state, 'pnl_pct', 0)
             features.append(np.clip(pnl_pct / 10, -1, 1))
             
             # Tempo na posição (normalizado 0-1, máx 100 horas)
-            time_in_pos = position_state.get('time_in_position_hours', 0)
+            time_in_pos = FeatureEngineer._safe_get(position_state, 'time_in_position_hours', 0)
             features.append(min(time_in_pos / 100, 1.0))
             
             # Distância do stop
-            stop_distance = position_state.get('stop_distance_pct', 2)
+            stop_distance = FeatureEngineer._safe_get(position_state, 'stop_distance_pct', 2)
             features.append(min(stop_distance / 5, 1.0))
             
             # Distância do TP
-            tp_distance = position_state.get('tp_distance_pct', 6)
+            tp_distance = FeatureEngineer._safe_get(position_state, 'tp_distance_pct', 6)
             features.append(min(tp_distance / 10, 1.0))
         else:
             features.extend([0.0] * 5)
