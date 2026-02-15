@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Verificar se tensorboard está disponível
 try:
-    import tensorboard
+    import tensorboard.summary
     TENSORBOARD_AVAILABLE = True
 except ImportError:
     TENSORBOARD_AVAILABLE = False
