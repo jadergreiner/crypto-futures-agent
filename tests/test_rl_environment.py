@@ -109,7 +109,7 @@ def test_observation_has_multi_tf_features():
     # Estes devem estar em faixas válidas (não todos zeros)
     assert -1.0 <= btc_return <= 1.0
     assert -1.0 <= correlation_val <= 1.0
-    assert 0.0 <= beta_val <= 1.0  # Beta dividido por 3 depois clipped para [0, 1]
+    assert 0.0 <= beta_val <= 1.0  # Beta dividido por 3 então clipped para [0, 1]
     
     # Bloco 8: d1_bias e regime devem ser -1, 0, ou 1
     d1_bias_val = obs[block8_start]
@@ -119,8 +119,8 @@ def test_observation_has_multi_tf_features():
     assert regime_val in [-1.0, 0.0, 1.0]
 
 
-def test_observation_multi_tf_across_steps():
-    """Verifica que multi_tf_result é consistente entre steps em um episódio."""
+def test_multi_tf_features_consistent_across_steps():
+    """Verifica que features multi-tf são consistentes entre steps em um episódio."""
     data = create_test_data_with_indicators()
     env = CryptoFuturesEnv(data, episode_length=50)
     

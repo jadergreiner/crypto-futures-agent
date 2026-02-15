@@ -93,7 +93,9 @@ class CryptoFuturesEnv(gym.Env):
         correlação e beta BTC para o builder de observação.
         
         Returns:
-            Dict com d1_bias, market_regime, correlation_btc, beta_btc
+            Dict[str, Any]: Dicionário contendo 'symbol' (str), 'd1_bias' (str: 'BULLISH'/'BEARISH'/'NEUTRO'),
+                           'market_regime' (str: 'RISK_ON'/'RISK_OFF'/'NEUTRO'),
+                           'correlation_btc' (float: -1.0 a 1.0), 'beta_btc' (float)
         """
         try:
             h1_data = self.data.get('h1', pd.DataFrame())
