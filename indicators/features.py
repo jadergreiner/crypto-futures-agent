@@ -195,12 +195,20 @@ class FeatureEngineer:
             
             # Volume Profile position
             vp_poc = last.get('vp_poc', last['close'])
+            # Proteção contra NaN
+            if pd.isna(vp_poc):
+                vp_poc = last['close']
             vp_position = (last['close'] - vp_poc) / last['close'] if last['close'] != 0 else 0
             features.append(np.clip(vp_position * 10, -1, 1))
             
             # VAH/VAL spread
             vp_vah = last.get('vp_vah', last['high'])
             vp_val = last.get('vp_val', last['low'])
+            # Proteção contra NaN
+            if pd.isna(vp_vah):
+                vp_vah = last['high']
+            if pd.isna(vp_val):
+                vp_val = last['low']
             vp_spread = (vp_vah - vp_val) / last['close'] if last['close'] != 0 else 0
             features.append(np.clip(vp_spread * 10, 0, 1))
         else:
