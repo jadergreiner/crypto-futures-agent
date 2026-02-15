@@ -171,20 +171,21 @@ def train_model() -> None:
     logger.info("See agent/trainer.py for training implementation")
 
 
-def start_operation(mode: str, client) -> None:
+def start_operation(mode: str, client, db: DatabaseManager) -> None:
     """
     Inicia operação do agente.
     
     Args:
         mode: Modo de operação ("paper" ou "live")
         client: Binance SDK client instance
+        db: DatabaseManager instance
     """
     logger.info("="*60)
     logger.info(f"STARTING OPERATION - MODE: {mode.upper()}")
     logger.info("="*60)
     
-    # Inicializar layer manager
-    layer_manager = LayerManager()
+    # Inicializar layer manager com db e client
+    layer_manager = LayerManager(db=db, client=client)
     
     # Inicializar scheduler
     scheduler = Scheduler(layer_manager)
@@ -334,7 +335,7 @@ def main():
     # Modo operacional padrão - criar client para operação
     client = create_binance_client(mode=args.mode)
     logger.info(f"Binance client created in {args.mode} mode")
-    start_operation(args.mode, client)
+    start_operation(args.mode, client, db)
 
 
 if __name__ == "__main__":

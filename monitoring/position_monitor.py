@@ -30,6 +30,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Prioridades das ações para evitar downgrade de decisões críticas
+ACTION_PRIORITY = {
+    'HOLD': 0,
+    'REDUCE_50': 1,
+    'CLOSE': 2
+}
+
 
 class PositionMonitor:
     """
@@ -359,6 +366,48 @@ class PositionMonitor:
         
         return indicators
     
+    def _update_action_if_higher_priority(self, decision: Dict[str, Any], new_action: str, 
+                                         new_confidence: float, reasoning: List[str], 
+                                         reasoning_msg: str) -> None:
+        """
+        Atualiza a ação apenas se a nova ação tem prioridade estritamente maior.
+        Isso evita downgrade de decisões críticas (ex: CLOSE -> REDUCE_50).
+        
+        Comportamento por prioridade:
+        - Upgrade (new > current): Atualiza ação e confiança, adiciona reasoning com marcador UPGRADE
+        - Igual (new == current): Mantém ação, atualiza confiança se maior, adiciona marcador CONFIRMAÇÃO
+        - Downgrade (new < current): Bloqueia completamente, não adiciona reasoning
+        
+        Args:
+            decision: Dict da decisão a ser atualizado
+            new_action: Nova ação proposta
+            new_confidence: Nova confiança
+            reasoning: Lista de raciocínios (modificada in-place)
+            reasoning_msg: Mensagem de raciocínio a adicionar
+        """
+        current_priority = ACTION_PRIORITY.get(decision['agent_action'])
+        new_priority = ACTION_PRIORITY.get(new_action)
+        
+        # Validar que as ações são conhecidas
+        if current_priority is None:
+            logger.warning(f"Ação desconhecida no dicionário de prioridades: {decision['agent_action']}")
+            current_priority = 0
+        if new_priority is None:
+            logger.warning(f"Ação desconhecida no dicionário de prioridades: {new_action}")
+            new_priority = 0
+        
+        if new_priority > current_priority:
+            # Upgrade permitido
+            decision['agent_action'] = new_action
+            decision['decision_confidence'] = new_confidence
+            reasoning.append(f"[UPGRADE] {reasoning_msg}")
+        elif new_priority == current_priority:
+            # Mesma prioridade - atualizar confiança se for maior
+            if new_confidence > decision['decision_confidence']:
+                decision['decision_confidence'] = new_confidence
+            reasoning.append(f"[CONFIRMAÇÃO] {reasoning_msg}")
+        # Se new_priority < current_priority, não faz nada (downgrade bloqueado)
+    
     def evaluate_position(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                          sentiment: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -419,14 +468,16 @@ class PositionMonitor:
             if (direction == 'LONG' and market_structure == 'bearish') or \
                (direction == 'SHORT' and market_structure == 'bullish'):
                 if pnl_pct > 0:
-                    decision['agent_action'] = 'REDUCE_50'
-                    decision['decision_confidence'] = 0.75
-                    reasoning.append(f"CHoCH detectado contra posição {direction} (estrutura: {market_structure})")
+                    self._update_action_if_higher_priority(
+                        decision, 'REDUCE_50', 0.75, reasoning,
+                        f"CHoCH detectado contra posição {direction} (estrutura: {market_structure})"
+                    )
                     risk_score += 2.0
                 else:
-                    decision['agent_action'] = 'CLOSE'
-                    decision['decision_confidence'] = 0.85
-                    reasoning.append(f"CHoCH + PnL negativo em {direction}")
+                    self._update_action_if_higher_priority(
+                        decision, 'CLOSE', 0.85, reasoning,
+                        f"CHoCH + PnL negativo em {direction}"
+                    )
                     risk_score += 3.0
         
         # 4. VERIFICAR INDICADORES TÉCNICOS
@@ -440,12 +491,16 @@ class PositionMonitor:
                 if rsi < 30 or mark_price < ema_72:
                     if pnl_pct > 5:
                         # Lucro bom, reduzir para garantir
-                        decision['agent_action'] = 'REDUCE_50'
-                        reasoning.append(f"LONG em zona de risco (RSI: {rsi:.1f}, preço abaixo EMA72)")
+                        self._update_action_if_higher_priority(
+                            decision, 'REDUCE_50', 0.70, reasoning,
+                            f"LONG em zona de risco (RSI: {rsi:.1f}, preço abaixo EMA72)"
+                        )
                         risk_score += 1.5
                     elif pnl_pct < 0:
-                        decision['agent_action'] = 'CLOSE'
-                        reasoning.append(f"LONG em prejuízo e indicadores negativos")
+                        self._update_action_if_higher_priority(
+                            decision, 'CLOSE', 0.80, reasoning,
+                            f"LONG em prejuízo e indicadores negativos"
+                        )
                         risk_score += 2.5
                         
                 # LONG favorável: RSI > 50, preço acima EMAs
@@ -457,12 +512,16 @@ class PositionMonitor:
                 # SHORT: sinal de reversão se RSI > 70 OU preço acima da EMA72
                 if rsi > 70 or mark_price > ema_72:
                     if pnl_pct > 5:
-                        decision['agent_action'] = 'REDUCE_50'
-                        reasoning.append(f"SHORT em zona de risco (RSI: {rsi:.1f}, preço acima EMA72)")
+                        self._update_action_if_higher_priority(
+                            decision, 'REDUCE_50', 0.70, reasoning,
+                            f"SHORT em zona de risco (RSI: {rsi:.1f}, preço acima EMA72)"
+                        )
                         risk_score += 1.5
                     elif pnl_pct < 0:
-                        decision['agent_action'] = 'CLOSE'
-                        reasoning.append(f"SHORT em prejuízo e indicadores negativos")
+                        self._update_action_if_higher_priority(
+                            decision, 'CLOSE', 0.80, reasoning,
+                            f"SHORT em prejuízo e indicadores negativos"
+                        )
                         risk_score += 2.5
                 
                 # SHORT favorável: RSI < 50, preço abaixo EMAs
@@ -479,14 +538,18 @@ class PositionMonitor:
             
             # Funding muito positivo = muitos LONGs (ruim para LONG)
             if direction == 'LONG' and funding_pct > funding_threshold:
-                decision['agent_action'] = 'REDUCE_50'
-                reasoning.append(f"Funding rate extremo contra LONG ({funding_pct:.4f}%)")
+                self._update_action_if_higher_priority(
+                    decision, 'REDUCE_50', 0.65, reasoning,
+                    f"Funding rate extremo contra LONG ({funding_pct:.4f}%)"
+                )
                 risk_score += 1.0
             
             # Funding muito negativo = muitos SHORTs (ruim para SHORT)
             elif direction == 'SHORT' and funding_pct < -funding_threshold:
-                decision['agent_action'] = 'REDUCE_50'
-                reasoning.append(f"Funding rate extremo contra SHORT ({funding_pct:.4f}%)")
+                self._update_action_if_higher_priority(
+                    decision, 'REDUCE_50', 0.65, reasoning,
+                    f"Funding rate extremo contra SHORT ({funding_pct:.4f}%)"
+                )
                 risk_score += 1.0
         
         # 6. VERIFICAR ATR EXPANSION (volatilidade aumentando)
@@ -650,14 +713,14 @@ class PositionMonitor:
         # 2. Para cada posição, fazer avaliação completa
         for position in positions:
             try:
-                symbol = position['symbol']
-                logger.info(f"\n--- Analisando {symbol} {position['direction']} ---")
+                pos_symbol = position['symbol']
+                logger.info(f"\n--- Analisando {pos_symbol} {position['direction']} ---")
                 
                 # a. Buscar dados de mercado
-                market_data = self.fetch_current_market_data(symbol)
+                market_data = self.fetch_current_market_data(pos_symbol)
                 
                 # b. Calcular indicadores
-                indicators = self.calculate_indicators_snapshot(symbol, market_data)
+                indicators = self.calculate_indicators_snapshot(pos_symbol, market_data)
                 
                 # c. Avaliar posição e gerar decisão
                 sentiment = market_data.get('sentiment', {})
@@ -674,18 +737,18 @@ class PositionMonitor:
                 risk_score = decision['risk_score']
                 if risk_score >= 8:
                     self.alert_manager.alert_system_error(
-                        f"PositionRisk-{symbol}",
+                        f"PositionRisk-{pos_symbol}",
                         f"Risk score alto: {risk_score:.1f}/10 - Ação: {decision['agent_action']}"
                     )
                 
                 # Verificar funding extremo
                 funding_rate = indicators.get('funding_rate', 0)
                 if funding_rate and abs(funding_rate) > 0.05:
-                    self.alert_manager.alert_funding_extreme(symbol, funding_rate)
+                    self.alert_manager.alert_funding_extreme(pos_symbol, funding_rate)
                 
                 # g. Log da decisão
                 AgentLogger.log_decision(logger, {
-                    'symbol': symbol,
+                    'symbol': pos_symbol,
                     'direction': position['direction'],
                     'action': decision['agent_action'],
                     'confidence': decision['decision_confidence'],
