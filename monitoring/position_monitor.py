@@ -7,6 +7,7 @@ import time
 import signal
 import logging
 import json
+import traceback
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -182,7 +183,6 @@ class PositionMonitor:
             
         except Exception as e:
             logger.error(f"Erro ao buscar posições: {e}")
-            import traceback
             traceback.print_exc()
             return []
     
