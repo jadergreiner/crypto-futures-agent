@@ -374,7 +374,16 @@ class DataLoader:
             return False
         
         if len(h4_data) < min_length:
-            logger.warning(f"H4 data too short: {len(h4_data)} < {min_length}")
+            # Calcular quantos dias são necessários considerando split padrão 80/20
+            needed_total = int(min_length / 0.8)  # Candles necessários antes do split
+            needed_days = int((needed_total * 4) / 24) + 1  # 4 horas por candle H4
+            
+            logger.warning(
+                f"H4 data too short: {len(h4_data)} < {min_length}. "
+                f"Necessário coletar pelo menos {needed_days} dias de dados H4 "
+                f"(total de {needed_total} candles antes do split 80/20). "
+                f"Execute: python main.py --setup ou aumente HISTORICAL_PERIODS['H4'] em config/settings.py"
+            )
             return False
         
         # Verificar colunas essenciais
@@ -412,6 +421,196 @@ class DataLoader:
             'stablecoin_exchange_flow_net': 0.0,
         }
     
+    def diagnose_data_readiness(
+        self,
+        symbol: str = "BTCUSDT",
+        min_length_train: int = 1000,
+        min_length_val: int = 200,
+        train_ratio: float = 0.8
+    ) -> Dict[str, Any]:
+        """
+        Diagnostica a disponibilidade de dados no banco ANTES de tentar carregar.
+        
+        Args:
+            symbol: Símbolo para diagnosticar
+            min_length_train: Comprimento mínimo necessário para treino
+            min_length_val: Comprimento mínimo necessário para validação
+            train_ratio: Proporção de dados para treino (0-1)
+            
+        Returns:
+            Dicionário com diagnóstico completo incluindo:
+            - ready: bool (pronto para treinar?)
+            - timeframes: dict com status de cada timeframe
+            - indicators: dict com requisitos de indicadores
+            - data_freshness: dict com informações de atualização
+            - summary: str (mensagem resumo legível)
+        """
+        diagnosis = {
+            'ready': False,
+            'symbol': symbol,
+            'timeframes': {},
+            'indicators': {},
+            'data_freshness': {},
+            'summary': ''
+        }
+        
+        # Se não há database, não pode diagnosticar
+        if not self.db:
+            diagnosis['summary'] = "❌ BANCO DE DADOS NÃO DISPONÍVEL - Use dados sintéticos ou configure o banco"
+            return diagnosis
+        
+        # Calcular quantos candles são necessários no total (antes do split)
+        # Para treino: min_length_train candles após split = min_length_train / train_ratio antes do split
+        # Para validação: min_length_val candles após split = min_length_val / (1 - train_ratio) antes do split
+        needed_for_train = int(min_length_train / train_ratio)
+        needed_for_val = int(min_length_val / (1 - train_ratio))
+        needed_total = max(needed_for_train, needed_for_val)
+        
+        all_ready = True
+        issues = []
+        
+        # Diagnosticar cada timeframe
+        timeframes_to_check = {
+            'h4': {'table': 'h4', 'hours_per_candle': 4},
+            'h1': {'table': 'h1', 'hours_per_candle': 1},
+            'd1': {'table': 'd1', 'hours_per_candle': 24}
+        }
+        
+        for tf_key, tf_info in timeframes_to_check.items():
+            table = tf_info['table']
+            hours = tf_info['hours_per_candle']
+            
+            # Consultar quantos candles existem no banco
+            try:
+                data = self.db.get_ohlcv(table, symbol)
+                available = len(data) if data else 0
+                
+                # Para H4, usar os requisitos de treino
+                if tf_key == 'h4':
+                    needed = needed_total
+                    after_split = int(available * train_ratio)
+                    gap = after_split - min_length_train
+                    
+                    if gap >= 0:
+                        status = '✅ OK'
+                    else:
+                        status = '❌ INSUFICIENTE'
+                        all_ready = False
+                        issues.append(f"{tf_key.upper()}: faltam {abs(gap)} candles")
+                    
+                    # Calcular recomendação
+                    if gap < 0:
+                        missing_total = needed_total - available
+                        days_needed = int((missing_total * hours) / 24) + 1
+                        recommendation = f"Coletar mais {days_needed} dias de dados {tf_key.upper()} (total de {missing_total} candles necessários)"
+                    else:
+                        recommendation = f"Dados suficientes"
+                    
+                    diagnosis['timeframes'][tf_key] = {
+                        'available': available,
+                        'needed_total': needed,
+                        'needed_train': min_length_train,
+                        'after_split': after_split,
+                        'gap': gap,
+                        'status': status,
+                        'recommendation': recommendation
+                    }
+                
+                # Para H1 e D1, apenas reportar a quantidade disponível
+                else:
+                    # H1 deve ter ~4x mais candles que H4
+                    # D1 deve ter ~1/6 dos candles H4
+                    if tf_key == 'h1':
+                        expected = needed_total * 4
+                        gap = available - expected
+                    else:  # d1
+                        expected = needed_total // 6
+                        gap = available - expected
+                    
+                    if gap >= 0:
+                        status = '✅ OK'
+                    else:
+                        status = '⚠️  BAIXO'
+                    
+                    # Calcular recomendação
+                    if gap < 0:
+                        missing = abs(gap)
+                        days_needed = int((missing * hours) / 24) + 1
+                        recommendation = f"Recomendado coletar mais {days_needed} dias de dados {tf_key.upper()}"
+                    else:
+                        recommendation = f"Dados suficientes"
+                    
+                    diagnosis['timeframes'][tf_key] = {
+                        'available': available,
+                        'expected': expected,
+                        'gap': gap,
+                        'status': status,
+                        'recommendation': recommendation
+                    }
+                
+                # Verificar data freshness para H4
+                if tf_key == 'h4' and data and len(data) > 0:
+                    last_timestamp = data[-1].get('timestamp', 0)
+                    if last_timestamp:
+                        last_dt = datetime.fromtimestamp(last_timestamp / 1000)
+                        now = datetime.now()
+                        hours_since = (now - last_dt).total_seconds() / 3600
+                        is_stale = hours_since > 24
+                        
+                        diagnosis['data_freshness'] = {
+                            'last_h4_timestamp': last_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                            'hours_since_last': round(hours_since, 1),
+                            'is_stale': is_stale
+                        }
+                        
+                        if is_stale:
+                            issues.append(f"Dados H4 desatualizados ({round(hours_since/24, 1)} dias)")
+            
+            except Exception as e:
+                logger.error(f"Erro ao diagnosticar {tf_key}: {e}")
+                diagnosis['timeframes'][tf_key] = {
+                    'available': 0,
+                    'status': '❌ ERRO',
+                    'recommendation': f"Erro ao acessar dados: {e}"
+                }
+                all_ready = False
+                issues.append(f"{tf_key.upper()}: erro ao acessar banco")
+        
+        # Diagnosticar requisitos de indicadores
+        # EMA_610 no D1 precisa de pelo menos 610 candles D1
+        d1_available = diagnosis['timeframes'].get('d1', {}).get('available', 0)
+        if d1_available < 610:
+            diagnosis['indicators']['ema_610_d1'] = {
+                'required_candles': 610,
+                'available': d1_available,
+                'status': '❌ INSUFICIENTE',
+                'recommendation': f"D1 precisa de 610+ candles para EMA(610), colete mais {610 - d1_available} dias"
+            }
+            issues.append(f"D1: insuficiente para EMA(610)")
+        else:
+            diagnosis['indicators']['ema_610_d1'] = {
+                'required_candles': 610,
+                'available': d1_available,
+                'status': '✅ OK',
+                'recommendation': 'Dados suficientes para EMA(610)'
+            }
+        
+        # Determinar se está pronto
+        diagnosis['ready'] = all_ready and len(issues) == 0
+        
+        # Construir mensagem resumo
+        if diagnosis['ready']:
+            diagnosis['summary'] = f"✅ PRONTO PARA TREINAMENTO ({symbol})"
+        else:
+            diagnosis['summary'] = f"❌ DADOS INSUFICIENTES PARA TREINAMENTO ({symbol})\n"
+            diagnosis['summary'] += f"Problemas encontrados: {len(issues)}\n"
+            for issue in issues:
+                diagnosis['summary'] += f"  - {issue}\n"
+            diagnosis['summary'] += "\nExecute: python main.py --setup\n"
+            diagnosis['summary'] += "Ou aumente HISTORICAL_PERIODS em config/settings.py"
+        
+        return diagnosis
+
     def get_data_summary(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Retorna resumo dos dados.
