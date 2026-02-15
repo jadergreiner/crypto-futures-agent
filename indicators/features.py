@@ -248,11 +248,11 @@ class FeatureEngineer:
             # Distância para OB mais próximo
             if h4_data is not None and not h4_data.empty:
                 current_price = h4_data['close'].iloc[-1]
-                if bullish_obs:
+                if bullish_obs and current_price != 0:
                     closest_bull_ob = min(bullish_obs, key=lambda ob: abs(current_price - ob.zone_high))
                     dist_pct = ((current_price - closest_bull_ob.zone_high) / current_price) * 100
                     smc_features[9] = np.clip(dist_pct, -10, 10) / 10
-                if bearish_obs:
+                if bearish_obs and current_price != 0:
                     closest_bear_ob = min(bearish_obs, key=lambda ob: abs(current_price - ob.zone_low))
                     dist_pct = ((current_price - closest_bear_ob.zone_low) / current_price) * 100
                     smc_features[10] = np.clip(dist_pct, -10, 10) / 10
@@ -268,11 +268,11 @@ class FeatureEngineer:
             # Distância para FVG mais próximo
             if h4_data is not None and not h4_data.empty:
                 current_price = h4_data['close'].iloc[-1]
-                if bullish_fvgs:
+                if bullish_fvgs and current_price != 0:
                     closest_bull_fvg = min(bullish_fvgs, key=lambda fvg: abs(current_price - fvg.zone_high))
                     dist_pct = ((current_price - closest_bull_fvg.zone_high) / current_price) * 100
                     smc_features[13] = np.clip(dist_pct, -10, 10) / 10
-                if bearish_fvgs:
+                if bearish_fvgs and current_price != 0:
                     closest_bear_fvg = min(bearish_fvgs, key=lambda fvg: abs(current_price - fvg.zone_low))
                     dist_pct = ((current_price - closest_bear_fvg.zone_low) / current_price) * 100
                     smc_features[14] = np.clip(dist_pct, -10, 10) / 10
@@ -310,7 +310,10 @@ class FeatureEngineer:
             
             # OI Change
             oi_change = sentiment.get('open_interest_change_pct', 0)
-            features.append(np.clip(oi_change / 10, -1, 1))
+            if oi_change is not None:
+                features.append(np.clip(oi_change / 10, -1, 1))
+            else:
+                features.append(0.0)
             
             # Funding Rate (normalizar -0.01 a 0.01)
             funding = sentiment.get('funding_rate', 0)
@@ -332,19 +335,31 @@ class FeatureEngineer:
         if macro:
             # DXY change
             dxy_change = macro.get('dxy_change_pct', 0)
-            features.append(np.clip(dxy_change, -2, 2) / 2)
+            if dxy_change is not None:
+                features.append(np.clip(dxy_change, -2, 2) / 2)
+            else:
+                features.append(0.0)
             
             # Fear & Greed (0-100 -> -1 a 1, com 50 = 0)
             fgi = macro.get('fear_greed_value', 50)
-            features.append((fgi - 50) / 50)
+            if fgi is not None:
+                features.append((fgi - 50) / 50)
+            else:
+                features.append(0.0)
             
             # BTC Dominance (normalizar em torno de 50%)
             btc_dom = macro.get('btc_dominance', 50)
-            features.append((btc_dom - 50) / 50)
+            if btc_dom is not None:
+                features.append((btc_dom - 50) / 50)
+            else:
+                features.append(0.0)
             
             # Stablecoin flow (normalizar)
             sc_flow = macro.get('stablecoin_exchange_flow_net', 0)
-            features.append(np.tanh(sc_flow / 1e9))  # Bilhões
+            if sc_flow is not None:
+                features.append(np.tanh(sc_flow / 1e9))  # Bilhões
+            else:
+                features.append(0.0)
         else:
             features.extend([0.0] * 4)
         

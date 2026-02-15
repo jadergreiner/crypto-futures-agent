@@ -457,6 +457,44 @@ class CryptoFuturesEnv(gym.Env):
             macro = self.data.get('macro')
             smc = self.data.get('smc')
             
+            # Garantir que sentiment não é None (valores neutros)
+            if sentiment is None:
+                sentiment = {
+                    'long_short_ratio': 1.0,
+                    'open_interest': 50000000.0,
+                    'open_interest_change_pct': 0.0,
+                    'funding_rate': 0.0001,
+                    'long_account': 0.50,
+                    'short_account': 0.50,
+                    'liquidations_long_vol': 0.0,
+                    'liquidations_short_vol': 0.0,
+                }
+            
+            # Garantir que macro não é None (valores neutros)
+            if macro is None:
+                macro = {
+                    'fear_greed_value': 50,
+                    'fear_greed_classification': 'Neutral',
+                    'btc_dominance': 48.0,
+                    'dxy': 100.0,
+                    'dxy_change_pct': 0.0,
+                    'stablecoin_exchange_flow_net': 0.0,
+                }
+            
+            # Garantir que smc não é None (estrutura vazia)
+            if smc is None:
+                smc = {
+                    'structure': None,
+                    'swings': [],
+                    'bos': [],
+                    'choch': [],
+                    'order_blocks': [],
+                    'fvgs': [],
+                    'liquidity_levels': [],
+                    'liquidity_sweeps': [],
+                    'premium_discount': None,
+                }
+            
             # Window de dados
             if h4_data is not None and h4_idx < len(h4_data):
                 h4_window = h4_data.iloc[max(0, h4_idx-30):h4_idx+1]
