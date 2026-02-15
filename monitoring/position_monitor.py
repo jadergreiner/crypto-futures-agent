@@ -374,8 +374,8 @@ class PositionMonitor:
         Isso evita downgrade de decisões críticas (ex: CLOSE -> REDUCE_50).
         
         Comportamento por prioridade:
-        - Upgrade (new > current): Atualiza ação e confiança, adiciona reasoning [UPGRADE]
-        - Igual (new == current): Mantém ação, atualiza confiança se maior, adiciona [CONFIRMAÇÃO]
+        - Upgrade (new > current): Atualiza ação e confiança, adiciona reasoning com marcador UPGRADE
+        - Igual (new == current): Mantém ação, atualiza confiança se maior, adiciona marcador CONFIRMAÇÃO
         - Downgrade (new < current): Bloqueia completamente, não adiciona reasoning
         
         Args:
@@ -385,8 +385,16 @@ class PositionMonitor:
             reasoning: Lista de raciocínios (modificada in-place)
             reasoning_msg: Mensagem de raciocínio a adicionar
         """
-        current_priority = ACTION_PRIORITY.get(decision['agent_action'], 0)
-        new_priority = ACTION_PRIORITY.get(new_action, 0)
+        current_priority = ACTION_PRIORITY.get(decision['agent_action'])
+        new_priority = ACTION_PRIORITY.get(new_action)
+        
+        # Validar que as ações são conhecidas
+        if current_priority is None:
+            logger.warning(f"Ação desconhecida no dicionário de prioridades: {decision['agent_action']}")
+            current_priority = 0
+        if new_priority is None:
+            logger.warning(f"Ação desconhecida no dicionário de prioridades: {new_action}")
+            new_priority = 0
         
         if new_priority > current_priority:
             # Upgrade permitido
