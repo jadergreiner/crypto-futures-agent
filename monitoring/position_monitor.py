@@ -18,7 +18,7 @@ from data.database import DatabaseManager
 from data.collector import BinanceCollector
 from data.sentiment_collector import SentimentCollector
 from indicators.technical import TechnicalIndicators
-from indicators.smc import SmartMoneyConcepts
+from indicators.smc import SmartMoneyConcepts, SwingType
 from agent.risk_manager import RiskManager
 from monitoring.alerts import AlertManager
 from monitoring.logger import AgentLogger
@@ -85,6 +85,32 @@ class PositionMonitor:
         # Se já são os dados brutos (list, dict), retorna como está
         return response
     
+    def _safe_get(self, obj, attr, default=None):
+        """
+        Extrai atributo de objeto SDK ou dict de forma segura.
+        Suporta múltiplas variantes de nomes (camelCase e snake_case).
+        
+        Args:
+            obj: Objeto SDK ou dict
+            attr: Nome do atributo ou lista de variantes (ex: ['positionAmt', 'position_amt'])
+            default: Valor padrão se não encontrado (None por padrão)
+            
+        Returns:
+            Valor do atributo ou default
+        """
+        # Se attr é uma lista, tenta cada variante
+        if isinstance(attr, list):
+            for attr_name in attr:
+                result = self._safe_get(obj, attr_name, default=None)
+                if result is not None:
+                    return result
+            return default
+        
+        # Caso base: attr é uma string
+        if isinstance(obj, dict):
+            return obj.get(attr, default)
+        return getattr(obj, attr, default)
+    
     def fetch_open_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Busca posições abertas na Binance via SDK.
@@ -108,25 +134,26 @@ class PositionMonitor:
             
             for pos_data in data:
                 # Filtrar apenas posições abertas (positionAmt != 0)
-                position_amt = float(pos_data.get('positionAmt', 0))
+                # SDK pode usar snake_case ou camelCase dependendo da versão
+                position_amt = float(self._safe_get(pos_data, ['positionAmt', 'position_amt'], 0))
                 if position_amt == 0:
                     continue
                 
                 # Determinar direção
                 direction = "LONG" if position_amt > 0 else "SHORT"
                 
-                # Construir dict estruturado
+                # Construir dict estruturado usando _safe_get para compatibilidade
                 position = {
-                    'symbol': pos_data.get('symbol'),
+                    'symbol': self._safe_get(pos_data, 'symbol', ''),
                     'direction': direction,
-                    'entry_price': float(pos_data.get('entryPrice', 0)),
-                    'mark_price': float(pos_data.get('markPrice', 0)),
-                    'liquidation_price': float(pos_data.get('liquidationPrice', 0)),
+                    'entry_price': float(self._safe_get(pos_data, ['entryPrice', 'entry_price'], 0)),
+                    'mark_price': float(self._safe_get(pos_data, ['markPrice', 'mark_price'], 0)),
+                    'liquidation_price': float(self._safe_get(pos_data, ['liquidationPrice', 'liquidation_price'], 0)),
                     'position_size_qty': abs(position_amt),
-                    'leverage': int(pos_data.get('leverage', 1)),
-                    'margin_type': pos_data.get('marginType', 'ISOLATED'),
-                    'unrealized_pnl': float(pos_data.get('unRealizedProfit', 0)),
-                    'isolated_wallet': float(pos_data.get('isolatedWallet', 0)),
+                    'leverage': int(self._safe_get(pos_data, 'leverage', 1)),
+                    'margin_type': self._safe_get(pos_data, ['marginType', 'margin_type'], 'ISOLATED'),
+                    'unrealized_pnl': float(self._safe_get(pos_data, ['unRealizedProfit', 'un_realized_profit'], 0)),
+                    'isolated_wallet': float(self._safe_get(pos_data, ['isolatedWallet', 'isolated_wallet'], 0)),
                 }
                 
                 # Calcular tamanho em USDT
@@ -163,12 +190,11 @@ class PositionMonitor:
         """
         try:
             # Buscar candles H1 (últimas 200 para cálculo de indicadores)
-            h1_candles = self.collector.fetch_klines(symbol, "1h", limit=200)
-            df_h1 = pd.DataFrame(h1_candles)
+            # fetch_klines já retorna DataFrame
+            df_h1 = self.collector.fetch_klines(symbol, "1h", limit=200)
             
             # Buscar candles H4 (últimas 200)
-            h4_candles = self.collector.fetch_klines(symbol, "4h", limit=200)
-            df_h4 = pd.DataFrame(h4_candles)
+            df_h4 = self.collector.fetch_klines(symbol, "4h", limit=200)
             
             # Buscar sentiment
             sentiment = self.sentiment_collector.fetch_all_sentiment(symbol)
@@ -221,41 +247,56 @@ class PositionMonitor:
                 indicators['di_plus'] = last_row.get('di_plus')
                 indicators['di_minus'] = last_row.get('di_minus')
             
-            # Calcular SMC
+            # Calcular SMC no H1
             df_h1 = market_data.get('h1')
             if df_h1 is not None and not df_h1.empty:
-                # Detectar estrutura de mercado
-                structure = self.smc.detect_market_structure(df_h1)
-                indicators['market_structure'] = structure.get('structure_type', 'range')
-                indicators['bos_recent'] = 1 if structure.get('bos_detected', False) else 0
-                indicators['choch_recent'] = 1 if structure.get('choch_detected', False) else 0
+                # 1. Detectar swing points primeiro
+                swings = self.smc.detect_swing_points(df_h1, lookback=5)
                 
-                # Order Blocks
-                obs = self.smc.detect_order_blocks(df_h1)
+                # 2. Detectar estrutura de mercado (precisa de lista de swings, não DataFrame)
+                if swings:
+                    structure = self.smc.detect_market_structure(swings)
+                    # Defensive: verificar se structure e structure.type existem
+                    indicators['market_structure'] = structure.type.value if (structure and hasattr(structure, 'type') and structure.type) else 'range'
+                else:
+                    indicators['market_structure'] = 'range'
+                
+                # 3. Detectar BOS e CHoCH
+                bos_list = self.smc.detect_bos(df_h1, swings) if swings else []
+                choch_list = self.smc.detect_choch(df_h1, swings) if swings else []
+                
+                indicators['bos_recent'] = 1 if bos_list else 0
+                indicators['choch_recent'] = 1 if choch_list else 0
+                
+                # 4. Order Blocks (precisa de df, swings, bos_list)
+                obs = self.smc.detect_order_blocks(df_h1, swings, bos_list) if swings else []
                 current_price = df_h1.iloc[-1]['close']
                 
                 # Calcular distância até OB mais próximo
+                # Order Blocks são dataclasses, não dicts - usar atributos
                 if obs:
                     closest_ob_distance = min([
-                        abs((ob['zone_high'] + ob['zone_low']) / 2 - current_price) / current_price * 100
+                        abs((ob.zone_high + ob.zone_low) / 2 - current_price) / current_price * 100
                         for ob in obs
                     ])
                     indicators['nearest_ob_distance_pct'] = closest_ob_distance
                 else:
                     indicators['nearest_ob_distance_pct'] = None
                 
-                # Fair Value Gaps
-                fvgs = self.smc.detect_fair_value_gaps(df_h1)
+                # 5. Fair Value Gaps (método correto é detect_fvg)
+                fvgs = self.smc.detect_fvg(df_h1)
+                
+                # FVGs também são dataclasses - usar zone_high e zone_low
                 if fvgs:
                     closest_fvg_distance = min([
-                        abs((fvg['gap_high'] + fvg['gap_low']) / 2 - current_price) / current_price * 100
+                        abs((fvg.zone_high + fvg.zone_low) / 2 - current_price) / current_price * 100
                         for fvg in fvgs
                     ])
                     indicators['nearest_fvg_distance_pct'] = closest_fvg_distance
                 else:
                     indicators['nearest_fvg_distance_pct'] = None
                 
-                # Premium/Discount Zone
+                # 6. Premium/Discount Zone
                 swing_high = df_h1['high'].rolling(20).max().iloc[-1]
                 swing_low = df_h1['low'].rolling(20).min().iloc[-1]
                 range_size = swing_high - swing_low
@@ -276,19 +317,23 @@ class PositionMonitor:
                 else:
                     indicators['premium_discount_zone'] = 'equilibrium'
                 
-                # Liquidez (BSL/SSL)
-                liquidity = self.smc.detect_liquidity(df_h1)
-                if liquidity:
-                    bsl = [liq for liq in liquidity if liq['type'] == 'BSL']
-                    ssl = [liq for liq in liquidity if liq['type'] == 'SSL']
+                # 7. Liquidez (calcular a partir dos swings, detect_liquidity não existe)
+                # Estimar liquidez a partir dos swing points
+                if swings:
+                    # Buy Side Liquidity (BSL) = pontos de swing high (HH e LH)
+                    bsl_points = [s.price for s in swings if s.type in [SwingType.HH, SwingType.LH]]
+                    # Sell Side Liquidity (SSL) = pontos de swing low (LL e HL)
+                    ssl_points = [s.price for s in swings if s.type in [SwingType.LL, SwingType.HL]]
                     
-                    if bsl:
-                        indicators['liquidity_above_pct'] = ((max([l['price'] for l in bsl]) - current_price) / current_price) * 100
+                    if bsl_points:
+                        max_bsl = max(bsl_points)
+                        indicators['liquidity_above_pct'] = ((max_bsl - current_price) / current_price) * 100
                     else:
                         indicators['liquidity_above_pct'] = None
                     
-                    if ssl:
-                        indicators['liquidity_below_pct'] = ((current_price - min([l['price'] for l in ssl])) / current_price) * 100
+                    if ssl_points:
+                        min_ssl = min(ssl_points)
+                        indicators['liquidity_below_pct'] = ((current_price - min_ssl) / current_price) * 100
                     else:
                         indicators['liquidity_below_pct'] = None
                 else:
