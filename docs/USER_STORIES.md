@@ -2,23 +2,23 @@
 
 ## v0.2 — Pipeline Fix
 
-### US-01: Integrar Multi-Timeframe no Observation Vector
+### US-01: Integrar Multi-Timeframe no Observation Vector ✅ DONE
 **Como** desenvolvedor, **quero** que o `build_observation` consuma o `multi_tf_result` **para que** os Blocos 7 (Correlação BTC) e 8 (D1 Bias/Regime) tenham valores reais em vez de placeholders.
 
 **Critérios de aceite:**
-- `build_observation` aceita parâmetro `multi_tf_result`
-- Bloco 7: `btc_return`, `correlation_btc`, `beta_btc` preenchidos
-- Bloco 8: `d1_bias` mapeado para -1/0/1, `market_regime` mapeado para -1/0/1
-- Dry-run mostra valores não-zero nos blocos 7 e 8
+- `build_observation` aceita parâmetro `multi_tf_result` ✅
+- Bloco 7: `btc_return`, `correlation_btc`, `beta_btc` preenchidos ✅
+- Bloco 8: `d1_bias` mapeado para -1/0/1, `market_regime` mapeado para -1/0/1 ✅
+- Dry-run mostra valores não-zero nos blocos 7 e 8 ✅
 
-### US-02: Fix Bug R-Multiple no Reward Calculator
+### US-02: Fix Bug R-Multiple no Reward Calculator ✅ DONE
 **Como** desenvolvedor, **quero** corrigir o bug da lógica de R-multiple no `RewardCalculator` **para que** bonus de 3R+ funcione corretamente.
 
 **Critérios de aceite:**
-- `if r_multiple > 3.0` vem antes de `elif r_multiple > 2.0`
-- Teste unitário validando ambos os cenários
+- `if r_multiple > 3.0` vem antes de `elif r_multiple > 2.0` ✅
+- Teste unitário validando ambos os cenários ✅
 
-### US-03: Sincronizar Feature Names
+### US-03: Sincronizar Feature Names ✅ DONE
 **Como** desenvolvedor, **quero** que `get_feature_names()` esteja 100% sincronizado com `build_observation()` **para** debugging confiável.
 
 ## v0.3 — Training Ready

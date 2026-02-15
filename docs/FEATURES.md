@@ -2,13 +2,13 @@
 
 ## v0.2 — Pipeline Fix
 
-| ID | Feature | Prioridade |
-|----|---------|-----------|
-| F-01 | Integrar `multi_tf_result` no `build_observation` (Blocos 7 e 8) | 🔴 CRÍTICA |
-| F-02 | Adicionar FVG distance features (indices 13-14 do SMC estão mapeados para sweeps, não FVGs) | 🟡 ALTA |
-| F-03 | Fix bug no `RewardCalculator` — lógica `r_multiple > 3.0` nunca é atingida (elif após if > 2.0) | 🟡 ALTA |
-| F-04 | Validar `get_feature_names()` vs `build_observation()` — contagem dos nomes não bate 100% | 🟡 ALTA |
-| F-05 | Testes unitários para cada bloco de features | 🟢 MÉDIA |
+| ID | Feature | Prioridade | Status |
+|----|---------|-----------|--------|
+| F-01 | Integrar `multi_tf_result` no `build_observation` (Blocos 7 e 8) | 🔴 CRÍTICA | ✅ DONE |
+| F-02 | Adicionar FVG distance features (indices 13-14 do SMC estavam mapeados para sweeps, não FVGs) | 🟡 ALTA | ✅ DONE |
+| F-03 | Fix bug no `RewardCalculator` — lógica `r_multiple > 3.0` nunca era atingida (elif após if > 2.0) | 🟡 ALTA | ✅ DONE |
+| F-04 | Validar `get_feature_names()` vs `build_observation()` — contagem dos nomes não batia 100% | 🟡 ALTA | ✅ DONE |
+| F-05 | Testes unitários para cada bloco de features | 🟢 MÉDIA | ✅ DONE |
 
 ## v0.3 — Training Ready
 
