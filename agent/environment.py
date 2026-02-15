@@ -221,6 +221,9 @@ class CryptoFuturesEnv(gym.Env):
         )
         reward = reward_dict['total']
         
+        # Clipping adicional do reward como camada extra de segurança
+        reward = np.clip(reward, -10.0, 10.0)
+        
         # Verificar término
         terminated = self._check_termination()
         truncated = self.current_step >= self.episode_length
