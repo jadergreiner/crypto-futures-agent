@@ -456,7 +456,7 @@ class DataLoader:
         
         # Se não há database, não pode diagnosticar
         if not self.db:
-            diagnosis['summary'] = "❌ BANCO DE DADOS NÃO DISPONÍVEL - Use dados sintéticos ou configure o banco"
+            diagnosis['summary'] = "[FALHA] BANCO DE DADOS NÃO DISPONÍVEL - Use dados sintéticos ou configure o banco"
             return diagnosis
         
         # Calcular quantos candles são necessários no total (antes do split)
@@ -492,9 +492,9 @@ class DataLoader:
                     gap = after_split - min_length_train
                     
                     if gap >= 0:
-                        status = '✅ OK'
+                        status = '[OK]'
                     else:
-                        status = '❌ INSUFICIENTE'
+                        status = '[FALHA] INSUFICIENTE'
                         all_ready = False
                         issues.append(f"{tf_key.upper()}: faltam {abs(gap)} candles")
                     
@@ -528,9 +528,9 @@ class DataLoader:
                         gap = available - expected
                     
                     if gap >= 0:
-                        status = '✅ OK'
+                        status = '[OK]'
                     else:
-                        status = '⚠️  BAIXO'
+                        status = '[AVISO] BAIXO'
                     
                     # Calcular recomendação
                     if gap < 0:
@@ -570,7 +570,7 @@ class DataLoader:
                 logger.error(f"Erro ao diagnosticar {tf_key}: {e}")
                 diagnosis['timeframes'][tf_key] = {
                     'available': 0,
-                    'status': '❌ ERRO',
+                    'status': '[FALHA] ERRO',
                     'recommendation': f"Erro ao acessar dados: {e}"
                 }
                 all_ready = False
@@ -583,7 +583,7 @@ class DataLoader:
             diagnosis['indicators']['ema_610_d1'] = {
                 'required_candles': 610,
                 'available': d1_available,
-                'status': '❌ INSUFICIENTE',
+                'status': '[FALHA] INSUFICIENTE',
                 'recommendation': f"D1 precisa de 610+ candles para EMA(610), colete mais {610 - d1_available} candles D1 ({610 - d1_available} dias)"
             }
             issues.append(f"D1: insuficiente para EMA(610)")
@@ -592,7 +592,7 @@ class DataLoader:
             diagnosis['indicators']['ema_610_d1'] = {
                 'required_candles': 610,
                 'available': d1_available,
-                'status': '✅ OK',
+                'status': '[OK]',
                 'recommendation': 'Dados suficientes para EMA(610)'
             }
         
@@ -601,9 +601,9 @@ class DataLoader:
         
         # Construir mensagem resumo
         if diagnosis['ready']:
-            diagnosis['summary'] = f"✅ PRONTO PARA TREINAMENTO ({symbol})"
+            diagnosis['summary'] = f"[OK] PRONTO PARA TREINAMENTO ({symbol})"
         else:
-            diagnosis['summary'] = f"❌ DADOS INSUFICIENTES PARA TREINAMENTO ({symbol})\n"
+            diagnosis['summary'] = f"[FALHA] DADOS INSUFICIENTES PARA TREINAMENTO ({symbol})\n"
             diagnosis['summary'] += f"Problemas encontrados: {len(issues)}\n"
             for issue in issues:
                 diagnosis['summary'] += f"  - {issue}\n"
