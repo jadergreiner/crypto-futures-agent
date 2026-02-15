@@ -12,6 +12,7 @@ import pandas as pd
 from .reward import RewardCalculator
 from .risk_manager import RiskManager
 from indicators.features import FeatureEngineer
+from indicators.multi_timeframe import MultiTimeframeAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,10 @@ class CryptoFuturesEnv(gym.Env):
         self.reward_calculator = RewardCalculator()
         self.feature_engineer = FeatureEngineer()
         
+        # Pre-compute multi-timeframe analysis (static context for the episode)
+        self.symbol = data.get('symbol', 'BTCUSDT')
+        self.multi_tf_result = self._compute_multi_tf_result()
+        
         # Spaces
         self.observation_space = spaces.Box(
             low=-10.0, 
@@ -80,6 +85,46 @@ class CryptoFuturesEnv(gym.Env):
         
         logger.info(f"CryptoFuturesEnv initialized: capital=${initial_capital}, "
                    f"episode_length={episode_length}")
+    
+    def _compute_multi_tf_result(self) -> Dict[str, Any]:
+        """
+        Pre-compute multi-timeframe analysis from available data.
+        Called once during __init__ and provides D1 bias, market regime,
+        BTC correlation and beta to the observation builder.
+        
+        Returns:
+            Dict with d1_bias, market_regime, correlation_btc, beta_btc
+        """
+        try:
+            h1_data = self.data.get('h1', pd.DataFrame())
+            h4_data = self.data.get('h4', pd.DataFrame())
+            d1_data = self.data.get('d1', pd.DataFrame())
+            macro = self.data.get('macro')
+            btc_data = self.data.get('btc_d1')  # Optional BTC reference data
+            
+            result = MultiTimeframeAnalysis.aggregate(
+                h1_data=h1_data if isinstance(h1_data, pd.DataFrame) else pd.DataFrame(),
+                h4_data=h4_data if isinstance(h4_data, pd.DataFrame) else pd.DataFrame(),
+                d1_data=d1_data if isinstance(d1_data, pd.DataFrame) else pd.DataFrame(),
+                symbol=self.symbol,
+                macro_data=macro if isinstance(macro, dict) else None,
+                btc_data=btc_data if isinstance(btc_data, pd.DataFrame) else None
+            )
+            
+            logger.info(f"Multi-TF analysis computed: D1={result['d1_bias']}, "
+                        f"Regime={result['market_regime']}, "
+                        f"Corr={result['correlation_btc']:.3f}, "
+                        f"Beta={result['beta_btc']:.3f}")
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Failed to compute multi-TF analysis: {e}")
+            return {
+                'd1_bias': 'NEUTRO',
+                'market_regime': 'NEUTRO',
+                'correlation_btc': 0.0,
+                'beta_btc': 1.0
+            }
     
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> Tuple[np.ndarray, Dict]:
         """
@@ -421,14 +466,15 @@ class CryptoFuturesEnv(gym.Env):
             
             # Construir features
             observation = self.feature_engineer.build_observation(
-                symbol="SYMBOL",
+                symbol=self.symbol,
                 h1_data=h1_data,
                 h4_data=h4_window,
                 d1_data=d1_data,
                 sentiment=sentiment,
                 macro=macro,
                 smc=smc,
-                position_state=position_state
+                position_state=position_state,
+                multi_tf_result=self.multi_tf_result
             )
             
             # Garantir que não há NaN - substituir por 0

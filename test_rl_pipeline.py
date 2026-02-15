@@ -50,7 +50,8 @@ def test_data_generation():
         'd1': pd.DataFrame(),
         'sentiment': sentiment,
         'macro': macro,
-        'smc': {'order_blocks': [], 'fvgs': [], 'liquidity': []}
+        'smc': {'order_blocks': [], 'fvgs': [], 'liquidity': []},
+        'symbol': 'BTCUSDT'
     }
 
 def test_environment(data):
