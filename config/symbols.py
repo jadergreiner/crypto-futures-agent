@@ -103,6 +103,73 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "high_beta",
             "multi_chain"
         ]
+    },
+    "0GUSDT": {
+        "papel": "Token da rede 0G (Zero Gravity). Infraestrutura AI/data modular.",
+        "ciclo_proprio": "Segue narrativa AI/infra. Amplifica movimentos de risk-on altcoin.",
+        "correlacao_btc": [0.40, 0.70],
+        "beta_estimado": 3.5,
+        "classificacao": "low_cap_ai_infra",
+        "caracteristicas": [
+            "ai_narrative",
+            "modular_data",
+            "low_liquidity",
+            "high_beta"
+        ]
+    },
+    "KAIAUSDT": {
+        "papel": "Token Kaia. Layer 1 focado em messaging/social integrado (ex-Klaytn+LINE).",
+        "ciclo_proprio": "Sensivel a adocao em Asia. Ciclo altcoin geral + parcerias messaging.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.8,
+        "classificacao": "low_cap_l1",
+        "caracteristicas": [
+            "asia_adoption",
+            "messaging_integration",
+            "social_network",
+            "high_beta"
+        ]
+    },
+    "AXLUSDT": {
+        "papel": "Axelar. Protocolo de interoperabilidade cross-chain.",
+        "ciclo_proprio": "Segue narrativa cross-chain/interop. Beneficia de multichain expansion.",
+        "correlacao_btc": [0.50, 0.80],
+        "beta_estimado": 2.5,
+        "classificacao": "low_cap_interop",
+        "caracteristicas": [
+            "cross_chain",
+            "interoperability",
+            "defi_infrastructure",
+            "high_beta"
+        ]
+    },
+    "NILUSDT": {
+        "papel": "Nillion. Rede de computacao descentralizada focada em dados privados.",
+        "ciclo_proprio": "Segue narrativa privacy/AI compute. Novo, alta volatilidade.",
+        "correlacao_btc": [0.35, 0.65],
+        "beta_estimado": 4.0,
+        "classificacao": "low_cap_privacy_compute",
+        "caracteristicas": [
+            "privacy_compute",
+            "decentralized_data",
+            "ai_narrative",
+            "very_high_beta",
+            "low_liquidity"
+        ]
+    },
+    "FOGOUSDT": {
+        "papel": "Fogo. Layer 1 de alta performance (fork SUI) com foco em velocidade.",
+        "ciclo_proprio": "Segue narrativa L1 alta performance. Amplifica movimentos de mercado.",
+        "correlacao_btc": [0.40, 0.70],
+        "beta_estimado": 3.8,
+        "classificacao": "low_cap_l1_performance",
+        "caracteristicas": [
+            "high_performance_l1",
+            "sui_fork",
+            "speed_narrative",
+            "very_high_beta",
+            "low_liquidity"
+        ]
     }
 }
 

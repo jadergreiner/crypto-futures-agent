@@ -18,6 +18,11 @@ AUTHORIZED_SYMBOLS: Set[str] = {
     "XRPUSDT",
     "LTCUSDT",
     "C98USDT",
+    "0GUSDT",
+    "KAIAUSDT",
+    "AXLUSDT",
+    "NILUSDT",
+    "FOGOUSDT",
 }
 
 # ============================================================================
@@ -29,8 +34,8 @@ EXECUTION_CONFIG: Dict[str, Any] = {
     "min_confidence_to_execute": 0.70,
 
     # Maximum number of executions per day (resets at 00:00 UTC)
-    # With max 3 simultaneous positions, this allows ~2 actions per position per day
-    "max_daily_executions": 6,
+    # With up to 13 symbols, this allows headroom for multiple positions
+    "max_daily_executions": 10,
 
     # Cooldown in seconds between executions on the SAME symbol
     # 900s = 15 minutes = 3 monitor cycles at 5min interval
