@@ -67,6 +67,7 @@ class CryptoFuturesEnv(gym.Env):
         # 4: REDUCE_50
         
         # State
+        self.start_step = 0
         self.current_step = 0
         self.capital = initial_capital
         self.position = None  # None ou Dict com info da posição
@@ -89,7 +90,17 @@ class CryptoFuturesEnv(gym.Env):
         """
         super().reset(seed=seed)
         
-        self.current_step = 0
+        # Começar após warm-up period para evitar NaN nos indicadores
+        warmup_steps = 30  # Pular primeiros 30 candles
+        max_start = max(0, len(self.data.get('h4', [])) - self.episode_length - warmup_steps)
+        
+        if max_start > warmup_steps:
+            # Selecionar ponto de início aleatório após warm-up
+            self.start_step = np.random.randint(warmup_steps, max_start)
+        else:
+            self.start_step = warmup_steps
+        
+        self.current_step = self.start_step
         self.capital = self.initial_capital
         self.position = None
         self.episode_trades = []
@@ -99,7 +110,7 @@ class CryptoFuturesEnv(gym.Env):
         observation = self._get_observation()
         info = self._get_info()
         
-        logger.info("Environment reset")
+        logger.debug(f"Environment reset at step {self.start_step}")
         
         return observation, info
     
@@ -194,12 +205,20 @@ class CryptoFuturesEnv(gym.Env):
             entry_price = float(current_candle['close'])
             atr = float(current_candle.get('atr_14', entry_price * 0.02))
             
+            # Garantir que ATR não seja zero
+            if atr == 0 or np.isnan(atr):
+                atr = entry_price * 0.02
+            
             # Calcular stop e TP
             stop_loss = self.risk_manager.calculate_stop_loss(entry_price, atr, direction)
             take_profit = self.risk_manager.calculate_take_profit(entry_price, atr, direction)
             
             # Calcular tamanho da posição
             stop_distance_pct = abs(entry_price - stop_loss) / entry_price * 100
+            
+            # Garantir que stop_distance_pct não seja zero
+            if stop_distance_pct == 0 or np.isnan(stop_distance_pct):
+                stop_distance_pct = 2.0  # Default 2%
             
             # Validar distância do stop
             if stop_distance_pct > self.risk_manager.params['max_stop_distance_pct'] * 100:
@@ -412,10 +431,17 @@ class CryptoFuturesEnv(gym.Env):
                 position_state=position_state
             )
             
-            return observation
+            # Garantir que não há NaN - substituir por 0
+            observation = np.nan_to_num(observation, nan=0.0, posinf=0.0, neginf=0.0)
+            
+            # Clippar valores extremos para evitar problemas
+            observation = np.clip(observation, -10.0, 10.0)
+            
+            return observation.astype(np.float32)
             
         except Exception as e:
             logger.error(f"Error building observation: {e}")
+            # Retornar observação zero em caso de erro
             return np.zeros(104, dtype=np.float32)
     
     def _get_position_state(self) -> Optional[Dict[str, Any]]:

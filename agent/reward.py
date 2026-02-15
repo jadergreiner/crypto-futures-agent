@@ -18,12 +18,12 @@ class RewardCalculator:
     def __init__(self):
         """Inicializa reward calculator."""
         self.weights = {
-            'pnl': 1.0,
-            'risk': 1.0,
-            'consistency': 0.5,
-            'overtrading': 0.5,
-            'hold_bonus': 0.3,
-            'invalid_action': 0.2
+            'r_pnl': 1.0,
+            'r_risk': 1.0,
+            'r_consistency': 0.5,
+            'r_overtrading': 0.5,
+            'r_hold_bonus': 0.3,
+            'r_invalid_action': 0.2
         }
         logger.info("Reward Calculator initialized")
     
