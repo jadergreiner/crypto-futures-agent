@@ -292,17 +292,17 @@ class RiskManager:
         
         # Drawdown diário atingido
         if daily_dd >= max_daily_dd:
-            logger.critical(f"⚠️  DAILY DRAWDOWN LIMIT: {daily_dd*100:.2f}% >= {max_daily_dd*100}%")
+            logger.critical(f"[!!] DAILY DRAWDOWN LIMIT: {daily_dd*100:.2f}% >= {max_daily_dd*100}%")
             return "DAILY_LIMIT", "CLOSE_ALL"
         
         # Drawdown total crítico
         if total_dd >= max_total_dd:
-            logger.critical(f"⚠️  TOTAL DRAWDOWN CRITICAL: {total_dd*100:.2f}% >= {max_total_dd*100}%")
+            logger.critical(f"[!!] TOTAL DRAWDOWN CRITICAL: {total_dd*100:.2f}% >= {max_total_dd*100}%")
             return "CRITICAL", "PAUSE"
         
         # Warning em 75% do limite total
         if total_dd >= max_total_dd * 0.75:
-            logger.warning(f"⚠️  Drawdown warning: {total_dd*100:.2f}% (limit: {max_total_dd*100}%)")
+            logger.warning(f"[WARNING] Drawdown warning: {total_dd*100:.2f}% (limit: {max_total_dd*100}%)")
             return "WARNING", "REDUCE"
         
         return "OK", "NONE"
