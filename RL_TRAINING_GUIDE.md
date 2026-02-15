@@ -58,34 +58,76 @@ As principais dependências RL já estão no `requirements.txt`:
 - `stable-baselines3>=2.1.0`
 - `torch>=2.0.0`
 
-### 2. Treinamento
+### 2. Diagnóstico de Disponibilidade de Dados
+
+**NOVO:** Antes de treinar, você pode verificar se há dados suficientes no banco:
+
+```bash
+python test_diagnosis_demo.py
+```
+
+O diagnóstico verifica:
+- ✅ Quantidade de candles disponíveis por timeframe (H1, H4, D1)
+- ✅ Quantidade necessária considerando split treino/validação (80/20) e min_length
+- ✅ Se há candles suficientes para indicadores de longo prazo (ex: EMA_610 precisa de 610 dias)
+- ✅ Atualização dos dados (último candle vs tempo atual)
+- ✅ Recomendações claras de quantos dias coletar se houver dados insuficientes
+
+#### Requisitos Mínimos de Dados
+
+Para treinar com `min_length=1000` (padrão em `main.py`):
+- **H4**: 1250+ candles (≈ 250 dias) antes do split 80/20
+- **D1**: 730+ candles (≈ 2 anos) para suportar EMA(610) com margem
+- **H1**: 5000+ candles (≈ 120 dias) recomendado
+
+Estes valores estão configurados em `config/settings.py` no `HISTORICAL_PERIODS`.
+
+### 3. Treinamento
 
 #### Opção A: Treinar com Dados Reais (requer DB populado)
 
 ```bash
 # Coletar dados históricos primeiro
-python main.py --collect-data
+python main.py --setup
 
-# Treinar modelo
+# O comando agora faz diagnóstico automático antes de treinar
 python main.py --train
+```
+
+**MUDANÇA IMPORTANTE:** O treinamento agora:
+1. ✅ Executa diagnóstico automático de dados
+2. ✅ Exibe relatório detalhado de disponibilidade
+3. ✅ **PARA** se dados insuficientes (sem fallback silencioso)
+4. ✅ Mostra recomendações claras de como resolver
+
+Se o diagnóstico detectar dados insuficientes, você verá:
+```
+❌ DADOS INSUFICIENTES PARA TREINAMENTO
+  H4: faltam 500 candles → Coletar mais 104 dias de dados H4
+  D1: insuficiente para EMA(610) → Colete mais 245 dias
+
+Execute: python main.py --setup
+Ou aumente HISTORICAL_PERIODS em config/settings.py
 ```
 
 #### Opção B: Treinar com Dados Sintéticos
 
-O pipeline possui fallback automático para dados sintéticos se o banco estiver vazio:
+Para testes rápidos sem dados reais, use o fallback manual:
 
 ```bash
-python main.py --train
+# Edite agent/data_loader.py ou use flag especial (a implementar)
+python main.py --train --synthetic
 ```
 
-O treinamento irá:
-1. Carregar dados (reais ou sintéticos)
-2. Executar Fase 1 (500k steps, ~30-60 min)
-3. Executar Fase 2 (1M steps, ~60-120 min)
-4. Executar Fase 3 (validação)
-5. Salvar modelo final em `models/crypto_agent_ppo_final.zip`
+O treinamento (quando dados OK) irá:
+1. Verificar disponibilidade de dados
+2. Carregar dados (reais ou sintéticos)
+3. Executar Fase 1 (500k steps, ~30-60 min)
+4. Executar Fase 2 (1M steps, ~60-120 min)
+5. Executar Fase 3 (validação)
+6. Salvar modelo final em `models/crypto_agent_ppo_final.zip`
 
-### 3. Backtesting
+### 4. Backtesting
 
 ```bash
 python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31

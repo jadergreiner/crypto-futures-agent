@@ -42,10 +42,11 @@ TIMEFRAMES = {
 }
 
 # Historical Data Periods (days)
+# Aumentados para suportar min_length=1000 com split 80/20 e indicadores de longo prazo
 HISTORICAL_PERIODS = {
-    "D1": 365,
-    "H4": 180,
-    "H1": 90
+    "D1": 730,    # 2 anos (para EMA_610 com margem de segurança)
+    "H4": 250,    # ~1500 candles H4 (garante 1000+ candles após split 80/20)
+    "H1": 120     # ~2880 candles H1 (mantido)
 }
 
 # Layer 4 (H4) execution times in UTC

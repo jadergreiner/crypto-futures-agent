@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 
-from config.settings import DB_PATH, TRADING_MODE
+from config.settings import DB_PATH, TRADING_MODE, HISTORICAL_PERIODS
 from config.symbols import ALL_SYMBOLS
 from data.database import DatabaseManager
 from data.binance_client import create_binance_client
@@ -53,24 +53,35 @@ def collect_historical_data(db: DatabaseManager, client) -> None:
     sentiment_collector = SentimentCollector(client)
     macro_collector = MacroCollector()
     
+    # Usar períodos configurados em settings.py
+    d1_days = HISTORICAL_PERIODS.get('D1', 365)
+    h4_days = HISTORICAL_PERIODS.get('H4', 180)
+    h1_days = HISTORICAL_PERIODS.get('H1', 90)
+    
+    logger.info(f"Períodos de coleta configurados:")
+    logger.info(f"  D1: {d1_days} dias")
+    logger.info(f"  H4: {h4_days} dias")
+    logger.info(f"  H1: {h1_days} dias")
+    logger.info("")
+    
     for symbol in ALL_SYMBOLS:
         logger.info(f"Coletando dados para {symbol}...")
         
         try:
-            # OHLCV D1 (365 dias)
-            d1_data = collector.fetch_historical(symbol, "1d", 365)
+            # OHLCV D1
+            d1_data = collector.fetch_historical(symbol, "1d", d1_days)
             if d1_data is not None and not d1_data.empty:
                 db.insert_ohlcv("d1", d1_data)
                 logger.info(f"  {len(d1_data)} candles D1 inseridos")
             
-            # OHLCV H4 (180 dias)
-            h4_data = collector.fetch_historical(symbol, "4h", 180)
+            # OHLCV H4
+            h4_data = collector.fetch_historical(symbol, "4h", h4_days)
             if h4_data is not None and not h4_data.empty:
                 db.insert_ohlcv("h4", h4_data)
                 logger.info(f"  {len(h4_data)} candles H4 inseridos")
             
-            # OHLCV H1 (90 dias)
-            h1_data = collector.fetch_historical(symbol, "1h", 90)
+            # OHLCV H1
+            h1_data = collector.fetch_historical(symbol, "1h", h1_days)
             if h1_data is not None and not h1_data.empty:
                 db.insert_ohlcv("h1", h1_data)
                 logger.info(f"  {len(h1_data)} candles H1 inseridos")
@@ -308,6 +319,84 @@ def train_model() -> None:
         # Inicializar data loader
         logger.info("Inicializando Data Loader...")
         data_loader = DataLoader(db=db)
+        
+        # NOVO: Diagnóstico pré-treinamento
+        logger.info("="*60)
+        logger.info("DIAGNÓSTICO DE DISPONIBILIDADE DE DADOS")
+        logger.info("="*60)
+        diagnosis = data_loader.diagnose_data_readiness(
+            symbol="BTCUSDT",
+            min_length_train=1000,
+            min_length_val=200,
+            train_ratio=0.8
+        )
+        
+        # Exibir diagnóstico detalhado
+        logger.info(f"Símbolo: {diagnosis['symbol']}")
+        logger.info("")
+        logger.info("Status dos Timeframes:")
+        for tf, info in diagnosis['timeframes'].items():
+            logger.info(f"  {tf.upper()}:")
+            logger.info(f"    Disponível: {info.get('available', 0)} candles")
+            if 'needed_total' in info:
+                logger.info(f"    Necessário (total): {info['needed_total']} candles")
+                logger.info(f"    Necessário (treino): {info['needed_train']} candles")
+                logger.info(f"    Após split 80/20: {info['after_split']} candles")
+            logger.info(f"    Status: {info['status']}")
+            if info.get('recommendation'):
+                logger.info(f"    → {info['recommendation']}")
+        
+        # Exibir status de indicadores
+        if diagnosis.get('indicators'):
+            logger.info("")
+            logger.info("Requisitos de Indicadores:")
+            for ind, info in diagnosis['indicators'].items():
+                logger.info(f"  {ind}:")
+                logger.info(f"    Necessário: {info['required_candles']} candles")
+                logger.info(f"    Disponível: {info['available']} candles")
+                logger.info(f"    Status: {info['status']}")
+                if '❌' in info.get('status', ''):
+                    logger.info(f"    → {info['recommendation']}")
+        
+        # Exibir atualização dos dados
+        if diagnosis.get('data_freshness'):
+            logger.info("")
+            logger.info("Atualização dos Dados:")
+            freshness = diagnosis['data_freshness']
+            logger.info(f"  Último candle H4: {freshness['last_h4_timestamp']}")
+            logger.info(f"  Horas desde última atualização: {freshness['hours_since_last']}")
+            if freshness['is_stale']:
+                logger.warning("  ⚠️  DADOS DESATUALIZADOS (>24h)")
+        
+        logger.info("")
+        logger.info("="*60)
+        logger.info(diagnosis['summary'])
+        logger.info("="*60)
+        
+        # Se dados insuficientes, parar sem fallback silencioso
+        if not diagnosis['ready']:
+            logger.error("")
+            logger.error("="*60)
+            logger.error("TREINAMENTO ABORTADO - DADOS INSUFICIENTES")
+            logger.error("="*60)
+            logger.error("")
+            logger.error("AÇÕES RECOMENDADAS:")
+            logger.error("1. Execute: python main.py --setup")
+            logger.error("   Para coletar dados históricos completos")
+            logger.error("")
+            logger.error("2. Ou aumente os períodos em config/settings.py:")
+            logger.error("   HISTORICAL_PERIODS = {")
+            logger.error("       'D1': 730,   # Para EMA_610 com margem")
+            logger.error("       'H4': 250,   # Para 1000+ candles após split")
+            logger.error("       'H1': 120")
+            logger.error("   }")
+            logger.error("")
+            logger.error("="*60)
+            return
+        
+        # Continuar com o treino normal se dados OK
+        logger.info("✅ Dados suficientes, iniciando carregamento...")
+        logger.info("")
         
         # Carregar dados de treino
         logger.info("Carregando dados de treinamento...")
