@@ -215,9 +215,10 @@ class PositionMonitor:
         Returns:
             Saldo total disponível em USDT, ou 0 em caso de erro
         """
+        # Tentativa 1: chamada normal com recv_window para tolerância de clock
         try:
-            # Buscar informações da conta usando o método do SDK
-            response = self._client.rest_api.account_information_v2()
+            # recv_window aumenta tolerância para diferenças de clock (10 segundos)
+            response = self._client.rest_api.account_information_v2(recv_window=10000)
             data = self._extract_data(response)
             
             if data is None:
@@ -231,8 +232,29 @@ class PositionMonitor:
             return available_balance
             
         except Exception as e:
-            logger.warning(f"Erro ao buscar saldo da conta: {e}")
-            return 0
+            # Verificar se é erro de timestamp (-1021)
+            error_str = str(e)
+            if '-1021' in error_str or 'Timestamp' in error_str:
+                logger.warning(f"Erro de timestamp detectado (-1021). Aguardando 500ms e tentando novamente...")
+                try:
+                    # Aguardar 500ms e tentar novamente
+                    time.sleep(0.5)
+                    response = self._client.rest_api.account_information_v2(recv_window=10000)
+                    data = self._extract_data(response)
+                    
+                    if data is None:
+                        return 0
+                    
+                    available_balance = float(self._safe_get(data, ['available_balance', 'availableBalance'], 0))
+                    logger.debug(f"Saldo disponível na conta (retry): {available_balance:.2f} USDT")
+                    return available_balance
+                    
+                except Exception as retry_error:
+                    logger.warning(f"Erro ao buscar saldo da conta (retry): {retry_error}")
+                    return 0
+            else:
+                logger.warning(f"Erro ao buscar saldo da conta: {e}")
+                return 0
     
     def fetch_current_market_data(self, symbol: str) -> Dict[str, Any]:
         """
@@ -508,6 +530,23 @@ class PositionMonitor:
                     # margin_invested ausente ou zero indica inconsistência nos dados
                     logger.warning(f"margin_invested ausente ou zero para posição cross margin {position.get('symbol')}")
                     reasoning.append(f"[AVISO] Não foi possível calcular exposição da conta (margin_invested ausente)")
+            else:
+                # account_balance == 0 significa que a API falhou
+                # Para posições lucrativas, reduzir risk_score para compensar multiplicador cross margin
+                # Para posições em prejuízo, adicionar pequena penalidade
+                if pnl_pct > 10:
+                    # Posição muito lucrativa: reduzir risco significativamente
+                    # para compensar o efeito do multiplicador cross margin (1.5x)
+                    risk_score -= 2.5
+                    reasoning.append(f"[INFO] Saldo da conta indisponível - avaliação de risco baseada apenas em dados da posição")
+                elif pnl_pct > 0:
+                    # Posição lucrativa: reduzir risco moderadamente
+                    risk_score -= 1.0
+                    reasoning.append(f"[INFO] Saldo da conta indisponível - avaliação de risco baseada apenas em dados da posição")
+                else:
+                    # Posição em prejuízo: adicionar pequena penalidade
+                    risk_score += 0.5
+                    reasoning.append(f"[INFO] Saldo da conta indisponível - avaliação de risco baseada apenas em dados da posição")
         
         # 1. VERIFICAR PROXIMIDADE DA LIQUIDAÇÃO (CRÍTICO)
         if liquidation_price and liquidation_price > 0:
@@ -891,13 +930,35 @@ class PositionMonitor:
                 # Aguardar próximo ciclo
                 if self._running:
                     logger.info(f"\n[AGUARDANDO] Próximo ciclo em {interval_seconds}s...")
-                    time.sleep(interval_seconds)
+                    # Countdown ativo com progresso a cada 30 segundos
+                    elapsed = 0
+                    while elapsed < interval_seconds and self._running:
+                        remaining = interval_seconds - elapsed
+                        if remaining > 30:
+                            time.sleep(30)
+                            elapsed += 30
+                            remaining = interval_seconds - elapsed
+                            logger.info(f"  Aguardando... {remaining}s restantes")
+                        else:
+                            time.sleep(remaining)
+                            elapsed = interval_seconds
                     
             except Exception as e:
                 logger.error(f"Erro no ciclo de monitoramento: {e}")
                 if self._running:
                     logger.info(f"Aguardando {interval_seconds}s antes de tentar novamente...")
-                    time.sleep(interval_seconds)
+                    # Countdown ativo mesmo em caso de erro
+                    elapsed = 0
+                    while elapsed < interval_seconds and self._running:
+                        remaining = interval_seconds - elapsed
+                        if remaining > 30:
+                            time.sleep(30)
+                            elapsed += 30
+                            remaining = interval_seconds - elapsed
+                            logger.info(f"  Aguardando... {remaining}s restantes")
+                        else:
+                            time.sleep(remaining)
+                            elapsed = interval_seconds
         
         logger.info("Monitor finalizado com sucesso")
     
