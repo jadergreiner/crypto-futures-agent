@@ -24,6 +24,11 @@ from agent.risk_manager import RiskManager
 from monitoring.alerts import AlertManager
 from monitoring.logger import AgentLogger
 from config.risk_params import RISK_PARAMS
+from config.settings import (
+    MONITOR_MIN_CANDLES_H4,
+    MONITOR_MIN_CANDLES_H1,
+    MONITOR_FRESH_CANDLES
+)
 
 import pandas as pd
 import numpy as np
@@ -263,6 +268,7 @@ class PositionMonitor:
     def fetch_current_market_data(self, symbol: str) -> Dict[str, Any]:
         """
         Busca dados de mercado atuais para um símbolo.
+        Combina dados históricos do banco com candles frescos da API.
         
         Args:
             symbol: Símbolo a buscar
@@ -271,12 +277,9 @@ class PositionMonitor:
             Dict com DataFrames de OHLCV e dados de sentimento
         """
         try:
-            # Buscar candles H1 (últimas 200 para cálculo de indicadores)
-            # fetch_klines já retorna DataFrame
-            df_h1 = self.collector.fetch_klines(symbol, "1h", limit=200)
-            
-            # Buscar candles H4 (últimas 200)
-            df_h4 = self.collector.fetch_klines(symbol, "4h", limit=200)
+            # Buscar dados históricos do banco + candles frescos da API
+            df_h1 = self._fetch_combined_klines(symbol, "1h", MONITOR_MIN_CANDLES_H1)
+            df_h4 = self._fetch_combined_klines(symbol, "4h", MONITOR_MIN_CANDLES_H4)
             
             # Buscar sentiment
             sentiment = self.sentiment_collector.fetch_all_sentiment(symbol)
@@ -290,6 +293,91 @@ class PositionMonitor:
         except Exception as e:
             logger.error(f"Erro ao buscar dados de mercado para {symbol}: {e}")
             return {'h1': pd.DataFrame(), 'h4': pd.DataFrame(), 'sentiment': {}}
+    
+    def _fetch_combined_klines(self, symbol: str, timeframe: str, min_candles: int) -> pd.DataFrame:
+        """
+        Busca candles combinando dados históricos do banco com dados frescos da API.
+        
+        Args:
+            symbol: Símbolo a buscar
+            timeframe: Timeframe ("1h", "4h")
+            min_candles: Número mínimo de candles necessários
+            
+        Returns:
+            DataFrame com candles históricos + frescos, sem duplicatas
+        """
+        try:
+            # 1. Buscar dados históricos do banco
+            timeframe_upper = timeframe.upper()
+            db_records = self.db.get_ohlcv(
+                timeframe=timeframe_upper,
+                symbol=symbol,
+                limit=min_candles
+            )
+            
+            # Converter para DataFrame
+            if db_records:
+                df_historical = pd.DataFrame(db_records)
+                logger.debug(f"Banco: {len(df_historical)} candles {timeframe} para {symbol}")
+            else:
+                df_historical = pd.DataFrame()
+                logger.debug(f"Banco vazio para {symbol} {timeframe}")
+            
+            # 2. Buscar candles frescos da API
+            # Se o banco tem dados suficientes, buscar apenas alguns candles frescos
+            # Caso contrário, buscar com limit maior
+            if len(df_historical) >= min_candles:
+                fetch_limit = MONITOR_FRESH_CANDLES
+            else:
+                # Fallback: banco vazio ou insuficiente, buscar mais da API
+                fetch_limit = min_candles
+                logger.info(
+                    f"Banco tem apenas {len(df_historical)} candles {timeframe} para {symbol}. "
+                    f"Buscando {fetch_limit} da API."
+                )
+            
+            df_fresh = self.collector.fetch_klines(symbol, timeframe, limit=fetch_limit)
+            logger.debug(f"API: {len(df_fresh)} candles {timeframe} para {symbol}")
+            
+            # 3. Inserir candles frescos no banco para manter histórico atualizado
+            if not df_fresh.empty:
+                self.db.insert_ohlcv(timeframe=timeframe_upper, data=df_fresh)
+            
+            # 4. Combinar dados históricos com frescos
+            if df_historical.empty:
+                # Sem dados históricos, usar apenas frescos
+                df_combined = df_fresh
+            elif df_fresh.empty:
+                # Sem dados frescos (erro na API?), usar apenas históricos
+                df_combined = df_historical
+            else:
+                # Concatenar e remover duplicatas por timestamp
+                df_combined = pd.concat([df_historical, df_fresh], ignore_index=True)
+                df_combined = df_combined.drop_duplicates(subset=['timestamp'], keep='last')
+                df_combined = df_combined.sort_values('timestamp').reset_index(drop=True)
+            
+            logger.info(
+                f"Dados combinados: {len(df_combined)} candles {timeframe} para {symbol} "
+                f"(mínimo necessário: {min_candles})"
+            )
+            
+            # 5. Validar se temos candles suficientes
+            if len(df_combined) < min_candles:
+                logger.warning(
+                    f"AVISO: Apenas {len(df_combined)} candles {timeframe} disponíveis para {symbol}. "
+                    f"Mínimo recomendado: {min_candles}"
+                )
+            
+            return df_combined
+            
+        except Exception as e:
+            logger.error(f"Erro ao buscar candles combinados {timeframe} para {symbol}: {e}")
+            # Fallback: tentar apenas da API
+            try:
+                return self.collector.fetch_klines(symbol, timeframe, limit=min_candles)
+            except Exception as fallback_error:
+                logger.error(f"Erro no fallback para {symbol} {timeframe}: {fallback_error}")
+                return pd.DataFrame()
     
     def calculate_indicators_snapshot(self, symbol: str, market_data: Dict[str, Any]) -> Dict[str, Any]:
         """
