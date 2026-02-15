@@ -4,10 +4,15 @@ Este documento descreve como usar o pipeline de treinamento de Reinforcement Lea
 
 ## Visão Geral
 
-O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3 fases:
+O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3 fases com **VecNormalize**:
 
 1. **Fase 1: Exploração** (500k timesteps) - Alta entropia para exploração
+   - Hiperparâmetros ajustados: `n_steps=4096`, `batch_size=128`, `ent_coef=0.02`
+   - `normalize_advantage=True` para estabilidade
+   - **VecNormalize** aplicado para normalização automática de observações e rewards
 2. **Fase 2: Refinamento** (1M timesteps) - Redução da entropia para convergência
+   - `ent_coef=0.005` para refinamento
+   - Carrega estatísticas de normalização da Fase 1
 3. **Fase 3: Validação** - Testes em dados out-of-sample
 
 ## Arquitetura
@@ -192,22 +197,31 @@ Configurados em `config/risk_params.py`:
 
 ## Reward Function
 
-Recompensa multi-componente com 6 componentes:
+Recompensa multi-componente **normalizada** com 6 componentes:
 
-1. **PnL** (peso 1.0): Baseado em % do capital + bonus para R-multiples altos
+1. **PnL** (peso 1.0): Baseado em % do capital diretamente (não multiplicado por 100)
+   - Bonus de **0.5** para R-multiples > 3.0
+   - Bonus de **0.2** para R-multiples > 2.0
+   - Clipping final em **[-10, +10]** para compatibilidade com PPO
 2. **Risk** (peso 1.0): Penalidade por não ter stop ou drawdown alto
 3. **Consistency** (peso 0.5): Sharpe ratio rolante dos últimos 20 trades
 4. **Overtrading** (peso 0.5): Penalidade por mais de 3 trades em 24h
 5. **Hold Bonus** (peso 0.3): Pequeno bonus por manter posições lucrativas
 6. **Invalid Action** (peso 0.2): Penalidade por ações inválidas
 
+**⚠️ IMPORTANTE**: Os rewards foram normalizados para a faixa [-10, +10] para evitar problemas de escala com o PPO. Versões anteriores usavam `pnl_pct * 100` que gerava valores de centenas, incompatíveis com o treinamento RL.
+
 ## Modelos Salvos
 
 Os modelos são salvos em `models/`:
 
 - `phase1_exploration.zip`: Modelo após fase 1
+- `phase1_vec_normalize.pkl`: Estatísticas de normalização da fase 1
 - `phase2_refinement.zip`: Modelo após fase 2
+- `phase2_vec_normalize.pkl`: Estatísticas de normalização da fase 2
 - `crypto_agent_ppo_final.zip`: Modelo final promovido (Sharpe>1.0, DD<15%)
+
+**⚠️ IMPORTANTE**: As estatísticas de normalização (`vec_normalize.pkl`) devem ser carregadas junto com o modelo para manter a mesma escala de observações e rewards durante inferência.
 
 ## Walk-Forward Optimization
 
@@ -255,8 +269,23 @@ O environment já trata NaN substituindo por 0. Se persistir, verifique:
 
 Ajuste hiperparâmetros em `agent/trainer.py`:
 - Aumentar `total_timesteps` para mais treinamento
-- Ajustar `ent_coef` (entropia)
+- Ajustar `ent_coef` (entropia): 0.02 para exploração, 0.005 para refinamento
 - Modificar pesos da reward function em `agent/reward.py`
+- Verificar se `VecNormalize` está aplicado (obrigatório para estabilidade)
+
+### Problemas de convergência do PPO
+
+Se você observar nos logs do TensorBoard:
+- `clip_fraction = 0.0` → Política não está sendo atualizada
+- `approx_kl ≈ 0.0` → Atualizações insignificantes
+- `value_loss` muito alto → Value function com escala errada
+- `entropy` quase no máximo após muitos steps → Agente agindo aleatoriamente
+
+**Solução**: As correções implementadas incluem:
+1. **Rewards normalizados** para [-10, +10] via clipping
+2. **VecNormalize** aplicado para normalizar observações e rewards automaticamente
+3. **Hiperparâmetros ajustados**: `n_steps=4096`, `batch_size=128`, `normalize_advantage=True`
+4. **Entropia aumentada** na fase 1 (`ent_coef=0.02`) para melhor exploração
 
 ## Próximos Passos
 

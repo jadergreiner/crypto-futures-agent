@@ -54,17 +54,17 @@ class RewardCalculator:
             'r_invalid_action': 0.0
         }
         
-        # Componente 1: PnL
+        # Componente 1: PnL (normalizado para faixa adequada ao PPO)
         if trade_result:
             pnl_pct = trade_result.get('pnl_pct', 0)
-            components['r_pnl'] = pnl_pct * 100  # Escalar para rewards significativos
+            components['r_pnl'] = pnl_pct  # Usar pnl_pct diretamente (já está em %)
             
-            # Bonus para R-multiples positivos
+            # Bonus para R-multiples positivos (ajustado proporcionalmente)
             r_multiple = trade_result.get('r_multiple', 0)
             if r_multiple > 3.0:
-                components['r_pnl'] += 5.0  # Bonus extra para 3R+
+                components['r_pnl'] += 0.5  # Bonus extra para 3R+
             elif r_multiple > 2.0:
-                components['r_pnl'] += 2.0  # Bonus para 2R+
+                components['r_pnl'] += 0.2  # Bonus para 2R+
         
         # Componente 2: Gestão de Risco
         if position_state:
@@ -116,6 +116,9 @@ class RewardCalculator:
             components[key] * self.weights[key] 
             for key in components.keys()
         )
+        
+        # Clipar reward total para faixa adequada ao PPO [-10, +10]
+        total_reward = np.clip(total_reward, -10.0, 10.0)
         
         result = {
             'total': total_reward,

@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from .environment import CryptoFuturesEnv
 
@@ -70,6 +70,7 @@ class Trainer:
         os.makedirs(save_dir, exist_ok=True)
         self.model = None
         self.env = None
+        self.vec_env = None  # Armazenar vec_env com VecNormalize
         logger.info(f"Trainer initialized, save_dir={save_dir}")
     
     def create_env(self, data: Dict[str, Any], **kwargs) -> CryptoFuturesEnv:
@@ -108,23 +109,35 @@ class Trainer:
         self.env = self.create_env(train_data, **env_kwargs)
         vec_env = DummyVecEnv([lambda: self.env])
         
+        # Aplicar VecNormalize para estabilizar treinamento
+        vec_env = VecNormalize(
+            vec_env,
+            norm_obs=True,
+            norm_reward=True,
+            clip_obs=10.0,
+            clip_reward=10.0,
+            gamma=0.99
+        )
+        self.vec_env = vec_env
+        
         # Determinar tensorboard_log baseado na disponibilidade
         tb_log = f"{self.save_dir}/tensorboard/phase1" if TENSORBOARD_AVAILABLE else None
         
-        # Criar modelo PPO com alta entropia para exploração
+        # Criar modelo PPO com hiperparâmetros ajustados para exploração
         self.model = PPO(
             "MlpPolicy",
             vec_env,
             learning_rate=3e-4,
-            n_steps=2048,
-            batch_size=64,
+            n_steps=4096,          # Aumentado de 2048 para cobrir episódios completos
+            batch_size=128,        # Aumentado de 64 para estabilidade
             n_epochs=10,
             gamma=0.99,
             gae_lambda=0.95,
             clip_range=0.2,
-            ent_coef=0.01,  # Alta entropia para exploração
+            ent_coef=0.02,         # Aumentado de 0.01 para mais exploração
             vf_coef=0.5,
             max_grad_norm=0.5,
+            normalize_advantage=True,  # Adicionar normalização de advantage
             verbose=1,
             tensorboard_log=tb_log
         )
@@ -143,7 +156,13 @@ class Trainer:
         # Salvar
         model_path = os.path.join(self.save_dir, "phase1_exploration.zip")
         self.model.save(model_path)
+        
+        # Salvar estatísticas de normalização do VecNormalize
+        vec_normalize_path = os.path.join(self.save_dir, "phase1_vec_normalize.pkl")
+        self.vec_env.save(vec_normalize_path)
+        
         logger.info(f"Phase 1 model saved to {model_path}")
+        logger.info(f"VecNormalize stats saved to {vec_normalize_path}")
         
         return self.model
     
@@ -171,20 +190,58 @@ class Trainer:
         self.env = self.create_env(train_data, **env_kwargs)
         vec_env = DummyVecEnv([lambda: self.env])
         
+        # Aplicar VecNormalize
+        vec_env = VecNormalize(
+            vec_env,
+            norm_obs=True,
+            norm_reward=True,
+            clip_obs=10.0,
+            clip_reward=10.0,
+            gamma=0.99
+        )
+        
         if load_phase1 and self.model is None:
             # Carregar modelo da fase 1
             phase1_path = os.path.join(self.save_dir, "phase1_exploration.zip")
+            vec_normalize_path = os.path.join(self.save_dir, "phase1_vec_normalize.pkl")
+            
             if os.path.exists(phase1_path):
                 logger.info(f"Loading Phase 1 model from {phase1_path}")
+                
+                # Carregar estatísticas de normalização da fase 1
+                if os.path.exists(vec_normalize_path):
+                    logger.info(f"Loading VecNormalize stats from {vec_normalize_path}")
+                    vec_env = VecNormalize.load(vec_normalize_path, vec_env)
+                else:
+                    logger.warning("VecNormalize stats not found, using new normalization")
+                
                 self.model = PPO.load(phase1_path, env=vec_env)
             else:
                 logger.warning("Phase 1 model not found, creating new model")
-                self.model = PPO("MlpPolicy", vec_env, verbose=1)
+                self.model = PPO(
+                    "MlpPolicy", 
+                    vec_env, 
+                    learning_rate=3e-4,
+                    n_steps=4096,
+                    batch_size=128,
+                    normalize_advantage=True,
+                    verbose=1
+                )
         elif self.model is None:
-            self.model = PPO("MlpPolicy", vec_env, verbose=1)
+            self.model = PPO(
+                "MlpPolicy", 
+                vec_env, 
+                learning_rate=3e-4,
+                n_steps=4096,
+                batch_size=128,
+                normalize_advantage=True,
+                verbose=1
+            )
         else:
             # Atualizar environment
             self.model.set_env(vec_env)
+        
+        self.vec_env = vec_env
         
         # Reduzir entropia para refinamento
         self.model.ent_coef = 0.005
@@ -204,7 +261,13 @@ class Trainer:
         # Salvar
         model_path = os.path.join(self.save_dir, "phase2_refinement.zip")
         self.model.save(model_path)
+        
+        # Salvar estatísticas de normalização do VecNormalize
+        vec_normalize_path = os.path.join(self.save_dir, "phase2_vec_normalize.pkl")
+        self.vec_env.save(vec_normalize_path)
+        
         logger.info(f"Phase 2 model saved to {model_path}")
+        logger.info(f"VecNormalize stats saved to {vec_normalize_path}")
         
         return self.model
     
