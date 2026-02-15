@@ -4,7 +4,7 @@ Layer Manager - Gerencia estado e execução condicional das camadas.
 
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 import numpy as np
 
@@ -20,6 +20,17 @@ from config.symbols import ALL_SYMBOLS
 from config.risk_params import RISK_PARAMS
 
 logger = logging.getLogger(__name__)
+
+# Constants for SMC structure types
+SMC_BULLISH = "bullish"
+SMC_BEARISH = "bearish"
+
+# Constants for liquidity types
+LIQUIDITY_BSL = "Buy Side Liquidity"
+LIQUIDITY_SSL = "Sell Side Liquidity"
+
+# Default capital for position sizing (TODO: replace with portfolio manager)
+DEFAULT_CAPITAL = 10000
 
 
 class LayerManager:
@@ -95,7 +106,7 @@ class LayerManager:
             'stop': stop,
             'tp': tp,
             'size': size,
-            'timestamp': datetime.now(),
+            'timestamp': datetime.now(timezone.utc),
             'h1_candles_elapsed': 0
         }
         
@@ -124,7 +135,7 @@ class LayerManager:
         # Mover para posições abertas
         self.open_positions[symbol] = {
             **signal,
-            'entry_timestamp': datetime.now(),
+            'entry_timestamp': datetime.now(timezone.utc),
             'entry_price': 0.0  # Seria preço de execução
         }
         
@@ -170,7 +181,7 @@ class LayerManager:
     
     def heartbeat_check(self) -> None:
         """Layer 1: Heartbeat - Health check."""
-        self.last_heartbeat = datetime.now()
+        self.last_heartbeat = datetime.now(timezone.utc)
         
         # Verificar conexões
         # - API Binance
@@ -335,9 +346,8 @@ class LayerManager:
                     ):
                         # Calculate position size
                         stop_distance_pct = abs(current_price - stop_loss) / current_price * 100
-                        capital = 10000  # TODO: Get from portfolio manager
                         position_size = self.risk_manager.calculate_position_size(
-                            capital=capital,
+                            capital=DEFAULT_CAPITAL,
                             entry_price=current_price,
                             stop_distance_pct=stop_distance_pct
                         )
@@ -459,9 +469,9 @@ class LayerManager:
         # 2. SMC Structure (2 points)
         market_structure = smc_result.get('market_structure')
         if market_structure:
-            if market_structure.type.value == "bullish":
+            if market_structure.type.value == SMC_BULLISH:
                 bullish_score += 2
-            elif market_structure.type.value == "bearish":
+            elif market_structure.type.value == SMC_BEARISH:
                 bearish_score += 2
         
         # 3. EMA Alignment (2 points)
@@ -490,9 +500,9 @@ class LayerManager:
         bos_list = smc_result.get('bos_list', [])
         if bos_list:
             last_bos = bos_list[-1]
-            if last_bos.direction == "bullish":
+            if last_bos.direction == SMC_BULLISH:
                 bullish_score += 2
-            elif last_bos.direction == "bearish":
+            elif last_bos.direction == SMC_BEARISH:
                 bearish_score += 2
         
         # 7. Funding rate not extreme against direction (2 points)
@@ -544,14 +554,14 @@ class LayerManager:
             if direction == "LONG":
                 # Find nearest bullish OB below current price
                 bullish_obs = [ob for ob in order_blocks 
-                             if ob.type == "bullish" and ob.zone_high < current_price]
+                             if ob.type == SMC_BULLISH and ob.zone_high < current_price]
                 if bullish_obs:
                     nearest_ob = max(bullish_obs, key=lambda x: x.zone_high)
                     stop_loss = nearest_ob.zone_low - (0.5 * atr)  # 0.5 ATR buffer
             else:  # SHORT
                 # Find nearest bearish OB above current price
                 bearish_obs = [ob for ob in order_blocks 
-                             if ob.type == "bearish" and ob.zone_low > current_price]
+                             if ob.type == SMC_BEARISH and ob.zone_low > current_price]
                 if bearish_obs:
                     nearest_ob = min(bearish_obs, key=lambda x: x.zone_low)
                     stop_loss = nearest_ob.zone_high + (0.5 * atr)  # 0.5 ATR buffer
@@ -567,14 +577,14 @@ class LayerManager:
         if liquidity:
             if direction == "LONG":
                 # Target Buy Side Liquidity (highs)
-                bsl = [liq for liq in liquidity if liq.type.value == "Buy Side Liquidity"]
+                bsl = [liq for liq in liquidity if liq.type.value == LIQUIDITY_BSL]
                 if bsl:
                     nearest_bsl = min(bsl, key=lambda x: abs(x.price - current_price))
                     if nearest_bsl.price > current_price:
                         take_profit = nearest_bsl.price
             else:  # SHORT
                 # Target Sell Side Liquidity (lows)
-                ssl = [liq for liq in liquidity if liq.type.value == "Sell Side Liquidity"]
+                ssl = [liq for liq in liquidity if liq.type.value == LIQUIDITY_SSL]
                 if ssl:
                     nearest_ssl = min(ssl, key=lambda x: abs(x.price - current_price))
                     if nearest_ssl.price < current_price:
@@ -873,7 +883,7 @@ class LayerManager:
             Dicionário com resumo
         """
         return {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'open_positions': len(self.open_positions),
             'pending_signals': len(self.pending_signals),
             'last_heartbeat': self.last_heartbeat.isoformat() if self.last_heartbeat else None,
