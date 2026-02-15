@@ -29,6 +29,10 @@ class AgentLogger:
         logger = logging.getLogger(name)
         logger.setLevel(getattr(logging, LOG_LEVEL))
         
+        # Desabilitar propagação para evitar mensagens duplicadas
+        # (tanto o logger nomeado quanto o root logger teriam handlers)
+        logger.propagate = False
+        
         # Evitar duplicação
         if logger.handlers:
             return logger
