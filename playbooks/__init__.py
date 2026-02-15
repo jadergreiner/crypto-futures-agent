@@ -11,9 +11,15 @@ from .bnb_playbook import BNBPlaybook
 from .doge_playbook import DOGEPlaybook
 from .xrp_playbook import XRPPlaybook
 from .ltc_playbook import LTCPlaybook
+from .zerog_playbook import ZeroGPlaybook
+from .kaia_playbook import KAIAPlaybook
+from .axl_playbook import AXLPlaybook
+from .nil_playbook import NILPlaybook
+from .fogo_playbook import FOGOPlaybook
 
 __all__ = [
     'BasePlaybook', 'SMCRules',
     'BTCPlaybook', 'ETHPlaybook', 'SOLPlaybook', 'BNBPlaybook',
-    'DOGEPlaybook', 'XRPPlaybook', 'LTCPlaybook'
+    'DOGEPlaybook', 'XRPPlaybook', 'LTCPlaybook',
+    'ZeroGPlaybook', 'KAIAPlaybook', 'AXLPlaybook', 'NILPlaybook', 'FOGOPlaybook'
 ]
