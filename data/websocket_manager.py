@@ -194,7 +194,7 @@ class WebSocketManager:
                 event_type = "FLASH_PUMP" if change_pct > 0 else "FLASH_CRASH"
                 
                 logger.warning(
-                    f"⚠️  {event_type} detected on {symbol}: "
+                    f"[!!] {event_type} detected on {symbol}: "
                     f"{abs(change_pct) * 100:.2f}% in {FLASH_CRASH_WINDOW_MINUTES} min"
                 )
                 
@@ -266,7 +266,7 @@ class WebSocketManager:
             
             if avg_vol_per_5min > 0 and recent_vol > avg_vol_per_5min * LIQUIDATION_ALERT_MULTIPLIER:
                 logger.warning(
-                    f"⚠️  Liquidation cascade detected on {symbol}: "
+                    f"[!!] Liquidation cascade detected on {symbol}: "
                     f"Recent volume {recent_vol:.2f} is {recent_vol / avg_vol_per_5min:.1f}x average"
                 )
                 
