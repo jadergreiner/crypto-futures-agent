@@ -96,3 +96,9 @@ WEEKLY_REPORT_DAY = 0  # Monday
 
 # Cleanup Configuration
 CLEANUP_DAYS_KEEP = 90  # Keep data for 90 days
+
+# Position Monitor - Minimum Candles Configuration
+# Número mínimo de candles necessários para cálculo de indicadores
+MONITOR_MIN_CANDLES_H4 = 700  # Para cobrir EMA(610) com margem
+MONITOR_MIN_CANDLES_H1 = 250  # Para cobrir EMA(144) e SMC com margem
+MONITOR_FRESH_CANDLES = 50    # Candles frescos a buscar da API
