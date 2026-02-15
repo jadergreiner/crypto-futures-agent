@@ -158,9 +158,10 @@ class PositionMonitor:
                 # Construir dict estruturado usando _safe_get para compatibilidade
                 # Nota: SDK v2 retorna objetos Pydantic com snake_case, mas mantemos fallback para camelCase
                 
-                # Normalizar margin_type: API pode retornar 'cross', 'CROSS', 'isolated', 'ISOLATED'
+                # Normalizar margin_type: API pode retornar 'cross', 'CROSS', 'isolated', 'ISOLATED', None, ou ''
                 raw_margin_type = self._safe_get(pos_data, ['margin_type', 'marginType'], 'isolated')
-                margin_type = str(raw_margin_type).upper() if raw_margin_type else 'ISOLATED'
+                # Tratar None e strings vazias como 'ISOLATED'
+                margin_type = str(raw_margin_type).upper() if raw_margin_type and str(raw_margin_type).strip() else 'ISOLATED'
                 
                 position = {
                     'symbol': self._safe_get(pos_data, 'symbol', ''),
@@ -503,6 +504,10 @@ class PositionMonitor:
                     if account_risk_pct > 50:
                         risk_score += 1.5
                         reasoning.append(f"[ATENÇÃO] Alta exposição em cross margin (>{account_risk_pct:.0f}% do saldo)")
+                else:
+                    # margin_invested ausente ou zero indica inconsistência nos dados
+                    logger.warning(f"margin_invested ausente ou zero para posição cross margin {position.get('symbol')}")
+                    reasoning.append(f"[AVISO] Não foi possível calcular exposição da conta (margin_invested ausente)")
         
         # 1. VERIFICAR PROXIMIDADE DA LIQUIDAÇÃO (CRÍTICO)
         if liquidation_price and liquidation_price > 0:

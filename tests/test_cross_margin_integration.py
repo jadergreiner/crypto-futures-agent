@@ -83,8 +83,6 @@ def test_real_world_cross_margin_example():
         # PnL%: (0.25 / 0.319) * 100 = ~78.37%
         # (O valor real de 95.89% da Binance pode variar por timing/preço exato)
         expected_pnl_pct = (0.25 / expected_margin_invested) * 100
-        assert position['unrealized_pnl_pct'] == pytest.approx(expected_pnl_pct, rel=1.0), \
-            "Bug 2: PnL% deve ser calculado sobre margin_invested"
         
         # Verificar que o PnL% é muito maior que o cálculo incorreto anterior
         wrong_pnl_pct = (0.25 / expected_notional) * 100  # ~7.8%
@@ -92,7 +90,8 @@ def test_real_world_cross_margin_example():
             f"PnL% correto ({position['unrealized_pnl_pct']:.1f}%) deve ser muito maior que cálculo incorreto ({wrong_pnl_pct:.1f}%)"
         
         # Validar que o PnL% está no range esperado (dentro de 15% do valor calculado)
-        assert position['unrealized_pnl_pct'] == pytest.approx(expected_pnl_pct, rel=0.15)
+        assert position['unrealized_pnl_pct'] == pytest.approx(expected_pnl_pct, rel=0.15), \
+            "Bug 2: PnL% deve ser calculado sobre margin_invested"
         
         print(f"\n✓ Posição C98USDT LONG:")
         print(f"  - Margin type: {position['margin_type']}")

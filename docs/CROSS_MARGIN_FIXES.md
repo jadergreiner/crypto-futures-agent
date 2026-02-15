@@ -58,6 +58,14 @@ if position['margin_invested'] > 0:
 - **PnL% correto: (0.25 / 0.319) × 100 = 78.37%** ✓
 - PnL% incorreto anterior: (0.25 / 3.19) × 100 = 7.84% ✗
 
+**Nota sobre a diferença com Binance (95.89%):**  
+O valor calculado de 78.37% difere dos 95.89% mostrados pela Binance devido a:
+1. **Timing**: O preço muda constantemente; a margem investida real pode ter sido menor (0.29 vs 0.319)
+2. **Fees e funding**: Binance considera fees pagos e funding rates acumulados
+3. **Precisão**: Pequenas diferenças em preços de entrada/mark price se amplificam com leverage
+
+O importante é que agora o PnL% é calculado sobre a **margem investida** (correto), não sobre o notional value (incorreto).
+
 ### Bug 3: Lógica de risco não considera cross margin
 
 **Problema:**
