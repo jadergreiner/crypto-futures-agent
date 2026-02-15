@@ -160,7 +160,7 @@ class PositionMonitor:
                 
                 # Normalizar margin_type: API pode retornar 'cross', 'CROSS', 'isolated', 'ISOLATED'
                 raw_margin_type = self._safe_get(pos_data, ['margin_type', 'marginType'], 'isolated')
-                margin_type = str(raw_margin_type).upper()  # Normalizar para maiúsculas
+                margin_type = str(raw_margin_type).upper() if raw_margin_type else 'ISOLATED'
                 
                 position = {
                     'symbol': self._safe_get(pos_data, 'symbol', ''),

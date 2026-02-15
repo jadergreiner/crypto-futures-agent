@@ -151,7 +151,7 @@ class TestBug2PnlCalculation:
         
         assert pos['position_size_usdt'] == pytest.approx(3.19, rel=0.01)
         assert pos['margin_invested'] == pytest.approx(0.319, rel=0.01)
-        assert pos['unrealized_pnl_pct'] == pytest.approx(78.37, rel=1.0)  # ~78%
+        assert pos['unrealized_pnl_pct'] == pytest.approx(78.37, rel=0.15)  # Tolerância de 15%
         
         # PnL% deve ser MUITO maior que se calculássemos sobre notional (7.8%)
         wrong_pnl_pct = (0.25 / notional_value) * 100

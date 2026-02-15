@@ -196,7 +196,7 @@ Diminuir para < 1.5 se aceitar mais risco (não recomendado).
 
 ## Referências
 
-- Problema original: `/problem_statement` no PR
+- Issue original: Veja descrição do PR para detalhes completos do problema
 - Código fonte: `monitoring/position_monitor.py`
 - Testes: `tests/test_cross_margin_fixes.py`, `tests/test_cross_margin_integration.py`
 - Documentação Binance: https://binance-docs.github.io/apidocs/futures/en/

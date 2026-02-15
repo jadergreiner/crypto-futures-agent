@@ -91,6 +91,9 @@ def test_real_world_cross_margin_example():
         assert position['unrealized_pnl_pct'] > 50, \
             f"PnL% correto ({position['unrealized_pnl_pct']:.1f}%) deve ser muito maior que cálculo incorreto ({wrong_pnl_pct:.1f}%)"
         
+        # Validar que o PnL% está no range esperado (dentro de 15% do valor calculado)
+        assert position['unrealized_pnl_pct'] == pytest.approx(expected_pnl_pct, rel=0.15)
+        
         print(f"\n✓ Posição C98USDT LONG:")
         print(f"  - Margin type: {position['margin_type']}")
         print(f"  - Notional value: {position['position_size_usdt']:.2f} USDT")
