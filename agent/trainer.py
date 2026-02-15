@@ -137,7 +137,7 @@ class Trainer:
         self.model.learn(
             total_timesteps=total_timesteps,
             callback=callback,
-            progress_bar=True
+            progress_bar=False
         )
         
         # Salvar
@@ -197,7 +197,7 @@ class Trainer:
         self.model.learn(
             total_timesteps=total_timesteps,
             callback=callback,
-            progress_bar=True,
+            progress_bar=False,
             reset_num_timesteps=False  # Continuar contagem
         )
         
