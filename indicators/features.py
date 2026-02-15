@@ -257,7 +257,7 @@ class FeatureEngineer:
                     dist_pct = ((current_price - closest_bear_ob.zone_low) / current_price) * 100
                     smc_features[10] = np.clip(dist_pct, -10, 10) / 10
             
-            # FVGs (4 features): similar aos OBs
+            # FVGs (4 features): contagem + distância (similar aos OBs)
             fvgs = smc.get('fvgs', [])
             bullish_fvgs = [fvg for fvg in fvgs if fvg.type == "bullish" and fvg.status.value == "OPEN"]
             bearish_fvgs = [fvg for fvg in fvgs if fvg.type == "bearish" and fvg.status.value == "OPEN"]
@@ -265,19 +265,31 @@ class FeatureEngineer:
             smc_features[11] = min(len(bullish_fvgs), 5) / 5.0
             smc_features[12] = min(len(bearish_fvgs), 5) / 5.0
             
+            # Distância para FVG mais próximo
+            if h4_data is not None and not h4_data.empty:
+                current_price = h4_data['close'].iloc[-1]
+                if bullish_fvgs:
+                    closest_bull_fvg = min(bullish_fvgs, key=lambda fvg: abs(current_price - fvg.high))
+                    dist_pct = ((current_price - closest_bull_fvg.high) / current_price) * 100
+                    smc_features[13] = np.clip(dist_pct, -10, 10) / 10
+                if bearish_fvgs:
+                    closest_bear_fvg = min(bearish_fvgs, key=lambda fvg: abs(current_price - fvg.low))
+                    dist_pct = ((current_price - closest_bear_fvg.low) / current_price) * 100
+                    smc_features[14] = np.clip(dist_pct, -10, 10) / 10
+            
             # Liquidity (2 features): sweeps recentes
             sweeps = smc.get('liquidity_sweeps', [])
             if sweeps and len(sweeps) > 0:
                 recent_sweep = sweeps[-1]
                 if recent_sweep.direction == "up":
-                    smc_features[13:15] = [1, 0]
+                    smc_features[15:17] = [1, 0]
                 else:
-                    smc_features[13:15] = [0, 1]
+                    smc_features[15:17] = [0, 1]
             
-            # Premium/Discount (4 features): position + zone one-hot
+            # Premium/Discount (2 features): position + zone one-hot
             premium_discount = smc.get('premium_discount')
             if premium_discount:
-                smc_features[15] = premium_discount.position
+                smc_features[17] = premium_discount.position
                 # Zone encoding simplificado
                 zone_map = {
                     "DEEP_DISCOUNT": 0.0,
@@ -286,7 +298,7 @@ class FeatureEngineer:
                     "PREMIUM": 0.75,
                     "DEEP_PREMIUM": 1.0
                 }
-                smc_features[16] = zone_map.get(premium_discount.zone.name, 0.5)
+                smc_features[18] = zone_map.get(premium_discount.zone.name, 0.5)
         
         features.extend(smc_features[:19])
         
@@ -476,5 +488,10 @@ class FeatureEngineer:
         # Bloco 9: Posição (5)
         names.extend(['position_direction', 'position_pnl', 'position_time',
                      'stop_distance', 'tp_distance'])
+        
+        # Padding para completar 104 features
+        current_count = len(names)
+        if current_count < 104:
+            names.extend([f'padding_{i}' for i in range(104 - current_count)])
         
         return names
