@@ -82,6 +82,7 @@ class CryptoFuturesEnv(gym.Env):
         # Portfolio tracking
         self.peak_capital = initial_capital
         self.daily_start_capital = initial_capital
+        self.flat_steps = 0  # Contador de steps sem posição (para penalidade de inatividade)
         
         logger.info(f"CryptoFuturesEnv initialized: capital=${initial_capital}, "
                    f"episode_length={episode_length}")
@@ -153,6 +154,7 @@ class CryptoFuturesEnv(gym.Env):
         self.episode_trades = []
         self.peak_capital = self.initial_capital
         self.daily_start_capital = self.initial_capital
+        self.flat_steps = 0  # Resetar contador de inatividade
         
         observation = self._get_observation()
         info = self._get_info()
@@ -181,12 +183,16 @@ class CryptoFuturesEnv(gym.Env):
         elif action == 1:  # OPEN_LONG
             if self.position is None:
                 action_valid = self._open_position("LONG")
+                if action_valid:  # Posição foi aberta com sucesso
+                    self.flat_steps = 0  # Resetar contador de inatividade
             else:
                 action_valid = False
         
         elif action == 2:  # OPEN_SHORT
             if self.position is None:
                 action_valid = self._open_position("SHORT")
+                if action_valid:  # Posição foi aberta com sucesso
+                    self.flat_steps = 0  # Resetar contador de inatividade
             else:
                 action_valid = False
         
@@ -205,11 +211,15 @@ class CryptoFuturesEnv(gym.Env):
         # Avançar para próximo candle
         self.current_step += 1
         
-        # Verificar stops e trailing
+        # Verificar stops e trailing (pode fechar posição)
         if self.position is not None:
             stop_result = self._check_stops()
             if stop_result:
                 trade_result = stop_result
+        
+        # Atualizar contador de inatividade (após todas as ações e verificações)
+        if self.position is None:
+            self.flat_steps += 1
         
         # Calcular reward
         reward_dict = self.reward_calculator.calculate(
@@ -536,7 +546,10 @@ class CryptoFuturesEnv(gym.Env):
     def _get_position_state(self) -> Optional[Dict[str, Any]]:
         """Retorna estado da posição atual."""
         if self.position is None:
-            return {'has_position': False}
+            return {
+                'has_position': False,
+                'flat_steps': self.flat_steps  # Incluir contador de inatividade
+            }
         
         h4_idx = self.current_step
         if h4_idx >= len(self.data['h4']):

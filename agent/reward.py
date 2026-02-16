@@ -8,6 +8,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Constantes para amplificação e componentes de reward
+PNL_AMPLIFICATION_FACTOR = 10  # Fator de amplificação do PnL realizado
+UNREALIZED_PNL_FACTOR = 0.1    # Fator de sinal de PnL não realizado (menor que realizado)
+INACTIVITY_THRESHOLD = 20      # Steps sem posição antes de aplicar penalidade (~80h em H4)
+INACTIVITY_PENALTY_RATE = 0.01 # Taxa de penalidade por step de inatividade
+INACTIVITY_MAX_PENALTY_STEPS = 30  # Cap máximo de steps penalizados (penalidade máxima = -0.3)
+
 
 class RewardCalculator:
     """
@@ -23,7 +30,9 @@ class RewardCalculator:
             'r_consistency': 0.5,
             'r_overtrading': 0.5,
             'r_hold_bonus': 0.3,
-            'r_invalid_action': 0.2
+            'r_invalid_action': 0.2,
+            'r_unrealized': 0.3,
+            'r_inactivity': 0.3
         }
         logger.info("Reward Calculator initialized")
     
@@ -51,13 +60,15 @@ class RewardCalculator:
             'r_consistency': 0.0,
             'r_overtrading': 0.0,
             'r_hold_bonus': 0.0,
-            'r_invalid_action': 0.0
+            'r_invalid_action': 0.0,
+            'r_unrealized': 0.0,
+            'r_inactivity': 0.0
         }
         
         # Componente 1: PnL (normalizado para faixa adequada ao PPO)
         if trade_result:
             pnl_pct = trade_result.get('pnl_pct', 0)
-            components['r_pnl'] = pnl_pct  # Usar pnl_pct diretamente (já está em %)
+            components['r_pnl'] = pnl_pct * PNL_AMPLIFICATION_FACTOR  # Amplificar sinal
             
             # Bonus para R-multiples positivos (ajustado proporcionalmente)
             r_multiple = trade_result.get('r_multiple', 0)
@@ -107,7 +118,19 @@ class RewardCalculator:
             if pnl_pct > 0:
                 components['r_hold_bonus'] = 0.01  # Pequeno bonus por candle
         
-        # Componente 6: Ação inválida
+        # Componente 6: Unrealized PnL (sinal contínuo enquanto posição aberta)
+        if position_state and position_state.get('has_position', False):
+            unrealized_pnl = position_state.get('pnl_pct', 0)
+            components['r_unrealized'] = unrealized_pnl * UNREALIZED_PNL_FACTOR
+        
+        # Componente 7: Penalidade por inatividade prolongada (incentiva exploração)
+        if position_state and not position_state.get('has_position', False):
+            flat_steps = position_state.get('flat_steps', 0)
+            if flat_steps > INACTIVITY_THRESHOLD:
+                excess_steps = min(flat_steps - INACTIVITY_THRESHOLD, INACTIVITY_MAX_PENALTY_STEPS)
+                components['r_inactivity'] = -INACTIVITY_PENALTY_RATE * excess_steps
+        
+        # Componente 8: Ação inválida
         if not action_valid:
             components['r_invalid_action'] = -0.1
         
