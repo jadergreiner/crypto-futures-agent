@@ -147,8 +147,8 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_unrealized deve ser: -0.8 * 0.1 = -0.08
-        expected_r_unrealized = -0.8 * 0.1
+        # r_unrealized deve ser: -0.8 * UNREALIZED_PNL_FACTOR
+        expected_r_unrealized = -0.8 * UNREALIZED_PNL_FACTOR
         assert result['r_unrealized'] == pytest.approx(expected_r_unrealized, abs=0.01), \
             f"Esperado r_unrealized={expected_r_unrealized}, recebeu {result['r_unrealized']}"
     
