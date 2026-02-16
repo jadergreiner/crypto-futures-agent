@@ -387,7 +387,8 @@ def test_position_state_has_momentum():
         assert isinstance(position_state['current_r_multiple'], (int, float)), \
             "current_r_multiple deve ser um número"
         
-        # Se temos histórico suficiente (>= 6), momentum não deve ser 0
+        # Se temos histórico suficiente (>= 6), momentum deve estar calculado
         if len(env.pnl_history) >= 6:
-            # Momentum pode ser 0 se o PnL não mudou, mas deve existir
-            assert position_state['pnl_momentum'] is not None
+            # Momentum pode ser zero se PnL não variou entre os dois períodos
+            assert position_state['pnl_momentum'] is not None, \
+                "pnl_momentum deve existir quando há histórico suficiente"

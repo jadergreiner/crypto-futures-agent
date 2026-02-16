@@ -102,7 +102,7 @@ class RewardCalculator:
         )
         
         # Clipar reward total para faixa adequada ao PPO
-        total_reward = float(np.clip(total_reward, -REWARD_CLIP, REWARD_CLIP))
+        total_reward = np.clip(total_reward, -REWARD_CLIP, REWARD_CLIP)
         
         result = {
             'total': total_reward,
@@ -118,6 +118,12 @@ class RewardCalculator:
     def calculate_sparse_reward(self, trade_result: Dict[str, Any]) -> float:
         """
         Recompensa esparsa: apenas no fechamento do trade.
+        
+        Args:
+            trade_result: Dicionário com resultado do trade fechado
+            
+        Returns:
+            R-multiple do trade (pnl / initial_risk)
         """
         r_multiple = trade_result.get('r_multiple', 0)
         return r_multiple
