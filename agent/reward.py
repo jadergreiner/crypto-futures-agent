@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 # Constantes para amplificação e componentes de reward
 PNL_AMPLIFICATION_FACTOR = 10  # Fator de amplificação do PnL realizado
 UNREALIZED_PNL_FACTOR = 0.1    # Fator de sinal de PnL não realizado (menor que realizado)
-INACTIVITY_THRESHOLD = 20      # Steps sem posição antes de aplicar penalidade (~80h em H4)
-INACTIVITY_PENALTY_RATE = 0.01 # Taxa de penalidade por step de inatividade
-INACTIVITY_MAX_PENALTY_STEPS = 30  # Cap máximo de steps penalizados (penalidade máxima = -0.3)
+INACTIVITY_THRESHOLD = 10      # Steps sem posição antes de aplicar penalidade (~40h em H4)
+INACTIVITY_PENALTY_RATE = 0.02 # Taxa de penalidade por step de inatividade
+INACTIVITY_MAX_PENALTY_STEPS = 40  # Cap máximo de steps penalizados (penalidade máxima = -0.8)
 
 
 class RewardCalculator:
@@ -29,10 +29,10 @@ class RewardCalculator:
             'r_risk': 1.0,
             'r_consistency': 0.5,
             'r_overtrading': 0.5,
-            'r_hold_bonus': 0.3,
+            'r_hold_bonus': 0.5,
             'r_invalid_action': 0.2,
             'r_unrealized': 0.3,
-            'r_inactivity': 0.3
+            'r_inactivity': 0.5
         }
         logger.info("Reward Calculator initialized")
     
@@ -116,7 +116,11 @@ class RewardCalculator:
         if position_state and position_state.get('has_position', False):
             pnl_pct = position_state.get('pnl_pct', 0)
             if pnl_pct > 0:
-                components['r_hold_bonus'] = 0.01  # Pequeno bonus por candle
+                # Bonus proporcional ao lucro não-realizado (mais lucro = mais incentivo a segurar)
+                components['r_hold_bonus'] = 0.02 + pnl_pct * 0.05  # Base + proporcional
+            elif pnl_pct < -2.0:
+                # Pequena penalidade por segurar posições muito perdedoras
+                components['r_hold_bonus'] = -0.01
         
         # Componente 6: Unrealized PnL (sinal contínuo enquanto posição aberta)
         if position_state and position_state.get('has_position', False):

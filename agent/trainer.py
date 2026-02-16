@@ -134,7 +134,7 @@ class Trainer:
             gamma=0.99,
             gae_lambda=0.95,
             clip_range=0.2,
-            ent_coef=0.02,         # Aumentado de 0.01 para mais exploração
+            ent_coef=0.03,         # Aumentado de 0.01 para mais exploração e evitar convergência prematura para HOLD
             vf_coef=0.5,
             max_grad_norm=0.5,
             normalize_advantage=True,  # Adicionar normalização de advantage
