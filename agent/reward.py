@@ -8,6 +8,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# Constantes para amplificação e componentes de reward
+PNL_AMPLIFICATION_FACTOR = 10  # Fator de amplificação do PnL realizado
+UNREALIZED_PNL_FACTOR = 0.1    # Fator de sinal de PnL não realizado (menor que realizado)
+INACTIVITY_THRESHOLD = 20      # Steps sem posição antes de aplicar penalidade (~80h em H4)
+INACTIVITY_PENALTY_RATE = 0.01 # Taxa de penalidade por step de inatividade
+INACTIVITY_MAX_PENALTY_STEPS = 30  # Cap máximo de steps penalizados (penalidade máxima = -0.3)
+
 
 class RewardCalculator:
     """
@@ -61,7 +68,7 @@ class RewardCalculator:
         # Componente 1: PnL (normalizado para faixa adequada ao PPO)
         if trade_result:
             pnl_pct = trade_result.get('pnl_pct', 0)
-            components['r_pnl'] = pnl_pct * 10  # Amplificar sinal: pnl_pct × 10
+            components['r_pnl'] = pnl_pct * PNL_AMPLIFICATION_FACTOR  # Amplificar sinal
             
             # Bonus para R-multiples positivos (ajustado proporcionalmente)
             r_multiple = trade_result.get('r_multiple', 0)
@@ -114,13 +121,14 @@ class RewardCalculator:
         # Componente 6: Unrealized PnL (sinal contínuo enquanto posição aberta)
         if position_state and position_state.get('has_position', False):
             unrealized_pnl = position_state.get('pnl_pct', 0)
-            components['r_unrealized'] = unrealized_pnl * 0.1  # Sinal proporcional mas menor que realizado
+            components['r_unrealized'] = unrealized_pnl * UNREALIZED_PNL_FACTOR
         
         # Componente 7: Penalidade por inatividade prolongada (incentiva exploração)
         if position_state and not position_state.get('has_position', False):
             flat_steps = position_state.get('flat_steps', 0)
-            if flat_steps > 20:  # Mais de 20 candles H4 (~80h) sem operar
-                components['r_inactivity'] = -0.01 * min(flat_steps - 20, 30)  # Cap em -0.3
+            if flat_steps > INACTIVITY_THRESHOLD:
+                excess_steps = min(flat_steps - INACTIVITY_THRESHOLD, INACTIVITY_MAX_PENALTY_STEPS)
+                components['r_inactivity'] = -INACTIVITY_PENALTY_RATE * excess_steps
         
         # Componente 8: Ação inválida
         if not action_valid:

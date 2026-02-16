@@ -5,7 +5,8 @@ Testes para os novos componentes de reward: amplificação, unrealized PnL e pen
 import pytest
 from typing import Dict, Any
 
-from agent.reward import RewardCalculator
+from agent.reward import RewardCalculator, PNL_AMPLIFICATION_FACTOR, UNREALIZED_PNL_FACTOR
+from agent.reward import INACTIVITY_THRESHOLD, INACTIVITY_PENALTY_RATE, INACTIVITY_MAX_PENALTY_STEPS
 
 
 class TestRewardAmplification:
@@ -17,7 +18,7 @@ class TestRewardAmplification:
         return RewardCalculator()
     
     def test_pnl_amplification_factor_10(self, reward_calc):
-        """Testa que pnl_pct é multiplicado por 10 no componente r_pnl."""
+        """Testa que pnl_pct é multiplicado pelo fator de amplificação no componente r_pnl."""
         trade_result = {
             'pnl': 30.0,
             'pnl_pct': 0.3,  # 0.3%
@@ -33,8 +34,8 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_pnl deve ser: 0.3 * 10 = 3.0 (sem bonus porque R < 2.0)
-        expected_r_pnl = 0.3 * 10
+        # r_pnl deve ser: 0.3 * PNL_AMPLIFICATION_FACTOR = 3.0 (sem bonus porque R < 2.0)
+        expected_r_pnl = 0.3 * PNL_AMPLIFICATION_FACTOR
         assert result['r_pnl'] == pytest.approx(expected_r_pnl, abs=0.01), \
             f"Esperado r_pnl={expected_r_pnl} para pnl_pct=0.3%, recebeu {result['r_pnl']}"
     
@@ -121,8 +122,8 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_unrealized deve ser: 1.5 * 0.1 = 0.15
-        expected_r_unrealized = 1.5 * 0.1
+        # r_unrealized deve ser: 1.5 * UNREALIZED_PNL_FACTOR
+        expected_r_unrealized = 1.5 * UNREALIZED_PNL_FACTOR
         assert result['r_unrealized'] == pytest.approx(expected_r_unrealized, abs=0.01), \
             f"Esperado r_unrealized={expected_r_unrealized}, recebeu {result['r_unrealized']}"
         
@@ -171,10 +172,10 @@ class TestRewardAmplification:
             f"r_unrealized deve ser 0.0 sem posição, recebeu {result['r_unrealized']}"
     
     def test_inactivity_penalty_below_threshold(self, reward_calc):
-        """Testa que não há penalidade para flat_steps <= 20."""
+        """Testa que não há penalidade para flat_steps <= INACTIVITY_THRESHOLD."""
         position_state = {
             'has_position': False,
-            'flat_steps': 20  # Exatamente no limite
+            'flat_steps': INACTIVITY_THRESHOLD  # Exatamente no limite
         }
         
         result = reward_calc.calculate(
@@ -185,15 +186,16 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_inactivity deve ser 0.0 quando flat_steps <= 20
+        # r_inactivity deve ser 0.0 quando flat_steps <= INACTIVITY_THRESHOLD
         assert result['r_inactivity'] == 0.0, \
-            f"r_inactivity deve ser 0.0 para flat_steps=20, recebeu {result['r_inactivity']}"
+            f"r_inactivity deve ser 0.0 para flat_steps={INACTIVITY_THRESHOLD}, recebeu {result['r_inactivity']}"
     
     def test_inactivity_penalty_above_threshold(self, reward_calc):
-        """Testa penalidade para flat_steps > 20."""
+        """Testa penalidade para flat_steps > INACTIVITY_THRESHOLD."""
+        flat_steps = INACTIVITY_THRESHOLD + 5  # 5 steps acima do limite
         position_state = {
             'has_position': False,
-            'flat_steps': 25  # 5 steps acima do limite
+            'flat_steps': flat_steps
         }
         
         result = reward_calc.calculate(
@@ -204,16 +206,17 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_inactivity deve ser: -0.01 * min(25 - 20, 30) = -0.01 * 5 = -0.05
-        expected_r_inactivity = -0.01 * 5
+        # r_inactivity deve ser: -INACTIVITY_PENALTY_RATE * (flat_steps - INACTIVITY_THRESHOLD)
+        expected_r_inactivity = -INACTIVITY_PENALTY_RATE * 5
         assert result['r_inactivity'] == pytest.approx(expected_r_inactivity, abs=0.001), \
             f"Esperado r_inactivity={expected_r_inactivity}, recebeu {result['r_inactivity']}"
     
     def test_inactivity_penalty_capped_at_max(self, reward_calc):
-        """Testa que penalidade de inatividade tem cap em -0.3."""
+        """Testa que penalidade de inatividade tem cap máximo."""
+        flat_steps = INACTIVITY_THRESHOLD + 100  # Muito acima do limite
         position_state = {
             'has_position': False,
-            'flat_steps': 100  # Muito acima do limite
+            'flat_steps': flat_steps
         }
         
         result = reward_calc.calculate(
@@ -224,8 +227,8 @@ class TestRewardAmplification:
             trades_recent=None
         )
         
-        # r_inactivity deve ser: -0.01 * min(100 - 20, 30) = -0.01 * 30 = -0.3 (cap)
-        expected_r_inactivity = -0.01 * 30
+        # r_inactivity deve ser: -INACTIVITY_PENALTY_RATE * INACTIVITY_MAX_PENALTY_STEPS (cap)
+        expected_r_inactivity = -INACTIVITY_PENALTY_RATE * INACTIVITY_MAX_PENALTY_STEPS
         assert result['r_inactivity'] == pytest.approx(expected_r_inactivity, abs=0.001), \
             f"Esperado r_inactivity={expected_r_inactivity} (cap), recebeu {result['r_inactivity']}"
     
