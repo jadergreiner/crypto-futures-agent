@@ -206,3 +206,189 @@ def test_data_loader_includes_symbol():
     assert 'sentiment' in data
     assert 'macro' in data
     assert 'smc' in data
+
+
+def test_close_blocked_when_r_below_minimum():
+    """Testa que CLOSE é bloqueado quando R < 1.0 e posição em lucro."""
+    # Criar environment com dados de teste
+    data = create_test_data_with_indicators()
+    env = CryptoFuturesEnv(data, episode_length=50)
+    
+    # Reset
+    obs, info = env.reset()
+    
+    # Abrir posição LONG
+    action_open = 1  # OPEN_LONG
+    obs, reward, terminated, truncated, info = env.step(action_open)
+    
+    # Verificar que posição foi aberta
+    assert env.position is not None, "Posição deveria ter sido aberta"
+    
+    # Simular lucro pequeno: modificar preço para gerar R < 1.0
+    # Entry price atual
+    entry_price = env.position['entry_price']
+    initial_stop = env.position['initial_stop']
+    
+    # Modificar o preço de fechamento do próximo candle para gerar lucro pequeno
+    # R = pnl / initial_risk
+    # Para R = 0.5, precisamos pnl = 0.5 * initial_risk
+    # initial_risk = abs(entry_price - initial_stop) * size
+    position_size = env.position['size']
+    initial_risk = abs(entry_price - initial_stop) * position_size
+    
+    # Para LONG: pnl = (exit_price - entry_price) * size
+    # Queremos pnl = 0.5 * initial_risk
+    # exit_price = entry_price + (0.5 * initial_risk / size)
+    target_pnl = 0.5 * initial_risk
+    target_exit_price = entry_price + (target_pnl / position_size)
+    
+    # Modificar o próximo candle
+    next_idx = env.current_step
+    if next_idx < len(env.data['h4']):
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'close'] = target_exit_price
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'high'] = target_exit_price + 10
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'low'] = entry_price - 5
+    
+    # Tentar fechar a posição (action = 3)
+    action_close = 3  # CLOSE
+    obs, reward, terminated, truncated, info = env.step(action_close)
+    
+    # Verificar que CLOSE foi bloqueado
+    assert info['action_valid'] == False, "CLOSE deveria ter sido bloqueado (R < 1.0 e lucro)"
+    
+    # Verificar que posição ainda existe
+    assert env.position is not None, "Posição não deveria ter sido fechada"
+    
+    # Verificar que reward contém penalidade de ação inválida
+    assert info['reward_components']['r_invalid_action'] < 0, \
+        "Deveria ter penalidade por ação inválida"
+
+
+def test_close_allowed_when_losing():
+    """Testa que CLOSE é permitido quando posição está em prejuízo."""
+    # Criar environment com dados de teste
+    data = create_test_data_with_indicators()
+    env = CryptoFuturesEnv(data, episode_length=50)
+    
+    # Reset
+    obs, info = env.reset()
+    
+    # Abrir posição LONG
+    action_open = 1  # OPEN_LONG
+    obs, reward, terminated, truncated, info = env.step(action_open)
+    
+    # Verificar que posição foi aberta
+    assert env.position is not None, "Posição deveria ter sido aberta"
+    
+    # Simular prejuízo: modificar preço para gerar PnL negativo
+    entry_price = env.position['entry_price']
+    position_size = env.position['size']
+    
+    # Para LONG em prejuízo: exit_price < entry_price
+    target_exit_price = entry_price * 0.98  # -2% de prejuízo
+    
+    # Modificar o próximo candle
+    next_idx = env.current_step
+    if next_idx < len(env.data['h4']):
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'close'] = target_exit_price
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'high'] = entry_price + 5
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'low'] = target_exit_price - 10
+    
+    # Tentar fechar a posição (action = 3)
+    action_close = 3  # CLOSE
+    obs, reward, terminated, truncated, info = env.step(action_close)
+    
+    # Verificar que CLOSE foi PERMITIDO (posição em prejuízo)
+    assert info['action_valid'] == True, "CLOSE deveria ter sido permitido (posição em prejuízo)"
+    
+    # Verificar que posição foi fechada
+    assert env.position is None, "Posição deveria ter sido fechada"
+
+
+def test_close_allowed_when_r_above_minimum():
+    """Testa que CLOSE é permitido quando R >= 1.0."""
+    # Criar environment com dados de teste
+    data = create_test_data_with_indicators()
+    env = CryptoFuturesEnv(data, episode_length=50)
+    
+    # Reset
+    obs, info = env.reset()
+    
+    # Abrir posição LONG
+    action_open = 1  # OPEN_LONG
+    obs, reward, terminated, truncated, info = env.step(action_open)
+    
+    # Verificar que posição foi aberta
+    assert env.position is not None, "Posição deveria ter sido aberta"
+    
+    # Simular lucro bom: R >= 1.0
+    entry_price = env.position['entry_price']
+    initial_stop = env.position['initial_stop']
+    position_size = env.position['size']
+    initial_risk = abs(entry_price - initial_stop) * position_size
+    
+    # Para R = 1.5, precisamos pnl = 1.5 * initial_risk
+    target_pnl = 1.5 * initial_risk
+    target_exit_price = entry_price + (target_pnl / position_size)
+    
+    # Modificar o próximo candle
+    next_idx = env.current_step
+    if next_idx < len(env.data['h4']):
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'close'] = target_exit_price
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'high'] = target_exit_price + 10
+        env.data['h4'].loc[env.data['h4'].index[next_idx], 'low'] = entry_price - 5
+    
+    # Tentar fechar a posição (action = 3)
+    action_close = 3  # CLOSE
+    obs, reward, terminated, truncated, info = env.step(action_close)
+    
+    # Verificar que CLOSE foi PERMITIDO (R >= 1.0)
+    assert info['action_valid'] == True, "CLOSE deveria ter sido permitido (R >= 1.0)"
+    
+    # Verificar que posição foi fechada
+    assert env.position is None, "Posição deveria ter sido fechada"
+
+
+def test_position_state_has_momentum():
+    """Testa que position_state contém pnl_momentum e current_r_multiple."""
+    # Criar environment com dados de teste
+    data = create_test_data_with_indicators()
+    env = CryptoFuturesEnv(data, episode_length=50)
+    
+    # Reset
+    obs, info = env.reset()
+    
+    # Abrir posição
+    action_open = 1  # OPEN_LONG
+    obs, reward, terminated, truncated, info = env.step(action_open)
+    
+    # Dar vários steps para acumular histórico de PnL
+    for i in range(10):
+        if env.position is None:
+            break
+        action_hold = 0  # HOLD
+        obs, reward, terminated, truncated, info = env.step(action_hold)
+    
+    # Verificar que position_state foi obtido
+    position_state = env._get_position_state()
+    
+    if position_state and position_state.get('has_position', False):
+        # Verificar que pnl_momentum está presente
+        assert 'pnl_momentum' in position_state, \
+            "position_state deveria conter 'pnl_momentum'"
+        
+        # Verificar que current_r_multiple está presente
+        assert 'current_r_multiple' in position_state, \
+            "position_state deveria conter 'current_r_multiple'"
+        
+        # Verificar que são números válidos
+        assert isinstance(position_state['pnl_momentum'], (int, float)), \
+            "pnl_momentum deve ser um número"
+        assert isinstance(position_state['current_r_multiple'], (int, float)), \
+            "current_r_multiple deve ser um número"
+        
+        # Se temos histórico suficiente (>= 6), momentum deve estar calculado
+        if len(env.pnl_history) >= 6:
+            # Momentum pode ser zero se PnL não variou entre os dois períodos
+            assert position_state['pnl_momentum'] is not None, \
+                "pnl_momentum deve existir quando há histórico suficiente"

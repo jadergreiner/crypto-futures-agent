@@ -1,6 +1,6 @@
 """
 Testes unitários para RewardCalculator.
-Testa a lógica de bonus de R-multiple e cálculo de reward.
+Testa a lógica de bonus de R-multiple e cálculo de reward - Round 4 simplificado.
 """
 
 import pytest
@@ -18,7 +18,7 @@ class TestRewardCalculator:
         return RewardCalculator()
     
     def test_calculate_basic(self, reward_calc):
-        """Testa cálculo básico de reward."""
+        """Testa cálculo básico de reward com 3 componentes."""
         result = reward_calc.calculate(
             trade_result=None,
             position_state=None,
@@ -30,14 +30,19 @@ class TestRewardCalculator:
         assert isinstance(result, dict), "Resultado deve ser um dicionário"
         assert 'total' in result, "Resultado deve conter chave 'total'"
         
-        # Verifica que os componentes estão presentes
-        expected_keys = ['r_pnl', 'r_risk', 'r_consistency', 'r_overtrading', 
-                        'r_hold_bonus', 'r_invalid_action']
+        # Verifica que os 3 componentes do Round 4 estão presentes
+        expected_keys = ['r_pnl', 'r_hold_bonus', 'r_invalid_action']
         for key in expected_keys:
             assert key in result, f"Faltando chave '{key}'"
+        
+        # Verifica que componentes antigos NÃO estão presentes
+        old_keys = ['r_risk', 'r_consistency', 'r_overtrading', 'r_unrealized', 
+                    'r_inactivity', 'r_exit_quality']
+        for key in old_keys:
+            assert key not in result, f"Componente antigo '{key}' não deveria existir"
     
     def test_r_multiple_greater_than_3(self, reward_calc):
-        """Testa que R-multiple > 3.0 recebe bonus de 0.5 com amplificação."""
+        """Testa que R-multiple > 3.0 recebe bonus de 1.0 (R_BONUS_HIGH)."""
         trade_result = {
             'pnl': 350.0,
             'pnl_pct': 3.5,
@@ -53,17 +58,17 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl recebeu amplificação × 10 + bonus de 0.5
+        # Verifica que o componente r_pnl recebeu PNL_SCALE × pnl_pct + R_BONUS_HIGH
         r_pnl = result['r_pnl']
         
-        # r_pnl deve incluir: (pnl_pct × 10) + 0.5 bonus
-        # (3.5 × 10) + 0.5 = 35.5
-        expected_r_pnl = (3.5 * 10) + 0.5
+        # r_pnl deve incluir: (pnl_pct × 10) + 1.0 bonus
+        # (3.5 × 10) + 1.0 = 36.0
+        expected_r_pnl = (3.5 * 10) + 1.0
         assert r_pnl == pytest.approx(expected_r_pnl, abs=0.1), \
-            f"Esperado r_pnl ~{expected_r_pnl} para 3.5R com amplificação, recebeu {r_pnl}"
+            f"Esperado r_pnl ~{expected_r_pnl} para 3.5R, recebeu {r_pnl}"
     
     def test_r_multiple_between_2_and_3(self, reward_calc):
-        """Testa que R-multiple entre 2.0 e 3.0 recebe bonus de 0.2 com amplificação."""
+        """Testa que R-multiple entre 2.0 e 3.0 recebe bonus de 0.5 (R_BONUS_LOW)."""
         trade_result = {
             'pnl': 250.0,
             'pnl_pct': 2.5,
@@ -79,17 +84,17 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl recebeu amplificação × 10 + bonus de 0.2
+        # Verifica que o componente r_pnl recebeu PNL_SCALE × pnl_pct + R_BONUS_LOW
         r_pnl = result['r_pnl']
         
-        # r_pnl deve incluir: (pnl_pct × 10) + 0.2 bonus
-        # (2.5 × 10) + 0.2 = 25.2
-        expected_r_pnl = (2.5 * 10) + 0.2
+        # r_pnl deve incluir: (pnl_pct × 10) + 0.5 bonus
+        # (2.5 × 10) + 0.5 = 25.5
+        expected_r_pnl = (2.5 * 10) + 0.5
         assert r_pnl == pytest.approx(expected_r_pnl, abs=0.1), \
-            f"Esperado r_pnl ~{expected_r_pnl} para 2.5R com amplificação, recebeu {r_pnl}"
+            f"Esperado r_pnl ~{expected_r_pnl} para 2.5R, recebeu {r_pnl}"
     
     def test_r_multiple_exactly_2(self, reward_calc):
-        """Testa que R-multiple exatamente 2.0 NÃO recebe bonus (> 2.0 necessário) com amplificação."""
+        """Testa que R-multiple exatamente 2.0 NÃO recebe bonus (> 2.0 necessário)."""
         trade_result = {
             'pnl': 200.0,
             'pnl_pct': 2.0,
@@ -105,7 +110,7 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl NÃO recebeu bonus (apenas amplificação)
+        # Verifica que o componente r_pnl NÃO recebeu bonus (apenas PNL_SCALE)
         r_pnl = result['r_pnl']
         
         # r_pnl deve ser: pnl_pct × 10 (sem bonus)
@@ -115,7 +120,7 @@ class TestRewardCalculator:
             f"Esperado r_pnl ~{expected_r_pnl} para exatamente 2.0R (sem bonus), recebeu {r_pnl}"
     
     def test_r_multiple_less_than_2(self, reward_calc):
-        """Testa que R-multiple < 2.0 não recebe bonus com amplificação."""
+        """Testa que R-multiple < 2.0 não recebe bonus."""
         trade_result = {
             'pnl': 150.0,
             'pnl_pct': 1.5,
@@ -131,7 +136,7 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl NÃO recebeu bonus (apenas amplificação)
+        # Verifica que o componente r_pnl NÃO recebeu bonus (apenas PNL_SCALE)
         r_pnl = result['r_pnl']
         
         # r_pnl deve ser: pnl_pct × 10 (sem bonus)
@@ -141,7 +146,7 @@ class TestRewardCalculator:
             f"Esperado r_pnl ~{expected_r_pnl} para 1.5R (sem bonus), recebeu {r_pnl}"
     
     def test_r_multiple_exactly_3(self, reward_calc):
-        """Testa que R-multiple exatamente 3.0 NÃO recebe bonus de 0.5 (> 3.0 necessário) com amplificação."""
+        """Testa que R-multiple exatamente 3.0 NÃO recebe R_BONUS_HIGH (> 3.0 necessário)."""
         trade_result = {
             'pnl': 300.0,
             'pnl_pct': 3.0,
@@ -157,17 +162,17 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl recebeu bonus de 0.2, não 0.5
+        # Verifica que o componente r_pnl recebeu R_BONUS_LOW, não R_BONUS_HIGH
         r_pnl = result['r_pnl']
         
-        # r_pnl deve ser: (pnl_pct × 10) + 0.2 bonus (porque 3.0 > 2.0 mas não > 3.0)
-        # (3.0 × 10) + 0.2 = 30.2
-        expected_r_pnl = (3.0 * 10) + 0.2
+        # r_pnl deve ser: (pnl_pct × 10) + 0.5 bonus (porque 3.0 > 2.0 mas não > 3.0)
+        # (3.0 × 10) + 0.5 = 30.5
+        expected_r_pnl = (3.0 * 10) + 0.5
         assert r_pnl == pytest.approx(expected_r_pnl, abs=0.1), \
-            f"Esperado r_pnl ~{expected_r_pnl} para exatamente 3.0R (bonus 0.2), recebeu {r_pnl}"
+            f"Esperado r_pnl ~{expected_r_pnl} para exatamente 3.0R (R_BONUS_LOW), recebeu {r_pnl}"
     
     def test_r_multiple_negative(self, reward_calc):
-        """Testa que R-multiple negativo não recebe bonus com amplificação."""
+        """Testa que R-multiple negativo não recebe bonus."""
         trade_result = {
             'pnl': -100.0,
             'pnl_pct': -1.0,
@@ -183,7 +188,7 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que r_pnl é negativo e sem bonus (apenas amplificação)
+        # Verifica que r_pnl é negativo e sem bonus (apenas PNL_SCALE)
         r_pnl = result['r_pnl']
         
         # r_pnl deve ser: pnl_pct × 10 (sem bonus para negativo)
@@ -216,8 +221,8 @@ class TestRewardCalculator:
         assert r_pnl == pytest.approx(expected_r_pnl, abs=0.1), \
             f"Esperado r_pnl ~{expected_r_pnl} para 0.0R (sem bonus), recebeu {r_pnl}"
     
-    def test_r_multiple_5_receives_5_bonus(self, reward_calc):
-        """Testa que R-multiple de 5.0 recebe bonus de 0.5 (> 3.0) com amplificação."""
+    def test_r_multiple_5_receives_high_bonus(self, reward_calc):
+        """Testa que R-multiple de 5.0 recebe R_BONUS_HIGH (> 3.0)."""
         trade_result = {
             'pnl': 500.0,
             'pnl_pct': 5.0,
@@ -233,17 +238,17 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Verifica que o componente r_pnl recebeu amplificação × 10 + bonus de 0.5
+        # Verifica que o componente r_pnl recebeu PNL_SCALE × pnl_pct + R_BONUS_HIGH
         r_pnl = result['r_pnl']
         
-        # r_pnl deve incluir: (pnl_pct × 10) + 0.5 bonus
-        # (5.0 × 10) + 0.5 = 50.5
-        expected_r_pnl = (5.0 * 10) + 0.5
+        # r_pnl deve incluir: (pnl_pct × 10) + 1.0 bonus
+        # (5.0 × 10) + 1.0 = 51.0
+        expected_r_pnl = (5.0 * 10) + 1.0
         assert r_pnl == pytest.approx(expected_r_pnl, abs=0.1), \
-            f"Esperado r_pnl ~{expected_r_pnl} para 5.0R com amplificação, recebeu {r_pnl}"
+            f"Esperado r_pnl ~{expected_r_pnl} para 5.0R, recebeu {r_pnl}"
     
     def test_invalid_action_penalty(self, reward_calc):
-        """Testa que ação inválida recebe penalidade."""
+        """Testa que ação inválida recebe penalidade de -0.5."""
         result = reward_calc.calculate(
             trade_result=None,
             position_state=None,
@@ -252,9 +257,85 @@ class TestRewardCalculator:
             trades_recent=None
         )
         
-        # Ação inválida deve ter penalidade negativa
+        # Ação inválida deve ter penalidade de -0.5 (INVALID_ACTION_PENALTY)
+        assert result['r_invalid_action'] == pytest.approx(-0.5, abs=0.01), \
+            f"Ação inválida deve ter penalidade -0.5, recebeu {result['r_invalid_action']}"
+    
+    def test_close_blocked_is_invalid(self, reward_calc):
+        """Testa que CLOSE bloqueado (action_valid=False) gera penalidade."""
+        # Simula CLOSE bloqueado: action_valid=False
+        result = reward_calc.calculate(
+            trade_result=None,
+            position_state={'has_position': True, 'pnl_pct': 0.5},  # Posição lucrativa
+            portfolio_state={'total_capital': 10000.0},
+            action_valid=False,  # CLOSE foi bloqueado
+            trades_recent=None
+        )
+        
+        # Verifica que r_invalid_action tem penalidade
         assert result['r_invalid_action'] < 0, \
-            f"Ação inválida deve ter penalidade negativa, recebeu {result['r_invalid_action']}"
+            f"CLOSE bloqueado deve ter penalidade negativa, recebeu {result['r_invalid_action']}"
+        
+        # E também deve receber hold_bonus positivo por ter posição lucrativa
+        assert result['r_hold_bonus'] > 0, \
+            f"Posição lucrativa deve ter hold_bonus positivo, recebeu {result['r_hold_bonus']}"
+    
+    def test_hold_bonus_with_momentum(self, reward_calc):
+        """Testa que hold bonus é proporcional ao PnL e momentum positivo dá bonus extra."""
+        # Caso 1: Posição lucrativa COM momentum positivo
+        result1 = reward_calc.calculate(
+            trade_result=None,
+            position_state={
+                'has_position': True, 
+                'pnl_pct': 2.0,
+                'pnl_momentum': 0.5  # Momentum positivo
+            },
+            portfolio_state={'total_capital': 10000.0},
+            action_valid=True,
+            trades_recent=None
+        )
+        
+        # hold_bonus = HOLD_BASE_BONUS + pnl_pct * HOLD_SCALING + momentum * 0.05
+        # = 0.05 + 2.0 * 0.1 + 0.5 * 0.05 = 0.05 + 0.2 + 0.025 = 0.275
+        expected_bonus1 = 0.05 + 2.0 * 0.1 + 0.5 * 0.05
+        assert result1['r_hold_bonus'] == pytest.approx(expected_bonus1, abs=0.01), \
+            f"Hold bonus com momentum deve ser {expected_bonus1}, recebeu {result1['r_hold_bonus']}"
+        
+        # Caso 2: Posição lucrativa SEM momentum (momentum=0)
+        result2 = reward_calc.calculate(
+            trade_result=None,
+            position_state={
+                'has_position': True, 
+                'pnl_pct': 2.0,
+                'pnl_momentum': 0.0  # Sem momentum
+            },
+            portfolio_state={'total_capital': 10000.0},
+            action_valid=True,
+            trades_recent=None
+        )
+        
+        # hold_bonus = HOLD_BASE_BONUS + pnl_pct * HOLD_SCALING
+        # = 0.05 + 2.0 * 0.1 = 0.25
+        expected_bonus2 = 0.05 + 2.0 * 0.1
+        assert result2['r_hold_bonus'] == pytest.approx(expected_bonus2, abs=0.01), \
+            f"Hold bonus sem momentum deve ser {expected_bonus2}, recebeu {result2['r_hold_bonus']}"
+        
+        # Caso 3: Posição perdedora (PnL < -2.0)
+        result3 = reward_calc.calculate(
+            trade_result=None,
+            position_state={
+                'has_position': True, 
+                'pnl_pct': -2.5,
+                'pnl_momentum': 0.0
+            },
+            portfolio_state={'total_capital': 10000.0},
+            action_valid=True,
+            trades_recent=None
+        )
+        
+        # hold_bonus = HOLD_LOSS_PENALTY = -0.02
+        assert result3['r_hold_bonus'] == pytest.approx(-0.02, abs=0.01), \
+            f"Hold bonus de posição perdedora deve ser -0.02, recebeu {result3['r_hold_bonus']}"
 
 
 if __name__ == "__main__":
