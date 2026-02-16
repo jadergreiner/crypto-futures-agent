@@ -1,5 +1,6 @@
 """
-Calculadora de recompensa multi-componente para o agente RL.
+Calculadora de recompensa simplificada para o agente RL.
+Round 4: Apenas 3 componentes essenciais para evitar conflito de sinais.
 """
 
 import logging
@@ -8,34 +9,37 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# Constantes para amplificação e componentes de reward
-PNL_AMPLIFICATION_FACTOR = 10  # Fator de amplificação do PnL realizado
-UNREALIZED_PNL_FACTOR = 0.1    # Fator de sinal de PnL não realizado (menor que realizado)
-INACTIVITY_THRESHOLD = 15      # Steps sem posição antes de aplicar penalidade (~60h em H4)
-INACTIVITY_PENALTY_RATE = 0.015 # Taxa de penalidade por step de inatividade
-INACTIVITY_MAX_PENALTY_STEPS = 40  # Cap máximo de steps penalizados (penalidade máxima = -0.6)
+# Constantes de reward
+PNL_SCALE = 10.0          # Fator de escala do PnL realizado
+R_BONUS_THRESHOLD_HIGH = 3.0  # Threshold para bonus alto de R-multiple
+R_BONUS_THRESHOLD_LOW = 2.0   # Threshold para bonus baixo de R-multiple
+R_BONUS_HIGH = 1.0        # Bonus para R > 3.0
+R_BONUS_LOW = 0.5          # Bonus para R > 2.0
+HOLD_BASE_BONUS = 0.05    # Bonus base por step segurando posição lucrativa
+HOLD_SCALING = 0.1         # Fator de escala proporcional ao lucro
+HOLD_LOSS_PENALTY = -0.02  # Penalidade por segurar posição perdedora
+INVALID_ACTION_PENALTY = -0.5  # Penalidade por ação inválida (inclui CLOSE prematuro)
+REWARD_CLIP = 10.0         # Limite de clipping do reward total
 
 
 class RewardCalculator:
     """
-    Calcula recompensa multi-componente para treinar o agente.
-    Combina PnL, gestão de risco, consistência e penalidades.
+    Calcula recompensa simplificada para treinar o agente.
+    
+    Round 4: Apenas 3 componentes para evitar conflito de sinais:
+    1. r_pnl: PnL realizado (fechamento de trade)
+    2. r_hold_bonus: Incentivo assimétrico para manter posições lucrativas
+    3. r_invalid_action: Penalidade por ações inválidas (inclui CLOSE prematuro)
     """
     
     def __init__(self):
-        """Inicializa reward calculator."""
+        """Inicializa reward calculator simplificado."""
         self.weights = {
             'r_pnl': 1.0,
-            'r_risk': 1.0,
-            'r_consistency': 0.5,
-            'r_overtrading': 0.5,
-            'r_hold_bonus': 0.8,
-            'r_invalid_action': 0.2,
-            'r_unrealized': 0.3,
-            'r_inactivity': 0.3,
-            'r_exit_quality': 1.0
+            'r_hold_bonus': 1.0,
+            'r_invalid_action': 1.0
         }
-        logger.info("Reward Calculator initialized")
+        logger.info("Reward Calculator initialized (Round 4 - simplificado)")
     
     def calculate(self, trade_result: Optional[Dict[str, Any]] = None,
                   position_state: Optional[Dict[str, Any]] = None,
@@ -57,100 +61,39 @@ class RewardCalculator:
         """
         components = {
             'r_pnl': 0.0,
-            'r_risk': 0.0,
-            'r_consistency': 0.0,
-            'r_overtrading': 0.0,
             'r_hold_bonus': 0.0,
-            'r_invalid_action': 0.0,
-            'r_unrealized': 0.0,
-            'r_inactivity': 0.0,
-            'r_exit_quality': 0.0
+            'r_invalid_action': 0.0
         }
         
-        # Componente 1: PnL (normalizado para faixa adequada ao PPO)
+        # Componente 1: PnL realizado (apenas quando trade é fechado)
         if trade_result:
             pnl_pct = trade_result.get('pnl_pct', 0)
-            components['r_pnl'] = pnl_pct * PNL_AMPLIFICATION_FACTOR  # Amplificar sinal
+            components['r_pnl'] = pnl_pct * PNL_SCALE
             
-            # Bonus para R-multiples positivos (ajustado proporcionalmente)
+            # Bonus para R-multiples altos (incentiva deixar lucros correr)
             r_multiple = trade_result.get('r_multiple', 0)
-            if r_multiple > 3.0:
-                components['r_pnl'] += 0.5  # Bonus extra para 3R+
-            elif r_multiple > 2.0:
-                components['r_pnl'] += 0.2  # Bonus para 2R+
-            
-            # Componente 1.5: Qualidade da saída (R-multiple do trade fechado)
-            if r_multiple >= 1.0:
-                # Bonus proporcional por fechar trade com bom R-multiple
-                components['r_exit_quality'] = min(r_multiple * 0.5, 3.0)  # Cap em 3.0
-            elif r_multiple < -0.5:
-                # Penalidade por fechar trade com R-multiple muito negativo
-                # (mas não penalizar stop loss — é gestão de risco correta)
-                exit_reason = trade_result.get('exit_reason', '')
-                if exit_reason == 'manual_close':
-                    components['r_exit_quality'] = r_multiple * 0.3  # Penalidade por fechar no prejuízo manualmente
+            if r_multiple > R_BONUS_THRESHOLD_HIGH:
+                components['r_pnl'] += R_BONUS_HIGH
+            elif r_multiple > R_BONUS_THRESHOLD_LOW:
+                components['r_pnl'] += R_BONUS_LOW
         
-        # Componente 2: Gestão de Risco
-        if position_state:
-            # Penalidade se não tem stop loss
-            if not position_state.get('has_stop_loss', True):
-                components['r_risk'] -= 2.0
-            
-            # Penalidade se stop foi atingido
-            if trade_result and trade_result.get('exit_reason') == 'stop_loss':
-                components['r_risk'] -= 0.5
-            
-            # Penalidade se drawdown alto
-            if portfolio_state:
-                current_dd = portfolio_state.get('current_drawdown_pct', 0)
-                if current_dd > 10:
-                    components['r_risk'] -= 5.0
-                elif current_dd > 5:
-                    components['r_risk'] -= 2.0
-        
-        # Componente 3: Consistência (Sharpe ratio rolante)
-        if trades_recent and len(trades_recent) >= 20:
-            returns = [t.get('pnl_pct', 0) for t in trades_recent[-20:]]
-            mean_return = np.mean(returns)
-            std_return = np.std(returns)
-            
-            if std_return > 0:
-                sharpe = mean_return / std_return
-                components['r_consistency'] = sharpe * 0.1
-        
-        # Componente 4: Overtrading
-        if portfolio_state:
-            trades_24h = portfolio_state.get('trades_24h', 0)
-            if trades_24h > 3:
-                excess_trades = trades_24h - 3
-                components['r_overtrading'] = -0.3 * excess_trades
-        
-        # Componente 5: Hold bonus assimétrico (deixar lucros correrem, cortar perdas rápido)
+        # Componente 2: Hold bonus assimétrico
         if position_state and position_state.get('has_position', False):
             pnl_pct = position_state.get('pnl_pct', 0)
+            momentum = position_state.get('pnl_momentum', 0)
+            
             if pnl_pct > 0:
-                # Bonus forte e crescente para posições lucrativas — incentiva segurar
-                components['r_hold_bonus'] = 0.05 + pnl_pct * 0.1
-            elif pnl_pct < -0.5:
-                # Penalidade crescente para posições perdedoras — incentiva cortar rápido
-                # Quanto mais perdendo, maior a penalidade por step
-                components['r_hold_bonus'] = -0.02 * abs(pnl_pct)
+                # Bonus proporcional ao lucro + momentum positivo extra
+                components['r_hold_bonus'] = HOLD_BASE_BONUS + pnl_pct * HOLD_SCALING
+                if momentum > 0:
+                    components['r_hold_bonus'] += momentum * 0.05  # Bonus extra se momentum positivo
+            elif pnl_pct < -2.0:
+                # Penalidade leve por segurar posição muito perdedora
+                components['r_hold_bonus'] = HOLD_LOSS_PENALTY
         
-        # Componente 6: Unrealized PnL (sinal contínuo enquanto posição aberta)
-        if position_state and position_state.get('has_position', False):
-            unrealized_pnl = position_state.get('pnl_pct', 0)
-            components['r_unrealized'] = unrealized_pnl * UNREALIZED_PNL_FACTOR
-        
-        # Componente 7: Penalidade por inatividade prolongada (incentiva exploração)
-        if position_state and not position_state.get('has_position', False):
-            flat_steps = position_state.get('flat_steps', 0)
-            if flat_steps > INACTIVITY_THRESHOLD:
-                excess_steps = min(flat_steps - INACTIVITY_THRESHOLD, INACTIVITY_MAX_PENALTY_STEPS)
-                components['r_inactivity'] = -INACTIVITY_PENALTY_RATE * excess_steps
-        
-        # Componente 8: Ação inválida
+        # Componente 3: Ação inválida (inclui tentativa de CLOSE prematuro)
         if not action_valid:
-            components['r_invalid_action'] = -0.1
+            components['r_invalid_action'] = INVALID_ACTION_PENALTY
         
         # Calcular reward total com pesos
         total_reward = sum(
@@ -158,8 +101,8 @@ class RewardCalculator:
             for key in components.keys()
         )
         
-        # Clipar reward total para faixa adequada ao PPO [-10, +10]
-        total_reward = np.clip(total_reward, -10.0, 10.0)
+        # Clipar reward total para faixa adequada ao PPO
+        total_reward = float(np.clip(total_reward, -REWARD_CLIP, REWARD_CLIP))
         
         result = {
             'total': total_reward,
@@ -168,20 +111,13 @@ class RewardCalculator:
         
         logger.debug(f"Reward calculated: total={total_reward:.4f}, "
                     f"pnl={components['r_pnl']:.2f}, "
-                    f"risk={components['r_risk']:.2f}")
+                    f"hold={components['r_hold_bonus']:.3f}")
         
         return result
     
     def calculate_sparse_reward(self, trade_result: Dict[str, Any]) -> float:
         """
         Recompensa esparsa: apenas no fechamento do trade.
-        Alternativa mais simples para treinar.
-        
-        Args:
-            trade_result: Resultado do trade
-            
-        Returns:
-            Reward baseado no R-multiple
         """
         r_multiple = trade_result.get('r_multiple', 0)
         return r_multiple
@@ -191,11 +127,6 @@ class RewardCalculator:
         return self.weights.copy()
     
     def update_weights(self, new_weights: Dict[str, float]) -> None:
-        """
-        Atualiza pesos dos componentes.
-        
-        Args:
-            new_weights: Novos pesos
-        """
+        """Atualiza pesos dos componentes."""
         self.weights.update(new_weights)
         logger.info(f"Reward weights updated: {self.weights}")

@@ -16,6 +16,9 @@ from indicators.multi_timeframe import MultiTimeframeAnalysis
 
 logger = logging.getLogger(__name__)
 
+# Constante para bloqueio de CLOSE prematuro
+MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual de posição lucrativa
+
 
 class CryptoFuturesEnv(gym.Env):
     """
@@ -83,6 +86,7 @@ class CryptoFuturesEnv(gym.Env):
         self.peak_capital = initial_capital
         self.daily_start_capital = initial_capital
         self.flat_steps = 0  # Contador de steps sem posição (para penalidade de inatividade)
+        self.pnl_history = []  # Histórico de PnL% para calcular momentum
         
         logger.info(f"CryptoFuturesEnv initialized: capital=${initial_capital}, "
                    f"episode_length={episode_length}")
@@ -155,6 +159,7 @@ class CryptoFuturesEnv(gym.Env):
         self.peak_capital = self.initial_capital
         self.daily_start_capital = self.initial_capital
         self.flat_steps = 0  # Resetar contador de inatividade
+        self.pnl_history = []  # Resetar histórico de PnL
         
         observation = self._get_observation()
         info = self._get_info()
@@ -198,7 +203,32 @@ class CryptoFuturesEnv(gym.Env):
         
         elif action == 3:  # CLOSE
             if self.position is not None:
-                trade_result = self._close_position("manual_close")
+                # Calcular R-multiple atual da posição
+                h4_idx = self.current_step
+                if h4_idx < len(self.data['h4']):
+                    current_price = float(self.data['h4'].iloc[h4_idx]['close'])
+                    
+                    # Calcular PnL atual
+                    if self.position['direction'] == "LONG":
+                        pnl = (current_price - self.position['entry_price']) * self.position['size']
+                    else:
+                        pnl = (self.position['entry_price'] - current_price) * self.position['size']
+                    
+                    # Calcular R-multiple atual
+                    initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
+                    current_r_multiple = pnl / initial_risk if initial_risk > 0 else 0
+                    
+                    # Bloquear CLOSE se R < MIN_R_MULTIPLE_TO_CLOSE E posição em lucro
+                    if pnl > 0 and current_r_multiple < MIN_R_MULTIPLE_TO_CLOSE:
+                        # CLOSE bloqueado - forçar o agente a deixar stop/TP gerenciar a saída
+                        action_valid = False
+                        logger.debug(f"CLOSE bloqueado: R={current_r_multiple:.2f} < {MIN_R_MULTIPLE_TO_CLOSE}, "
+                                   f"PnL=${pnl:.2f} (lucro)")
+                    else:
+                        # CLOSE permitido (posição em prejuízo OU R >= MIN_R_MULTIPLE_TO_CLOSE)
+                        trade_result = self._close_position("manual_close")
+                else:
+                    action_valid = False
             else:
                 action_valid = False
         
@@ -242,6 +272,7 @@ class CryptoFuturesEnv(gym.Env):
         observation = self._get_observation()
         info = self._get_info()
         info['reward_components'] = reward_dict
+        info['action_valid'] = action_valid
         
         return observation, reward, terminated, truncated, info
     
@@ -565,6 +596,21 @@ class CryptoFuturesEnv(gym.Env):
         
         pnl_pct = pnl / self.capital * 100
         
+        # Adicionar PnL atual ao histórico
+        self.pnl_history.append(pnl_pct)
+        
+        # Calcular momentum do PnL (taxa de variação nos últimos 3 candles H4)
+        pnl_momentum = 0.0
+        if len(self.pnl_history) >= 6:
+            # Momentum = média dos últimos 3 - média dos 3 anteriores
+            recent_avg = np.mean(self.pnl_history[-3:])
+            previous_avg = np.mean(self.pnl_history[-6:-3])
+            pnl_momentum = recent_avg - previous_avg
+        
+        # Calcular R-multiple atual
+        initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
+        current_r_multiple = pnl / initial_risk if initial_risk > 0 else 0
+        
         # Tempo na posição
         time_in_pos = (self.current_step - self.position['entry_step']) * 4  # H4 em horas
         
@@ -576,6 +622,8 @@ class CryptoFuturesEnv(gym.Env):
             'has_position': True,
             'direction': self.position['direction'],
             'pnl_pct': pnl_pct,
+            'pnl_momentum': pnl_momentum,
+            'current_r_multiple': current_r_multiple,
             'time_in_position_hours': time_in_pos,
             'stop_distance_pct': stop_dist_pct,
             'tp_distance_pct': tp_dist_pct,
