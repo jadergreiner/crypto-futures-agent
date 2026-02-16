@@ -32,22 +32,36 @@ class TrainingCallback(BaseCallback):
         self.log_interval = log_interval
         self.episode_rewards = []
         self.episode_lengths = []
+        self._last_ep_info_len = 0  # Rastrear quantos episódios já processamos
     
     def _on_step(self) -> bool:
         """Chamado a cada step."""
+        # Capturar TODOS os novos episódios do buffer (não apenas o último)
+        current_len = len(self.model.ep_info_buffer)
+        if current_len > self._last_ep_info_len:
+            for i in range(self._last_ep_info_len, current_len):
+                ep_info = self.model.ep_info_buffer[i]
+                self.episode_rewards.append(ep_info.get('r', 0))
+                self.episode_lengths.append(ep_info.get('l', 0))
+            self._last_ep_info_len = current_len
+        
         # Logar a cada intervalo
         if self.n_calls % self.log_interval == 0:
-            logger.info(f"Training step {self.n_calls}: "
-                       f"reward_mean={np.mean(self.episode_rewards[-100:]) if self.episode_rewards else 0:.2f}")
+            if self.episode_rewards:
+                recent_rewards = self.episode_rewards[-100:]
+                logger.info(f"Training step {self.n_calls}: "
+                           f"reward_mean={np.mean(recent_rewards):.4f}, "
+                           f"episodes={len(self.episode_rewards)}, "
+                           f"ep_len_mean={np.mean(self.episode_lengths[-100:]):.0f}")
+            else:
+                logger.info(f"Training step {self.n_calls}: "
+                           f"reward_mean=N/A (nenhum episódio completo ainda)")
         
         return True
     
     def _on_rollout_end(self) -> None:
-        """Chamado ao final de cada rollout."""
-        if len(self.model.ep_info_buffer) > 0:
-            ep_info = self.model.ep_info_buffer[-1]
-            self.episode_rewards.append(ep_info.get('r', 0))
-            self.episode_lengths.append(ep_info.get('l', 0))
+        """Chamado ao final de cada rollout. Nada a fazer — captura já acontece em _on_step."""
+        pass
 
 
 class Trainer:

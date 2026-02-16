@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 # Constantes para amplificação e componentes de reward
 PNL_AMPLIFICATION_FACTOR = 10  # Fator de amplificação do PnL realizado
 UNREALIZED_PNL_FACTOR = 0.1    # Fator de sinal de PnL não realizado (menor que realizado)
-INACTIVITY_THRESHOLD = 10      # Steps sem posição antes de aplicar penalidade (~40h em H4)
-INACTIVITY_PENALTY_RATE = 0.02 # Taxa de penalidade por step de inatividade
-INACTIVITY_MAX_PENALTY_STEPS = 40  # Cap máximo de steps penalizados (penalidade máxima = -0.8)
+INACTIVITY_THRESHOLD = 15      # Steps sem posição antes de aplicar penalidade (~60h em H4)
+INACTIVITY_PENALTY_RATE = 0.015 # Taxa de penalidade por step de inatividade
+INACTIVITY_MAX_PENALTY_STEPS = 40  # Cap máximo de steps penalizados (penalidade máxima = -0.6)
 
 
 class RewardCalculator:
@@ -29,10 +29,11 @@ class RewardCalculator:
             'r_risk': 1.0,
             'r_consistency': 0.5,
             'r_overtrading': 0.5,
-            'r_hold_bonus': 0.5,
+            'r_hold_bonus': 0.8,
             'r_invalid_action': 0.2,
             'r_unrealized': 0.3,
-            'r_inactivity': 0.5
+            'r_inactivity': 0.3,
+            'r_exit_quality': 1.0
         }
         logger.info("Reward Calculator initialized")
     
@@ -62,7 +63,8 @@ class RewardCalculator:
             'r_hold_bonus': 0.0,
             'r_invalid_action': 0.0,
             'r_unrealized': 0.0,
-            'r_inactivity': 0.0
+            'r_inactivity': 0.0,
+            'r_exit_quality': 0.0
         }
         
         # Componente 1: PnL (normalizado para faixa adequada ao PPO)
@@ -76,6 +78,17 @@ class RewardCalculator:
                 components['r_pnl'] += 0.5  # Bonus extra para 3R+
             elif r_multiple > 2.0:
                 components['r_pnl'] += 0.2  # Bonus para 2R+
+            
+            # Componente 1.5: Qualidade da saída (R-multiple do trade fechado)
+            if r_multiple >= 1.0:
+                # Bonus proporcional por fechar trade com bom R-multiple
+                components['r_exit_quality'] = min(r_multiple * 0.5, 3.0)  # Cap em 3.0
+            elif r_multiple < -0.5:
+                # Penalidade por fechar trade com R-multiple muito negativo
+                # (mas não penalizar stop loss — é gestão de risco correta)
+                exit_reason = trade_result.get('exit_reason', '')
+                if exit_reason == 'manual_close':
+                    components['r_exit_quality'] = r_multiple * 0.3  # Penalidade por fechar no prejuízo manualmente
         
         # Componente 2: Gestão de Risco
         if position_state:
@@ -112,15 +125,16 @@ class RewardCalculator:
                 excess_trades = trades_24h - 3
                 components['r_overtrading'] = -0.3 * excess_trades
         
-        # Componente 5: Hold bonus (recompensar holding de posições lucrativas)
+        # Componente 5: Hold bonus assimétrico (deixar lucros correrem, cortar perdas rápido)
         if position_state and position_state.get('has_position', False):
             pnl_pct = position_state.get('pnl_pct', 0)
             if pnl_pct > 0:
-                # Bonus proporcional ao lucro não-realizado (mais lucro = mais incentivo a segurar)
-                components['r_hold_bonus'] = 0.02 + pnl_pct * 0.05  # Base + proporcional
-            elif pnl_pct < -2.0:
-                # Pequena penalidade por segurar posições muito perdedoras
-                components['r_hold_bonus'] = -0.01
+                # Bonus forte e crescente para posições lucrativas — incentiva segurar
+                components['r_hold_bonus'] = 0.05 + pnl_pct * 0.1
+            elif pnl_pct < -0.5:
+                # Penalidade crescente para posições perdedoras — incentiva cortar rápido
+                # Quanto mais perdendo, maior a penalidade por step
+                components['r_hold_bonus'] = -0.02 * abs(pnl_pct)
         
         # Componente 6: Unrealized PnL (sinal contínuo enquanto posição aberta)
         if position_state and position_state.get('has_position', False):
