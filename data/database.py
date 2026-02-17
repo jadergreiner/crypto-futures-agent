@@ -1211,6 +1211,36 @@ class DatabaseManager:
                 WHERE id = ?
             """, (executed_at, executed_price, execution_mode, execution_slippage_pct, signal_id))
             logger.debug(f"Sinal {signal_id} atualizado: execução em {executed_price}")
+
+    def update_signal_status(
+        self,
+        signal_id: int,
+        status: str,
+        execution_mode: Optional[str] = None,
+        exit_reason: Optional[str] = None,
+    ) -> None:
+        """
+        Atualiza status/lifecycle de um sinal sem exigir payload completo de outcome.
+
+        Args:
+            signal_id: ID do sinal
+            status: Novo status (ACTIVE/PARTIAL/CLOSED/CANCELLED)
+            execution_mode: Modo opcional (PENDING/AUTOTRADE/MANUAL/CANCELLED)
+            exit_reason: Motivo opcional para encerramento/cancelamento
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE trade_signals
+                SET status = ?,
+                    execution_mode = COALESCE(?, execution_mode),
+                    exit_reason = COALESCE(?, exit_reason)
+                WHERE id = ?
+                """,
+                (status, execution_mode, exit_reason, signal_id),
+            )
+            logger.debug(f"Sinal {signal_id} status atualizado para {status}")
     
     def update_signal_outcome(self, signal_id: int, outcome_data: Dict[str, Any]) -> None:
         """

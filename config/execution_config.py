@@ -3,27 +3,15 @@ Execution configuration — Profit Guardian mode.
 Controls which symbols can be auto-managed and execution safety parameters.
 """
 
-from typing import Dict, Any, List, Set
+from typing import Dict, Any, Set
+from config.symbols import ALL_SYMBOLS
 
 # ============================================================================
 # AUTHORIZED SYMBOLS — Only these symbols can have orders executed automatically
-# To add a new symbol, add it to this set. To disable, remove it.
+# Mantido automaticamente a partir de config.symbols.ALL_SYMBOLS.
+# Para incluir novos símbolos na whitelist, basta adicioná-los em config/symbols.py.
 # ============================================================================
-AUTHORIZED_SYMBOLS: Set[str] = {
-    "BTCUSDT",
-    "ETHUSDT",
-    "SOLUSDT",
-    "BNBUSDT",
-    "DOGEUSDT",
-    "XRPUSDT",
-    "LTCUSDT",
-    "C98USDT",
-    "0GUSDT",
-    "KAIAUSDT",
-    "AXLUSDT",
-    "NILUSDT",
-    "FOGOUSDT",
-}
+AUTHORIZED_SYMBOLS: Set[str] = set(ALL_SYMBOLS)
 
 # ============================================================================
 # EXECUTION PARAMETERS

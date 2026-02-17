@@ -3,6 +3,8 @@ Layer Manager - Gerencia estado e execução condicional das camadas.
 """
 
 import logging
+import math
+import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import pandas as pd
@@ -18,6 +20,7 @@ from indicators.features import FeatureEngineer
 from agent.risk_manager import RiskManager
 from config.symbols import ALL_SYMBOLS
 from config.risk_params import RISK_PARAMS
+from config.execution_config import AUTHORIZED_SYMBOLS
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +65,8 @@ class LayerManager:
         
         # SMC cache for recent analysis
         self.smc_cache = {}  # Dict[symbol, Dict[str, Any]]
+        self._symbol_precision_cache = {}  # Cache de precision por símbolo
+        self.authorized_symbols = set(AUTHORIZED_SYMBOLS)
         
         # Initialize collectors if client is provided
         if client:
@@ -88,7 +93,11 @@ class LayerManager:
         return len(self.pending_signals) > 0 or len(self.open_positions) > 0
     
     def register_signal(self, symbol: str, direction: str, score: int,
-                       stop: float, tp: float, size: float) -> None:
+                       stop: float, tp: float, size: float,
+                       entry_price: Optional[float] = None,
+                       signal_id: Optional[int] = None,
+                       order_id: Optional[str] = None,
+                       execution_mode: str = 'PENDING') -> None:
         """
         Registra um sinal pendente de entrada.
         
@@ -106,13 +115,415 @@ class LayerManager:
             'stop': stop,
             'tp': tp,
             'size': size,
+            'entry_price': entry_price,
+            'signal_id': signal_id,
+            'order_id': order_id,
+            'execution_mode': execution_mode,
             'timestamp': datetime.now(timezone.utc),
-            'h1_candles_elapsed': 0
+            'h1_candles_elapsed': 0,
+            'mfe_pct': 0.0,
+            'mae_pct': 0.0,
         }
         
         self.agent_state[symbol] = 'pending_entry'
         
         logger.info(f"Signal registered: {symbol} {direction}, score={score}")
+
+    def _extract_data(self, response):
+        """Extrai payload de resposta da API do SDK Binance."""
+        if response is None:
+            return None
+        if hasattr(response, 'data'):
+            data = response.data
+            if callable(data):
+                data = data()
+            return data
+        return response
+
+    def _get_symbol_precision_info(self, symbol: str) -> Dict[str, Any]:
+        """Obtém precision de preço/quantidade para ordens LIMIT."""
+        if symbol in self._symbol_precision_cache:
+            return self._symbol_precision_cache[symbol]
+
+        default_info = {
+            'quantity_precision': 8,
+            'price_precision': 8,
+            'tick_size': None,
+        }
+
+        if not self.client:
+            self._symbol_precision_cache[symbol] = default_info
+            return default_info
+
+        try:
+            response = self.client.rest_api.exchange_information()
+            data = self._extract_data(response)
+            symbols = None
+
+            if hasattr(data, 'symbols'):
+                symbols = data.symbols
+            elif isinstance(data, dict):
+                symbols = data.get('symbols')
+
+            if not symbols:
+                self._symbol_precision_cache[symbol] = default_info
+                return default_info
+
+            for symbol_info in symbols:
+                if isinstance(symbol_info, dict):
+                    symbol_name = symbol_info.get('symbol')
+                    quantity_precision = symbol_info.get('quantityPrecision', 8)
+                    price_precision = symbol_info.get('pricePrecision', 8)
+                    filters = symbol_info.get('filters', [])
+                else:
+                    symbol_name = getattr(symbol_info, 'symbol', None)
+                    quantity_precision = getattr(symbol_info, 'quantity_precision', 8)
+                    price_precision = getattr(symbol_info, 'price_precision', 8)
+                    filters = getattr(symbol_info, 'filters', [])
+
+                if symbol_name != symbol:
+                    continue
+
+                tick_size = None
+                for f in filters or []:
+                    if isinstance(f, dict):
+                        if f.get('filterType') == 'PRICE_FILTER':
+                            tick_size = float(f.get('tickSize', 0) or 0)
+                            break
+                    else:
+                        if getattr(f, 'filter_type', None) == 'PRICE_FILTER':
+                            tick_size = float(getattr(f, 'tick_size', 0) or 0)
+                            break
+
+                info = {
+                    'quantity_precision': int(quantity_precision) if quantity_precision is not None else 8,
+                    'price_precision': int(price_precision) if price_precision is not None else 8,
+                    'tick_size': tick_size if tick_size and tick_size > 0 else None,
+                }
+                self._symbol_precision_cache[symbol] = info
+                return info
+        except Exception as e:
+            logger.warning(f"Falha ao obter precision para {symbol}: {e}")
+
+        self._symbol_precision_cache[symbol] = default_info
+        return default_info
+
+    def _round_quantity(self, symbol: str, quantity: float) -> float:
+        """Trunca quantidade para precision do símbolo."""
+        precision = self._get_symbol_precision_info(symbol)['quantity_precision']
+        multiplier = 10 ** precision
+        return math.floor(quantity * multiplier) / multiplier
+
+    def _round_price(self, symbol: str, price: float, direction: str) -> float:
+        """Ajusta preço para tick/precision respeitando direção da entrada."""
+        info = self._get_symbol_precision_info(symbol)
+        tick_size = info.get('tick_size')
+
+        if tick_size:
+            if direction == 'LONG':
+                return math.floor(price / tick_size) * tick_size
+            return math.ceil(price / tick_size) * tick_size
+
+        price_precision = info.get('price_precision', 8)
+        return round(price, price_precision)
+
+    def _calculate_strategic_entry_price(
+        self,
+        direction: str,
+        current_price: float,
+        atr: float,
+        smc_result: Dict[str, Any]
+    ) -> float:
+        """Calcula preço de entrada posicionada usando regiões estruturais SMC."""
+        order_blocks = smc_result.get('order_blocks', [])
+        fvgs = smc_result.get('fvgs', [])
+
+        if direction == 'LONG':
+            bullish_obs = [ob for ob in order_blocks if ob.type == SMC_BULLISH and ob.zone_high < current_price]
+            if bullish_obs:
+                nearest = max(bullish_obs, key=lambda ob: ob.zone_high)
+                return (nearest.zone_low + nearest.zone_high) / 2
+
+            bullish_fvgs = [fvg for fvg in fvgs if fvg.type == SMC_BULLISH and fvg.zone_high < current_price]
+            if bullish_fvgs:
+                nearest = max(bullish_fvgs, key=lambda fvg: fvg.zone_high)
+                return (nearest.zone_low + nearest.zone_high) / 2
+
+            return current_price - (0.25 * atr)
+
+        bearish_obs = [ob for ob in order_blocks if ob.type == SMC_BEARISH and ob.zone_low > current_price]
+        if bearish_obs:
+            nearest = min(bearish_obs, key=lambda ob: ob.zone_low)
+            return (nearest.zone_low + nearest.zone_high) / 2
+
+        bearish_fvgs = [fvg for fvg in fvgs if fvg.type == SMC_BEARISH and fvg.zone_low > current_price]
+        if bearish_fvgs:
+            nearest = min(bearish_fvgs, key=lambda fvg: fvg.zone_low)
+            return (nearest.zone_low + nearest.zone_high) / 2
+
+        return current_price + (0.25 * atr)
+
+    def _build_trade_signal_payload(
+        self,
+        symbol: str,
+        direction: str,
+        confluence_score: int,
+        entry_price: float,
+        current_price: float,
+        stop_loss: float,
+        take_profit: float,
+        position_size: float,
+        h4_last_row: pd.Series,
+        smc_result: Dict[str, Any],
+        sentiment: Dict[str, Any],
+        d1_bias: str,
+        market_regime: str,
+        execution_mode: str,
+    ) -> Dict[str, Any]:
+        """Monta payload completo para persistência em trade_signals."""
+        risk_distance = abs(entry_price - stop_loss)
+        tp1 = entry_price + risk_distance if direction == 'LONG' else entry_price - risk_distance
+        tp2 = entry_price + (1.5 * risk_distance) if direction == 'LONG' else entry_price - (1.5 * risk_distance)
+        tp3 = take_profit
+
+        rr_ratio = None
+        if risk_distance > 0:
+            rr_ratio = abs(tp3 - entry_price) / risk_distance
+
+        order_blocks = smc_result.get('order_blocks', [])
+        fvgs = smc_result.get('fvgs', [])
+        liquidity = smc_result.get('liquidity', [])
+        bos_list = smc_result.get('bos_list', [])
+        choch_list = smc_result.get('choch_list', [])
+        market_structure = smc_result.get('market_structure')
+        premium_discount = smc_result.get('premium_discount')
+
+        nearest_ob_distance_pct = None
+        if order_blocks:
+            nearest_ob_distance_pct = min(
+                abs(((ob.zone_low + ob.zone_high) / 2) - entry_price) / entry_price * 100
+                for ob in order_blocks
+            )
+
+        nearest_fvg_distance_pct = None
+        if fvgs:
+            nearest_fvg_distance_pct = min(
+                abs(((fvg.zone_low + fvg.zone_high) / 2) - entry_price) / entry_price * 100
+                for fvg in fvgs
+            )
+
+        liquidity_above_pct = None
+        liquidity_below_pct = None
+        if liquidity:
+            above = [((liq.price - entry_price) / entry_price) * 100 for liq in liquidity if liq.price > entry_price]
+            below = [((entry_price - liq.price) / entry_price) * 100 for liq in liquidity if liq.price < entry_price]
+            liquidity_above_pct = min(above) if above else None
+            liquidity_below_pct = min(below) if below else None
+
+        ema_alignment_score = h4_last_row.get('ema_alignment_score', 0)
+        if not pd.isna(ema_alignment_score):
+            if ema_alignment_score > 0:
+                h4_trend = 'BULLISH'
+            elif ema_alignment_score < 0:
+                h4_trend = 'BEARISH'
+            else:
+                h4_trend = 'NEUTRO'
+        else:
+            h4_trend = 'NEUTRO'
+
+        h1_trend = 'NEUTRO'
+        if market_structure:
+            if market_structure.type.value == SMC_BULLISH:
+                h1_trend = 'BULLISH'
+            elif market_structure.type.value == SMC_BEARISH:
+                h1_trend = 'BEARISH'
+
+        confluence_details = {
+            'strategy': 'positioned_entry_smc',
+            'score': confluence_score,
+            'direction': direction,
+            'entry_vs_mark_pct': ((entry_price - current_price) / current_price) * 100,
+        }
+
+        return {
+            'timestamp': int(datetime.now(timezone.utc).timestamp() * 1000),
+            'symbol': symbol,
+            'direction': direction,
+            'entry_price': float(entry_price),
+            'stop_loss': float(stop_loss),
+            'take_profit_1': float(tp1),
+            'take_profit_2': float(tp2),
+            'take_profit_3': float(tp3),
+            'position_size_suggested': float(position_size),
+            'risk_pct': float(RISK_PARAMS['max_risk_per_trade_pct'] * 100),
+            'risk_reward_ratio': float(rr_ratio) if rr_ratio is not None else None,
+            'leverage_suggested': int(RISK_PARAMS.get('max_leverage', 10)),
+            'confluence_score': float(confluence_score),
+            'confluence_details': json.dumps(confluence_details, ensure_ascii=False),
+            'rsi_14': h4_last_row.get('rsi_14'),
+            'ema_17': h4_last_row.get('ema_17'),
+            'ema_34': h4_last_row.get('ema_34'),
+            'ema_72': h4_last_row.get('ema_72'),
+            'ema_144': h4_last_row.get('ema_144'),
+            'macd_line': h4_last_row.get('macd_line'),
+            'macd_signal': h4_last_row.get('macd_signal'),
+            'macd_histogram': h4_last_row.get('macd_histogram'),
+            'bb_upper': h4_last_row.get('bb_upper'),
+            'bb_lower': h4_last_row.get('bb_lower'),
+            'bb_percent_b': h4_last_row.get('bb_percent_b'),
+            'atr_14': h4_last_row.get('atr_14'),
+            'adx_14': h4_last_row.get('adx_14'),
+            'di_plus': h4_last_row.get('di_plus'),
+            'di_minus': h4_last_row.get('di_minus'),
+            'market_structure': market_structure.type.value if market_structure else None,
+            'bos_recent': 1 if bos_list else 0,
+            'choch_recent': 1 if choch_list else 0,
+            'nearest_ob_distance_pct': nearest_ob_distance_pct,
+            'nearest_fvg_distance_pct': nearest_fvg_distance_pct,
+            'premium_discount_zone': premium_discount.zone.value if premium_discount else None,
+            'liquidity_above_pct': liquidity_above_pct,
+            'liquidity_below_pct': liquidity_below_pct,
+            'funding_rate': sentiment.get('funding_rate'),
+            'long_short_ratio': sentiment.get('long_short_ratio'),
+            'open_interest_change_pct': sentiment.get('open_interest_change_pct'),
+            'fear_greed_value': sentiment.get('fear_greed_value'),
+            'd1_bias': d1_bias,
+            'h4_trend': h4_trend,
+            'h1_trend': h1_trend,
+            'market_regime': market_regime,
+            'execution_mode': execution_mode,
+            'executed_at': None,
+            'executed_price': None,
+            'execution_slippage_pct': None,
+            'status': 'ACTIVE',
+        }
+
+    def _place_positioned_entry_order(
+        self,
+        symbol: str,
+        direction: str,
+        entry_price: float,
+        quantity: float,
+    ) -> Optional[Dict[str, Any]]:
+        """Cria ordem LIMIT de entrada posicionada em região estratégica."""
+        if not self.client:
+            return None
+
+        side = 'BUY' if direction == 'LONG' else 'SELL'
+        adj_price = self._round_price(symbol, entry_price, direction)
+        adj_qty = self._round_quantity(symbol, quantity)
+
+        if adj_qty <= 0:
+            logger.warning(f"H4: Quantidade inválida para entrada posicionada em {symbol}: {adj_qty}")
+            return None
+
+        try:
+            response = self.client.rest_api.new_order(
+                symbol=symbol,
+                side=side,
+                type='LIMIT',
+                quantity=adj_qty,
+                price=adj_price,
+                time_in_force='GTC',
+                recv_window=10000,
+            )
+            data = self._extract_data(response)
+            logger.info(
+                f"H4: Ordem posicionada criada para {symbol} {direction} "
+                f"({side} {adj_qty} @ {adj_price})"
+            )
+            return data
+        except Exception as e:
+            logger.error(f"H4: Falha ao criar ordem posicionada para {symbol}: {e}")
+            return None
+
+    def _record_signal_evolution(
+        self,
+        symbol: str,
+        signal: Dict[str, Any],
+        event_type: Optional[str] = None,
+        event_details: Optional[str] = None,
+    ) -> None:
+        """Persiste snapshot de evolução do sinal para aprendizado contínuo."""
+        if not self.db:
+            return
+
+        signal_id = signal.get('signal_id')
+        if not signal_id:
+            return
+
+        current_price = signal.get('entry_price')
+        rsi_14 = None
+        macd_histogram = None
+        bb_percent_b = None
+        atr_14 = None
+        adx_14 = None
+        market_structure = None
+
+        try:
+            h1_df = self.binance_collector.fetch_historical(symbol, "1h", days=2)
+            if not h1_df.empty:
+                h1_df = TechnicalIndicators.calculate_all(h1_df)
+                last = h1_df.iloc[-1]
+                current_price = float(last['close'])
+                rsi_14 = last.get('rsi_14')
+                macd_histogram = last.get('macd_histogram')
+                bb_percent_b = last.get('bb_percent_b')
+                atr_14 = last.get('atr_14')
+                adx_14 = last.get('adx_14')
+
+            smc = self.smc_cache.get(symbol, {})
+            structure = smc.get('market_structure') if smc else None
+            if structure:
+                market_structure = structure.type.value
+        except Exception as e:
+            logger.debug(f"H1: Falha ao coletar snapshot de evolução para {symbol}: {e}")
+
+        if current_price is None:
+            return
+
+        entry_price = signal.get('entry_price') or current_price
+        stop = signal.get('stop')
+        tp = signal.get('tp')
+        direction = signal.get('direction', 'LONG')
+
+        if direction == 'LONG':
+            unrealized = ((current_price - entry_price) / entry_price) * 100 if entry_price else 0.0
+            distance_to_stop_pct = ((current_price - stop) / current_price) * 100 if stop else None
+            distance_to_tp1_pct = ((tp - current_price) / current_price) * 100 if tp else None
+        else:
+            unrealized = ((entry_price - current_price) / entry_price) * 100 if entry_price else 0.0
+            distance_to_stop_pct = ((stop - current_price) / current_price) * 100 if stop else None
+            distance_to_tp1_pct = ((current_price - tp) / current_price) * 100 if tp else None
+
+        signal['mfe_pct'] = max(signal.get('mfe_pct', 0.0), unrealized)
+        signal['mae_pct'] = min(signal.get('mae_pct', 0.0), unrealized)
+
+        payload = {
+            'signal_id': signal_id,
+            'timestamp': int(datetime.now(timezone.utc).timestamp() * 1000),
+            'current_price': float(current_price),
+            'unrealized_pnl_pct': float(unrealized),
+            'distance_to_stop_pct': distance_to_stop_pct,
+            'distance_to_tp1_pct': distance_to_tp1_pct,
+            'rsi_14': rsi_14,
+            'macd_histogram': macd_histogram,
+            'bb_percent_b': bb_percent_b,
+            'atr_14': atr_14,
+            'adx_14': adx_14,
+            'market_structure': market_structure,
+            'funding_rate': None,
+            'long_short_ratio': None,
+            'mfe_pct': signal.get('mfe_pct'),
+            'mae_pct': signal.get('mae_pct'),
+            'event_type': event_type,
+            'event_details': event_details,
+        }
+
+        try:
+            self.db.insert_signal_evolution(payload)
+        except Exception as e:
+            logger.warning(f"H1: Falha ao persistir evolução do sinal {signal_id}: {e}")
     
     def execute_entry(self, symbol: str) -> bool:
         """
@@ -208,8 +619,25 @@ class LayerManager:
             
             # Timeout após 12 H1 candles
             if signal['h1_candles_elapsed'] >= 12:
+                if self.db and signal.get('signal_id'):
+                    try:
+                        self.db.update_signal_status(
+                            signal_id=signal['signal_id'],
+                            status='CANCELLED',
+                            execution_mode='CANCELLED',
+                            exit_reason='timeout_h1'
+                        )
+                    except Exception as e:
+                        logger.warning(f"H1: Falha ao cancelar sinal {symbol} no DB: {e}")
                 self.cancel_signal(symbol, "timeout")
                 continue
+
+            self._record_signal_evolution(
+                symbol=symbol,
+                signal=signal,
+                event_type='H1_TIMING_CHECK',
+                event_details=f"elapsed={signal['h1_candles_elapsed']}"
+            )
             
             # Verificar se está na zona de entrada
             # (Implementação real verificaria via SMC)
@@ -365,20 +793,113 @@ class LayerManager:
                         position_size = self.risk_manager.adjust_size_by_confluence(
                             position_size, confluence_score
                         )
-                        
-                        # Step 13: Register signal
+
+                        if symbol in self.pending_signals:
+                            logger.info(f"H4: {symbol} já possui sinal pendente, mantendo ordem posicionada existente")
+                            continue
+
+                        strategic_entry = self._calculate_strategic_entry_price(
+                            direction=signal_direction,
+                            current_price=current_price,
+                            atr=atr,
+                            smc_result=smc_result,
+                        )
+
+                        # Garantir coerência geométrica entre entry/stop/tp
+                        if signal_direction == 'LONG' and not (stop_loss < strategic_entry < take_profit):
+                            strategic_entry = current_price
+                        if signal_direction == 'SHORT' and not (take_profit < strategic_entry < stop_loss):
+                            strategic_entry = current_price
+
+                        strategic_entry = self._round_price(symbol, strategic_entry, signal_direction)
+
+                        execution_mode = 'PENDING'
+                        signal_id = None
+
+                        # Persist signal no DB para aprendizado
+                        if self.db:
+                            payload = self._build_trade_signal_payload(
+                                symbol=symbol,
+                                direction=signal_direction,
+                                confluence_score=confluence_score,
+                                entry_price=strategic_entry,
+                                current_price=current_price,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
+                                position_size=position_size,
+                                h4_last_row=h4_df.iloc[-1],
+                                smc_result=smc_result,
+                                sentiment=sentiment,
+                                d1_bias=d1_bias,
+                                market_regime=market_regime,
+                                execution_mode=execution_mode,
+                            )
+                            try:
+                                signal_id = self.db.insert_trade_signal(payload)
+                            except Exception as e:
+                                logger.warning(f"H4: Falha ao persistir trade_signal de {symbol}: {e}")
+
+                        order_id = None
+                        if symbol in self.authorized_symbols and self.client:
+                            order_response = self._place_positioned_entry_order(
+                                symbol=symbol,
+                                direction=signal_direction,
+                                entry_price=strategic_entry,
+                                quantity=position_size,
+                            )
+                            if order_response:
+                                execution_mode = 'AUTOTRADE_LIMIT'
+                                order_id = order_response.get('orderId') or order_response.get('order_id')
+                                executed_price = float(
+                                    order_response.get('price')
+                                    or order_response.get('avgPrice')
+                                    or order_response.get('avg_price')
+                                    or strategic_entry
+                                )
+                                if self.db and signal_id:
+                                    try:
+                                        slippage_pct = ((executed_price - strategic_entry) / strategic_entry) * 100
+                                        self.db.update_signal_execution(
+                                            signal_id=signal_id,
+                                            executed_at=int(datetime.now(timezone.utc).timestamp() * 1000),
+                                            executed_price=executed_price,
+                                            execution_mode=execution_mode,
+                                            execution_slippage_pct=slippage_pct,
+                                        )
+                                    except Exception as e:
+                                        logger.warning(f"H4: Falha ao atualizar execução do sinal {signal_id}: {e}")
+                            else:
+                                logger.warning(f"H4: Ordem posicionada não criada para {symbol}; sinal ficará pendente")
+                        else:
+                            logger.info(f"H4: {symbol} fora da whitelist/autotrade indisponível; sinal ficará pendente")
+
+                        # Step 13: Register signal em memória
                         self.register_signal(
                             symbol=symbol,
                             direction=signal_direction,
                             score=confluence_score,
                             stop=stop_loss,
                             tp=take_profit,
-                            size=position_size
+                            size=position_size,
+                            entry_price=strategic_entry,
+                            signal_id=signal_id,
+                            order_id=order_id,
+                            execution_mode=execution_mode,
+                        )
+
+                        # Snapshot inicial da evolução
+                        self._record_signal_evolution(
+                            symbol=symbol,
+                            signal=self.pending_signals[symbol],
+                            event_type='SIGNAL_REGISTERED',
+                            event_details=f"mode={execution_mode};score={confluence_score}"
                         )
                         
                         signals_generated += 1
-                        logger.info(f"H4: [OK] Signal registered for {symbol} {signal_direction} "
-                                   f"(score={confluence_score}, size={position_size:.4f})")
+                        logger.info(
+                            f"H4: [OK] Signal positioned for {symbol} {signal_direction} "
+                            f"(score={confluence_score}, entry={strategic_entry:.6f}, size={position_size:.4f}, mode={execution_mode})"
+                        )
                     else:
                         logger.info(f"H4: Signal for {symbol} rejected by risk validation")
                 
