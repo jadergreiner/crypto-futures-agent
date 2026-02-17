@@ -8,11 +8,13 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import schedule
 import time
+from zoneinfo import ZoneInfo
 
 from config.settings import H4_EXECUTION_HOURS, FUNDING_RATE_HOURS
 from .layer_manager import LayerManager
 
 logger = logging.getLogger(__name__)
+BRASILIA_TZ = ZoneInfo("America/Sao_Paulo")
 
 
 class Scheduler:
@@ -94,10 +96,39 @@ class Scheduler:
     def _run_layer1_heartbeat(self) -> None:
         """Layer 1: Heartbeat - Health check."""
         try:
-            logger.debug("Layer 1: Heartbeat check")
+            pending_signals = len(self.layer_manager.pending_signals)
+            open_positions = len(self.layer_manager.open_positions)
+            now_brt = datetime.now(BRASILIA_TZ)
+
+            h1_next = None
+            h4_next = None
+            for job in schedule.jobs:
+                if job.job_func.__name__ == "_run_layer3_h1" and h1_next is None:
+                    h1_next = job.next_run
+                if job.job_func.__name__ == "_run_layer4_h4" and h4_next is None:
+                    h4_next = job.next_run
+
+            h1_next_str = self._format_brasilia_time(h1_next)
+            h4_next_str = self._format_brasilia_time(h4_next)
+
+            logger.info(
+                f"Heartbeat (BRT {now_brt.strftime('%Y-%m-%d %H:%M:%S')}) | open_positions={open_positions} | "
+                f"pending_signals={pending_signals} | next_h1={h1_next_str} | next_h4={h4_next_str}"
+            )
             self.layer_manager.heartbeat_check()
         except Exception as e:
             logger.error(f"Layer 1 error: {e}", exc_info=True)
+
+    def _format_brasilia_time(self, dt_obj: Optional[datetime]) -> str:
+        """Converte datetime para horário de Brasília para logs consistentes."""
+        if dt_obj is None:
+            return "N/A"
+
+        if dt_obj.tzinfo is None:
+            local_tz = datetime.now().astimezone().tzinfo
+            dt_obj = dt_obj.replace(tzinfo=local_tz)
+
+        return dt_obj.astimezone(BRASILIA_TZ).strftime("%Y-%m-%d %H:%M:%S")
     
     def _run_layer2_risk(self) -> None:
         """Layer 2: Risk - Apenas se há posições abertas."""
