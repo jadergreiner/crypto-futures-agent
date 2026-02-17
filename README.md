@@ -118,6 +118,10 @@ python main.py --mode live
 
 # Monitorar posições abertas
 python main.py --monitor --monitor-symbol C98USDT --monitor-interval 300
+
+# Cancelar ordens abertas fora da whitelist (primeiro validar com dry-run)
+python scripts/cancel_non_whitelist_orders.py --mode live --dry-run
+python scripts/cancel_non_whitelist_orders.py --mode live
 ```
 
 #### 5. Backtest

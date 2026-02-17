@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relatório Executivo — Agente Autônomo Crypto USDT-M</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a31;
+      --panel-2: #182243;
+      --text: #eaf0ff;
+      --muted: #9fb0d9;
+      --accent: #4f8cff;
+      --ok: #24c48e;
+      --warn: #ffb020;
+      --bad: #ff5c7a;
+      --line: #2a3760;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 10% -20%, #1a2a55 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 24px auto 56px;
+      padding: 0 16px;
+    }
+    .header {
+      background: linear-gradient(135deg, #1b2b57 0%, #152042 100%);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: .2px;
+    }
+    .sub { color: var(--muted); font-size: 14px; }
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(12, 1fr);
+      margin-bottom: 12px;
+    }
+    .card {
+      background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .kpi { grid-column: span 3; }
+    .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+    .kpi .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .good { color: var(--ok); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+    .section { margin-top: 14px; }
+    .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      background: #1b264d;
+      color: var(--muted);
+      margin-right: 6px;
+    }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 5px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; }
+    .note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .footer {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+    @media (max-width: 900px) {
+      .kpi { grid-column: span 6; }
+      .cols-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .kpi { grid-column: span 12; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>RELATÓRIO EXECUTIVO — AGENTE AUTÔNOMO CRYPTO USDT-M</h1>
+      <div class="sub">Data: 2026-02-17 (UTC) · Exchange: Binance USDT-M Futures · Moeda Base: USDT</div>
+      <div style="margin-top:10px;">
+        <span class="badge">Modelagem: Parcialmente Suficiente</span>
+        <span class="badge">Janela: 24h</span>
+        <span class="badge">Risco: Elevado</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card kpi">
+        <div class="label">Equity Total Atual</div>
+        <div class="value bad">-46.28 USDT</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">P&L Realizado (24h)</div>
+        <div class="value good">+0.95 USDT</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">P&L em Aberto</div>
+        <div class="value bad">-213.04 USDT</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">Funding (24h)</div>
+        <div class="value warn">-0.82 USDT</div>
+      </div>
+    </div>
+
+    <div class="section cols-2">
+      <div class="card">
+        <h2>1) Resumo Executivo</h2>
+        <p>Alta atividade operacional nas últimas 24h, com captura relevante de aprendizado por ativo. Apesar de lucro realizado positivo, o P&L em aberto permanece fortemente negativo, levando a equity negativa no recorte atual. O risco agregado continua pressionado por alavancagem média elevada e grande quantidade de posições simultâneas.</p>
+      </div>
+      <div class="card">
+        <h2>2) Validação de Suficiência de Dados</h2>
+        <div><strong>Cobertura disponível:</strong></div>
+        <ul>
+          <li>Saldo, margem, disponível, unrealized (API Binance)</li>
+          <li>Realized 24h e funding 24h (income history)</li>
+          <li>Posições abertas com notional, leverage, entry, mark, liquidation</li>
+          <li>Aprendizado por símbolo (outcome e reward)</li>
+        </ul>
+        <div style="margin-top:8px;"><strong>Lacunas:</strong></div>
+        <ul>
+          <li>Equity 24h atrás não persistida (retorno diário exato fica N/D)</li>
+          <li>Drawdown atual consolidado não disponível</li>
+          <li>Duração e RR por trade fechado não consolidados</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section cols-2">
+      <div class="card">
+        <h2>3) Capital e Margem</h2>
+        <table>
+          <tr><th>Métrica</th><th>Valor</th></tr>
+          <tr><td>Margem Utilizada</td><td>164.86 USDT</td></tr>
+          <tr><td>Capital Disponível (HOLD)</td><td>22.39 USDT</td></tr>
+          <tr><td>Alocação sobre wallet balance</td><td>98.85%</td></tr>
+          <tr><td>HOLD sobre wallet balance</td><td>13.42%</td></tr>
+          <tr><td>Alavancagem média (abertas)</td><td>10.68x</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>4) Estatísticas Operacionais (24h)</h2>
+        <table>
+          <tr><th>Métrica</th><th>Valor</th></tr>
+          <tr><td>Trades fechados (execution_log)</td><td>5</td></tr>
+          <tr><td>Entradas REALIZED_PNL (proxy)</td><td>26</td></tr>
+          <tr><td>Taxa de acerto (proxy)</td><td>65.38% (17/26)</td></tr>
+          <tr><td>P&L médio por entrada realizada</td><td>+0.0366 USDT</td></tr>
+          <tr><td>Melhor trade (proxy)</td><td>KAVAUSDT +1.1502</td></tr>
+          <tr><td>Pior trade (proxy)</td><td>ETCUSDT -1.6509</td></tr>
+        </table>
+        <div class="note">Relação risco/retorno média: N/D (ausência de RR consolidado por trade no modelo atual).</div>
+      </div>
+    </div>
+
+    <div class="section card">
+      <h2>5) Posições Abertas Relevantes (por impacto de P&L)</h2>
+      <table>
+        <tr>
+          <th>Símbolo</th><th>Direção</th><th>Notional</th><th>P&L Atual</th><th>Liquidação</th><th>Dist. Liq</th>
+        </tr>
+        <tr><td>BTRUSDT</td><td>SHORT</td><td>96.98</td><td class="bad">-52.22</td><td>0.495635</td><td>155.02%</td></tr>
+        <tr><td>BROCCOLI714USDT</td><td>LONG</td><td>122.70</td><td class="bad">-40.53</td><td>N/D</td><td>N/D</td></tr>
+        <tr><td>PTBUSDT</td><td>LONG</td><td>153.95</td><td class="bad">-33.22</td><td>N/D</td><td>N/D</td></tr>
+        <tr><td>1000PEPEUSDT</td><td>SHORT</td><td>60.38</td><td class="bad">-9.39</td><td>0.016104</td><td>259.76%</td></tr>
+        <tr><td>AAVEUSDT</td><td>SHORT</td><td>64.17</td><td class="bad">-8.22</td><td>440.931148</td><td>243.56%</td></tr>
+        <tr><td>ZECUSDT</td><td>SHORT</td><td>44.52</td><td class="bad">-7.46</td><td>1295.615564</td><td>351.03%</td></tr>
+        <tr><td>MERLUSDT</td><td>SHORT</td><td>25.11</td><td class="bad">-5.50</td><td>0.477396</td><td>622.32%</td></tr>
+        <tr><td>OGNUSDT</td><td>SHORT</td><td>40.75</td><td class="bad">-5.12</td><td>0.120415</td><td>381.66%</td></tr>
+      </table>
+    </div>
+
+    <div class="section cols-2">
+      <div class="card">
+        <h2>6) Aprendizado do Modelo por Ativo (24h)</h2>
+        <table>
+          <tr><th>Símbolo</th><th>Total</th><th>Win</th><th>Loss</th><th>Reward Médio</th></tr>
+          <tr><td>ICPUSDT</td><td>53</td><td class="good">53</td><td>0</td><td class="good">+9.6657</td></tr>
+          <tr><td>BARDUSDT</td><td>7</td><td>0</td><td class="bad">7</td><td class="bad">-5.8780</td></tr>
+          <tr><td>BELUSDT</td><td>2</td><td>0</td><td class="bad">2</td><td class="bad">-5.0254</td></tr>
+          <tr><td>KNCUSDT</td><td>1</td><td class="good">1</td><td>0</td><td class="good">+7.7691</td></tr>
+          <tr><td>NILUSDT</td><td>1</td><td>0</td><td class="bad">1</td><td class="warn">-0.6164</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h2>7) Avaliação de Risco</h2>
+        <ul>
+          <li>Posições abertas: 66</li>
+          <li>Alavancagem média: 10.68x</li>
+          <li>Risco de liquidação: MODERATE</li>
+          <li>Distâncias &lt;20% até liquidação: 0 de 52 com dado disponível</li>
+        </ul>
+        <p class="note">Mesmo sem concentração imediata em zona crítica de liquidação, a equity negativa e o número de posições abertas mantêm o risco sistêmico elevado.</p>
+      </div>
+    </div>
+
+    <div class="section card">
+      <h2>8) Evolução do Sistema e Conclusão Executiva</h2>
+      <p><strong>Ajustes detectados:</strong> concentração de aprendizado positivo em ICPUSDT e padrão adverso em BARDUSDT/BELUSDT.</p>
+      <p><strong>Melhorias observadas:</strong> persistência de outcomes e captura de sinais fortes por ativo.</p>
+      <p><strong>Conclusão:</strong> eficiência financeira fraca no estado atual da carteira; controle de risco pressionado; evolução do modelo existe, porém concentrada. Para as próximas 24h, a prioridade executiva é desalavancagem e redução de exposição em ativos com aprendizado adverso recorrente.</p>
+    </div>
+
+    <div class="footer">Gerado em 2026-02-17 · Versão HTML executiva</div>
+  </div>
+</body>
+</html>

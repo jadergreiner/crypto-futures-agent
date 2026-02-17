@@ -544,6 +544,66 @@ def test_monitor_cycle_no_positions(position_monitor, mock_client):
     assert len(snapshots) == 0
 
 
+def test_monitor_cycle_live_processes_positions_outside_whitelist(mock_client, temp_db):
+    """Em live, monitor deve analisar todas as posições, mesmo fora da whitelist de execução."""
+    monitor_live = PositionMonitor(mock_client, temp_db, mode="live")
+    monitor_live.order_executor.authorized_symbols = {'BTCUSDT'}
+
+    positions = [
+        {
+            'symbol': 'BTCUSDT',
+            'direction': 'LONG',
+            'entry_price': 50000.0,
+            'mark_price': 50500.0,
+            'liquidation_price': 45000.0,
+            'position_size_qty': 0.01,
+            'position_size_usdt': 505.0,
+            'leverage': 10,
+            'margin_type': 'CROSS',
+            'margin_invested': 50.5,
+            'unrealized_pnl': 5.0,
+            'unrealized_pnl_pct': 1.0,
+            'margin_balance': 1000.0,
+        },
+        {
+            'symbol': 'XYZUSDT',
+            'direction': 'SHORT',
+            'entry_price': 1.0,
+            'mark_price': 0.95,
+            'liquidation_price': 1.5,
+            'position_size_qty': 100.0,
+            'position_size_usdt': 95.0,
+            'leverage': 5,
+            'margin_type': 'CROSS',
+            'margin_invested': 19.0,
+            'unrealized_pnl': 5.0,
+            'unrealized_pnl_pct': 5.0,
+            'margin_balance': 1000.0,
+        },
+    ]
+
+    monitor_live.fetch_open_positions = Mock(return_value=positions)
+    monitor_live._protection_bootstrap_done = {'BTCUSDT', 'XYZUSDT'}
+    monitor_live.fetch_current_market_data = Mock(return_value={'sentiment': {}})
+    monitor_live.calculate_indicators_snapshot = Mock(return_value={'market_structure': 'range'})
+    monitor_live.evaluate_position = Mock(return_value={
+        'agent_action': 'HOLD',
+        'decision_confidence': 0.5,
+        'decision_reasoning': '[]',
+        'risk_score': 5.0,
+        'stop_loss_suggested': None,
+        'take_profit_suggested': None,
+        'trailing_stop_price': None,
+    })
+    monitor_live._log_analysis_report = Mock()
+
+    snapshots = monitor_live.monitor_cycle(symbol=None)
+
+    assert len(snapshots) == 2
+    symbols = {snap['symbol'] for snap in snapshots}
+    assert symbols == {'BTCUSDT', 'XYZUSDT'}
+
+
 # =====================================================================
 # Testes para fetch_combined_klines (Issue: Candles insuficientes)
 # =====================================================================
@@ -803,3 +863,243 @@ def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
     db_records = temp_db.get_ohlcv('H1', symbol)
     assert len(db_records) == 50, f"Esperado 50 registros no banco, obtido {len(db_records)}"
     assert db_records[0]['symbol'] == symbol
+
+
+def test_adopt_position_uses_persisted_protection_state(position_monitor, temp_db):
+    """Não deve recriar SL/TP quando estado persistido já indica proteção ativa."""
+    now_ms = int(datetime.now().timestamp() * 1000)
+
+    common_log = {
+        'timestamp': now_ms,
+        'symbol': 'GMTUSDT',
+        'direction': 'SHORT',
+        'side': 'BUY',
+        'quantity': 10.0,
+        'order_type': 'CONDITIONAL_MARKET',
+        'reduce_only': 1,
+        'executed': 1,
+        'mode': 'paper',
+        'reason': 'Proteção já ativa',
+        'order_id': None,
+        'fill_price': 0.32,
+        'fill_quantity': None,
+        'commission': None,
+        'entry_price': 0.35,
+        'mark_price': 0.34,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+        'risk_score': 4.0,
+        'decision_confidence': 0.7,
+        'decision_reasoning': '[]',
+        'snapshot_id': 1,
+    }
+
+    temp_db.insert_execution_log({**common_log, 'action': 'SET_SL'})
+    temp_db.insert_execution_log({**common_log, 'action': 'SET_TP'})
+
+    position = {
+        'symbol': 'GMTUSDT',
+        'direction': 'SHORT',
+        'mark_price': 0.34,
+        'entry_price': 0.35,
+        'position_size_qty': 10.0,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+    }
+
+    decision = {
+        'risk_score': 4.0,
+        'decision_confidence': 0.7,
+        'decision_reasoning': '[]',
+        'stop_loss_suggested': 0.36,
+        'take_profit_suggested': 0.32,
+    }
+
+    position_monitor.fetch_open_positions = Mock(return_value=[position])
+    position_monitor.fetch_current_market_data = Mock(return_value={})
+    position_monitor.calculate_indicators_snapshot = Mock(return_value={})
+    position_monitor.evaluate_position = Mock(return_value=decision)
+    position_monitor.create_snapshot = Mock(return_value={})
+    position_monitor.db.insert_position_snapshot = Mock(return_value=1)
+    position_monitor._has_existing_protection_orders = Mock(return_value={'has_sl': False, 'has_tp': False})
+    position_monitor._place_protective_order = Mock()
+
+    result = position_monitor.adopt_position_with_protection('GMTUSDT')
+
+    assert result['ok'] is True
+    assert result['sl_created'] is True
+    assert result['tp_created'] is True
+    position_monitor._place_protective_order.assert_not_called()
+
+
+def test_adopt_position_treats_4130_as_existing_protection(position_monitor):
+    """Erro -4130 deve ser tratado como proteção já existente (idempotência)."""
+    position = {
+        'symbol': 'GMTUSDT',
+        'direction': 'SHORT',
+        'mark_price': 0.34,
+        'entry_price': 0.35,
+        'position_size_qty': 10.0,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+    }
+
+    decision = {
+        'risk_score': 4.0,
+        'decision_confidence': 0.7,
+        'decision_reasoning': '[]',
+        'stop_loss_suggested': 0.36,
+        'take_profit_suggested': 0.32,
+    }
+
+    position_monitor.fetch_open_positions = Mock(return_value=[position])
+    position_monitor.fetch_current_market_data = Mock(return_value={})
+    position_monitor.calculate_indicators_snapshot = Mock(return_value={})
+    position_monitor.evaluate_position = Mock(return_value=decision)
+    position_monitor.create_snapshot = Mock(return_value={})
+    position_monitor.db.insert_position_snapshot = Mock(return_value=1)
+    position_monitor._has_existing_protection_orders = Mock(return_value={'has_sl': False, 'has_tp': False})
+    position_monitor._place_protective_order = Mock(side_effect=[
+        Exception("(-4130, 'An open stop or take profit order with GTE and closePosition in the direction is existing.')"),
+        Exception("(-4130, 'An open stop or take profit order with GTE and closePosition in the direction is existing.')"),
+    ])
+
+    result = position_monitor.adopt_position_with_protection('GMTUSDT')
+
+    assert result['ok'] is True
+    assert result['sl_created'] is True
+    assert result['tp_created'] is True
+
+    logs = position_monitor.db.get_execution_log(symbol='GMTUSDT', executed_only=True)
+    actions = {item['action'] for item in logs}
+    assert 'SET_SL' in actions
+    assert 'SET_TP' in actions
+
+
+def test_adopt_position_skips_protection_outside_whitelist_live(mock_client, temp_db):
+    """Em live, não deve criar SL/TP para símbolo fora da whitelist."""
+    monitor_live = PositionMonitor(mock_client, temp_db, mode="live")
+    monitor_live.order_executor.authorized_symbols = {'BTCUSDT'}
+
+    position = {
+        'symbol': 'CELOUSDT',
+        'direction': 'SHORT',
+        'mark_price': 0.34,
+        'entry_price': 0.35,
+        'position_size_qty': 10.0,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+    }
+
+    monitor_live.fetch_open_positions = Mock(return_value=[position])
+    monitor_live._place_protective_order = Mock()
+
+    result = monitor_live.adopt_position_with_protection('CELOUSDT')
+
+    assert result['ok'] is False
+    assert 'fora da whitelist' in result['reason']
+    monitor_live._place_protective_order.assert_not_called()
+
+
+def test_track_market_structure_change(position_monitor):
+    """Detecta mudança de estrutura apenas após baseline inicial."""
+    first = position_monitor._track_market_structure_change('GMTUSDT', 'bullish')
+    assert first['changed'] is False
+    assert first['previous'] is None
+    assert first['current'] == 'bullish'
+
+    second = position_monitor._track_market_structure_change('GMTUSDT', 'bullish')
+    assert second['changed'] is False
+    assert second['previous'] == 'bullish'
+    assert second['current'] == 'bullish'
+
+    third = position_monitor._track_market_structure_change('GMTUSDT', 'bearish')
+    assert third['changed'] is True
+    assert third['previous'] == 'bullish'
+    assert third['current'] == 'bearish'
+
+
+def test_refresh_protection_on_structure_change_cancels_and_recreates(position_monitor):
+    """Ao mudar estrutura, deve cancelar proteções abertas e recriar SL/TP."""
+    position = {
+        'symbol': 'GMTUSDT',
+        'direction': 'SHORT',
+        'mark_price': 0.34,
+        'entry_price': 0.35,
+        'position_size_qty': 10.0,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+    }
+
+    decision = {
+        'risk_score': 4.0,
+        'decision_confidence': 0.7,
+        'decision_reasoning': '[]',
+        'stop_loss_suggested': 0.36,
+        'take_profit_suggested': 0.32,
+    }
+
+    position_monitor._cancel_open_protection_orders = Mock(return_value={'cancelled_sl': 1, 'cancelled_tp': 1})
+    position_monitor._place_protective_order = Mock(side_effect=[
+        {'orderId': 'sl-1'},
+        {'orderId': 'tp-1'},
+    ])
+
+    result = position_monitor.refresh_protection_on_structure_change(
+        position=position,
+        decision=decision,
+        snapshot_id=1,
+        previous_structure='bullish',
+        current_structure='bearish',
+    )
+
+    assert result['ok'] is True
+    assert result['cancelled_sl'] == 1
+    assert result['cancelled_tp'] == 1
+    assert result['sl_created'] is True
+    assert result['tp_created'] is True
+    assert position_monitor._place_protective_order.call_count == 2
+
+    logs = position_monitor.db.get_execution_log(symbol='GMTUSDT', executed_only=True)
+    reasons = ' '.join(item.get('reason', '') for item in logs)
+    assert 'Refresh por mudança de estrutura' in reasons
+
+
+def test_refresh_protection_skips_outside_whitelist_live(mock_client, temp_db):
+    """Em live, refresh não deve cancelar/recriar proteções fora da whitelist."""
+    monitor_live = PositionMonitor(mock_client, temp_db, mode="live")
+    monitor_live.order_executor.authorized_symbols = {'BTCUSDT'}
+
+    position = {
+        'symbol': 'CELOUSDT',
+        'direction': 'SHORT',
+        'mark_price': 0.34,
+        'entry_price': 0.35,
+        'position_size_qty': 10.0,
+        'unrealized_pnl': 0.1,
+        'unrealized_pnl_pct': 2.0,
+    }
+
+    decision = {
+        'risk_score': 4.0,
+        'decision_confidence': 0.7,
+        'decision_reasoning': '[]',
+        'stop_loss_suggested': 0.36,
+        'take_profit_suggested': 0.32,
+    }
+
+    monitor_live._cancel_open_protection_orders = Mock(return_value={'cancelled_sl': 1, 'cancelled_tp': 1})
+    monitor_live._place_protective_order = Mock()
+
+    result = monitor_live.refresh_protection_on_structure_change(
+        position=position,
+        decision=decision,
+        snapshot_id=1,
+        previous_structure='bullish',
+        current_structure='bearish',
+    )
+
+    assert result['ok'] is False
+    assert 'fora da whitelist' in result['reason']
+    monitor_live._cancel_open_protection_orders.assert_not_called()
+    monitor_live._place_protective_order.assert_not_called()

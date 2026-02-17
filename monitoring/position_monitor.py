@@ -11,7 +11,7 @@ import traceback
 import threading
 import math
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
@@ -76,7 +76,17 @@ class PositionMonitor:
         self.alert_manager = AlertManager()
         self._running = False
         self._protection_bootstrap_done = set()
+        self._last_market_structure_by_symbol: Dict[str, str] = {}
         self._symbol_price_precision_cache: Dict[str, Dict[str, Any]] = {}
+        self._learning_profile_cache: Dict[str, Any] = {
+            'timestamp': None,
+            'profiles': {},
+            'global': {
+                'dominant_symbol': None,
+                'dominant_share': 0.0,
+                'total_labeled': 0,
+            }
+        }
         
         # Inicializar OrderExecutor para execução automática de ordens
         from execution.order_executor import OrderExecutor
@@ -902,6 +912,159 @@ class PositionMonitor:
                 result['take_profit'] = atr_tp
         
         return result
+
+    def _get_learning_profiles_24h(self) -> Dict[str, Any]:
+        """Consolida outcomes das últimas 24h por símbolo para ajuste adaptativo de risco."""
+        cache_ttl_seconds = int(RISK_PARAMS.get('learning_profile_cache_ttl_seconds', 300))
+        cached_ts = self._learning_profile_cache.get('timestamp')
+        now_dt = datetime.utcnow()
+
+        if cached_ts and (now_dt - cached_ts).total_seconds() <= cache_ttl_seconds:
+            return self._learning_profile_cache
+
+        lookback_hours = int(RISK_PARAMS.get('learning_profile_lookback_hours', 24))
+        min_samples = int(RISK_PARAMS.get('learning_profile_min_samples', 5))
+        adverse_loss_rate = float(RISK_PARAMS.get('learning_profile_adverse_loss_rate', 0.60))
+        adverse_reward = float(RISK_PARAMS.get('learning_profile_adverse_avg_reward_threshold', -1.0))
+
+        dominant_share_threshold = float(RISK_PARAMS.get('learning_profile_dominant_share_threshold', 0.70))
+        dominant_min_samples = int(RISK_PARAMS.get('learning_profile_dominant_min_samples', 20))
+
+        start_ms = int((now_dt - timedelta(hours=lookback_hours)).timestamp() * 1000)
+        query = """
+            SELECT
+                symbol,
+                COUNT(*) AS total,
+                SUM(CASE WHEN outcome_label = 'win' THEN 1 ELSE 0 END) AS wins,
+                SUM(CASE WHEN outcome_label = 'loss' THEN 1 ELSE 0 END) AS losses,
+                AVG(reward_calculated) AS avg_reward
+            FROM position_snapshots
+            WHERE timestamp >= ? AND outcome_label IS NOT NULL
+            GROUP BY symbol
+            ORDER BY total DESC
+        """
+
+        profiles: Dict[str, Dict[str, Any]] = {}
+        total_labeled = 0
+        dominant_symbol = None
+        dominant_count = 0
+
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (start_ms,))
+                rows = cursor.fetchall()
+
+            for row in rows:
+                symbol = str(row['symbol']).upper()
+                total = int(row['total'] or 0)
+                wins = int(row['wins'] or 0)
+                losses = int(row['losses'] or 0)
+                avg_reward = float(row['avg_reward'] or 0.0)
+                win_rate = (wins / total) if total > 0 else 0.0
+                loss_rate = (losses / total) if total > 0 else 0.0
+
+                is_adverse = (
+                    total >= min_samples
+                    and (loss_rate >= adverse_loss_rate or avg_reward <= adverse_reward)
+                )
+
+                profiles[symbol] = {
+                    'symbol': symbol,
+                    'samples': total,
+                    'wins': wins,
+                    'losses': losses,
+                    'win_rate': win_rate,
+                    'loss_rate': loss_rate,
+                    'avg_reward': avg_reward,
+                    'is_adverse': is_adverse,
+                    'is_dominant_positive': False,
+                }
+
+                total_labeled += total
+                if total > dominant_count:
+                    dominant_count = total
+                    dominant_symbol = symbol
+
+        except Exception as e:
+            logger.debug(f"Falha ao calcular perfil de aprendizado 24h: {e}")
+
+        dominant_share = (dominant_count / total_labeled) if total_labeled > 0 else 0.0
+        if (
+            dominant_symbol
+            and dominant_symbol in profiles
+            and dominant_share >= dominant_share_threshold
+            and profiles[dominant_symbol]['samples'] >= dominant_min_samples
+            and profiles[dominant_symbol]['avg_reward'] > 0
+        ):
+            profiles[dominant_symbol]['is_dominant_positive'] = True
+
+        self._learning_profile_cache = {
+            'timestamp': now_dt,
+            'profiles': profiles,
+            'global': {
+                'dominant_symbol': dominant_symbol,
+                'dominant_share': dominant_share,
+                'total_labeled': total_labeled,
+            }
+        }
+        return self._learning_profile_cache
+
+    def _apply_learning_adaptive_controls(
+        self,
+        position: Dict[str, Any],
+        decision: Dict[str, Any],
+        risk_score: float,
+        reasoning: List[str],
+    ) -> float:
+        """Aplica ajuste de risco/ação com base no aprendizado recente por símbolo."""
+        symbol = str(position.get('symbol', '')).upper()
+        pnl_pct = float(position.get('unrealized_pnl_pct', 0.0) or 0.0)
+
+        learning_data = self._get_learning_profiles_24h()
+        profile = learning_data.get('profiles', {}).get(symbol)
+        global_data = learning_data.get('global', {})
+
+        if not profile:
+            return risk_score
+
+        if profile.get('is_adverse'):
+            risk_score += 1.2
+            reasoning.append(
+                f"[LEARNING] {symbol} com padrão adverso recente "
+                f"(loss_rate={profile['loss_rate']*100:.1f}%, avg_reward={profile['avg_reward']:.2f})"
+            )
+            if decision['agent_action'] == 'HOLD':
+                if pnl_pct <= 0:
+                    self._update_action_if_higher_priority(
+                        decision, 'CLOSE', 0.88, reasoning,
+                        f"Desalavancagem: {symbol} adverso + posição em prejuízo"
+                    )
+                else:
+                    self._update_action_if_higher_priority(
+                        decision, 'REDUCE_50', 0.78, reasoning,
+                        f"Redução preventiva: {symbol} adverso apesar de PnL positivo"
+                    )
+            elif decision['agent_action'] == 'REDUCE_50' and pnl_pct <= 0:
+                self._update_action_if_higher_priority(
+                    decision, 'CLOSE', 0.90, reasoning,
+                    f"Escalonamento para CLOSE em {symbol} devido a histórico adverso"
+                )
+
+        if profile.get('is_dominant_positive'):
+            dominant_share = float(global_data.get('dominant_share', 0.0) or 0.0)
+            risk_score += 0.8
+            reasoning.append(
+                f"[LEARNING] Concentração elevada de aprendizado em {symbol} "
+                f"({dominant_share*100:.1f}% dos outcomes 24h)"
+            )
+            if decision['agent_action'] == 'HOLD' and pnl_pct > 0:
+                self._update_action_if_higher_priority(
+                    decision, 'REDUCE_50', 0.72, reasoning,
+                    f"Desconcentração tática de exposição em {symbol}"
+                )
+
+        return risk_score
     
     def evaluate_position(self, position: Dict[str, Any], indicators: Dict[str, Any], 
                          sentiment: Dict[str, Any]) -> Dict[str, Any]:
@@ -1109,6 +1272,15 @@ class PositionMonitor:
         
         # 7. CALCULAR RISK SCORE FINAL
         risk_score = max(0.0, min(10.0, 5.0 + risk_score))  # Normalizar 0-10
+
+        # 7.1 Ajustes adaptativos com base em outcomes recentes por ativo
+        risk_score = self._apply_learning_adaptive_controls(
+            position=position,
+            decision=decision,
+            risk_score=risk_score,
+            reasoning=reasoning,
+        )
+        risk_score = max(0.0, min(10.0, risk_score))
         
         # Aplicar multiplicador de risco para cross margin
         if margin_type == 'CROSS':
@@ -1648,7 +1820,7 @@ class PositionMonitor:
         """Retorna o side necessário para fechar/reduzir posição existente."""
         return 'SELL' if direction == 'LONG' else 'BUY'
 
-    def _extract_order_data(self, response) -> Optional[Dict[str, Any]]:
+    def _extract_order_data(self, response) -> Optional[Any]:
         """Extrai payload de resposta da API para dict compatível."""
         try:
             if response is None:
@@ -1656,6 +1828,85 @@ class PositionMonitor:
             return self._extract_data(response)
         except Exception:
             return None
+
+    def _flatten_order_payload(self, payload: Any) -> List[Dict[str, Any]]:
+        """Normaliza payloads de listagem de ordens para lista de dicts."""
+        if payload is None:
+            return []
+
+        if isinstance(payload, list):
+            return [item for item in payload if isinstance(item, dict)]
+
+        if isinstance(payload, dict):
+            for key in ('orders', 'data', 'rows', 'list', 'result'):
+                value = payload.get(key)
+                if isinstance(value, list):
+                    return [item for item in value if isinstance(item, dict)]
+            return [payload]
+
+        return []
+
+    def _is_existing_protection_error(self, error: Exception) -> bool:
+        """Detecta erro de proteção já existente retornado pela Binance."""
+        error_text = str(error).upper()
+        return (
+            '-4130' in error_text
+            or 'OPEN STOP OR TAKE PROFIT ORDER' in error_text
+            or 'CLOSEPOSITION IN THE DIRECTION IS EXISTING' in error_text
+        )
+
+    def _is_symbol_allowed_for_protection(self, symbol: str) -> bool:
+        """Valida se símbolo pode receber criação/recriação de SL/TP no modo live."""
+        if self.mode != 'live':
+            return True
+
+        authorized_symbols = set(getattr(self.order_executor, 'authorized_symbols', set()))
+        if not authorized_symbols:
+            return True
+
+        return str(symbol).upper() in authorized_symbols
+
+    def _normalize_market_structure(self, market_structure: Optional[str]) -> str:
+        """Normaliza estrutura de mercado para comparação estável."""
+        value = str(market_structure or 'range').strip().lower()
+        return value if value else 'range'
+
+    def _track_market_structure_change(self, symbol: str, market_structure: Optional[str]) -> Dict[str, Any]:
+        """Rastreia mudança de estrutura por símbolo e retorna transição detectada."""
+        current = self._normalize_market_structure(market_structure)
+        previous = self._last_market_structure_by_symbol.get(symbol)
+        self._last_market_structure_by_symbol[symbol] = current
+
+        return {
+            'changed': previous is not None and previous != current,
+            'previous': previous,
+            'current': current,
+        }
+
+    def _get_persisted_protection_state(self, symbol: str, direction: str) -> Dict[str, bool]:
+        """Consulta estado persistido no execution_log para evitar recriação de SL/TP."""
+        lookback_ms = int((datetime.now() - timedelta(hours=72)).timestamp() * 1000)
+        has_sl = False
+        has_tp = False
+
+        try:
+            logs = self.db.get_execution_log(symbol=symbol, start_time=lookback_ms, executed_only=True)
+            for item in logs:
+                if str(item.get('direction') or '').upper() != direction:
+                    continue
+
+                action = str(item.get('action') or '').upper()
+                if action == 'SET_SL':
+                    has_sl = True
+                elif action == 'SET_TP':
+                    has_tp = True
+
+                if has_sl and has_tp:
+                    break
+        except Exception as e:
+            logger.debug(f"Falha ao consultar estado persistido de proteção para {symbol}: {e}")
+
+        return {'has_sl': has_sl, 'has_tp': has_tp}
 
     def _get_symbol_price_precision_info(self, symbol: str) -> Dict[str, Any]:
         """Obtém precision/tick_size de preço do símbolo via exchange_info."""
@@ -1852,8 +2103,8 @@ class PositionMonitor:
                 data = self._extract_order_data(response)
                 if data is None:
                     return []
-                if not isinstance(data, list):
-                    data = [data]
+
+                data = self._flatten_order_payload(data)
 
                 filtered = []
                 for order in data:
@@ -1867,21 +2118,316 @@ class PositionMonitor:
 
         return []
 
-    def _has_existing_protection_orders(self, symbol: str, direction: str) -> Dict[str, bool]:
-        """Verifica se já existem ordens SL/TP de proteção abertas para a posição."""
+    def _list_open_standard_orders(self, symbol: str) -> List[Dict[str, Any]]:
+        """Lista ordens abertas padrão com fallback para diferentes métodos do SDK."""
+        rest_api = self._client.rest_api
+        candidates = [
+            ('current_all_open_orders', {'symbol': symbol}),
+            ('query_current_all_open_orders', {'symbol': symbol}),
+            ('current_all_open_orders', {}),
+            ('query_current_all_open_orders', {}),
+        ]
+
+        for method_name, kwargs in candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                response = method(**kwargs)
+                data = self._extract_order_data(response)
+                if data is None:
+                    return []
+
+                data = self._flatten_order_payload(data)
+                filtered = []
+                for order in data:
+                    order_symbol = self._safe_get(order, ['symbol'])
+                    if order_symbol == symbol:
+                        filtered.append(order)
+                return filtered
+            except Exception as e:
+                logger.debug(f"Falha ao listar open orders com {method_name} para {symbol}: {e}")
+                continue
+
+        return []
+
+    def _extract_order_identifier(self, order: Dict[str, Any]) -> Optional[str]:
+        """Extrai identificador de ordem (order/algo/client id) com fallback de campos."""
+        for key in ('orderId', 'order_id', 'algoId', 'algo_id', 'clientOrderId', 'client_order_id'):
+            value = self._safe_get(order, [key])
+            if value is not None and str(value).strip() != '':
+                return str(value)
+        return None
+
+    def _cancel_single_protection_order(self, symbol: str, order: Dict[str, Any]) -> bool:
+        """Cancela ordem de proteção usando múltiplos métodos/assinaturas do SDK."""
+        rest_api = self._client.rest_api
+        identifier = self._extract_order_identifier(order)
+        if not identifier:
+            return False
+
+        method_candidates = [
+            ('cancel_algo_order', [
+                {'symbol': symbol, 'order_id': identifier},
+                {'symbol': symbol, 'algo_id': identifier},
+                {'symbol': symbol, 'orderId': identifier},
+                {'symbol': symbol, 'algoId': identifier},
+            ]),
+            ('cancel_order', [
+                {'symbol': symbol, 'order_id': identifier},
+                {'symbol': symbol, 'orderId': identifier},
+                {'symbol': symbol, 'orig_client_order_id': identifier},
+                {'symbol': symbol, 'origClientOrderId': identifier},
+            ]),
+        ]
+
+        for method_name, kwargs_list in method_candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            for kwargs in kwargs_list:
+                try:
+                    method(**kwargs)
+                    logger.info(f"Ordem de proteção cancelada: {symbol} {identifier} via {method_name}")
+                    return True
+                except Exception as e:
+                    logger.debug(
+                        f"Falha ao cancelar ordem {identifier} em {symbol} com {method_name}({kwargs}): {e}"
+                    )
+
+        return False
+
+    def _cancel_open_protection_orders(self, symbol: str, direction: str) -> Dict[str, int]:
+        """Cancela SL/TP abertos da posição para permitir recriação com nova estrutura."""
         side = self._opposite_side_for_close(direction)
-        algo_orders = self._list_open_algo_orders(symbol)
+        has_seen_ids = set()
+        cancelled_sl = 0
+        cancelled_tp = 0
 
-        has_sl = False
-        has_tp = False
-
-        for order in algo_orders:
+        for order in self._list_open_algo_orders(symbol) + self._list_open_standard_orders(symbol):
             order_type = str(self._safe_get(order, ['type']) or '').upper()
             order_side = str(self._safe_get(order, ['side']) or '').upper()
             close_position = self._safe_get(order, ['close_position', 'closePosition'])
             is_close_position = str(close_position).lower() in ('true', '1')
+            reduce_only = self._safe_get(order, ['reduce_only', 'reduceOnly'])
+            is_reduce_only = str(reduce_only).lower() in ('true', '1')
+            order_status = str(self._safe_get(order, ['status']) or '').upper()
+            is_open_status = (not order_status) or order_status in ('NEW', 'PARTIALLY_FILLED', 'PENDING_NEW')
 
-            if not is_close_position or order_side != side:
+            if order_side != side or not is_open_status:
+                continue
+            if not is_close_position and not is_reduce_only:
+                continue
+            if order_type not in ('STOP_MARKET', 'STOP', 'TAKE_PROFIT_MARKET', 'TAKE_PROFIT'):
+                continue
+
+            order_id = self._extract_order_identifier(order)
+            if order_id and order_id in has_seen_ids:
+                continue
+
+            cancelled = self._cancel_single_protection_order(symbol, order)
+            if cancelled:
+                if order_id:
+                    has_seen_ids.add(order_id)
+                if order_type in ('STOP_MARKET', 'STOP'):
+                    cancelled_sl += 1
+                else:
+                    cancelled_tp += 1
+
+        return {
+            'cancelled_sl': cancelled_sl,
+            'cancelled_tp': cancelled_tp,
+        }
+
+    def refresh_protection_on_structure_change(
+        self,
+        position: Dict[str, Any],
+        decision: Dict[str, Any],
+        snapshot_id: Optional[int],
+        previous_structure: Optional[str],
+        current_structure: str,
+    ) -> Dict[str, Any]:
+        """
+        Em mudança de estrutura, cancela SL/TP atuais e cria novas proteções.
+        """
+        symbol = position['symbol']
+        if not self._is_symbol_allowed_for_protection(symbol):
+            return {
+                'ok': False,
+                'reason': f"Símbolo fora da whitelist para proteção: {symbol}",
+                'sl_created': False,
+                'tp_created': False,
+                'cancelled_sl': 0,
+                'cancelled_tp': 0,
+            }
+
+        direction = position['direction']
+        side = self._opposite_side_for_close(direction)
+        mark_price = float(position['mark_price'])
+
+        stop_price = decision.get('stop_loss_suggested')
+        tp_price = decision.get('take_profit_suggested')
+
+        valid_sl = False
+        if stop_price is not None:
+            if direction == 'LONG' and float(stop_price) < mark_price:
+                valid_sl = True
+            if direction == 'SHORT' and float(stop_price) > mark_price:
+                valid_sl = True
+
+        valid_tp = False
+        if tp_price is not None:
+            if direction == 'LONG' and float(tp_price) > mark_price:
+                valid_tp = True
+            if direction == 'SHORT' and float(tp_price) < mark_price:
+                valid_tp = True
+
+        if not valid_sl and not valid_tp:
+            return {
+                'ok': False,
+                'reason': 'Sem SL/TP válidos para refresh de estrutura',
+                'sl_created': False,
+                'tp_created': False,
+                'cancelled_sl': 0,
+                'cancelled_tp': 0,
+            }
+
+        cancelled = self._cancel_open_protection_orders(symbol, direction)
+        reason_prefix = (
+            f"Refresh por mudança de estrutura ({previous_structure or 'desconhecida'} -> {current_structure})"
+        )
+
+        sl_created = False
+        tp_created = False
+
+        if valid_sl:
+            try:
+                sl_response = self._place_protective_order(
+                    symbol=symbol,
+                    direction=direction,
+                    trigger_price=float(stop_price),
+                    order_type='STOP_MARKET',
+                )
+                sl_created = sl_response is not None
+                self._persist_protection_execution(
+                    position=position,
+                    decision=decision,
+                    action='SET_SL',
+                    order_response=sl_response,
+                    executed=sl_created,
+                    reason=f'{reason_prefix} - SL recriado' if sl_created else f'{reason_prefix} - Falha ao recriar SL',
+                    trigger_price=float(stop_price),
+                    snapshot_id=snapshot_id,
+                    side=side,
+                )
+            except Exception as e:
+                if self._is_existing_protection_error(e):
+                    sl_created = True
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_SL',
+                        order_response=None,
+                        executed=True,
+                        reason=f'{reason_prefix} - SL já existente após refresh',
+                        trigger_price=float(stop_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                else:
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_SL',
+                        order_response=None,
+                        executed=False,
+                        reason=f'{reason_prefix} - Falha ao recriar SL: {e}',
+                        trigger_price=float(stop_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                    logger.error(f"Erro ao recriar STOP_MARKET para {symbol}: {e}")
+
+        if valid_tp:
+            try:
+                tp_response = self._place_protective_order(
+                    symbol=symbol,
+                    direction=direction,
+                    trigger_price=float(tp_price),
+                    order_type='TAKE_PROFIT_MARKET',
+                )
+                tp_created = tp_response is not None
+                self._persist_protection_execution(
+                    position=position,
+                    decision=decision,
+                    action='SET_TP',
+                    order_response=tp_response,
+                    executed=tp_created,
+                    reason=f'{reason_prefix} - TP recriado' if tp_created else f'{reason_prefix} - Falha ao recriar TP',
+                    trigger_price=float(tp_price),
+                    snapshot_id=snapshot_id,
+                    side=side,
+                )
+            except Exception as e:
+                if self._is_existing_protection_error(e):
+                    tp_created = True
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_TP',
+                        order_response=None,
+                        executed=True,
+                        reason=f'{reason_prefix} - TP já existente após refresh',
+                        trigger_price=float(tp_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                else:
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_TP',
+                        order_response=None,
+                        executed=False,
+                        reason=f'{reason_prefix} - Falha ao recriar TP: {e}',
+                        trigger_price=float(tp_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                    logger.error(f"Erro ao recriar TAKE_PROFIT_MARKET para {symbol}: {e}")
+
+        return {
+            'ok': (sl_created or not valid_sl) and (tp_created or not valid_tp),
+            'reason': reason_prefix,
+            'sl_created': sl_created,
+            'tp_created': tp_created,
+            'cancelled_sl': cancelled['cancelled_sl'],
+            'cancelled_tp': cancelled['cancelled_tp'],
+        }
+
+    def _has_existing_protection_orders(self, symbol: str, direction: str) -> Dict[str, bool]:
+        """Verifica se já existem ordens SL/TP de proteção abertas para a posição."""
+        side = self._opposite_side_for_close(direction)
+        algo_orders = self._list_open_algo_orders(symbol)
+        regular_orders = self._list_open_standard_orders(symbol)
+
+        has_sl = False
+        has_tp = False
+
+        for order in algo_orders + regular_orders:
+            order_type = str(self._safe_get(order, ['type']) or '').upper()
+            order_side = str(self._safe_get(order, ['side']) or '').upper()
+            close_position = self._safe_get(order, ['close_position', 'closePosition'])
+            is_close_position = str(close_position).lower() in ('true', '1')
+            reduce_only = self._safe_get(order, ['reduce_only', 'reduceOnly'])
+            is_reduce_only = str(reduce_only).lower() in ('true', '1')
+            order_status = str(self._safe_get(order, ['status']) or '').upper()
+            is_open_status = (not order_status) or order_status in ('NEW', 'PARTIALLY_FILLED', 'PENDING_NEW')
+
+            if not is_open_status or order_side != side:
+                continue
+
+            if not is_close_position and not is_reduce_only:
                 continue
 
             if order_type in ('STOP_MARKET', 'STOP'):
@@ -1912,6 +2458,17 @@ class PositionMonitor:
 
         position = positions[0]
 
+        if not self._is_symbol_allowed_for_protection(symbol):
+            logger.info(f"[PROTEÇÃO] Criação de SL/TP ignorada para {symbol}: fora da whitelist")
+            return {
+                'ok': False,
+                'reason': f'Símbolo fora da whitelist para proteção: {symbol}',
+                'sl_created': False,
+                'tp_created': False,
+                'sl_ready': False,
+                'tp_ready': False,
+            }
+
         try:
             market_data = self.fetch_current_market_data(symbol)
             indicators = self.calculate_indicators_snapshot(symbol, market_data)
@@ -1927,10 +2484,17 @@ class PositionMonitor:
             stop_price = decision.get('stop_loss_suggested')
             tp_price = decision.get('take_profit_suggested')
 
-            existing_protection = self._has_existing_protection_orders(symbol, direction)
-            sl_created = existing_protection['has_sl']
-            tp_created = existing_protection['has_tp']
+            existing_protection_exchange = self._has_existing_protection_orders(symbol, direction)
+            existing_protection_persisted = self._get_persisted_protection_state(symbol, direction)
+
+            sl_created = existing_protection_exchange['has_sl'] or existing_protection_persisted['has_sl']
+            tp_created = existing_protection_exchange['has_tp'] or existing_protection_persisted['has_tp']
             side = self._opposite_side_for_close(direction)
+
+            if existing_protection_persisted['has_sl'] and not existing_protection_exchange['has_sl']:
+                logger.info(f"SL encontrado no estado persistido para {symbol}; evitando recriação")
+            if existing_protection_persisted['has_tp'] and not existing_protection_exchange['has_tp']:
+                logger.info(f"TP encontrado no estado persistido para {symbol}; evitando recriação")
 
             # Validar coerência dos gatilhos para evitar trigger imediato/rejeição
             valid_sl = False
@@ -1968,20 +2532,47 @@ class PositionMonitor:
                         side=side,
                     )
                 except Exception as e:
+                    if self._is_existing_protection_error(e):
+                        sl_created = True
+                        self._persist_protection_execution(
+                            position=position,
+                            decision=decision,
+                            action='SET_SL',
+                            order_response=None,
+                            executed=True,
+                            reason='SL já existente na Binance (detecção de duplicidade)',
+                            trigger_price=float(stop_price),
+                            snapshot_id=snapshot_id,
+                            side=side,
+                        )
+                        logger.info(f"SL já existente para {symbol}; erro de duplicidade tratado")
+                    else:
+                        self._persist_protection_execution(
+                            position=position,
+                            decision=decision,
+                            action='SET_SL',
+                            order_response=None,
+                            executed=False,
+                            reason=f'Falha ao criar SL: {e}',
+                            trigger_price=float(stop_price),
+                            snapshot_id=snapshot_id,
+                            side=side,
+                        )
+                        logger.error(f"Erro ao criar STOP_MARKET para {symbol}: {e}")
+            elif valid_sl and sl_created:
+                logger.info(f"SL já existente para {symbol}; não será recriado")
+                if existing_protection_exchange['has_sl'] and not existing_protection_persisted['has_sl']:
                     self._persist_protection_execution(
                         position=position,
                         decision=decision,
                         action='SET_SL',
                         order_response=None,
-                        executed=False,
-                        reason=f'Falha ao criar SL: {e}',
+                        executed=True,
+                        reason='SL já existente na Binance (detectado no bootstrap)',
                         trigger_price=float(stop_price),
                         snapshot_id=snapshot_id,
                         side=side,
                     )
-                    logger.error(f"Erro ao criar STOP_MARKET para {symbol}: {e}")
-            elif valid_sl and sl_created:
-                logger.info(f"SL já existente para {symbol}; não será recriado")
             else:
                 logger.warning(f"SL sugerido inválido/ausente para {symbol}. mark={mark_price}, sl={stop_price}")
 
@@ -2006,20 +2597,47 @@ class PositionMonitor:
                         side=side,
                     )
                 except Exception as e:
+                    if self._is_existing_protection_error(e):
+                        tp_created = True
+                        self._persist_protection_execution(
+                            position=position,
+                            decision=decision,
+                            action='SET_TP',
+                            order_response=None,
+                            executed=True,
+                            reason='TP já existente na Binance (detecção de duplicidade)',
+                            trigger_price=float(tp_price),
+                            snapshot_id=snapshot_id,
+                            side=side,
+                        )
+                        logger.info(f"TP já existente para {symbol}; erro de duplicidade tratado")
+                    else:
+                        self._persist_protection_execution(
+                            position=position,
+                            decision=decision,
+                            action='SET_TP',
+                            order_response=None,
+                            executed=False,
+                            reason=f'Falha ao criar TP: {e}',
+                            trigger_price=float(tp_price),
+                            snapshot_id=snapshot_id,
+                            side=side,
+                        )
+                        logger.error(f"Erro ao criar TAKE_PROFIT_MARKET para {symbol}: {e}")
+            elif valid_tp and tp_created:
+                logger.info(f"TP já existente para {symbol}; não será recriado")
+                if existing_protection_exchange['has_tp'] and not existing_protection_persisted['has_tp']:
                     self._persist_protection_execution(
                         position=position,
                         decision=decision,
                         action='SET_TP',
                         order_response=None,
-                        executed=False,
-                        reason=f'Falha ao criar TP: {e}',
+                        executed=True,
+                        reason='TP já existente na Binance (detectado no bootstrap)',
                         trigger_price=float(tp_price),
                         snapshot_id=snapshot_id,
                         side=side,
                     )
-                    logger.error(f"Erro ao criar TAKE_PROFIT_MARKET para {symbol}: {e}")
-            elif valid_tp and tp_created:
-                logger.info(f"TP já existente para {symbol}; não será recriado")
             else:
                 logger.warning(f"TP sugerido inválido/ausente para {symbol}. mark={mark_price}, tp={tp_price}")
 
@@ -2069,21 +2687,17 @@ class PositionMonitor:
             logger.info("Nenhuma posição aberta encontrada")
             return snapshots
 
-        # Em modo live, processar apenas símbolos autorizados para execução.
-        # Isso evita ruído operacional com posições externas ao escopo do agente.
+        # Em modo live, monitoramos TODAS as posições abertas para evitar pontos cegos.
+        # A whitelist continua sendo aplicada no OrderExecutor durante execução de ordens.
         authorized_symbols = set(getattr(self.order_executor, 'authorized_symbols', set()))
         if self.mode == 'live' and authorized_symbols:
-            original_count = len(positions)
-            positions = [p for p in positions if p.get('symbol') in authorized_symbols]
-            skipped = original_count - len(positions)
-            if skipped > 0:
+            in_scope = sum(1 for p in positions if p.get('symbol') in authorized_symbols)
+            out_scope = len(positions) - in_scope
+            if out_scope > 0:
                 logger.info(
-                    f"Filtro de escopo ativo: {skipped} posição(ões) ignorada(s) por não estarem na whitelist."
+                    f"Escopo de execução: {in_scope} símbolo(s) na whitelist e {out_scope} fora. "
+                    f"Monitoramento/gestão analítica seguirá para todos; execução automática respeita whitelist."
                 )
-
-            if not positions:
-                logger.info("Nenhuma posição autorizada para gestão pelo agente neste ciclo")
-                return snapshots
         
         logger.info(f"Encontradas {len(positions)} posição(ões) aberta(s) para gestão neste ciclo")
 
@@ -2103,6 +2717,13 @@ class PositionMonitor:
                 # Em modo live, garantir bootstrap de proteções (SL/TP) para posições em gestão.
                 # Executa uma vez por símbolo por sessão para evitar chamadas redundantes.
                 if self.mode == 'live' and pos_symbol not in self._protection_bootstrap_done:
+                    if authorized_symbols and pos_symbol not in authorized_symbols:
+                        self._protection_bootstrap_done.add(pos_symbol)
+                        logger.info(
+                            f"[PROTEÇÃO] Bootstrap de SL/TP ignorado para {pos_symbol}: fora da whitelist"
+                        )
+                        continue
+
                     try:
                         protection_result = self.adopt_position_with_protection(pos_symbol)
                         if protection_result.get('sl_ready') and protection_result.get('tp_ready'):
@@ -2135,6 +2756,40 @@ class PositionMonitor:
                 # e. Persistir no banco
                 snapshot_id = self.db.insert_position_snapshot(snapshot)
                 snapshot['id'] = snapshot_id
+
+                # e1. Em modo live, se a estrutura mudou, renovar SL/TP.
+                # Em CLOSE, a execução principal encerrará a posição, então não há refresh.
+                if self.mode == 'live' and decision['agent_action'] != 'CLOSE':
+                    structure_transition = self._track_market_structure_change(
+                        pos_symbol,
+                        indicators.get('market_structure', 'range')
+                    )
+                    if structure_transition['changed']:
+                        refresh_result = self.refresh_protection_on_structure_change(
+                            position=position,
+                            decision=decision,
+                            snapshot_id=snapshot_id,
+                            previous_structure=structure_transition['previous'],
+                            current_structure=structure_transition['current'],
+                        )
+                        if refresh_result.get('ok'):
+                            logger.info(
+                                f"[PROTEÇÃO] Estrutura mudou em {pos_symbol} "
+                                f"({structure_transition['previous']} -> {structure_transition['current']}); "
+                                f"SL/TP renovados (cancelados: SL={refresh_result['cancelled_sl']}, "
+                                f"TP={refresh_result['cancelled_tp']})"
+                            )
+                        else:
+                            logger.warning(
+                                f"[PROTEÇÃO] Falha no refresh por mudança de estrutura em {pos_symbol}: "
+                                f"{refresh_result.get('reason', 'sem detalhes')}"
+                            )
+                elif self.mode == 'live':
+                    # Ainda assim, manter baseline de estrutura atualizado para próximos ciclos.
+                    self._track_market_structure_change(
+                        pos_symbol,
+                        indicators.get('market_structure', 'range')
+                    )
                 
                 # e2. EXECUTAR DECISÃO (se não for HOLD)
                 if decision['agent_action'] != 'HOLD':

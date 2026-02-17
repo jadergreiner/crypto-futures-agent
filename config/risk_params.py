@@ -50,4 +50,13 @@ RISK_PARAMS: Dict[str, Any] = {
     
     # Cross Margin Risk
     "cross_margin_risk_multiplier": 1.5,  # Multiplicador de risco para posições em cross margin
+
+    # Learning-Adaptive Controls (24h)
+    "learning_profile_lookback_hours": 24,
+    "learning_profile_cache_ttl_seconds": 300,
+    "learning_profile_min_samples": 5,
+    "learning_profile_adverse_loss_rate": 0.60,
+    "learning_profile_adverse_avg_reward_threshold": -1.0,
+    "learning_profile_dominant_share_threshold": 0.70,
+    "learning_profile_dominant_min_samples": 20,
 }

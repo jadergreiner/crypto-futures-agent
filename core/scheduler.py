@@ -70,6 +70,14 @@ class Scheduler:
         """Inicia o scheduler."""
         self.running = True
         self.setup_schedules()
+
+        # Bootstrap operacional: executa uma varredura inicial imediata.
+        # Evita ficar "parado" até o próximo horário fixo da Layer 4.
+        try:
+            logger.info("Bootstrap: executando varredura inicial de oportunidades (Layer 4)")
+            self.layer_manager.h4_main_decision()
+        except Exception as e:
+            logger.error(f"Bootstrap da Layer 4 falhou: {e}", exc_info=True)
         
         logger.info("="*60)
         logger.info("SCHEDULER STARTED")
