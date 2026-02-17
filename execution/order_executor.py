@@ -20,11 +20,11 @@ class OrderExecutor:
     """
     Executes trading orders with multiple safety guards.
     Profit Guardian mode: only reduces/closes existing positions, never opens new ones.
-    
+
     IMPORTANTE: Tanto em modo "paper" quanto "live", as ordens são REAIS quando passam
     pelos safety guards. O modo apenas indica o contexto de operação, mas símbolos
     autorizados e validados terão suas ordens executadas na Binance.
-    
+
     Safety Guards (7 layers of protection):
     1. reduceOnly=True — Binance rejects the order if it would open a new position
     2. Symbol whitelist — Only coins in AUTHORIZED_SYMBOLS can be executed
@@ -34,11 +34,11 @@ class OrderExecutor:
     6. Daily execution limit — Max 6 executions per day (resets at 00:00 UTC)
     7. Retry logic — Attempts order placement with retries on failure
     """
-    
+
     def __init__(self, client, db, mode="paper"):
         """
         Inicializa o OrderExecutor.
-        
+
         Args:
             client: DerivativesTradingUsdsFutures SDK client
             db: DatabaseManager instance
@@ -50,32 +50,32 @@ class OrderExecutor:
         self._mode = mode
         self.config = EXECUTION_CONFIG
         self.authorized_symbols = AUTHORIZED_SYMBOLS
-        
+
         # Rastreamento de execuções diárias (dict: date_str -> count)
         self._daily_execution_count = {}
-        
+
         # Rastreamento de cooldown por símbolo (dict: symbol -> last_execution_timestamp)
         self._cooldown_tracker = {}
-        
+
         # Cache de precision por símbolo (dict: symbol -> quantity_precision)
         self._symbol_precision_cache: Dict[str, int] = {}
-        
+
         logger.info(f"OrderExecutor inicializado em modo {mode}")
         logger.info(f"Símbolos autorizados: {sorted(self.authorized_symbols)}")
         logger.info(f"Confiança mínima: {self.config['min_confidence_to_execute']}")
         logger.info(f"Limite diário: {self.config['max_daily_executions']} execuções")
         logger.info(f"Cooldown por símbolo: {self.config['cooldown_per_symbol_seconds']}s")
-    
-    def execute_decision(self, position: Dict[str, Any], decision: Dict[str, Any], 
+
+    def execute_decision(self, position: Dict[str, Any], decision: Dict[str, Any],
                         snapshot_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Ponto de entrada principal. Avalia safety guards e executa ordem se todos passarem.
-        
+
         Args:
             position: Dict com dados da posição (symbol, direction, position_size_qty, mark_price, etc.)
             decision: Dict com decisão do agente (agent_action, decision_confidence, etc.)
             snapshot_id: ID opcional do registro position_snapshot para linking
-            
+
         Returns:
             Dict com resultado da execução:
             {
@@ -93,12 +93,12 @@ class OrderExecutor:
         symbol = position['symbol']
         action = decision.get('agent_action', 'HOLD')
         confidence = decision.get('decision_confidence', 0.0)
-        
+
         logger.info(f"[EXECUTOR] Avaliando decisão: {action} para {symbol} (confiança: {confidence:.2%})")
-        
+
         # 1. Verificar todos os safety guards
         guards_passed, reason = self._check_safety_guards(symbol, action, confidence)
-        
+
         if not guards_passed:
             logger.warning(f"[EXECUTOR] Safety guard falhou para {symbol}: {reason}")
             return {
@@ -112,7 +112,7 @@ class OrderExecutor:
                 'mode': self._mode,
                 'snapshot_id': snapshot_id,
             }
-        
+
         # 2. Calcular parâmetros da ordem (side e quantity)
         try:
             order_params = self._calculate_order_params(position, action)
@@ -130,14 +130,14 @@ class OrderExecutor:
                 'mode': self._mode,
                 'snapshot_id': snapshot_id,
             }
-        
+
         side = order_params['side']
         quantity = order_params['quantity']
-        
+
         logger.info(f"[EXECUTOR] Parâmetros calculados: side={side}, qty={quantity:.8f}")
-        
+
         # 3. Executar ordem
-        # IMPORTANTE: Mesmo em modo "paper", se o símbolo está autorizado e passou por todos os 
+        # IMPORTANTE: Mesmo em modo "paper", se o símbolo está autorizado e passou por todos os
         # safety guards, vamos enviar a ordem REAL para a Binance.
         # O modo "paper" apenas indica que estamos em fase de teste, mas com execuções reais
         # para símbolos validados.
@@ -146,31 +146,31 @@ class OrderExecutor:
         fill_quantity = None
         order_id = None
         commission = None
-        
+
         # Se passou por todos os safety guards, enviar ordem real
         try:
             logger.info(f"[EXECUTOR] Enviando ordem REAL: {side} {quantity:.8f} {symbol} @ MARKET (reduceOnly=True)")
-            
+
             order_response = self._place_order(
                 symbol=symbol,
                 side=side,
                 quantity=quantity,
                 order_type=self.config['order_type']
             )
-            
+
             if order_response:
                 # Extrair dados da resposta
                 order_id = order_response.get('orderId') or order_response.get('order_id')
                 fill_price = float(order_response.get('avgPrice', 0) or order_response.get('avg_price', 0) or position['mark_price'])
                 fill_quantity = float(order_response.get('executedQty', 0) or order_response.get('executed_qty', 0) or quantity)
-                
+
                 # Comissão pode estar em fills ou como campo separado
                 commission = 0.0
                 if 'fills' in order_response and order_response['fills']:
                     commission = sum(float(fill.get('commission', 0)) for fill in order_response['fills'])
                 elif 'commission' in order_response:
                     commission = float(order_response.get('commission', 0))
-                
+
                 executed = True
                 reason = f"Ordem executada com sucesso - ID: {order_id}"
                 logger.info(f"[EXECUTOR] [OK] Ordem executada ({self._mode} mode): {side} {fill_quantity:.8f} {symbol} @ {fill_price:.2f}")
@@ -183,12 +183,12 @@ class OrderExecutor:
             reason = f"Erro ao executar ordem: {e}"
             logger.error(f"[EXECUTOR] [FALHA] Erro: {e}")
             traceback.print_exc()
-        
+
         # 4. Atualizar rastreadores se executado com sucesso
         if executed:
             self._update_cooldown(symbol)
             self._increment_daily_counter()
-        
+
         # 5. Persistir execução no banco de dados
         execution_result = {
             'executed': executed,
@@ -205,12 +205,12 @@ class OrderExecutor:
             'fill_quantity': fill_quantity,
             'commission': commission,
         }
-        
+
         try:
             self._persist_execution(execution_result, position, decision)
         except Exception as e:
             logger.error(f"[EXECUTOR] Erro ao persistir execução no banco: {e}")
-        
+
         # 6. Verificar execução se configurado
         # Como agora paper e live enviam ordens reais, sempre verificar se executado com sucesso
         if executed and self.config.get('verify_after_execution', False) and order_response:
@@ -218,9 +218,9 @@ class OrderExecutor:
                 self._verify_execution(symbol, quantity)
             except Exception as e:
                 logger.warning(f"[EXECUTOR] Erro ao verificar execução: {e}")
-        
+
         return execution_result
-    
+
     def _check_safety_guards(self, symbol: str, action: str, confidence: float) -> tuple[bool, str]:
         """
         Valida TODOS os safety guards. Retorna (passed: bool, reason: str).
@@ -230,37 +230,37 @@ class OrderExecutor:
         allowed_actions = self.config['allowed_actions']
         if action not in allowed_actions:
             return False, f"Ação '{action}' não permitida (apenas {allowed_actions} são permitidas)"
-        
+
         # Guard 2: Symbol deve estar na whitelist
         if symbol not in self.authorized_symbols:
             return False, f"Símbolo '{symbol}' não está na whitelist de símbolos autorizados"
-        
+
         # Guard 3: Confidence deve ser >= min_confidence_to_execute
         min_confidence = self.config['min_confidence_to_execute']
         if confidence < min_confidence:
             return False, f"Confiança {confidence:.2%} abaixo do mínimo {min_confidence:.2%}"
-        
+
         # Guard 4: Limite diário não deve ter sido atingido
         daily_count = self._get_daily_execution_count()
         max_daily = self.config['max_daily_executions']
         if daily_count >= max_daily:
             return False, f"Limite diário atingido ({daily_count}/{max_daily} execuções hoje)"
-        
+
         # Guard 5: Cooldown para este símbolo deve ter expirado
         if self._is_symbol_in_cooldown(symbol):
             remaining = self._get_cooldown_remaining(symbol)
             return False, f"Símbolo em cooldown (aguardar {remaining:.0f}s)"
-        
+
         return True, "Todos os safety guards passaram"
-    
+
     def _get_quantity_precision(self, symbol: str) -> int:
         """
         Obtém a quantity precision específica do símbolo consultando a Exchange Info da Binance.
         Usa cache para evitar chamadas repetidas à API.
-        
+
         Args:
             symbol: Símbolo do par (e.g., 'BTCUSDT')
-            
+
         Returns:
             Quantity precision (número de casas decimais) para o símbolo.
             Retorna 8 (padrão) como fallback em caso de erro.
@@ -268,14 +268,14 @@ class OrderExecutor:
         # Verificar cache primeiro
         if symbol in self._symbol_precision_cache:
             return self._symbol_precision_cache[symbol]
-        
+
         # Buscar da API
         try:
             logger.debug(f"[EXECUTOR] Buscando quantity_precision para {symbol} da Exchange Info API...")
-            
+
             response = self._client.rest_api.exchange_information()
             data = self._extract_data(response)
-            
+
             # Extrair a lista de símbolos
             symbols_list = None
             if data:
@@ -283,7 +283,7 @@ class OrderExecutor:
                     symbols_list = data.symbols
                 elif isinstance(data, dict) and 'symbols' in data:
                     symbols_list = data['symbols']
-            
+
             if symbols_list:
                 # Iterar pelos símbolos para encontrar o correto
                 for symbol_info in symbols_list:
@@ -294,42 +294,42 @@ class OrderExecutor:
                     else:
                         symbol_name = getattr(symbol_info, 'symbol', None)
                         quantity_precision = getattr(symbol_info, 'quantity_precision', None)
-                    
+
                     if symbol_name == symbol and quantity_precision is not None:
                         precision = int(quantity_precision)
                         self._symbol_precision_cache[symbol] = precision
                         logger.info(f"[EXECUTOR] Quantity precision para {symbol}: {precision}")
                         return precision
-            
+
             # Se não encontrou o símbolo, usar fallback conservador de 8
             logger.warning(f"[EXECUTOR] Não encontrou quantity_precision para {symbol} na Exchange Info. Usando fallback: 8")
             self._symbol_precision_cache[symbol] = 8
             return 8
-            
+
         except Exception as e:
             logger.error(f"[EXECUTOR] Erro ao buscar quantity_precision para {symbol}: {e}. Usando fallback: 8")
             # Fallback: 8 casas decimais (padrão comum)
             # Isso mantém compatibilidade com comportamento anterior
             self._symbol_precision_cache[symbol] = 8
             return 8
-    
+
     def _calculate_order_params(self, position: Dict[str, Any], action: str) -> Dict[str, Any]:
         """
         Calculates side and quantity for the order.
-        
+
         Logic:
         - CLOSE LONG = SELL 100% qty, reduceOnly=True
         - CLOSE SHORT = BUY 100% qty, reduceOnly=True
         - REDUCE_50 LONG = SELL 50% qty, reduceOnly=True
         - REDUCE_50 SHORT = BUY 50% qty, reduceOnly=True
-        
+
         Returns:
             Dict with 'side' ('BUY' or 'SELL') and 'quantity' (float)
         """
         symbol = position['symbol']
         direction = position['direction']
         position_qty = position['position_size_qty']
-        
+
         # Determinar side baseado na direção da posição
         # Para FECHAR ou REDUZIR uma posição LONG, precisamos VENDER
         # Para FECHAR ou REDUZIR uma posição SHORT, precisamos COMPRAR
@@ -339,7 +339,7 @@ class OrderExecutor:
             side = "BUY"
         else:
             raise ValueError(f"Direção de posição desconhecida: {direction}")
-        
+
         # Determinar quantity baseado na ação
         if action == "CLOSE":
             # Fechar 100% da posição
@@ -350,10 +350,10 @@ class OrderExecutor:
             quantity = position_qty * reduce_pct
         else:
             raise ValueError(f"Ação desconhecida: {action}")
-        
+
         # Obter quantity precision específica do símbolo
         precision = self._get_quantity_precision(symbol)
-        
+
         # Truncar quantity para baixo (não arredondar para cima)
         # Isso evita tentar vender mais do que se tem disponível
         # Exemplo: 6.5 KAIA com precision=0 → 6.0 (não 7.0)
@@ -377,30 +377,30 @@ class OrderExecutor:
                 f"Quantidade calculada inválida após ajuste de precision ({precision}) para {symbol}: {quantity}. "
                 f"position_qty={position_qty}, action={action}"
             )
-        
+
         return {
             'side': side,
             'quantity': quantity
         }
-    
-    def _place_order(self, symbol: str, side: str, quantity: float, 
+
+    def _place_order(self, symbol: str, side: str, quantity: float,
                      order_type: str = "MARKET") -> Optional[Dict[str, Any]]:
         """
         Coloca a ordem via Binance SDK com lógica de retry.
         Usa self._client.rest_api.new_order() com reduceOnly=True.
-        
+
         Returns:
             Resposta da ordem (dict) ou None em caso de falha
         """
         max_retries = self.config['max_order_retries']
         retry_delay = self.config['order_retry_delay_seconds']
         recv_window = self.config['recv_window']
-        
+
         for attempt in range(max_retries + 1):
             try:
                 logger.info(f"[EXECUTOR] Tentativa {attempt + 1}/{max_retries + 1}: "
                            f"new_order({symbol}, {side}, {order_type}, qty={quantity:.8f}, reduceOnly=True)")
-                
+
                 # CRITICAL: reduceOnly=True é a rede de segurança final
                 # Binance rejeitará a ordem se ela tentar abrir nova posição
                 response = self._client.rest_api.new_order(
@@ -411,19 +411,19 @@ class OrderExecutor:
                     reduce_only=True,  # CRITICAL SAFETY NET
                     recv_window=recv_window
                 )
-                
+
                 # Extrair dados do wrapper ApiResponse (mesmo padrão do PositionMonitor)
                 data = self._extract_data(response)
-                
+
                 if data:
                     logger.info(f"[EXECUTOR] Ordem colocada com sucesso: {data}")
                     return data
                 else:
                     logger.warning(f"[EXECUTOR] Resposta vazia da API na tentativa {attempt + 1}")
-                    
+
             except Exception as e:
                 logger.error(f"[EXECUTOR] Erro na tentativa {attempt + 1}: {e}")
-                
+
                 # Se não é a última tentativa, aguardar e tentar novamente
                 if attempt < max_retries:
                     logger.info(f"[EXECUTOR] Aguardando {retry_delay}s antes de tentar novamente...")
@@ -431,17 +431,17 @@ class OrderExecutor:
                 else:
                     logger.error(f"[EXECUTOR] Todas as tentativas falharam")
                     traceback.print_exc()
-        
+
         return None
-    
+
     def _extract_data(self, response):
         """
         Extrai dados do wrapper ApiResponse do SDK e converte SDK objects em dicts.
-        
+
         O SDK Binance retorna objetos como NewOrderResponse com atributos snake_case
         (order_id, avg_price, executed_qty) mas o código existente espera dicts com
         método .get() e chaves camelCase (orderId, avgPrice, executedQty).
-        
+
         Esta função:
         1. Extrai .data do ApiResponse wrapper
         2. Converte SDK objects em dicts Python
@@ -450,7 +450,7 @@ class OrderExecutor:
         """
         if response is None:
             return None
-        
+
         # Passo 1: ApiResponse tem um atributo .data contendo o payload real
         if hasattr(response, 'data'):
             data = response.data
@@ -460,31 +460,31 @@ class OrderExecutor:
         else:
             # Se não tem .data, assumir que já são os dados diretos
             data = response
-        
+
         # Passo 2: Converter SDK objects para dicts
         return self._convert_sdk_object_to_dict(data)
-    
+
     def _convert_sdk_object_to_dict(self, obj):
         """
         Converte objetos SDK da Binance em dicts Python com mapeamento snake_case → camelCase.
-        
+
         Args:
             obj: Pode ser None, dict, list, ou SDK object com atributos
-            
+
         Returns:
             Dict, list de dicts, ou valor primitivo
         """
         if obj is None:
             return None
-        
+
         # Se já é dict ou tipo primitivo, retornar como está
         if isinstance(obj, (dict, str, int, float, bool, bytes, type(None), Decimal)):
             return obj
-        
+
         # Se é lista, processar cada elemento recursivamente
         if isinstance(obj, list):
             return [self._convert_sdk_object_to_dict(item) for item in obj]
-        
+
         # Se é um SDK object (tem __dict__ mas não é dict), converter para dict
         if hasattr(obj, '__dict__'):
             # Extrair atributos, filtrando os privados (começam com _)
@@ -492,36 +492,36 @@ class OrderExecutor:
                 key: value for key, value in vars(obj).items()
                 if not key.startswith('_')
             }
-            
+
             # Converter valores aninhados recursivamente
             converted_dict = {
                 key: self._convert_sdk_object_to_dict(value)
                 for key, value in raw_dict.items()
             }
-            
+
             # Mapear snake_case → camelCase para compatibilidade com código existente
             camel_dict = self._map_to_camel_case(converted_dict)
-            
+
             # Log para debug
             if converted_dict:  # Só logar se não for vazio
                 logger.debug(f"[EXTRACT_DATA] SDK object convertido para dict: {type(obj).__name__} → {len(camel_dict)} campos")
-            
+
             return camel_dict
-        
+
         # Fallback: retornar o objeto como está
         return obj
-    
+
     def _map_to_camel_case(self, data: dict) -> dict:
         """
         Mapeia chaves snake_case para camelCase mantendo ambas as versões.
-        
+
         Mantemos tanto snake_case quanto camelCase para máxima compatibilidade:
         - Código existente usa .get('orderId') ou .get('order_id')
         - Tendo ambas as chaves garante que ambos os padrões funcionem
-        
+
         Args:
             data: Dict com chaves em snake_case
-            
+
         Returns:
             Dict com chaves adicionais em camelCase
         """
@@ -546,16 +546,16 @@ class OrderExecutor:
             'good_till_date': 'goodTillDate',
             'price_match': 'priceMatch',
         }
-        
+
         result = dict(data)  # Cópia para não modificar original
-        
+
         # Adicionar versões camelCase das chaves snake_case
         for snake_key, camel_key in snake_to_camel.items():
             if snake_key in result and camel_key not in result:
                 result[camel_key] = result[snake_key]
-        
+
         return result
-    
+
     def _verify_execution(self, symbol: str, expected_qty_change: float):
         """
         Verifica se a ordem foi executada consultando posição após execução.
@@ -563,39 +563,39 @@ class OrderExecutor:
         """
         try:
             logger.info(f"[EXECUTOR] Verificando execução para {symbol}...")
-            
+
             # Aguardar um momento para a ordem ser processada
             time.sleep(1)
-            
+
             # Buscar posição atualizada
             response = self._client.rest_api.position_information_v2(symbol=symbol)
             data = self._extract_data(response)
-            
+
             if data:
                 if not isinstance(data, list):
                     data = [data]
-                
+
                 for pos_data in data:
                     pos_symbol = pos_data.get('symbol') if isinstance(pos_data, dict) else getattr(pos_data, 'symbol', None)
                     if pos_symbol == symbol:
-                        position_amt = float(pos_data.get('positionAmt', 0) if isinstance(pos_data, dict) 
+                        position_amt = float(pos_data.get('positionAmt', 0) if isinstance(pos_data, dict)
                                            else getattr(pos_data, 'position_amt', 0))
                         logger.info(f"[EXECUTOR] Posição atual para {symbol}: qty={abs(position_amt):.8f}")
                         # Verificação bem-sucedida
                         return
-            
+
             logger.warning(f"[EXECUTOR] Não foi possível verificar execução para {symbol}")
-            
+
         except Exception as e:
             logger.error(f"[EXECUTOR] Erro ao verificar execução: {e}")
-    
-    def _persist_execution(self, result: Dict[str, Any], position: Dict[str, Any], 
+
+    def _persist_execution(self, result: Dict[str, Any], position: Dict[str, Any],
                           decision: Dict[str, Any]):
         """
         Persiste resultado da execução na tabela execution_log do banco de dados.
         """
         timestamp = int(datetime.now().timestamp() * 1000)
-        
+
         execution_data = {
             'timestamp': timestamp,
             'symbol': result['symbol'],
@@ -605,18 +605,18 @@ class OrderExecutor:
             'quantity': result['quantity'],
             'order_type': self.config['order_type'],
             'reduce_only': 1,  # Sempre 1
-            
+
             # Resultado da execução
             'executed': 1 if result['executed'] else 0,
             'mode': result['mode'],
             'reason': result['reason'],
-            
+
             # Dados da ordem (se executada no modo live)
             'order_id': result.get('order_id'),
             'fill_price': result.get('fill_price'),
             'fill_quantity': result.get('fill_quantity'),
             'commission': result.get('commission'),
-            
+
             # Contexto no momento da execução
             'entry_price': position.get('entry_price'),
             'mark_price': position.get('mark_price'),
@@ -625,22 +625,22 @@ class OrderExecutor:
             'risk_score': decision.get('risk_score'),
             'decision_confidence': decision.get('decision_confidence'),
             'decision_reasoning': decision.get('decision_reasoning'),
-            
+
             # Link para snapshot
             'snapshot_id': result.get('snapshot_id'),
         }
-        
+
         try:
             execution_id = self._db.insert_execution_log(execution_data)
             logger.debug(f"[EXECUTOR] Execução persistida no banco: ID={execution_id}")
         except Exception as e:
             logger.error(f"[EXECUTOR] Erro ao persistir execução: {e}")
             raise
-    
+
     def _get_daily_execution_count(self) -> int:
         """Retorna número de execuções hoje (UTC)."""
         today = datetime.utcnow().strftime('%Y-%m-%d')
-        
+
         # Atualizar contador a partir do banco de dados (fonte da verdade)
         try:
             count = self._db.count_executions_today()
@@ -650,38 +650,38 @@ class OrderExecutor:
             logger.error(f"[EXECUTOR] Erro ao buscar contagem diária do banco: {e}")
             # Fallback para contador em memória
             return self._daily_execution_count.get(today, 0)
-    
+
     def _is_symbol_in_cooldown(self, symbol: str) -> bool:
         """Verifica se o símbolo ainda está em período de cooldown."""
         if symbol not in self._cooldown_tracker:
             return False
-        
+
         last_execution = self._cooldown_tracker[symbol]
         current_time = time.time()
         cooldown_seconds = self.config['cooldown_per_symbol_seconds']
-        
+
         elapsed = current_time - last_execution
         return elapsed < cooldown_seconds
-    
+
     def _get_cooldown_remaining(self, symbol: str) -> float:
         """Retorna tempo restante de cooldown em segundos."""
         if symbol not in self._cooldown_tracker:
             return 0.0
-        
+
         last_execution = self._cooldown_tracker[symbol]
         current_time = time.time()
         cooldown_seconds = self.config['cooldown_per_symbol_seconds']
-        
+
         elapsed = current_time - last_execution
         remaining = cooldown_seconds - elapsed
-        
+
         return max(0.0, remaining)
-    
+
     def _update_cooldown(self, symbol: str):
         """Atualiza o rastreador de cooldown para o símbolo."""
         self._cooldown_tracker[symbol] = time.time()
         logger.debug(f"[EXECUTOR] Cooldown iniciado para {symbol}")
-    
+
     def _increment_daily_counter(self):
         """Incrementa o contador de execuções diárias."""
         today = datetime.utcnow().strftime('%Y-%m-%d')

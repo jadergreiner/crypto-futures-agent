@@ -2,7 +2,7 @@
 
 Data: 2026-02-17 (UTC)
 
-Exchange: Binance USDT-M Futures  
+Exchange: Binance USDT-M Futures
 Moeda Base: USDT
 
 ## 0. Validação de Suficiência da Modelagem de Dados
@@ -29,13 +29,13 @@ Nas últimas 24h, o agente apresentou alta atividade operacional, com geração 
 
 ## 2. Performance Financeira
 
-Equity Total Atual: -46.28 USDT  
+Equity Total Atual: -46.28 USDT
 Equity 24h Anteriores: N/D
 
-Variação Absoluta: N/D  
+Variação Absoluta: N/D
 Retorno Diário: N/D
 
-P&L Realizado (24h): +0.95 USDT  
+P&L Realizado (24h): +0.95 USDT
 P&L em Aberto: -213.04 USDT
 
 Funding Pago/Recebido: -0.82 USDT
@@ -46,10 +46,10 @@ Observação: Total P&L (realizado + aberto) = -212.09 USDT.
 
 ## 3. Capital e Margem
 
-Margem Utilizada: 164.86 USDT  
+Margem Utilizada: 164.86 USDT
 Capital Disponível (HOLD): 22.39 USDT
 
-Percentual Alocado: N/D (equity atual negativo distorce a razão)  
+Percentual Alocado: N/D (equity atual negativo distorce a razão)
 Percentual em HOLD: N/D (mesma limitação)
 
 Indicadores auxiliares sobre wallet balance:
@@ -70,7 +70,7 @@ Proxy de resultado de fechamento (income REALIZED_PNL, 24h):
 - P&L Médio por entrada realizada: +0.0366 USDT
 - Relação Risco/Retorno Média: N/D (não há RR por trade consolidado)
 
-Melhor Trade (proxy): KAVAUSDT +1.1502 USDT  
+Melhor Trade (proxy): KAVAUSDT +1.1502 USDT
 Pior Trade (proxy): ETCUSDT -1.6509 USDT
 
 ## 5. Posições Abertas Relevantes
@@ -126,7 +126,7 @@ Confiança Atual do Modelo (média em snapshots 24h, top recorrentes):
 
 ## 7. Avaliação de Risco
 
-Drawdown Atual: N/D (não consolidado no schema atual)  
+Drawdown Atual: N/D (não consolidado no schema atual)
 Exposição Total: N/D oficial; proxy notional aberto ~1908.32 USDT em snapshots recentes
 
 Risco de Liquidação: MODERATE (com base nos dados disponíveis)
@@ -157,8 +157,8 @@ Itens pendentes de modelagem para elevar qualidade executiva do relatório:
 
 ## 9. Conclusão Executiva
 
-Eficiência financeira (24h): fraca no estado atual da carteira, pois o lucro realizado não compensa o forte P&L negativo em aberto.  
-Controle de risco: pressionado; a estrutura atual de alavancagem e quantidade de posições exige redução de exposição.  
-Evolução do modelo: presente e mensurável, porém concentrada em poucos ativos; há sinais de sobredependência de ICPUSDT.  
-Sustentabilidade da estratégia: requer ajuste imediato de risco e melhoria de modelagem de dados para governança financeira robusta.  
+Eficiência financeira (24h): fraca no estado atual da carteira, pois o lucro realizado não compensa o forte P&L negativo em aberto.
+Controle de risco: pressionado; a estrutura atual de alavancagem e quantidade de posições exige redução de exposição.
+Evolução do modelo: presente e mensurável, porém concentrada em poucos ativos; há sinais de sobredependência de ICPUSDT.
+Sustentabilidade da estratégia: requer ajuste imediato de risco e melhoria de modelagem de dados para governança financeira robusta.
 Perspectiva próximas 24h: priorizar desalavancagem, reduzir ativos com aprendizado adverso recorrente e manter monitoramento reforçado de capital/equity.

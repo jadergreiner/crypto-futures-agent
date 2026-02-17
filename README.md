@@ -2,6 +2,12 @@
 
 Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas na Binance Futures (USDⓈ-M). Combina indicadores técnicos, Smart Money Concepts (SMC), análise de sentimento e dados macroeconômicos para gerar sinais operacionais com gestão de risco completa.
 
+## 🌐 Idioma do Projeto
+
+- O idioma oficial deste projeto é **português**.
+- Escreva documentação, comentários, mensagens de log e textos de interface em português.
+- Use inglês apenas para termos técnicos consolidados (APIs, bibliotecas, protocolos e nomes próprios).
+
 ## 🎯 Características Principais
 
 - **Reinforcement Learning**: PPO (Proximal Policy Optimization) com Stable-Baselines3

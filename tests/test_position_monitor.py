@@ -54,7 +54,7 @@ def test_extract_data_with_api_response(position_monitor):
     # Mock de ApiResponse com atributo .data
     mock_response = Mock()
     mock_response.data = [{'symbol': 'BTCUSDT', 'positionAmt': '1.5'}]
-    
+
     result = position_monitor._extract_data(mock_response)
     assert result == [{'symbol': 'BTCUSDT', 'positionAmt': '1.5'}]
 
@@ -88,7 +88,7 @@ def test_fetch_open_positions_empty(position_monitor, mock_client):
             'isolatedWallet': '1000'
         }
     ]
-    
+
     positions = position_monitor.fetch_open_positions()
     assert len(positions) == 0
 
@@ -109,9 +109,9 @@ def test_fetch_open_positions_long(position_monitor, mock_client):
             'isolatedWallet': '100'
         }
     ]
-    
+
     positions = position_monitor.fetch_open_positions('C98USDT')
-    
+
     assert len(positions) == 1
     pos = positions[0]
     assert pos['symbol'] == 'C98USDT'
@@ -139,9 +139,9 @@ def test_fetch_open_positions_short(position_monitor, mock_client):
             'isolatedWallet': '10000'
         }
     ]
-    
+
     positions = position_monitor.fetch_open_positions('BTCUSDT')
-    
+
     assert len(positions) == 1
     pos = positions[0]
     assert pos['direction'] == 'SHORT'
@@ -162,11 +162,11 @@ def test_fetch_open_positions_with_pydantic_objects(position_monitor, mock_clien
             self.leverage = '10'
             self.margin_type = 'ISOLATED'
             self.isolated_wallet = '5000'
-    
+
     mock_client.rest_api.position_information_v2.return_value = [MockPydanticPosition()]
-    
+
     positions = position_monitor.fetch_open_positions('ETHUSDT')
-    
+
     assert len(positions) == 1
     pos = positions[0]
     assert pos['symbol'] == 'ETHUSDT'
@@ -182,9 +182,9 @@ def test_fetch_open_positions_with_pydantic_objects(position_monitor, mock_clien
 def test_fetch_open_positions_with_none_response(position_monitor, mock_client):
     """Testa fetch de posições quando resposta é None."""
     mock_client.rest_api.position_information_v2.return_value = None
-    
+
     positions = position_monitor.fetch_open_positions()
-    
+
     assert len(positions) == 0
     assert positions == []
 
@@ -201,16 +201,16 @@ def test_evaluate_position_close_on_big_loss(position_monitor):
         'liquidation_price': 45000,
         'position_size_usdt': 25000
     }
-    
+
     indicators = {
         'rsi_14': 55,
         'market_structure': 'bullish'
     }
-    
+
     sentiment = {}
-    
+
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
-    
+
     assert decision['agent_action'] == 'CLOSE'
     assert decision['decision_confidence'] > 0.85
     # Verificar se o texto está presente (mesmo com encoding JSON)
@@ -230,12 +230,12 @@ def test_evaluate_position_close_near_liquidation(position_monitor):
         'liquidation_price': 2600,  # Apenas 1.9% de distância
         'position_size_usdt': 25000
     }
-    
+
     indicators = {}
     sentiment = {}
-    
+
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
-    
+
     assert decision['agent_action'] == 'CLOSE'
     # Verificar se o texto está presente (mesmo com encoding JSON)
     reasoning_text = json.loads(decision['decision_reasoning'])
@@ -254,17 +254,17 @@ def test_evaluate_position_close_on_direction_change(position_monitor):
         'liquidation_price': 80,
         'position_size_usdt': 5000
     }
-    
+
     indicators = {
         'market_structure': 'bearish',  # Contra LONG
         'choch_recent': 1,
         'rsi_14': 45
     }
-    
+
     sentiment = {}
-    
+
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
-    
+
     assert decision['agent_action'] == 'CLOSE'
     assert decision['decision_confidence'] >= 0.90
     assert 'Mudan' in decision['decision_reasoning']
@@ -282,7 +282,7 @@ def test_evaluate_position_hold_favorable(position_monitor):
         'liquidation_price': 45000,
         'position_size_usdt': 25000
     }
-    
+
     indicators = {
         'market_structure': 'bullish',
         'choch_recent': 0,
@@ -291,11 +291,11 @@ def test_evaluate_position_hold_favorable(position_monitor):
         'ema_72': 50000,
         'atr_14': 500
     }
-    
+
     sentiment = {}
-    
+
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
-    
+
     assert decision['agent_action'] == 'HOLD'
     assert decision['risk_score'] < 6.0
 
@@ -312,16 +312,16 @@ def test_evaluate_position_reduce_on_extreme_funding(position_monitor):
         'liquidation_price': 0.08,
         'position_size_usdt': 500
     }
-    
+
     indicators = {
         'funding_rate': 0.06,  # Extremo para LONG (muitos LONGs)
         'rsi_14': 55
     }
-    
+
     sentiment = {}
-    
+
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
-    
+
     assert decision['agent_action'] == 'REDUCE_50'
     assert 'Funding rate extremo' in decision['decision_reasoning']
 
@@ -342,16 +342,16 @@ def test_create_snapshot(position_monitor):
         'unrealized_pnl_pct': 10.0,
         'margin_balance': 100
     }
-    
+
     indicators = {
         'rsi_14': 60,
         'ema_17': 0.54,
         'market_structure': 'bullish',
         'funding_rate': 0.01
     }
-    
+
     sentiment = {}
-    
+
     decision = {
         'agent_action': 'HOLD',
         'decision_confidence': 0.8,
@@ -361,9 +361,9 @@ def test_create_snapshot(position_monitor):
         'take_profit_suggested': 0.62,
         'trailing_stop_price': None
     }
-    
+
     snapshot = position_monitor.create_snapshot(position, indicators, sentiment, decision)
-    
+
     # Verificar campos essenciais
     assert snapshot['symbol'] == 'C98USDT'
     assert snapshot['direction'] == 'LONG'
@@ -430,15 +430,15 @@ def test_insert_and_retrieve_snapshot(position_monitor, temp_db):
         'reward_calculated': None,
         'outcome_label': None
     }
-    
+
     # Inserir
     snapshot_id = temp_db.insert_position_snapshot(snapshot)
     assert snapshot_id > 0
-    
+
     # Recuperar
     snapshots = temp_db.get_position_snapshots('C98USDT')
     assert len(snapshots) == 1
-    
+
     retrieved = snapshots[0]
     assert retrieved['symbol'] == 'C98USDT'
     assert retrieved['agent_action'] == 'HOLD'
@@ -479,12 +479,12 @@ def test_update_snapshot_outcome(position_monitor, temp_db):
         'reward_calculated': None,
         'outcome_label': None
     }
-    
+
     snapshot_id = temp_db.insert_position_snapshot(snapshot)
-    
+
     # Atualizar outcome
     temp_db.update_snapshot_outcome(snapshot_id, reward=0.5, outcome_label='win')
-    
+
     # Verificar atualização
     snapshots = temp_db.get_position_snapshots('BTCUSDT')
     assert len(snapshots) == 1
@@ -517,19 +517,19 @@ def test_get_snapshots_for_training(position_monitor, temp_db):
         'stop_loss_suggested': None, 'take_profit_suggested': None, 'trailing_stop_price': None,
         'reward_calculated': None, 'outcome_label': None
     }
-    
+
     # Inserir 3 snapshots
     id1 = temp_db.insert_position_snapshot(base_snapshot)
     id2 = temp_db.insert_position_snapshot(base_snapshot)
     id3 = temp_db.insert_position_snapshot(base_snapshot)
-    
+
     # Atualizar outcome de 2 deles
     temp_db.update_snapshot_outcome(id1, 0.8, 'win')
     temp_db.update_snapshot_outcome(id2, -0.3, 'loss')
-    
+
     # Buscar para treinamento (apenas os com outcome)
     training_data = temp_db.get_snapshots_for_training(symbol='ETHUSDT')
-    
+
     assert len(training_data) == 2
     assert all(snap['outcome_label'] is not None for snap in training_data)
 
@@ -538,9 +538,9 @@ def test_monitor_cycle_no_positions(position_monitor, mock_client):
     """Testa ciclo de monitoramento sem posições abertas."""
     # Mock sem posições
     mock_client.rest_api.position_information.return_value = []
-    
+
     snapshots = position_monitor.monitor_cycle()
-    
+
     assert len(snapshots) == 0
 
 
@@ -611,10 +611,10 @@ def test_monitor_cycle_live_processes_positions_outside_whitelist(mock_client, t
 def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
     """Testa combinação de dados do banco com dados frescos da API."""
     import pandas as pd
-    
+
     symbol = 'BTCUSDT'
     timeframe = '4h'
-    
+
     # 1. Inserir dados históricos no banco
     historical_data = []
     base_timestamp = 1609459200000  # 2021-01-01 00:00:00
@@ -631,7 +631,7 @@ def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
             'trades_count': 1000
         })
     temp_db.insert_ohlcv('H4', historical_data)
-    
+
     # 2. Mock da API retornando candles frescos (últimos 50)
     fresh_data = []
     for i in range(50):
@@ -647,21 +647,21 @@ def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
             'trades_count': 1000
         })
     df_fresh = pd.DataFrame(fresh_data)
-    
+
     position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
-    
+
     # 3. Executar fetch combinado
     df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=700)
-    
+
     # 4. Validações
     assert len(df_combined) >= 700, f"Esperado >= 700 candles, obtido {len(df_combined)}"
     assert 'timestamp' in df_combined.columns
     assert df_combined['symbol'].iloc[0] == symbol
-    
+
     # Verificar que está ordenado por timestamp
     timestamps = df_combined['timestamp'].tolist()
     assert timestamps == sorted(timestamps), "Candles não estão ordenados por timestamp"
-    
+
     # Verificar que não há duplicatas
     assert len(df_combined) == len(df_combined['timestamp'].unique()), "Existem timestamps duplicados"
 
@@ -669,11 +669,11 @@ def test_fetch_combined_klines_with_db_data(position_monitor, temp_db):
 def test_fetch_combined_klines_empty_db(position_monitor):
     """Testa fallback quando banco está vazio (buscar mais da API)."""
     import pandas as pd
-    
+
     symbol = 'ETHUSDT'
     timeframe = '1h'
     min_candles = 250
-    
+
     # Mock da API retornando 250 candles
     api_data = []
     base_timestamp = 1609459200000
@@ -690,16 +690,16 @@ def test_fetch_combined_klines_empty_db(position_monitor):
             'trades_count': 500
         })
     df_api = pd.DataFrame(api_data)
-    
+
     position_monitor.collector.fetch_klines = Mock(return_value=df_api)
-    
+
     # Executar fetch combinado (banco vazio)
     df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles)
-    
+
     # Validações
     assert len(df_combined) == min_candles
     assert df_combined['symbol'].iloc[0] == symbol
-    
+
     # Verificar que chamou a API com limit correto (min_candles quando banco vazio)
     position_monitor.collector.fetch_klines.assert_called_once_with(symbol, timeframe, limit=min_candles)
 
@@ -707,10 +707,10 @@ def test_fetch_combined_klines_empty_db(position_monitor):
 def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
     """Testa que não há duplicatas quando timestamps se sobrepõem."""
     import pandas as pd
-    
+
     symbol = 'BTCUSDT'
     timeframe = '4h'
-    
+
     # 1. Inserir dados históricos com sobreposição
     historical_data = []
     base_timestamp = 1609459200000
@@ -727,7 +727,7 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
             'trades_count': 1000
         })
     temp_db.insert_ohlcv('H4', historical_data)
-    
+
     # 2. Mock da API retornando candles que sobrepõem (últimos 20 do histórico + 30 novos)
     fresh_data = []
     # Sobrepor últimos 20
@@ -757,19 +757,19 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
             'trades_count': 1000
         })
     df_fresh = pd.DataFrame(fresh_data)
-    
+
     position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
-    
+
     # 3. Executar fetch combinado
     df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=100)
-    
+
     # 4. Validações
     # Total esperado: 100 históricos + 30 novos = 130 (sobreposição removida)
     assert len(df_combined) == 130, f"Esperado 130 candles únicos, obtido {len(df_combined)}"
-    
+
     # Verificar que não há duplicatas
     assert len(df_combined) == len(df_combined['timestamp'].unique()), "Existem timestamps duplicados"
-    
+
     # Verificar que manteve os valores mais recentes (keep='last')
     # Para timestamp sobreposto, deve ter valores da API (com +0.5)
     overlapping_timestamp = base_timestamp + (90 * FOUR_HOURS_IN_MS)
@@ -782,11 +782,11 @@ def test_fetch_combined_klines_no_duplicates(position_monitor, temp_db):
 def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
     """Testa que retorna candles suficientes para EMA(610)."""
     import pandas as pd
-    
+
     symbol = 'BTCUSDT'
     timeframe = '4h'
     min_candles = 700
-    
+
     # 1. Inserir 700 candles no banco
     historical_data = []
     base_timestamp = 1609459200000
@@ -803,7 +803,7 @@ def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
             'trades_count': 1000
         })
     temp_db.insert_ohlcv('H4', historical_data)
-    
+
     # 2. Mock da API retornando 50 candles frescos
     fresh_data = []
     for i in range(50):
@@ -819,12 +819,12 @@ def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
             'trades_count': 1000
         })
     df_fresh = pd.DataFrame(fresh_data)
-    
+
     position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
-    
+
     # 3. Executar fetch combinado
     df_combined = position_monitor._fetch_combined_klines(symbol, timeframe, min_candles)
-    
+
     # 4. Validar que temos candles suficientes para EMA(610)
     assert len(df_combined) >= 610, f"Insuficiente para EMA(610): {len(df_combined)} < 610"
     assert len(df_combined) >= 700, f"Esperado >= 700 candles, obtido {len(df_combined)}"
@@ -833,10 +833,10 @@ def test_fetch_combined_klines_sufficient_candles(position_monitor, temp_db):
 def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
     """Testa que candles frescos são inseridos no banco."""
     import pandas as pd
-    
+
     symbol = 'ETHUSDT'
     timeframe = '1h'
-    
+
     # Mock da API retornando candles frescos
     fresh_data = []
     base_timestamp = 1609459200000
@@ -853,12 +853,12 @@ def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
             'trades_count': 500
         })
     df_fresh = pd.DataFrame(fresh_data)
-    
+
     position_monitor.collector.fetch_klines = Mock(return_value=df_fresh)
-    
+
     # Executar fetch combinado
     position_monitor._fetch_combined_klines(symbol, timeframe, min_candles=100)
-    
+
     # Verificar que dados foram inseridos no banco
     db_records = temp_db.get_ohlcv('H1', symbol)
     assert len(db_records) == 50, f"Esperado 50 registros no banco, obtido {len(db_records)}"

@@ -19,17 +19,17 @@ class DatabaseManager:
     Manages SQLite database operations for the crypto futures agent.
     All tables use composite primary keys on [timestamp, symbol] where applicable.
     """
-    
+
     def __init__(self, db_path: str):
         """
         Initialize database manager.
-        
+
         Args:
             db_path: Path to SQLite database file
         """
         self.db_path = db_path
         self.init_db()
-    
+
     @contextmanager
     def get_connection(self):
         """Context manager for database connections."""
@@ -44,12 +44,12 @@ class DatabaseManager:
             raise
         finally:
             conn.close()
-    
+
     def init_db(self) -> None:
         """Create all database tables if they don't exist."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            
+
             # Table 1: OHLCV D1
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS ohlcv_d1 (
@@ -66,7 +66,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_ohlcv_d1_symbol ON ohlcv_d1(symbol)")
-            
+
             # Table 2: OHLCV H4
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS ohlcv_h4 (
@@ -83,7 +83,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_ohlcv_h4_symbol ON ohlcv_h4(symbol)")
-            
+
             # Table 3: OHLCV H1
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS ohlcv_h1 (
@@ -100,7 +100,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_ohlcv_h1_symbol ON ohlcv_h1(symbol)")
-            
+
             # Table 4: Technical Indicators
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS indicadores_tecnico (
@@ -134,7 +134,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_indicadores_symbol_tf ON indicadores_tecnico(symbol, timeframe)")
-            
+
             # Table 5: Market Sentiment
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sentimento_mercado (
@@ -151,7 +151,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_sentimento_symbol ON sentimento_mercado(symbol)")
-            
+
             # Table 6: Macro Data
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS dados_macro (
@@ -169,7 +169,7 @@ class DatabaseManager:
                     stablecoin_exchange_flow_net REAL
                 )
             """)
-            
+
             # Table 7: SMC Market Structure
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS smc_market_structure (
@@ -190,7 +190,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_smc_structure ON smc_market_structure(symbol, timeframe)")
-            
+
             # Table 8: SMC Zones (Order Blocks, FVGs, Breakers)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS smc_zones (
@@ -208,7 +208,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_smc_zones_symbol ON smc_zones(symbol, timeframe, status)")
-            
+
             # Table 9: SMC Liquidity
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS smc_liquidity (
@@ -225,9 +225,9 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_smc_liquidity ON smc_liquidity(symbol, swept)")
-            
+
             # Table 10: Trade Log
-            # NOTA: Novos campos adicionados (leverage, margin_type, liquidation_price, 
+            # NOTA: Novos campos adicionados (leverage, margin_type, liquidation_price,
             # position_size_usdt, unrealized_pnl_at_snapshot). Se a tabela já existe,
             # os campos serão NULL para registros antigos. Em produção, considerar
             # usar ALTER TABLE para adicionar as colunas de forma incremental.
@@ -257,14 +257,14 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_log_symbol ON trade_log(symbol)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_log_timestamp ON trade_log(timestamp_entrada)")
-            
+
             # Table 11: Position Snapshots
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS position_snapshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp INTEGER NOT NULL,
                     symbol TEXT NOT NULL,
-                    
+
                     -- Position data (from Binance)
                     direction TEXT NOT NULL,
                     entry_price REAL NOT NULL,
@@ -277,7 +277,7 @@ class DatabaseManager:
                     unrealized_pnl REAL NOT NULL,
                     unrealized_pnl_pct REAL NOT NULL,
                     margin_balance REAL,
-                    
+
                     -- Technical indicators snapshot
                     rsi_14 REAL,
                     ema_17 REAL,
@@ -294,7 +294,7 @@ class DatabaseManager:
                     adx_14 REAL,
                     di_plus REAL,
                     di_minus REAL,
-                    
+
                     -- SMC snapshot
                     market_structure TEXT,
                     bos_recent INTEGER DEFAULT 0,
@@ -304,23 +304,23 @@ class DatabaseManager:
                     premium_discount_zone TEXT,
                     liquidity_above_pct REAL,
                     liquidity_below_pct REAL,
-                    
+
                     -- Sentiment snapshot
                     funding_rate REAL,
                     long_short_ratio REAL,
                     open_interest_change_pct REAL,
-                    
+
                     -- Decision output
                     agent_action TEXT NOT NULL,
                     decision_confidence REAL,
                     decision_reasoning TEXT,
-                    
+
                     -- Risk assessment
                     risk_score REAL,
                     stop_loss_suggested REAL,
                     take_profit_suggested REAL,
                     trailing_stop_price REAL,
-                    
+
                     -- For RL training
                     reward_calculated REAL,
                     outcome_label TEXT
@@ -328,20 +328,20 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_symbol ON position_snapshots(symbol, timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_action ON position_snapshots(agent_action)")
-            
+
             # Adicionar colunas adicionais se não existirem (para bancos existentes)
             # Verifica se as colunas já existem antes de tentar adicionar
             cursor.execute("PRAGMA table_info(position_snapshots)")
             columns = [col[1] for col in cursor.fetchall()]
-            
+
             if 'margin_invested' not in columns:
                 cursor.execute("ALTER TABLE position_snapshots ADD COLUMN margin_invested REAL")
                 logger.info("Coluna 'margin_invested' adicionada à tabela position_snapshots")
-            
+
             if 'analysis_summary' not in columns:
                 cursor.execute("ALTER TABLE position_snapshots ADD COLUMN analysis_summary TEXT")
                 logger.info("Coluna 'analysis_summary' adicionada à tabela position_snapshots")
-            
+
             # Table 12: Execution Log (Order Execution Audit Trail)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS execution_log (
@@ -354,18 +354,18 @@ class DatabaseManager:
                     quantity REAL NOT NULL,           -- Order quantity
                     order_type TEXT NOT NULL,         -- MARKET
                     reduce_only INTEGER NOT NULL DEFAULT 1,  -- Always 1
-                    
+
                     -- Execution result
                     executed INTEGER NOT NULL,        -- 1=success, 0=failed/blocked
                     mode TEXT NOT NULL,               -- paper or live
                     reason TEXT,                      -- Why executed or why blocked
-                    
+
                     -- Order response (from Binance)
                     order_id TEXT,                    -- Binance order ID
                     fill_price REAL,                  -- Actual fill price
                     fill_quantity REAL,               -- Actual filled quantity
                     commission REAL,                  -- Commission paid
-                    
+
                     -- Context at time of execution
                     entry_price REAL,
                     mark_price REAL,
@@ -374,16 +374,16 @@ class DatabaseManager:
                     risk_score REAL,
                     decision_confidence REAL,
                     decision_reasoning TEXT,
-                    
+
                     -- Links
                     snapshot_id INTEGER,              -- FK to position_snapshots.id
-                    
+
                     FOREIGN KEY (snapshot_id) REFERENCES position_snapshots(id)
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_execution_log_symbol ON execution_log(symbol, timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_execution_log_action ON execution_log(action, executed)")
-            
+
             # Table 14: WebSocket Events
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS eventos_websocket (
@@ -396,7 +396,7 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_eventos_timestamp ON eventos_websocket(timestamp)")
-            
+
             # Table 15: Reports
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS relatorios (
@@ -407,14 +407,14 @@ class DatabaseManager:
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatorios_tipo ON relatorios(tipo, timestamp)")
-            
+
             # Table 16: Trade Signals (Signal-Driven RL)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS trade_signals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp INTEGER NOT NULL,
                     symbol TEXT NOT NULL,
-                    
+
                     -- Sinal gerado
                     direction TEXT NOT NULL,           -- LONG ou SHORT
                     entry_price REAL NOT NULL,
@@ -422,17 +422,17 @@ class DatabaseManager:
                     take_profit_1 REAL,               -- TP parcial 1
                     take_profit_2 REAL,               -- TP parcial 2
                     take_profit_3 REAL,               -- TP final
-                    
+
                     -- Tamanho e risco
                     position_size_suggested REAL,
                     risk_pct REAL,                    -- % do capital arriscado
                     risk_reward_ratio REAL,
                     leverage_suggested INTEGER,
-                    
+
                     -- Score de confluência (por que o sinal foi gerado)
                     confluence_score REAL,            -- Score total de confluência
                     confluence_details TEXT,          -- JSON com cada fator e peso
-                    
+
                     -- Contexto técnico no momento do sinal (snapshot completo)
                     rsi_14 REAL,
                     ema_17 REAL, ema_34 REAL, ema_72 REAL, ema_144 REAL,
@@ -440,7 +440,7 @@ class DatabaseManager:
                     bb_upper REAL, bb_lower REAL, bb_percent_b REAL,
                     atr_14 REAL,
                     adx_14 REAL, di_plus REAL, di_minus REAL,
-                    
+
                     -- Contexto SMC
                     market_structure TEXT,            -- bullish/bearish/range
                     bos_recent INTEGER DEFAULT 0,
@@ -450,25 +450,25 @@ class DatabaseManager:
                     premium_discount_zone TEXT,
                     liquidity_above_pct REAL,
                     liquidity_below_pct REAL,
-                    
+
                     -- Sentimento
                     funding_rate REAL,
                     long_short_ratio REAL,
                     open_interest_change_pct REAL,
                     fear_greed_value INTEGER,
-                    
+
                     -- Contexto multi-timeframe
                     d1_bias TEXT,                     -- BULLISH/BEARISH/NEUTRO
                     h4_trend TEXT,
                     h1_trend TEXT,
                     market_regime TEXT,               -- RISK_ON/RISK_OFF/NEUTRO
-                    
+
                     -- Execução
                     execution_mode TEXT DEFAULT 'PENDING',  -- PENDING/AUTOTRADE/MANUAL/CANCELLED
                     executed_at INTEGER,
                     executed_price REAL,
                     execution_slippage_pct REAL,
-                    
+
                     -- Resultado (preenchido quando fecha)
                     status TEXT DEFAULT 'ACTIVE',     -- ACTIVE/PARTIAL/CLOSED/CANCELLED
                     exit_price REAL,
@@ -480,7 +480,7 @@ class DatabaseManager:
                     max_favorable_excursion_pct REAL, -- Maior lucro durante o trade (MFE)
                     max_adverse_excursion_pct REAL,   -- Maior prejuízo durante o trade (MAE)
                     duration_minutes INTEGER,
-                    
+
                     -- Para RL
                     reward_calculated REAL,
                     outcome_label TEXT                -- win/loss/breakeven
@@ -489,59 +489,59 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_symbol ON trade_signals(symbol, timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_status ON trade_signals(status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_outcome ON trade_signals(outcome_label)")
-            
+
             # Table 17: Signal Evolution (Snapshots a cada 15 minutos)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS signal_evolution (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     signal_id INTEGER NOT NULL,
                     timestamp INTEGER NOT NULL,
-                    
+
                     -- Preço atual
                     current_price REAL NOT NULL,
                     unrealized_pnl_pct REAL,
                     distance_to_stop_pct REAL,
                     distance_to_tp1_pct REAL,
-                    
+
                     -- Indicadores no momento
                     rsi_14 REAL,
                     macd_histogram REAL,
                     bb_percent_b REAL,
                     atr_14 REAL,
                     adx_14 REAL,
-                    
+
                     -- SMC
                     market_structure TEXT,
-                    
+
                     -- Sentimento
                     funding_rate REAL,
                     long_short_ratio REAL,
-                    
+
                     -- MFE/MAE acumulado até este ponto
                     mfe_pct REAL,                    -- Max favorable excursion até agora
                     mae_pct REAL,                    -- Max adverse excursion até agora
-                    
+
                     -- Evento (se houve algo relevante)
                     event_type TEXT,                 -- PARTIAL_1/PARTIAL_2/STOP_MOVED/TRAILING_ACTIVATED/None
                     event_details TEXT,
-                    
+
                     FOREIGN KEY (signal_id) REFERENCES trade_signals(id)
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_signal_evolution_signal ON signal_evolution(signal_id, timestamp)")
-            
+
             logger.info("Database initialized successfully")
-    
+
     def insert_ohlcv(self, timeframe: str, data: Union[List[Dict[str, Any]], pd.DataFrame]) -> None:
         """
         Insere dados OHLCV na tabela apropriada.
-        
+
         Args:
             timeframe: "D1", "H4", ou "H1"
             data: Lista de dicts OHLCV ou pd.DataFrame
         """
         table_name = f"ohlcv_{timeframe.lower()}"
-        
+
         # Converter DataFrame para lista de dicts se necessário
         if isinstance(data, pd.DataFrame):
             if data.empty:
@@ -550,59 +550,59 @@ class DatabaseManager:
             records = data.to_dict('records')
         else:
             records = data
-        
+
         if not records:
             logger.debug(f"Lista vazia, nenhum dado para inserir em {timeframe}")
             return
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany(f"""
-                INSERT OR REPLACE INTO {table_name} 
+                INSERT OR REPLACE INTO {table_name}
                 (timestamp, symbol, open, high, low, close, volume, quote_volume, trades_count)
                 VALUES (:timestamp, :symbol, :open, :high, :low, :close, :volume, :quote_volume, :trades_count)
             """, records)
-        
+
         logger.debug(f"{len(records)} candles {timeframe} inseridos")
-    
-    def get_ohlcv(self, timeframe: str, symbol: str, start_time: Optional[int] = None, 
+
+    def get_ohlcv(self, timeframe: str, symbol: str, start_time: Optional[int] = None,
                    end_time: Optional[int] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Retrieve OHLCV data from the database.
-        
+
         Args:
             timeframe: "D1", "H4", or "H1"
             symbol: Trading pair symbol
             start_time: Optional start timestamp
             end_time: Optional end timestamp
             limit: Optional limit on number of records
-            
+
         Returns:
             List of OHLCV dictionaries
         """
         table_name = f"ohlcv_{timeframe.lower()}"
         query = f"SELECT * FROM {table_name} WHERE symbol = ?"
         params = [symbol]
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
         if end_time:
             query += " AND timestamp <= ?"
             params.append(end_time)
-        
+
         query += " ORDER BY timestamp ASC"
-        
+
         if limit:
             query += " LIMIT ?"
             params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_indicators(self, data: List[Dict[str, Any]]) -> None:
         """Insert technical indicators into the database."""
         with self.get_connection() as conn:
@@ -618,36 +618,36 @@ class DatabaseManager:
                         :bb_upper, :bb_middle, :bb_lower, :bb_bandwidth, :bb_percent_b,
                         :vp_poc, :vp_vah, :vp_val, :obv, :atr_14, :adx_14, :di_plus, :di_minus)
             """, data)
-        
+
         logger.debug(f"Inserted {len(data)} indicator records")
-    
+
     def get_indicators(self, symbol: str, timeframe: str, start_time: Optional[int] = None,
                        limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Retrieve technical indicators from the database."""
         query = "SELECT * FROM indicadores_tecnico WHERE symbol = ? AND timeframe = ?"
         params = [symbol, timeframe]
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
-        
+
         query += " ORDER BY timestamp ASC"
-        
+
         if limit:
             query += " LIMIT ?"
             params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_sentiment(self, data: List[Dict[str, Any]]) -> None:
         """Insere dados de sentimento do mercado."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            
+
             # Normalizar registros — preencher campos ausentes com None
             registros_normalizados = [
                 {
@@ -663,7 +663,7 @@ class DatabaseManager:
                 }
                 for registro in data
             ]
-            
+
             cursor.executemany("""
                 INSERT OR REPLACE INTO sentimento_mercado
                 (timestamp, symbol, long_short_ratio, open_interest, open_interest_change_pct,
@@ -671,31 +671,31 @@ class DatabaseManager:
                 VALUES (:timestamp, :symbol, :long_short_ratio, :open_interest, :open_interest_change_pct,
                         :funding_rate, :liquidations_long_vol, :liquidations_short_vol, :liquidations_total_vol)
             """, registros_normalizados)
-        
+
         logger.debug(f"{len(registros_normalizados)} registros de sentimento inseridos")
-    
-    def get_sentiment(self, symbol: str, start_time: Optional[int] = None, 
+
+    def get_sentiment(self, symbol: str, start_time: Optional[int] = None,
                       limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Retrieve sentiment data."""
         query = "SELECT * FROM sentimento_mercado WHERE symbol = ?"
         params = [symbol]
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
-        
+
         query += " ORDER BY timestamp ASC"
-        
+
         if limit:
             query += " LIMIT ?"
             params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_macro(self, data: Dict[str, Any]) -> None:
         """Insert macro data."""
         with self.get_connection() as conn:
@@ -709,30 +709,30 @@ class DatabaseManager:
                         :fear_greed_value, :fear_greed_classification, :btc_dominance, :btc_dominance_change_pct,
                         :stablecoin_exchange_flow_net)
             """, data)
-        
+
         logger.debug("Inserted macro data")
-    
+
     def get_macro(self, start_time: Optional[int] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Retrieve macro data."""
         query = "SELECT * FROM dados_macro"
         params = []
-        
+
         if start_time:
             query += " WHERE timestamp >= ?"
             params.append(start_time)
-        
+
         query += " ORDER BY timestamp ASC"
-        
+
         if limit:
             query += " LIMIT ?"
             params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_smc_structure(self, data: Dict[str, Any]) -> None:
         """Insert SMC market structure data."""
         with self.get_connection() as conn:
@@ -746,9 +746,9 @@ class DatabaseManager:
                         :structure_type, :bos_detected, :bos_price, :bos_timestamp,
                         :choch_detected, :choch_price, :choch_timestamp)
             """, data)
-        
+
         logger.debug("Inserted SMC structure data")
-    
+
     def insert_smc_zone(self, data: Dict[str, Any]) -> int:
         """Insert SMC zone and return its ID."""
         with self.get_connection() as conn:
@@ -763,7 +763,7 @@ class DatabaseManager:
             zone_id = cursor.lastrowid
             logger.debug(f"Inserted SMC zone {zone_id}")
             return zone_id
-    
+
     def update_smc_zone_status(self, zone_id: int, status: str, last_tested_timestamp: Optional[int] = None,
                                 invalidated_timestamp: Optional[int] = None) -> None:
         """Update SMC zone status."""
@@ -774,26 +774,26 @@ class DatabaseManager:
                 SET status = ?, last_tested_timestamp = ?, invalidated_timestamp = ?
                 WHERE id = ?
             """, (status, last_tested_timestamp, invalidated_timestamp, zone_id))
-        
+
         logger.debug(f"Updated SMC zone {zone_id} status to {status}")
-    
+
     def get_active_smc_zones(self, symbol: str, timeframe: str, zone_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """Retrieve active SMC zones."""
         query = "SELECT * FROM smc_zones WHERE symbol = ? AND timeframe = ? AND status != 'MITIGATED'"
         params = [symbol, timeframe]
-        
+
         if zone_type:
             query += " AND zone_type = ?"
             params.append(zone_type)
-        
+
         query += " ORDER BY timestamp_criacao DESC"
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_smc_liquidity(self, data: Dict[str, Any]) -> int:
         """Insert SMC liquidity level and return its ID."""
         with self.get_connection() as conn:
@@ -808,7 +808,7 @@ class DatabaseManager:
             liq_id = cursor.lastrowid
             logger.debug(f"Inserted liquidity level {liq_id}")
             return liq_id
-    
+
     def update_liquidity_sweep(self, liq_id: int, swept_timestamp: int) -> None:
         """Mark liquidity level as swept."""
         with self.get_connection() as conn:
@@ -818,9 +818,9 @@ class DatabaseManager:
                 SET swept = 1, swept_timestamp = ?
                 WHERE id = ?
             """, (swept_timestamp, liq_id))
-        
+
         logger.debug(f"Marked liquidity {liq_id} as swept")
-    
+
     def insert_trade(self, data: Dict[str, Any]) -> int:
         """Insert trade and return its ID."""
         with self.get_connection() as conn:
@@ -837,7 +837,7 @@ class DatabaseManager:
             trade_id = cursor.lastrowid
             logger.info(f"Inserted trade {trade_id} for {data['symbol']}")
             return trade_id
-    
+
     def update_trade_exit(self, trade_id: int, exit_data: Dict[str, Any]) -> None:
         """Update trade exit information."""
         with self.get_connection() as conn:
@@ -849,15 +849,15 @@ class DatabaseManager:
                 WHERE trade_id = ?
             """, (exit_data['timestamp_saida'], exit_data['exit_price'], exit_data['pnl_usdt'],
                   exit_data['pnl_pct'], exit_data['r_multiple'], exit_data['motivo_saida'], trade_id))
-        
+
         logger.info(f"Updated trade {trade_id} exit")
-    
+
     def get_trades(self, symbol: Optional[str] = None, start_time: Optional[int] = None,
                    end_time: Optional[int] = None, open_only: bool = False) -> List[Dict[str, Any]]:
         """Retrieve trades."""
         query = "SELECT * FROM trade_log WHERE 1=1"
         params = []
-        
+
         if symbol:
             query += " AND symbol = ?"
             params.append(symbol)
@@ -869,15 +869,15 @@ class DatabaseManager:
             params.append(end_time)
         if open_only:
             query += " AND timestamp_saida IS NULL"
-        
+
         query += " ORDER BY timestamp_entrada DESC"
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_event(self, data: Dict[str, Any]) -> None:
         """Insert WebSocket event."""
         with self.get_connection() as conn:
@@ -887,9 +887,9 @@ class DatabaseManager:
                 (timestamp, symbol, event_type, details, acao_tomada)
                 VALUES (:timestamp, :symbol, :event_type, :details, :acao_tomada)
             """, data)
-        
+
         logger.debug(f"Inserted event {data['event_type']} for {data['symbol']}")
-    
+
     def insert_report(self, tipo: str, dados: Dict[str, Any]) -> None:
         """Insert report."""
         with self.get_connection() as conn:
@@ -899,16 +899,16 @@ class DatabaseManager:
                 (timestamp, tipo, dados_json)
                 VALUES (?, ?, ?)
             """, (int(datetime.now().timestamp() * 1000), tipo, json.dumps(dados)))
-        
+
         logger.info(f"Inserted report: {tipo}")
-    
+
     def insert_position_snapshot(self, data: Dict[str, Any]) -> int:
         """
         Insert position snapshot and return its ID.
-        
+
         Args:
             data: Position snapshot dictionary with all fields
-            
+
         Returns:
             ID of inserted snapshot
         """
@@ -948,43 +948,43 @@ class DatabaseManager:
             snapshot_id = cursor.lastrowid
             logger.debug(f"Inserted position snapshot {snapshot_id} for {data['symbol']}")
             return snapshot_id
-    
-    def get_position_snapshots(self, symbol: str, start_time: Optional[int] = None, 
+
+    def get_position_snapshots(self, symbol: str, start_time: Optional[int] = None,
                                limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Retrieve position snapshots.
-        
+
         Args:
             symbol: Trading pair symbol
             start_time: Optional start timestamp
             limit: Optional limit on number of records
-            
+
         Returns:
             List of snapshot dictionaries
         """
         query = "SELECT * FROM position_snapshots WHERE symbol = ?"
         params = [symbol]
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
-        
+
         query += " ORDER BY timestamp DESC"
-        
+
         if limit:
             query += " LIMIT ?"
             params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def update_snapshot_outcome(self, snapshot_id: int, reward: float, outcome_label: str) -> None:
         """
         Update snapshot with outcome data retroactively.
-        
+
         Args:
             snapshot_id: ID of the snapshot
             reward: Calculated reward value
@@ -997,51 +997,51 @@ class DatabaseManager:
                 SET reward_calculated = ?, outcome_label = ?
                 WHERE id = ?
             """, (reward, outcome_label, snapshot_id))
-        
+
         logger.debug(f"Updated snapshot {snapshot_id} outcome: {outcome_label}, reward: {reward}")
-    
-    def get_snapshots_for_training(self, symbol: Optional[str] = None, 
+
+    def get_snapshots_for_training(self, symbol: Optional[str] = None,
                                    limit: int = 1000) -> List[Dict[str, Any]]:
         """
         Get snapshots with outcome filled for RL training.
-        
+
         Args:
             symbol: Optional symbol filter
             limit: Maximum number of records to return
-            
+
         Returns:
             List of snapshots with outcome_label not NULL
         """
         query = "SELECT * FROM position_snapshots WHERE outcome_label IS NOT NULL"
         params = []
-        
+
         if symbol:
             query += " AND symbol = ?"
             params.append(symbol)
-        
+
         query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def cleanup_old_data(self, days_to_keep: int = 90) -> None:
         """
         Clean up old data from the database.
-        
+
         Args:
             days_to_keep: Number of days of data to keep
         """
         cutoff_timestamp = int((datetime.now() - timedelta(days=days_to_keep)).timestamp() * 1000)
-        
+
         tables_to_clean = [
             'ohlcv_d1', 'ohlcv_h4', 'ohlcv_h1', 'indicadores_tecnico',
             'sentimento_mercado', 'smc_market_structure', 'eventos_websocket'
         ]
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             for table in tables_to_clean:
@@ -1049,16 +1049,16 @@ class DatabaseManager:
                 deleted = cursor.rowcount
                 if deleted > 0:
                     logger.info(f"Cleaned {deleted} old records from {table}")
-        
+
         logger.info(f"Database cleanup completed (keeping {days_to_keep} days)")
-    
+
     def insert_execution_log(self, data: Dict[str, Any]) -> int:
         """
         Insert execution log record and return its ID.
-        
+
         Args:
             data: Execution data dictionary
-            
+
         Returns:
             ID of inserted execution record
         """
@@ -1070,7 +1070,7 @@ class DatabaseManager:
                  executed, mode, reason, order_id, fill_price, fill_quantity, commission,
                  entry_price, mark_price, unrealized_pnl, unrealized_pnl_pct,
                  risk_score, decision_confidence, decision_reasoning, snapshot_id)
-                VALUES 
+                VALUES
                 (:timestamp, :symbol, :direction, :action, :side, :quantity, :order_type, :reduce_only,
                  :executed, :mode, :reason, :order_id, :fill_price, :fill_quantity, :commission,
                  :entry_price, :mark_price, :unrealized_pnl, :unrealized_pnl_pct,
@@ -1079,79 +1079,95 @@ class DatabaseManager:
             execution_id = cursor.lastrowid
             logger.debug(f"Inserted execution log {execution_id} for {data['symbol']}")
             return execution_id
-    
+
     def get_execution_log(self, symbol: Optional[str] = None, start_time: Optional[int] = None,
                          executed_only: bool = False) -> List[Dict[str, Any]]:
         """
         Retrieve execution log records.
-        
+
         Args:
             symbol: Optional symbol filter
             start_time: Optional timestamp filter (only records after this time)
             executed_only: If True, only return successful executions (executed=1)
-            
+
         Returns:
             List of execution log records
         """
         query = "SELECT * FROM execution_log WHERE 1=1"
         params = []
-        
+
         if symbol:
             query += " AND symbol = ?"
             params.append(symbol)
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time)
-        
+
         if executed_only:
             query += " AND executed = 1"
-        
+
         query += " ORDER BY timestamp DESC"
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def count_executions_today(self) -> int:
         """
         Count successful executions today (UTC timezone).
-        
+
         Returns:
             Number of successful executions today
         """
         # Calcular timestamp do início do dia (00:00:00 UTC)
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         today_start_ms = int(today_start.timestamp() * 1000)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT COUNT(*) FROM execution_log 
+                SELECT COUNT(*) FROM execution_log
                 WHERE executed = 1 AND timestamp >= ?
             """, (today_start_ms,))
             count = cursor.fetchone()[0]
             return count
-    
+
     # ========== Métodos para Signal-Driven RL ==========
-    
+
     def insert_trade_signal(self, data: Dict[str, Any]) -> int:
         """
         Insere um novo sinal de trade no banco.
-        
+
         Args:
             data: Dicionário com dados do sinal
-            
+
         Returns:
             ID do sinal inserido
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            defaults = {
+                'exit_price': None,
+                'exit_timestamp': None,
+                'exit_reason': None,
+                'pnl_usdt': None,
+                'pnl_pct': None,
+                'r_multiple': None,
+                'max_favorable_excursion_pct': None,
+                'max_adverse_excursion_pct': None,
+                'duration_minutes': None,
+                'reward_calculated': None,
+                'outcome_label': None
+            }
+            for key, value in defaults.items():
+                data.setdefault(key, value)
+
             cursor.execute("""
                 INSERT INTO trade_signals
-                (timestamp, symbol, direction, entry_price, stop_loss, 
+                (timestamp, symbol, direction, entry_price, stop_loss,
                  take_profit_1, take_profit_2, take_profit_3,
                  position_size_suggested, risk_pct, risk_reward_ratio, leverage_suggested,
                  confluence_score, confluence_details,
@@ -1165,8 +1181,13 @@ class DatabaseManager:
                  funding_rate, long_short_ratio, open_interest_change_pct, fear_greed_value,
                  d1_bias, h4_trend, h1_trend, market_regime,
                  execution_mode, executed_at, executed_price, execution_slippage_pct,
-                 status)
-                VALUES 
+                 status,
+                 exit_price, exit_timestamp, exit_reason,
+                 pnl_usdt, pnl_pct, r_multiple,
+                 max_favorable_excursion_pct, max_adverse_excursion_pct,
+                 duration_minutes,
+                 reward_calculated, outcome_label)
+                VALUES
                 (:timestamp, :symbol, :direction, :entry_price, :stop_loss,
                  :take_profit_1, :take_profit_2, :take_profit_3,
                  :position_size_suggested, :risk_pct, :risk_reward_ratio, :leverage_suggested,
@@ -1181,18 +1202,23 @@ class DatabaseManager:
                  :funding_rate, :long_short_ratio, :open_interest_change_pct, :fear_greed_value,
                  :d1_bias, :h4_trend, :h1_trend, :market_regime,
                  :execution_mode, :executed_at, :executed_price, :execution_slippage_pct,
-                 :status)
+                 :status,
+                 :exit_price, :exit_timestamp, :exit_reason,
+                 :pnl_usdt, :pnl_pct, :r_multiple,
+                 :max_favorable_excursion_pct, :max_adverse_excursion_pct,
+                 :duration_minutes,
+                 :reward_calculated, :outcome_label)
             """, data)
             signal_id = cursor.lastrowid
             logger.debug(f"Sinal {signal_id} inserido para {data['symbol']}")
             return signal_id
-    
-    def update_signal_execution(self, signal_id: int, executed_at: int, 
+
+    def update_signal_execution(self, signal_id: int, executed_at: int,
                                executed_price: float, execution_mode: str,
                                execution_slippage_pct: Optional[float] = None) -> None:
         """
         Atualiza dados de execução de um sinal.
-        
+
         Args:
             signal_id: ID do sinal
             executed_at: Timestamp de execução
@@ -1241,11 +1267,11 @@ class DatabaseManager:
                 (status, execution_mode, exit_reason, signal_id),
             )
             logger.debug(f"Sinal {signal_id} status atualizado para {status}")
-    
+
     def update_signal_outcome(self, signal_id: int, outcome_data: Dict[str, Any]) -> None:
         """
         Atualiza o resultado final de um sinal (quando posição fecha).
-        
+
         Args:
             signal_id: ID do sinal
             outcome_data: Dicionário com dados de resultado (exit_price, pnl, etc)
@@ -1270,67 +1296,67 @@ class DatabaseManager:
             """, {**outcome_data, 'signal_id': signal_id})
             logger.debug(f"Sinal {signal_id} finalizado: {outcome_data.get('outcome_label')}, "
                         f"PnL: {outcome_data.get('pnl_pct'):.2f}%")
-    
+
     def get_active_signals(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Retorna sinais ativos (status='ACTIVE' ou 'PARTIAL').
-        
+
         Args:
             symbol: Filtro opcional por símbolo
-            
+
         Returns:
             Lista de sinais ativos
         """
         query = "SELECT * FROM trade_signals WHERE status IN ('ACTIVE', 'PARTIAL')"
         params = []
-        
+
         if symbol:
             query += " AND symbol = ?"
             params.append(symbol)
-        
+
         query += " ORDER BY timestamp DESC"
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
-    def get_signals_for_training(self, symbol: Optional[str] = None, 
+
+    def get_signals_for_training(self, symbol: Optional[str] = None,
                                  limit: int = 1000) -> List[Dict[str, Any]]:
         """
         Retorna sinais com outcome preenchido para treinamento de RL.
-        
+
         Args:
             symbol: Filtro opcional por símbolo
             limit: Número máximo de registros
-            
+
         Returns:
             Lista de sinais com outcome_label preenchido
         """
         query = "SELECT * FROM trade_signals WHERE outcome_label IS NOT NULL"
         params = []
-        
+
         if symbol:
             query += " AND symbol = ?"
             params.append(symbol)
-        
+
         query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(limit)
-        
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
-    
+
     def insert_signal_evolution(self, data: Dict[str, Any]) -> int:
         """
         Insere um snapshot de evolução de sinal (a cada 15 minutos).
-        
+
         Args:
             data: Dicionário com dados do snapshot
-            
+
         Returns:
             ID do snapshot inserido
         """
@@ -1353,22 +1379,22 @@ class DatabaseManager:
             evolution_id = cursor.lastrowid
             logger.debug(f"Evolução {evolution_id} inserida para sinal {data['signal_id']}")
             return evolution_id
-    
+
     def get_signal_evolution(self, signal_id: int) -> List[Dict[str, Any]]:
         """
         Retorna todos os snapshots de evolução de um sinal.
-        
+
         Args:
             signal_id: ID do sinal
-            
+
         Returns:
             Lista de snapshots ordenados por timestamp
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT * FROM signal_evolution 
-                WHERE signal_id = ? 
+                SELECT * FROM signal_evolution
+                WHERE signal_id = ?
                 ORDER BY timestamp ASC
             """, (signal_id,))
             rows = cursor.fetchall()

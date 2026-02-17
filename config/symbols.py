@@ -261,6 +261,19 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "high_beta",
             "retail_momentum"
         ]
+    },
+    "FIGHTUSDT": {
+        "papel": "Token de nicho. Alta volatilidade e sensível a eventos de mercado.",
+        "ciclo_proprio": "Narrativa de nicho. Amplifica movimentos de alta e baixa.",
+        "correlacao_btc": [0.30, 0.60],
+        "beta_estimado": 4.0,
+        "classificacao": "niche_token",
+        "caracteristicas": [
+            "high_volatility",
+            "event_sensitive",
+            "low_liquidity",
+            "speculative"
+        ]
     }
 }
 
