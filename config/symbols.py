@@ -170,6 +170,32 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "very_high_beta",
             "low_liquidity"
         ]
+    },
+    "KNCUSDT": {
+        "papel": "Kyber Network Crystal. Token de infraestrutura DeFi/DEX agregadora.",
+        "ciclo_proprio": "Segue narrativa DeFi e liquidez on-chain. Sensível a ciclos de altseason.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.7,
+        "classificacao": "mid_cap_defi",
+        "caracteristicas": [
+            "defi_liquidity",
+            "dex_aggregator",
+            "altseason_sensitive",
+            "high_beta"
+        ]
+    },
+    "GMTUSDT": {
+        "papel": "STEPN (GMT). Token GameFi focado em move-to-earn.",
+        "ciclo_proprio": "Segue narrativa GameFi e altcoin. Alta sensibilidade a sentimento de varejo.",
+        "correlacao_btc": [0.40, 0.70],
+        "beta_estimado": 3.0,
+        "classificacao": "mid_cap_gamefi",
+        "caracteristicas": [
+            "gamefi_narrative",
+            "move_to_earn",
+            "retail_sentiment",
+            "high_beta"
+        ]
     }
 }
 
