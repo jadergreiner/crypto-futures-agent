@@ -813,7 +813,9 @@ class PositionMonitor:
     @staticmethod
     def _calculate_suggested_stops(direction: str, entry_price: float, mark_price: float, 
                                   atr: float, stop_multiplier: float, tp_multiplier: float,
-                                  nearest_ob_dist: Optional[float] = None) -> Dict[str, Optional[float]]:
+                                  nearest_ob_dist: Optional[float] = None,
+                                  liquidity_above_pct: Optional[float] = None,
+                                  liquidity_below_pct: Optional[float] = None) -> Dict[str, Optional[float]]:
         """
         Calcula stop loss e take profit sugeridos baseado em ATR e níveis SMC.
         
@@ -825,13 +827,17 @@ class PositionMonitor:
             stop_multiplier: Multiplicador de ATR para stop loss
             tp_multiplier: Multiplicador de ATR para take profit
             nearest_ob_dist: Distância percentual até o Order Block mais próximo (opcional)
+            liquidity_above_pct: Distância percentual até liquidez acima (BSL) (opcional)
+            liquidity_below_pct: Distância percentual até liquidez abaixo (SSL) (opcional)
             
         Returns:
-            Dict com 'stop_loss' e 'take_profit'
+            Dict com stop/tp e fonte do cálculo
         """
         result = {
             'stop_loss': None,
-            'take_profit': None
+            'take_profit': None,
+            'stop_source': 'ATR',
+            'tp_source': 'ATR'
         }
         
         if direction == 'LONG':
@@ -845,10 +851,23 @@ class PositionMonitor:
                 smc_stop = ob_price - (atr * 0.5)
                 # Usar o stop mais conservador (mais próximo do preço atual para limitar perda)
                 result['stop_loss'] = max(smc_stop, atr_stop)
+                result['stop_source'] = 'SMC_OB+ATR'
             else:
                 result['stop_loss'] = atr_stop
-            
-            result['take_profit'] = entry_price + (atr * tp_multiplier)
+
+            atr_tp = entry_price + (atr * tp_multiplier)
+            liq_tp = None
+            if liquidity_above_pct is not None and liquidity_above_pct > 0:
+                liq_tp = mark_price * (1 + liquidity_above_pct / 100)
+
+            # Para LONG, usar alvo válido mais próximo acima da entrada.
+            tp_candidates = [tp for tp in [atr_tp, liq_tp] if tp is not None and tp > entry_price]
+            if tp_candidates:
+                result['take_profit'] = min(tp_candidates)
+                if liq_tp is not None and result['take_profit'] == liq_tp:
+                    result['tp_source'] = 'SMC_LIQUIDITY_BSL'
+            else:
+                result['take_profit'] = atr_tp
         else:  # SHORT
             # Para SHORT: stop acima do nearest OB ou swing high
             atr_stop = entry_price + (atr * stop_multiplier)
@@ -860,10 +879,23 @@ class PositionMonitor:
                 smc_stop = ob_price + (atr * 0.5)
                 # Usar o stop mais conservador (mais próximo do preço atual)
                 result['stop_loss'] = min(smc_stop, atr_stop)
+                result['stop_source'] = 'SMC_OB+ATR'
             else:
                 result['stop_loss'] = atr_stop
-            
-            result['take_profit'] = entry_price - (atr * tp_multiplier)
+
+            atr_tp = entry_price - (atr * tp_multiplier)
+            liq_tp = None
+            if liquidity_below_pct is not None and liquidity_below_pct > 0:
+                liq_tp = mark_price * (1 - liquidity_below_pct / 100)
+
+            # Para SHORT, usar alvo válido mais próximo abaixo da entrada.
+            tp_candidates = [tp for tp in [atr_tp, liq_tp] if tp is not None and tp < entry_price]
+            if tp_candidates:
+                result['take_profit'] = max(tp_candidates)
+                if liq_tp is not None and result['take_profit'] == liq_tp:
+                    result['tp_source'] = 'SMC_LIQUIDITY_SSL'
+            else:
+                result['take_profit'] = atr_tp
         
         return result
     
@@ -1091,14 +1123,26 @@ class PositionMonitor:
             # Calcular stops e targets usando helper
             stop_multiplier = RISK_PARAMS['stop_loss_atr_multiplier']
             tp_multiplier = RISK_PARAMS['take_profit_atr_multiplier']
+            liquidity_above_pct = indicators.get('liquidity_above_pct')
+            liquidity_below_pct = indicators.get('liquidity_below_pct')
             
             stops = self._calculate_suggested_stops(
                 direction, entry_price, mark_price, atr, 
-                stop_multiplier, tp_multiplier, nearest_ob_dist
+                stop_multiplier, tp_multiplier, nearest_ob_dist,
+                liquidity_above_pct=liquidity_above_pct,
+                liquidity_below_pct=liquidity_below_pct
             )
             
             decision['stop_loss_suggested'] = stops['stop_loss']
             decision['take_profit_suggested'] = stops['take_profit']
+            decision['stop_loss_source'] = stops.get('stop_source')
+            decision['take_profit_source'] = stops.get('tp_source')
+
+            reasoning.append(
+                f"TP/SL calculado com técnico+SMC (SL: {stops.get('stop_source', 'ATR')}, "
+                f"TP: {stops.get('tp_source', 'ATR')})"
+            )
+            decision['decision_reasoning'] = json.dumps(reasoning)
             
             # Trailing stop (ativar se PnL > activation_r)
             activation_r = RISK_PARAMS.get('trailing_stop_activation_r_multiple', 1.5)
@@ -1503,7 +1547,9 @@ class PositionMonitor:
                 'confidence': decision['decision_confidence'],
                 'risk_score': decision['risk_score'],
                 'stop_loss': decision.get('stop_loss_suggested'),
-                'take_profit': decision.get('take_profit_suggested')
+                'take_profit': decision.get('take_profit_suggested'),
+                'stop_loss_source': decision.get('stop_loss_source', 'ATR'),
+                'take_profit_source': decision.get('take_profit_source', 'ATR')
             }
         }
         
