@@ -9,8 +9,10 @@ import logging
 import json
 import traceback
 import threading
+import math
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import (
     DerivativesTradingUsdsFutures,
@@ -73,6 +75,8 @@ class PositionMonitor:
         self.risk_manager = RiskManager()
         self.alert_manager = AlertManager()
         self._running = False
+        self._protection_bootstrap_done = set()
+        self._symbol_price_precision_cache: Dict[str, Dict[str, Any]] = {}
         
         # Inicializar OrderExecutor para execução automática de ordens
         from execution.order_executor import OrderExecutor
@@ -1653,6 +1657,101 @@ class PositionMonitor:
         except Exception:
             return None
 
+    def _get_symbol_price_precision_info(self, symbol: str) -> Dict[str, Any]:
+        """Obtém precision/tick_size de preço do símbolo via exchange_info."""
+        if symbol in self._symbol_price_precision_cache:
+            return self._symbol_price_precision_cache[symbol]
+
+        default_info = {
+            'price_precision': 8,
+            'tick_size': None,
+        }
+
+        try:
+            response = self._client.rest_api.exchange_information()
+            data = self._extract_data(response)
+
+            symbols = None
+            if hasattr(data, 'symbols'):
+                symbols = data.symbols
+            elif isinstance(data, dict):
+                symbols = data.get('symbols')
+
+            if not symbols:
+                self._symbol_price_precision_cache[symbol] = default_info
+                return default_info
+
+            for symbol_info in symbols:
+                if isinstance(symbol_info, dict):
+                    symbol_name = symbol_info.get('symbol')
+                    price_precision = symbol_info.get('pricePrecision')
+                    if price_precision is None:
+                        price_precision = symbol_info.get('price_precision', 8)
+                    filters = symbol_info.get('filters', [])
+                else:
+                    symbol_name = getattr(symbol_info, 'symbol', None)
+                    price_precision = getattr(symbol_info, 'price_precision', 8)
+                    filters = getattr(symbol_info, 'filters', [])
+
+                if symbol_name != symbol:
+                    continue
+
+                tick_size = None
+                for f in filters or []:
+                    if isinstance(f, dict):
+                        filter_type = f.get('filterType')
+                        if filter_type is None:
+                            filter_type = f.get('filter_type')
+
+                        if filter_type == 'PRICE_FILTER':
+                            raw_tick = f.get('tickSize')
+                            if raw_tick is None:
+                                raw_tick = f.get('tick_size', 0)
+                            tick_size = float(raw_tick or 0)
+                            break
+                    else:
+                        if getattr(f, 'filter_type', None) == 'PRICE_FILTER':
+                            tick_size = float(getattr(f, 'tick_size', 0) or 0)
+                            break
+
+                info = {
+                    'price_precision': int(price_precision) if price_precision is not None else 8,
+                    'tick_size': tick_size if tick_size and tick_size > 0 else None,
+                }
+                self._symbol_price_precision_cache[symbol] = info
+                return info
+        except Exception as e:
+            logger.warning(f"Falha ao obter precision de preço para {symbol}: {e}")
+
+        self._symbol_price_precision_cache[symbol] = default_info
+        return default_info
+
+    def _normalize_trigger_price(self, symbol: str, trigger_price: float, side: str) -> str:
+        """Normaliza trigger_price para precision/tick_size aceitos pela Binance."""
+        info = self._get_symbol_price_precision_info(symbol)
+        tick_size = info.get('tick_size')
+        trigger_dec = Decimal(str(trigger_price))
+
+        if tick_size:
+            tick_dec = Decimal(str(tick_size))
+            if tick_dec <= 0:
+                tick_dec = Decimal('0.00000001')
+
+            ratio = trigger_dec / tick_dec
+            if side == 'BUY':
+                steps = ratio.to_integral_value(rounding=ROUND_CEILING)
+            else:
+                steps = ratio.to_integral_value(rounding=ROUND_FLOOR)
+
+            normalized = steps * tick_dec
+            decimals = max(0, -tick_dec.as_tuple().exponent)
+            return format(normalized, f'.{decimals}f')
+
+        price_precision = info.get('price_precision', 8)
+        quant = Decimal('1').scaleb(-int(price_precision))
+        normalized = trigger_dec.quantize(quant)
+        return format(normalized, f'.{int(price_precision)}f')
+
     def _persist_protection_execution(
         self,
         position: Dict[str, Any],
@@ -1712,20 +1811,85 @@ class PositionMonitor:
         """
         Cria ordem condicional de proteção (SL/TP) para fechar posição existente.
 
-        Usa close_position=True para fechar a posição integral no trigger.
+        Usa endpoint de algo-order do SDK e close_position=true para fechar
+        a posição integral no trigger.
         """
         side = self._opposite_side_for_close(direction)
+        normalized_trigger_price = self._normalize_trigger_price(symbol, trigger_price, side)
 
-        response = self._client.rest_api.new_order(
+        response = self._client.rest_api.new_algo_order(
+            algo_type='CONDITIONAL',
             symbol=symbol,
             side=side,
             type=order_type,
-            stop_price=trigger_price,
-            close_position=True,
+            trigger_price=normalized_trigger_price,
+            close_position='true',
             working_type='MARK_PRICE',
             recv_window=10000,
         )
+        logger.info(
+            f"Ordem de proteção enviada: {order_type} {symbol} side={side} "
+            f"trigger={normalized_trigger_price}"
+        )
         return self._extract_order_data(response)
+
+    def _list_open_algo_orders(self, symbol: str) -> List[Dict[str, Any]]:
+        """Lista ordens algo abertas do símbolo com fallback de métodos do SDK."""
+        rest_api = self._client.rest_api
+        candidates = [
+            ('current_all_algo_open_orders', {'symbol': symbol}),
+            ('query_all_algo_orders', {'symbol': symbol}),
+            ('current_all_algo_open_orders', {}),
+            ('query_all_algo_orders', {}),
+        ]
+
+        for method_name, kwargs in candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                response = method(**kwargs)
+                data = self._extract_order_data(response)
+                if data is None:
+                    return []
+                if not isinstance(data, list):
+                    data = [data]
+
+                filtered = []
+                for order in data:
+                    order_symbol = self._safe_get(order, ['symbol'])
+                    if order_symbol == symbol:
+                        filtered.append(order)
+                return filtered
+            except Exception as e:
+                logger.debug(f"Falha ao listar algo orders com {method_name} para {symbol}: {e}")
+                continue
+
+        return []
+
+    def _has_existing_protection_orders(self, symbol: str, direction: str) -> Dict[str, bool]:
+        """Verifica se já existem ordens SL/TP de proteção abertas para a posição."""
+        side = self._opposite_side_for_close(direction)
+        algo_orders = self._list_open_algo_orders(symbol)
+
+        has_sl = False
+        has_tp = False
+
+        for order in algo_orders:
+            order_type = str(self._safe_get(order, ['type']) or '').upper()
+            order_side = str(self._safe_get(order, ['side']) or '').upper()
+            close_position = self._safe_get(order, ['close_position', 'closePosition'])
+            is_close_position = str(close_position).lower() in ('true', '1')
+
+            if not is_close_position or order_side != side:
+                continue
+
+            if order_type in ('STOP_MARKET', 'STOP'):
+                has_sl = True
+            elif order_type in ('TAKE_PROFIT_MARKET', 'TAKE_PROFIT'):
+                has_tp = True
+
+        return {'has_sl': has_sl, 'has_tp': has_tp}
 
     def adopt_position_with_protection(self, symbol: str) -> Dict[str, Any]:
         """
@@ -1763,8 +1927,9 @@ class PositionMonitor:
             stop_price = decision.get('stop_loss_suggested')
             tp_price = decision.get('take_profit_suggested')
 
-            sl_created = False
-            tp_created = False
+            existing_protection = self._has_existing_protection_orders(symbol, direction)
+            sl_created = existing_protection['has_sl']
+            tp_created = existing_protection['has_tp']
             side = self._opposite_side_for_close(direction)
 
             # Validar coerência dos gatilhos para evitar trigger imediato/rejeição
@@ -1782,7 +1947,7 @@ class PositionMonitor:
                 if direction == 'SHORT' and float(tp_price) < mark_price:
                     valid_tp = True
 
-            if valid_sl:
+            if valid_sl and not sl_created:
                 try:
                     sl_response = self._place_protective_order(
                         symbol=symbol,
@@ -1815,10 +1980,12 @@ class PositionMonitor:
                         side=side,
                     )
                     logger.error(f"Erro ao criar STOP_MARKET para {symbol}: {e}")
+            elif valid_sl and sl_created:
+                logger.info(f"SL já existente para {symbol}; não será recriado")
             else:
                 logger.warning(f"SL sugerido inválido/ausente para {symbol}. mark={mark_price}, sl={stop_price}")
 
-            if valid_tp:
+            if valid_tp and not tp_created:
                 try:
                     tp_response = self._place_protective_order(
                         symbol=symbol,
@@ -1851,14 +2018,21 @@ class PositionMonitor:
                         side=side,
                     )
                     logger.error(f"Erro ao criar TAKE_PROFIT_MARKET para {symbol}: {e}")
+            elif valid_tp and tp_created:
+                logger.info(f"TP já existente para {symbol}; não será recriado")
             else:
                 logger.warning(f"TP sugerido inválido/ausente para {symbol}. mark={mark_price}, tp={tp_price}")
 
+            sl_ready = sl_created
+            tp_ready = tp_created
+
             return {
-                'ok': sl_created or tp_created,
-                'reason': 'Proteções configuradas' if (sl_created or tp_created) else 'Não foi possível configurar SL/TP',
+                'ok': sl_ready and tp_ready,
+                'reason': 'Proteções configuradas' if (sl_ready and tp_ready) else 'Não foi possível configurar SL/TP',
                 'sl_created': sl_created,
                 'tp_created': tp_created,
+                'sl_ready': sl_ready,
+                'tp_ready': tp_ready,
                 'snapshot_id': snapshot_id,
                 'stop_loss_suggested': stop_price,
                 'take_profit_suggested': tp_price,
@@ -1925,6 +2099,22 @@ class PositionMonitor:
             try:
                 pos_symbol = position['symbol']
                 logger.info(f"\n--- Analisando {pos_symbol} {position['direction']} ---")
+
+                # Em modo live, garantir bootstrap de proteções (SL/TP) para posições em gestão.
+                # Executa uma vez por símbolo por sessão para evitar chamadas redundantes.
+                if self.mode == 'live' and pos_symbol not in self._protection_bootstrap_done:
+                    try:
+                        protection_result = self.adopt_position_with_protection(pos_symbol)
+                        if protection_result.get('sl_ready') and protection_result.get('tp_ready'):
+                            self._protection_bootstrap_done.add(pos_symbol)
+                            logger.info(f"[PROTEÇÃO] SL/TP ativos para {pos_symbol}")
+                        else:
+                            logger.warning(
+                                f"[PROTEÇÃO] Bootstrap parcial para {pos_symbol}: "
+                                f"{protection_result.get('reason', 'sem detalhes')}"
+                            )
+                    except Exception as e:
+                        logger.error(f"[PROTEÇÃO] Erro no bootstrap de {pos_symbol}: {e}")
                 
                 # a. Buscar dados de mercado
                 market_data = self.fetch_current_market_data(pos_symbol)
