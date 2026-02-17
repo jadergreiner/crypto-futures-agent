@@ -482,3 +482,77 @@ class Trainer:
         logger.info(f"Model loaded from {path}")
         
         return self.model
+    
+    def train_from_real_signals(self, symbol: str, db) -> Dict[str, Any]:
+        """
+        Treina sub-agente do símbolo usando sinais reais acumulados.
+        Busca sinais com outcome do banco e cria episódios de replay.
+        
+        Args:
+            symbol: Símbolo do ativo (ex: BTCUSDT)
+            db: DatabaseManager instance
+            
+        Returns:
+            Dicionário com resultado do treino
+        """
+        from .sub_agent_manager import SubAgentManager
+        from config.settings import (
+            SUB_AGENTS_BASE_DIR, 
+            SIGNAL_MIN_TRADES_FOR_RETRAINING,
+            SIGNAL_RETRAINING_TIMESTEPS
+        )
+        
+        logger.info(f"Iniciando treino com sinais reais para {symbol}")
+        
+        # Buscar sinais com outcome do banco
+        signals = db.get_signals_for_training(symbol=symbol, limit=1000)
+        
+        if not signals:
+            logger.warning(f"Nenhum sinal com outcome encontrado para {symbol}")
+            return {
+                'success': False,
+                'reason': 'no_signals',
+                'symbol': symbol
+            }
+        
+        if len(signals) < SIGNAL_MIN_TRADES_FOR_RETRAINING:
+            logger.warning(f"Sinais insuficientes para treino de {symbol}: "
+                          f"{len(signals)} < {SIGNAL_MIN_TRADES_FOR_RETRAINING}")
+            return {
+                'success': False,
+                'reason': 'insufficient_signals',
+                'symbol': symbol,
+                'signals_available': len(signals),
+                'signals_required': SIGNAL_MIN_TRADES_FOR_RETRAINING
+            }
+        
+        # Buscar evoluções para cada sinal
+        evolutions_dict = {}
+        for signal in signals:
+            signal_id = signal['id']
+            evolutions = db.get_signal_evolution(signal_id)
+            evolutions_dict[signal_id] = evolutions
+        
+        logger.info(f"Carregados {len(signals)} sinais e suas evoluções para {symbol}")
+        
+        # Inicializar gerenciador de sub-agentes
+        manager = SubAgentManager(base_dir=SUB_AGENTS_BASE_DIR)
+        
+        # Treinar sub-agente
+        result = manager.train_agent(
+            symbol=symbol,
+            signals=signals,
+            evolutions=evolutions_dict,
+            total_timesteps=SIGNAL_RETRAINING_TIMESTEPS
+        )
+        
+        # Salvar sub-agente
+        if result.get('success'):
+            manager.save_all()
+            logger.info(f"Sub-agente {symbol} treinado e salvo com sucesso")
+        
+        return {
+            **result,
+            'symbol': symbol,
+            'signals_used': len(signals)
+        }

@@ -408,6 +408,128 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_relatorios_tipo ON relatorios(tipo, timestamp)")
             
+            # Table 16: Trade Signals (Signal-Driven RL)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS trade_signals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    
+                    -- Sinal gerado
+                    direction TEXT NOT NULL,           -- LONG ou SHORT
+                    entry_price REAL NOT NULL,
+                    stop_loss REAL NOT NULL,
+                    take_profit_1 REAL,               -- TP parcial 1
+                    take_profit_2 REAL,               -- TP parcial 2
+                    take_profit_3 REAL,               -- TP final
+                    
+                    -- Tamanho e risco
+                    position_size_suggested REAL,
+                    risk_pct REAL,                    -- % do capital arriscado
+                    risk_reward_ratio REAL,
+                    leverage_suggested INTEGER,
+                    
+                    -- Score de confluência (por que o sinal foi gerado)
+                    confluence_score REAL,            -- Score total de confluência
+                    confluence_details TEXT,          -- JSON com cada fator e peso
+                    
+                    -- Contexto técnico no momento do sinal (snapshot completo)
+                    rsi_14 REAL,
+                    ema_17 REAL, ema_34 REAL, ema_72 REAL, ema_144 REAL,
+                    macd_line REAL, macd_signal REAL, macd_histogram REAL,
+                    bb_upper REAL, bb_lower REAL, bb_percent_b REAL,
+                    atr_14 REAL,
+                    adx_14 REAL, di_plus REAL, di_minus REAL,
+                    
+                    -- Contexto SMC
+                    market_structure TEXT,            -- bullish/bearish/range
+                    bos_recent INTEGER DEFAULT 0,
+                    choch_recent INTEGER DEFAULT 0,
+                    nearest_ob_distance_pct REAL,
+                    nearest_fvg_distance_pct REAL,
+                    premium_discount_zone TEXT,
+                    liquidity_above_pct REAL,
+                    liquidity_below_pct REAL,
+                    
+                    -- Sentimento
+                    funding_rate REAL,
+                    long_short_ratio REAL,
+                    open_interest_change_pct REAL,
+                    fear_greed_value INTEGER,
+                    
+                    -- Contexto multi-timeframe
+                    d1_bias TEXT,                     -- BULLISH/BEARISH/NEUTRO
+                    h4_trend TEXT,
+                    h1_trend TEXT,
+                    market_regime TEXT,               -- RISK_ON/RISK_OFF/NEUTRO
+                    
+                    -- Execução
+                    execution_mode TEXT DEFAULT 'PENDING',  -- PENDING/AUTOTRADE/MANUAL/CANCELLED
+                    executed_at INTEGER,
+                    executed_price REAL,
+                    execution_slippage_pct REAL,
+                    
+                    -- Resultado (preenchido quando fecha)
+                    status TEXT DEFAULT 'ACTIVE',     -- ACTIVE/PARTIAL/CLOSED/CANCELLED
+                    exit_price REAL,
+                    exit_timestamp INTEGER,
+                    exit_reason TEXT,                 -- stop_loss/take_profit_1/take_profit_2/take_profit_3/manual_close/trailing_stop
+                    pnl_usdt REAL,
+                    pnl_pct REAL,
+                    r_multiple REAL,
+                    max_favorable_excursion_pct REAL, -- Maior lucro durante o trade (MFE)
+                    max_adverse_excursion_pct REAL,   -- Maior prejuízo durante o trade (MAE)
+                    duration_minutes INTEGER,
+                    
+                    -- Para RL
+                    reward_calculated REAL,
+                    outcome_label TEXT                -- win/loss/breakeven
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_symbol ON trade_signals(symbol, timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_status ON trade_signals(status)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_trade_signals_outcome ON trade_signals(outcome_label)")
+            
+            # Table 17: Signal Evolution (Snapshots a cada 15 minutos)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS signal_evolution (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    signal_id INTEGER NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    
+                    -- Preço atual
+                    current_price REAL NOT NULL,
+                    unrealized_pnl_pct REAL,
+                    distance_to_stop_pct REAL,
+                    distance_to_tp1_pct REAL,
+                    
+                    -- Indicadores no momento
+                    rsi_14 REAL,
+                    macd_histogram REAL,
+                    bb_percent_b REAL,
+                    atr_14 REAL,
+                    adx_14 REAL,
+                    
+                    -- SMC
+                    market_structure TEXT,
+                    
+                    -- Sentimento
+                    funding_rate REAL,
+                    long_short_ratio REAL,
+                    
+                    -- MFE/MAE acumulado até este ponto
+                    mfe_pct REAL,                    -- Max favorable excursion até agora
+                    mae_pct REAL,                    -- Max adverse excursion até agora
+                    
+                    -- Evento (se houve algo relevante)
+                    event_type TEXT,                 -- PARTIAL_1/PARTIAL_2/STOP_MOVED/TRAILING_ACTIVATED/None
+                    event_details TEXT,
+                    
+                    FOREIGN KEY (signal_id) REFERENCES trade_signals(id)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_signal_evolution_signal ON signal_evolution(signal_id, timestamp)")
+            
             logger.info("Database initialized successfully")
     
     def insert_ohlcv(self, timeframe: str, data: Union[List[Dict[str, Any]], pd.DataFrame]) -> None:
@@ -1012,4 +1134,213 @@ class DatabaseManager:
             """, (today_start_ms,))
             count = cursor.fetchone()[0]
             return count
+    
+    # ========== Métodos para Signal-Driven RL ==========
+    
+    def insert_trade_signal(self, data: Dict[str, Any]) -> int:
+        """
+        Insere um novo sinal de trade no banco.
+        
+        Args:
+            data: Dicionário com dados do sinal
+            
+        Returns:
+            ID do sinal inserido
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO trade_signals
+                (timestamp, symbol, direction, entry_price, stop_loss, 
+                 take_profit_1, take_profit_2, take_profit_3,
+                 position_size_suggested, risk_pct, risk_reward_ratio, leverage_suggested,
+                 confluence_score, confluence_details,
+                 rsi_14, ema_17, ema_34, ema_72, ema_144,
+                 macd_line, macd_signal, macd_histogram,
+                 bb_upper, bb_lower, bb_percent_b,
+                 atr_14, adx_14, di_plus, di_minus,
+                 market_structure, bos_recent, choch_recent,
+                 nearest_ob_distance_pct, nearest_fvg_distance_pct,
+                 premium_discount_zone, liquidity_above_pct, liquidity_below_pct,
+                 funding_rate, long_short_ratio, open_interest_change_pct, fear_greed_value,
+                 d1_bias, h4_trend, h1_trend, market_regime,
+                 execution_mode, executed_at, executed_price, execution_slippage_pct,
+                 status)
+                VALUES 
+                (:timestamp, :symbol, :direction, :entry_price, :stop_loss,
+                 :take_profit_1, :take_profit_2, :take_profit_3,
+                 :position_size_suggested, :risk_pct, :risk_reward_ratio, :leverage_suggested,
+                 :confluence_score, :confluence_details,
+                 :rsi_14, :ema_17, :ema_34, :ema_72, :ema_144,
+                 :macd_line, :macd_signal, :macd_histogram,
+                 :bb_upper, :bb_lower, :bb_percent_b,
+                 :atr_14, :adx_14, :di_plus, :di_minus,
+                 :market_structure, :bos_recent, :choch_recent,
+                 :nearest_ob_distance_pct, :nearest_fvg_distance_pct,
+                 :premium_discount_zone, :liquidity_above_pct, :liquidity_below_pct,
+                 :funding_rate, :long_short_ratio, :open_interest_change_pct, :fear_greed_value,
+                 :d1_bias, :h4_trend, :h1_trend, :market_regime,
+                 :execution_mode, :executed_at, :executed_price, :execution_slippage_pct,
+                 :status)
+            """, data)
+            signal_id = cursor.lastrowid
+            logger.debug(f"Sinal {signal_id} inserido para {data['symbol']}")
+            return signal_id
+    
+    def update_signal_execution(self, signal_id: int, executed_at: int, 
+                               executed_price: float, execution_mode: str,
+                               execution_slippage_pct: Optional[float] = None) -> None:
+        """
+        Atualiza dados de execução de um sinal.
+        
+        Args:
+            signal_id: ID do sinal
+            executed_at: Timestamp de execução
+            executed_price: Preço de execução
+            execution_mode: AUTOTRADE ou MANUAL
+            execution_slippage_pct: Slippage percentual (opcional)
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE trade_signals
+                SET executed_at = ?,
+                    executed_price = ?,
+                    execution_mode = ?,
+                    execution_slippage_pct = ?
+                WHERE id = ?
+            """, (executed_at, executed_price, execution_mode, execution_slippage_pct, signal_id))
+            logger.debug(f"Sinal {signal_id} atualizado: execução em {executed_price}")
+    
+    def update_signal_outcome(self, signal_id: int, outcome_data: Dict[str, Any]) -> None:
+        """
+        Atualiza o resultado final de um sinal (quando posição fecha).
+        
+        Args:
+            signal_id: ID do sinal
+            outcome_data: Dicionário com dados de resultado (exit_price, pnl, etc)
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE trade_signals
+                SET status = :status,
+                    exit_price = :exit_price,
+                    exit_timestamp = :exit_timestamp,
+                    exit_reason = :exit_reason,
+                    pnl_usdt = :pnl_usdt,
+                    pnl_pct = :pnl_pct,
+                    r_multiple = :r_multiple,
+                    max_favorable_excursion_pct = :max_favorable_excursion_pct,
+                    max_adverse_excursion_pct = :max_adverse_excursion_pct,
+                    duration_minutes = :duration_minutes,
+                    reward_calculated = :reward_calculated,
+                    outcome_label = :outcome_label
+                WHERE id = :signal_id
+            """, {**outcome_data, 'signal_id': signal_id})
+            logger.debug(f"Sinal {signal_id} finalizado: {outcome_data.get('outcome_label')}, "
+                        f"PnL: {outcome_data.get('pnl_pct'):.2f}%")
+    
+    def get_active_signals(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Retorna sinais ativos (status='ACTIVE' ou 'PARTIAL').
+        
+        Args:
+            symbol: Filtro opcional por símbolo
+            
+        Returns:
+            Lista de sinais ativos
+        """
+        query = "SELECT * FROM trade_signals WHERE status IN ('ACTIVE', 'PARTIAL')"
+        params = []
+        
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        
+        query += " ORDER BY timestamp DESC"
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    
+    def get_signals_for_training(self, symbol: Optional[str] = None, 
+                                 limit: int = 1000) -> List[Dict[str, Any]]:
+        """
+        Retorna sinais com outcome preenchido para treinamento de RL.
+        
+        Args:
+            symbol: Filtro opcional por símbolo
+            limit: Número máximo de registros
+            
+        Returns:
+            Lista de sinais com outcome_label preenchido
+        """
+        query = "SELECT * FROM trade_signals WHERE outcome_label IS NOT NULL"
+        params = []
+        
+        if symbol:
+            query += " AND symbol = ?"
+            params.append(symbol)
+        
+        query += " ORDER BY timestamp DESC LIMIT ?"
+        params.append(limit)
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+    
+    def insert_signal_evolution(self, data: Dict[str, Any]) -> int:
+        """
+        Insere um snapshot de evolução de sinal (a cada 15 minutos).
+        
+        Args:
+            data: Dicionário com dados do snapshot
+            
+        Returns:
+            ID do snapshot inserido
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO signal_evolution
+                (signal_id, timestamp, current_price, unrealized_pnl_pct,
+                 distance_to_stop_pct, distance_to_tp1_pct,
+                 rsi_14, macd_histogram, bb_percent_b, atr_14, adx_14,
+                 market_structure, funding_rate, long_short_ratio,
+                 mfe_pct, mae_pct, event_type, event_details)
+                VALUES
+                (:signal_id, :timestamp, :current_price, :unrealized_pnl_pct,
+                 :distance_to_stop_pct, :distance_to_tp1_pct,
+                 :rsi_14, :macd_histogram, :bb_percent_b, :atr_14, :adx_14,
+                 :market_structure, :funding_rate, :long_short_ratio,
+                 :mfe_pct, :mae_pct, :event_type, :event_details)
+            """, data)
+            evolution_id = cursor.lastrowid
+            logger.debug(f"Evolução {evolution_id} inserida para sinal {data['signal_id']}")
+            return evolution_id
+    
+    def get_signal_evolution(self, signal_id: int) -> List[Dict[str, Any]]:
+        """
+        Retorna todos os snapshots de evolução de um sinal.
+        
+        Args:
+            signal_id: ID do sinal
+            
+        Returns:
+            Lista de snapshots ordenados por timestamp
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM signal_evolution 
+                WHERE signal_id = ? 
+                ORDER BY timestamp ASC
+            """, (signal_id,))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
 
