@@ -1837,6 +1837,22 @@ class PositionMonitor:
         if not positions:
             logger.info("Nenhuma posição aberta encontrada")
             return snapshots
+
+        # Em modo live, processar apenas símbolos autorizados para execução.
+        # Isso evita ruído operacional com posições externas ao escopo do agente.
+        authorized_symbols = set(getattr(self.order_executor, 'authorized_symbols', set()))
+        if self.mode == 'live' and authorized_symbols:
+            original_count = len(positions)
+            positions = [p for p in positions if p.get('symbol') in authorized_symbols]
+            skipped = original_count - len(positions)
+            if skipped > 0:
+                logger.info(
+                    f"Filtro de escopo ativo: {skipped} posição(ões) ignorada(s) por não estarem na whitelist."
+                )
+
+            if not positions:
+                logger.info("Nenhuma posição autorizada para gestão pelo agente neste ciclo")
+                return snapshots
         
         logger.info(f"Encontradas {len(positions)} posição(ões) aberta(s)")
         

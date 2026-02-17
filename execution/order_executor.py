@@ -359,6 +359,12 @@ class OrderExecutor:
         # Exemplo: 6.5 KAIA com precision=0 → 6.0 (não 7.0)
         multiplier = 10**precision
         quantity = math.floor(quantity * multiplier) / multiplier
+
+        if quantity <= 0:
+            raise ValueError(
+                f"Quantidade calculada inválida após ajuste de precision ({precision}) para {symbol}: {quantity}. "
+                f"position_qty={position_qty}, action={action}"
+            )
         
         return {
             'side': side,
