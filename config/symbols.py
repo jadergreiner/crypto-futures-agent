@@ -196,6 +196,71 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "retail_sentiment",
             "high_beta"
         ]
+    },
+    "ICPUSDT": {
+        "papel": "Internet Computer (ICP). Infraestrutura de computação descentralizada/Web3.",
+        "ciclo_proprio": "Segue ciclo altcoin com sensibilidade a narrativas de infraestrutura e adoção de dApps.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.6,
+        "classificacao": "mid_cap_infra",
+        "caracteristicas": [
+            "web3_infrastructure",
+            "dapp_adoption",
+            "high_beta",
+            "altseason_sensitive"
+        ]
+    },
+    "OPUSDT": {
+        "papel": "Optimism (OP). Token de governança/ecossistema Layer 2 Ethereum.",
+        "ciclo_proprio": "Segue narrativa L2 e escalabilidade Ethereum, com alta sensibilidade a altseason.",
+        "correlacao_btc": [0.50, 0.80],
+        "beta_estimado": 2.7,
+        "classificacao": "mid_cap_l2",
+        "caracteristicas": [
+            "ethereum_l2",
+            "scaling_narrative",
+            "ecosystem_incentives",
+            "high_beta"
+        ]
+    },
+    "BELUSDT": {
+        "papel": "Bella Protocol (BEL). Token DeFi de otimização de rendimento e produtos on-chain.",
+        "ciclo_proprio": "Segue narrativa DeFi/altseason com maior sensibilidade a fluxo especulativo.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_defi",
+        "caracteristicas": [
+            "defi_narrative",
+            "yield_optimization",
+            "altseason_sensitive",
+            "high_beta"
+        ]
+    },
+    "BARDUSDT": {
+        "papel": "Bard Protocol (BARD). Token de baixa/média capitalização com dinâmica especulativa.",
+        "ciclo_proprio": "Segue ciclo altcoin com forte sensibilidade a narrativas e liquidez de mercado.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.1,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "speculative_flow",
+            "narrative_sensitive",
+            "high_beta",
+            "low_liquidity"
+        ]
+    },
+    "JASMYUSDT": {
+        "papel": "JasmyCoin (JASMY). Token focado em dados/IoT com dinâmica de varejo.",
+        "ciclo_proprio": "Segue ciclo altcoin e narrativa de dados/IoT, com alta sensibilidade a momentum.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 2.9,
+        "classificacao": "mid_cap_data_iot",
+        "caracteristicas": [
+            "data_narrative",
+            "iot_theme",
+            "high_beta",
+            "retail_momentum"
+        ]
     }
 }
 
