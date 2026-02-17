@@ -8,6 +8,7 @@ import signal
 import logging
 import json
 import traceback
+import threading
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -1581,6 +1582,238 @@ class PositionMonitor:
         }
         
         return snapshot
+
+    def _opposite_side_for_close(self, direction: str) -> str:
+        """Retorna o side necessário para fechar/reduzir posição existente."""
+        return 'SELL' if direction == 'LONG' else 'BUY'
+
+    def _extract_order_data(self, response) -> Optional[Dict[str, Any]]:
+        """Extrai payload de resposta da API para dict compatível."""
+        try:
+            if response is None:
+                return None
+            return self._extract_data(response)
+        except Exception:
+            return None
+
+    def _persist_protection_execution(
+        self,
+        position: Dict[str, Any],
+        decision: Dict[str, Any],
+        action: str,
+        order_response: Optional[Dict[str, Any]],
+        executed: bool,
+        reason: str,
+        trigger_price: Optional[float],
+        snapshot_id: Optional[int],
+        side: str,
+    ) -> None:
+        """Persiste no execution_log o resultado de criação de SL/TP."""
+        timestamp = int(datetime.now().timestamp() * 1000)
+        order_id = None
+        if order_response:
+            order_id = order_response.get('orderId') or order_response.get('order_id')
+
+        execution_data = {
+            'timestamp': timestamp,
+            'symbol': position['symbol'],
+            'direction': position['direction'],
+            'action': action,
+            'side': side,
+            'quantity': position.get('position_size_qty', 0.0),
+            'order_type': 'CONDITIONAL_MARKET',
+            'reduce_only': 1,
+            'executed': 1 if executed else 0,
+            'mode': self.mode,
+            'reason': reason,
+            'order_id': order_id,
+            'fill_price': trigger_price,
+            'fill_quantity': None,
+            'commission': None,
+            'entry_price': position.get('entry_price'),
+            'mark_price': position.get('mark_price'),
+            'unrealized_pnl': position.get('unrealized_pnl'),
+            'unrealized_pnl_pct': position.get('unrealized_pnl_pct'),
+            'risk_score': decision.get('risk_score'),
+            'decision_confidence': decision.get('decision_confidence'),
+            'decision_reasoning': decision.get('decision_reasoning'),
+            'snapshot_id': snapshot_id,
+        }
+
+        try:
+            self.db.insert_execution_log(execution_data)
+        except Exception as e:
+            logger.warning(f"Falha ao persistir execution_log de proteção ({action}): {e}")
+
+    def _place_protective_order(
+        self,
+        symbol: str,
+        direction: str,
+        trigger_price: float,
+        order_type: str,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Cria ordem condicional de proteção (SL/TP) para fechar posição existente.
+
+        Usa close_position=True para fechar a posição integral no trigger.
+        """
+        side = self._opposite_side_for_close(direction)
+
+        response = self._client.rest_api.new_order(
+            symbol=symbol,
+            side=side,
+            type=order_type,
+            stop_price=trigger_price,
+            close_position=True,
+            working_type='MARK_PRICE',
+            recv_window=10000,
+        )
+        return self._extract_order_data(response)
+
+    def adopt_position_with_protection(self, symbol: str) -> Dict[str, Any]:
+        """
+        Assume uma posição aberta específica e cria SL/TP reais na Binance.
+
+        Fluxo:
+        1) Busca posição aberta
+        2) Calcula indicadores e decisão
+        3) Persiste snapshot inicial
+        4) Cria ordens reais de STOP_MARKET e TAKE_PROFIT_MARKET (close_position)
+        """
+        positions = self.fetch_open_positions(symbol=symbol)
+        if not positions:
+            return {
+                'ok': False,
+                'reason': f'Nenhuma posição aberta para {symbol}',
+                'sl_created': False,
+                'tp_created': False,
+            }
+
+        position = positions[0]
+
+        try:
+            market_data = self.fetch_current_market_data(symbol)
+            indicators = self.calculate_indicators_snapshot(symbol, market_data)
+            sentiment = market_data.get('sentiment', {})
+            decision = self.evaluate_position(position, indicators, sentiment)
+
+            snapshot = self.create_snapshot(position, indicators, sentiment, decision)
+            snapshot_id = self.db.insert_position_snapshot(snapshot)
+
+            mark_price = float(position['mark_price'])
+            direction = position['direction']
+
+            stop_price = decision.get('stop_loss_suggested')
+            tp_price = decision.get('take_profit_suggested')
+
+            sl_created = False
+            tp_created = False
+            side = self._opposite_side_for_close(direction)
+
+            # Validar coerência dos gatilhos para evitar trigger imediato/rejeição
+            valid_sl = False
+            if stop_price is not None:
+                if direction == 'LONG' and float(stop_price) < mark_price:
+                    valid_sl = True
+                if direction == 'SHORT' and float(stop_price) > mark_price:
+                    valid_sl = True
+
+            valid_tp = False
+            if tp_price is not None:
+                if direction == 'LONG' and float(tp_price) > mark_price:
+                    valid_tp = True
+                if direction == 'SHORT' and float(tp_price) < mark_price:
+                    valid_tp = True
+
+            if valid_sl:
+                try:
+                    sl_response = self._place_protective_order(
+                        symbol=symbol,
+                        direction=direction,
+                        trigger_price=float(stop_price),
+                        order_type='STOP_MARKET',
+                    )
+                    sl_created = sl_response is not None
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_SL',
+                        order_response=sl_response,
+                        executed=sl_created,
+                        reason='SL de proteção criado no modo adoção' if sl_created else 'Falha ao criar SL',
+                        trigger_price=float(stop_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                except Exception as e:
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_SL',
+                        order_response=None,
+                        executed=False,
+                        reason=f'Falha ao criar SL: {e}',
+                        trigger_price=float(stop_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                    logger.error(f"Erro ao criar STOP_MARKET para {symbol}: {e}")
+            else:
+                logger.warning(f"SL sugerido inválido/ausente para {symbol}. mark={mark_price}, sl={stop_price}")
+
+            if valid_tp:
+                try:
+                    tp_response = self._place_protective_order(
+                        symbol=symbol,
+                        direction=direction,
+                        trigger_price=float(tp_price),
+                        order_type='TAKE_PROFIT_MARKET',
+                    )
+                    tp_created = tp_response is not None
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_TP',
+                        order_response=tp_response,
+                        executed=tp_created,
+                        reason='TP de proteção criado no modo adoção' if tp_created else 'Falha ao criar TP',
+                        trigger_price=float(tp_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                except Exception as e:
+                    self._persist_protection_execution(
+                        position=position,
+                        decision=decision,
+                        action='SET_TP',
+                        order_response=None,
+                        executed=False,
+                        reason=f'Falha ao criar TP: {e}',
+                        trigger_price=float(tp_price),
+                        snapshot_id=snapshot_id,
+                        side=side,
+                    )
+                    logger.error(f"Erro ao criar TAKE_PROFIT_MARKET para {symbol}: {e}")
+            else:
+                logger.warning(f"TP sugerido inválido/ausente para {symbol}. mark={mark_price}, tp={tp_price}")
+
+            return {
+                'ok': sl_created or tp_created,
+                'reason': 'Proteções configuradas' if (sl_created or tp_created) else 'Não foi possível configurar SL/TP',
+                'sl_created': sl_created,
+                'tp_created': tp_created,
+                'snapshot_id': snapshot_id,
+                'stop_loss_suggested': stop_price,
+                'take_profit_suggested': tp_price,
+            }
+        except Exception as e:
+            logger.error(f"Erro no bootstrap de adoção para {symbol}: {e}", exc_info=True)
+            return {
+                'ok': False,
+                'reason': str(e),
+                'sl_created': False,
+                'tp_created': False,
+            }
     
     def monitor_cycle(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -1730,13 +1963,14 @@ class PositionMonitor:
         """
         self._running = True
         
-        # Handler para graceful shutdown
+        # Handler para graceful shutdown (apenas na thread principal)
         def signal_handler(sig, frame):
             logger.info("\nSinal de interrupção recebido. Finalizando...")
             self._running = False
-        
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+
+        if threading.current_thread() is threading.main_thread():
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
         
         logger.info(f"Monitor contínuo iniciado (intervalo: {interval_seconds}s)")
         logger.info("Pressione Ctrl+C para parar")

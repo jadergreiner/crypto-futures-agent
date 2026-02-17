@@ -96,12 +96,13 @@ echo                            OPCOES DE EXECUCAO
 echo ==============================================================================
 echo.
 echo   1. Modo Paper Trading (Simulacao - RECOMENDADO)
-echo   2. Modo Live Trading (Capital Real - CUIDADO!)
+echo   2. Modo Live Integrado (Oportunidades + Gestao de Posicoes)
 echo   3. Monitorar Posicoes Abertas
 echo   4. Executar Backtest
 echo   5. Treinar Modelo RL
 echo   6. Executar Setup Inicial
 echo   7. Sair
+echo   8. Assumir/Gerenciar Posicao Aberta
 echo.
 echo ==============================================================================
 echo.
@@ -118,10 +119,11 @@ if "%OPCAO%"=="4" goto :opcao4
 if "%OPCAO%"=="5" goto :opcao5
 if "%OPCAO%"=="6" goto :opcao6
 if "%OPCAO%"=="7" goto :opcao7
+if "%OPCAO%"=="8" goto :opcao8
 
 echo.
 echo [ERRO] Opcao invalida!
-echo Por favor, escolha um numero entre 1 e 7.
+echo Por favor, escolha um numero entre 1 e 8.
 echo.
 goto :final
 
@@ -138,21 +140,22 @@ python main.py --mode paper
 goto :final
 
 :opcao2
-echo INICIANDO AGENTE EM MODO LIVE TRADING
+echo INICIANDO AGENTE EM MODO LIVE INTEGRADO
 echo ==============================================================================
 echo.
 echo [^!^!^! ATENCAO ^!^!^!]
-echo Voce escolheu o modo LIVE com capital REAL!
+echo Voce escolheu o modo LIVE com capital REAL.
+echo Este modo integra busca de oportunidades e gestao de posicoes abertas.
 echo.
 set /p CONFIRMACAO="Tem certeza que deseja continuar? Digite 'SIM' para confirmar: "
 if /i "!CONFIRMACAO!"=="SIM" (
     echo.
-    echo Iniciando em modo LIVE...
+    echo Iniciando em modo LIVE INTEGRADO...
     echo Ordens REAIS serao enviadas para a Binance!
     echo.
     echo Pressione Ctrl+C para interromper a execucao.
     echo.
-    python main.py --mode live
+    python main.py --mode live --integrated --integrated-interval 300
 ) else (
     echo.
     echo Operacao cancelada por seguranca.
@@ -270,6 +273,35 @@ goto :final
 echo.
 echo Saindo...
 exit /b 0
+
+:opcao8
+echo ASSUMIR / GERENCIAR POSICAO ABERTA
+echo ==============================================================================
+echo.
+echo Digite o simbolo da posicao já aberta na Binance (ex: BTCUSDT):
+set /p ADOPT_SYMBOL="Simbolo: "
+
+if "!ADOPT_SYMBOL!"=="" (
+    echo.
+    echo [ERRO] Simbolo e obrigatorio para assumir uma posicao.
+    goto :final
+)
+
+echo.
+echo Digite o intervalo em segundos para o monitoramento (padrao: 300):
+set /p ADOPT_INTERVAL="Intervalo: "
+
+if "!ADOPT_INTERVAL!"=="" set ADOPT_INTERVAL=300
+
+echo.
+echo Assumindo gerenciamento da posicao !ADOPT_SYMBOL!...
+echo Intervalo: !ADOPT_INTERVAL! segundos
+echo.
+echo Pressione Ctrl+C para interromper.
+echo.
+
+python main.py --mode live --adopt-position !ADOPT_SYMBOL! --monitor-interval !ADOPT_INTERVAL!
+goto :final
 
 :final
 

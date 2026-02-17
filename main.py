@@ -5,6 +5,7 @@ Entry point do agente autônomo de futuros de criptomoedas.
 import argparse
 import logging
 import sys
+import threading
 from pathlib import Path
 from datetime import datetime
 import numpy as np
@@ -470,7 +471,13 @@ def train_model() -> None:
         logger.error(f"Erro durante treinamento: {e}", exc_info=True)
 
 
-def start_operation(mode: str, client, db: DatabaseManager) -> None:
+def start_operation(
+    mode: str,
+    client,
+    db: DatabaseManager,
+    enable_integrated_monitor: bool = False,
+    integrated_interval_seconds: int = 300,
+) -> None:
     """
     Inicia operação do agente.
     
@@ -488,6 +495,28 @@ def start_operation(mode: str, client, db: DatabaseManager) -> None:
     
     # Inicializar scheduler
     scheduler = Scheduler(layer_manager)
+
+    monitor = None
+    monitor_thread = None
+
+    if enable_integrated_monitor:
+        from monitoring.position_monitor import PositionMonitor
+
+        monitor = PositionMonitor(client, db, mode=mode)
+        monitor_thread = threading.Thread(
+            target=monitor.run_continuous,
+            kwargs={
+                'symbol': None,
+                'interval_seconds': integrated_interval_seconds,
+            },
+            daemon=True,
+            name='position-monitor-thread',
+        )
+        monitor_thread.start()
+        logger.info(
+            f"INTEGRATED MODE ENABLED: monitor de posições ativo em paralelo "
+            f"(intervalo={integrated_interval_seconds}s)"
+        )
     
     # Iniciar WebSocket (assíncrono)
     # from data.websocket_manager import WebSocketManager
@@ -500,6 +529,11 @@ def start_operation(mode: str, client, db: DatabaseManager) -> None:
     except KeyboardInterrupt:
         logger.info("Operation interrupted by user")
         scheduler.stop()
+    finally:
+        if monitor:
+            monitor.stop()
+        if monitor_thread and monitor_thread.is_alive():
+            monitor_thread.join(timeout=5)
 
 
 def run_backtest(start_date: str, end_date: str) -> None:
@@ -640,6 +674,13 @@ def main():
         default=None,
         help='Symbol to monitor (e.g., C98USDT). If omitted, monitors all.'
     )
+
+    parser.add_argument(
+        '--adopt-position',
+        type=str,
+        default=None,
+        help='Assume management of an already open Binance position for a specific symbol (e.g., BTCUSDT).'
+    )
     
     parser.add_argument(
         '--monitor-interval',
@@ -652,6 +693,19 @@ def main():
         '--dry-run',
         action='store_true',
         help='Run pipeline validation with synthetic data (no API keys required)'
+    )
+
+    parser.add_argument(
+        '--integrated',
+        action='store_true',
+        help='Run unified mode: seek opportunities + manage open positions in parallel'
+    )
+
+    parser.add_argument(
+        '--integrated-interval',
+        type=int,
+        default=300,
+        help='Interval in seconds for integrated position monitoring (default: 300)'
     )
     
     args = parser.parse_args()
@@ -700,11 +754,60 @@ def main():
         monitor = PositionMonitor(client, db, mode=args.mode)
         monitor.run_continuous(symbol=args.monitor_symbol, interval_seconds=args.monitor_interval)
         sys.exit(0)
+
+    if args.adopt_position:
+        # Modo de adoção: usuário escolhe uma posição já aberta na Binance
+        from monitoring.position_monitor import PositionMonitor
+
+        symbol = args.adopt_position.upper().strip()
+        client = create_binance_client(mode=args.mode)
+        logger.info(f"Binance client created in {args.mode} mode")
+
+        monitor = PositionMonitor(client, db, mode=args.mode)
+        open_positions = monitor.fetch_open_positions(symbol=symbol)
+
+        if not open_positions:
+            logger.error(
+                f"Nenhuma posição aberta encontrada para {symbol}. "
+                f"Abra uma posição na Binance antes de solicitar gerenciamento do agente."
+            )
+            sys.exit(1)
+
+        logger.info("="*60)
+        logger.info(f"ADOPT POSITION MODE - {symbol}")
+        logger.info(
+            f"Posição(ões) detectada(s): {len(open_positions)} | "
+            f"Iniciando gerenciamento contínuo pelo agente"
+        )
+        logger.info("="*60)
+
+        # Bootstrap de adoção: gerar snapshot inicial e criar SL/TP reais de proteção
+        protection_result = monitor.adopt_position_with_protection(symbol)
+        if protection_result.get('ok'):
+            logger.info(
+                f"Proteções criadas para {symbol}: "
+                f"SL={'OK' if protection_result.get('sl_created') else 'NÃO'} | "
+                f"TP={'OK' if protection_result.get('tp_created') else 'NÃO'}"
+            )
+        else:
+            logger.warning(
+                f"Bootstrap de proteção para {symbol} falhou/foi parcial: "
+                f"{protection_result.get('reason', 'sem detalhes')}"
+            )
+
+        monitor.run_continuous(symbol=symbol, interval_seconds=args.monitor_interval)
+        sys.exit(0)
     
     # Modo operacional padrão - criar client para operação
     client = create_binance_client(mode=args.mode)
     logger.info(f"Binance client created in {args.mode} mode")
-    start_operation(args.mode, client, db)
+    start_operation(
+        args.mode,
+        client,
+        db,
+        enable_integrated_monitor=args.integrated,
+        integrated_interval_seconds=args.integrated_interval,
+    )
 
 
 if __name__ == "__main__":
