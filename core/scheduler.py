@@ -100,13 +100,19 @@ class Scheduler:
             open_positions = len(self.layer_manager.open_positions)
             now_brt = datetime.now(BRASILIA_TZ)
 
-            h1_next = None
-            h4_next = None
-            for job in schedule.jobs:
-                if job.job_func.__name__ == "_run_layer3_h1" and h1_next is None:
-                    h1_next = job.next_run
-                if job.job_func.__name__ == "_run_layer4_h4" and h4_next is None:
-                    h4_next = job.next_run
+            h1_runs = [
+                job.next_run
+                for job in schedule.jobs
+                if job.job_func.__name__ == "_run_layer3_h1" and job.next_run is not None
+            ]
+            h4_runs = [
+                job.next_run
+                for job in schedule.jobs
+                if job.job_func.__name__ == "_run_layer4_h4" and job.next_run is not None
+            ]
+
+            h1_next = min(h1_runs) if h1_runs else None
+            h4_next = min(h4_runs) if h4_runs else None
 
             h1_next_str = self._format_brasilia_time(h1_next)
             h4_next_str = self._format_brasilia_time(h4_next)

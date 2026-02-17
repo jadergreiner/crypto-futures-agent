@@ -437,6 +437,137 @@ class LayerManager:
             logger.error(f"H4: Falha ao criar ordem posicionada para {symbol}: {e}")
             return None
 
+    def _normalize_order_dict(self, order: Any) -> Dict[str, Any]:
+        """Converte ordem da API em dict uniforme para leitura defensiva."""
+        if isinstance(order, dict):
+            return order
+
+        if order is None:
+            return {}
+
+        normalized = {}
+        for attr in [
+            'order_id', 'symbol', 'status', 'type', 'orig_type', 'side',
+            'reduce_only', 'close_position', 'time', 'price', 'orig_qty'
+        ]:
+            if hasattr(order, attr):
+                normalized[attr] = getattr(order, attr)
+        return normalized
+
+    def _list_open_orders_for_symbol(self, symbol: str) -> List[Dict[str, Any]]:
+        """Lista ordens abertas do símbolo com fallback entre métodos do SDK."""
+        if not self.client:
+            return []
+
+        rest_api = self.client.rest_api
+        candidates = [
+            'current_all_open_orders',
+            'current_open_orders',
+            'open_orders',
+        ]
+
+        for method_name in candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                response = method(symbol=symbol)
+                data = self._extract_data(response)
+                if data is None:
+                    return []
+                if not isinstance(data, list):
+                    data = [data]
+                return [self._normalize_order_dict(o) for o in data]
+            except Exception as e:
+                logger.debug(f"H4: Método {method_name} falhou ao listar ordens de {symbol}: {e}")
+                continue
+
+        logger.warning(f"H4: Não foi possível listar ordens abertas para {symbol}")
+        return []
+
+    def _cancel_order_by_id(self, symbol: str, order_id: Any) -> bool:
+        """Cancela ordem por ID usando método disponível no SDK."""
+        if not self.client:
+            return False
+
+        if order_id in (None, ''):
+            return False
+
+        rest_api = self.client.rest_api
+        candidates = ['cancel_order']
+
+        for method_name in candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                method(symbol=symbol, order_id=order_id, recv_window=10000)
+                return True
+            except Exception as e:
+                logger.warning(f"H4: Falha ao cancelar ordem {order_id} de {symbol}: {e}")
+                return False
+
+        logger.warning("H4: SDK sem método de cancelamento de ordem disponível")
+        return False
+
+    def _cancel_existing_entry_orders(self, symbol: str) -> int:
+        """Cancela ordens de entrada anteriores (LIMIT) para evitar múltiplas operações no ativo."""
+        open_orders = self._list_open_orders_for_symbol(symbol)
+        if not open_orders:
+            return 0
+
+        cancelled = 0
+        for order in open_orders:
+            order_type = str(order.get('type') or order.get('orig_type') or '').upper()
+            reduce_only = order.get('reduce_only')
+            close_position = order.get('close_position')
+
+            # Cancelar apenas ordens de entrada LIMIT (não mexer em proteções STOP/TP)
+            if order_type != 'LIMIT':
+                continue
+
+            if str(reduce_only).lower() == 'true' or reduce_only is True:
+                continue
+
+            if str(close_position).lower() == 'true' or close_position is True:
+                continue
+
+            order_id = order.get('order_id') or order.get('orderId')
+            if self._cancel_order_by_id(symbol, order_id):
+                cancelled += 1
+
+        if cancelled > 0:
+            logger.warning(
+                f"H4: {cancelled} ordem(ns) LIMIT antiga(s) cancelada(s) para {symbol} antes de nova entrada"
+            )
+        return cancelled
+
+    def _cancel_stale_active_signals(self, symbol: str) -> int:
+        """Cancela sinais ativos anteriores no banco ao substituir por novo setup do mesmo ativo."""
+        if not self.db:
+            return 0
+
+        cancelled = 0
+        try:
+            active_signals = self.db.get_active_signals(symbol=symbol)
+            for row in active_signals:
+                signal_id = row.get('id')
+                if not signal_id:
+                    continue
+                self.db.update_signal_status(
+                    signal_id=signal_id,
+                    status='CANCELLED',
+                    execution_mode='CANCELLED',
+                    exit_reason='replaced_by_new_signal',
+                )
+                cancelled += 1
+        except Exception as e:
+            logger.warning(f"H4: Falha ao cancelar sinais antigos no DB para {symbol}: {e}")
+
+        if cancelled > 0:
+            logger.info(f"H4: {cancelled} sinal(is) ativo(s) antigo(s) cancelado(s) para {symbol}")
+        return cancelled
+
     def _record_signal_evolution(
         self,
         symbol: str,
@@ -816,6 +947,14 @@ class LayerManager:
                         execution_mode = 'PENDING'
                         signal_id = None
 
+                        # Proteção de risco: nunca empilhar múltiplas entradas no mesmo ativo
+                        # (especialmente após restart, quando pending_signals em memória pode estar vazio)
+                        cancelled_orders = 0
+                        if symbol in self.authorized_symbols and self.client:
+                            cancelled_orders = self._cancel_existing_entry_orders(symbol)
+
+                        cancelled_signals = self._cancel_stale_active_signals(symbol)
+
                         # Persist signal no DB para aprendizado
                         if self.db:
                             payload = self._build_trade_signal_payload(
@@ -892,7 +1031,10 @@ class LayerManager:
                             symbol=symbol,
                             signal=self.pending_signals[symbol],
                             event_type='SIGNAL_REGISTERED',
-                            event_details=f"mode={execution_mode};score={confluence_score}"
+                            event_details=(
+                                f"mode={execution_mode};score={confluence_score};"
+                                f"cancelled_orders={cancelled_orders};cancelled_signals={cancelled_signals}"
+                            )
                         )
                         
                         signals_generated += 1
