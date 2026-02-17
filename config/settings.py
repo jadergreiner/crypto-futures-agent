@@ -46,7 +46,7 @@ TIMEFRAMES = {
 HISTORICAL_PERIODS = {
     "D1": 730,    # 2 anos (para EMA_610 com margem de segurança)
     "H4": 250,    # ~1500 candles H4 (garante 1000+ candles após split 80/20)
-    "H1": 120     # ~2880 candles H1 (mantido)
+    "H1": 209     # ~5016 candles H1 (remove aviso limítrofe de suficiência)
 }
 
 # Layer 4 (H4) execution times in UTC
@@ -103,9 +103,3 @@ CLEANUP_DAYS_KEEP = 90  # Keep data for 90 days
 MONITOR_MIN_CANDLES_H4 = 700  # Para cobrir EMA(610) com margem
 MONITOR_MIN_CANDLES_H1 = 250  # Para cobrir EMA(144) e SMC com margem
 MONITOR_FRESH_CANDLES = 50    # Candles frescos a buscar da API
-
-# Signal-Driven RL Configuration
-SIGNAL_MONITORING_INTERVAL_MINUTES = 15  # Intervalo para snapshots de evolução (15 min)
-SIGNAL_MIN_TRADES_FOR_RETRAINING = 20    # Mínimo de trades para retreinar sub-agente
-SIGNAL_RETRAINING_TIMESTEPS = 10000      # Timesteps para retreino de sub-agente
-SUB_AGENTS_BASE_DIR = "models/sub_agents"  # Diretório para sub-agentes especializados
