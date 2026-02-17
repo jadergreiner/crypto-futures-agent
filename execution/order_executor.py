@@ -360,6 +360,18 @@ class OrderExecutor:
         multiplier = 10**precision
         quantity = math.floor(quantity * multiplier) / multiplier
 
+        # Caso especial: REDUCE_50 em símbolos com precision=0 pode virar 0 após truncamento
+        # (ex.: posição 1.0, reduzir 50% => 0.5 => floor => 0).
+        # Nesses casos, escalar para fechamento total para evitar bloqueio operacional.
+        if action == "REDUCE_50" and quantity <= 0:
+            full_close_qty = math.floor(position_qty * multiplier) / multiplier
+            if full_close_qty > 0:
+                logger.warning(
+                    f"[EXECUTOR] REDUCE_50 inviável para {symbol} com precision={precision}; "
+                    f"escalando para CLOSE qty={full_close_qty:.8f}"
+                )
+                quantity = full_close_qty
+
         if quantity <= 0:
             raise ValueError(
                 f"Quantidade calculada inválida após ajuste de precision ({precision}) para {symbol}: {quantity}. "

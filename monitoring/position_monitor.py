@@ -222,7 +222,7 @@ class PositionMonitor:
             return obj.get(attr, default)
         return getattr(obj, attr, default)
     
-    def fetch_open_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+    def fetch_open_positions(self, symbol: Optional[str] = None, log_each_position: bool = True) -> List[Dict[str, Any]]:
         """
         Busca posições abertas na Binance via SDK.
         
@@ -300,9 +300,10 @@ class PositionMonitor:
                 position['margin_balance'] = position['isolated_wallet']
                 
                 positions.append(position)
-                logger.info(f"Posição encontrada: {position['symbol']} {position['direction']} "
-                           f"[{position['margin_type']}] Margem: {position['margin_invested']:.2f} USDT "
-                           f"PnL: {position['unrealized_pnl']:.2f} USDT ({position['unrealized_pnl_pct']:.2f}%)")
+                if log_each_position:
+                    logger.info(f"Posição encontrada: {position['symbol']} {position['direction']} "
+                               f"[{position['margin_type']}] Margem: {position['margin_invested']:.2f} USDT "
+                               f"PnL: {position['unrealized_pnl']:.2f} USDT ({position['unrealized_pnl_pct']:.2f}%)")
             
             return positions
             
@@ -1832,7 +1833,7 @@ class PositionMonitor:
         snapshots = []
         
         # 1. Buscar posições abertas
-        positions = self.fetch_open_positions(symbol)
+        positions = self.fetch_open_positions(symbol, log_each_position=False)
         
         if not positions:
             logger.info("Nenhuma posição aberta encontrada")
@@ -1854,7 +1855,14 @@ class PositionMonitor:
                 logger.info("Nenhuma posição autorizada para gestão pelo agente neste ciclo")
                 return snapshots
         
-        logger.info(f"Encontradas {len(positions)} posição(ões) aberta(s)")
+        logger.info(f"Encontradas {len(positions)} posição(ões) aberta(s) para gestão neste ciclo")
+
+        for p in positions:
+            logger.info(
+                f"Posição em gestão: {p['symbol']} {p['direction']} [{p['margin_type']}] "
+                f"Margem: {p['margin_invested']:.2f} USDT | "
+                f"PnL: {p['unrealized_pnl']:.2f} USDT ({p['unrealized_pnl_pct']:.2f}%)"
+            )
         
         # 2. Para cada posição, fazer avaliação completa
         for position in positions:
