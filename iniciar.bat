@@ -56,7 +56,7 @@ if not exist ".env" (
 
 REM Verificar se o banco de dados existe
 echo [2/3] Verificando banco de dados...
-if not exist "db\crypto_futures.db" (
+if not exist "db\crypto_agent.db" (
     echo [AVISO] Banco de dados nao encontrado!
     echo.
     echo O banco de dados precisa ser inicializado antes de executar o agente.
