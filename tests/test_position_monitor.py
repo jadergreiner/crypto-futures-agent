@@ -242,8 +242,8 @@ def test_evaluate_position_close_near_liquidation(position_monitor):
     assert any('liquida' in r.lower() for r in reasoning_text)
 
 
-def test_evaluate_position_reduce_on_choch(position_monitor):
-    """Testa decisão de REDUCE_50 quando CHoCH contra posição com lucro."""
+def test_evaluate_position_close_on_direction_change(position_monitor):
+    """Testa decisão de CLOSE quando há mudança de direção contra posição."""
     position = {
         'symbol': 'SOLUSDT',
         'direction': 'LONG',
@@ -265,8 +265,9 @@ def test_evaluate_position_reduce_on_choch(position_monitor):
     
     decision = position_monitor.evaluate_position(position, indicators, sentiment)
     
-    assert decision['agent_action'] == 'REDUCE_50'
-    assert 'CHoCH' in decision['decision_reasoning']
+    assert decision['agent_action'] == 'CLOSE'
+    assert decision['decision_confidence'] >= 0.90
+    assert 'Mudan' in decision['decision_reasoning']
 
 
 def test_evaluate_position_hold_favorable(position_monitor):

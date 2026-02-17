@@ -973,6 +973,16 @@ class PositionMonitor:
         market_structure = indicators.get('market_structure', 'range')
         choch_recent = indicators.get('choch_recent', 0)
         bos_recent = indicators.get('bos_recent', 0)
+
+        # Regra mandatória: se a direção de mercado inverter contra a posição,
+        # fechar 100% sem exceções. Abertura na nova direção fica a cargo do
+        # fluxo de oportunidades (camada de entrada).
+        if self._is_market_structure_adverse(direction, market_structure):
+            self._update_action_if_higher_priority(
+                decision, 'CLOSE', 0.92, reasoning,
+                f"Mudança de direção detectada ({market_structure}) contra posição {direction} - CLOSE 100% obrigatório"
+            )
+            risk_score += 2.5
         
         # Verificar se estrutura SMC favorece a posição usando helper
         if self._is_market_structure_favorable(direction, market_structure):
