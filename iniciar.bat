@@ -126,7 +126,7 @@ if "%OPCAO%"=="1" (
     echo INICIANDO AGENTE EM MODO LIVE TRADING
     echo ==============================================================================
     echo.
-    echo [!!! ATENCAO !!!]
+    echo [^!^!^! ATENCAO ^!^!^!]
     echo Voce escolheu o modo LIVE com capital REAL!
     echo.
     set /p CONFIRMACAO="Tem certeza que deseja continuar? Digite 'SIM' para confirmar: "
