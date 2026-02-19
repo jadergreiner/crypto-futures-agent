@@ -2,7 +2,6 @@ import threading
 import time
 import logging
 from datetime import datetime, timedelta
-from agent.trainer import train_from_real_signals
 from config.symbols import ALL_SYMBOLS
 from data.database import DatabaseManager
 
@@ -17,6 +16,8 @@ class AgentTrainingScheduler:
         self.running = False
 
     def _train_all_symbols(self):
+        from agent.trainer import train_from_real_signals
+
         for symbol in ALL_SYMBOLS:
             logger.info(f"[SCHEDULER] Treinando agente para {symbol}")
             result = train_from_real_signals(symbol, self.db)

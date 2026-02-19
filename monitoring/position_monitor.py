@@ -2487,14 +2487,20 @@ class PositionMonitor:
             existing_protection_exchange = self._has_existing_protection_orders(symbol, direction)
             existing_protection_persisted = self._get_persisted_protection_state(symbol, direction)
 
-            sl_created = existing_protection_exchange['has_sl'] or existing_protection_persisted['has_sl']
-            tp_created = existing_protection_exchange['has_tp'] or existing_protection_persisted['has_tp']
+            sl_created = existing_protection_exchange['has_sl']
+            tp_created = existing_protection_exchange['has_tp']
             side = self._opposite_side_for_close(direction)
 
             if existing_protection_persisted['has_sl'] and not existing_protection_exchange['has_sl']:
-                logger.info(f"SL encontrado no estado persistido para {symbol}; evitando recriação")
+                logger.info(
+                    f"SL encontrado no estado persistido para {symbol}, mas sem ordem aberta na Binance; "
+                    f"tentando recriar proteção"
+                )
             if existing_protection_persisted['has_tp'] and not existing_protection_exchange['has_tp']:
-                logger.info(f"TP encontrado no estado persistido para {symbol}; evitando recriação")
+                logger.info(
+                    f"TP encontrado no estado persistido para {symbol}, mas sem ordem aberta na Binance; "
+                    f"tentando recriar proteção"
+                )
 
             # Validar coerência dos gatilhos para evitar trigger imediato/rejeição
             valid_sl = False

@@ -18,9 +18,6 @@ from data.collector import BinanceCollector
 from data.sentiment_collector import SentimentCollector
 from data.macro_collector import MacroCollector
 from monitoring.logger import AgentLogger
-from core.scheduler import Scheduler
-from core.layer_manager import LayerManager
-from core.agent_scheduler import start_agent_training_scheduler
 
 # Setup logger
 logger = AgentLogger.setup_logger()
@@ -486,6 +483,10 @@ def start_operation(
     logger.info("="*60)
     logger.info(f"STARTING OPERATION - MODE: {mode.upper()}")
     logger.info("="*60)
+
+    from core.layer_manager import LayerManager
+    from core.scheduler import Scheduler
+    from core.agent_scheduler import start_agent_training_scheduler
 
     # Inicializar layer manager com db e client
     layer_manager = LayerManager(db=db, client=client)

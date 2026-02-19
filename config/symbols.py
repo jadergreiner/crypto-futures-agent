@@ -262,6 +262,344 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "retail_momentum"
         ]
     },
+    "SXTUSDT": {
+        "papel": "Space and Time (SXT). Token orientado a infraestrutura de dados e narrativa de Web3/AI.",
+        "ciclo_proprio": "Sensível a fluxo de narrativa tecnológica e rotação de altcoins, com volatilidade elevada.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.2,
+        "classificacao": "mid_cap_data_infra",
+        "caracteristicas": [
+            "data_infrastructure",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "SIGNUSDT": {
+        "papel": "Token de narrativa emergente com comportamento de alta volatilidade e fluxo especulativo.",
+        "ciclo_proprio": "Movimentos acelerados em rotação de altcoins, sensível a liquidez e eventos.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.4,
+        "classificacao": "mid_cap_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "APEUSDT": {
+        "papel": "ApeCoin (APE). Token de ecossistema Web3/NFT com dinâmica especulativa e alta sensibilidade a fluxo.",
+        "ciclo_proprio": "Segue ciclo de altcoins com forte impacto de narrativa de mercado e liquidez.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.0,
+        "classificacao": "mid_cap_web3",
+        "caracteristicas": [
+            "web3_narrative",
+            "high_volatility",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "IDUSDT": {
+        "papel": "SPACE ID (ID). Token de infraestrutura de identidade Web3, com dinâmica de altcoin e fluxo especulativo.",
+        "ciclo_proprio": "Sensível a narrativa Web3 e rotação de capital em tokens de média capitalização.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.1,
+        "classificacao": "mid_cap_web3_infra",
+        "caracteristicas": [
+            "web3_narrative",
+            "identity_infrastructure",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "4USDT": {
+        "papel": "Token alfanumérico de alta volatilidade e baixa previsibilidade, sensível a liquidez de curto prazo.",
+        "ciclo_proprio": "Oscilação acelerada em ciclos de altcoins, com reação forte a fluxo especulativo.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 3.8,
+        "classificacao": "high_beta_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "low_liquidity",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "ASTERUSDT": {
+        "papel": "Token de narrativa emergente com dinâmica de alta volatilidade e sensibilidade a eventos de mercado.",
+        "ciclo_proprio": "Movimentos rápidos em ciclos de altcoins, com forte dependência de fluxo de liquidez.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.5,
+        "classificacao": "high_beta_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "narrative_sensitive",
+            "event_sensitive",
+            "speculative"
+        ]
+    },
+    "ZAMAUSDT": {
+        "papel": "Token de infraestrutura criptográfica com perfil especulativo e volatilidade elevada.",
+        "ciclo_proprio": "Sensível a narrativas técnicas e rotação de capital em altcoins.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.3,
+        "classificacao": "mid_cap_infra",
+        "caracteristicas": [
+            "infra_narrative",
+            "high_volatility",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "ANKRUSDT": {
+        "papel": "Ankr (ANKR). Token de infraestrutura Web3, com liquidez moderada e dinâmica de altcoin.",
+        "ciclo_proprio": "Acompanha ciclos de infraestrutura Web3 com sensibilidade a momentum de mercado.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_web3_infra",
+        "caracteristicas": [
+            "web3_infrastructure",
+            "momentum_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "DOTUSDT": {
+        "papel": "Polkadot (DOT). Token de camada 1 com liquidez ampla e ciclo próprio ligado ao ecossistema multichain.",
+        "ciclo_proprio": "Segue ciclos macro de L1s e rotação de capital entre grandes altcoins.",
+        "correlacao_btc": [0.45, 0.80],
+        "beta_estimado": 2.2,
+        "classificacao": "large_cap_l1",
+        "caracteristicas": [
+            "layer1",
+            "multichain_ecosystem",
+            "broad_liquidity",
+            "trend_sensitive"
+        ]
+    },
+    "SANDUSDT": {
+        "papel": "The Sandbox (SAND). Token de metaverso/gaming com comportamento cíclico e sensibilidade a narrativa.",
+        "ciclo_proprio": "Movimentos fortes em ciclos de narrativa gaming e varejo.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 2.9,
+        "classificacao": "mid_cap_gaming",
+        "caracteristicas": [
+            "gaming_narrative",
+            "retail_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "AVAXUSDT": {
+        "papel": "Avalanche (AVAX). Token de camada 1 com alta liquidez e volatilidade relevante.",
+        "ciclo_proprio": "Acompanha ciclos de L1 e condições gerais de risco do mercado cripto.",
+        "correlacao_btc": [0.45, 0.80],
+        "beta_estimado": 2.4,
+        "classificacao": "large_cap_l1",
+        "caracteristicas": [
+            "layer1",
+            "high_liquidity",
+            "high_beta",
+            "trend_sensitive"
+        ]
+    },
+    "TRXUSDT": {
+        "papel": "TRON (TRX). Token de infraestrutura com liquidez ampla e dinâmica de grande altcoin.",
+        "ciclo_proprio": "Acompanha ciclos macro do mercado com sensibilidade moderada a risco.",
+        "correlacao_btc": [0.50, 0.85],
+        "beta_estimado": 1.9,
+        "classificacao": "large_cap_infra",
+        "caracteristicas": [
+            "high_liquidity",
+            "infrastructure",
+            "trend_sensitive",
+            "market_beta"
+        ]
+    },
+    "GRTUSDT": {
+        "papel": "The Graph (GRT). Token de indexação Web3 com perfil de altcoin de infraestrutura.",
+        "ciclo_proprio": "Sensível a narrativas Web3 e rotação de capital em mid caps.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 2.7,
+        "classificacao": "mid_cap_web3_infra",
+        "caracteristicas": [
+            "web3_infrastructure",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "WLDUSDT": {
+        "papel": "Worldcoin (WLD). Token de alta atenção de mercado e volatilidade elevada.",
+        "ciclo_proprio": "Movimentos acelerados por narrativa e fluxo de risco.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.2,
+        "classificacao": "high_beta_narrative",
+        "caracteristicas": [
+            "high_volatility",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "METUSDT": {
+        "papel": "Token de média capitalização com dinâmica especulativa e volatilidade relevante.",
+        "ciclo_proprio": "Sensível a rotação de altcoins e liquidez intradiária.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.1,
+        "classificacao": "mid_cap_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "low_liquidity",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "XAIUSDT": {
+        "papel": "XAI. Token ligado a narrativa de gaming/infra com comportamento volátil.",
+        "ciclo_proprio": "Oscila com narrativa setorial e fluxo de risco em altcoins.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.0,
+        "classificacao": "mid_cap_gaming_infra",
+        "caracteristicas": [
+            "gaming_narrative",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "SNXUSDT": {
+        "papel": "Synthetix (SNX). Token DeFi com histórico de alta volatilidade.",
+        "ciclo_proprio": "Reage fortemente a ciclos DeFi e liquidez de mercado.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 2.9,
+        "classificacao": "mid_cap_defi",
+        "caracteristicas": [
+            "defi_narrative",
+            "high_volatility",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "BLURUSDT": {
+        "papel": "BLUR. Token relacionado ao ecossistema NFT com dinâmica especulativa.",
+        "ciclo_proprio": "Movimentos rápidos conforme narrativa NFT e fluxo varejo.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.3,
+        "classificacao": "mid_cap_nft",
+        "caracteristicas": [
+            "nft_narrative",
+            "high_volatility",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "ZEREBROUSDT": {
+        "papel": "Token de nicho de alta volatilidade e baixa previsibilidade.",
+        "ciclo_proprio": "Sensível a eventos e fluxo especulativo de curto prazo.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 3.9,
+        "classificacao": "niche_token",
+        "caracteristicas": [
+            "high_volatility",
+            "low_liquidity",
+            "event_sensitive",
+            "speculative"
+        ]
+    },
+    "XMRUSDT": {
+        "papel": "Monero (XMR). Token de privacidade com liquidez moderada e comportamento próprio.",
+        "ciclo_proprio": "Correlação parcial ao mercado amplo, com dinâmica idiossincrática.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 2.1,
+        "classificacao": "large_cap_privacy",
+        "caracteristicas": [
+            "privacy_token",
+            "medium_liquidity",
+            "trend_sensitive",
+            "market_beta"
+        ]
+    },
+    "ZENUSDT": {
+        "papel": "Horizen (ZEN). Token de infraestrutura/privacy com volatilidade elevada.",
+        "ciclo_proprio": "Segue ciclos de altcoins com sensibilidade a sentimento de risco.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_infra",
+        "caracteristicas": [
+            "privacy_infrastructure",
+            "high_beta",
+            "medium_liquidity",
+            "speculative"
+        ]
+    },
+    "DOLOUSDT": {
+        "papel": "Token de média/baixa capitalização com dinâmica especulativa e volatilidade alta.",
+        "ciclo_proprio": "Sensível a eventos, narrativa e liquidez de curto prazo.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 3.6,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "event_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "DASHUSDT": {
+        "papel": "Dash (DASH). Token legacy com liquidez moderada e dinâmica própria.",
+        "ciclo_proprio": "Acompanha tendência do mercado com menor amplitude que mid caps.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 2.0,
+        "classificacao": "mid_cap_payment",
+        "caracteristicas": [
+            "payment_token",
+            "medium_liquidity",
+            "trend_sensitive",
+            "market_beta"
+        ]
+    },
+    "XAGUSDT": {
+        "papel": "Par temático de prata (XAG) tokenizado, com comportamento sensível a macro e liquidez cripto.",
+        "ciclo_proprio": "Pode divergir de altcoins por influência de ativos reais e sentimento macro.",
+        "correlacao_btc": [0.20, 0.55],
+        "beta_estimado": 2.3,
+        "classificacao": "tokenized_macro_asset",
+        "caracteristicas": [
+            "macro_sensitive",
+            "event_sensitive",
+            "medium_liquidity",
+            "speculative"
+        ]
+    },
+    "LAUSDT": {
+        "papel": "Token de baixa/média capitalização com elevada sensibilidade a fluxo especulativo.",
+        "ciclo_proprio": "Movimentos abruptos em ciclos de risco e baixa liquidez.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 3.7,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "low_liquidity",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "ZKPUSDT": {
+        "papel": "Token ligado a narrativa zero-knowledge com comportamento de alta volatilidade.",
+        "ciclo_proprio": "Sensível a narrativa técnica e rotação de capital em altcoins de infraestrutura.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.4,
+        "classificacao": "mid_cap_zk_infra",
+        "caracteristicas": [
+            "zk_narrative",
+            "narrative_sensitive",
+            "high_beta",
+            "speculative"
+        ]
+    },
     "FIGHTUSDT": {
         "papel": "Token de nicho. Alta volatilidade e sensível a eventos de mercado.",
         "ciclo_proprio": "Narrativa de nicho. Amplifica movimentos de alta e baixa.",
@@ -273,6 +611,214 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "event_sensitive",
             "low_liquidity",
             "speculative"
+        ]
+    },
+    "ZKUSDT": {
+        "papel": "ZK (Infraestrutura de privacidade). Token de narrativa zero-knowledge commitment.",
+        "ciclo_proprio": "Sensível a adoção de protocolo e narrativa de privacidade/escalabilidade.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.2,
+        "classificacao": "mid_cap_zk_infra",
+        "caracteristicas": [
+            "zk_narrative",
+            "privacy_infrastructure",
+            "high_beta",
+            "narrative_sensitive"
+        ]
+    },
+    "1000WHYUSDT": {
+        "papel": "1000WHY. Token de meme/comunidade com dinâmica especulativa.",
+        "ciclo_proprio": "Movimentos de hype e participação comunitária. Altamente volátil.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 4.2,
+        "classificacao": "low_cap_memecoin",
+        "caracteristicas": [
+            "memecoin_narrative",
+            "community_driven",
+            "very_high_beta",
+            "speculative"
+        ]
+    },
+    "XIAUSDT": {
+        "papel": "XAI. Token de infraestrutura/gaming com foco em AI.",
+        "ciclo_proprio": "Sensível a narrativa de AI e adoção em gaming/aplicações.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 3.0,
+        "classificacao": "mid_cap_ai_narrative",
+        "caracteristicas": [
+            "ai_narrative",
+            "gaming_integration",
+            "high_beta",
+            "narrative_sensitive"
+        ]
+    },
+    "GTCUSDT": {
+        "papel": "Gitcoin (GTC). Token de infraestrutura/governança focado em funding público.",
+        "ciclo_proprio": "Sensível a ciclos de funding Web3 e governança descentralizada.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_web3_infra",
+        "caracteristicas": [
+            "web3_infrastructure",
+            "governance",
+            "high_beta",
+            "altseason_sensitive"
+        ]
+    },
+    "CELOUSDT": {
+        "papel": "Celo (CELO). Layer 1 orientado a pagamentos móveis.",
+        "ciclo_proprio": "Ciclo de adoção em regiões emergentes. Segue narrativa de inclusão financeira.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.7,
+        "classificacao": "mid_cap_l1_mobile",
+        "caracteristicas": [
+            "mobile_payments",
+            "emerging_markets",
+            "high_beta",
+            "altseason_sensitive"
+        ]
+    },
+    "HYPERUSDT": {
+        "papel": "Hyper. Token com dinâmica de alta volatilidade e narrativa em desenvolvimento.",
+        "ciclo_proprio": "Seguidor de ciclos de alternativo. Alta sensibilidade a liquidez e momentum.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.5,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "high_volatility",
+            "low_liquidity",
+            "very_high_beta",
+            "speculative"
+        ]
+    },
+    "MTLUSDT": {
+        "papel": "Metal (MTL). Token de infraestrutura de IoT e dados.",
+        "ciclo_proprio": "Sensível a narrativa IoT e segurança de dados.",
+        "correlacao_btc": [0.40, 0.70],
+        "beta_estimado": 2.9,
+        "classificacao": "mid_cap_iot_infra",
+        "caracteristicas": [
+            "iot_infrastructure",
+            "data_security",
+            "high_beta",
+            "narrative_sensitive"
+        ]
+    },
+    "POLYXUSDT": {
+        "papel": "Polymath (POLYX). Token de infraestrutura para tokens de segurança.",
+        "ciclo_proprio": "Sensível a adoção de securities tokens e regulação cripto.",
+        "correlacao_btc": [0.40, 0.75],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_securities_infra",
+        "caracteristicas": [
+            "securities_tokens",
+            "regulatory_sensitive",
+            "high_beta",
+            "compliance_focused"
+        ]
+    },
+    "1000BONKUSDT": {
+        "papel": "1000BONK. Memecoin com dinâmica comunitária elevada.",
+        "ciclo_proprio": "Ciclos de pump-dump baseados em comunidade e hype social.",
+        "correlacao_btc": [0.20, 0.55],
+        "beta_estimado": 4.5,
+        "classificacao": "low_cap_memecoin",
+        "caracteristicas": [
+            "memecoin_narrative",
+            "social_hype",
+            "extremely_high_beta",
+            "speculative"
+        ]
+    },
+    "FILUSDT": {
+        "papel": "Filecoin (FIL). Infraestrutura de armazenamento descentralizado.",
+        "ciclo_proprio": "Sensível a narrativa de armazenamento descentralizado e Web3 infra.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.5,
+        "classificacao": "mid_cap_storage_infra",
+        "caracteristicas": [
+            "decentralized_storage",
+            "web3_infrastructure",
+            "data_narrative",
+            "high_beta"
+        ]
+    },
+    "GRTUSDT": {
+        "papel": "The Graph (GRT). Token de protocolo de indexação descentralizada.",
+        "ciclo_proprio": "Segue narrativa de infraestrutura DeFi e indexação de dados.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.8,
+        "classificacao": "mid_cap_infra",
+        "caracteristicas": [
+            "indexing_protocol",
+            "defi_infrastructure",
+            "data_narrative",
+            "high_beta"
+        ]
+    },
+    "ATAUSDT": {
+        "papel": "Automata (ATA). Rede de privacidade e computação segura.",
+        "ciclo_proprio": "Sensível a narrativa de privacidade e segurança de dados.",
+        "correlacao_btc": [0.35, 0.70],
+        "beta_estimado": 3.2,
+        "classificacao": "low_cap_privacy_infra",
+        "caracteristicas": [
+            "privacy_technology",
+            "privacy_narrative",
+            "high_beta",
+            "speculative"
+        ]
+    },
+    "PENGUUSDT": {
+        "papel": "Penguin (PENGU). Memecoin com dinâmica especulativa elevada.",
+        "ciclo_proprio": "Ciclos de hype social e momentum baseado em comunidade.",
+        "correlacao_btc": [0.25, 0.60],
+        "beta_estimado": 4.0,
+        "classificacao": "low_cap_memecoin",
+        "caracteristicas": [
+            "memecoin_narrative",
+            "community_driven",
+            "very_high_beta",
+            "speculative"
+        ]
+    },
+    "GPSUSDT": {
+        "papel": "GPS. Token de utilidade com narrativa emergente.",
+        "ciclo_proprio": "Seguidor de ciclos especulativos de altcoins com alta volatilidade.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.5,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "speculative_flow",
+            "narrative_sensitive",
+            "very_high_beta",
+            "low_liquidity"
+        ]
+    },
+    "GUNUSDT": {
+        "papel": "Gunbot (GUN). Token de bot de trading com comunidade especializada.",
+        "ciclo_proprio": "Sensível a ciclos de propriedade de trading bots e narrativa de automação.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.8,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "trading_bot_ecosystem",
+            "automation_narrative",
+            "very_high_beta",
+            "niche_community"
+        ]
+    },
+    "POWERUSDT": {
+        "papel": "Power. Token de governança/utilidade com dinâmica especulativa.",
+        "ciclo_proprio": "Ciclos de altcoin com sensibilidade a narrativas emergentes.",
+        "correlacao_btc": [0.30, 0.65],
+        "beta_estimado": 3.6,
+        "classificacao": "low_cap_speculative",
+        "caracteristicas": [
+            "governance_token",
+            "speculative_flow",
+            "very_high_beta",
+            "emerging_narrative"
         ]
     }
 }

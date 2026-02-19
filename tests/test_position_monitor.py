@@ -865,8 +865,8 @@ def test_fetch_combined_klines_inserts_fresh_to_db(position_monitor, temp_db):
     assert db_records[0]['symbol'] == symbol
 
 
-def test_adopt_position_uses_persisted_protection_state(position_monitor, temp_db):
-    """Não deve recriar SL/TP quando estado persistido já indica proteção ativa."""
+def test_adopt_position_persisted_state_without_exchange_orders_recreates_protection(position_monitor, temp_db):
+    """Deve recriar SL/TP quando há apenas estado persistido e nenhuma ordem aberta na Binance."""
     now_ms = int(datetime.now().timestamp() * 1000)
 
     common_log = {
@@ -922,14 +922,17 @@ def test_adopt_position_uses_persisted_protection_state(position_monitor, temp_d
     position_monitor.create_snapshot = Mock(return_value={})
     position_monitor.db.insert_position_snapshot = Mock(return_value=1)
     position_monitor._has_existing_protection_orders = Mock(return_value={'has_sl': False, 'has_tp': False})
-    position_monitor._place_protective_order = Mock()
+    position_monitor._place_protective_order = Mock(side_effect=[
+        {'orderId': 'sl-1'},
+        {'orderId': 'tp-1'},
+    ])
 
     result = position_monitor.adopt_position_with_protection('GMTUSDT')
 
     assert result['ok'] is True
     assert result['sl_created'] is True
     assert result['tp_created'] is True
-    position_monitor._place_protective_order.assert_not_called()
+    assert position_monitor._place_protective_order.call_count == 2
 
 
 def test_adopt_position_treats_4130_as_existing_protection(position_monitor):

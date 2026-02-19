@@ -76,6 +76,11 @@ LOG_BACKUP_COUNT = 5
 MODEL_SAVE_PATH = "models/crypto_agent_ppo.zip"
 MODEL_CHECKPOINT_PATH = "models/checkpoints/"
 
+# Sub-agents (treino por símbolo com sinais reais)
+SUB_AGENTS_BASE_DIR = os.getenv("SUB_AGENTS_BASE_DIR", "models/sub_agents")
+SIGNAL_MIN_TRADES_FOR_RETRAINING = int(os.getenv("SIGNAL_MIN_TRADES_FOR_RETRAINING", "20"))
+SIGNAL_RETRAINING_TIMESTEPS = int(os.getenv("SIGNAL_RETRAINING_TIMESTEPS", "10000"))
+
 # WebSocket Configuration
 WS_RECONNECT_BACKOFF = [1, 2, 4, 8, 16, 30]  # seconds
 WS_MAX_RECONNECT_DELAY = 30  # seconds

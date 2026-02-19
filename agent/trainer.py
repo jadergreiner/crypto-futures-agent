@@ -4,33 +4,7 @@ Treinador do agente RL com múltiplas fases.
 
 import logging
 import sys
-
-# Configuração de logging para terminal e arquivo
-root_logger = logging.getLogger()
-root_logger.setLevel(logging.INFO)
-if not root_logger.hasHandlers():
-    file_handler = logging.FileHandler('logs/agent.log')
-    stream_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    stream_handler.setFormatter(formatter)
-    root_logger.addHandler(file_handler)
-    root_logger.addHandler(stream_handler)
-
-root_logger.info('Iniciando treinamento BTCUSDT...')
-import sys
-
-# Configuração de logging para terminal e arquivo
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-if not logger.hasHandlers():
-    file_handler = logging.FileHandler('logs/agent.log')
-    stream_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler.setFormatter(formatter)
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
+import importlib.util
 from typing import Dict, Any, Optional
 import os
 from datetime import datetime
@@ -46,10 +20,11 @@ logger = logging.getLogger(__name__)
 
 # Verificar se tensorboard está disponível
 try:
-    import tensorboard.summary
-    TENSORBOARD_AVAILABLE = True
-except ImportError:
+    TENSORBOARD_AVAILABLE = importlib.util.find_spec("tensorboard") is not None
+except Exception:
     TENSORBOARD_AVAILABLE = False
+
+if not TENSORBOARD_AVAILABLE:
     logger.warning("TensorBoard não instalado. Treinamento continuará sem logging do TensorBoard.")
 
 

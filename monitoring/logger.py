@@ -7,8 +7,28 @@ import json
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from typing import Dict, Any
+import sys
 
 from config.settings import LOG_FILE, LOG_LEVEL, LOG_MAX_BYTES, LOG_BACKUP_COUNT
+
+
+class SafeRotatingFileHandler(RotatingFileHandler):
+    """RotatingFileHandler resiliente a bloqueio de arquivo no Windows.
+
+    Em cenários com múltiplos processos escrevendo no mesmo log, o rename durante
+    rollover pode lançar PermissionError (WinError 32). Nesse caso, ignoramos a
+    rotação neste ciclo para manter a escrita contínua e evitar traceback ruidoso.
+    """
+
+    def doRollover(self) -> None:
+        try:
+            super().doRollover()
+        except PermissionError:
+            sys.stderr.write(
+                "[LOGGER] Rollover ignorado: arquivo de log em uso por outro processo.\n"
+            )
+            if self.stream is None:
+                self.stream = self._open()
 
 
 class AgentLogger:
@@ -38,10 +58,11 @@ class AgentLogger:
             return logger
         
         # File handler com rotação
-        file_handler = RotatingFileHandler(
+        file_handler = SafeRotatingFileHandler(
             LOG_FILE,
             maxBytes=LOG_MAX_BYTES,
-            backupCount=LOG_BACKUP_COUNT
+            backupCount=LOG_BACKUP_COUNT,
+            delay=True,
         )
         file_formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -53,7 +74,6 @@ class AgentLogger:
         # No Windows, o sys.stdout pode usar cp1252 por padrão.
         # Usar errors='replace' garante que caracteres não suportados sejam substituídos
         # em vez de causar UnicodeEncodeError.
-        import sys
         console_handler = logging.StreamHandler(sys.stdout)
         # Configurar o stream para lidar com erros de codificação graciosamente
         if hasattr(console_handler.stream, 'reconfigure'):
