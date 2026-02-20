@@ -1,43 +1,58 @@
 # Crypto Futures Autonomous Agent
 
-Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas na Binance Futures (USDⓈ-M). Combina indicadores técnicos, Smart Money Concepts (SMC), análise de sentimento e dados macroeconômicos para gerar sinais operacionais com gestão de risco completa.
+Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas
+na Binance Futures (USDⓈ-M). Combina indicadores técnicos, Smart Money Concepts
+(SMC), análise de sentimento e dados macroeconômicos para gerar sinais
+operacionais com gestão de risco completa.
 
 ## 🌐 Idioma do Projeto
 
 - O idioma oficial deste projeto é **português**.
-- Escreva documentação, comentários, mensagens de log e textos de interface em português.
-- Use inglês apenas para termos técnicos consolidados (APIs, bibliotecas, protocolos e nomes próprios).
+- Escreva documentação, comentários,
+  mensagens de log e textos de interface em português.
+- Use inglês apenas para termos técnicos consolidados (APIs, bibliotecas,
+  protocolos e nomes próprios).
 
 ## 🎯 Características Principais
 
-- **Reinforcement Learning**: PPO (Proximal Policy Optimization) com Stable-Baselines3
+- **Reinforcement Learning**: PPO (Proximal Policy Optimization) com
+  Stable-Baselines3
 - **Smart Money Concepts**: Order Blocks, FVGs, BOS, CHoCH, Liquidity Sweeps
 - **Multi-Timeframe**: Análise em D1, H4 e H1
-- **Gestão de Risco INVIOLÁVEL**: Stop loss, take profit, trailing stop, drawdown limits
-- **104 Features**: Observation space completo com indicadores técnicos, SMC, sentimento e macro
+- **Gestão de Risco INVIOLÁVEL**: Stop loss, take profit, trailing stop,
+  drawdown limits
+- **104 Features**: Observation space completo com indicadores técnicos, SMC,
+  sentimento e macro
 - **Playbooks Específicos**: Estratégias customizadas para cada criptomoeda
 - **Arquitetura em Camadas**: 6 layers com execução condicional
 
 ## ⚠️ Status Operacional Atual (20/02/2026)
 
 **🟠 OPERAÇÃO PARALELA C ATIVA**
+
 - **LIVE Trading**: ✅ Operando com 16 pares USDT (Profit Guardian Mode)
-- **v0.3 Training**: 🔄 Validação em paralelo (isolada, sem interferência com LIVE)
+- **v0.3 Training**: 🔄 Validação em paralelo (isolada,
+  sem interferência com LIVE)
 - **Safeguards**: ✅ Health monitor (60s checks), kill switch (2% loss threshold)
-- **Autorização**: ✅ Formal via AUTHORIZATION_OPÇÃO_C_20FEV.txt (20/02 20:30 BRT)
+- **Autorização**: ✅ Formal via AUTHORIZATION_OPÇÃO_C_20FEV.txt (20/02 20:30
+  BRT)
 - **Timeline**: Validação até 23:59 BRT hoje, pronto para expansão amanhã (v0.4)
 
 **Detalhes Técnicos:**
+
 - Orquestrador: `core/orchestrator_opção_c.py` (automático via `iniciar.bat`)
 - Monitor: `monitoring/critical_monitor_opção_c.py` (health checks contínuos)
 - Logs: `logs/orchestrator_opção_c.log`, `logs/critical_monitor.log`
-- **Operador**: Nenhuma ação necessária — execute `iniciar.bat` como sempre (transparente)
+- **Operador**: Nenhuma ação necessária — execute `iniciar.bat` como sempre
+  (transparente)
 
-**Ver também:** [docs/OPERACAO_C_GUIA_TRANSPARENTE.md](docs/OPERACAO_C_GUIA_TRANSPARENTE.md) para referência
+**Ver também:**
+[docs/OPERACAO_C_GUIA_TRANSPARENTE.md](docs/OPERACAO_C_GUIA_TRANSPARENTE.md) para referência
 
 ## 📊 Moedas Suportadas (16 Pares USDT)
 
 ### High-Cap (Estáveis)
+
 - **BTC (BTCUSDT)**: Líder de mercado, ciclos de halving
 - **ETH (ETHUSDT)**: Segunda maior, ecossistema DeFi
 - **BNB (BNBUSDT)**: Token burns trimestrais
@@ -45,6 +60,7 @@ Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas n
 - **LTC (LTCUSDT)**: Halving próprio, correlação BTC
 
 ### Mid-Cap (High Beta)
+
 - **SOL (SOLUSDT)**: High beta, amplifica movimentos
 - **DOGE (DOGEUSDT)**: Memecoin, sentiment-driven
 - **C98 (C98USDT)**: DeFi gateway multi-chain
@@ -57,12 +73,14 @@ Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas n
 - **POLYX (POLYXUSDT)**: Securities infrastructure (β=2.8)
 
 ### Low-Cap (Very High Beta - ESPECULATIVO)
+
 - **HYPER (HYPERUSDT)**: Especulativo (β=3.5)
 - **1000BONK (1000BONKUSDT)**: Memecoin extremo (β=4.5)
 - **OGN (OGNUSDT)**: Commerce protocol (β=3.2)
 - **IMX (IMXUSDT)**: Layer 2 NFT/Gaming (β=3.0)
 
-**Modo de Operação**: Todos os pares em Profit Guardian Mode com proteção de SL/TP automática
+* *Modo de Operação**: Todos os pares em Profit Guardian Mode com proteção de
+  SL/TP automática
 
 ## 🏗️ Arquitetura
 
@@ -72,7 +90,8 @@ Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas n
 LAYER 1 (Heartbeat): 1 min    - Health check (API, DB, WebSocket)
 LAYER 2 (Risk):      5 min    - Gestão de risco (apenas com posições)
 LAYER 3 (H1):        1 hora   - Timing de entrada (apenas com sinais/posições)
-LAYER 4 (H4):        4 horas  - Decisão principal (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+LAYER 4 (H4): 4 horas - Decisão principal (00:00, 04:00, 08:00, 12:00, 16:00,
+20:00 UTC)
 LAYER 5 (D1):        00:00 UTC - Tendência e macro (ANTES da Layer 4)
 LAYER 6 (Semanal/Mensal):      - Performance review e retrain
 ```
@@ -106,9 +125,11 @@ iniciar.bat
 ```
 
 O script `iniciar.bat` oferece um menu interativo com todas as opções:
+
 - ✅ Verifica e ativa o ambiente virtual automaticamente
 - ✅ Valida pré-requisitos (.env, banco de dados)
-- ✅ Menu com 7 opções: Paper Trading, Live, Monitor, Backtest, Train, Setup, Sair
+- ✅ Menu com 7 opções: Paper Trading, Live, Monitor, Backtest, Train, Setup,
+  Sair
 - ✅ Confirmações de segurança para modo LIVE
 
 ### Opção B: Manual (Linux/Mac ou Avançado)
@@ -136,6 +157,7 @@ python main.py --setup
 ```
 
 Este comando irá:
+
 - Criar o banco de dados SQLite
 - Coletar 365 dias de dados D1
 - Coletar 180 dias de dados H4
@@ -176,19 +198,23 @@ python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31
 ## 📈 Features do Observation Space (104 features)
 
 ### Bloco 1: Preço (11 features)
+
 - Retornos em múltiplos timeframes
 - Range atual
 - EMA alignment score
 
 ### Bloco 2: EMAs (6 features)
+
 - Distância do preço para cada EMA (17, 34, 72, 144, 305, 610)
 
 ### Bloco 3: Indicadores Técnicos (11 features)
+
 - RSI, MACD, Bollinger Bands
 - Volume Profile (POC, VAH, VAL)
 - OBV, ATR, ADX, DI+/-
 
 ### Bloco 4: Smart Money Concepts (19 features)
+
 - Estrutura de mercado (bullish/bearish/range)
 - BOS e CHoCH
 - Order Blocks (contagem e distância)
@@ -197,27 +223,32 @@ python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31
 - Premium/Discount zones
 
 ### Bloco 5: Sentimento (4 features)
+
 - Long/Short Ratio
 - Open Interest change
 - Funding Rate
 - Liquidation imbalance
 
 ### Bloco 6: Macro (4 features)
+
 - DXY change
 - Fear & Greed Index
 - BTC Dominance
 - Stablecoin flows
 
 ### Bloco 7: Correlação (3 features)
+
 - BTC return
 - Correlação com BTC
 - Beta
 
 ### Bloco 8: Contexto D1 (2 features)
+
 - Bias D1 (bullish/bearish/neutro)
 - Regime de mercado (risk_on/risk_off/neutro)
 
 ### Bloco 9: Posição (5 features)
+
 - Direção da posição
 - PnL %
 - Tempo na posição
@@ -245,7 +276,8 @@ confluence_min_score: 8/14 para abrir posição
 
 ### Conceitos Implementados
 
-1. **Swing Points**: Detecção algorítmica de Higher Highs/Lows e Lower Highs/Lows
+1. **Swing Points**: Detecção algorítmica de Higher Highs/Lows e Lower
+Highs/Lows
 2. **Market Structure**: Classificação automática (bullish/bearish/range)
 3. **BOS (Break of Structure)**: Quebra de estrutura confirmando tendência
 4. **CHoCH (Change of Character)**: Mudança de caráter sinalizando reversão
@@ -273,7 +305,8 @@ O agente pode executar 5 ações:
 Recompensa multi-componente com 6 componentes:
 
 ```python
-R_total = r_pnl + r_risk + r_consistency + r_overtrading + r_hold_bonus + r_invalid_action
+R_total = r_pnl + r_risk + r_consistency + r_overtrading + r_hold_bonus +
+r_invalid_action
 
 r_pnl: pnl_pct * 100 (peso 1.0)
 r_risk: penalidades por violações (peso 1.0)
@@ -286,16 +319,19 @@ r_invalid_action: -0.1 para ações impossíveis (peso 0.2)
 ## 🔄 Training Pipeline
 
 ### Fase 1: Exploração (500k timesteps)
+
 - Alta entropia (ent_coef=0.01)
 - Aprendizado exploratório
 - PPO padrão
 
 ### Fase 2: Refinamento (1M timesteps)
+
 - Carrega modelo da Fase 1
 - Reduz entropia (ent_coef=0.005)
 - Otimização refinada
 
 ### Fase 3: Validação
+
 - Avaliação determinística em dados out-of-sample
 - Cálculo de métricas: win rate, profit factor, sharpe, max DD
 
@@ -309,6 +345,7 @@ Cada moeda possui um playbook customizado com:
 - **Condições de Trading**: Quando operar ou evitar
 
 Exemplo: **DOGE Playbook**
+
 - Bonus +1.5 para social sentiment > 0.7
 - Bonus +1.0 para Fear & Greed > 75
 - Position size reduzido para 60% (beta 2.5)
@@ -317,6 +354,7 @@ Exemplo: **DOGE Playbook**
 ## 🔍 Monitoring & Alerts
 
 ### Métricas Rastreadas
+
 - Win Rate
 - Profit Factor
 - Sharpe Ratio
@@ -325,6 +363,7 @@ Exemplo: **DOGE Playbook**
 - Expectancy
 
 ### Alertas Automáticos
+
 - ⚠️ Drawdown crítico
 - ⚠️ Flash crash/pump (>5% em 5 min)
 - ⚠️ Funding rate extremo
@@ -344,6 +383,7 @@ pytest tests/test_indicators.py -v
 ## 📚 Database Schema
 
 12 tabelas SQLite:
+
 - `ohlcv_d1`, `ohlcv_h4`, `ohlcv_h1`
 - `indicadores_tecnico`
 - `sentimento_mercado`
@@ -371,6 +411,7 @@ pytest tests/test_indicators.py -v
 Este projeto possui documentação extensiva organizada em `docs/`:
 
 ### Documentação do Projeto
+
 - **[ROADMAP.md](docs/ROADMAP.md)** — Roadmap do projeto, releases planejadas e status atual
 - **[RELEASES.md](docs/RELEASES.md)** — Detalhes de cada release (v0.1 a v1.1+)
 - **[FEATURES.md](docs/FEATURES.md)** — Listagem de todas as features por release
@@ -380,26 +421,52 @@ Este projeto possui documentação extensiva organizada em `docs/`:
 - **[CHANGELOG.md](CHANGELOG.md)** — Registro de mudanças seguindo Keep a Changelog
 
 ### Documentação Técnica
+
 - **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** — Integração com Binance SDK
 - **[CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md)** — Correções de cross margin
 - **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação das camadas de decisão
+- **[SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Rastreamento de sincronização de docs
+
+### 🔄 Validação Automática de Sincronização
+
+O projeto implementa mecanismo obrigatório de sincronização:
+
+**Validar antes de cada commit:**
+
+```bash
+python scripts/validate_sync.py
+```
+
+O script verifica:
+
+- ✅ Markdown lint (máximo 80 caracteres)
+- ✅ Sincronização README ↔ FEATURES ↔ ROADMAP
+- ✅ Registro em SYNCHRONIZATION.md
+- ✅ Entrada em CHANGELOG.md
+
+**Instruções completas:** Ver
+[.github/copilot-instructions.md](.github/copilot-instructions.md)
 
 ### Status do Projeto
 
 **v0.2 (Pipeline Fix)** ✅ CONCLUÍDO (15/02/2026)
+
 - Feature Engineering com 104 features totalmente funcional
 - Multi-timeframe analysis integrada (D1 Bias, Market Regime, Correlação BTC)
 - Reward Calculator com lógica de R-multiple corrigida
 - Testes unitários completos
 
 **v0.2.1 (Administração de Posições)** ✅ CONCLUÍDO (20/02/2026)
-- 9 novos pares USDT em Profit Guardian Mode (TWT, LINK, OGN, IMX + 5 existentes)
+
+- 9 novos pares USDT em Profit Guardian Mode (TWT, LINK, OGN,
+  IMX + 5 existentes)
 - 4 novos playbooks especializados com ajustes de risco por beta
 - Total de 16 pares USDT operacionais
 - Mecanismos de sincronização de documentação implementados
 - Rastreamento automático em docs/SYNCHRONIZATION.md
 
 **Próxima Release:** v0.3 (Training Ready) 🎯
+
 - Foco: Ambiente de treinamento RL funcional
 - Pipeline de dados para treinamento
 - Script de treinamento operacional
@@ -412,6 +479,7 @@ MIT License - Veja o arquivo LICENSE para detalhes.
 ## 🤝 Contribuições
 
 Contribuições são bem-vindas! Por favor:
+
 1. Fork o repositório
 2. Crie uma branch para sua feature
 3. Commit suas mudanças

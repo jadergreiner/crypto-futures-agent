@@ -256,9 +256,73 @@ Antes de cada commit com mudanças:
   - [ ] `README.md` reflete mudança?
 - [ ] **Commit message contém tag?** (`[SYNC]`, `[FEAT]`, `[FIX]`, `[TEST]`)
 
-### Validação Automática
+### Validação Automática de Sincronização
 
-Cada commit com `[SYNC]` tag deve manter checklist em `docs/SYNCHRONIZATION.md`
+**OBRIGATÓRIO:** Cada commit com `[SYNC]` tag DEVE passar por validação formal:
+
+#### Validação Manual (Checklist)
+
+Antes de commitar qualquer mudança que afete documentação:
+
+```
+SINCRONIZAÇÃO DE DOCUMENTAÇÃO — CHECKLIST
+──────────────────────────────────────────
+
+□ IDENTIFICAR MUDANÇA
+  ├─ Qual arquivo foi alterado? ________________
+  ├─ Tipo de mudança? [ ] Feature [ ] Fix [ ] Docs [ ] Test
+  └─ Data/Hora: ________________
+
+□ MAPEAR DEPENDÊNCIAS
+  ├─ Documentos impactados? (usar Matriz de Dependências)
+  │   ├─ config/symbols.py       → [ ] README.md [ ] playbooks/__init__.py
+  │   ├─ playbooks/*.py          → [ ] symbols.py [ ] tests/
+  │   ├─ README.md               → [ ] ROADMAP [ ] RELEASES [ ] CHANGELOG
+  │   └─ docs/*                  → [ ] SYNCHRONIZATION.md
+  └─ Código associado testado?   [ ] Sim [ ] Não → EXECUTA: pytest -q
+
+□ ATUALIZAR DOCUMENTAÇÃO IMPACTADA
+  ├─ [ ] Arquivo primário (código/design)
+  ├─ [ ] docs/SYNCHRONIZATION.md (registrar mudança)
+  ├─ [ ] docs/FEATURES.md (se feature nova)
+  ├─ [ ] docs/ROADMAP.md (se impacta timeline)
+  ├─ [ ] CHANGELOG.md (versão + data)
+  └─ [ ] README.md (se visível ao usuário)
+
+□ VALIDAÇÃO FINAL
+  ├─ [ ] Nenhuma linha > 80 chars em docs/
+  ├─ [ ] Nenhuma linha sem encoding UTF-8 correto
+  ├─ [ ] Nenhum typo óbvio em português
+  ├─ [ ] Commit message: [SYNC] + descrição breve
+  └─ [ ] `git log --oneline -1` mostra mensagem correta (sem lixo)
+
+□ SUBMETER
+  └─ [ ] git commit -m "[SYNC] Descrição clara da mudança"
+```
+
+#### Validação Automática (Script)
+
+**Execute antes de cada commit com mudanças de doc:**
+
+```bash
+# Validar sincronização de integridade
+python scripts/validate_sync.py
+
+# Saída esperada:
+# ✅ LINT: Sem erros markdown (max 80 chars)
+# ✅ SYMBOLS: config/symbols.py ↔ playbooks/ ↔ README.md sincronizado
+# ✅ FEATURES: docs/FEATURES.md ↔ ROADMAP.md ↔ RELEASES.md sincronizado
+# ✅ TRACKER: docs/TRACKER.md com status atualizado
+# ✅ CHANGELOG: CHANGELOG.md com entrada recente
+# ✅ SYNCHRONIZATION: últimas mudanças registradas
+# ✅ TUDO OK → Pronto para commit
+```
+
+**Script criado em:** `scripts/validate_sync.py`
+- Verifica consistência README ↔ docs/FEATURES ↔ config/symbols
+- Valida markdown (80 chars max, UTF-8, syntax)
+- Confirma CHANGELOG atualizado
+- Registra resultado em `docs/SYNCHRONIZATION.md`
 
 ---
 
