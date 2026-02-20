@@ -19,14 +19,14 @@ class GUNPlaybook(BasePlaybook):
     Playbook para Gunbot (GUN).
     Low-cap especulativo com beta 3.8 (comunidade niche, volatilidade alta).
     """
-    
+
     def __init__(self):
         super().__init__("GUNUSDT")
-    
+
     def get_confluence_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de confluência para GUN.
-        
+
         Gunbot é sensível a:
         - Narrativa de trading automation
         - Comunidade especializada de traders
@@ -39,13 +39,13 @@ class GUNPlaybook(BasePlaybook):
             "macro_risk_off": -2.5,               # Sofre em risk-off
             "niche_community_sentiment": 0.5,     # Comunidade pequena
         }
-        
+
         return adjustments
-    
+
     def get_risk_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de risco para GUN.
-        
+
         Beta 3.8 (low-cap niche, volatilidade muito alta):
         - 45% de tamanho de posição (bastante conservador)
         - SL apertado, TP próximo, breakout-only
@@ -58,13 +58,13 @@ class GUNPlaybook(BasePlaybook):
             "min_confluence_required": 10,        # Requer confluência 10+
             "breakout_only": True,                # APENAS breakouts
         }
-        
+
         return adjustments
-    
+
     def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
         """
         Identifica fase do ciclo de GUN.
-        
+
         GUN passa por:
         - Breakout: Saída de consolidação niche
         - Community_Hype: Crescimento comunidade
@@ -73,7 +73,7 @@ class GUNPlaybook(BasePlaybook):
         """
         community_participation = current_data.get("community_participation", "low")
         price_action = current_data.get("price_action", "neutral")
-        
+
         if price_action == "breakout":
             return "breakout"
         elif community_participation == "high" and price_action == "uptrend":
@@ -82,8 +82,8 @@ class GUNPlaybook(BasePlaybook):
             return "abandonment"
         else:
             return "consolidation"
-    
-    def should_trade(self, market_regime: str, d1_bias: str, 
+
+    def should_trade(self, market_regime: str, d1_bias: str,
                     btc_bias: Optional[str] = None) -> bool:
         """
         GUN (low-cap niche 3.8) APENAS em:
@@ -93,8 +93,8 @@ class GUNPlaybook(BasePlaybook):
         """
         if d1_bias != "STRONG_LONG":
             return False
-        
+
         if market_regime == "RISK_ON":
             return True
-        
+
         return False

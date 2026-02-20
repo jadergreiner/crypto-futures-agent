@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 def parse_execution_log():
     """Parse log de execuções."""
     log_file = Path("logs/agent.log")
-    
+
     # Estatísticas
     execucoes = {
         "BLOQUEADAS_SIMBOLO_NAO_WHITELIST": 0,
@@ -21,17 +21,17 @@ def parse_execution_log():
         "EXECUTADAS_SUCESSO": 0,
         "TENTADAS_NAO_EXEC": 0,
     }
-    
+
     detalhes_bloqueadas = {}
     detalhes_sucesso = []
-    
+
     with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
         linhas = f.readlines()
-    
+
     i = 0
     while i < len(linhas):
         linha = linhas[i]
-        
+
         # 1. EXECUÇÃO BLOQUEADA - NÃO NA WHITELIST
         if "não está na whitelist de s" in linha:
             match = re.search(r"CLOSE (\w+):", linha)
@@ -46,7 +46,7 @@ def parse_execution_log():
                 if ts_match:
                     detalhes_bloqueadas[symbol]["timestamp"] = ts_match.group(1)
             i += 1
-            
+
         # 2. EXECUÇÃO BLOQUEADA - RESPOSTA VAZIA
         elif "Falha ao executar ordem - resposta vazia" in linha:
             match = re.search(r"CLOSE (\w+):", linha)
@@ -54,7 +54,7 @@ def parse_execution_log():
                 symbol = match.group(1)
                 execucoes["BLOQUEADAS_RESPOSTA_VAZIA"] += 1
             i += 1
-            
+
         # 3. ORDEM COLOCADA COM SUCESSO
         elif "Ordem colocada com sucesso" in linha and "client_order_id" in linha:
             # Próximas linhas têm os detalhes
@@ -63,22 +63,22 @@ def parse_execution_log():
             while j < len(linhas) and j < i + 5:
                 ordem_str += linhas[j]
                 j += 1
-            
+
             # Extrair detalhes
             side_match = re.search(r"'side': '(\w+)'", ordem_str)
             symbol_match = re.search(r"'symbol': '(\w+)'", ordem_str)
             qty_match = re.search(r"'orig_qty': '([\d.]+)'", ordem_str)
             status_match = re.search(r"'status': '(\w+)'", ordem_str)
-            
+
             if symbol_match:
                 symbol = symbol_match.group(1)
                 side = side_match.group(1) if side_match else "?"
                 qty = qty_match.group(1) if qty_match else "?"
                 status = status_match.group(1) if status_match else "?"
-                
+
                 ts_match = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})", linha)
                 timestamp = ts_match.group(1) if ts_match else "?"
-                
+
                 execucoes["EXECUTADAS_SUCESSO"] += 1
                 detalhes_sucesso.append({
                     "symbol": symbol,
@@ -88,7 +88,7 @@ def parse_execution_log():
                     "status": status
                 })
             i = j
-            
+
         # 4. PRÓXIMA ORDEM - OK (após execution.order_executor)
         elif "[OK] Ordem executada (live mode):" in linha:
             match = re.search(r"(\w+) (\d+\.?\d*) (\w+) @", linha)
@@ -96,36 +96,36 @@ def parse_execution_log():
                 # Informação já foi contada
                 pass
             i += 1
-            
+
         else:
             i += 1
-    
+
     return execucoes, detalhes_bloqueadas, detalhes_sucesso
 
 def print_relatorio():
     """Gera relatório formatado."""
     execucoes, bloqueadas, sucesso = parse_execution_log()
-    
+
     print("=" * 80)
     print("ANÁLISE DE EXECUÇÕES - 18 FEV 2026")
     print("=" * 80)
     print()
-    
-    total_tentadas = (execucoes["BLOQUEADAS_SIMBOLO_NAO_WHITELIST"] + 
-                     execucoes["BLOQUEADAS_RESPOSTA_VAZIA"] + 
+
+    total_tentadas = (execucoes["BLOQUEADAS_SIMBOLO_NAO_WHITELIST"] +
+                     execucoes["BLOQUEADAS_RESPOSTA_VAZIA"] +
                      execucoes["EXECUTADAS_SUCESSO"])
-    
+
     print(f"RESUMO EXECUTIVO")
     print(f"  Total de operações TENTADAS:        {total_tentadas}")
     print(f"  ✅ Executadas com SUCESSO:          {execucoes['EXECUTADAS_SUCESSO']}")
     print(f"  ❌ Bloqueadas (não whitelist):      {execucoes['BLOQUEADAS_SIMBOLO_NAO_WHITELIST']}")
     print(f"  ❌ Bloqueadas (resposta vazia):     {execucoes['BLOQUEADAS_RESPOSTA_VAZIA']}")
     print()
-    
+
     taxa_sucesso = (execucoes["EXECUTADAS_SUCESSO"] / total_tentadas * 100) if total_tentadas > 0 else 0
     print(f"Taxa de sucesso: {taxa_sucesso:.1f}%")
     print()
-    
+
     # Detalhes de executadas com sucesso
     if sucesso:
         print("=" * 80)
@@ -135,7 +135,7 @@ def print_relatorio():
             print(f"  [{exec_data['timestamp']}] {exec_data['symbol']}")
             print(f"    Side: {exec_data['side']}, Qty: {exec_data['qty']}, Status: {exec_data['status']}")
         print()
-    
+
     # Detalhes de bloqueadas
     if bloqueadas:
         print("=" * 80)
@@ -145,12 +145,12 @@ def print_relatorio():
         for symbol, dados in sorted(bloqueadas.items()):
             print(f"  - {symbol}: {dados['count']} tentativas (último: {dados['timestamp']})")
         print()
-        
+
         print("RECOMENDAÇÃO: Adicione esses símbolos a config/symbols.py para permitir limpeza:")
         for symbol in sorted(bloqueadas.keys()):
             print(f"  • {symbol}")
         print()
-    
+
     print("=" * 80)
     print("CONCLUSÃO")
     print("=" * 80)

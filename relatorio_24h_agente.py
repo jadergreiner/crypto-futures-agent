@@ -123,22 +123,22 @@ print("""
    └─ Histórico: Pares novos precisam ajuste de configuração
 
 3. POSSÍVEIS CAUSAS DE PREJUIZO WAVE 2:
-   
+
    PENGU (-44.22%):
    └─ Memecoin muito conservador, posição pequena ($1.17)
    └─ Risco: Confluence exigida (11+) pode não estar atingida
    └─ Recomendação: Validar limite de confluência
-   
+
    GPS (-255.63%):
    └─ Posição MUITO pequena ($0.24)
    └─ Parece liquidação próxima
    └─ Recomendação: Aumentar stop loss preventivo
-   
+
    GUN (-34.98%):
    └─ Posição tiny ($0.05)
    └─ Breakout-only mode: Esperando confirmação
    └─ Recomendação: Aguardar breakout ou fechar
-   
+
    POWER (-94.01%):
    └─ Long position em mercado downtrend
    └─ Risco: Aumento de posição pode piorar

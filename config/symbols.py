@@ -820,6 +820,58 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "very_high_beta",
             "emerging_narrative"
         ]
+    },
+    "TWTUSDT": {
+        "papel": "Trust Wallet Token (TWT). Token de wallet crypto com utilidade em ecossistema Binance.",
+        "ciclo_proprio": "Sensível a adoção de wallet e dinâmica de Binance ecosystem.",
+        "correlacao_btc": [0.50, 0.80],
+        "beta_estimado": 2.0,
+        "classificacao": "mid_cap_utility",
+        "caracteristicas": [
+            "wallet_ecosystem",
+            "binance_integration",
+            "utility_token",
+            "adoption_driven"
+        ]
+    },
+    "LINKUSDT": {
+        "papel": "Chainlink (LINK). Oracle descentralizado, líder em dados on-chain para contratos inteligentes.",
+        "ciclo_proprio": "Sensível a DeFi TVL, adoção de smart contracts e inovação em oracles.",
+        "correlacao_btc": [0.60, 0.85],
+        "beta_estimado": 2.3,
+        "classificacao": "mid_cap_oracle_infra",
+        "caracteristicas": [
+            "oracle_network",
+            "defi_infrastructure",
+            "smart_contract_data",
+            "institutional_adoption"
+        ]
+    },
+    "OGNUSDT": {
+        "papel": "Origin Protocol (OGN). Protocolo de e-commerce/marketplace descentralizado.",
+        "ciclo_proprio": "Sensível a ciclos de inovação em Web3 commerce e marketplace.",
+        "correlacao_btc": [0.40, 0.70],
+        "beta_estimado": 3.2,
+        "classificacao": "low_cap_commerce",
+        "caracteristicas": [
+            "defi_commerce",
+            "marketplace_protocol",
+            "web3_adoption",
+            "high_beta"
+        ]
+    },
+    "IMXUSDT": {
+        "papel": "Immutable X (IMX). Layer 2 para NFTs/gaming, escalabilidade Ethereum.",
+        "ciclo_proprio": "Sensível a narrativa NFT/gaming e adoção de Layer 2 solutions.",
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 3.0,
+        "classificacao": "low_cap_l2_nft",
+        "caracteristicas": [
+            "layer2_nft",
+            "gaming_narrative",
+            "ethereumscaling",
+            "high_beta"
+        ]
     }
 }
 

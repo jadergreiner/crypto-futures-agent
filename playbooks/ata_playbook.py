@@ -19,14 +19,14 @@ class ATAPlaybook(BasePlaybook):
     Playbook para Automata (ATA).
     Privacy infrastructure com beta 3.2 (low-cap especulativo).
     """
-    
+
     def __init__(self):
         super().__init__("ATAUSDT")
-    
+
     def get_confluence_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de confluência para ATA.
-        
+
         Automata é sensível a:
         - Narrativa de privacidade emergente
         - Ciclos especulativos de altcoins
@@ -38,13 +38,13 @@ class ATAPlaybook(BasePlaybook):
             "speculative_flow": 0.75,    # Seguos fluxos especulativos
             "macro_risk_off": -2.0,      # Sofre bastante em risk-off
         }
-        
+
         return adjustments
-    
+
     def get_risk_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de risco para ATA.
-        
+
         Beta 3.2 (low-cap, volatilidade elevada):
         - 50% de tamanho de posição (conservador)
         - SL mais apertado, TP mais próximo
@@ -55,13 +55,13 @@ class ATAPlaybook(BasePlaybook):
             "tp_atr_multiplier": 2.5,             # TP um pouco mais próximo
             "max_drawdown_percent": 2.5,          # Max drawdown 2.5%
         }
-        
+
         return adjustments
-    
+
     def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
         """
         Identifica fase do ciclo de ATA.
-        
+
         ATA passa por:
         - Breakout: Saída de consolidação
         - Pump: Movimento de euforia
@@ -70,7 +70,7 @@ class ATAPlaybook(BasePlaybook):
         """
         momentum = current_data.get("momentum", "neutral")
         price_action = current_data.get("price_action", "neutral")
-        
+
         if price_action == "uptrend" and momentum == "strong":
             return "pump"
         elif price_action == "downtrend":
@@ -79,8 +79,8 @@ class ATAPlaybook(BasePlaybook):
             return "breakout"
         else:
             return "recovery"
-    
-    def should_trade(self, market_regime: str, d1_bias: str, 
+
+    def should_trade(self, market_regime: str, d1_bias: str,
                     btc_bias: Optional[str] = None) -> bool:
         """
         ATA (low-cap 3.2) deve operar em:
@@ -90,12 +90,12 @@ class ATAPlaybook(BasePlaybook):
         """
         if d1_bias in ["NEUTRO", "SHORT"]:
             return False
-        
+
         if market_regime == "RISK_ON":
             return d1_bias in ["LONG", "STRONG_LONG"]
         elif market_regime == "RISK_OFF":
             return False
         else:  # NEUTRO_MERCADO
             return d1_bias == "STRONG_LONG"
-        
+
         return False

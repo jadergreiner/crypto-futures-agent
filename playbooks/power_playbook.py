@@ -19,14 +19,14 @@ class POWERPlaybook(BasePlaybook):
     Playbook para Power.
     Low-cap especulativo com beta 3.6 (narrativa emergente, volatilidade alta).
     """
-    
+
     def __init__(self):
         super().__init__("POWERUSDT")
-    
+
     def get_confluence_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de confluência para POWER.
-        
+
         Power é sensível a:
         - Narrativa de governança emergente
         - Ciclos especulativos de altcoins
@@ -39,13 +39,13 @@ class POWERPlaybook(BasePlaybook):
             "retail_flow": 0.75,                 # Fluxo varejo especulativo
             "macro_risk_off": -2.5,              # Sofre bastante em risk-off
         }
-        
+
         return adjustments
-    
+
     def get_risk_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
         Ajustes de risco para POWER.
-        
+
         Beta 3.6 (low-cap, volatilidade alta):
         - 48% de tamanho de posição (conservador)
         - SL moderadamente apertado, TP próximo
@@ -57,13 +57,13 @@ class POWERPlaybook(BasePlaybook):
             "max_drawdown_percent": 2.3,          # Max drawdown 2.3%
             "min_confluence_required": 10,        # Requer confluência 10+
         }
-        
+
         return adjustments
-    
+
     def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
         """
         Identifica fase do ciclo de POWER.
-        
+
         POWER passa por:
         - Launch: Token novo/re-listagem
         - Growth: Narrativa se estabelece
@@ -73,7 +73,7 @@ class POWERPlaybook(BasePlaybook):
         """
         launch_status = current_data.get("launch_status", "established")
         price_action = current_data.get("price_action", "neutral")
-        
+
         if launch_status == "new" or price_action == "breakout":
             return "launch"
         elif price_action == "uptrend" and launch_status != "new":
@@ -82,8 +82,8 @@ class POWERPlaybook(BasePlaybook):
             return "dump"
         else:
             return "recovery"
-    
-    def should_trade(self, market_regime: str, d1_bias: str, 
+
+    def should_trade(self, market_regime: str, d1_bias: str,
                     btc_bias: Optional[str] = None) -> bool:
         """
         POWER (low-cap emergent 3.6) deve operar em:
@@ -93,12 +93,12 @@ class POWERPlaybook(BasePlaybook):
         """
         if d1_bias in ["NEUTRO", "SHORT"]:
             return False
-        
+
         if market_regime == "RISK_ON":
             return d1_bias in ["LONG", "STRONG_LONG"]
         elif market_regime == "RISK_OFF":
             return False
         else:  # NEUTRO_MERCADO
             return d1_bias == "STRONG_LONG"
-        
+
         return False

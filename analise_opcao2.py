@@ -36,17 +36,17 @@ print("""
 2️⃣ ATIVA POSITION MONITOR EM 2º THREAD (em paralelo)
    - Classe: PositionMonitor (monitoring/position_monitor.py)
    - Intervalo: 300s (5 minutos)
-   
+
    Position Monitor FAZ:
    ✓ Coleta dados de posições abertas na Binance
    ✓ Calcula indicadores técnicos
    ✓ Calcula SL/TP baseado em ATR e SMC
    ✓ Gera DECISÃO (HOLD, CLOSE, REDUCE_50)
    ✓ EXECUTA decisão via OrderExecutor (se não HOLD)
-   
+
    ⚠ O que NÃO faz:
    ✗ NÃO coloca ordens de TP/SL automaticamente
-   ✗ TP/SL são CALCULADOS mas aparecem como "_suggested" 
+   ✗ TP/SL são CALCULADOS mas aparecem como "_suggested"
    ✗ TP/SL usados APENAS para análise interna
    ✗ Ordens colocadas são APENAS: CLOSE ou REDUCE_50
 
@@ -161,9 +161,9 @@ print("""
 └─────────────────────────────────────────────────────┘
 
                         ⚠⚠⚠ IMPORTANTE ⚠⚠⚠
-         
+
          NÃO há automação de TP/SL na iniciar.bat
-         
+
     O sistema funciona como "Profit Guardian"
     - Gerencia posições já abertas
     - Sugere TP/SL mas não os coloca automaticamente
@@ -180,7 +180,7 @@ print("-" * 80)
 from config.symbols import SYMBOLS
 from config.execution_config import AUTHORIZED_SYMBOLS
 
-pares = ['ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT', 
+pares = ['ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT',
          'HYPERUSDT', 'MTLUSDT', 'POLYXUSDT', '1000BONKUSDT', 'DASHUSDT']
 
 print(f"\n✓ {len(pares)} pares para gerenciamento:")

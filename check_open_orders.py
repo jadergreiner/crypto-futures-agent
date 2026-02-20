@@ -19,7 +19,7 @@ print("=" * 90)
 
 # Pares gerenciados
 PARES = [
-    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT', 
+    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT',
     'HYPERUSDT', 'MTLUSDT', 'POLYXUSDT', '1000BONKUSDT', 'DASHUSDT'
 ]
 
@@ -31,7 +31,7 @@ try:
     from data.binance_client import create_binance_client
     from data.database import DatabaseManager
     from config.settings import DB_PATH, TRADING_MODE
-    
+
     # Criar cliente usando factory
     try:
         client = create_binance_client(mode=TRADING_MODE)
@@ -41,7 +41,7 @@ try:
         print(f"   Detalhes: {e}")
         print(f"   Verificar BINANCE_API_KEY, BINANCE_API_SECRET ou .env\n")
         client = None
-    
+
     # Inicializar DB
     try:
         db = DatabaseManager(DB_PATH)
@@ -49,7 +49,7 @@ try:
     except Exception as db_err:
         print(f"⚠ Banco de dados: {db_err}\n")
         db = None
-    
+
 except ImportError as import_err:
     print(f"❌ Erro de importação: {import_err}")
     sys.exit(1)
@@ -62,14 +62,14 @@ def extract_data(response):
     """Extrai dados do ApiResponse wrapper"""
     if response is None:
         return None
-    
+
     if hasattr(response, 'data'):
         data = response.data
         if callable(data):
             data = data()
     else:
         data = response
-    
+
     return data
 
 print("-" * 90)
@@ -90,21 +90,21 @@ if client is None:
     print("\nPadrão esperado de ordens (se conectado):")
     for par in PARES:
         print(f"  • {par}: Stop Loss + Take Profit (ordens condicionais)")
-    
+
     print("\n" + "=" * 90)
     print("VERIFICAÇÃO DE CONFIGURAÇÃO LOCAL")
     print("=" * 90)
-    
+
     # Verificar configs locais
     print("\n✓ Pares autorizados no sistema:")
     for par in PARES:
         print(f"  {par}")
-    
+
     print("\n✓ Modo de Trading: Profit Guardian Mode")
     print("  - Apenas gerencia posições abertas")
     print("  - Não abre novas posições")
     print("  - TP/SL calculados dinamicamente por ATR + SMC")
-    
+
     print("\n✓ Configuração de proteção:")
     print("  - Stop Loss (SL): 1.5x ATR")
     print("  - Take Profit (TP): 3.0x ATR")
@@ -117,21 +117,21 @@ else:
         try:
             # Obter informações de posição
             positions_response = client.rest_api.position_information_v2(symbol=par)
-            
+
             # Extrair dados
             positions_data = extract_data(positions_response)
-            
+
             # Tratar resposta
             if positions_data is None:
                 continue
-            
+
             if isinstance(positions_data, list):
                 positions = positions_data
             elif isinstance(positions_data, dict):
                 positions = [positions_data]
             else:
                 positions = [positions_data]
-            
+
             # Filtrar posições abertas
             open_positions = []
             for p in positions:
@@ -139,14 +139,14 @@ else:
                     pos_amt = float(p.get('positionAmt', 0))
                 else:
                     pos_amt = float(p.positionAmt) if hasattr(p, 'positionAmt') else 0
-                
+
                 if pos_amt != 0:
                     open_positions.append(p)
-            
+
             if open_positions:
                 resumo_geral['total_posicoes'] += len(open_positions)
                 resumo_geral['pares_ativos'].append(par)
-                
+
                 for pos in open_positions:
                     # Extrair dados da posição
                     if isinstance(pos, dict):
@@ -159,36 +159,36 @@ else:
                         entry_price = float(pos.entryPrice)
                         mark_price = float(pos.markPrice)
                         direction = 'LONG' if pos_amt > 0 else 'SHORT'
-                    
+
                     print(f"\n  📍 {par} {direction}")
                     print(f"     Tamanho: {abs(pos_amt)} | Entrada: {entry_price:.4f} | Mark: {mark_price:.4f}")
-                    
+
                     # Obter ordens abertas
                     try:
                         orders_response = client.rest_api.query_open_orders(symbol=par)
                         orders_data = extract_data(orders_response)
-                        
+
                         # Tratar resposta de ordens
                         if orders_data is None:
                             print(f"     ⚠ Sem Stop Loss definido")
                             resumo_geral['pares_sem_protecao'].append((par, direction, 'SL'))
                             continue
-                        
+
                         if isinstance(orders_data, list):
                             orders = orders_data
                         elif isinstance(orders_data, dict) and 'orders' in orders_data:
                             orders = orders_data['orders']
                         else:
                             orders = [orders_data]
-                        
+
                         if not orders:
                             print(f"     ⚠ Sem Stop Loss definido")
                             resumo_geral['pares_sem_protecao'].append((par, direction, 'SL'))
                             continue
-                        
+
                         # Filtrar por tipo (stop-market é condicional)
                         stop_orders = []
-                        
+
                         for order in orders:
                             try:
                                 if isinstance(order, dict):
@@ -199,14 +199,14 @@ else:
                                 else:
                                     # Assumir que é object com atributos
                                     order_type = str(getattr(order, 'type', '')).upper()
-                                    stop_price = (getattr(order, 'stopPrice', None) or 
+                                    stop_price = (getattr(order, 'stopPrice', None) or
                                                 getattr(order, 'stop_price', None) or
                                                 getattr(order, 'activatePrice', None))
                                     if stop_price and float(stop_price) > 0:
                                         stop_orders.append(order)
                             except:
                                 pass
-                        
+
                         if stop_orders:
                             resumo_geral['total_sl_orders'] += len(stop_orders)
                             print(f"     ✓ Stop Loss: {len(stop_orders)} ordem(ns)")
@@ -217,7 +217,7 @@ else:
                                         qty = sl.get('origQty') or sl.get('quantity')
                                         print(f"        - Price: {stop_price} | Qty: {qty}")
                                     else:
-                                        stop_price = (getattr(sl, 'stopPrice', None) or 
+                                        stop_price = (getattr(sl, 'stopPrice', None) or
                                                     getattr(sl, 'stop_price', None) or
                                                     getattr(sl, 'activatePrice', None))
                                         qty = getattr(sl, 'origQty', sl.quantity) if hasattr(sl, 'quantity') else 'N/A'
@@ -227,14 +227,14 @@ else:
                         else:
                             print(f"     ⚠ Sem Stop Loss definido")
                             resumo_geral['pares_sem_protecao'].append((par, direction, 'SL'))
-                        
+
                     except Exception as e:
                         print(f"     ⚠ Erro ao verificar ordens: {str(e)[:50]}")
-            
+
             else:
                 # Sem posições abertas neste símbolo
                 pass
-        
+
         except Exception as e:
             # Muitos erros são normais se não há posição, ignorar silenciosamente
             pass

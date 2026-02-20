@@ -1,10 +1,10 @@
 """
-Playbook especializado para FIL (Filecoin).
+Playbook especializado para LINK (Chainlink).
 
-Característica: Infraestrutura de armazenamento descentralizado
-- Beta: 2.5 (mid-cap, comportamento moderado)
-- Classificação: Storage infrastructure
-- Sensibilidade: Narrativa de armazenamento Web3, ciclos de adoção
+Característica: Oracle descentralizado líder em infraestrutura DeFi
+- Beta: 2.3 (mid-cap, comportamento moderado-alto)
+- Classificação: Oracle infrastructure
+- Sensibilidade: DeFi TVL, adoção de smart contracts, inovação em oracles
 """
 
 import logging
@@ -14,59 +14,59 @@ from playbooks.base_playbook import BasePlaybook
 logger = logging.getLogger(__name__)
 
 
-class FILPlaybook(BasePlaybook):
+class LINKPlaybook(BasePlaybook):
     """
-    Playbook para Filecoin (FIL).
-    Storage infrastructure com beta moderado (2.5).
+    Playbook para Chainlink (LINK).
+    Oracle infrastructure token com beta 2.3 (moderado-alto).
     """
 
     def __init__(self):
-        super().__init__("FILUSDT")
+        super().__init__("LINKUSDT")
 
     def get_confluence_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
-        Ajustes de confluência para FIL.
+        Ajustes de confluência para LINK.
 
-        Filecoin é sensível a:
-        - Narrativa de armazenamento descentralizado
-        - Crescimento de TVL em protocolos Web3
-        - Ciclos de adoção de infraestrutura
+        Chainlink é sensível a:
+        - Crescimento de DeFi TVL e smart contracts
+        - Adoção institucional de oracles
+        - Inovação em cross-chain solutions
         """
         adjustments = {
-            "defi_tvl_growth": 0.5,      # Beneficia de crescimento DeFi
-            "storage_narrative": 1.0,    # Sensível a narrativa de armazenamento
-            "web3_adoption": 0.5,        # Segue adoção Web3
-            "macro_risk_off": -1.0,      # Sofre em risk-off
+            "defi_tvl_growth": 1.0,       # Altamente sensível a DeFi TVL
+            "oracle_adoption": 1.0,       # Core: adoção de oracles
+            "smart_contract_activity": 0.8, # Sensível a atividade de contratos
+            "macro_risk_off": -1.0,       # Afetado em risk-off
         }
 
         return adjustments
 
     def get_risk_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
-        Ajustes de risco para FIL.
+        Ajustes de risco para LINK.
 
-        Beta 2.5 (mid-cap):
-        - 70% de tamanho de posição em relação ao baseline
-        - SL mais amplo que moedas de alta cap, TP mais próximo
+        Beta 2.3 (mid-cap, moderado-alto):
+        - 68% de tamanho de posição em relação ao baseline
+        - SL padrão, TP padrão
         """
         adjustments = {
-            "position_size_multiplier": 0.70,    # 70% do tamanho padrão
+            "position_size_multiplier": 0.68,    # 68% do tamanho padrão
             "sl_atr_multiplier": 1.5,             # SL padrão (ATR 1.5x)
             "tp_atr_multiplier": 3.0,             # TP padrão (ATR 3.0x)
-            "max_drawdown_percent": 3.0,          # Max drawdown 3%
+            "max_drawdown_percent": 3.0,          # Max drawdown 3.0%
         }
 
         return adjustments
 
     def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
         """
-        Identifica fase do ciclo de FIL.
+        Identifica fase do ciclo de LINK.
 
-        Filecoin passa por:
+        Chainlink passa por:
         - Accumulation: Preparação para crescimento
-        - Growth: Expansão de adoção
+        - Growth: Fase de expansão DeFi
         - Maturity: Consolidação
-        - Decline: Redução de interesse
+        - Decline: Redução de atividade
         """
         price_action = current_data.get("price_action", "neutral")
         volume = current_data.get("volume_profile", "normal")
@@ -83,7 +83,7 @@ class FILPlaybook(BasePlaybook):
     def should_trade(self, market_regime: str, d1_bias: str,
                     btc_bias: Optional[str] = None) -> bool:
         """
-        Filecoin (mid-cap, beta 2.5) deve operar em:
+        LINK (mid-cap, beta 2.3) deve operar em:
         - Risk-on com D1 long
         - Neutro em risk-on forte
         - Avoid em risk-off

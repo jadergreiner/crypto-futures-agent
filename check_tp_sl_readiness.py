@@ -9,7 +9,7 @@ from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from config.risk_params import RISK_PARAMS
 
 PARES_TESTADOS = [
-    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT', 
+    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT',
     'HYPERUSDT', 'MTLUSDT', 'POLYXUSDT', '1000BONKUSDT', 'DASHUSDT'
 ]
 
@@ -92,7 +92,7 @@ analise = {
 for par in PARES_TESTADOS:
     config = SYMBOLS.get(par, {})
     beta = config.get('beta_estimado', 1.0)
-    
+
     if par == "1000WHYUSDT":
         info = analise["1000WHYUSDT"]
     elif par == "1000BONKUSDT":
@@ -101,7 +101,7 @@ for par in PARES_TESTADOS:
         info = analise["HYPERUSDT"]
     else:
         info = analise["Default"]
-    
+
     print(f"\n  {par}")
     print(f"    Tipo: {info['tipo']} | Beta: {beta}")
     print(f"    Restrição posição: {info['restrição']}")

@@ -1,10 +1,10 @@
 """
-Playbook especializado para FIL (Filecoin).
+Playbook especializado para TWT (Trust Wallet Token).
 
-Característica: Infraestrutura de armazenamento descentralizado
-- Beta: 2.5 (mid-cap, comportamento moderado)
-- Classificação: Storage infrastructure
-- Sensibilidade: Narrativa de armazenamento Web3, ciclos de adoção
+Característica: Token de utilidade de wallet com integração Binance
+- Beta: 2.0 (mid-cap, comportamento moderado)
+- Classificação: Wallet ecosystem utility token
+- Sensibilidade: Adoção de wallet, dinâmica Binance ecosystem
 """
 
 import logging
@@ -14,57 +14,57 @@ from playbooks.base_playbook import BasePlaybook
 logger = logging.getLogger(__name__)
 
 
-class FILPlaybook(BasePlaybook):
+class TWTPlaybook(BasePlaybook):
     """
-    Playbook para Filecoin (FIL).
-    Storage infrastructure com beta moderado (2.5).
+    Playbook para Trust Wallet Token (TWT).
+    Wallet ecosystem token com beta 2.0 (moderado).
     """
 
     def __init__(self):
-        super().__init__("FILUSDT")
+        super().__init__("TWTUSDT")
 
     def get_confluence_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
-        Ajustes de confluência para FIL.
+        Ajustes de confluência para TWT.
 
-        Filecoin é sensível a:
-        - Narrativa de armazenamento descentralizado
-        - Crescimento de TVL em protocolos Web3
-        - Ciclos de adoção de infraestrutura
+        Trust Wallet Token é sensível a:
+        - Adoção de wallet e integração Binance
+        - Crescimento de usuários em crypto
+        - Dinâmica de utility tokens
         """
         adjustments = {
-            "defi_tvl_growth": 0.5,      # Beneficia de crescimento DeFi
-            "storage_narrative": 1.0,    # Sensível a narrativa de armazenamento
-            "web3_adoption": 0.5,        # Segue adoção Web3
-            "macro_risk_off": -1.0,      # Sofre em risk-off
+            "binance_ecosystem": 1.0,     # Forte exposição ao ecossistema Binance
+            "adoption_narrative": 0.7,    # Sensível a adoção de wallets
+            "defi_tvl_growth": 0.4,       # Segue parcialmente TVL growth
+            "macro_risk_off": -0.8,       # Moderadamente afetado em risk-off
         }
 
         return adjustments
 
     def get_risk_adjustments(self, context: Dict[str, Any]) -> Dict[str, float]:
         """
-        Ajustes de risco para FIL.
+        Ajustes de risco para TWT.
 
-        Beta 2.5 (mid-cap):
-        - 70% de tamanho de posição em relação ao baseline
-        - SL mais amplo que moedas de alta cap, TP mais próximo
+        Beta 2.0 (mid-cap):
+        - 75% de tamanho de posição em relação ao baseline
+        - SL padrão, TP padrão
         """
         adjustments = {
-            "position_size_multiplier": 0.70,    # 70% do tamanho padrão
+            "position_size_multiplier": 0.75,    # 75% do tamanho padrão
             "sl_atr_multiplier": 1.5,             # SL padrão (ATR 1.5x)
             "tp_atr_multiplier": 3.0,             # TP padrão (ATR 3.0x)
-            "max_drawdown_percent": 3.0,          # Max drawdown 3%
+            "max_drawdown_percent": 3.5,          # Max drawdown 3.5%
         }
 
         return adjustments
 
     def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
         """
-        Identifica fase do ciclo de FIL.
+        Identifica fase do ciclo de TWT.
 
-        Filecoin passa por:
+        Trust Wallet passa por:
         - Accumulation: Preparação para crescimento
-        - Growth: Expansão de adoção
+        - Growth: Fase de adoção
         - Maturity: Consolidação
         - Decline: Redução de interesse
         """
@@ -83,7 +83,7 @@ class FILPlaybook(BasePlaybook):
     def should_trade(self, market_regime: str, d1_bias: str,
                     btc_bias: Optional[str] = None) -> bool:
         """
-        Filecoin (mid-cap, beta 2.5) deve operar em:
+        TWT (mid-cap, beta 2.0) deve operar em:
         - Risk-on com D1 long
         - Neutro em risk-on forte
         - Avoid em risk-off

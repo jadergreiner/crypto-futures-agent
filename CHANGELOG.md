@@ -44,10 +44,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 - 🐛 **FIX:** Bug no truncation check de episódios — was comparing `current_step >= episode_length` em vez de `(current_step - start_step) >= episode_length`
 - 🐛 **FIX:** Dependencies scikit-learn>=1.3.0, scipy>=1.11.0 adicionadas ao requirements.txt
 
-### A fazer
 - Script de treinamento funcional (`python main.py --train`)
-- Reward shaping refinado com curriculum learning
-- Backtester com métricas reais
 
 ## [v0.2.1] — Administração de Posições (20/02/2026)
 

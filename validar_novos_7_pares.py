@@ -22,9 +22,9 @@ print('='*90)
 
 try:
     from config.symbols import SYMBOLS, ALL_SYMBOLS
-    
+
     novos_pares = ['FILUSDT', 'GRTUSDT', 'ATAUSDT', 'PENGUUSDT', 'GPSUSDT', 'GUNUSDT', 'POWERUSDT']
-    
+
     configurados = 0
     for par in novos_pares:
         if par in SYMBOLS:
@@ -35,9 +35,9 @@ try:
             configurados += 1
         else:
             print(f"  ✗ {par:<15} NÃO ENCONTRADO!")
-    
+
     print(f"\nResumo: {configurados}/7 pares configurados em symbols.py")
-    
+
     if configurados == 7:
         print("✅ SUCESSO: Todos os 7 pares em config/symbols.py")
     else:
@@ -72,10 +72,10 @@ for ticker, module_name, class_name, symbol in playbook_tests:
     try:
         module = __import__(f'playbooks.{module_name}', fromlist=[class_name])
         PlaybookClass = getattr(module, class_name)
-        
+
         # Instantiate e validar
         pb = PlaybookClass()
-        
+
         # Validar métodos obrigatórios
         methods_required = [
             'get_confluence_adjustments',
@@ -83,15 +83,15 @@ for ticker, module_name, class_name, symbol in playbook_tests:
             'get_cycle_phase',
             'should_trade'
         ]
-        
+
         methods_ok = all(hasattr(pb, m) and callable(getattr(pb, m)) for m in methods_required)
-        
+
         if methods_ok:
             print(f"  ✓ {ticker:<6} | {class_name:<15} | Símbolo: {symbol:<12} | ✓ Todos métodos")
             playbooks_ok += 1
         else:
             print(f"  ✗ {ticker:<6} | {class_name:<15} | Símbolo: {symbol:<12} | ✗ Métodos faltando")
-    
+
     except ImportError as e:
         print(f"  ✗ {ticker:<6} | {class_name:<15} | ERRO: {str(e)[:40]}")
     except Exception as e:
@@ -112,20 +112,20 @@ print('='*90)
 
 try:
     import playbooks
-    
-    expected_playbooks = ['FILPlaybook', 'GRTPlaybook', 'ATAPlaybook', 
+
+    expected_playbooks = ['FILPlaybook', 'GRTPlaybook', 'ATAPlaybook',
                          'PENGUPlaybook', 'GPSPlaybook', 'GUNPlaybook', 'POWERPlaybook']
-    
+
     registrados = sum(1 for pb in expected_playbooks if hasattr(playbooks, pb))
-    
+
     for pb_name in expected_playbooks:
         if hasattr(playbooks, pb_name):
             print(f"  ✓ {pb_name:<20} registrado em __all__")
         else:
             print(f"  ✗ {pb_name:<20} NÃO registrado")
-    
+
     print(f"\nResumo: {registrados}/7 playbooks registrados em __init__.py")
-    
+
     if registrados == 7:
         print("✅ SUCESSO: Todas as importações registradas")
     else:

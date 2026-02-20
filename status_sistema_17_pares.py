@@ -167,13 +167,13 @@ print("""
 Gerados:
   ✓ ADMINISTRACAO_NOVOS_7_PARES.md
     └─ Detalhes completos Wave 2
-    
+
   ✓ RESUMO_EXECUCAO_FINAL.md (Wave 1)
     └─ Detalhes completos Wave 1
-    
+
   ✓ validar_novos_7_pares.py
     └─ Script de validação
-    
+
   ✓ status_operacional.py
     └─ Dashboard de status
 """)

@@ -18,15 +18,34 @@ Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas n
 - **Playbooks Específicos**: Estratégias customizadas para cada criptomoeda
 - **Arquitetura em Camadas**: 6 layers com execução condicional
 
-## 📊 Moedas Suportadas
+## 📊 Moedas Suportadas (16 Pares USDT)
 
+### High-Cap (Estáveis)
 - **BTC (BTCUSDT)**: Líder de mercado, ciclos de halving
 - **ETH (ETHUSDT)**: Segunda maior, ecossistema DeFi
-- **SOL (SOLUSDT)**: High beta, amplifica movimentos
 - **BNB (BNBUSDT)**: Token burns trimestrais
-- **DOGE (DOGEUSDT)**: Memecoin, sentiment-driven
 - **XRP (XRPUSDT)**: Sensível a regulação
 - **LTC (LTCUSDT)**: Halving próprio, correlação BTC
+
+### Mid-Cap (High Beta)
+- **SOL (SOLUSDT)**: High beta, amplifica movimentos
+- **DOGE (DOGEUSDT)**: Memecoin, sentiment-driven
+- **C98 (C98USDT)**: DeFi gateway multi-chain
+- **0G (0GUSDT)**: AI/Data infrastructure
+- **KAIA (KAIAUSDT)**: Layer 1 messaging integrado
+- **GTC (GTCUSDT)**: Web3 infrastructure (β=2.8)
+- **FIL (FILUSDT)**: Storage infrastructure (β=2.5)
+- **TWT (TWTUSDT)**: Wallet ecosystem utility (β=2.0)
+- **LINK (LINKUSDT)**: Oracle infrastructure (β=2.3)
+- **POLYX (POLYXUSDT)**: Securities infrastructure (β=2.8)
+
+### Low-Cap (Very High Beta - ESPECULATIVO)
+- **HYPER (HYPERUSDT)**: Especulativo (β=3.5)
+- **1000BONK (1000BONKUSDT)**: Memecoin extremo (β=4.5)
+- **OGN (OGNUSDT)**: Commerce protocol (β=3.2)
+- **IMX (IMXUSDT)**: Layer 2 NFT/Gaming (β=3.0)
+
+**Modo de Operação**: Todos os pares em Profit Guardian Mode com proteção de SL/TP automática
 
 ## 🏗️ Arquitetura
 
@@ -349,16 +368,25 @@ Este projeto possui documentação extensiva organizada em `docs/`:
 - **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação das camadas de decisão
 
 ### Status do Projeto
+
 **v0.2 (Pipeline Fix)** ✅ CONCLUÍDO (15/02/2026)
 - Feature Engineering com 104 features totalmente funcional
 - Multi-timeframe analysis integrada (D1 Bias, Market Regime, Correlação BTC)
 - Reward Calculator com lógica de R-multiple corrigida
 - Testes unitários completos
 
+**v0.2.1 (Administração de Posições)** ✅ CONCLUÍDO (20/02/2026)
+- 9 novos pares USDT em Profit Guardian Mode (TWT, LINK, OGN, IMX + 5 existentes)
+- 4 novos playbooks especializados com ajustes de risco por beta
+- Total de 16 pares USDT operacionais
+- Mecanismos de sincronização de documentação implementados
+- Rastreamento automático em docs/SYNCHRONIZATION.md
+
 **Próxima Release:** v0.3 (Training Ready) 🎯
 - Foco: Ambiente de treinamento RL funcional
 - Pipeline de dados para treinamento
 - Script de treinamento operacional
+- Sincronização automática de playbooks e configurações
 
 ## 📄 Licença
 

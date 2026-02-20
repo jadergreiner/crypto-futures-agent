@@ -17,7 +17,7 @@ print(f"\n📅 Data/Hora: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
 print(f"🎯 Status: ORDENS CONDICIONAIS ATIVAS NA BINANCE\n")
 
 PARES = [
-    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT', 
+    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT',
     'HYPERUSDT', 'MTLUSDT', 'POLYXUSDT', '1000BONKUSDT', 'DASHUSDT'
 ]
 
@@ -30,7 +30,7 @@ for idx, par in enumerate(PARES, 1):
     beta = config.get('beta_estimado', 'N/A')
     classificacao = config.get('classificacao', 'N/A')
     autorizado = "✓" if par in AUTHORIZED_SYMBOLS else "✗"
-    
+
     print(f"\n{idx:2d}. {par:<15} [{autorizado}] β={beta:>3.1f} | {classificacao}")
     print(f"    └─ Papel: {config.get('papel', 'N/A')[:60]}")
 
@@ -42,11 +42,11 @@ print(f"""
 Stop Loss (SL):
   • Multiplicador ATR: {RISK_PARAMS['stop_loss_atr_multiplier']}x
   • Método: Max(ATR-based, SMC-based)
-  
+
 Take Profit (TP):
   • Multiplicador ATR: {RISK_PARAMS['take_profit_atr_multiplier']}x
   • Método: Min/Max(ATR-based, SMC-based, liquidation price)
-  
+
 Risco por Trade:
   • Máximo: {RISK_PARAMS['max_risk_per_trade_pct']:.1%}
   • Simultâneo: {RISK_PARAMS['max_simultaneous_risk_pct']:.1%}
@@ -71,7 +71,7 @@ for classif, pares in sorted(classificacoes.items()):
     for par in pares:
         config = SYMBOLS.get(par, {})
         beta = config.get('beta_estimado', 1.0)
-        
+
         # Determinar estratégia de SL/TP por beta
         if beta >= 4.0:
             sl_tp_strategy = "CONSERVADOR (SL apertado, TP próximo)"
@@ -79,7 +79,7 @@ for classif, pares in sorted(classificacoes.items()):
             sl_tp_strategy = "MODERADO (SL e TP padrão)"
         else:
             sl_tp_strategy = "AGRESSIVO (SL amplo, TP distante)"
-        
+
         print(f"  • {par:<15} β={beta:>3.1f} → {sl_tp_strategy}")
 
 print("\n" + "-" * 95)

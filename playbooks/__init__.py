@@ -31,6 +31,10 @@ from .pengu_playbook import PENGUPlaybook
 from .gps_playbook import GPSPlaybook
 from .gun_playbook import GUNPlaybook
 from .power_playbook import POWERPlaybook
+from .twt_playbook import TWTPlaybook
+from .link_playbook import LINKPlaybook
+from .ogn_playbook import OGNPlaybook
+from .imx_playbook import IMXPlaybook
 
 # Dynamic imports for modules with numeric names
 import importlib
@@ -48,5 +52,6 @@ __all__ = [
     'DASHPlaybook', 'ZKPlaybook', 'WHYPlaybook', 'XAIPlaybook', 'GTCPlaybook',
     'CELOPlaybook', 'HYPERPlaybook', 'MTLPlaybook', 'POLYXPlaybook', 'BONKPlaybook',
     'FILPlaybook', 'GRTPlaybook', 'ATAPlaybook', 'PENGUPlaybook', 'GPSPlaybook',
-    'GUNPlaybook', 'POWERPlaybook'
+    'GUNPlaybook', 'POWERPlaybook', 'TWTPlaybook', 'LINKPlaybook',
+    'OGNPlaybook', 'IMXPlaybook'
 ]

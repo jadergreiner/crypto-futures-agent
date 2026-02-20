@@ -6,21 +6,21 @@ Teste rápido para validar configuration dos novos pares.
 from config.symbols import SYMBOLS, ALL_SYMBOLS
 from config.execution_config import AUTHORIZED_SYMBOLS
 from playbooks import (
-    DASHPlaybook, ZKPlaybook, WHYPlaybook, XAIPlaybook, 
-    GTCPlaybook, CELOPlaybook, HYPERPlaybook, MTLPlaybook, 
+    DASHPlaybook, ZKPlaybook, WHYPlaybook, XAIPlaybook,
+    GTCPlaybook, CELOPlaybook, HYPERPlaybook, MTLPlaybook,
     POLYXPlaybook, BONKPlaybook
 )
 
 # Pares que devem estar configurados
 PARES = [
-    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT', 
+    'ZKUSDT', '1000WHYUSDT', 'XIAUSDT', 'GTCUSDT', 'CELOUSDT',
     'HYPERUSDT', 'MTLUSDT', 'POLYXUSDT', '1000BONKUSDT', 'DASHUSDT'
 ]
 
 # Playbooks que devem estar funcionando
 PLAYBOOK_CLASSES = [
-    DASHPlaybook, ZKPlaybook, WHYPlaybook, XAIPlaybook, 
-    GTCPlaybook, CELOPlaybook, HYPERPlaybook, MTLPlaybook, 
+    DASHPlaybook, ZKPlaybook, WHYPlaybook, XAIPlaybook,
+    GTCPlaybook, CELOPlaybook, HYPERPlaybook, MTLPlaybook,
     POLYXPlaybook, BONKPlaybook
 ]
 
