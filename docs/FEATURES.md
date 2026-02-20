@@ -20,7 +20,7 @@
 | F-05d | Arquivo de rastreamento SYNCHRONIZATION.md | 🟡 ALTA | ✅ DONE |
 | F-05e | Validação completa com test_admin_9pares.py (36/36 OK) | 🟢 MÉDIA | ✅ DONE |
 
-## v0.3 — Training Ready
+## v0.3 — Training Ready (OPERAÇÃO PARALELA C)
 
 | ID | Feature | Prioridade | Status |
 |----|---------|-----------|--------|
@@ -31,6 +31,9 @@
 | F-10 | Teste E2E de pipeline completo (load → train → save → load) | 🔴 CRÍTICA | 🔄 IN PROGRESS |
 | F-11 | Reward shaping refinado com curriculum learning | 🟡 ALTA | ⏳ Validação em v0.3 |
 | F-12 | Salvar/carregar modelo treinado | 🟢 MÉDIA | 🔄 IN PROGRESS |
+| F-13 | Orchestrator paralelo (LIVE + v0.3 isolados) | 🔴 CRÍTICA | ✅ DONE (20/02 20:15) |
+| F-14 | Monitor crítico com health checks (60s) + kill switch (2% loss) | 🔴 CRÍTICA | ✅ DONE (20/02 20:15) |
+| F-15 | Autorização formal (AUTHORIZATION_OPÇÃO_C_20FEV.txt) | 🔴 CRÍTICA | ✅ DONE (20/02 20:30) |
 
 ## v0.4 — Backtest Engine
 

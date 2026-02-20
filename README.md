@@ -18,6 +18,23 @@ Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas n
 - **Playbooks Específicos**: Estratégias customizadas para cada criptomoeda
 - **Arquitetura em Camadas**: 6 layers com execução condicional
 
+## ⚠️ Status Operacional Atual (20/02/2026)
+
+**🟠 OPERAÇÃO PARALELA C ATIVA**
+- **LIVE Trading**: ✅ Operando com 16 pares USDT (Profit Guardian Mode)
+- **v0.3 Training**: 🔄 Validação em paralelo (isolada, sem interferência com LIVE)
+- **Safeguards**: ✅ Health monitor (60s checks), kill switch (2% loss threshold)
+- **Autorização**: ✅ Formal via AUTHORIZATION_OPÇÃO_C_20FEV.txt (20/02 20:30 BRT)
+- **Timeline**: Validação até 23:59 BRT hoje, pronto para expansão amanhã (v0.4)
+
+**Detalhes Técnicos:**
+- Orquestrador: `core/orchestrator_opção_c.py` (automático via `iniciar.bat`)
+- Monitor: `monitoring/critical_monitor_opção_c.py` (health checks contínuos)
+- Logs: `logs/orchestrator_opção_c.log`, `logs/critical_monitor.log`
+- **Operador**: Nenhuma ação necessária — execute `iniciar.bat` como sempre (transparente)
+
+**Ver também:** [docs/OPERACAO_C_GUIA_TRANSPARENTE.md](docs/OPERACAO_C_GUIA_TRANSPARENTE.md) para referência
+
 ## 📊 Moedas Suportadas (16 Pares USDT)
 
 ### High-Cap (Estáveis)

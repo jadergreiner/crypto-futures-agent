@@ -108,32 +108,63 @@ Esse documento contém:
 
 ---
 
-## ⚠️ decisão CRÍTICA — 20/02/2026 18:45 BRT
+## ⚠️ MUDANÇA DE DECISÃO CRÍTICA — 20/02/2026 18:45-20:30 BRT
 
-### Rev. v0.3 (Training Ready) — **PARAR LIVE, EXECUTAR HOJE**
+### Fases da Decisão Operacional
 
-**Responsável:** Head de Finanças, Specialist Mercado Futuro Cripto  
-**Data/Hora:** 20 de fevereiro de 2026, ~18:45 BRT  
-**Status:** 🔴 **CRÍTICA PATH** — Requer implementação imediata
-
-#### Incidente Operacional
-
+#### **Fase 1: ALARME (18:45 BRT)**
+**Incidente Operacional Detectado**
 - **ISSUE:** Zero sinais gerados em 4+ horas (20/02 18:36-22:39 BRT)
   - Confidence score: 45% (abaixo de 70% mínimo recomendado)
   - Root causes: Confluence < 50%, Market Regime NEUTRO, XIAUSDT error
   - Potencial loss se continuar LIVE: -17% a -42% em 24h
+- **Responsável:** Head de Finanças, Specialist Mercado Futuro Cripto
+- **Status:** 🔴 **CRÍTICA PATH**
 
-#### Decisão Executiva
+**Decisão A (Recomendada pelo Finance):**
+```
+PARAR LIVE IMEDIATAMENTE E EXECUTAR v0.3 HOJE (6-8 horas)
+- Risco: ZERO loss (sem operação)
+- Oportunidade: ZERO (sem operação)
+- Timeline: 24h para retomar
+```
 
-**PARAR LIVE IMEDIATAMENTE E EXECUTAR v0.3 HOJE (6-8 horas)**
+---
 
-Documentos Sincronizados Automaticamente:
-- ✅ **CHANGELOG.md**: Status alterado para 🔴 CRÍTICA, adicionado incidente
-- ✅ **OPERATOR_MANUAL.md**: Adicionado ALERTA CRÍTICO, desativada opção 2 (Live)
-- ✅ **docs/ROADMAP.md**: Timeline alterada, v0.3 marcada como CRÍTICA TODAY
-- ✅ **docs/SYNCHRONIZATION.md**: Registrando decisão crítica (este arquivo)
+#### **Fase 2: NEGOCIAÇÃO (19:00-20:15 BRT)**
+**Operador solicita alternativa**: "Vamos desenvolver, mas mantenha operando em produção"
 
-#### Validação Pré-Requisito (Antes de retomar LIVE)
+**Opção C (Hybrid Safe - Proposta por Tech Lead):**
+```
+Continuar LIVE + executar v0.3 em paralelo com SAFEGUARDS
+- Safeguards: Health monitor (60s), kill switch (2% loss)
+- Isolação: LIVE e v0.3 em threads separadas
+- Proteção: DB locks, API rate limits, latência checks
+- Autorização: Requer assinatura formal do operador
+- Risco: -3% a -5% expected loss em 8-16h
+- Oportunidade: Capturar movimentos LIVE + validar v0.3
+```
+
+---
+
+#### **Fase 3: APROVAÇÃO (20:30 BRT)** 🟢 **OPERAÇÃO C AUTORIZADA**
+**Operador autoriza**: "SIM a tudo" - Aceita risco -3% a -5%, kill switch 2%, capital $5,000
+
+**Decisão Final Implementada:**
+- ✅ **AUTHORIZATION_OPÇÃO_C_20FEV.txt**: Criado com assinatura formal
+- ✅ **core/orchestrator_opção_c.py**: Orquestra LIVE + v0.3 em paralelo
+- ✅ **monitoring/critical_monitor_opção_c.py**: Health checks (60s), kill switch (2%)
+- ✅ **iniciar.bat**: Auto-detecta autorização, ativa em background transparente
+- ✅ **docs/OPERACAO_C_GUIA_TRANSPARENTE.md**: Guia para operador
+
+**Documentos Sincronizados Automaticamente:**
+- ✅ **CHANGELOG.md**: Updated com "OPERAÇÃO PARALELA C TRANSPARENTE"
+- ✅ **docs/ROADMAP.md**: v0.3 marcada como "OPERAÇÃO PARALELA C"
+- ✅ **docs/RELEASES.md**: v0.3 status "OPERAÇÃO PARALELA C" 
+- ✅ **docs/FEATURES.md**: Adicionadas F-13, F-14, F-15 (orchestrator, monitor, auth)
+- ✅ **docs/TRACKER.md**: Sprint v0.3 refletindo status Opção C
+
+#### Validação Pré-Requisito (Durante Operação C)
 
 - [ ] ✅ Treinar 10k steps em 3 símbolos (BTC, ETH, SOL)
 - [ ] ✅ Confirmar CV(reward) < 1.5 (sinais estáveis)

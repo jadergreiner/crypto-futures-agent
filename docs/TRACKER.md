@@ -17,11 +17,11 @@
 | Teste unitário `RewardCalculator.calculate` | US-02 | ✅ DONE | 1h |
 | Validar dry-run com valores reais nos blocos 7/8 | US-01 | ✅ DONE | 30min |
 
-## Sprint Atual: v0.3 — Training Ready 🔄 IN PROGRESS (20/02/2026)
+## Sprint Atual: v0.3 — Training Ready � OPERAÇÃO PARALELA C (20/02/2026)
 
 **Duração:** 20/02 (1 dia - Sprint expedito)
 **Esforço total estimado:** ~8h
-**Status:** 🔴 CRÍTICO PATH — Decisão Head Finanças
+**Status:** ✅ AUTORIZADO — Operação Paralela C (LIVE + v0.3) desde 20:30 BRT
 
 | Task | Story | Status | Esforço | Prioridade |
 |------|-------|--------|---------|----------|
@@ -29,8 +29,12 @@
 | ✅ Implementar `_get_observation()` usando `FeatureEngineer` | US-04 | ✅ DONE | - | |
 | ✅ Pipeline de dados para treinamento | US-04 | ✅ DONE | - | |
 | ✅ Script de treinamento funcional (`python main.py --train`) | US-04 | ✅ DONE | - | |
+| ✅ Criar orchestrator paralelo (LIVE + v0.3) | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
+| ✅ Criar monitor crítico com safeagues | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
+| ✅ Obter autorização formal (Operação C) | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
 | 🔄 Criar teste E2E completo (3 símbolos, 10k steps) | US-04 | 🔄 IN PROGRESS | 2h | 🔴 CRÍTICA |
 | 🔄 Validar treinamento (CV < 1.5 + WinRate > 45%) | US-04 | 🔄 IN PROGRESS | 1.5h | 🔴 CRÍTICA |
+| 🔄 Debug signal generation (0 sinais) | US-04 | 🔄 IN PROGRESS | 1h | 🔴 CRÍTICA |
 | 🔄 Sincronização de documentação | US-04 | 🔄 IN PROGRESS | 1h | 🔴 CRÍTICA |
 | ⏳ Salvar/carregar modelo treinado (nice-to-have) | US-05 | ⏳ DEFER v0.4 | - | 🟢 MÉDIA |
 

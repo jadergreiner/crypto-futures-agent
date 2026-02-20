@@ -4,12 +4,13 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [v0.3] — Training Ready 🔴 _OPERAÇÃO PARALELA C_ (20/02/2026)
+## [v0.3] — Training Ready 🔴 _OPERAÇÃO PARALELA C TRANSPARENTE_ (20/02/2026)
 
-**Status:** 🔴 **OPERAÇÃO PARALELA AUTORIZADA** — Mudança de Diretiva
+**Status:** 🔴 **OPERAÇÃO PARALELA C ATIVA** — Integração Transparente
 **Diretiva Original:** ⚠️ PARAR LIVE (Head de Finanças, 18:45)
 **Diretiva Confirmada:** ✅ Opção C — Full LIVE + v0.3 Dev SIMULTÂNEAMENTE (20:30)
-**Timeline:** Iniciado: 20/02/2026 20:30 BRT | Duração: 8-24h (até conclusão v0.3)
+**Implementação:** 🟢 TRANSPARENTE — Via `iniciar.bat`, automática se autorizada
+**Timeline:** Iniciado: 20/02/2026 20:30 BRT | Execução: Contínua até conclusão v0.3
 **Rationale Financeira:** 
   - Risco operacional de continuar LIVE: -17% a -42% em 24h (modelo não validado)
   - Confiança componente: 45% (abaixo threshold mínimo 70%)
@@ -71,7 +72,22 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
   - Métrica secundária: Win Rate >= 45% em trades simulados
   - Métrica terciária (nice-to-have): Sharpe Ratio > 0.5
   - Timeline crítico: 6-8 horas hoje (análise → build → validação → docs → sign-off)
-  
+
+### 🟡 MUDANÇA DE DIRETIVA: OPÇÃO C AUTORIZADA (20/02 20:30 BRT)
+- **Decisão Original (18:45):** Parar LIVE, executar v0.3 offline
+- **Decisão Final (20:30):** Continuar LIVE + v0.3 desenvolvimento SIMULTÂNEAMENTE (Opção C)
+- **Justificativa:** Operador autoriza "SIM a tudo" — aceita risco -3% a -5%, ativa kill switch 2% loss
+- **Implementação:**
+  * core/orchestrator_opção_c.py — orquestra LIVE + v0.3 + monitor
+  * monitoring/critical_monitor_opção_c.py — health checks (60s), kill switch (2%), forensic logging
+  * iniciar.bat — auto-detecta AUTHORIZATION_OPÇÃO_C_20FEV.txt, ativa em background
+  * OPERACAO_C_GUIA_TRANSPARENTE.md — documentação para operador
+  * API protection: DB locks, rate limits, memory monitoring, latência checks
+  * Thread isolation: v0.3 não interfere com LIVE, LIVE não interfere com v0.3
+  * Safeguards: 7 camadas de proteção, all automatizadas
+- **Status:** 🟢 OPERACIONAL — LIVE + v0.3 executando em paralelo desde 20:30
+- **Commits:** 388e4e5 ([OPERACAO-C]), f6e415e ([TRANSPARENTE])
+
 - **Governança e Best Practices** (20/02/2026)
   - BEST_PRACTICES.md com 9 seções (250+ linhas)
   - COPILOT_INDUCTION.md com onboarding para novas sessões
