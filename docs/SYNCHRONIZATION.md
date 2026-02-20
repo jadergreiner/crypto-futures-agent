@@ -398,6 +398,49 @@ Quando qualquer item acima mover de ⏳ para ✅, notificar:
 
 ## 📞 Contato & Escalação
 
+### Rev. v0.4 (Backtest Engine) — 20/02/2026, 21:30 UTC — PRODUTO OWNER + HEAD FINANÇAS + TECH LEAD
+
+**Início da Tarefa:** Refinar F-12 para implementação — 3 personas especialistas
+
+#### Documentação Sincronizada (Automática)
+
+- ✅ **docs/FEATURES.md**: 
+  - Removido F-12 duplicado de v0.3
+  - Atualizado F-12 em v0.4 com 6 métricas + Risk Clearance
+  - Adicionados F-12a até F-12e (sub-features detalhadas)
+  - Status: ⏳ TODO (pronto para implementação)
+
+- ✅ **docs/ROADMAP.md**:
+  - Atualizado timeline: v0.4 início 21/02 (após v0.3 validação)
+  - Destacado "PO PRIORITÁRIO" para v0.4
+  - Tabela de maturidade: Backtester 5% → 90%, Risk Clearance 0% → 100%
+
+#### Requisitos Críticos F-12 (de PO + Finance + Tech)
+
+**Financeiro (Head Finanças):**
+- ✅ 6 métricas: Sharpe≥1.0, MaxDD≤15%, WR≥45%, PF≥1.5, CFactor≥2.0, ConsecLosses≤5
+- ✅ Custos realistas: 0.04% taker + 0.1% slippage
+- ✅ Risk Clearance checklist antes expansão v0.5
+
+**Técnico (Tech Lead):**
+- ✅ BacktestEnvironment (subclasse, 95% reutilização)
+- ✅ Data 3-camadas (Parquet cache, 6-10x faster)
+- ✅ TradeStateMachine (IDLE/LONG/SHORT)
+- ✅ 8 unit tests, ~6-15s para 90d
+
+**Product (PO):**
+- ✅ História pronta com DoD
+- ✅ Esforço: 3.5-4.5h
+- ✅ Timeline: 21-23/02/2026
+
+#### Status Geral v0.4
+
+- ✅ **Sincronização Completa:** 20/02/2026, 21:30 UTC
+- ✅ **Pronto para Implementação:** 21/02/2026
+- ⏳ **Próxima:** Validação v0.3 (até 23:59 BRT)
+
+---
+
 Se encontrar inconsistência:
 1. Abra issue com tag `[SYNC]`
 2. Descreva qual documento está fora de sincronia
@@ -408,4 +451,4 @@ Se encontrar inconsistência:
 
 **Mantido pelo:** GitHub Copilot + Agente Autônomo
 **Frequência de Revisão:** A cada mudança documentada
-**Próxima Revisão Esperada:** 25/02/2026 (fim da Rev. v0.2.1)
+**Próxima Revisão Esperada:** 21/02/2026 (início v0.4 F-12) → 24/02/2026 (fim v0.4)

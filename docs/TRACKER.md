@@ -38,6 +38,32 @@
 | 🔄 Sincronização de documentação | US-04 | 🔄 IN PROGRESS | 1h | 🔴 CRÍTICA |
 | ⏳ Salvar/carregar modelo treinado (nice-to-have) | US-05 | ⏳ DEFER v0.4 | - | 🟢 MÉDIA |
 
+## Sprint Planejado: v0.4 — Backtest Engine (21-23/02/2026)
+
+**Duração:** 3 dias (21, 22, 23 fev)
+**Esforço total estimado:** ~4.5h (core F-12) + ~2h (documentação + testes)
+**Status:** ⏳ PLANEJADO — Aguarda validação v0.3 (até 23:59 BRT hoje)
+
+| Task | Feature | Status | Esforço | Prioridade |
+|------|---------|--------|---------|----------|
+| Refinar história F-12 com 3 personas (PO + Finance + Tech) | F-12 | ✅ DONE | 0h | 🔴 CRÍTICA |
+| Implementar BacktestEnvironment (subclasse CryptoFuturesEnv) | F-12a | ⏳ TODO | 1h | 🔴 CRÍTICA |
+| Implementar BacktestDataLoader (3-camadas Parquet) | F-12b | ⏳ TODO | 1.5h | 🔴 CRÍTICA |
+| Implementar TradeStateMachine (IDLE/LONG/SHORT) | F-12c | ⏳ TODO | 1.5h | 🔴 CRÍTICA |
+| Implementar BacktestReporter (Text + JSON) | F-12d | ⏳ TODO | 0.5h | 🟡 ALTA |
+| Escrever 8 unit tests (determinismo, SM, métricas) | F-12e | ⏳ TODO | 1h | 🔴 CRÍTICA |
+| Integração `--train-and-backtest` em main.py | F-12 | ⏳ TODO | 0.5h | 🟡 ALTA |
+| Sincronizar documentação (FEATURES, ROADMAP, SYNC) | F-12 | ⏳ TODO | 0.5h | 🔴 CRÍTICA |
+| Teste manual end-to-end (BTCUSDT, 90 dias) | F-12 | ⏳ TODO | 0.5h | 🟡 ALTA |
+
+**Risk Clearance Checklist** (antes expansão v0.5):
+- [ ] Sharpe ≥ 1.0
+- [ ] MaxDD ≤ 15%
+- [ ] Win Rate ≥ 45%
+- [ ] Profit Factor ≥ 1.5
+- [ ] Recovery Factor ≥ 2.0
+- [ ] Consecutive Losses ≤ 5
+
 ## Backlog Priorizado
 
 | Sprint | Release | Foco | Esforço Est. |

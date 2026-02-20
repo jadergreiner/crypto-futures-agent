@@ -30,20 +30,23 @@
 | F-09 | Script de treinamento funcional (`python main.py --train`) | 🔴 CRITICA | 🔄 IN PROGRESS |
 | F-10 | Teste E2E de pipeline completo (load → train → save → load) | 🔴 CRÍTICA | 🔄 IN PROGRESS |
 | F-11 | Reward shaping refinado com curriculum learning | 🟡 ALTA | ⏳ Validação em v0.3 |
-| F-12 | Salvar/carregar modelo treinado | 🟢 MÉDIA | 🔄 IN PROGRESS |
 | F-13 | Orchestrator paralelo (LIVE + v0.3 isolados) | 🔴 CRÍTICA | ✅ DONE (20/02 20:15) |
 | F-14 | Monitor crítico com health checks (60s) + kill switch (2% loss) | 🔴 CRÍTICA | ✅ DONE (20/02 20:15) |
 | F-15 | Autorização formal (AUTHORIZATION_OPÇÃO_C_20FEV.txt) | 🔴 CRÍTICA | ✅ DONE (20/02 20:30) |
 
-## v0.4 — Backtest Engine
+## v0.4 — Backtest Engine (21-23/02/2026)
 
-| ID | Feature | Prioridade |
-|----|---------|-----------|
-| F-12 | Backtester real iterando sobre dados históricos | 🔴 CRÍTICA |
-| F-13 | Métricas: Sharpe, Sortino, MaxDD, Win Rate, Profit Factor | 🔴 CRÍTICA |
-| F-14 | Equity curve plot com matplotlib | 🟡 ALTA |
-| F-15 | Walk-forward com janelas de train/test | 🟡 ALTA |
-| F-16 | Relatório de backtest em texto/HTML | 🟢 MÉDIA |
+| ID | Feature | Prioridade | Status | Detalhes |
+|----|---------|-----------|--------|----------|
+| F-12 | Backtester funcional com 6 métricas + Risk Clearance | 🔴 CRÍTICA | ⏳ TODO | Sharpe≥1.0, MaxDD≤15%, WR≥45%, PF≥1.5, CFactor≥2.0, ConsecLosses≤5 |
+| F-12a | BacktestEnvironment (subclasse CryptoFuturesEnv) | 🔴 CRÍTICA | ⏳ TODO | Determinístico, reutiliza 95% de step() |
+| F-12b | Data pipeline 3-camadas (cache Parquet) | 🔴 CRÍTICA | ⏳ TODO | 6-10x mais rápido que SQLite direto |
+| F-12c | TradeStateMachine (IDLE/LONG/SHORT) | 🔴 CRÍTICA | ⏳ TODO | Rastreia posições + calcula PnL com fees |
+| F-12d | Reporter (Text + JSON) | 🟡 ALTA | ⏳ TODO | Relatório legível em terminal + estruturado |
+| F-12e | 8 unit tests (determinismo, state machine, metrics) | 🔴 CRÍTICA | ⏳ TODO | Coverage de validação core |
+| F-13 | Walk-forward com janelas train/test | 🟡 ALTA | ⏳ Após F-12 | Valida retreinamento incremental (v0.4.1) |
+| F-14 | Métricas extras (Sortino, Calmar) | 🟡 ALTA | ⏳ Após F-12 | Análise mais profunda |
+| F-15 | Equity curve plot com matplotlib | 🟡 ALTA | ⏳ Após F-12 | Visualização de performance |
 
 ## v0.5 — Paper Trading
 

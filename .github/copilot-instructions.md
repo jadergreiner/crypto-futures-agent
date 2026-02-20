@@ -231,3 +231,35 @@ Usando RobustScaler para evitar data leakage
 - [ ] Blocos de código com linguagem: ` ```python `
 
 **Referência:** Ver `BEST_PRACTICES.md` para detalhes completos
+
+## Sincronização Obrigatória de Documentação
+
+**CRÍTICO:** Toda mudança em código deve sincronizar documentação automaticamente.
+
+### Protocolo de Sincronização (Automático)
+
+Sempre que alterar um dos documentos principais:
+- `config/symbols.py` → atualizar `README.md`, `playbooks/__init__.py`, `docs/SYNCHRONIZATION.md`
+- `docs/FEATURES.md` → atualizar `docs/ROADMAP.md`, `CHANGELOG.md`, `docs/SYNCHRONIZATION.md`
+- Qualquer arquivo em `docs/` → registrar em `docs/SYNCHRONIZATION.md`
+
+### Checklist de Sincronização Obrigatória
+
+Antes de cada commit com mudanças:
+
+- [ ] **Código alterado está funcional?**
+- [ ] **Testes passam?** (`pytest -q`)
+- [ ] **Documentação dependente foi atualizada?**
+  - [ ] `docs/SYNCHRONIZATION.md` registra mudança?
+  - [ ] `docs/FEATURES.md` reflete status?
+  - [ ] `docs/ROADMAP.md` reflete prioridades?
+  - [ ] `README.md` reflete mudança?
+- [ ] **Commit message contém tag?** (`[SYNC]`, `[FEAT]`, `[FIX]`, `[TEST]`)
+
+### Validação Automática
+
+Cada commit com `[SYNC]` tag deve manter checklist em `docs/SYNCHRONIZATION.md`
+
+---
+
+**Referência:** Ver `docs/SYNCHRONIZATION.md` para histórico completo
