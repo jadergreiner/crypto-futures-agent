@@ -10,16 +10,26 @@
 | F-04 | Validar `get_feature_names()` vs `build_observation()` — contagem dos nomes não batia 100% | 🟡 ALTA | ✅ DONE |
 | F-05 | Testes unitários para cada bloco de features | 🟢 MÉDIA | ✅ DONE |
 
+## v0.2.1 — Administração de Posições (20/02/2026)
+
+| ID | Feature | Prioridade | Status |
+|----|---------|-----------|--------|
+| F-05a | Configuração de 9 pares USDT em Profit Guardian Mode | 🔴 CRÍTICA | ✅ DONE |
+| F-05b | Criação de 4 novos playbooks especializados (TWT, LINK, OGN, IMX) | 🔴 CRÍTICA | ✅ DONE |
+| F-05c | Mecanismos de sincronização obrigatória de documentação | 🟡 ALTA | ✅ DONE |
+| F-05d | Arquivo de rastreamento SYNCHRONIZATION.md | 🟡 ALTA | ✅ DONE |
+| F-05e | Validação completa com test_admin_9pares.py (36/36 OK) | 🟢 MÉDIA | ✅ DONE |
+
 ## v0.3 — Training Ready
 
-| ID | Feature | Prioridade |
-|----|---------|-----------|
-| F-06 | Implementar `step()` completo no `CryptoFuturesEnv` | 🔴 CRÍTICA |
-| F-07 | Implementar `_get_observation()` usando `FeatureEngineer` | 🔴 CRÍTICA |
-| F-08 | Pipeline de dados para treinamento (carregar do DB → DataFrames) | 🔴 CRÍTICA |
-| F-09 | Script de treinamento funcional (`python main.py --train`) | 🔴 CRÍTICA |
-| F-10 | Reward shaping refinado com curriculum learning | 🟡 ALTA |
-| F-11 | Salvar/carregar modelo treinado | 🟢 MÉDIA |
+| ID | Feature | Prioridade | Status |
+|----|---------|-----------|--------|
+| F-06 | Implementar `step()` completo no `CryptoFuturesEnv` | 🔴 CRÍTICA | ⏳ Planejado |
+| F-07 | Implementar `_get_observation()` usando `FeatureEngineer` | 🔴 CRÍTICA | ⏳ Planejado |
+| F-08 | Pipeline de dados para treinamento (carregar do DB → DataFrames) | 🔴 CRÍTICA | 🔄 IN PROGRESS (20/02) |
+| F-09 | Script de treinamento funcional (`python main.py --train`) | 🔴 CRÍTICA | ⏳ Bloqueado por F-08 |
+| F-10 | Reward shaping refinado com curriculum learning | 🟡 ALTA | ⏳ Planejado |
+| F-11 | Salvar/carregar modelo treinado | 🟢 MÉDIA | ⏳ Planejado |
 
 ## v0.4 — Backtest Engine
 
