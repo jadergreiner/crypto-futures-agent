@@ -221,92 +221,305 @@ class ExecutorReuniao:
         return self.id_reuniao
 
     def adicionar_dialogo_exemplo(self):
-        """Adiciona dialogos de exemplo para teste."""
+        """Adiciona 10 rodadas de Q&A (pergunta → resposta → tréplica)."""
         if not self.id_reuniao:
             logger.error("Reunião não criada. Chame criar_reuniao() antes.")
             return
 
-        logger.info("Adicionando diálogos de exemplo...")
+        logger.info("Adicionando 10 rodadas de diálogos...")
 
-        # Pergunta 1: Sobre operações com score baixo
-        self.db.adicionar_dialogo(
-            id_reuniao=self.id_reuniao,
-            sequencia=1,
-            quem_fala="HEAD",
-            pergunta_ou_resposta=(
-                "Vi que você executou DOGEUSDT LONG com score 4.2. "
-                "Isso está abaixo do threshold de 5.0. Por quê?"
-            ),
-            tipo_conteudo="pergunta",
-            contexto_dados={
-                "par": "DOGEUSDT",
-                "tipo": "LONG",
-                "score": 4.2,
-                "pnl": -320,
-                "threshold_esperado": 5.0
+        # 10 rodadas de Q&A estruturadas
+        rodadas = [
+            # Rodada 1: Mayor Winner
+            {
+                "numero": 1,
+                "head_pergunta": (
+                    "BTCUSDT LONG com score 8.7 — seu melhor trade com +$1.890. "
+                    "Explique sua tese: por que entrou ali, como cuidou dos riscos?"
+                ),
+                "operador_resposta": (
+                    "Rompimento em 42.850, volume 18% acima da média móvel 20D. "
+                    "RSI 74 confirmava momentum. RR esperado 1:2.5 (stop 42.300, alvo 43.400). "
+                    "Entrei 0.5 BTC (conservador porque mercado estava sobrecomprado em H4). "
+                    "Fechamento exatamente no TP. Exposição mantida <2% da conta."
+                ),
+                "head_trepica": (
+                    "Perfeito. Você fez exatamente o que eu teria feito — "
+                    "entrada com volume, RR positivo, tamanho apropriado, saída planejada. "
+                    "Isso é disciplina. Continue assim."
+                )
+            },
+            # Rodada 2: Score Baixo (DOGEUSDT)
+            {
+                "numero": 2,
+                "head_pergunta": (
+                    "DOGEUSDT LONG com score 4.2 foi precipitado. Você sabe que "
+                    "threshold mínimo é 5.0. Por quê executou mesmo assim?"
+                ),
+                "operador_resposta": (
+                    "Errei. Score 4.2 veio de sentimento bullish em Telegram + SMC no nível 0.0845. "
+                    "Taxa de acerto em scores <5.0 é apenas 35% vs 62% geral. "
+                    "Executei por overconfidence no DXY fraco. Resultado: -$320. Meu critério foi frouxo."
+                ),
+                "head_trepica": (
+                    "Você reconheceu o erro — ótimo. Problema: 'sentimento no Telegram' não é tese. "
+                    "Tese é confluência de estrutura + volume + momentum. "
+                    "Minha ação: nunca execute com score <4.8."
+                )
+            },
+            # Rodada 3: Gestão de Risco (BNBUSDT)
+            {
+                "numero": 3,
+                "head_pergunta": (
+                    "BNBUSDT: ordem rejeitada por latência >200ms. "
+                    "Você escalou a exposição manualmente para compensar? "
+                    "Isso é CONTRA TUDO que combinamos."
+                ),
+                "operador_resposta": (
+                    "Verdade. Primeira ordem foi rejeitada. Deveria ter pausado. "
+                    "Ao invés, coloquei posição manual de 1 BNB. "
+                    "Comprei mais caro (43.200 vs 42.900). Trade deu lucro (+$85), "
+                    "mas METODOLOGIA foi errada. Deveria ter aguardado oportunidade limpa."
+                ),
+                "head_trepica": (
+                    "Exato. Rejeição = sinal de stop. Você não escalona risco em falha — REDUZ risco. "
+                    "Ação imediata: rejeição cancela trade automaticamente. Nenhuma tentativa manual."
+                )
+            },
+            # Rodada 4: Limite de Ordens
+            {
+                "numero": 4,
+                "head_pergunta": (
+                    "Limite de 10 ordens: você perdeu MATICUSDT (BOS claro, TP em 0.67). "
+                    "Por que não encerrou posição menor para liberar slot?"
+                ),
+                "operador_resposta": (
+                    "Erro operacional. Tinha 10 ordens, mas 3 em 'monitoramento' poderiam "
+                    "ter sido fechadas. Deveria fazer gestão ativa. Identifiquei MATIC tarde "
+                    "por lag de 5 minutos. Quando percebi, era tarde. Teria dado +$890 fácil."
+                ),
+                "head_trepica": (
+                    "Ações: Aumente limite de 10 para 15. Implemente auto-close para posições >4h "
+                    "sem movimento. Monitore lag de feed — se >3min, pause novas entradas."
+                )
+            },
+            # Rodada 5: Zona Cinzenta de Score
+            {
+                "numero": 5,
+                "head_pergunta": (
+                    "XRPUSDT: FVG + trendline + sentimento. Score 4.8 (abaixo 5.0). "
+                    "Você deixou passar. Resultado: +4% de ganho. Por que critério tão rígido?"
+                ),
+                "operador_resposta": (
+                    "Meu modelo é conservador. Scores 4.8-5.0 são zona cinzenta. "
+                    "Às vezes ganham 4%, às vezes perdem 2%. Meu sistema ficou fora. "
+                    "Mas você está certo: perdi +4% ganho fácil por 0.2 pontos. "
+                    "Score 4.8+ EM CONFLUÊNCIA MÚLTIPLA deveria executar."
+                ),
+                "head_trepica": (
+                    "Ajuste assim: Score 4.8+ com 3+ confluências (FVG + trendline + sentimento) = "
+                    "execute com METADE do tamanho. Isso captura ganhos fáceis sem aumentar risco."
+                )
+            },
+            # Rodada 6: Múltiplos Timeframes
+            {
+                "numero": 6,
+                "head_pergunta": (
+                    "Você opera em H1, mas 3 operações hoje foram mais fáceis em H4. "
+                    "Deveria H4 ser confirmação ANTES de entrar em H1?"
+                ),
+                "operador_resposta": (
+                    "Correto. Sistema de múltiplos timeframes está defasado. "
+                    "Estou olhando H1 isolado. Deveria ser: H4 define TENDÊNCIA, H1 define TIMING. "
+                    "Teria evitado DOGEUSDT (contra H4) e capturado XRPUSDT com confiança."
+                ),
+                "head_trepica": (
+                    "Implemente em signal_environment.py: Score H4 = 40% weight (filtro), "
+                    "Score H1 = 60% weight (timing). Execute só se ambos alinhados. "
+                    "Reduz whipsaws 15-20%."
+                )
+            },
+            # Rodada 7: Posição Aberta
+            {
+                "numero": 7,
+                "head_pergunta": (
+                    "Você tem 2 posições abertas (ETHUSDT SHORT +$450). "
+                    "Qual é plano? Vai segurar overnight? Qual critério?"
+                ),
+                "operador_resposta": (
+                    "ETHUSDT SHORT aguardando segunda objetiva em 1.850 (espaço +3%). "
+                    "Stop em 1.990. Critério: se TP secundário, vendo 50% (lock profit). "
+                    "Se break suporte 1.920, encerro 100% com prejuízo <-$120. "
+                    "Risco <1% da conta, sustentável overnight."
+                ),
+                "head_trepica": (
+                    "Ótima gestão de escada. Mantenha. Atenção: DXY deve subir (Fed speakers). "
+                    "Sua SHORT pode enfrentar resistência. "
+                    "Reduza para 50% HOJE antes do close."
+                )
+            },
+            # Rodada 8: Latência e Infraestrutura
+            {
+                "numero": 8,
+                "head_pergunta": (
+                    "3 rejeições de ordem por latência >200ms. "
+                    "Qual causa? Binance, infraestrutura, conexão?"
+                ),
+                "operador_resposta": (
+                    "Monitorei: (1) 1 rejeição foi Binance (servidor lento 12h31), "
+                    "(2) 2 rejeições foram minha rede (ISP limitando em pico). "
+                    "Aconteceu 12:00-13:30. Servidor em datacenter remoto; seria melhor co-location Binance."
+                ),
+                "head_trepica": (
+                    "Ação clara: contratar co-location em Binance (Tokyo/Singapore). "
+                    "Muda latência 180ms → 8-12ms. Custo $200-300/mês. "
+                    "ROI em 15 dias (sem rejeições). APROVADO para investimento imediato."
+                )
+            },
+            # Rodada 9: Retrainagem do Modelo
+            {
+                "numero": 9,
+                "head_pergunta": (
+                    "Seu modelo foi treinado quando? Mercado mudou em fevereiro — "
+                    "Fed cuts, inflação controlada, risco-on dominant. Está preparado?"
+                ),
+                "operador_resposta": (
+                    "Última retrainagem 15 dias atrás com dados janeiro. "
+                    "Fevereiro tem dinâmica diferente (menos volatilidade, tendências claras). "
+                    "Modelo calibrado para vol 45-60%, agora 38-52%. "
+                    "Deveria ter retreinado em 7 dias. Score está desatualizado."
+                ),
+                "head_trepica": (
+                    "Ação crítica: retreine com dados últimos 7 dias (fevereiro 13-20). "
+                    "Ajusta thresholds e modelos para mercado ATUAL. "
+                    "Tempo: 4 horas. Faça em sessão inativa. Veja trainer.py:245+."
+                )
+            },
+            # Rodada 10: Plano Amanhã
+            {
+                "numero": 10,
+                "head_pergunta": (
+                    "Resumindo: hoje ganhou $2.450 mas com falhas operacionais "
+                    "(score baixo, gestão limite, rejeições). Amanhã qual é plano?"
+                ),
+                "operador_resposta": (
+                    "Plano: (1) Rejeito score <4.8; (2) Se rejeição, stop automático; "
+                    "(3) Limite 15 ordens; (4) H4 como filtro antes H1; "
+                    "(5) Reduzo ETHUSDT SHORT 50% antes close. "
+                    "Overnight: co-location retrofit + início retrainagem modelo."
+                ),
+                "head_trepica": (
+                    "Excelente plano. Você está na direção correta. "
+                    "Hoje foi +9.3% de ganho. Com essas correções, "
+                    "semana que vem deve ser +12-15% consistentemente. Vamos monitorar."
+                )
             }
-        )
+        ]
 
-        # Resposta 1
-        self.db.adicionar_dialogo(
-            id_reuniao=self.id_reuniao,
-            sequencia=2,
-            quem_fala="OPERADOR",
-            pergunta_ou_resposta=(
-                "O modelo apontou confluência SMC (liquidity sweep) + "
-                "sentimento bullish no Telegram. No entanto, reconheço que "
-                "a taxa de acerto em scores <5.0 foi apenas 35% (vs 62% geral). "
-                "Operação precipitada. Peço que aumentemos o threshold."
-            ),
-            tipo_conteudo="resposta",
-            contexto_dados={
-                "taxa_acerto_lowscore": 0.35,
-                "taxa_acerto_geral": 0.62,
-                "razao": "Confluência fraca, execução por sentimento"
-            }
-        )
+        seq = 1
+        for rodada in rodadas:
+            # Pergunta do HEAD
+            self.db.adicionar_dialogo(
+                id_reuniao=self.id_reuniao,
+                sequencia=seq,
+                quem_fala="HEAD",
+                pergunta_ou_resposta=rodada["head_pergunta"],
+                tipo_conteudo="pergunta",
+                contexto_dados={"rodada": rodada["numero"]}
+            )
+            seq += 1
 
-        # Tréplica
-        self.db.adicionar_dialogo(
-            id_reuniao=self.id_reuniao,
-            sequencia=3,
-            quem_fala="HEAD",
-            pergunta_ou_resposta=(
-                "Concordo. Score abaixo de 5.0 não têm edge estatístico. "
-                "Ação: elevar MIN_ENTRY_SCORE de 4.0 para 5.5 em reward.py. "
-                "Vamos reduzir volume mas aumentar taxa de acerto."
-            ),
-            tipo_conteudo="trepica"
-        )
+            # Resposta do OPERADOR
+            self.db.adicionar_dialogo(
+                id_reuniao=self.id_reuniao,
+                sequencia=seq,
+                quem_fala="OPERADOR",
+                pergunta_ou_resposta=rodada["operador_resposta"],
+                tipo_conteudo="resposta",
+                contexto_dados={"rodada": rodada["numero"]}
+            )
+            seq += 1
 
-        logger.info("3 diálogos adicionados")
+            # Tréplica do HEAD
+            self.db.adicionar_dialogo(
+                id_reuniao=self.id_reuniao,
+                sequencia=seq,
+                quem_fala="HEAD",
+                pergunta_ou_resposta=rodada["head_trepica"],
+                tipo_conteudo="trepica",
+                contexto_dados={"rodada": rodada["numero"]}
+            )
+            seq += 1
+
+        logger.info(f"10 rodadas (30 diálogos) adicionadas")
 
     def adicionar_feedback_exemplo(self):
-        """Adiciona feedbacks de exemplo."""
+        """Adiciona 9 feedbacks (3+3+3) com análise categoria A/B/C/D."""
         if not self.id_reuniao:
             logger.error("Reunião não criada. Chame criar_reuniao() antes.")
             return
 
-        logger.info("Adicionando feedbacks de exemplo...")
+        logger.info("Adicionando feedbacks de exemplo (3+3+3)...")
 
         feedbacks = [
+            # ✅ 3 FORÇA (funcionaram BEM)
             {
                 "categoria": "força",
-                "descricao": "BTCUSDT LONG com score 8.7 — entrada perfeita, TP atingido",
+                "descricao": "Leitura de Breakout (BTCUSDT LONG) — entrada com volume, RR 1:2.5, saída no TP",
                 "impacto_score": 9.5,
-                "responsavel": "OPERADOR"
+                "tipo_extenso": "Operação correta (Categoria A: HEAD também entraria)"
+            },
+            {
+                "categoria": "força",
+                "descricao": "Disciplina ao ficar fora (LTCUSDT, ADAUSDT) — manteve portfólio limpo",
+                "impacto_score": 8.8,
+                "tipo_extenso": "Gestão de risco em operações inválidas (Categoria D: ambos evitaram)"
+            },
+            {
+                "categoria": "força",
+                "descricao": "Escalada correta em winner — manteve posição firme até TP, sem overtrading",
+                "impacto_score": 8.5,
+                "tipo_extenso": "Gestão de tamanho apropriada em ganho"
+            },
+
+            # ❌ 3 FRAQUEZA (não funcionaram)
+            {
+                "categoria": "fraqueza",
+                "descricao": "Execução com score baixo (DOGEUSDT 4.2) — violou próprio critério",
+                "impacto_score": 9.0,
+                "tipo_extenso": "Operação incorreta (Categoria B: HEAD evitaria)"
             },
             {
                 "categoria": "fraqueza",
-                "descricao": "3 operações com score <5.0 — taxa de acerto 35%",
-                "impacto_score": 8.0,
-                "responsavel": "OPERADOR"
+                "descricao": "Escalação após rejeição (BNBUSDT) — aumentou risco em falha em vez de pausar",
+                "impacto_score": 8.5,
+                "tipo_extenso": "Violação de protocolo de gestão de risco"
+            },
+            {
+                "categoria": "fraqueza",
+                "descricao": "Gestão de limite de ordens — perdeu MATICUSDT por slot cheio (não liberou)",
+                "impacto_score": 8.2,
+                "tipo_extenso": "Oportunidade perdida (Categoria C: HEAD entraria)"
+            },
+
+            # 🔄 3 OPORTUNIDADE (funcionam MAS precisam melhorar)
+            {
+                "categoria": "oportunidade",
+                "descricao": "Leitura de múltiplos timeframes — H4 deveria filtrar tendência antes H1 entry",
+                "impacto_score": 7.8,
+                "tipo_extenso": "Ajuste em signal_environment.py: H4=40% weight, H1=60% weight"
             },
             {
                 "categoria": "oportunidade",
-                "descricao": "0GUSDT teve BOS confirmado. Limite de 10 ordens impediu execução.",
+                "descricao": "Zona cinzenta de score (4.8-5.0) — está perdendo operações claras em confluência múltipla",
                 "impacto_score": 7.5,
-                "responsavel": "OPERADOR"
+                "tipo_extenso": "Ajuste em reward.py: Score 4.8+ com 3+ confluências = execute 50% tamanho"
+            },
+            {
+                "categoria": "oportunidade",
+                "descricao": "Frequência de retrainagem — modelo desatualizado (janeiro) para dinâmica fevereiro",
+                "impacto_score": 7.3,
+                "tipo_extenso": "Implementar rolling window: retrain a cada 7 dias em trainer.py"
             }
         ]
 
@@ -316,37 +529,73 @@ class ExecutorReuniao:
                 categoria=fb["categoria"],
                 descricao=fb["descricao"],
                 impacto_score=fb["impacto_score"],
-                responsavel=fb["responsavel"]
+                responsavel="OPERADOR"
             )
 
-        logger.info(f"{len(feedbacks)} feedbacks adicionados")
+        logger.info(f"{len(feedbacks)} feedbacks adicionados (3+3+3)")
 
     def adicionar_acoes_exemplo(self):
-        """Adiciona ações de exemplo."""
+        """Adiciona 6 ações do plano de ação completo com snippets."""
         if not self.id_reuniao:
             logger.error("Reunião não criada. Chame criar_reuniao() antes.")
             return
 
-        logger.info("Adicionando ações de exemplo...")
+        logger.info("Adicionando plano de ação (6 itens)...")
 
         acoes = [
             {
-                "descricao": "Aumentar MIN_ENTRY_SCORE de 4.0 para 5.5",
+                "descricao": "[CRÍTICA] Aumentar MIN_ENTRY_SCORE de 4.0 → 4.8",
                 "tipo": "código",
                 "prioridade": "crítica",
                 "responsavel": "OPERADOR",
-                "arquivo": "agent/reward.py",
-                "impacto": "+3% taxa acerto, -5% volume",
+                "arquivo": "agent/reward.py:340",
+                "impacto": "Elimina operações score <4.8. Taxa acerto 62% → 68%. +$320 poupado (DOGEUSDT)",
                 "seq": 1
             },
             {
-                "descricao": "Investigar causa de latência em 3 rejeições de ordem",
-                "tipo": "análise",
+                "descricao": "[CRÍTICA] Bloquear escalação manual após rejeição de ordem",
+                "tipo": "código",
+                "prioridade": "crítica",
+                "responsavel": "OPERADOR",
+                "arquivo": "execution/order_executor.py:187",
+                "impacto": "Evita operações precipitadas (BNBUSDT). Evita $500-800/semana risco. Sharpe 1.82 → 2.05",
+                "seq": 2
+            },
+            {
+                "descricao": "[ALTA] Aumentar MAX_CONCURRENT_POSITIONS de 10 → 15",
+                "tipo": "configuração",
                 "prioridade": "alta",
                 "responsavel": "OPERADOR",
-                "arquivo": "monitoring/critical_monitor_opção_c.py",
-                "impacto": "Identificar gargalo de rede/API",
-                "seq": 2
+                "arquivo": "config/execution_config.py:45",
+                "impacto": "Captura operações rejeitadas (MATICUSDT +$890). +3-5% PnL mensal",
+                "seq": 3
+            },
+            {
+                "descricao": "[ALTA] Implementar auto-close para posições inativas >4h",
+                "tipo": "código",
+                "prioridade": "alta",
+                "responsavel": "OPERADOR",
+                "arquivo": "execution/position_management.py:250",
+                "impacto": "Libera slots para novas oportunidades. +2-3 trades/dia. Capital destraved",
+                "seq": 4
+            },
+            {
+                "descricao": "[ALTA] Usar H4 como filtro de tendência (múltiplos timeframes)",
+                "tipo": "código",
+                "prioridade": "alta",
+                "responsavel": "OPERADOR",
+                "arquivo": "agent/signal_environment.py:112",
+                "impacto": "Evita operações contra-tendência. Taxa acerto 62% → 70%. -15-20% whipsaws",
+                "seq": 5
+            },
+            {
+                "descricao": "[MÉDIA] Retreinar modelo com rolling window (7 dias)",
+                "tipo": "código",
+                "prioridade": "média",
+                "responsavel": "OPERADOR",
+                "arquivo": "agent/trainer.py:245",
+                "impacto": "+5% calibração de scores. Menos falsos positivos. Adaptável ao mercado vivo",
+                "seq": 6
             }
         ]
 
@@ -362,7 +611,7 @@ class ExecutorReuniao:
                 sequencia_acao=acao["seq"]
             )
 
-        logger.info(f"{len(acoes)} ações criadas")
+        logger.info(f"{len(acoes)} ações do plano criadas")
 
     def adicionar_investimentos_exemplo(self):
         """Adiciona investimentos de exemplo."""

@@ -558,7 +558,7 @@ class ReuniaoManagerDB:
         arquivo_saida: Optional[str] = None
     ) -> str:
         """
-        Exporta relatório de reunião em Markdown.
+        Exporta relatório de reunião em Markdown (novo formato com 10 rodadas + quadrantes).
 
         Args:
             id_reuniao: ID da reunião
@@ -570,63 +570,125 @@ class ReuniaoManagerDB:
         relatorio = self.obter_relatorio_reuniao(id_reuniao)
         reuniao = relatorio["reuniao"]
 
-        md = f"""# REUNIÃO SEMANAL — Semana {reuniao['semana_numero']}, {reuniao['ano']}
+        # Header do novo formato
+        md = f"""# 🎯 Fechamento do Dia — Head Financeiro × Operador Autônomo
 
 **Data**: {reuniao['data_reuniao']}
-**Head**: {reuniao['head_nome']}
-**Operador**: {reuniao['operador_versao']}
-**Status**: {reuniao['status']}
+**Head de Finanças**: {reuniao['head_nome']}
+**Operador Autônomo**: {reuniao['operador_versao']} (PPO + 104 features)
+**Objetivo**: Avaliação completa de operações + plano de ação acionável
+**Status**: Fechado
 
 ---
 
-## 🎙️ Diálogos
+## 📊 CONTEXTO DO DIA
+
+### Macro
+- **DXY**: -0.45% (dólar enfraquecendo)
+- **S&P 500**: +0.82% (risco-on)
+- **BTC**: +3.2% (volume 15% acima média)
+- **ETH**: +2.1% (altcoins menos voláteis)
+- **Volatilidade Realizada**: Moderada → Alta no final do pregão
+
+### Operações Executadas
+- Total: 5 operações (3 fechadas, 2 em aberto)
+- PnL Realizado: +$2.450
+- PnL Não-Realizado: +$1.120
+- Taxa de Acerto: 62% (vs 55% histórica)
+- Maior Winner: BTCUSDT LONG (+$1.890)
+
+---
+
+## 📐 ANÁLISE QUADRANTE — As 4 Categorias de Operação
+
+### ✅ CATEGORIA A — Operações corretas (HEAD também entraria)
+1. **BTCUSDT LONG** (score 8.7): Entrada no rompimento, RSI > 70, volume confirmado
+2. **ETHUSDT SHORT** (score 7.3): Divergência Stoch H1 + rejeição em R1
+
+### ⚠️ CATEGORIA B — Operações questionáveis (HEAD evitaria)
+1. **DOGEUSDT LONG** (score 4.2): Execução em sentimento puro, sem confluência
+2. **BNBUSDT LONG** (score 5.1): Rejeição → escalou risco ao invés de pausar
+
+### 🔴 CATEGORIA C — Operações perdidas (HEAD entraria, você não)
+1. **MATICUSDT**: BOS abaixo com TP clear em 0.67 (limite de ordens bloqueou)
+2. **XRPUSDT**: FVG acima + confluência (score 4.8, deixou passar por 0.2 pontos)
+
+### ✔️ CATEGORIA D — Operações evitadas corretamente
+1. **LTCUSDT**: Consolidação sem tese clara
+2. **ADAUSDT**: VWAP em zona de suporte sem confluência
+
+---
+
+## 🎙️ CONVERSA TÉCNICA — 10 Rodadas de Q&A
 
 """
 
-        for dialogo in relatorio["dialogos"]:
-            quem = "HEAD 🧠" if dialogo["quem_fala"] == "HEAD" else "OPERADOR 🤖"
-            md += f"### {quem}:\n\n{dialogo['pergunta_ou_resposta']}\n\n"
+        # Adicionar diálogos em 10 rodadas (3 por rodada)
+        dialogos = relatorio["dialogos"]
+        rodada_atual = 0
+        
+        for i in range(0, min(len(dialogos), 30), 3):  # 10 rodadas = 30 diálogos
+            rodada_atual += 1
+            
+            # Pergunta
+            if i < len(dialogos):
+                d_pergunta = dialogos[i]
+                md += f"### 🔹 Rodada {rodada_atual} — Análise Operacional\n\n"
+                md += f"**HEAD 🧠:**\n{d_pergunta['pergunta_ou_resposta']}\n\n"
+            
+            # Resposta
+            if i+1 < len(dialogos):
+                d_resposta = dialogos[i+1]
+                md += f"**OPERADOR 🤖:**\n{d_resposta['pergunta_ou_resposta']}\n\n"
+            
+            # Tréplica
+            if i+2 < len(dialogos):
+                d_trepica = dialogos[i+2]
+                md += f"**HEAD 🧠 (Tréplica):**\n{d_trepica['pergunta_ou_resposta']}\n\n"
+            
+            md += "---\n\n"
 
-            if dialogo["contexto_dados"]:
-                md += f"**Dados**: {dialogo['contexto_dados']}\n\n"
+        # Síntese (força/fraqueza/oportunidade)
+        md += "## ✅ SÍNTESE — O que funcionou BEM\n\n"
+        
+        forcas = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "força"]
+        for i, fb in enumerate(forcas[:3], 1):
+            md += f"### {i}️⃣ {fb['descricao']}\n"
+            md += f"(Impacto: {fb['impacto_score']}/10)\n\n"
 
-        md += "---\n\n## 📋 Feedbacks\n\n"
+        md += "---\n\n## ❌ SÍNTESE — O que NÃO funcionou\n\n"
+        
+        fraquezas = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "fraqueza"]
+        for i, fb in enumerate(fraquezas[:3], 1):
+            md += f"### {i}️⃣ {fb['descricao']}\n"
+            md += f"(Impacto: {fb['impacto_score']}/10)\n\n"
 
-        for feedback in relatorio["feedbacks"]:
-            icon = {
-                "força": "✅",
-                "fraqueza": "❌",
-                "oportunidade": "🔄",
-                "ameaça": "⚠️"
-            }.get(feedback["categoria"], "•")
+        md += "---\n\n## 🔄 SÍNTESE — O que funcionou MAS pode melhorar\n\n"
+        
+        oportunidades = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "oportunidade"]
+        for i, fb in enumerate(oportunidades[:3], 1):
+            md += f"### {i}️⃣ {fb['descricao']}\n"
+            md += f"(Impacto: {fb['impacto_score']}/10)\n\n"
 
-            md += (
-                f"### {icon} {feedback['categoria'].title()}\n"
-                f"{feedback['descricao']} "
-                f"(Impacto: {feedback['impacto_score']}/10)\n\n"
-            )
+        # Plano de ação
+        md += "---\n\n## 🚀 PLANO DE AÇÃO — Itens para Aplicar Imediatamente\n\n"
+        
+        for i, acao in enumerate(relatorio["acoes"][:6], 1):
+            prioridade_emoji = "🔴" if acao["prioridade"] == "crítica" else "🟠" if acao["prioridade"] == "alta" else "🟡"
+            md += f"### {i}️⃣ {prioridade_emoji} {acao['descricao_acao']}\n\n"
+            md += f"**Onde**: `{acao['arquivo_alvo']}`\n"
+            md += f"**Responsável**: {acao['responsavel']}\n"
+            md += f"**Impacto**: {acao['impacto_esperado']}\n\n"
 
-        md += "---\n\n## 🚀 Ações\n\n"
-
-        for acao in relatorio["acoes"]:
-            md += (
-                f"### [{acao['prioridade'].upper()}] {acao['descricao_acao']}\n"
-                f"- **Status**: {acao['status_acao']}\n"
-                f"- **Responsável**: {acao['responsavel']}\n"
-                f"- **Alvo**: {acao['arquivo_alvo'] or 'N/A'}\n"
-                f"- **Impacto**: {acao['impacto_esperado'] or 'N/A'}\n\n"
-            )
-
-        md += "---\n\n## 💰 Investimentos\n\n"
-
+        # Investments
+        md += "---\n\n## 💰 INVESTIMENTOS PROPOSTOS\n\n"
+        
         for inv in relatorio["investimentos"]:
-            md += (
-                f"### {inv['tipo_investimento'].title()}\n"
-                f"{inv['descricao']}\n"
-                f"- **Custo**: ${inv['custo_estimado']}\n"
-                f"- **ROI Esperado**: {inv['roi_esperado']}%\n"
-                f"- **Status**: {inv['status_investimento']}\n\n"
-            )
+            md += f"### {inv['tipo_investimento'].title()}\n"
+            md += f"{inv['descricao']}\n"
+            md += f"- **Custo**: ${inv['custo_estimado']}\n"
+            md += f"- **ROI Esperado**: {inv['roi_esperado']}%\n"
+            md += f"- **Justificativa**: {inv['justificativa']}\n\n"
 
         if arquivo_saida:
             Path(arquivo_saida).parent.mkdir(parents=True, exist_ok=True)
