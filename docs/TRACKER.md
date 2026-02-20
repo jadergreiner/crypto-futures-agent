@@ -57,6 +57,7 @@
 | Teste manual end-to-end (BTCUSDT, 90 dias) | F-12 | ⏳ TODO | 0.5h | 🟡 ALTA |
 
 **Risk Clearance Checklist** (antes expansão v0.5):
+
 - [ ] Sharpe ≥ 1.0
 - [ ] MaxDD ≤ 15%
 - [ ] Win Rate ≥ 45%

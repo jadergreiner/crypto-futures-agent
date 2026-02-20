@@ -9,6 +9,7 @@ Implementação de mudanças estruturais para resolver o problema de fechamento 
 ## Problema Identificado
 
 Após 3 rounds de ajustes na reward function, os resultados do Round 3 mostraram:
+
 - Win Rate: 48.48%, Profit Factor: 0.66, Sharpe: -0.14
 - **Agente fecha posições lucrativas cedo demais** (R=0.36, R=0.08 quando TP seria R≈2-3)
 - Direção estava correta (DD caiu, PF subiu), mas comportamento persistia
@@ -24,11 +25,13 @@ Após 3 rounds de ajustes na reward function, os resultados do Round 3 mostraram
 ### 1. Bloqueio de CLOSE Prematuro (agent/environment.py)
 
 #### Constante
+
 ```python
 MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
 ```
 
 #### Lógica no step()
+
 - Quando `action == 3` (CLOSE) e há posição aberta:
   - Calcula R-multiple atual: `pnl / initial_risk`
   - **BLOQUEIA** se: `PnL > 0` E `R < 1.0`
@@ -39,6 +42,7 @@ MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
   - **PERMITE** se: `R >= 1.0` (fechamento com lucro adequado)
 
 #### Histórico de PnL
+
 - Adicionado `self.pnl_history = []` em `__init__` e `reset()`
 - Populado a cada step em `_get_position_state()`
 - Usado para calcular momentum
@@ -46,6 +50,7 @@ MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
 ### 2. Momentum e R-Multiple no position_state (agent/environment.py)
 
 #### Novos Campos Retornados
+
 ```python
 {
     'pnl_momentum': float,      # Taxa de variação do PnL
@@ -54,6 +59,7 @@ MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
 ```
 
 #### Cálculo de Momentum
+
 ```python
 if len(self.pnl_history) >= 6:
     recent_avg = np.mean(self.pnl_history[-3:])
@@ -64,6 +70,7 @@ else:
 ```
 
 **Interpretação**:
+
 - Momentum > 0: PnL acelerando positivamente (incentiva segurar)
 - Momentum < 0: PnL perdendo força (alerta para sair)
 - Momentum = 0: PnL estável ou histórico insuficiente
@@ -71,6 +78,7 @@ else:
 ### 3. Simplificação da Reward (agent/reward.py)
 
 #### ANTES (Round 3): 8 Componentes
+
 ```
 r_pnl, r_risk, r_consistency, r_overtrading, 
 r_hold_bonus, r_invalid_action, r_unrealized, r_inactivity
@@ -79,6 +87,7 @@ r_hold_bonus, r_invalid_action, r_unrealized, r_inactivity
 #### DEPOIS (Round 4): 3 Componentes
 
 **1. r_pnl** (peso 1.0) - PnL realizado amplificado
+
 ```python
 r_pnl = pnl_pct × 10.0 (PNL_SCALE)
 
@@ -88,6 +97,7 @@ Bonus adicional:
 ```
 
 **2. r_hold_bonus** (peso 1.0) - Incentivo assimétrico
+
 ```python
 Se pnl_pct > 0 (lucro):
     r_hold_bonus = 0.05 + pnl_pct × 0.1 + (momentum × 0.05 se momentum > 0)
@@ -97,6 +107,7 @@ Se pnl_pct < -2.0 (prejuízo alto):
 ```
 
 **3. r_invalid_action** (peso 1.0) - Penalidade forte
+
 ```python
 Se action_valid == False:
     r_invalid_action = -0.5
@@ -111,6 +122,7 @@ Se action_valid == False:
 ### 4. Testes Completos
 
 #### tests/test_reward.py (12 testes)
+
 - ✅ `test_calculate_basic`: Valida 3 componentes, ausência de componentes antigos
 - ✅ `test_r_multiple_greater_than_3`: R=3.5 → r_pnl = 36.0 (35 + 1.0 bonus)
 - ✅ `test_r_multiple_between_2_and_3`: R=2.5 → r_pnl = 25.5 (25 + 0.5 bonus)
@@ -125,6 +137,7 @@ Se action_valid == False:
 - ✅ `test_hold_bonus_with_momentum`: Valida cálculo com momentum positivo/zero/negativo
 
 #### tests/test_rl_environment.py (4 novos + 6 existentes)
+
 - ✅ `test_close_blocked_when_r_below_minimum`: R=0.5, lucro → CLOSE bloqueado
 - ✅ `test_close_allowed_when_losing`: Prejuízo → CLOSE permitido
 - ✅ `test_close_allowed_when_r_above_minimum`: R=1.5 → CLOSE permitido
@@ -160,12 +173,14 @@ Se action_valid == False:
 ## Compatibilidade
 
 ### Interface Pública Mantida
+
 ✅ `CryptoFuturesEnv.__init__()` - mesma assinatura
 ✅ `step()` retorna mesmo formato (obs, reward, terminated, truncated, info)
 ✅ `reset()` retorna mesmo formato (obs, info)
 ✅ `RewardCalculator.calculate()` - mesma assinatura
 
 ### Novos Campos (backwards compatible)
+
 - `info['action_valid']` - novo campo, código antigo ignora
 - `position_state['pnl_momentum']` - novo campo, código antigo ignora
 - `position_state['current_r_multiple']` - novo campo, código antigo ignora
@@ -189,18 +204,21 @@ Se action_valid == False:
 ## Resumo Técnico
 
 ### Arquivos Modificados
+
 - `agent/environment.py`: +52 linhas (bloqueio CLOSE, momentum, pnl_history)
 - `agent/reward.py`: -78 linhas, +60 linhas (simplificação 8→3 componentes)
 - `tests/test_reward.py`: reescrito completo (12 testes)
 - `tests/test_rl_environment.py`: +171 linhas (4 novos testes)
 
 ### Validação
+
 - ✅ 22/22 testes unitários passaram
 - ✅ 0 alertas de segurança (CodeQL)
 - ✅ 0 comentários críticos (code review)
 - ✅ Interface pública mantida (backward compatibility)
 
 ### Segurança
+
 - Nenhuma vulnerabilidade introduzida
 - Validação de índices mantida
 - Tratamento de divisão por zero preservado

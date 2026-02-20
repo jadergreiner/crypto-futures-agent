@@ -7,11 +7,13 @@ A arquitetura **Signal-Driven RL** representa uma evolução fundamental na form
 ## Conceito
 
 ### Problema da Abordagem Anterior
+
 - O agente treinava em um "jogo sintético" com dados históricos
 - Convergência difícil (Win Rate ~48%, Profit Factor 0.66)
 - Aprende a otimizar o environment simulado, não o mercado real
 
 ### Nova Abordagem: Signal-Driven RL
+
 ```
 Modelo gera sinal → Execução (autotrade/manual) → Persistência rica de detalhes →
 Acompanhamento a cada 15 min → Outcomes reais (parcial/stop/TP) →
@@ -19,6 +21,7 @@ Aprendizagem devolvida ao modelo
 ```
 
 ### Especialização por Símbolo
+
 Cada símbolo tem seu próprio **sub-agente** especializado. Nem tudo que funciona para BTC funciona para ETH. Os sub-agentes aprendem padrões específicos de cada ativo.
 
 ## Arquitetura
@@ -26,9 +29,11 @@ Cada símbolo tem seu próprio **sub-agente** especializado. Nem tudo que funcio
 ### 1. Banco de Dados
 
 #### Tabela `trade_signals`
+
 Armazena sinais com **riqueza completa de detalhes** do momento da geração:
 
 **Campos principais:**
+
 - **Sinal**: direction, entry_price, stop_loss, take_profit_1/2/3
 - **Risco**: position_size_suggested, risk_pct, risk_reward_ratio, leverage_suggested
 - **Confluência**: confluence_score, confluence_details (JSON)
@@ -41,9 +46,11 @@ Armazena sinais com **riqueza completa de detalhes** do momento da geração:
 - **RL**: reward_calculated, outcome_label (win/loss/breakeven)
 
 #### Tabela `signal_evolution`
+
 Snapshots a cada **15 minutos** enquanto posição está ativa:
 
 **Campos:**
+
 - Preço atual e PnL não-realizado
 - Distância ao stop e TPs
 - Indicadores no momento (RSI, MACD, BB, ATR, ADX)
@@ -55,9 +62,11 @@ Snapshots a cada **15 minutos** enquanto posição está ativa:
 ### 2. Módulos Principais
 
 #### `agent/signal_reward.py` - SignalRewardCalculator
+
 Calcula reward **rico e multidimensional** baseado em outcomes reais:
 
 **Componentes:**
+
 1. **r_pnl**: Reward por PnL realizado (proporcional ao R-multiple)
    - Bonus progressivo: R>3 (+2.0), R>2 (+1.0), R>1 (+0.5)
 2. **r_partial_bonus**: Bonus por parciais executadas no momento certo
@@ -71,6 +80,7 @@ Calcula reward **rico e multidimensional** baseado em outcomes reais:
 6. **r_management**: Reward por gestão (trailing stop, parciais)
 
 **Exemplo:**
+
 ```python
 from agent.signal_reward import SignalRewardCalculator
 
@@ -87,15 +97,18 @@ reward = calc.calculate_signal_reward(signal, evolutions)
 ```
 
 #### `agent/signal_environment.py` - SignalReplayEnv
+
 Environment que **replica trades reais** como episódios para treino offline:
 
 **Características:**
+
 - Cada episódio = 1 trade real com snapshots de 15 em 15 min
 - Observation: 20 features (PnL, distâncias, indicadores, momentum)
 - Actions: HOLD, CLOSE, REDUCE_50, MOVE_STOP_BE, TIGHTEN_STOP
 - Agente aprende a **gerenciar posição** durante sua vida
 
 **Uso:**
+
 ```python
 from agent.signal_environment import SignalReplayEnv
 
@@ -112,9 +125,11 @@ obs, reward, done, truncated, info = env.step(action)
 ```
 
 #### `agent/sub_agent_manager.py` - SubAgentManager
+
 Gerencia **sub-agentes especializados** por símbolo:
 
 **Funcionalidades:**
+
 - `get_or_create_agent(symbol)`: Retorna sub-agente do símbolo
 - `train_agent(symbol, signals, evolutions)`: Treina com dados reais
 - `evaluate_signal_quality(symbol, context)`: Avalia novo sinal
@@ -122,6 +137,7 @@ Gerencia **sub-agentes especializados** por símbolo:
 - `save_all() / load_all()`: Persistência
 
 **Uso:**
+
 ```python
 from agent.sub_agent_manager import SubAgentManager
 
@@ -140,6 +156,7 @@ quality_score = manager.evaluate_signal_quality('BTCUSDT', signal_context)
 ```
 
 #### `agent/trainer.py` - Método `train_from_real_signals`
+
 Integração com Trainer existente para retreino com sinais reais:
 
 ```python
@@ -159,7 +176,7 @@ result = trainer.train_from_real_signals(symbol='BTCUSDT', db=db)
 
 1. **Ao gerar sinal**: Inserir na tabela `trade_signals` com todo o contexto
 2. **A cada 15 minutos**: Inserir snapshot em `signal_evolution`
-3. **Ao fechar posição**: 
+3. **Ao fechar posição**:
    - Calcular MFE/MAE/duration
    - Atualizar `trade_signals` com outcome
    - Calcular reward via `SignalRewardCalculator`
@@ -182,6 +199,7 @@ SUB_AGENTS_BASE_DIR = "models/sub_agents"  # Diretório sub-agentes
 ## Fluxo de Uso
 
 ### 1. Geração de Sinal
+
 ```python
 # Em position_monitor.py ou signal_generator.py
 signal_data = {
@@ -200,6 +218,7 @@ signal_id = db.insert_trade_signal(signal_data)
 ```
 
 ### 2. Execução
+
 ```python
 # Após execução (autotrade ou manual)
 db.update_signal_execution(
@@ -212,6 +231,7 @@ db.update_signal_execution(
 ```
 
 ### 3. Monitoramento (a cada 15 min)
+
 ```python
 # No ciclo de monitoramento
 evolution_data = {
@@ -229,6 +249,7 @@ db.insert_signal_evolution(evolution_data)
 ```
 
 ### 4. Finalização
+
 ```python
 # Quando posição fecha
 from agent.signal_reward import SignalRewardCalculator
@@ -259,6 +280,7 @@ db.update_signal_outcome(signal_id, outcome_data)
 ```
 
 ### 5. Retreino (após acumular trades)
+
 ```python
 # Verificar se há trades suficientes
 from config.settings import SIGNAL_MIN_TRADES_FOR_RETRAINING
@@ -280,6 +302,7 @@ if len(signals) >= SIGNAL_MIN_TRADES_FOR_RETRAINING:
 ## Testes
 
 ### Executar Testes
+
 ```bash
 # Todos os testes
 pytest tests/test_signal_*.py tests/test_sub_agent_manager.py tests/test_database_signals.py -v
@@ -292,6 +315,7 @@ pytest tests/test_database_signals.py -v
 ```
 
 ### Cobertura
+
 - `test_signal_reward.py`: 19 testes
 - `test_signal_environment.py`: 15 testes
 - `test_sub_agent_manager.py`: 13 testes

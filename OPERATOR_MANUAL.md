@@ -1,8 +1,8 @@
 # Manual do Operador — Crypto Futures Agent
 
-**Versão:** v0.3 Training Ready  
-**Data:** 20/02/2026  
-**Audiência:** Operadores do agente de trading  
+**Versão:** v0.3 Training Ready
+**Data:** 20/02/2026
+**Audiência:** Operadores do agente de trading
 **Status Operacional:** ⚠️ **PARADO PARA VALIDAÇÃO v0.3** (20/02/2026 ~19:00 BRT)
 
 ---
@@ -424,6 +424,6 @@ Get-Content logs/agent.log -Tail 1
 
 ---
 
-**Última atualização:** 20/02/2026  
-**Mantido por:** GitHub Copilot  
+**Última atualização:** 20/02/2026
+**Mantido por:** GitHub Copilot
 **Status:** ✅ Operacional

@@ -9,6 +9,7 @@
 ## 🎯 Objetivo
 
 Manter sincronização automática entre todos os documentos do projeto garantindo:**
+
 - ✅ Consistência de versão
 - ✅ Rastreamento de mudanças
 - ✅ Integridade de interdependências
@@ -86,7 +87,8 @@ agent/*.py (CÓDIGO)
 
 ## ✅ Checklist Automático de Sincronização
 
-### Quando Você Altera `config/symbols.py`:
+### Quando Você Altera `config/symbols.py`
+
 - [ ] Adicionar símbolo em `symbols.py`
 - [ ] Criar/atualizar playbook correspondente
 - [ ] Registrar em `playbooks/__init__.py`
@@ -96,7 +98,8 @@ agent/*.py (CÓDIGO)
 - [ ] Commit com TAG: `[SYNC]`
 - [ ] Adicionar entrada em `docs/SYNCHRONIZATION.md`
 
-### Quando Você Altera `agent/*.py` (Lógica RL):
+### Quando Você Altera `agent/*.py` (Lógica RL)
+
 - [ ] Atualizar `docs/SIGNAL_DRIVEN_RL.md` se signal environment mudar
 - [ ] Atualizar `docs/REWARD_FIXES_*.md` se reward mudar
 - [ ] Atualizar `docs/LAYER_IMPLEMENTATION.md` se arquitetura mudar
@@ -105,7 +108,8 @@ agent/*.py (CÓDIGO)
 - [ ] Executar testes associados
 - [ ] Commit com TAG: `[SYNC]` ou `[FIX]`
 
-### Quando Você Altera `README.md`:
+### Quando Você Altera `README.md`
+
 - [ ] Validar português ✓
 - [ ] Validar markdown lint (máx 80 chars)
 - [ ] Verificar se versão mudou → atualizar `CHANGELOG.md`
@@ -114,7 +118,8 @@ agent/*.py (CÓDIGO)
 - [ ] Commit com TAG: `[SYNC]` ou `[DOCS]`
 - [ ] Registrar em `docs/SYNCHRONIZATION.md`
 
-### Quando Você Altera `.github/copilot-instructions.md`:
+### Quando Você Altera `.github/copilot-instructions.md`
+
 - [ ] Validar Português obrigatório ✓
 - [ ] Validar ASCII-only em commits
 - [ ] Atualizar seção relevante (Regra 1/2/3)
@@ -150,6 +155,7 @@ agent/*.py (CÓDIGO)
 ## 🔄 Protocolo de Sincronização OBRIGATÓRIA
 
 ### Passo 1: Identificar Mudança
+
 ```
 Que arquivo foi alterado?
 - config/symbols.py? → TRIGGER: Tipo A
@@ -159,6 +165,7 @@ Que arquivo foi alterado?
 ```
 
 ### Passo 2: Identificar Impacto
+
 ```
 Qual(is) documentação é impactada?
 - Usar MATRIZ DE INTERDEPENDÊNCIAS acima
@@ -167,6 +174,7 @@ Qual(is) documentação é impactada?
 ```
 
 ### Passo 3: Validar Sincronização
+
 ```
 Para cada arquivo impactado:
 - [ ] Lido? (verificar conteúdo)
@@ -175,6 +183,7 @@ Para cada arquivo impactado:
 ```
 
 ### Passo 4: Registrar Mudança
+
 ```
 - Atualizar docs/SYNCHRONIZATION.md
 - Incluir timestamp
@@ -182,6 +191,7 @@ Para cada arquivo impactado:
 ```
 
 ### Passo 5: Commit Obrigatório
+
 ```
 git add .
 git commit -m "[SYNC] Documento X mudou
@@ -195,7 +205,8 @@ Status geral: ✅ COMPLETO"
 
 ## ⚠️ Validações Críticas
 
-### ANTES de fazer commit:
+### ANTES de fazer commit
+
 1. ✅ Validar Português em TODOS os arquivos
 2. ✅ Validar markdown lint (80 chars/linha)
 3. ✅ Validar ASCII em commit message
@@ -203,7 +214,7 @@ Status geral: ✅ COMPLETO"
 5. ✅ Atualizar `docs/SYNCHRONIZATION.md`
 6. ✅ Validar nenhum arquivo quebrado
 
-### Exemplos de COMMITS CORRETOS:
+### Exemplos de COMMITS CORRETOS
 
 ```bash
 [SYNC] config/symbols.py: Adicionado XYZUSDT
@@ -226,6 +237,7 @@ Impactados:
 ## 🚀 Automação Recomendada (Future)
 
 Quando mudança em um arquivo crítico for detectada:
+
 1. Git hook `pre-commit` valida português + markdown lint
 2. Workflow GitHub valida sincronização de docs
 3. Checklist automático gerado em PR
@@ -236,10 +248,12 @@ Quando mudança em um arquivo crítico for detectada:
 ## 📈 Histórico de Sincronizações Recentes
 
 ### Rev. v0.3 BugFix (20/02/2026 03:34)
+
 **Arquivo Principal:** `iniciar.bat`  
 **Tipo:** Correção crítica (escape parenteses)
 
 **Mudanças:**
+
 ```
 iniciar.bat: Linhas 219-220, 231, 254-269
 - Inicializar variáveis SEM aspas
@@ -248,6 +262,7 @@ iniciar.bat: Linhas 219-220, 231, 254-269
 ```
 
 **Documentação Sincronizada:**
+
 - ✅ CHANGELOG.md (nova seção "Corrigido")
 - ✅ docs/SYNCHRONIZATION.md (entrada v0.3 BugFix)
 - ✅ FIXING_PROGRESS.md (novo documento)
@@ -257,10 +272,12 @@ iniciar.bat: Linhas 219-220, 231, 254-269
 **Status:** ✅ COMPLETO
 
 ### Rev. v0.2.1 (20/02/2026)
+
 **Arquivo Principal:** `config/symbols.py`  
 **Tipo:** Expansão de símbolos (TWT, LINK, OGN, IMX)
 
 **Mudanças:**
+
 ```
 config/symbols.py: +4 símbolos
 playbooks/: +4 playbooks
@@ -268,6 +285,7 @@ playbooks/__init__.py: +4 imports
 ```
 
 **Documentação Sincronizada:**
+
 - ✅ README.md (16 pares listados)
 - ✅ docs/ROUND_4_IMPLEMENTATION.md
 - ✅ test_admin_9pares.py (validação 36/36 OK)
@@ -304,6 +322,7 @@ playbooks/__init__.py: +4 imports
 ## 📞 Contato & Escalação
 
 **Se encontrar desincronização:**
+
 1. Abrir issue com tag `[SYNC]`
 2. Descrever qual documento está fora de sincronia
 3. Referenciar este arquivo (docs/SYNCHRONIZATION.md)
@@ -337,4 +356,3 @@ playbooks/__init__.py: +4 imports
 **Gerado por:** GitHub Copilot - Autonomus Documentation Agent  
 **Validado por:** test_admin_9pares.py + E2E tests  
 **Próximo ciclo:** Após próxima feature ou v0.3 release
-

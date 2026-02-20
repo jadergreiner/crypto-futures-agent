@@ -19,6 +19,7 @@ Avg R-Multiple: -0.15   ← Ruim (trades perdedores > vencedores)
 O agente aprendeu a operar (Win Rate 52.50%), mas está fazendo o oposto do desejado: **corta os lucros cedo e deixa as perdas correrem**. Quando ganha, ganha pouco; quando perde, perde muito → Profit Factor 0.57.
 
 Evidências dos logs:
+
 ```
 Position closed: manual_close, PnL=$-136.66 (-1.51%), R=-0.76
 Position closed: manual_close, PnL=$-41.92 (-0.47%), R=-0.24
@@ -29,16 +30,20 @@ Position closed: manual_close, PnL=$-41.92 (-0.47%), R=-0.24
 ### 1. agent/reward.py
 
 #### Hold Bonus Assimétrico (Componente 5)
+
 **Antes:**
+
 ```python
 if pnl_pct > 0:
     components['r_hold_bonus'] = 0.02 + pnl_pct * 0.05
 elif pnl_pct < -2.0:
     components['r_hold_bonus'] = -0.01
 ```
+
 - Peso: 0.5
 
 **Depois:**
+
 ```python
 if pnl_pct > 0:
     # Bonus forte e crescente para posições lucrativas
@@ -47,11 +52,13 @@ elif pnl_pct < -0.5:
     # Penalidade crescente para posições perdedoras
     components['r_hold_bonus'] = -0.02 * abs(pnl_pct)
 ```
+
 - Peso: **0.8** (aumentado)
 - Incentivo muito mais forte para segurar lucros
 - Penalidade mais agressiva para perdas (threshold -0.5% ao invés de -2%)
 
 #### Novo Componente: r_exit_quality
+
 ```python
 if r_multiple >= 1.0:
     # Bonus proporcional por fechar trade com bom R-multiple
@@ -63,13 +70,16 @@ elif r_multiple < -0.5:
     if exit_reason == 'manual_close':
         components['r_exit_quality'] = r_multiple * 0.3
 ```
+
 - Peso: **1.0**
 - Recompensa explícita por qualidade da saída
 - Não penaliza stop loss (gestão de risco correta)
 - Penaliza fechamento manual no prejuízo
 
 #### Penalidade de Inatividade Reduzida
+
 **Antes:**
+
 ```python
 INACTIVITY_THRESHOLD = 10      # ~40h em H4
 INACTIVITY_PENALTY_RATE = 0.02
@@ -77,11 +87,13 @@ INACTIVITY_PENALTY_RATE = 0.02
 ```
 
 **Depois:**
+
 ```python
 INACTIVITY_THRESHOLD = 15      # ~60h em H4
 INACTIVITY_PENALTY_RATE = 0.015
 # Peso: 0.3
 ```
+
 - Dá mais tempo ao agente para encontrar setups
 - Penalidade mais branda
 - Reduz pressão para "operar por operar"
@@ -89,7 +101,9 @@ INACTIVITY_PENALTY_RATE = 0.015
 ### 2. agent/trainer.py
 
 #### TrainingCallback Corrigido
+
 **Antes:**
+
 ```python
 def _on_rollout_end(self) -> None:
     if len(self.model.ep_info_buffer) > 0:
@@ -97,10 +111,12 @@ def _on_rollout_end(self) -> None:
         self.episode_rewards.append(ep_info.get('r', 0))
         self.episode_lengths.append(ep_info.get('l', 0))
 ```
+
 - Problema: Capturava apenas o último episódio
 - Resultado: reward_mean=0.00 sempre nos logs
 
 **Depois:**
+
 ```python
 def __init__(self, verbose=0, log_interval=1000):
     super().__init__(verbose)
@@ -128,12 +144,14 @@ def _on_step(self) -> bool:
                        f"episodes={len(self.episode_rewards)}, "
                        f"ep_len_mean={np.mean(self.episode_lengths[-100:]):.0f}")
 ```
+
 - Captura TODOS os episódios novos
 - Log com mais informações (reward_mean correto, contagem de episódios, tamanho médio)
 
 ## Testes
 
 ### Cobertura de Testes
+
 - ✅ `test_reward_fixes.py`: 14 testes novos
   - Hold bonus assimétrico
   - r_exit_quality
@@ -149,7 +167,9 @@ def _on_step(self) -> bool:
 **Total: 43/43 testes passaram** ✓
 
 ### Demonstração
+
 Script `examples/demonstrate_reward_fixes.py` mostra:
+
 - Hold bonus assimétrico em ação
 - r_exit_quality funcionando
 - Penalidade de inatividade reduzida
@@ -158,12 +178,14 @@ Script `examples/demonstrate_reward_fixes.py` mostra:
 ## Resultados Esperados
 
 ### Antes (Round 2)
+
 - Win Rate: 52.50%
 - **Profit Factor: 0.57** ← Ruim
 - **Avg R-Multiple: -0.15** ← Negativo
 - Sharpe Ratio: -0.20
 
 ### Depois (Esperado no Round 3)
+
 - Win Rate: ~50-55% (mantido)
 - **Profit Factor: > 1.0** ← Melhoria esperada
 - **Avg R-Multiple: > 0** ← Positivo
@@ -204,16 +226,19 @@ Script `examples/demonstrate_reward_fixes.py` mostra:
 ## Como Usar
 
 ### Treinar com as novas configurações
+
 ```bash
 python main.py --mode train
 ```
 
 ### Ver demonstração das mudanças
+
 ```bash
 python examples/demonstrate_reward_fixes.py
 ```
 
 ### Rodar testes
+
 ```bash
 pytest tests/test_reward*.py tests/test_training_callback.py -v
 ```
@@ -228,6 +253,7 @@ pytest tests/test_reward*.py tests/test_training_callback.py -v
 ## Conclusão
 
 As mudanças implementam um sistema de incentivos assimétrico que:
+
 - **Recompensa fortemente** segurar posições lucrativas
 - **Penaliza** segurar posições perdedoras
 - **Recompensa** fechar com bons R-multiples

@@ -45,7 +45,7 @@ Para o OPERADOR, funciona assim:
 
 3. NOVIDADE (TRANSPARENTE):
    Se Opção C foi autorizada, você verá:
-   
+
    [VERIFICACAO AUTOMATICA] Operacao Paralela C detectada...
    [OK] Operacao Paralela C iniciada em background
        - LIVE Scheduler: RODANDO (16 pares USDT)
@@ -53,7 +53,7 @@ Para o OPERADOR, funciona assim:
        - Monitor Critico: ATIVO (60s checks, kill switch 2%)
        - Capital em Risco: $5,000 USD
        - Logs: logs/orchestrator_opção_c.log, logs/critical_monitor.log
-   
+
    [!] Tela de menu disponivel abaixo. Siga normalmente.
    [!] Operacao C corre silenciosamente em background.
 
@@ -67,7 +67,7 @@ Para o OPERADOR, funciona assim:
 5. Operador escolhe opção normalmente (ex: opção 1 para paper):
    → Digite: 1
    → Executa: python main.py --mode paper
-   
+
    ENQUANTO ISSO, em background:
    ✓ LIVE está rodando (se autorizado Opção C)
    ✓ v0.3 testes estão executando
@@ -82,7 +82,7 @@ Se Operação C está rodando, você pode verificar logs:
 
 1. Status da Operação C:
    $ tail -f logs/orchestrator_opção_c.log
-   
+
    Verá:
    [ORCHESTRATOR] - OPERACAO PARALELA
    [ORCHESTRATOR] - LIVE Scheduler ATIVO
@@ -91,13 +91,13 @@ Se Operação C está rodando, você pode verificar logs:
 
 2. Monitor crítico (health checks):
    $ tail -f logs/critical_monitor.log
-   
+
    Verá a cada 60 segundos:
    [CRITICAL-MONITOR] Health OK | API: 150ms | Memory: 45% | Loss: 0% | LIVE: RUN
 
 3. Logs normais do agent (LIVE):
    $ tail -f logs/agent.log
-   
+
    (continua igual, mas LIVE está rodando em paralelo)
 
 PARAR OPERAÇÃO C
@@ -111,7 +111,7 @@ Se precisar parar (interrupção):
 
 2. Para Operação C completamente:
    C:\repo> taskkill /F /FL "orchestrator_opção_c.py"
-   
+
    Ou (mais seguro):
    C:\repo> python -c "
    from monitoring.critical_monitor_opção_c import CriticalMonitor

@@ -27,6 +27,7 @@ v0.4: Backtest + Risk Clearance (21-23 fev) — PRONTO PARA EXPANSÃO LIVE v0.5
 ```
 
 **v0.3 Execução Crítica (20/02/2026 18:45-23:59 BRT):**
+
 - 🔴 DECISÃO ORIGINAL: STOP LIVE (Head de Finanças decisão 18:45)
 - ✅ DECISÃO FINAL: OPERAÇÃO PARALELA C (Opção C autorizada 20:30)
 - ⚡ LIVE continuando com safeguards + v0.3 treinando em paralelo

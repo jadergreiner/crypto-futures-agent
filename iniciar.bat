@@ -127,10 +127,10 @@ REM ============================================================================
 if exist "AUTHORIZATION_OPÇÃO_C_20FEV.txt" (
     echo [VERIFICACAO AUTOMATICA] Operacao Paralela C detectada...
     echo.
-    
+
     REM Iniciar orquestrador em background (sem interfere com menu)
     start /b python core/orchestrator_opção_c.py > logs/orchestrator_opção_c_bg.log 2>&1
-    
+
     if !errorlevel! equ 0 (
         echo [OK] Operacao Paralela C iniciada em background
         echo     - LIVE Scheduler: RODANDO (16 pares USDT)
@@ -163,7 +163,7 @@ echo   2. Live Integrado (Capital REAL - REQUER CONFIRMACAO)
 echo   3. Monitorar Posicoes Abertas
 echo   4. Executar Backtest
 echo   5. Treinar Modelo RL (Demora horas)
-echo   6. Executar Setup Inicial 
+echo   6. Executar Setup Inicial
 echo   7. Diagnosticar Sistema
 echo   8. Assumir/Gerenciar Posicao Aberta
 echo   9. Sair
@@ -467,7 +467,7 @@ if /i "!CONFIRMAR!"=="s" (
         echo Proximo passo: Executar treinamento (opcao 5) ou paper trading (opcao 1)
     ) else (
         echo.
-        echo [ERRO] Setup falhou! 
+        echo [ERRO] Setup falhou!
         echo Ver logs para detalhes: logs/agent.log
     )
 ) else (

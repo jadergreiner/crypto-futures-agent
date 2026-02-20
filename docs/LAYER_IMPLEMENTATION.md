@@ -33,6 +33,7 @@ Este documento descreve a implementação completa dos métodos `h4_main_decisio
 
 5. **Armazenamento**
    - Salva em `self.d1_context[symbol]`:
+
      ```python
      {
          'd1_bias': str,
@@ -44,11 +45,13 @@ Este documento descreve a implementação completa dos métodos `h4_main_decisio
          'sentiment': dict
      }
      ```
+
    - Persiste no banco: `insert_indicators()`, `insert_sentiment()`, `insert_macro()`
 
 ### Lógica de D1 Bias
 
 Avalia 4 condições (precisa de 3+ para BULLISH ou BEARISH):
+
 - EMA alignment score >= 4 (bullish) ou <= -4 (bearish)
 - ADX > 25 (tendência forte)
 - DI+ > DI- (bullish) ou DI- > DI+ (bearish)
@@ -57,6 +60,7 @@ Avalia 4 condições (precisa de 3+ para BULLISH ou BEARISH):
 ### Lógica de Market Regime
 
 Sistema de pontuação baseado em:
+
 - Fear & Greed >= 60 → +1 RISK_ON, <= 40 → +1 RISK_OFF
 - DXY change < -0.5% → +1 RISK_ON, > 0.5% → +1 RISK_OFF
 - BTC dominance < 45% → +1 RISK_ON, > 55% → +1 RISK_OFF
@@ -133,6 +137,7 @@ Para cada símbolo em `ALL_SYMBOLS`:
 **Threshold:** Score >= 8 para abrir posição
 
 **Lógica:**
+
 - Calcula `bullish_score` e `bearish_score` separadamente
 - Se `bullish_score > bearish_score` e `bullish_score >= 8` → LONG
 - Se `bearish_score > bullish_score` e `bearish_score >= 8` → SHORT
@@ -143,29 +148,35 @@ Para cada símbolo em `ALL_SYMBOLS`:
 #### Stop Loss
 
 **Prioridade 1: SMC Order Blocks**
+
 - LONG: Abaixo do OB bullish mais próximo - 0.5 ATR
 - SHORT: Acima do OB bearish mais próximo + 0.5 ATR
 
 **Fallback: ATR**
+
 - LONG: Entry - (1.5 × ATR)
 - SHORT: Entry + (1.5 × ATR)
 
 **Validação:**
+
 - Stop distance <= 3% (rejeitado se maior)
 
 #### Take Profit
 
 **Prioridade 1: Liquidity Levels (SMC)**
+
 - LONG: Próximo BSL (Buy Side Liquidity) acima do preço
 - SHORT: Próximo SSL (Sell Side Liquidity) abaixo do preço
 
 **Fallback: ATR**
+
 - LONG: Entry + (3.0 × ATR)
 - SHORT: Entry - (3.0 × ATR)
 
 ### Re-avaliação de Posições Abertas
 
 Para cada posição aberta, calcula:
+
 - PnL não realizado (%)
 - Score de confluência atual
 - D1 bias atual
@@ -203,6 +214,7 @@ Rejeita sinal se:
 ## Position Sizing
 
 1. **Calcula Risco Base:**
+
    ```python
    risk_capital = capital × max_risk_per_trade_pct  # 2%
    risk_per_unit = entry_price × (stop_distance_pct / 100)
@@ -217,11 +229,13 @@ Rejeita sinal se:
 ## Armazenamento de Features para RL
 
 Cada execução do Layer 4 armazena:
+
 - Vetor de 104 features em `self.feature_history[symbol]`
 - Mantém últimas 1000 observações por símbolo
 - Será usado futuramente para treinar modelo PPO
 
 **Features incluem:**
+
 - Preços e retornos (11)
 - Distâncias EMAs (6)
 - Indicadores técnicos (11)
@@ -243,14 +257,17 @@ Cada execução do Layer 4 armazena:
 ## Persistência no Banco
 
 **Layer 5 persiste:**
+
 - `insert_indicators()`: Indicadores D1
 - `insert_sentiment()`: Dados de sentimento
 - `insert_macro()`: Dados macro
 
 **Layer 4 persiste:**
+
 - `insert_indicators()`: Indicadores H4
 
 **Formato de indicadores:**
+
 ```python
 {
     'timestamp': int,
@@ -326,23 +343,27 @@ DEFAULT_CAPITAL = 10000
 ## Integração com Outros Módulos
 
 ### Collectors
+
 - `BinanceCollector.fetch_historical()`: Dados OHLCV
 - `SentimentCollector.fetch_all_sentiment()`: L/S ratio, funding, OI
 - `MacroCollector.fetch_all_macro()`: Fear & Greed, dominance
 
 ### Indicators
+
 - `TechnicalIndicators.calculate_all()`: EMAs, RSI, MACD, ADX, ATR
 - `SmartMoneyConcepts.calculate_all_smc()`: Swings, BOS, OBs, FVGs
 - `MultiTimeframeAnalysis.aggregate()`: D1 bias, market regime
 - `FeatureEngineer.build_observation()`: Vetor de 104 features
 
 ### Risk
+
 - `RiskManager.calculate_position_size()`: Sizing baseado em risco
 - `RiskManager.calculate_stop_loss()`: Stops ATR
 - `RiskManager.calculate_take_profit()`: Targets ATR
 - `RiskManager.adjust_size_by_confluence()`: Ajuste por score
 
 ### Config
+
 - `ALL_SYMBOLS`: Lista de símbolos a processar
 - `RISK_PARAMS`: Parâmetros de risco (thresholds, limits)
 - `SYMBOLS`: Metadata dos símbolos (beta, características)
@@ -350,24 +371,28 @@ DEFAULT_CAPITAL = 10000
 ## Próximos Passos
 
 ### Imediatos
+
 1. ✅ Implementação completa
 2. ✅ Testes abrangentes
 3. ✅ Code review
 4. ✅ Security scan
 
 ### Curto Prazo
+
 1. Integrar com portfolio manager real
 2. Implementar Layer 3 (H1 timing)
 3. Adicionar trailing stops
 4. Backtesting da estratégia
 
 ### Médio Prazo
+
 1. Treinar modelo RL com features coletadas
 2. A/B test: confluência vs RL
 3. Walk-forward optimization
 4. Adicionar mais símbolos
 
 ### Longo Prazo
+
 1. Multi-agent RL (um por símbolo)
 2. Adaptive learning online
 3. Meta-learning para novos símbolos
@@ -378,12 +403,14 @@ DEFAULT_CAPITAL = 10000
 ### Como Ajustar Confluência
 
 **Adicionar novo fator:**
+
 1. Adicionar cálculo em `_calculate_confluence_score()`
 2. Atualizar doc string com nova pontuação
 3. Adicionar testes
 4. Ajustar threshold se necessário
 
 **Modificar pesos:**
+
 - Editar pontos atribuídos (1, 2, etc.)
 - Re-calibrar threshold (pode não ser mais 8)
 - Backtesting para validar
@@ -391,11 +418,13 @@ DEFAULT_CAPITAL = 10000
 ### Como Modificar Stops
 
 **Usar outro método SMC:**
+
 1. Modificar `_calculate_stops_and_targets()`
 2. Trocar Order Blocks por FVGs, por exemplo
 3. Atualizar testes
 
 **Ajustar multiplicadores ATR:**
+
 1. Modificar `RISK_PARAMS['stop_loss_atr_multiplier']`
 2. Modificar `RISK_PARAMS['take_profit_atr_multiplier']`
 
@@ -412,12 +441,14 @@ DEFAULT_CAPITAL = 10000
 ### Nenhum Sinal Sendo Gerado
 
 **Check:**
+
 1. Score de confluência >= 8?
 2. Risk validation passando?
 3. High-beta em regime correto?
 4. Max posições não atingido?
 
 **Debug:**
+
 ```python
 # Adicionar logs temporários em _calculate_confluence_score
 logger.info(f"Bullish score: {bullish_score}, Bearish: {bearish_score}")
@@ -426,12 +457,14 @@ logger.info(f"Bullish score: {bullish_score}, Bearish: {bearish_score}")
 ### Muitos Sinais Rejeitados
 
 **Possíveis causas:**
+
 1. Stop muito largo (> 3%)
 2. Alta correlação entre posições
 3. High-beta fora de RISK_ON
 4. Max posições atingido
 
 **Solução:**
+
 - Revisar multiplicadores ATR
 - Revisar threshold de correlação
 - Ajustar `max_simultaneous_positions`
@@ -439,11 +472,13 @@ logger.info(f"Bullish score: {bullish_score}, Bearish: {bearish_score}")
 ### Erro em Símbolo Específico
 
 **Isolamento:**
+
 - Erro é capturado por símbolo
 - Outros símbolos continuam processando
 - Check logs para detalhes
 
 **Fix:**
+
 1. Verificar se símbolo existe na exchange
 2. Verificar metadados em `config/symbols.py`
 3. Verificar playbook correspondente

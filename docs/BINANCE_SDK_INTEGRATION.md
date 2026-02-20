@@ -13,45 +13,54 @@ Esta integração substitui as chamadas diretas via `requests` pelo SDK oficial 
 ## Arquivos Modificados
 
 ### 1. `requirements.txt`
+
 - Adicionado `binance-sdk-derivatives-trading-usds-futures>=1.0.0`
 - Mantido `requests` para coleta de dados macro (auxiliar)
 
 ### 2. `config/settings.py`
+
 - Adicionadas configurações para URLs de testnet/produção
 - Suporte a autenticação Ed25519 via `BINANCE_PRIVATE_KEY_PATH`
 - Configurações de retry: `API_MAX_RETRIES` e `API_RETRY_DELAYS`
 
 ### 3. `data/binance_client.py` (NOVO)
+
 - Factory para criação de clientes configurados
 - Suporta modos "paper" (testnet) e "live" (produção)
 - Detecta automaticamente autenticação HMAC ou Ed25519
 - Função helper: `create_binance_client(mode)`
 
 ### 4. `data/collector.py`
+
 - Reescrito para usar `DerivativesTradingUsdsFutures.rest_api`
 - Mapeamento de intervalos para enums do SDK
 - Parsing de respostas Pydantic ou arrays raw
 - Validação de dados sem interpolação
 
 ### 5. `data/sentiment_collector.py`
+
 - Reescrito para usar endpoints do SDK
 - Métodos para: long/short ratio, open interest, funding rate, taker volume
 - Tratamento individual de erros em `fetch_all_sentiment()`
 
 ### 6. `data/websocket_manager.py`
+
 - Reescrito para usar `DerivativesTradingUsdsFutures.websocket_streams`
 - Sistema de callbacks para preços, flash events e liquidações
 - Buffer de klines 1m para detecção de flash crash/pump
 - Buffer de liquidações 24h para detecção de cascatas
 
 ### 7. `.env.example`
+
 - Adicionadas variáveis para autenticação Ed25519
 - Documentação de configurações disponíveis
 
 ### 8. `data/__init__.py`
+
 - Exporta `BinanceClientFactory` e `create_binance_client`
 
 ### 9. `tests/test_binance_sdk_integration.py` (NOVO)
+
 - 19 testes unitários cobrindo:
   - Factory de clientes
   - Collector de OHLCV
@@ -128,6 +137,7 @@ pytest tests/ -v
 ## Validação de Dados
 
 O `BinanceCollector.validate_data()` verifica:
+
 - ✅ Valores nulos
 - ✅ Valores negativos em preços/volumes
 - ✅ Gaps em timestamps (tolerância de 50%)
@@ -136,6 +146,7 @@ O `BinanceCollector.validate_data()` verifica:
 ## Rate Limits
 
 O SDK retorna informações de rate limit em cada response. O código implementa:
+
 - Retry com backoff exponencial (5s, 15s, 45s)
 - Sleep entre requests paginados (0.2s)
 - Sleep entre símbolos diferentes (0.1s)
@@ -143,15 +154,18 @@ O SDK retorna informações de rate limit em cada response. O código implementa
 ## WebSocket Features
 
 ### Mark Price Updates
+
 - Frequência: 1s
 - Callback: `register_price_callback(callback)`
 
 ### Flash Crash Detection
+
 - Janela: 5 minutos (M1)
 - Threshold: 5% de variação
 - Callback: `register_flash_event_callback(callback)`
 
 ### Liquidation Cascade Detection
+
 - Buffer: 24 horas
 - Threshold: volume recente > 2x média
 - Callback: `register_liquidation_callback(callback)`
@@ -161,6 +175,7 @@ O SDK retorna informações de rate limit em cada response. O código implementa
 Para migrar código existente:
 
 1. Substituir instanciação direta de `BinanceCollector`:
+
    ```python
    # Antes
    collector = BinanceCollector(api_key, api_secret)
@@ -171,6 +186,7 @@ Para migrar código existente:
    ```
 
 2. Retornos agora são DataFrames ao invés de listas:
+
    ```python
    # Antes: List[Dict]
    data = collector.fetch_klines("BTCUSDT", "1h")
@@ -179,7 +195,8 @@ Para migrar código existente:
    df = collector.fetch_klines("BTCUSDT", "1h")
    ```
 
-3. WebSocketManager agora requer client no __init__:
+3. WebSocketManager agora requer client no **init**:
+
    ```python
    # Antes
    ws_manager = WebSocketManager()
@@ -191,9 +208,9 @@ Para migrar código existente:
 
 ## Referências
 
-- SDK Python oficial: https://github.com/binance/binance-connector-python/tree/master/clients/derivatives_trading_usds_futures
-- Documentação API: https://www.binance.com/en/binance-api
-- Docs USDS-M Futures: https://developers.binance.com/docs/derivatives/usds-margined-futures
+- SDK Python oficial: <https://github.com/binance/binance-connector-python/tree/master/clients/derivatives_trading_usds_futures>
+- Documentação API: <https://www.binance.com/en/binance-api>
+- Docs USDS-M Futures: <https://developers.binance.com/docs/derivatives/usds-margined-futures>
 
 ## Notas de Segurança
 

@@ -17,7 +17,7 @@ ESCOPO APROVADO:
 
 2. RESPONSABILIDADE
    Em caso de falha/loss: ☑ Operador (você)
-   
+
 3. CAPITAL EM RISCO
    Default (não especificado): $5,000 USD equiv
    [AJUSTÁVEL: favor confirmar valor real]

@@ -9,16 +9,19 @@ Este documento descreve as correções implementadas para resolver 3 bugs críti
 ### Bug 1: margin_type com valor padrão incorreto
 
 **Problema:**
+
 - O código assumia `'ISOLATED'` como padrão quando margin_type não era encontrado
 - A API da Binance pode retornar `'cross'`, `'CROSS'`, `'isolated'`, ou `'ISOLATED'`
 - Isso resultava em classificação incorreta de posições cross margin como isolated
 
 **Solução:**
+
 - Normalização de margin_type para uppercase (linha 164-166 de position_monitor.py)
 - `'cross'` → `'CROSS'`, `'isolated'` → `'ISOLATED'`
 - Default mudado para `'isolated'` (lowercase) que é normalizado para `'ISOLATED'`
 
 **Código:**
+
 ```python
 raw_margin_type = self._safe_get(pos_data, ['margin_type', 'marginType'], 'isolated')
 margin_type = str(raw_margin_type).upper()  # Normalizar para maiúsculas
@@ -27,17 +30,20 @@ margin_type = str(raw_margin_type).upper()  # Normalizar para maiúsculas
 ### Bug 2: PnL% calculado incorretamente
 
 **Problema:**
+
 - PnL% era calculado dividindo PnL pelo **notional value** (qty × price)
 - Para posição com leverage 10x: PnL de 0.25 USDT / notional 2.90 USDT = ~8.61%
 - O correto é dividir pela **margem investida** (notional / leverage)
 - Valor correto: 0.25 USDT / 0.29 USDT = ~86.2%
 
 **Solução:**
+
 - Adicionado campo `margin_invested` calculado como `notional_value / leverage` (linhas 180-184)
 - PnL% agora calculado como `(unrealized_pnl / margin_invested) * 100` (linhas 186-190)
 - Campo `margin_invested` incluído no snapshot para persistência
 
 **Código:**
+
 ```python
 # Calcular margem investida (notional / leverage)
 if position['leverage'] > 0:
@@ -51,6 +57,7 @@ if position['margin_invested'] > 0:
 ```
 
 **Exemplo real (C98USDT):**
+
 - Notional: 100 × 0.0319 = 3.19 USDT
 - Leverage: 10x
 - Margem investida: 3.19 / 10 = 0.319 USDT
@@ -60,6 +67,7 @@ if position['margin_invested'] > 0:
 
 **Nota sobre a diferença com Binance (95.89%):**  
 O valor calculado de 78.37% difere dos 95.89% mostrados pela Binance devido a:
+
 1. **Timing**: O preço muda constantemente; a margem investida real pode ter sido menor (0.29 vs 0.319)
 2. **Fees e funding**: Binance considera fees pagos e funding rates acumulados
 3. **Precisão**: Pequenas diferenças em preços de entrada/mark price se amplificam com leverage
@@ -69,6 +77,7 @@ O importante é que agora o PnL% é calculado sobre a **margem investida** (corr
 ### Bug 3: Lógica de risco não considera cross margin
 
 **Problema:**
+
 - Avaliação de risco tratava cross margin como isolated margin
 - Cross margin significa que **TODO o saldo da conta** está em risco de liquidação
 - Risk score não refletia o risco adicional de usar cross margin
@@ -95,6 +104,7 @@ O importante é que agora o PnL% é calculado sobre a **margem investida** (corr
    - Cross: fecha se distância < 8% (mais conservador)
 
 **Código:**
+
 ```python
 if margin_type == 'CROSS':
     cross_margin_multiplier = RISK_PARAMS.get('cross_margin_risk_multiplier', 1.5)
@@ -110,39 +120,45 @@ if margin_type == 'CROSS':
 ## Alterações em Arquivos
 
 ### monitoring/position_monitor.py
+
 - `fetch_open_positions()`: Normalização de margin_type, cálculo de margin_invested, correção de PnL%
 - `fetch_account_balance()`: Novo método para buscar saldo total da conta
 - `evaluate_position()`: Lógica de risco adaptada para cross margin
 - `create_snapshot()`: Inclusão de margin_invested no snapshot
 
 ### config/risk_params.py
+
 - Adicionado parâmetro `cross_margin_risk_multiplier: 1.5`
 
 ### data/database.py
+
 - Adicionada coluna `margin_invested` na tabela `position_snapshots`
 - Atualizado método `insert_position_snapshot()` para incluir margin_invested
 - Migração automática para bancos existentes (ALTER TABLE se coluna não existir)
 
 ## Testes
 
-### Novos testes criados (tests/test_cross_margin_fixes.py):
+### Novos testes criados (tests/test_cross_margin_fixes.py)
+
 - 4 testes para normalização de margin_type
 - 4 testes para cálculo correto de PnL% com margin_invested
 - 6 testes para lógica de risco cross margin
 - 1 teste para validar margin_invested no snapshot
 
-### Testes de integração (tests/test_cross_margin_integration.py):
+### Testes de integração (tests/test_cross_margin_integration.py)
+
 - Simulação do exemplo real (C98USDT com 95.89% PnL)
 - Comparação de risk_score entre ISOLATED vs CROSS
 
-### Resultado:
+### Resultado
+
 - ✓ 36/36 testes passaram
 - ✓ Todos os testes existentes continuam funcionando
 - ✓ Nenhuma regressão detectada
 
 ## Comparação Antes vs Depois
 
-### Exemplo real (C98USDT LONG, leverage 10x):
+### Exemplo real (C98USDT LONG, leverage 10x)
 
 | Métrica | Antes (Incorreto) | Depois (Correto) | Binance Real |
 |---------|-------------------|------------------|--------------|
@@ -154,21 +170,23 @@ if margin_type == 'CROSS':
 
 ## Impacto
 
-### Positivo:
+### Positivo
+
 1. ✅ **Precisão de PnL%**: Agora reflete retorno real sobre capital investido
 2. ✅ **Gestão de risco**: Cross margin identificado e tratado apropriadamente
 3. ✅ **Avisos**: Usuários alertados sobre riscos de cross margin
 4. ✅ **Dados históricos**: margin_invested persistido para análises futuras
 5. ✅ **Compatibilidade**: Migração automática preserva bancos existentes
 
-### Backward Compatibility:
+### Backward Compatibility
+
 - ✓ Testes existentes atualizados para incluir margin_invested
 - ✓ Migração de banco de dados automática (ALTER TABLE)
 - ✓ Código funciona com e sem margin_invested (fallback gracioso)
 
 ## Uso
 
-### Exemplo de uso no código:
+### Exemplo de uso no código
 
 ```python
 # Buscar posições
@@ -192,7 +210,7 @@ for position in positions:
 
 ## Parâmetros de Configuração
 
-### config/risk_params.py:
+### config/risk_params.py
 
 ```python
 # Cross Margin Risk
@@ -207,7 +225,7 @@ Diminuir para < 1.5 se aceitar mais risco (não recomendado).
 - Issue original: Veja descrição do PR para detalhes completos do problema
 - Código fonte: `monitoring/position_monitor.py`
 - Testes: `tests/test_cross_margin_fixes.py`, `tests/test_cross_margin_integration.py`
-- Documentação Binance: https://binance-docs.github.io/apidocs/futures/en/
+- Documentação Binance: <https://binance-docs.github.io/apidocs/futures/en/>
 
 ## Notas Adicionais
 
