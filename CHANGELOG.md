@@ -43,17 +43,29 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 - **BUG: Treino concorrente não estava ativando via iniciar.bat** (20/02/2026)
   - Problema 1: Variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não inicializadas antes do bloco if  
   - Problema 2: Inicialização COM aspas vs SET SEM aspas causava inconsistência em delayed expansion
-  - Solução: Inicializar variáveis antes do bloco com sintaxe consistente (sem aspas)
-  - Melhorias: Debug detalhado mostra valor exato de !TRAINING_FLAG! e !TRAINING_INTERVAL_FLAG!
-  - Commits: 1e5b97a (inicial), 7ad8ab5 (robustez)
-  - Status: Treino concorrente agora será corretamente ativado quando usuario responde S
+  - Problema 3: Parêntese `hora(s)` em echo fechava bloco if prematuramente
+  - Solução: (1) Inicializar antes do if, (2) Sintaxe consistente, (3) Escape ^( e ^)
+  - Commits: 1e5b97a, 7ad8ab5, 6cf93cd, 0d3511c (success)
+  - Status: LIVE — Treino concorrente ativado e operacional em produção
   - Sincronização obrigatória de documentação rastreada em docs/SYNCHRONIZATION.md
 
-### Corrigido
-- 🐛 **FIX:** Bug no truncation check de episódios — was comparing `current_step >= episode_length` em vez de `(current_step - start_step) >= episode_length`
-- 🐛 **FIX:** Dependencies scikit-learn>=1.3.0, scipy>=1.11.0 adicionadas ao requirements.txt
+- **BUG no truncation check de episódios (F-06)**
+  - Comparava `current_step >= episode_length` em vez de `(current_step - start_step) >= episode_length`
+  - Causava terminação prematura após 1-2 steps
+  - Fix validado com E2E test de 50 steps
 
-- Script de treinamento funcional (`python main.py --train`)
+- **Dependencies adicionadas a requirements.txt**
+  - scikit-learn>=1.3.0, scipy>=1.11.0 para DataLoader (F-08)
+
+### Adicionado (Documentação)
+- **docs/DOCUMENTACAO_SINCRONIZACAO_RELATORIO.md** (20/02/2026)
+  - Mapa consolidado de todos os documentos
+  - Matriz de interdependências
+  - Checklist automático de sincronização (obrigatório)
+  - Protocolo de sincronização OBRIGATÓRIA
+  - Histórico de sincronizações recentes
+  - Validações críticas pré-commit
+  - Lições aprendidas e mecanismos de escalação
 
 ## [v0.2.1] — Administração de Posições (20/02/2026)
 
