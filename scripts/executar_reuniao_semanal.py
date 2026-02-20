@@ -24,7 +24,7 @@ import logging
 
 # Importar módulo de reuniões
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts.reuniao_manager import ReuniaoWeeklyDB
+from scripts.reuniao_manager import ReuniaoManagerDB
 
 # Configuração de logging
 logging.basicConfig(
@@ -38,8 +38,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class ExecutorReuniaoSemanal:
-    """Executa reunião semanal completa."""
+class ExecutorReuniao:
+    """Executa reunião sob demanda (ad-hoc, pode ocorrer a qualquer momento)."""
 
     def __init__(self, data_reuniao: Optional[str] = None):
         """
@@ -47,10 +47,10 @@ class ExecutorReuniaoSemanal:
 
         Args:
             data_reuniao: Data no formato 'YYYY-MM-DD HH:MM:SS'.
-                         Se None, usa próxima sexta-feira às 17:00.
+                         Se None, usa data/hora atual.
         """
-        self.data_reuniao = data_reuniao or self._calcular_proxima_sexta()
-        self.db = ReuniaoWeeklyDB()
+        self.data_reuniao = data_reuniao or datetime.now().isoformat(sep=" ")
+        self.db = ReuniaoManagerDB()
         self.id_reuniao: Optional[int] = None
 
         # Extrair semana/ano da data
@@ -60,25 +60,14 @@ class ExecutorReuniaoSemanal:
 
         logger.info(f"Executor inicializado para: {self.data_reuniao}")
 
-    def _calcular_proxima_sexta(self) -> str:
-        """Calcula próxima sexta-feira às 17:00 BRT."""
-        agora = datetime.now()
-        dias_para_sexta = (4 - agora.weekday()) % 7
-        if dias_para_sexta == 0 and agora.hour >= 17:
-            dias_para_sexta = 7
-
-        proxima_sexta = agora + timedelta(days=dias_para_sexta)
-        proxima_sexta = proxima_sexta.replace(hour=17, minute=0, second=0)
-        return proxima_sexta.isoformat(sep=" ")
-
-    def carregar_metricas_semana(self) -> Dict:
+    def carregar_metricas(self) -> Dict:
         """
-        Carrega métricas de performance da semana.
+        Carrega métricas de performance da reunião.
 
         Returns:
             Dicionário com PnL, Sharpe, drawdown, etc.
         """
-        logger.info("Carregando métricas de performance da semana...")
+        logger.info("Carregando métricas de performance...")
 
         # PLACEHOLDER: Em produção, buscar dados reais do banco
         # Por enquanto, simular dados
@@ -458,7 +447,7 @@ class ExecutorReuniaoSemanal:
         try:
             # Passo 1: Carregar dados
             logger.info("\n[PASSO 1/7] Carregando métricas...")
-            metricas = self.carregar_metricas_semana()
+            metricas = self.carregar_metricas()
 
             # Passo 2: Buscar reunião anterior
             logger.info("\n[PASSO 2/7] Buscando reunião anterior...")
@@ -517,7 +506,7 @@ class ExecutorReuniaoSemanal:
 def main():
     """Função principal."""
     try:
-        executor = ExecutorReuniaoSemanal()
+        executor = ExecutorReuniao()
         executor.executar_fluxo_completo()
 
     except KeyboardInterrupt:

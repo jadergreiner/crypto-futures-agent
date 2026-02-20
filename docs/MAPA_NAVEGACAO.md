@@ -1,11 +1,11 @@
-# 📚 MAPA DE NAVEGAÇÃO — Sistema de Reuniões Semanais
+# 📚 MAPA DE NAVEGAÇÃO — Sistema de Reuniões
 ## Especialista em Prompts para Agentes Autônomos
 
 ---
 
 ## 🎯 O Que Você Vai Encontrar?
 
-Este documento explica **onde ir** para entender e **como usar** o sistema de reuniões.
+Este documento explica **onde ir** para entender e **como usar** o sistema de reuniões **ad-hoc** (sob demanda, sem agendamento fixo).
 
 ---
 
@@ -131,13 +131,13 @@ sqlite3 db/reunioes_weekly.db "SELECT * FROM acoes_reuniao"
 ### 🚀 Roteiro 1: "Quero Usar Agora (5 minutos)"
 
 1. Abra: `docs/GUIA_REUNIOES_SEMANAIS.md` (seção "Quick Start")
-2. Execute:
+2. Execute (quando precisar de uma reunião):
    ```bash
    python scripts/executar_reuniao_semanal.py
    ```
-3. Veja resultado: `docs/reuniao_2026_09_sem9.md`
+3. Veja resultado: `docs/reuniao_YYYY_MM_DD_HHMMSS.md`
 
-**Status**: Reunião automática criada, diálogos registrados, investimentos propostos ✅
+**Status**: Reunião ad-hoc criada automaticamente ✅
 
 ---
 
@@ -328,14 +328,14 @@ db.exportar_relatorio_markdown(id_reuniao=1, arquivo_saida="docs/nova_reuniao.md
 ## ✅ Validação de Entrega
 
 - [x] 4 Componentes principais
-- [x] Banco SQLite funcional
+- [x] Banco SQLite funcional (`db/reunioes.db`)
 - [x] Testes executados com sucesso
 - [x] Relatório de exemplo gerado
 - [x] 100% documentação em português
 - [x] Zero dependências externas
 - [x] Compatível com Python 3.8+
 - [x] Commit com `[SYNC]` tag
-- [x] Mapa de navegação (este arquivo)
+- [x] Suporta reuniões ad-hoc (sem agendamento fixo)
 
 **Status**: ✅ **COMPLETO E PRONTO PARA USO** ✅
 

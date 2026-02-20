@@ -36,7 +36,7 @@ python scripts/reuniao_manager.py
 # Saída esperada:
 # ✅ Reunião criada com sucesso!
 # ID: 1
-# Relatório exportado para: docs/reuniao_2026_02_20.md
+# Relatório exportado para: docs/reuniao_YYYY_MM_DD_HHMMSS.md
 ```
 
 ### Usar em Seu Código Python
@@ -92,7 +92,7 @@ db.exportar_relatorio_markdown(
 ## 📊 Fluxo de Reunião (Passo a Passo)
 
 ### Passo 1: Preparar Contexto
-Antes da reunião (sexta 16:50 BRT), coletar dados:
+Antes da reunião (qualquer horário), coletar dados:
 
 ```python
 # Dados de performance
@@ -117,8 +117,8 @@ comparacao = {
 ### Passo 2: Criar Reunião
 ```python
 id_reuniao = db.criar_reuniao(
-    data_reuniao="2026-02-20 17:00:00",
-    semana_numero=8,
+    data_reuniao="2026-02-20 15:30:00",  # Qualquer horário, qualquer dia
+    semana_numero=8,  # Opcional (informativo)
     ano=2026,
     head_nome="Roberto Silva",
     operador_versao="v0.3"
@@ -407,9 +407,9 @@ print(f"\nTotal Investimento: ${total:.2f}")
 
 ---
 
-## 📋 Template de Reunião (Semanal)
+## 📋 Template de Reunião (Ad-hoc)
 
-Use este template toda sexta-feira 17:00 BRT:
+Use este template sempre que uma reunião for necessária:
 
 ```markdown
 # REUNIÃO SEMANAL — Semana [X], 2026
@@ -473,7 +473,7 @@ Data Alvo: 2026-02-22
 2. **Feedbacks específicos**: Não genéricos. Anexar métricas
 3. **Ações mensuráveis**: "Aumentar de X para Y" (não "melhorar")
 4. **Investimentos com ROI claro**: Cada $ tem justificativa quantitativa
-5. **Atualizar status regularmente**: Não deixar ações "ghost" por semanas
+5. **Atualizar status regularmente**: Não deixar ações "ghost" por dias ou semanas
 6. **Exportar sempre**: Manter arquivo markdown para auditoria
 
 ---

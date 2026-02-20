@@ -27,10 +27,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class ReuniaoWeeklyDB:
-    """Gerenciador de banco de dados de reuniões semanais."""
+class ReuniaoManagerDB:
+    """Gerenciador de banco de dados de reuniões (ad-hoc, sem agendamento fixo)."""
 
-    def __init__(self, db_path: str = "db/reunioes_weekly.db"):
+    def __init__(self, db_path: str = "db/reunioes.db"):
         """
         Inicializa conexão com banco de dados.
 

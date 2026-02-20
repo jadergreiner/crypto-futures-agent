@@ -1,13 +1,13 @@
-# PROMPT — REUNIÃO SEMANAL: HEAD FINANCEIRO × OPERADOR AUTÔNOMO
+# PROMPT — REUNIÃO: HEAD FINANCEIRO × OPERADOR AUTÔNOMO
 ## Especialista em Futuros de Criptomoedas (Binance Futures)
 
 ---
 
 ## 📋 Metadados
-- **Versão**: 2.0
+- **Versão**: 2.1
 - **Data de Criação**: 2026-02-20
 - **Objetivo Principal**: Conversa estratégica + justificativa de operações + planejamento de investimentos em infraestrutura
-- **Frequência**: Semanal (sexta-feira 17:00 BRT)
+- **Frequência**: Ad-hoc (pode ocorrer a qualquer momento, múltiplas vezes por dia)
 - **Saída**: Relatório de reunião + Backlog de Ações + Sistema de Persistência
 - **Requer**: DB SQLite + Diários do Agente + Contexto Macro + Histórico de Reuniões
 

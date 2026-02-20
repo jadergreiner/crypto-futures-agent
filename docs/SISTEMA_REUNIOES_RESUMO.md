@@ -9,13 +9,13 @@
 
 ## 📋 O Que Foi Entregue?
 
-Um **sistema completo e automático** para simulação, rastreamento e iteração de reuniões semanais entre:
+Um **sistema completo e automático** para simulação, rastreamento e iteração de reuniões **ad-hoc** (sob demanda, sem agendamento fixo) entre:
 
 - **HEAD FINANCEIRO**: Especialista em futuros de criptomoedas (Binance Futures)
 - **OPERADOR AUTÔNOMO**: Agente RL em PPO (v0.3)
 
 Sistema persiste em:
-- **Banco SQLite** (`db/reunioes_weekly.db`) — histórico completo
+- **Banco SQLite** (`db/reunioes.db`) — histórico completo
 - **Documentos Markdown** (`docs/reuniao_*.md`) — relatórios legíveis
 - **Git** — auditoria de mudanças via `[SYNC]` tags
 
@@ -124,9 +124,9 @@ python scripts/executar_reuniao_semanal.py
 ```
 
 **Resultado**:
-- ✅ Cria reunião no banco
+- ✅ Cria reunião no banco (com data/hora atual)
 - ✅ Adiciona diálogos + feedbacks + ações + investimentos (exemplos)
-- ✅ Exporta: `docs/reuniao_2026_09_sem9.md`
+- ✅ Exporta: `docs/reuniao_YYYY_MM_DD_HHMMSS.md`
 - ✅ Imprime resumo no console
 
 **Tempo**: ~2 segundos
