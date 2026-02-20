@@ -65,6 +65,35 @@ class ExecutorReuniao:
 
         logger.info(f"Executor inicializado para: {self.data_reuniao}")
 
+    def _validar_dados_reais(self, dias: int = 7) -> bool:
+        """
+        Valida se há dados REAIS no banco de dados.
+        Retorna True se houver; False caso contrário.
+
+        Args:
+            dias: Período a verificar (padrão: 7 dias)
+
+        Returns:
+            True se houver trades reais, False caso contrário
+        """
+        trades = self._obter_trades_periodo(dias=dias)
+        logs_analise = self._analisar_logs_operacionais(dias=1)
+
+        tem_trades = len(trades) > 0
+        tem_eventos = bool(logs_analise.get("erros") or logs_analise.get("avisos") or logs_analise.get("falhas_execucao"))
+
+        if not tem_trades and not tem_eventos:
+            logger.warning(
+                "⚠️  AVISO: Nenhum dado real encontrado no período!\n"
+                "   - Banco de dados vazio (trade_log: 0 registros)\n"
+                "   - Logs operacionais vazios\n"
+                "   ❌ Sistema NÃO gerará dados fictícios.\n"
+                "   ✅ Execute o agente primeiro para gerar trades reais."
+            )
+            return False
+
+        return True
+
     def _obter_trades_periodo(self, dias: int = 7) -> List[Dict]:
         """
         Obtém trades históricos do período de análise.
@@ -1195,6 +1224,22 @@ class ExecutorReuniao:
             logger.info("\n[PASSO 1/7] Carregando métricas...")
             metricas = self.carregar_metricas()
 
+            # ⚠️ VALIDAÇÃO CRÍTICA: Verificar se há dados REAIS
+            logger.info("\n[VALIDAÇÃO] Verificando integridade de dados...")
+            tem_dados_reais = self._validar_dados_reais(dias=7)
+
+            if not tem_dados_reais:
+                logger.error(
+                    "\n❌ ERRO: Não há dados reais no banco de dados!\n"
+                    "Sistema recusa gerar relatório com dados fictícios.\n\n"
+                    "SOLUÇÃO:\n"
+                    "  1. Execute o agente para gerar trades reais:\n"
+                    "     python main.py --mode paper --integrated\n"
+                    "  2. Deixe rodar por 30-60 minutos\n"
+                    "  3. Tente novamente disparar a reunião"
+                )
+                return  # Bloqueia execução
+
             # Passo 2: Buscar reunião anterior
             logger.info("\n[PASSO 2/7] Buscando reunião anterior...")
             reuniao_anterior = self.carregar_reuniao_anterior()
@@ -1207,7 +1252,7 @@ class ExecutorReuniao:
             logger.info("\n[PASSO 4/7] Criando reunião no banco...")
             self.criar_reuniao()
 
-            # Passo 5: Adicionar conteúdos
+            # Passo 5: Adicionar conteúdos (podem agora usar dados reais com segurança)
             logger.info("\n[PASSO 5/7] Adicionando diálogos, feedbacks, ações...")
             self.adicionar_dialogo_exemplo()
             self.adicionar_feedback_exemplo()
