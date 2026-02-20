@@ -691,6 +691,33 @@ Timeline: Sprint até 24/02/2026
 
 ---
 
+## ✅ DIAGNÓSTICO CRÍTICO — 20/02/2026, 20:45 UTC
+
+**Situação**: Agente em Profit Guardian Mode, 0 sinais novos gerados em 3+ dias
+
+**Documentos Criados**:
+- ✅ `docs/reuniao_diagnostico_profit_guardian.md` — Reunião diagnóstica (10 rodadas)
+- ✅ `DIAGNOSTICO_EXECUTIVO_20FEV.md` — Sumário executivo com insights
+- ✅ `BACKLOG_ACOES_CRITICAS_20FEV.md` — Backlog detalhado com 5 ações críticas
+- ✅ `diagnostico_operacoes.py` — Script de diagnóstico (685 erros, 249 avisos)
+
+**Sincronização Obrigatória** (Padrão [SYNC] tag):
+- ✅ `docs/SYNCHRONIZATION.md` — Este arquivo sendo atualizado
+- ⏳ `README.md` — Versão crítica marcada + link para diagnóstico
+- ⏳ `.github/copilot-instructions.md` — Procedimentos críticos adicionados
+- ⏳ `CHANGELOG.md` — Entry v0.3-CRÍTICO adicionado
+
+**5 Ações Críticas Definidas**:
+1. **ACAO-001** — Fechar 5 maiores posições perdedoras (30 min)
+2. **ACAO-002** — Validar fechamento (15 min)
+3. **ACAO-003** — Reconfigurar allowed_actions (10 min)
+4. **ACAO-004** — Executar BTCUSDT LONG score 5.7 (15 min)
+5. **ACAO-005** — Reunião follow-up 24h (30 min)
+
+**Status**: 🔴 CRÍTICO — Aguardando aprovação ACAO-001
+
+---
+
 **Mantido pelo:** GitHub Copilot + Agente Autônomo
 **Frequência de Revisão:** A cada mudança documentada
-**Próxima Revisão Esperada:** 21/02/2026 (F-12b) → 24/02/2026 (fim v0.4)
+**Próxima Revisão Esperada:** 21/02/2026 14:00 UTC (após ACAO-002 validação)

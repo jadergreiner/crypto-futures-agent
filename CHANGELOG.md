@@ -7,6 +7,37 @@ O formato é baseado em
 
 ## [Unreleased]
 
+### 🔴 [CRÍTICO] Diagnóstico Operacional — 20/02/2026 20:45 UTC
+
+**Situação Crítica Identificada**: Agente em Profit Guardian Mode, 0 sinais novos em 3+ dias
+
+#### Documentação de Diagnóstico
+- **Reunião diagnóstica de 10 rodadas**: `docs/reuniao_diagnostico_profit_guardian.md`
+- **Sumário executivo**: `DIAGNOSTICO_EXECUTIVO_20FEV.md`
+- **Backlog com 5 ações críticas**: `BACKLOG_ACOES_CRITICAS_20FEV.md`
+- **Script de diagnóstico**: `diagnostico_operacoes.py`
+
+#### Causa Raiz
+`config/execution_config.py` possui `"allowed_actions": ["CLOSE", "REDUCE_50"]` bloqueando "OPEN"
+
+#### Impacto
+- 21 pares monitorados (41 snapshots)
+- 0 sinais novos gerados (bloqueados por config)
+- -$2.670/dia em oportunidades perdidas
+- 21 posições com perdas -42% a -511%
+
+#### Plano de Ação (5 Ações Críticas)
+1. **ACAO-001**: Fechar 5 maiores posições (30 min)
+2. **ACAO-002**: Validar fechamento (15 min)
+3. **ACAO-003**: Reconfigurar allowed_actions (10 min)
+4. **ACAO-004**: Executar BTCUSDT LONG score 5.7 (15 min)
+5. **ACAO-005**: Reunião follow-up 24h (30 min)
+
+#### Status
+🔴 **CRÍTICO** — Aguardando aprovação HEAD para iniciar ACAO-001
+
+---
+
 ### Adicionado
 - Sistema de validação automática de sincronização (`scripts/validate_sync.py`)
 - Checklist formal de sincronização em `.github/copilot-instructions.md`

@@ -26,9 +26,38 @@ operacionais com gestão de risco completa.
 - **Playbooks Específicos**: Estratégias customizadas para cada criptomoeda
 - **Arquitetura em Camadas**: 6 layers com execução condicional
 
-## ⚠️ Status Operacional Atual (20/02/2026)
+## ⚠️ Status Operacional Atual (20/02/2026 — CRÍTICO)
 
-**🟠 OPERAÇÃO PARALELA C ATIVA**
+**🔴 DIAGNÓSTICO CRÍTICO IDENTIFICADO**
+
+**Situação**: Agente em "Profit Guardian Mode" há 3+ dias. 21 pares monitorados, 0 sinais novos gerados.
+
+**Causa Raiz**: `config/execution_config.py` possui `"allowed_actions": ["CLOSE", "REDUCE_50"]` — **bloqueia "OPEN"**
+
+**Impacto**:
+- ✅ Monitoramento ativo (41 position snapshots coletados)
+- ❌ Zero novos sinais disparados
+- ❌ Zero novas posições abertas
+- 🔴 **-$2.670/dia em oportunidades perdidas** (BTCUSDT +8.2%, ETHUSDT +4.1%, etc)
+- 🔴 21 posições com perdas -42% a -511%
+
+**Documentação**:
+- 📄 Reunião diagnóstica de 10 rodadas: `docs/reuniao_diagnostico_profit_guardian.md`
+- 📄 Sumário executivo: `DIAGNOSTICO_EXECUTIVO_20FEV.md`
+- 📄 Backlog com 5 ações críticas: `BACKLOG_ACOES_CRITICAS_20FEV.md`
+
+**Plano de Ação (HOJE → AMANHÃ)**:
+1. ✋ Fechar 5 maiores posições perdedoras (-$8.500 realizado) → **ACAO-001**
+2. ✓ Validar fechamento → **ACAO-002**
+3. ⚙️ Reconfigurar `allowed_actions` (adicionar "OPEN") → **ACAO-003**
+4. 🎯 Executar BTCUSDT LONG score 5.7 (teste) → **ACAO-004**
+5. 📊 Reunião follow-up 24h → **ACAO-005**
+
+**Status**: 🔴 Aguardando aprovação HEAD para iniciar ACAO-001
+
+---
+
+**🟠 OPERAÇÃO PARALELA C REDUZIDA** (Aguardando Ação)
 
 - **LIVE Trading**: ✅ Operando com 16 pares USDT (Profit Guardian Mode)
 - **v0.3 Training**: 🔄 Validação em paralelo (isolada,
