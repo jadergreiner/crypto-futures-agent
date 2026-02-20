@@ -4,11 +4,12 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [v0.3] — Training Ready � _CRÍTICA TODAY_ (20/02/2026 18:45 BRT)
+## [v0.3] — Training Ready 🔴 _OPERAÇÃO PARALELA C_ (20/02/2026)
 
-**Status:** 🔴 **CRÍTICA PATH** — Decisão Executiva do Head de Finanças
-**Diretiva:** ⚠️ **PARAR LIVE IMEDIATAMENTE** | Executar v0.3 HOJE (6-8h)
-**Timeline:** Iniciado: 20/02/2026 18:45 BRT | Target: 20/02/2026 23:59 BRT
+**Status:** 🔴 **OPERAÇÃO PARALELA AUTORIZADA** — Mudança de Diretiva
+**Diretiva Original:** ⚠️ PARAR LIVE (Head de Finanças, 18:45)
+**Diretiva Confirmada:** ✅ Opção C — Full LIVE + v0.3 Dev SIMULTÂNEAMENTE (20:30)
+**Timeline:** Iniciado: 20/02/2026 20:30 BRT | Duração: 8-24h (até conclusão v0.3)
 **Rationale Financeira:** 
   - Risco operacional de continuar LIVE: -17% a -42% em 24h (modelo não validado)
   - Confiança componente: 45% (abaixo threshold mínimo 70%)
