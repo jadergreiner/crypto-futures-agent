@@ -41,11 +41,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 
 ### Corrigido
 - **BUG: Treino concorrente não estava ativando via iniciar.bat** (20/02/2026)
-  - Problema: Variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não inicializadas antes do bloco if
-  - Sintoma: Usuario selecionava "S" para treino, mas logs mostravam "Concurrent training disabled"
-  - Solução: Inicializar variáveis antes do bloco condicional em iniciar.bat
-  - Documentação: CONCURRENT_TRAINING_BUGFIX.md com explicação técnica completa
-  - Debug adicionado: Script agora mostra comando exato being executed
+  - Problema 1: Variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não inicializadas antes do bloco if  
+  - Problema 2: Inicialização COM aspas vs SET SEM aspas causava inconsistência em delayed expansion
+  - Solução: Inicializar variáveis antes do bloco com sintaxe consistente (sem aspas)
+  - Melhorias: Debug detalhado mostra valor exato de !TRAINING_FLAG! e !TRAINING_INTERVAL_FLAG!
+  - Commits: 1e5b97a (inicial), 7ad8ab5 (robustez)
+  - Status: Treino concorrente agora será corretamente ativado quando usuario responde S
   - Sincronização obrigatória de documentação rastreada em docs/SYNCHRONIZATION.md
 
 ### Corrigido
