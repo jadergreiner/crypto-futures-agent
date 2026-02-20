@@ -46,6 +46,11 @@
 Manhã:    Paper Trading (Opção 1) — 1-2 horas
 Tarde:    Monitorar Posições (Opção 3) — Contínuo (se houver trades abertos)
 Noite:    Revisar Logs (logs/agent.log)
+
+MELHORADO COM TREINO CONCORRENTE:
+├─ Live (Opção 2 + Treino) — Treina modelos a cada 4-6 horas automaticamente
+├─ Monitor (Opção 3) — Acompanhar trades sem interrupção
+└─ Backtest (Opção 4) — Validar melhorias semanalmente
 ```
 
 ---

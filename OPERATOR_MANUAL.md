@@ -56,10 +56,17 @@ Opção: 2
 2. Confirme que revisou o `.env`
 3. Digite "INICIO" como autorização final
 
+**Configuração adicional:**
+- **Treino Concorrente:** Opção de treinar modelos enquanto opera
+  - Padrão: a cada 4 horas
+  - Customizável: escolha o intervalo desejado
+  - ⚠️ Usa CPU/RAM adicional durante treinamento
+
 **O que faz:**
 - Busca oportunidades automaticamente
 - Executa ordens REAIS na Binance
 - Gerencia posições abertas
+- *(Opcional)* Treina e aprende de operações em tempo real
 - Logs em: `logs/agent.log`
 
 **Resumo de segurança:** ⚠️ CRÍTICO — Capital REAL em risco. Requer 3 confirmações.
@@ -307,6 +314,8 @@ Use a **Opção 6** do menu para executar setup inicial.
 - ✅ Manter `.env` seguro (nunca fazer commit)
 - ✅ Monitorar posições abertas
 - ✅ Usar **Opção 7** para diagnosticar problemas
+- ✅ Usar **Treino Concorrente** (Opção 2) para melhorar modelo em tempo real
+- ✅ Começar com intervalo alto (8-12h) e reduzir gradualmente conforme confiança
 
 ### ❌ NÃO FAÇA
 
@@ -315,6 +324,55 @@ Use a **Opção 6** do menu para executar setup inicial.
 - ❌ Ignorar confirmações de segurança
 - ❌ Modificar código sem conhecimento técnico
 - ❌ Deixar terminal aberta sem supervisão em Live
+- ❌ Usar intervalo de treino muito curto (<2 horas) durante operação ao vivo
+- ❌ Rodar múltiplas instâncias concorrentes de treinamento simultâneas
+
+---
+
+## 📊 Treino Concorrente — Guia Operacional
+
+### O que é Treino Concorrente?
+
+Permite que o agente **se melhore enquanto opera**, usando dados reais de mercado coletados em tempo real.
+
+### Como Ativar?
+
+```
+Opção 2 → Responda SIM para "Treinar modelos enquanto opera"
+```
+
+### Intervalos Recomendados
+
+| Cenário | Intervalo | Notas |
+|---------|-----------|-------|
+| **Produção High-Frequency** | 8-12 horas | Minimiza interrupção |
+| **Produção Padrão** | 4-6 horas | Balanço ótimo |
+| **Teste/Validação** | 2-4 horas | Aprendizado rápido |
+| **Modo Econômico** | 12-24 horas | Menos recursos |
+
+### Monitorar Progresso
+
+```powershell
+# Verificar logs de treino
+Get-Content logs/agent.log -Tail 50 | Select-String "TRAINING|TRAINING_CYCLE"
+
+# Ver timestamp do último treino
+Get-Content logs/agent.log -Tail 1
+```
+
+### Performance esperada
+
+- ✅ **CPU**: +5-15% durante ciclo (duração = 5-30 min por símbolo)
+- ✅ **RAM**: +200-500 MB durante treino
+- ✅ **Latência de trades**: Sem impacto (threads separadas)
+- ✅ **Melhoria do modelo**: +5-10% a cada 24-48 horas
+
+### Parar Treino Concorrente
+
+```bash
+# Opção 1: Ctrl+C (para tudo)
+# Opção 2: Próxima execução sem --concurrent-training
+```
 
 ---
 

@@ -220,6 +220,26 @@ if /i not "!CONF3!"=="INICIO" (
 )
 
 echo.
+echo Configuracao adicional:
+echo.
+set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): "
+
+if /i "!ENABLE_TRAINING!"=="s" (
+    set TRAINING_FLAG=--concurrent-training
+    set /p TRAIN_INTERVAL="Intervalo de treinamento em horas (padrao: 4): "
+    if "!TRAIN_INTERVAL!"=="" set TRAIN_INTERVAL=4
+    set /a TRAIN_SECONDS=!TRAIN_INTERVAL! * 3600
+    set TRAINING_INTERVAL_FLAG=--training-interval !TRAIN_SECONDS!
+    echo.
+    echo [*] Treino concorrente ATIVADO: a cada !TRAIN_INTERVAL! hora(s)
+) else (
+    set TRAINING_FLAG=
+    set TRAINING_INTERVAL_FLAG=
+    echo.
+    echo [*] Treino concorrente DESATIVADO
+)
+
+echo.
 echo Iniciando em modo LIVE INTEGRADO...
 echo Ordens REAIS serao enviadas para a Binance!
 echo.
@@ -228,7 +248,7 @@ echo Log: logs/agent.log
 echo.
 echo Pressione Ctrl+C para interromper a execucao.
 echo.
-python main.py --mode live --integrated --integrated-interval 300
+python main.py --mode live --integrated --integrated-interval 300 !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
 if %errorlevel% neq 0 (
     echo.
     echo [ERRO] Execucao interrompida com erro!

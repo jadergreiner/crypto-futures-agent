@@ -471,6 +471,8 @@ def start_operation(
     db: DatabaseManager,
     enable_integrated_monitor: bool = False,
     integrated_interval_seconds: int = 300,
+    enable_concurrent_training: bool = False,
+    training_interval_seconds: int = 14400,
 ) -> None:
     """
     Inicia operação do agente.
@@ -479,6 +481,10 @@ def start_operation(
         mode: Modo de operação ("paper" ou "live")
         client: Binance SDK client instance
         db: DatabaseManager instance
+        enable_integrated_monitor: Se deve monitorar posições abertas em paralelo
+        integrated_interval_seconds: Intervalo de monitoramento em segundos
+        enable_concurrent_training: Se deve treinar modelos em paralelo durante operação
+        training_interval_seconds: Intervalo de treinamento em segundos (default 4 horas)
     """
     logger.info("="*60)
     logger.info(f"STARTING OPERATION - MODE: {mode.upper()}")
@@ -494,8 +500,16 @@ def start_operation(
     # Inicializar scheduler principal
     scheduler = Scheduler(layer_manager)
 
-    # Inicializar scheduler de treino de agentes (em background)
-    agent_training_scheduler = start_agent_training_scheduler()
+    # Inicializar scheduler de treino de agentes (em background) - apenas se habilitado
+    agent_training_scheduler = None
+    if enable_concurrent_training:
+        agent_training_scheduler = start_agent_training_scheduler(interval_hours=training_interval_seconds / 3600)
+        logger.info(
+            f"CONCURRENT TRAINING ENABLED: Modelos serão treinados a cada "
+            f"{training_interval_seconds / 60:.0f} minutos em paralelo"
+        )
+    else:
+        logger.info("Concurrent training is disabled")
 
     monitor = None
     monitor_thread = None
@@ -531,6 +545,8 @@ def start_operation(
         logger.info("Operation interrupted by user")
         scheduler.stop()
     finally:
+        if agent_training_scheduler:
+            agent_training_scheduler.stop()
         if monitor:
             monitor.stop()
         if monitor_thread and monitor_thread.is_alive():
@@ -709,6 +725,19 @@ def main():
         help='Interval in seconds for integrated position monitoring (default: 300)'
     )
 
+    parser.add_argument(
+        '--concurrent-training',
+        action='store_true',
+        help='Enable concurrent RL model training while trading live'
+    )
+
+    parser.add_argument(
+        '--training-interval',
+        type=int,
+        default=14400,  # 4 horas por padrão
+        help='Interval in seconds for concurrent training cycles (default: 14400 = 4 hours)'
+    )
+
     args = parser.parse_args()
 
     # Banner
@@ -808,6 +837,8 @@ def main():
         db,
         enable_integrated_monitor=args.integrated,
         integrated_interval_seconds=args.integrated_interval,
+        enable_concurrent_training=args.concurrent_training,
+        training_interval_seconds=args.training_interval,
     )
 
 
