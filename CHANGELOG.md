@@ -7,7 +7,81 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 ## [Unreleased] — v0.3 (Training Ready)
 
 ### Adicionado
-- **Diagnóstico de Disponibilidade de Dados**: Novo método `diagnose_data_readiness()` no `DataLoader` que verifica se há dados suficientes ANTES de iniciar o treinamento
+- **Feature F-06: step() Completo no CryptoFuturesEnv** (20/02/2026)
+  - Implementação completa de `step(action)` retornando (obs, reward, terminated, truncated, info)
+  - Suporte às 5 ações: HOLD, OPEN_LONG, OPEN_SHORT, CLOSE, REDUCE_50
+  - Stops automáticos (SL, TP) e trailing stop
+  - Tracking de posições, flat_steps, e PnL
+  - Bloqueio de CLOSE prematuro quando R < 1.0 em posições lucrativas
+  - Teste E2E validando 50 steps com abertura/fechamento de múltiplas posições
+  
+- **Feature F-07: _get_observation() Usando FeatureEngineer** (20/02/2026)
+  - Construção de 104 features normalizadas em 9 blocos
+  - Blocos 7 e 8 com análise multi-timeframe (correlação BTC, beta, D1 bias, regime)
+  - Fallback para valores neutros quando dados ausentes
+  - Clipping automático para [-10, 10] e tratamento de NaN/Inf
+  - Teste E2E validando shape, range e variabilidade de observações
+  
+- **Feature F-08: Pipeline de Dados para Treinamento** (20/02/2026)
+  - Classe `DataLoader` com load_training_data(), prepare_training_sequences(), get_training_batches()
+  - Validação robusta: 7 checks integrados no DataLoader
+  - ML Validator com 8 checks: temporal integrity, normalization, leakage detection, etc
+  - RobustScaler per-symbol para evitar data leakage
+  - Suporte a batch generation com lazy loading via generators
+  - Teste de integração com 8 unit tests
+  - Documentação de diagnóstico de disponibilidade de dados
+  
+- **Governança e Best Practices** (20/02/2026)
+  - BEST_PRACTICES.md com 9 seções (250+ linhas)
+  - COPILOT_INDUCTION.md com onboarding para novas sessões
+  - Três regras críticas adicionadas ao .github/copilot-instructions.md:
+    1. Português em tudo (respostas, código, logs, docs)
+    2. Commits ASCII legível (<72 chars, tags [FEAT]/[FIX]/[SYNC]/[DOCS]/[TEST])
+    3. Markdown lint 80-chars/linha em TODAS docs criadas/editadas
+  - Sincronização obrigatória de documentação rastreada em docs/SYNCHRONIZATION.md
+
+### Corrigido
+- 🐛 **FIX:** Bug no truncation check de episódios — was comparing `current_step >= episode_length` em vez de `(current_step - start_step) >= episode_length`
+- 🐛 **FIX:** Dependencies scikit-learn>=1.3.0, scipy>=1.11.0 adicionadas ao requirements.txt
+
+### A fazer
+- Script de treinamento funcional (`python main.py --train`)
+- Reward shaping refinado com curriculum learning
+- Backtester com métricas reais
+
+## [v0.2.1] — Administração de Posições (20/02/2026)
+
+### Adicionado
+- **9 Novos Pares USDT em Profit Guardian Mode**
+  - TWT (Trust Wallet Token, β=2.0, mid_cap_utility)
+  - LINK (Chainlink, β=2.3, mid_cap_oracle_infra)
+  - OGN (Origin Protocol, β=3.2, low_cap_commerce) — CONSERVADOR
+  - IMX (Immutable X, β=3.0, low_cap_l2_nft)
+  - GTC, HYPER, 1000BONK, FIL, POLYX já existentes
+  - **Total: 16 pares USDT suportados**
+
+- **4 Novos Playbooks Especializados**
+  - twt_playbook.py — Wallet ecosystem token
+  - link_playbook.py — Oracle infrastructure
+  - ogn_playbook.py — Commerce protocol (CONSERVADOR)
+  - imx_playbook.py — Layer 2 NFT/Gaming
+  - Cada playbook: ajustes de confluência, risk multipliers, regras de trade
+
+- **Mecanismos de Sincronização de Documentação**
+  - Novo arquivo: docs/SYNCHRONIZATION.md (rastreamento obrigatório)
+  - Protocolo de sincronização em .github/copilot-instructions.md
+  - Checklist automático de atualização
+  - Matriz de dependências de documentação
+
+### Alterado
+- README.md: Atualizado com 16 pares categorizados por beta e maturidade
+- .github/copilot-instructions.md: Adicionadas regras de sincronização obrigatória
+
+### Validado
+- test_admin_9pares.py: 36/36 validações OK
+- Todos os símbolos em SYMBOLS
+- Todos os playbooks criados e registrados
+- AUTHORIZED_SYMBOLS auto-sincronizado via ALL_SYMBOLS
   - Analisa quantidade de candles disponíveis por timeframe (H1, H4, D1)
   - Calcula requisitos considerando split treino/validação e min_length
   - Verifica requisitos de indicadores (ex: EMA_610 precisa de 610+ candles D1)
@@ -30,13 +104,6 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
 - 🐛 **FIX:** Problema do fallback silencioso para dados sintéticos quando usuário esperava treinar com dados reais
 - 🐛 **FIX:** Mensagens de erro genéricas substituídas por diagnósticos detalhados e acionáveis
 - 🐛 **FIX:** Falta de visibilidade sobre requisitos de dados antes de iniciar treinamento demorado
-
-### A fazer
-- Implementar `step()` completo no `CryptoFuturesEnv`
-- Implementar `_get_observation()` usando `FeatureEngineer`
-- Pipeline de dados para treinamento
-- Script de treinamento funcional
-- Reward shaping refinado
 
 ## [0.2.0] — 2026-02-15 (Pipeline Fix)
 

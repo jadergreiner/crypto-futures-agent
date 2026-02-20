@@ -24,9 +24,9 @@
 
 | Task | Story | Status | Esforço |
 |------|-------|--------|---------|
-| Implementar `step()` completo no `CryptoFuturesEnv` | US-04 | ⬜ TODO | 3h |
-| Implementar `_get_observation()` usando `FeatureEngineer` | US-04 | ⬜ TODO | 2h |
-| Pipeline de dados para treinamento (carregar do DB → DataFrames) | US-04 | ⬜ TODO | 4h |
+| Implementar `step()` completo no `CryptoFuturesEnv` | US-04 | ✅ DONE | 3h |
+| Implementar `_get_observation()` usando `FeatureEngineer` | US-04 | ✅ DONE | 2h |
+| Pipeline de dados para treinamento (carregar do DB → DataFrames) | US-04 | ✅ DONE | 4h |
 | Script de treinamento funcional (`python main.py --train`) | US-04 | ⬜ TODO | 3h |
 | Reward shaping refinado com curriculum learning | US-04 | ⬜ TODO | 3h |
 | Salvar/carregar modelo treinado | US-05 | ⬜ TODO | 2h |

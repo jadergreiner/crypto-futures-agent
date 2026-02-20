@@ -266,7 +266,9 @@ class CryptoFuturesEnv(gym.Env):
         
         # Verificar término
         terminated = self._check_termination()
-        truncated = self.current_step >= self.episode_length
+        # Truncado se número de steps no episódio atingiu limite
+        steps_in_episode = self.current_step - self.start_step
+        truncated = steps_in_episode >= self.episode_length
         
         # Próxima observação
         observation = self._get_observation()
