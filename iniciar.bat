@@ -236,7 +236,7 @@ if /i "!ENABLE_TRAINING!"=="s" (
     set /a TRAIN_SECONDS=!TRAIN_INTERVAL! * 3600
     set TRAINING_INTERVAL_FLAG=--training-interval !TRAIN_SECONDS!
     echo.
-    echo [*] Treino concorrente ATIVADO: a cada !TRAIN_INTERVAL! hora(s)
+    echo [*] Treino concorrente ATIVADO: a cada !TRAIN_INTERVAL! hora^(s^)
 ) else (
     set TRAINING_FLAG=
     set TRAINING_INTERVAL_FLAG=
