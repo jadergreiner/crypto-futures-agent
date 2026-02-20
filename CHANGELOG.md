@@ -38,6 +38,14 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
     1. Português em tudo (respostas, código, logs, docs)
     2. Commits ASCII legível (<72 chars, tags [FEAT]/[FIX]/[SYNC]/[DOCS]/[TEST])
     3. Markdown lint 80-chars/linha em TODAS docs criadas/editadas
+
+### Corrigido
+- **BUG: Treino concorrente não estava ativando via iniciar.bat** (20/02/2026)
+  - Problema: Variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não inicializadas antes do bloco if
+  - Sintoma: Usuario selecionava "S" para treino, mas logs mostravam "Concurrent training disabled"
+  - Solução: Inicializar variáveis antes do bloco condicional em iniciar.bat
+  - Documentação: CONCURRENT_TRAINING_BUGFIX.md com explicação técnica completa
+  - Debug adicionado: Script agora mostra comando exato being executed
   - Sincronização obrigatória de documentação rastreada em docs/SYNCHRONIZATION.md
 
 ### Corrigido

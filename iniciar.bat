@@ -222,6 +222,11 @@ if /i not "!CONF3!"=="INICIO" (
 echo.
 echo Configuracao adicional:
 echo.
+
+REM Inicializar variáveis de treino antes do bloco if
+set "TRAINING_FLAG="
+set "TRAINING_INTERVAL_FLAG="
+
 set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): "
 
 if /i "!ENABLE_TRAINING!"=="s" (
@@ -246,8 +251,23 @@ echo.
 echo Inicio: %date% %time%
 echo Log: logs/agent.log
 echo.
+
+REM Debug: mostrar comando que sera executado
+if "!TRAINING_FLAG!"=="" (
+    echo [DEBUG] Treino concorrente DESATIVADO
+) else (
+    echo [DEBUG] Treino concorrente ATIVADO
+    echo [DEBUG] Intervalo: !TRAINING_INTERVAL_FLAG!
+)
+
+echo.
 echo Pressione Ctrl+C para interromper a execucao.
 echo.
+echo Comando executado:
+echo python main.py --mode live --integrated --integrated-interval 300 !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
+echo.
+
+REM Executar com flags de treino
 python main.py --mode live --integrated --integrated-interval 300 !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
 if %errorlevel% neq 0 (
     echo.

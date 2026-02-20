@@ -1,6 +1,6 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 20 de fevereiro de 2026
+**Última Atualização:** 20 de fevereiro de 2026, 03:45 UTC
 
 ## 🎯 Objetivo
 
@@ -206,6 +206,40 @@ docs/*
    ```
 
 ## 📈 Histórico de Sincronizações
+
+### Rev. v0.3 BugFix (20/02/2026 — CONCLUÍDO)
+
+**Mudança Principal:** Correção de iniciar.bat — Variáveis treino não propagando para Python
+
+| Artefato | Status | Data | Notas |
+|----------|--------|------|-------|
+| iniciar.bat (linhas 216-222) | ✅ | 20/02 | Inicialização de TRAINING_FLAG antes do if |
+| debug adicional | ✅ | 20/02 | Echo mostrando comando exato executado |
+| CONCURRENT_TRAINING_BUGFIX.md | ✅ | 20/02 | Documentação técnica da correção |
+| CHANGELOG.md | ✅ | 20/02 | Seção "### Corrigido" adicionada |
+| SYNCHRONIZATION.md (este arquivo) | ✅ | 20/02 | Rastreado nesta entrada |
+
+**Detalhes Técnicos:**
+- **Problema:** Variáveis batch `!TRAINING_FLAG!` e `!TRAINING_INTERVAL_FLAG!` expandiam vazias fora do bloco if
+- **Causa:** Não inicializadas antes do bloco condicional
+- **Solução:** Adionar `set "TRAINING_FLAG="` e `set "TRAINING_INTERVAL_FLAG="` antes do if
+- **Validação:** Debug echo mostra comando final que será executado
+- **Impacto:** Opção [2] (Live Integrado) agora ativa corretamente treino concorrente
+- **Risk:** Muito baixo — mudança apenas em batch script não-crítico, fallback para defaults presente
+
+**Propagação de Mudanças:**
+- ✅ iniciar.bat — Fonte da correção
+- ✅ CONCURRENT_TRAINING_BUGFIX.md — Nova documentação técnica
+- ✅ CHANGELOG.md — Registrado como correção
+- ✅ SYNCHRONIZATION.md — Este arquivo (rastreado)
+- ⏳ README.md — Não precisa atualização (feature já documentada)
+- ⏳ docs/FEATURES.md — Já menciona Opção [2]
+
+**Status Operacional:**
+- ✅ live trading continua funcionando
+- ✅ concurrent training agora será ativado corretamente
+- ✅ operador verá exatamente qual comando é executado
+- ✅ logs mostrarão "Concurrent training is ENABLED" quando S for selecionado
 
 ### Rev. v0.3 (20/02/2026 — IN PROGRESS)
 
