@@ -68,30 +68,48 @@ class ExecutorReuniao:
     def _validar_dados_reais(self, dias: int = 7) -> bool:
         """
         Valida se há dados REAIS no banco de dados.
+        Aceita qualquer tipo de dado real: trades, snapshots, ou logs.
         Retorna True se houver; False caso contrário.
 
         Args:
             dias: Período a verificar (padrão: 7 dias)
 
         Returns:
-            True se houver trades reais, False caso contrário
+            True se houver qualquer dado real, False caso contrário
         """
+        # Verificar trades
         trades = self._obter_trades_periodo(dias=dias)
-        logs_analise = self._analisar_logs_operacionais(dias=1)
-
         tem_trades = len(trades) > 0
+        
+        # Verificar logs operacionais
+        logs_analise = self._analisar_logs_operacionais(dias=1)
         tem_eventos = bool(logs_analise.get("erros") or logs_analise.get("avisos") or logs_analise.get("falhas_execucao"))
+        
+        # Verificar position snapshots (dados de monitoramento em tempo real)
+        try:
+            with self.db_trades.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM position_snapshots")
+                tem_snapshots = cursor.fetchone()[0] > 0
+        except Exception as e:
+            logger.warning(f"Erro ao verificar snapshots: {e}")
+            tem_snapshots = False
 
-        if not tem_trades and not tem_eventos:
+        # Aceitar se houver QUALQUER dado real
+        tem_dados_reais = tem_trades or tem_eventos or tem_snapshots
+
+        if not tem_dados_reais:
             logger.warning(
                 "⚠️  AVISO: Nenhum dado real encontrado no período!\n"
                 "   - Banco de dados vazio (trade_log: 0 registros)\n"
                 "   - Logs operacionais vazios\n"
+                "   - Nenhum position snapshot\n"
                 "   ❌ Sistema NÃO gerará dados fictícios.\n"
                 "   ✅ Execute o agente primeiro para gerar trades reais."
             )
             return False
 
+        logger.info(f"✅ Dados reais detectados: trades={tem_trades}, eventos={tem_eventos}, snapshots={tem_snapshots}")
         return True
 
     def _obter_trades_periodo(self, dias: int = 7) -> List[Dict]:
