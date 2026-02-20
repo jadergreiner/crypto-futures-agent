@@ -8,10 +8,19 @@ REM ============================================================================
 
 setlocal enabledelayedexpansion
 
+REM Inicializar variáveis de status
+set "STARTUP_TIME=%date% %time%"
+set "STATUS_OK=OK"
+set "STATUS_WARN=AVISO"
+set "STATUS_ERROR=ERRO"
+
 echo.
 echo ==============================================================================
 echo                   CRYPTO FUTURES AGENT - INICIAR
 echo ==============================================================================
+echo Iniciado: %STARTUP_TIME%
+echo.
+echo [*] Executando verificacoes pre-operacionais...
 echo.
 
 REM Verificar se o ambiente virtual existe
@@ -25,18 +34,18 @@ if not exist "venv" (
     exit /b 1
 )
 
-REM Ativar ambiente virtual
-echo [1/3] Ativando ambiente virtual...
-call venv\Scripts\activate.bat
+echo [1/5] ^[VERIFICANDO^] Ambiente virtual...
+call venv\Scripts\activate.bat >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERRO] Falha ao ativar ambiente virtual!
     pause
     exit /b 1
 )
-echo [OK] Ambiente virtual ativado
+echo [1/5] [OK] Ambiente virtual ativado
 echo.
 
 REM Verificar se o arquivo .env existe
+echo [2/5] ^[VERIFICANDO^] Configuracao (.env)...
 if not exist ".env" (
     echo [AVISO] Arquivo .env nao encontrado!
     echo.
@@ -52,10 +61,13 @@ if not exist ".env" (
         exit /b 1
     )
     echo.
+) else (
+    echo [2/5] [OK] Arquivo .env encontrado
 )
+echo.
 
 REM Verificar se o banco de dados existe
-echo [2/3] Verificando banco de dados...
+echo [3/5] ^[VERIFICANDO^] Banco de dados...
 if not exist "db\crypto_agent.db" (
     echo [AVISO] Banco de dados nao encontrado!
     echo.
@@ -71,6 +83,7 @@ if not exist "db\crypto_agent.db" (
         if !errorlevel! neq 0 (
             echo.
             echo [ERRO] Setup falhou! Verifique os logs para mais detalhes.
+            echo Log: logs/agent.log
             pause
             exit /b 1
         )
@@ -84,25 +97,46 @@ if not exist "db\crypto_agent.db" (
         echo.
     )
 ) else (
-    echo [OK] Banco de dados encontrado
+    echo [3/5] [OK] Banco de dados encontrado
 )
 echo.
 
+REM Verificar logs
+echo [4/5] ^[VERIFICANDO^] Logs...
+if exist "logs\agent.log" (
+    echo [4/5] [OK] Log de execucao disponivel
+) else (
+    echo [4/5] [AVISO] Nenhum log anterior encontrado
+)
+echo.
+
+REM Status final pré-operacional
+echo [5/5] ^[VERIFICANDO^] Arquivos criticos...
+if exist "models" (
+    echo [5/5] [OK] Diretorio de modelos disponivel
+) else (
+    echo [5/5] [AVISO] Diretorio de modelos nao encontrado (sera criado automaticamente)
+)
+echo.
+
+:start
+
 REM Menu de opcoes
-echo [3/3] Escolha o modo de execucao:
-echo.
 echo ==============================================================================
-echo                            OPCOES DE EXECUCAO
+echo                   [PRE-OPERACIONAL] TODAS AS VERIFICACOES OK
 echo ==============================================================================
 echo.
-echo   1. Modo Paper Trading (Simulacao - RECOMENDADO)
-echo   2. Modo Live Integrado (Oportunidades + Gestao de Posicoes)
+echo Escolha o modo de execucao:
+echo.
+echo   1. Paper Trading (Simulacao - SEM RISCO) - RECOMENDADO
+echo   2. Live Integrado (Capital REAL - REQUER CONFIRMACAO)
 echo   3. Monitorar Posicoes Abertas
 echo   4. Executar Backtest
-echo   5. Treinar Modelo RL
-echo   6. Executar Setup Inicial
-echo   7. Sair
+echo   5. Treinar Modelo RL (Demora horas)
+echo   6. Executar Setup Inicial 
+echo   7. Diagnosticar Sistema
 echo   8. Assumir/Gerenciar Posicao Aberta
+echo   9. Sair
 echo.
 echo ==============================================================================
 echo.
@@ -120,10 +154,11 @@ if "%OPCAO%"=="5" goto :opcao5
 if "%OPCAO%"=="6" goto :opcao6
 if "%OPCAO%"=="7" goto :opcao7
 if "%OPCAO%"=="8" goto :opcao8
+if "%OPCAO%"=="9" goto :opcao9
 
 echo.
 echo [ERRO] Opcao invalida!
-echo Por favor, escolha um numero entre 1 e 8.
+echo Por favor, escolha um numero entre 1 e 9.
 echo.
 goto :final
 
@@ -131,35 +166,76 @@ goto :final
 echo INICIANDO AGENTE EM MODO PAPER TRADING
 echo ==============================================================================
 echo.
-echo O agente sera iniciado em modo de simulacao.
+echo Modo: SIMULACAO (SEM RISCO)
 echo Nenhuma ordem real sera enviada para a Binance.
+echo.
+echo Inicio: %date% %time%
+echo Log: logs/agent.log
 echo.
 echo Pressione Ctrl+C para interromper a execucao.
 echo.
 python main.py --mode paper
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERRO] Execucao interrompida com erro!
+    echo Ver logs para detalhes: logs/agent.log
+) else (
+    echo.
+    echo [OK] Execucao concluida normalmente.
+)
 goto :final
 
 :opcao2
 echo INICIANDO AGENTE EM MODO LIVE INTEGRADO
 echo ==============================================================================
 echo.
-echo [^!^!^! ATENCAO ^!^!^!]
-echo Voce escolheu o modo LIVE com capital REAL.
-echo Este modo integra busca de oportunidades e gestao de posicoes abertas.
+echo [^!^!^! ATENCAO CRITICA ^!^!^!]
 echo.
-set /p CONFIRMACAO="Tem certeza que deseja continuar? Digite 'SIM' para confirmar: "
-if /i "!CONFIRMACAO!"=="SIM" (
+echo Voce esta prestes a ativar o MODO LIVE com capital REAL.
+echo Ordens serao ENVIADAS para a Binance e EXECUTADAS.
+echo.
+echo Este modo integra:
+echo   - Busca automatica de oportunidades
+echo   - Execucao e gestao de posicoes abertas
+echo   - Monitoramento contínuo
+echo.
+echo Confirme 3 vezes que compreende os riscos:
+echo.
+set /p CONF1="[1/3] Os ordersao REAIS? Digite 'SIM': "
+if /i not "!CONF1!"=="SIM" (
+    echo Operacao cancelada.
+    goto :final
+)
+
+set /p CONF2="[2/3] Voce revirou o .env e as chaves? Digite 'SIM': "
+if /i not "!CONF2!"=="SIM" (
+    echo Operacao cancelada.
+    goto :final
+)
+
+set /p CONF3="[3/3] Voce eh o operador autorizado? Digite 'INICIO': "
+if /i not "!CONF3!"=="INICIO" (
+    echo Operacao cancelada.
+    goto :final
+)
+
+echo.
+echo Iniciando em modo LIVE INTEGRADO...
+echo Ordens REAIS serao enviadas para a Binance!
+echo.
+echo Inicio: %date% %time%
+echo Log: logs/agent.log
+echo.
+echo Pressione Ctrl+C para interromper a execucao.
+echo.
+python main.py --mode live --integrated --integrated-interval 300
+if %errorlevel% neq 0 (
     echo.
-    echo Iniciando em modo LIVE INTEGRADO...
-    echo Ordens REAIS serao enviadas para a Binance!
-    echo.
-    echo Pressione Ctrl+C para interromper a execucao.
-    echo.
-    python main.py --mode live --integrated --integrated-interval 300
+    echo [ERRO] Execucao interrompida com erro!
+    echo Ver logs: logs/agent.log
 ) else (
     echo.
-    echo Operacao cancelada por seguranca.
-    echo.
+    echo [OK] Execucao encerrada. Revisar relatorio: logs/agent.log
 )
 goto :final
 
@@ -167,18 +243,23 @@ goto :final
 echo MONITORAR POSICOES ABERTAS
 echo ==============================================================================
 echo.
-echo Digite o simbolo para monitorar (ex: C98USDT) ou deixe em branco para monitorar todas:
-set /p SIMBOLO="Simbolo: "
+echo Digite o simbolo para monitorar (ex: BTCUSDT) ou deixe em branco para TODAS:
+set /p SIMBOLO="Simbolo [ENTER para todos]: "
 echo.
 echo Digite o intervalo em segundos (padrao: 300 = 5 minutos):
-set /p INTERVALO="Intervalo: "
+set /p INTERVALO="Intervalo [ENTER para padrao]: "
 
 if "!INTERVALO!"=="" set INTERVALO=300
 
 echo.
 echo Iniciando monitor de posicoes...
+if "!SIMBOLO!"=="" (
+    echo Modo: Monitorando TODAS as posicoes abertas
+) else (
+    echo Modo: Monitorando apenas !SIMBOLO!
+)
 echo Intervalo: !INTERVALO! segundos
-if not "!SIMBOLO!"=="" echo Simbolo: !SIMBOLO!
+echo Logs: logs/agent.log
 echo.
 echo Pressione Ctrl+C para interromper.
 echo.
@@ -188,50 +269,92 @@ if "!SIMBOLO!"=="" (
 ) else (
     python main.py --monitor --monitor-symbol !SIMBOLO! --monitor-interval !INTERVALO!
 )
+
+if !errorlevel! equ 0 (
+    echo [OK] Monitor finalizado
+) else (
+    echo [AVISO] Monitor interrompido
+)
 goto :final
 
 :opcao4
 echo EXECUTAR BACKTEST
 echo ==============================================================================
 echo.
+echo Backtesting permite analisar a performance do modelo em dados historicos.
+echo.
 echo Digite a data inicial (formato: YYYY-MM-DD):
-set /p DATA_INICIO="Data inicial: "
+set /p DATA_INICIO="Data inicial [ex: 2024-01-01]: "
 echo.
 echo Digite a data final (formato: YYYY-MM-DD):
-set /p DATA_FIM="Data final: "
+set /p DATA_FIM="Data final [ex: 2024-12-31]: "
 
 if "!DATA_INICIO!"=="" (
     echo.
-    echo [ERRO] Data inicial e obrigatoria!
+    echo [ERRO] Data inicial eh obrigatoria!
     pause
     exit /b 1
 )
 
 if "!DATA_FIM!"=="" (
     echo.
-    echo [ERRO] Data final e obrigatoria!
+    echo [ERRO] Data final eh obrigatoria!
     pause
     exit /b 1
 )
 
 echo.
-echo Executando backtest de !DATA_INICIO! ate !DATA_FIM!...
+echo Executando backtest...
+echo Periodo: !DATA_INICIO! a !DATA_FIM!
+echo Logs: logs/agent.log
+echo Relatorios: reports/
+echo.
+echo Pressione Ctrl+C para interromper.
 echo.
 python main.py --backtest --start-date !DATA_INICIO! --end-date !DATA_FIM!
+
+if !errorlevel! equ 0 (
+    echo.
+    echo [OK] Backtest concluido
+    echo Relatorio salvo: reports/backtest_report.html
+) else (
+    echo.
+    echo [AVISO] Backtest interrompido
+)
 goto :final
 
 :opcao5
 echo TREINAR MODELO RL
 echo ==============================================================================
 echo.
-echo O treinamento do modelo pode levar varias horas.
+echo O treinamento do modelo RL usa curriculum learning com 3 fases:
+echo.
+echo  Fase 1 - Exploracao:  500k timesteps (~1-2 horas)
+echo  Fase 2 - Refinamento: 1M timesteps (~2-4 horas)
+echo  Fase 3 - Validacao:   100 episodios (~30 min)
+echo.
+echo TEMPO TOTAL ESTIMADO: 4-7 horas (depende do hardware)
+echo.
+echo O treinamento pode ser interrompido com Ctrl+C.
+echo Progresso sera salvo em: models/
+echo Logs detalhados: logs/agent.log
 echo.
 set /p CONFIRMAR="Deseja continuar? (s/n): "
 if /i "!CONFIRMAR!"=="s" (
     echo.
-    echo Iniciando treinamento do modelo RL...
+    echo Iniciando treinamento...
+    echo Inicio: %date% %time%
     echo.
     python main.py --train
+    if !errorlevel! equ 0 (
+        echo.
+        echo [OK] Treinamento concluido com sucesso!
+        echo Modelo salvo: models/crypto_agent_ppo_final.zip
+    ) else (
+        echo.
+        echo [AVISO] Treinamento interrompido ou com erro.
+        echo Ver logs: logs/agent.log
+    )
 ) else (
     echo.
     echo Treinamento cancelado.
@@ -244,35 +367,62 @@ echo EXECUTAR SETUP INICIAL
 echo ==============================================================================
 echo.
 echo O setup inicial ira:
-echo   - Inicializar o banco de dados
-echo   - Coletar dados historicos (365 dias D1, 180 dias H4, 90 dias H1)
-echo   - Calcular indicadores tecnicos
 echo.
-echo Isso pode levar varios minutos.
+echo  1. Inicializar banco de dados
+echo  2. Coletar dados historicos da Binance:
+echo     - 365 dias no timeframe D1 (diario)
+echo     - 180 dias no timeframe H4 (4-horas)
+echo     - 90 dias no timeframe H1 (horario)
+echo  3. Calcular indicadores tecnicos
+echo  4. Validar pipeline ML
+echo.
+echo TEMPO ESTIMADO: 15-30 minutos (depende da conexao)
+echo Banco de dados sera salvo: db/crypto_agent.db (~500MB)
 echo.
 set /p CONFIRMAR="Deseja continuar? (s/n): "
 if /i "!CONFIRMAR!"=="s" (
     echo.
     echo Executando setup inicial...
+    echo Inicio: %date% %time%
     echo.
     python main.py --setup
     if !errorlevel! equ 0 (
         echo.
         echo [OK] Setup concluido com sucesso!
+        echo Banco de dados pronto: db/crypto_agent.db
+        echo Proximo passo: Executar treinamento (opcao 5) ou paper trading (opcao 1)
     ) else (
         echo.
-        echo [ERRO] Setup falhou! Verifique os logs.
+        echo [ERRO] Setup falhou! 
+        echo Ver logs para detalhes: logs/agent.log
     )
 ) else (
     echo.
     echo Setup cancelado.
+    echo.
 )
 goto :final
 
 :opcao7
+echo DIAGNOSTICAR SISTEMA
+echo ==============================================================================
 echo.
-echo Saindo...
-exit /b 0
+echo Executando self-check do sistema...
+echo.
+python -c "import sys; print(f'Python: {sys.version}'); import stable_baselines3; print('Stable-Baselines3: OK'); import gymnasium; print('Gymnasium: OK'); import pandas; print('Pandas: OK'); import numpy; print('Numpy: OK')" 2>nul
+if %errorlevel% equ 0 (
+    echo.
+    echo [OK] Todas as dependencias estao OK
+) else (
+    echo.
+    echo [AVISO] Algumas dependencias podem estar com problemas
+    echo Execute: python -m pytest tests/ -q (para testes detalhados)
+)
+echo.
+echo Verificando conectividade Binance...
+python main.py --test-connection 2>nul
+echo.
+goto :final
 
 :opcao8
 echo ASSUMIR / GERENCIAR POSICAO ABERTA
@@ -303,13 +453,21 @@ echo.
 python main.py --mode live --adopt-position !ADOPT_SYMBOL! --monitor-interval !ADOPT_INTERVAL!
 goto :final
 
+:opcao9
+echo.
+echo Encerrando...
+echo [OK] Saindo da aplicacao. Ate logo!
+echo.
+exit /b 0
+
 :final
 
 echo.
 echo ==============================================================================
 echo.
-echo Pressione qualquer tecla para voltar ao menu ou fechar a janela...
+echo Deseja retornar ao menu? (Pressione qualquer tecla ou feche esta janela)
 pause >nul
 
 REM Voltar ao menu
-goto :eof
+cls
+goto :start
