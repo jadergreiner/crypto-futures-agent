@@ -119,7 +119,37 @@ if exist "models" (
 )
 echo.
 
-:start
+REM ==============================================================================
+REM VERIFICACAO AUTOMATICA: OPERACAO PARALELA (OPCAO C)
+REM Se arquivo de autorizacao existir, ativar Operacao C transparentemente
+REM ==============================================================================
+
+if exist "AUTHORIZATION_OPÇÃO_C_20FEV.txt" (
+    echo [VERIFICACAO AUTOMATICA] Operacao Paralela C detectada...
+    echo.
+    
+    REM Iniciar orquestrador em background (sem interfere com menu)
+    start /b python core/orchestrator_opção_c.py > logs/orchestrator_opção_c_bg.log 2>&1
+    
+    if !errorlevel! equ 0 (
+        echo [OK] Operacao Paralela C iniciada em background
+        echo     - LIVE Scheduler: RODANDO (16 pares USDT)
+        echo     - v0.3 Tests: EXECUTANDO (thread isolada)
+        echo     - Monitor Critico: ATIVO (60s checks, kill switch 2%%)
+        echo     - Capital em Risco: $5,000 USD
+        echo     - Logs: logs/orchestrator_opção_c.log, logs/critical_monitor.log
+        echo.
+        echo [!] Tela de menu disponivel abaixo. Siga normalmente.
+        echo [!] Operacao C corre silenciosamente em background.
+        echo.
+    ) else (
+        echo [AVISO] Falha ao iniciar Operacao C em background
+        echo         Continuando menu normalmente...
+        echo.
+    )
+)
+
+echo.
 
 REM Menu de opcoes
 echo ==============================================================================
