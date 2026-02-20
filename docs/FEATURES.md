@@ -27,9 +27,10 @@
 | F-06 | Implementar `step()` completo no `CryptoFuturesEnv` | 🔴 CRÍTICA | ✅ DONE (20/02) |
 | F-07 | Implementar `_get_observation()` usando `FeatureEngineer` | 🔴 CRÍTICA | ✅ DONE (20/02) |
 | F-08 | Pipeline de dados para treinamento (carregar do DB → DataFrames) | 🔴 CRÍTICA | ✅ DONE (20/02) |
-| F-09 | Script de treinamento funcional (`python main.py --train`) | 🔴 CRITICA | ✅ DONE (20/02) |
-| F-10 | Reward shaping refinado com curriculum learning | 🟡 ALTA | ⏳ Planejado |
-| F-11 | Salvar/carregar modelo treinado | 🟢 MÉDIA | ⏳ Planejado |
+| F-09 | Script de treinamento funcional (`python main.py --train`) | 🔴 CRITICA | 🔄 IN PROGRESS |
+| F-10 | Teste E2E de pipeline completo (load → train → save → load) | 🔴 CRÍTICA | 🔄 IN PROGRESS |
+| F-11 | Reward shaping refinado com curriculum learning | 🟡 ALTA | ⏳ Validação em v0.3 |
+| F-12 | Salvar/carregar modelo treinado | 🟢 MÉDIA | 🔄 IN PROGRESS |
 
 ## v0.4 — Backtest Engine
 

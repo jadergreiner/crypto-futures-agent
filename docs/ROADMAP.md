@@ -6,19 +6,21 @@
 v0.1 (Foundation)         ✅ CONCLUÍDO (12/02/2026)
 v0.2 (Pipeline Fix)       ✅ CONCLUÍDO (15/02/2026)
 v0.2.1 (Admin. Posições)  ✅ CONCLUÍDO (20/02/2026)
-v0.3 (Training Ready)     ← PRÓXIMO PASSO
-v0.4 (Backtest)
-v0.5 (Paper Trading)
-v1.0 (Live MVP)
-v1.1+ (Evolução)
+v0.3 (Training Ready)     🔄 IN PROGRESS (20/02/2026 - Target EOD)
+v0.4 (Backtest)           ← PRÓXIMO PASSO (início Mar/2026)
+v0.5 (Paper Trading)      📅 Planejado (Abr/2026)
+v1.0 (Live MVP)           📅 Planejado (Mai/2026)
+v1.1+ (Evolução)          📅 Roadmap Continuo
 ```
 
 ### Timeline
 
 ```
-Fev/2026               Mar/2026          Abr/2026          Mai/2026
-|--- v0.2/0.2.1 ------|--- v0.3 --------|--- v0.4 --------|--- v0.5 ----→ v1.0
-Pipeline + Admin.      Training Ready    Backtest Real      Paper Trading   Live
+Fev/2026                    Mar/2026          Abr/2026          Mai/2026
+|--- v0.2/0.2.1 ----|v0.3|--|--- v0.4 --------|--- v0.5 --------|→ v1.0
+Pipeline + Admin.   Training   Backtest Real    Paper Trading    Live
+                    Ready*
+                  *Target: EOD 20/02
 ```
 
 ## Status Atual do Projeto

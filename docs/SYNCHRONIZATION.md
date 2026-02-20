@@ -75,11 +75,36 @@ Esse documento contém:
 
 #### Sincronização de Documentação Relacionada
 
-- ⏳ [docs/ROADMAP.md](docs/ROADMAP.md) — Aguarda revisão de status atual
-- ⏳ [docs/RELEASES.md](docs/RELEASES.md) — Aguarda atualização de v0.2.1
-- ⏳ [docs/FEATURES.md](docs/FEATURES.md) — Aguarda atualização de features completadas
-- ⏳ [docs/TRACKER.md](docs/TRACKER.md) — Aguarda atualização de task completion
-- ⏳ [CHANGELOG.md](CHANGELOG.md) — Aguarda entry para v0.2.1
+- ✅ [docs/ROADMAP.md](docs/ROADMAP.md) — Sincronizado (v0.2.1 → ✅, v0.3 → 🔄 IN PROGRESS)
+- ✅ [docs/RELEASES.md](docs/RELEASES.md) — Sincronizado (v0.2.1 status) + v0.3 IN PROGRESS marcado
+- ✅ [docs/FEATURES.md](docs/FEATURES.md) — Sincronizado (features v0.2.1 ✅ DONE, v0.3 IN PROGRESS)
+- ✅ [docs/TRACKER.md](docs/TRACKER.md) — Sincronizado (Sprint v0.2.1 finalizado, Sprint v0.3 IN PROGRESS)
+- ✅ [CHANGELOG.md](CHANGELOG.md) — Sincronizado (v0.2.1 entry adicionado + v0.3 IN PROGRESS com timestamp 20/02/2026)
+- ✅ **Status Geral v0.2.1:** SINCRONIZAÇÃO COMPLETA (20/02/2026, 04:00 UTC)
+
+---
+
+## ✅ Checklist de Sincronização
+
+### Rev. v0.3 (Training Ready) — 20/02/2026, 04:30 UTC
+
+**Início da Tarefa:** Executar v0.3 HOJE — Decisão executiva de Head de Finanças + Product Owner
+
+#### Itens Sincronizados (Automático)
+
+- ✅ **docs/ROADMAP.md**: Atualizado timeline + status (v0.3 → 🔄 IN PROGRESS)
+- ✅ **docs/RELEASES.md**: v0.3 marcado como "IN PROGRESS (20/02/2026)"
+- ✅ **docs/FEATURES.md**: Features F-09, F-10, F-11, F-12 → IN PROGRESS
+- ✅ **docs/TRACKER.md**: Sprint v0.3 criado com timeline expedita (20/02, 1 dia, 8h)
+- ✅ **CHANGELOG.md**: Seção [Unreleased] → [v0.3] IN PROGRESS com decisão executiva
+
+#### Próximas Ações (Durante Execução de v0.3 Hoje)
+
+- ⏳ Criar `tests/test_training_pipeline_e2e.py` — teste E2E com 3 símbolos + 10k steps
+- ⏳ Validar treinamento com métricas (CV < 1.5, WinRate > 45%)
+- ⏳ Gerar relatório de treinamento para documentação
+- ⏳ Atualizar progress.md com status em tempo real
+- ⏳ Commit final com [SYNC] tag
 
 ## 🔄 Protocolo de Sincronização Obrigatória
 

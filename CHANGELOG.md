@@ -4,7 +4,15 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [Unreleased] — v0.3 (Training Ready)
+## [v0.3] — Training Ready 🔄 _IN PROGRESS_ (20/02/2026)
+
+**Status:** 🔴 EXECUTANDO HOJE (Decisão: Head de Finanças + Product Owner)
+**Timeline:** Iniciado: 20/02/2026 | Target: 20/02/2026 EOD
+**Objetivos Refinados:**
+- Treinamento em 3 símbolos (BTC, ETH, SOL) → 3 meses de dados históricos
+- Métrica de sucesso: CV(reward) < 1.5 + WinRate > 45%
+- Tempo máximo de execução: 15 minutos para CI/CD
+- Documentação sincronizada 100%
 
 ### Adicionado
 - **Feature F-06: step() Completo no CryptoFuturesEnv** (20/02/2026)
@@ -30,6 +38,20 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
   - Suporte a batch generation com lazy loading via generators
   - Teste de integração com 8 unit tests
   - Documentação de diagnóstico de disponibilidade de dados
+
+- **Feature F-09: Script de Treinamento Funcional** (20/02/2026)
+  - Integração de `main.py --train` com scheduler de treinamento
+  - Suporte a treinamento simples e concorrente (background)
+  - Logging em tempo real com callback do TensorBoard
+  - Checkpoints a cada 100k steps
+  - Tratamento de erros e timeout
+
+- **Governança Refinada para v0.3** (20/02/2026)
+  - Decisão executiva: 3 símbolos (BTC, ETH, SOL) + 3 meses dados históricos
+  - Métrica primária: Coeficiente de Variação (CV) < 1.5 (sinais estáveis)
+  - Métrica secundária: Win Rate >= 45% em trades simulados
+  - Métrica terciária (nice-to-have): Sharpe Ratio > 0.5
+  - Timeline crítico: 6-8 horas hoje (análise → build → validação → docs → sign-off)
   
 - **Governança e Best Practices** (20/02/2026)
   - BEST_PRACTICES.md com 9 seções (250+ linhas)

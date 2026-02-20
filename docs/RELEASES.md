@@ -9,8 +9,9 @@
 ## v0.2.1 — Administração de Posições ✅ _DONE_ (20/02/2026)
 > Suporte para 9 pares USDT adicionais em Profit Guardian Mode. Playbooks especializados com gestão de risco por beta. Mecanismos de sincronização de documentação implementados.
 
-## v0.3 — Training Ready 🎯 _PRÓXIMO PASSO_
+## v0.3 — Training Ready 🔄 _IN PROGRESS_ (20/02/2026 - Target EOD)
 > Ambiente de treinamento funcional, reward function refinada, treinamento completo em dados históricos.
+> **Decisão Executiva:** 3 símbolos (BTC, ETH, SOL) + 3 meses de dados. Métricas: CV < 1.5 + Win Rate > 45%
 
 ## v0.4 — Backtest Engine
 > Backtester real com métricas (Sharpe, Sortino, MaxDD, Win Rate), equity curve, walk-forward.
