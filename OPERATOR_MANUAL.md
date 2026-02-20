@@ -2,7 +2,33 @@
 
 **Versão:** v0.3 Training Ready  
 **Data:** 20/02/2026  
-**Audiência:** Operadores do agente de trading
+**Audiência:** Operadores do agente de trading  
+**Status Operacional:** ⚠️ **PARADO PARA VALIDAÇÃO v0.3** (20/02/2026 ~19:00 BRT)
+
+---
+
+## 🚨 **ALERTA CRÍTICO — 20 DE FEVEREIRO DE 2026**
+
+```
+╔════════════════════════════════════════════════════════════╗
+║ OPERAÇÃO LIVE PAUSADA PARA VALIDAÇÃO CRÍTICA              ║
+╠════════════════════════════════════════════════════════════╣
+║ Motivo:    Zero sinais em 4+ horas | Confidence 45%      ║
+║ Decisão:   Head de Finanças + Product Owner               ║
+║ Ação:      PARAR LIVE imediatamente                        ║
+║ Duração:   6-8 horas (v0.3 validation)                    ║
+║ Retorno:   Aproximadamente 23:59 BRT (após v0.3 OK)       ║
+║                                                            ║
+║ ❌ NÃO execute opção 2 (Live) neste momento              ║
+║ ✅ Execute opção 5 (Training) para validação               ║
+║ ✅ Execute opção 4 (Backtest) para diagnóstico             ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+### O que mudou?
+- ❌ **Opção 2 (Live Integrado)** → DESATIVADA até v0.3 OK
+- ✅ **Opção 5 (Training RL)** → PRIORIDADE (teste de 10k steps)
+- ✅ **Opção 4 (Backtest)** → PRIORIDADE (validar strategy histórico)
 
 ---
 
@@ -43,12 +69,14 @@ Opção: 1
 
 ---
 
-### 2️⃣ **Live Integrado** (Capital Real)
+### 2️⃣ **Live Integrado** (Capital Real) — ⚠️ DESATIVADO ATÉ v0.3
 
-**Use quando:** Executar estratégia com capital real
+**Status:** 🔴 PAUSADO para validação crítica (20/02/2026 ~19:00)
+**Use quando:** ✅ APÓS v0.3 Training Ready validado (estimado 23:59 BRT)
 
 ```
 Opção: 2
+OBS: Não disponível no momento. Aguarde liberação após v0.3.
 ```
 
 **Confirmações obrigatórias:**

@@ -4,15 +4,23 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
-## [v0.3] — Training Ready 🔄 _IN PROGRESS_ (20/02/2026)
+## [v0.3] — Training Ready � _CRÍTICA TODAY_ (20/02/2026 18:45 BRT)
 
-**Status:** 🔴 EXECUTANDO HOJE (Decisão: Head de Finanças + Product Owner)
-**Timeline:** Iniciado: 20/02/2026 | Target: 20/02/2026 EOD
-**Objetivos Refinados:**
+**Status:** 🔴 **CRÍTICA PATH** — Decisão Executiva do Head de Finanças
+**Diretiva:** ⚠️ **PARAR LIVE IMEDIATAMENTE** | Executar v0.3 HOJE (6-8h)
+**Timeline:** Iniciado: 20/02/2026 18:45 BRT | Target: 20/02/2026 23:59 BRT
+**Rationale Financeira:** 
+  - Risco operacional de continuar LIVE: -17% a -42% em 24h (modelo não validado)
+  - Confiança componente: 45% (abaixo threshold mínimo 70%)
+  - ROI de pausar: +45% mensal esperado após v0.3 validação
+  - Payback: < 24 horas
+
+**Objetivos Refinados (Validação Crítica):**
 - Treinamento em 3 símbolos (BTC, ETH, SOL) → 3 meses de dados históricos
-- Métrica de sucesso: CV(reward) < 1.5 + WinRate > 45%
-- Tempo máximo de execução: 15 minutos para CI/CD
-- Documentação sincronizada 100%
+- Métricas de sucesso: CV(reward) < 1.5 + WinRate > 45% + Sharpe > 0.5
+- Debug signal generation (0 sinais em 4+ horas = problema crítico)
+- Resolver XIAUSDT error (1.5% dos ativos falhando)
+- Tempo máximo de execução: 15 minutos para CI/CD viável
 
 ### Adicionado
 - **Feature F-06: step() Completo no CryptoFuturesEnv** (20/02/2026)
@@ -46,7 +54,17 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.
   - Checkpoints a cada 100k steps
   - Tratamento de erros e timeout
 
-- **Governança Refinada para v0.3** (20/02/2026)
+### 🟠 INCIDENTE OPERACIONAL & DECISÃO EXECUTIVA
+- **ISSUE: Zero sinais gerados em 4+ horas de operação LIVE** (20/02 18:36-22:39 BRT)
+  - Confidence: 45% (abaixo mínimo 70%)
+  - Symptom 1: Confluence não atingindo threshold (< 50%)
+  - Symptom 2: Market Regime NEUTRO (sem direção clara)
+  - Symptom 3: XIAUSDT falhando processamento (1/66 símbolos erro)
+  - Impacto: Potencial loss de -17% a -42% se continuar LIVE
+  - **AÇÃO:** Parar LIVE IMEDIATAMENTE (diretiva Head de Finanças, 20/02 18:45)
+  - **MOTIVO:** Validação v0.3 é pré-requisito antes de confiar sinais em produção
+
+- **Governança Refinada para v0.3** (20/02 18:45 BRT)
   - Decisão executiva: 3 símbolos (BTC, ETH, SOL) + 3 meses dados históricos
   - Métrica primária: Coeficiente de Variação (CV) < 1.5 (sinais estáveis)
   - Métrica secundária: Win Rate >= 45% em trades simulados

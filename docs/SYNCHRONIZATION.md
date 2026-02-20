@@ -106,6 +106,45 @@ Esse documento contém:
 - ⏳ Atualizar progress.md com status em tempo real
 - ⏳ Commit final com [SYNC] tag
 
+---
+
+## ⚠️ decisão CRÍTICA — 20/02/2026 18:45 BRT
+
+### Rev. v0.3 (Training Ready) — **PARAR LIVE, EXECUTAR HOJE**
+
+**Responsável:** Head de Finanças, Specialist Mercado Futuro Cripto  
+**Data/Hora:** 20 de fevereiro de 2026, ~18:45 BRT  
+**Status:** 🔴 **CRÍTICA PATH** — Requer implementação imediata
+
+#### Incidente Operacional
+
+- **ISSUE:** Zero sinais gerados em 4+ horas (20/02 18:36-22:39 BRT)
+  - Confidence score: 45% (abaixo de 70% mínimo recomendado)
+  - Root causes: Confluence < 50%, Market Regime NEUTRO, XIAUSDT error
+  - Potencial loss se continuar LIVE: -17% a -42% em 24h
+
+#### Decisão Executiva
+
+**PARAR LIVE IMEDIATAMENTE E EXECUTAR v0.3 HOJE (6-8 horas)**
+
+Documentos Sincronizados Automaticamente:
+- ✅ **CHANGELOG.md**: Status alterado para 🔴 CRÍTICA, adicionado incidente
+- ✅ **OPERATOR_MANUAL.md**: Adicionado ALERTA CRÍTICO, desativada opção 2 (Live)
+- ✅ **docs/ROADMAP.md**: Timeline alterada, v0.3 marcada como CRÍTICA TODAY
+- ✅ **docs/SYNCHRONIZATION.md**: Registrando decisão crítica (este arquivo)
+
+#### Validação Pré-Requisito (Antes de retomar LIVE)
+
+- [ ] ✅ Treinar 10k steps em 3 símbolos (BTC, ETH, SOL)
+- [ ] ✅ Confirmar CV(reward) < 1.5 (sinais estáveis)
+- [ ] ✅ Confirmar WinRate >= 45% (win rate aceitável)
+- [ ] ✅ Confirmar Sharpe > 0.5 (risco-adjusted return)
+- [ ] ✅ Debug signal generation (0 sinais = problema crítico)
+- [ ] ✅ Resolver XIAUSDT error (1/66 símbolos falhando)
+- [ ] ✅ Validar backtest em 3 meses de dados históricos
+
+---
+
 ## 🔄 Protocolo de Sincronização Obrigatória
 
 Toda vez que um documento for alterado, o fluxo abaixo `DEVE` ser executado:

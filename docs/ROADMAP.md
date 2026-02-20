@@ -6,22 +6,30 @@
 v0.1 (Foundation)         ✅ CONCLUÍDO (12/02/2026)
 v0.2 (Pipeline Fix)       ✅ CONCLUÍDO (15/02/2026)
 v0.2.1 (Admin. Posições)  ✅ CONCLUÍDO (20/02/2026)
-v0.3 (Training Ready)     🔄 IN PROGRESS (20/02/2026 - Target EOD)
-v0.4 (Backtest)           ← PRÓXIMO PASSO (início Mar/2026)
+v0.3 (Training Ready)     � **CRÍTICA TODAY** (20/02 18:45-23:59 BRT) ⚡ PARAR LIVE
+v0.4 (Backtest)           ← PRÓXIMO PASSO (início 21/02 após v0.3)
 v0.5 (Paper Trading)      📅 Planejado (Abr/2026)
 v1.0 (Live MVP)           📅 Planejado (Mai/2026)
 v1.1+ (Evolução)          📅 Roadmap Continuo
 ```
 
-### Timeline
+### Timeline — Crítica (v0.3 HOJE)
 
 ```
-Fev/2026                    Mar/2026          Abr/2026          Mai/2026
-|--- v0.2/0.2.1 ----|v0.3|--|--- v0.4 --------|--- v0.5 --------|→ v1.0
-Pipeline + Admin.   Training   Backtest Real    Paper Trading    Live
-                    Ready*
-                  *Target: EOD 20/02
+Fev/2026                          Mar/2026          Abr/2026          Mai/2026
+|--- v0.2/0.2.1 ---|⚡ v0.3 ⚡|--|--- v0.4 --------|--- v0.5 --------|→ v1.0
+Pipeline + Admin.  CRÍTICA        Backtest Real    Paper Trading    Live
+                   TODAY
+                 (18-24h)
 ```
+
+**v0.3 Execução Crítica (20/02/2026 18:45-23:59 BRT):**
+- 🔴 STOP LIVE (Head de Finanças decisão)
+- ⚡ Validar training pipeline (10k steps em 3 símbolos)
+- ✅ Confirmar CV < 1.5 + WinRate > 45%
+- ✅ Debug signal generation (0 sinais = problema)
+- ✅ Resolver XIAUSDT error
+- 🟢 Retomar LIVE com confiança (após validação)
 
 ## Status Atual do Projeto
 
