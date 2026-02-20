@@ -57,6 +57,24 @@ operacionais com gestão de risco completa.
 
 ---
 
+## 📊 GOVERNANÇA & ROADMAP (Estrutura PO)
+
+**Documentação Executiva** (atualizada 20/02/2026 21:45 UTC):
+
+| Documento | Descrição | Público | Leitura |
+|-----------|-----------|---------|---------|
+| [`docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md`](docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md) | Estrutura governança: roles, decisões, roadmap v0.3–v2.0 | Diretoria, PO, CTO | 20 min |
+| [`DIRECTOR_BRIEF_20FEV.md`](DIRECTOR_BRIEF_20FEV.md) | Situação crítica & plano ação (5 min read) | Diretoria | 5 min |
+| [`BACKLOG_ACOES_CRITICAS_20FEV.md`](BACKLOG_ACOES_CRITICAS_20FEV.md) | 5 ações sequenciais com código Python pronto | Tech, PO | 15 min |
+
+**Métricas Operacionais**:
+- 🔴 Lucro MRR: $0 (pré-launch)
+- 📈 AUM: ~$50k (meta $500k v1.0)
+- ⏳ Versão: v0.3 (validação hoje → release amanhã)
+- 🎯 Timeline: 12+ meses (v0.3 → v1.0 → v2.0)
+
+---
+
 **🟠 OPERAÇÃO PARALELA C REDUZIDA** (Aguardando Ação)
 
 - **LIVE Trading**: ✅ Operando com 16 pares USDT (Profit Guardian Mode)
