@@ -745,6 +745,40 @@ Timeline: Sprint até 24/02/2026
 - ✅ Dashboard executivo: COMPLETO (visão consolidada)
 - ✅ Sincronização com docs existentes: COMPLETA
 - ✅ Commit com [GOVERNANCE] tag: COMPLETO (87a3d45)
+
+---
+
+## ✅ REORGANIZAÇÃO AGENTE_AUTONOMO — 20/02/2026, 22:45 UTC
+
+**Fase**: Estrutura de documentação AGENTE_AUTONOMO com nomenclatura padrão
+
+**Documentos Criados em `docs/agente_autonomo/`**:
+- ✅ `AGENTE_AUTONOMO_ARQUITETURA.md` — Estrutura em camadas, componentes, fluxo de dados
+- ✅ `AGENTE_AUTONOMO_BACKLOG.md` — 45+ items, ACAO-001→005, criticalidade
+- ✅ `AGENTE_AUTONOMO_ROADMAP.md` — 12-month timeline (v0.3–v2.0)
+- ✅ `AGENTE_AUTONOMO_FEATURES.md` — Feature matrix, criticidade, deps
+- ✅ `AGENTE_AUTONOMO_CHANGELOG.md` — Versioning, releases, historical
+- ✅ `AGENTE_AUTONOMO_TRACKER.md` — Real-time status, metrics, risks
+- ✅ `AGENTE_AUTONOMO_RELEASE.md` — Release criteria, gates, checklists
+- ✅ `AUTOTRADER_MATRIX.md` — Decision matrix, automation, escalation
+
+**Sincronização Automática**:
+- ✅ Nenhuma mudança necessária em código (docs-only)
+- ✅ README já linkando para estrutura governança
+- ✅ CHANGELOG registrando mudanças
+- ✅ Matriz de deps visitada (sem mudança política)
+
+**Status de Commit**:
+- ✅ Commit adac467: "[GOVERNANCE] Reorganização AGENTE_AUTONOMO"
+- ✅ 8 arquivos criados, 1.907 linhas adicionadas
+- ✅ Sem deletions (expansão pura, backcompat)
+- ✅ Tags proper: [GOVERNANCE]
+
+**Próximas Ações**:
+- ⏳ Validar sincronização cruzada (SYNC → AGENTE_AUTONOMO)
+- ⏳ Atualizar README com links para `docs/agente_autonomo/`
+- ⏳ Criar índice visual em `docs/agente_autonomo/INDEX.md` (opcional)
+- ⏳ Commit seguinte: [SYNC] rastreamento finalizado
 - ✅ `BACKLOG_ACOES_CRITICAS_20FEV.md` — Backlog detalhado com 5 ações críticas
 - ✅ `diagnostico_operacoes.py` — Script de diagnóstico (685 erros, 249 avisos)
 
