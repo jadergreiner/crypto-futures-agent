@@ -9,7 +9,7 @@
         // Auto-refresh a cada 30 segundos
         const REFRESH_INTERVAL = 30000; // 30 segundos
         let lastDataUpdate = 0;
-        
+
         // Função para recarregar dados
         async function loadDashboardData() {
             try {
@@ -24,7 +24,7 @@
             }
             return null;
         }
-        
+
         // Carregar dados inicialmente
         loadDashboardData().then(data => {
             if (data) {
@@ -33,7 +33,7 @@
                 renderDashboard(data);
             }
         });
-        
+
         // Auto-refresh a cada X segundos
         setInterval(loadDashboardData, REFRESH_INTERVAL);
     </script>
@@ -601,7 +601,7 @@
 
             <div class="card">
                 <h2><span class="icon">🔄</span> Decisões de Board</h2>
-                
+
                 <div class="decision-box">
                     <div class="decision-title">Decision #1: Governança Documentação</div>
                     <div class="decision-status">✅ APROVADO</div>
@@ -793,8 +793,8 @@
         <footer>
             <p>Dashboard em tempo real | Atualizado automaticamente via <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">update_dashboard.py</code></p>
             <p style="margin-top: 10px; color: #606060;">
-                🔄 <strong>Auto-Sync:</strong> A cada 30s | 
-                📖 <strong>Doc Advocate:</strong> Sincroniza fluxo de documentação | 
+                🔄 <strong>Auto-Sync:</strong> A cada 30s |
+                📖 <strong>Doc Advocate:</strong> Sincroniza fluxo de documentação |
                 🔧 <strong>Comando Manual:</strong> <code style="background: rgba(255,255,255,0.05); padding: 2px 4px;">python update_dashboard.py</code>
             </p>
             <p style="margin-top: 8px; color: #505050; font-size: 0.85em;">
@@ -808,7 +808,7 @@
         const REFRESH_INTERVAL = 30000; // 30 segundos
         let lastDataUpdate = 0;
         let nextUpdateTime = Date.now() + REFRESH_INTERVAL;
-        
+
         // Atualizar contador de próxima atualização
         setInterval(() => {
             const nextUpdate = document.getElementById('nextUpdate');
@@ -819,7 +819,7 @@
                 }
             }
         }, 1000);
-        
+
         // Função para recarregar dados
         async function loadDashboardData() {
             try {
@@ -835,7 +835,7 @@
             }
             return null;
         }
-        
+
         // Renderizar dashboard com dados dinâmicos
         function renderDashboard(data) {
             // Atualizar equipe
@@ -853,7 +853,7 @@
                     teamGrid.innerHTML += html;
                 });
             }
-            
+
             // Atualizar timestamp
             const subtitle = document.querySelector('.subtitle:last-of-type');
             if (subtitle && data.project.updated) {
@@ -862,7 +862,7 @@
                 subtitle.innerHTML = `🕐 Atualizado: ${formatted} | Dashboard auto-sincroniza a cada 30s`;
             }
         }
-        
+
         // Carregar dados inicialmente
         loadDashboardData().then(data => {
             if (data) {
@@ -870,10 +870,10 @@
                 renderDashboard(data);
             }
         });
-        
+
         // Auto-refresh a cada X segundos
         setInterval(loadDashboardData, REFRESH_INTERVAL);
-        
+
         // Log de sincronização no console
         console.log('Dashboard Auto-Sync Ativo: Carregando a cada ' + (REFRESH_INTERVAL/1000) + 's');
     </script>

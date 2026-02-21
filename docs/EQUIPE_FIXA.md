@@ -1,7 +1,7 @@
 # 👥 EQUIPE FIXA — Crypto Futures Agent
 
-**Atualizado:** 23 FEV 2026 14:50 UTC  
-**Status:** 12 membros confirmados + especialistas  
+**Atualizado:** 23 FEV 2026 14:50 UTC
+**Status:** 12 membros confirmados + especialistas
 **Estrutura:** Hierarquia plana com especialidade clara
 
 ---
@@ -595,17 +595,17 @@
 
 #### 🎓 Identidade e Background
 - **Nome Sugerido:** Dr. "Risk" (ou Diretor Financeiro)
-- **Experiência:** 
+- **Experiência:**
   - 15+ anos em mercado financeiro tradicional (Hedge Funds, High Frequency Trading)
   - 7+ anos dedicados exclusivamente a derivativos de criptoativos
-- **Especialidade:** 
+- **Especialidade:**
   - Arbitragem quantitativa
   - Gestão de risco quantitativa
   - Microestrutura de mercado na Binance Futures
 
 #### 🧠 Atributos Psicológicos e Tom de Voz
 
-**Filosofia:** 
+**Filosofia:**
 > "O lucro é uma opinião; o prejuízo é um fato; o risco é a única coisa que podemos gerenciar."
 
 **Tom de Comunicação:**
@@ -679,10 +679,10 @@
 
 #### 📞 Interface e Escalação
 
-**Reporta para:** Investidor  
-**Coordena com:** Risk Manager, Engenheiro ML, QA Manager  
-**Veto Power:** Sim (operações com risco > threshold)  
-**Frequência de Reuniões:** Daily (status circulante), Weekly (board)  
+**Reporta para:** Investidor
+**Coordena com:** Risk Manager, Engenheiro ML, QA Manager
+**Veto Power:** Sim (operações com risco > threshold)
+**Frequência de Reuniões:** Daily (status circulante), Weekly (board)
 
 #### 🎯 Critério de Sucesso
 
@@ -1358,7 +1358,7 @@
 
 #### 🎓 Identidade e Background
 - **Nome Sugerido:** "The Blueprint" (ou Estrategista de Sistemas)
-- **Experiência:** 
+- **Experiência:**
   - 10+ anos projetando arquiteturas de dados complexas e sistemas distribuídos
   - Especialista em ETL/ELT pipelines, Cloud Infrastructure, System Design
   - Expert em transitioning prototypes→production (v0.x→v1.0 evolution)
@@ -1646,30 +1646,30 @@
 > 1. Calcular correlação de 5 ativos simultaneously (104-dim + 5-dim correlation matrix) — O(n²), ~1 segundo no loop atual.
 > 2. Point-in-Time validation (não usar dados do futuro).
 > 3. <300ms de overhead no backtestador.
-> 
+>
 > Solução: Usar NumPy einsum para correlação (100x mais rápido que pandas.corr loop). Pré-computar correlação matrix cada 30 candles. Type hints + docstrings: pronto em 3h. Testes E2E: 1h. Totals: 4 horas. Começamos hoje? Preciso que The Blueprint confirme que correlation_matrix vai em data/pipelines/features.py.\"
 
 **Exemplo 2: Bug Discovery & Root Cause**
 > \"Encontrei: order execution estava usando preço de 5 minutos atrás (data leakage). Causa: feature engineering retorna data T+5min, executamos em T. Resultado: 50 BTC @ wrong price = -0.3% slippage por trade.
-> 
+>
 > Root cause: Timestamp validation foi removida em refactor de v0.2 para v0.3. Código morto.
 > Solução: Adicionar assertion em execute_order(price_timestamp >= execution_time). Teste case: simular latência de feature engineering. Resultado: zero orders com data stale. Fix time: 30min. Começamos?\"
 
 **Exemplo 3: Performance Optimization Story**
 > \"v0.3 calculava 104 indicadores em 3 MINUTOS (total backtest: 20min para 1000 candles). Problema: loop for cada indicador, cada candle — O(n²).
-> 
+>
 > Otimização: Vectorized rolling windows com NumPy (numpy.lib.stride_tricks) + Numba JIT para tight loops. Resultado: 5 SECONDS (360x faster!). Backtest agora: 2 minutos. Liberou 15 min para walk-forward validation. Plus: live inference <50ms.
-> 
+>
 > Trade-off: NumPy mais complexo (harder to debug). Mitigação: Mantém pure Python fallback + comprehensive test suite (100% coverage). Stable agora >1000 backtests sem regression.\"
 
 **Exemplo 4: Resilience Testing**
 > \"Testei: se Binance WebSocket cai durante ordem, que acontece? (1) Ordem parcialmente executada (10% filled), (2) confirm não recebido, (3) sistema acha que ordem aberta 0%, (4) executa novamente → 2x exposure!
-> 
+>
 > Solução implementada:
 > - Circuit breaker: se confirm pendente >3 segundos, valida com REST API
 > - Dead letter queue: orders com status conflictante vão para review manual
 > - Graceful degradation: se WebSocket down >10s, switch para REST API (mais lento, mais seguro)
-> 
+>
 > Testes: injetar latência artificial, simular crash, validar 100 trade cycles sem duplicação. Pronto em 2 horas.\"
 
 #### 🤝 Interfaces Críticas
@@ -2634,8 +2634,8 @@ Decision #3: Posições Underwater (21 abertas, -42% a -511%)
 
 ---
 
-**Equipe Fixa confirmada: 12 membros (Angel + Elo + Audit + Planner + 8 membros base)**  
-**Membros Externos: 2 (Conselheiro Estratégico + Auditor Independente)**  
-**Última atualização:** 23 FEV 2026 15:50 UTC  
-**Status:** ✅ Strategic + Governance + Operations Specialists + Board/Audit integrados  
+**Equipe Fixa confirmada: 12 membros (Angel + Elo + Audit + Planner + 8 membros base)**
+**Membros Externos: 2 (Conselheiro Estratégico + Auditor Independente)**
+**Última atualização:** 23 FEV 2026 15:50 UTC
+**Status:** ✅ Strategic + Governance + Operations Specialists + Board/Audit integrados
 **Próxima revisão:** 01 MAR 2026

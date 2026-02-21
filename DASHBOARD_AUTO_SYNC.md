@@ -305,5 +305,5 @@ Dashboard HTML → mostra Decision #2 atualizada
 
 ---
 
-**Dashboard criado em:** 23 FEV 2026  
+**Dashboard criado em:** 23 FEV 2026
 **Última sincronização:** Run `python update_dashboard.py` para atualizar

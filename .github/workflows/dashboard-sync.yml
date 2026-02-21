@@ -14,7 +14,7 @@ jobs:
   sync-dashboard:
     runs-on: ubuntu-latest
     name: Sincronizar Dashboard de Projeto
-    
+
     steps:
       - name: 📥 Checkout código
         uses: actions/checkout@v3
@@ -42,7 +42,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action [Dashboard]"
-          
+
           # Verificar se há mudanças
           if [ -n "$(git status --porcelain)" ]; then
             echo "📝 Commitando mudanças do dashboard..."

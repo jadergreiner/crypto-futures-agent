@@ -38,59 +38,59 @@ def read_file(path):
 def extract_metrics_from_status(content):
     """Extrai métricas do STATUS_ATUAL.md"""
     metrics = []
-    
+
     # Padrão para tabela de métricas
     pattern = r'\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|'
     matches = re.findall(pattern, content)
-    
+
     for match in matches:
         metric_name, value, required, status = match
         metric_name = metric_name.strip()
         value = value.strip()
         required = required.strip()
-        
+
         # Determinar status baseado em símbolos
         status_type = "bad"
         if "✅" in status or "OK" in status:
             status_type = "good"
         elif "❌" in status or "CRÍTICO" in status:
             status_type = "bad"
-        
+
         metrics.append({
             "name": metric_name,
             "value": value,
             "required": required,
             "status": status_type
         })
-    
+
     return metrics
 
 def extract_decisions_from_file(content):
     """Extrai decisões do DECISIONS.md"""
     decisions = []
-    
+
     # Procurar por padrões de decisão
     decision_pattern = r'## 🔔 DECISÃO #(\d+).*?\n\*\*Data:\*\*(.*?)\n.*?\*\*Status:\*\*(.*?)\n'
     matches = re.finditer(decision_pattern, content, re.DOTALL)
-    
+
     for match in matches:
         decision_id = int(match.group(1))
         date = match.group(2).strip()
         status_text = match.group(3).strip()
-        
+
         # Mapear status
         status = "pending"
         if "✅" in status_text or "APROVADO" in status_text:
             status = "approval"
         elif "IN PROGRESS" in status_text or "PROGRESSO" in status_text:
             status = "in-progress"
-        
+
         decisions.append({
             "id": decision_id,
             "status": status,
             "date": date
         })
-    
+
     return decisions
 
 def extract_team_from_content(content):
@@ -327,30 +327,30 @@ def extract_team_from_content(content):
             "decision_authority": "Audit findings, Control validation, Compliance certification, Third-party risk assessment, Incident reporting"
         }
     ]
-    
+
     return team
 
 def update_dashboard_data(project_root="."):
     """Atualiza dashboard_data.json com dados atualizados"""
-    
+
     print(f"{Colors.HEADER}{Colors.BOLD}🔄 Sincronizando Dashboard...{Colors.ENDC}\n")
-    
+
     # Caminhos
     status_path = Path(project_root) / "docs" / "STATUS_ATUAL.md"
     decisions_path = Path(project_root) / "docs" / "DECISIONS.md"
     dashboard_json_path = Path(project_root) / "dashboard_data.json"
-    
+
     # Carregar dados base
     with open(dashboard_json_path, 'r', encoding='utf-8') as f:
         dashboard_data = json.load(f)
-    
+
     # Atualizar timestamp
     dashboard_data["project"]["updated"] = datetime.now().isoformat()
-    
+
     # Ler arquivos
     status_content = read_file(str(status_path))
     decisions_content = read_file(str(decisions_path))
-    
+
     # Extrair métricas
     if status_content:
         print(f"{Colors.OKBLUE}📊 Extraindo métricas de STATUS_ATUAL.md...{Colors.ENDC}")
@@ -360,7 +360,7 @@ def update_dashboard_data(project_root="."):
             print(f"{Colors.OKGREEN}✅ {len(metrics)} métricas atualizadas{Colors.ENDC}")
         else:
             print(f"{Colors.WARNING}⚠️  Nenhuma métrica encontrada{Colors.ENDC}")
-    
+
     # Extrair decisões
     if decisions_content:
         print(f"{Colors.OKBLUE}🎯 Extraindo decisões de DECISIONS.md...{Colors.ENDC}")
@@ -376,20 +376,20 @@ def update_dashboard_data(project_root="."):
             print(f"{Colors.OKGREEN}✅ {len(decisions)} decisões atualizadas{Colors.ENDC}")
         else:
             print(f"{Colors.WARNING}⚠️  Nenhuma decisão encontrada{Colors.ENDC}")
-    
+
     # Atualizar equipe (incluindo Doc Advocate)
     print(f"{Colors.OKBLUE}👥 Atualizando equipe com Doc Advocate...{Colors.ENDC}")
     dashboard_data["team"] = extract_team_from_content(status_content)
     print(f"{Colors.OKGREEN}✅ Equipe atualizada ({len(dashboard_data['team'])} membros){Colors.ENDC}")
-    
+
     # Salvar dados atualizados
     with open(dashboard_json_path, 'w', encoding='utf-8') as f:
         json.dump(dashboard_data, f, ensure_ascii=False, indent=2)
-    
+
     print(f"\n{Colors.OKGREEN}{Colors.BOLD}✅ Dashboard sincronizado com sucesso!{Colors.ENDC}")
     print(f"{Colors.OKCYAN}📁 Arquivo: {dashboard_json_path}{Colors.ENDC}")
     print(f"{Colors.OKCYAN}🕐 Atualizado: {dashboard_data['project']['updated']}{Colors.ENDC}\n")
-    
+
     return True
 
 if __name__ == "__main__":

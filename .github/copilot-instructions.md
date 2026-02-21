@@ -16,13 +16,33 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
   `risk/` (controles), `backtest/` (F-12), `tests/`
 - **Modo compatibilidade**: `paper` e `live` preservados
 
-## Status: F-12 PHASE 3 (22/02/2026)
+## Status: F-12 PHASE 3 → PHASE 4 (21/02/2026)
 
 **Backtest Engine**: ✅ 100% funcional (9/9 testes passando)
-**Risk Gates**: ⚠️ 2/6 passados → Decisão CTO necessária (ref: PHASE_3_EXECUTIVE_DECISION_REPORT.md)
+**Decision #2**: ✅ APROVADA — Opção C (Híbrido, 3-4 dias)
+**Operacionalização**: 🔄 INICIADA 21 FEV (Heurísticas + PPO training paralelo)
 
-**Root Cause**: Ações aleatórias (modelo não treinado)
-**Próximo**: Decision #2 (train PPO 5-7d, Option B recomendado)
+**Sprint atual**: Sprint 1 MUST items (21-25 FEV)
+**Próximo checkpoint**: Gate #1 QA (22 FEV 08:00 UTC)
+
+---
+
+## ⚡ BACKLOG INSTRUCTIONS REFERENCE
+
+**IMPORTANTE:** Quando usuário pedir qualquer coisa sobre backlog/prioridades:
+→ Leia: `.github/copilot-backlog-instructions.md` PRIMEIRO
+→ Responda com tabela de status MUST items atual
+→ Use arquivo maestro: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
+
+**Trigger keywords que acionam backlog response:**
+- "backlog", "prioridades", "sprint", "tarefas", "próximos itens", "o que é prioritário"
+
+**Referência rápida:**
+- **Detalhes técnicos:** `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
+- **Status real-time:** `backlog/TASKS_TRACKER_REALTIME.md`
+- **Quick reference:** `backlog/BACKLOG_QUICK_START.md`
+
+---
 
 ## Regras Críticas
 

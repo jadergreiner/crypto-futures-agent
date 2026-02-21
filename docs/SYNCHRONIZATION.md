@@ -20,7 +20,7 @@ e comportamento do sistema.
 Adicionado novo membro crítico especializado em SMC (Smart Money Concepts), Price Action e Signal Validation:
 
 **Novo Membro #14:**
-- 📉 **Senior Crypto Trader (Alpha)** — SMC & Price Action Specialist  
+- 📉 **Senior Crypto Trader (Alpha)** — SMC & Price Action Specialist
 - Experiência: 10.000+ horas live trading, Forex/Futuros/Cripto, SMC/ICT expertise
 - Especialidades: Smart Money Concepts (BOS, CHoCH, OB, FVG), Liquidez Mapping, Multi-Timeframe Analysis, R:R Management, Price Action, Signal Confluence Validation
 - **Autoridade Decision:** Signal Validation & Approval, Price Action Analysis, R:R Ratio Enforcement, Multi-Timeframe Alignment, Confluence Scoring, Market Regime Detection

@@ -200,7 +200,7 @@ const REFRESH_INTERVAL = 30000; // 30 segundos (edite aqui)
 
 ---
 
-**Dashboard criado:** 23 FEV 2026  
-**Próxima sincronização:** A cada 30s (automático)  
-**Comando:** `python update_dashboard.py`  
+**Dashboard criado:** 23 FEV 2026
+**Próxima sincronização:** A cada 30s (automático)
+**Comando:** `python update_dashboard.py`
 **Status:** 🟢 ATIVO
