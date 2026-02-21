@@ -1,0 +1,43 @@
+{
+  "model": {
+    "policy": "MlpPolicy",
+    "learning_rate": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.01,
+    "vf_coef": 0.5,
+    "seed": 42
+  },
+  "training": {
+    "total_timesteps": 1000000,
+    "eval_freq": 10000,
+    "n_eval_episodes": 5,
+    "eval_log_path": "logs/ppo_training/eval_results.csv",
+    "verbose": 1,
+    "device": "cpu"
+  },
+  "data": {
+    "symbols": [
+      "OGNUSDT",
+      "1000PEPEUSDT"
+    ],
+    "timeframe": "4h",
+    "train_split": 0.8,
+    "cache_dir": "backtest/cache",
+    "db_path": "crypto_agent.db"
+  },
+  "logging": {
+    "level": "INFO",
+    "tensorboard_log": "logs/ppo_training/tensorboard",
+    "csv_log": "logs/ppo_training/training_metrics.csv"
+  },
+  "checkpointing": {
+    "save_freq": 10000,
+    "checkpoint_dir": "checkpoints/ppo_training",
+    "keep_last_n": 5
+  }
+}

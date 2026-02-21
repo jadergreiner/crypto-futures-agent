@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "symbols": [
+      "OGNUSDT",
+      "1000PEPEUSDT"
+    ],
+    "timeframe": "4h",
+    "total_candles": 2000,
+    "created_at": "2026-02-21T12:48:31.549252"
+  },
+  "data": {
+    "OGNUSDT": {
+      "total": 1000,
+      "train_start": 1757289600000,
+      "train_end": 1768795200000,
+      "val_start": 1768809600000,
+      "val_end": 1771675200000
+    },
+    "1000PEPEUSDT": {
+      "total": 1000,
+      "train_start": 1757289600000,
+      "train_end": 1768795200000,
+      "val_start": 1768809600000,
+      "val_end": 1771675200000
+    }
+  },
+  "splits": {
+    "train": {
+      "OGNUSDT": 800,
+      "1000PEPEUSDT": 800
+    },
+    "validation": {
+      "OGNUSDT": 200,
+      "1000PEPEUSDT": 200
+    }
+  }
+}

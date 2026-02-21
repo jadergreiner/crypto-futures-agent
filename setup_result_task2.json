@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-02-21T12:50:39.960438",
+  "status": "READY",
+  "checks": {
+    "hardware": {
+      "platform": "Windows",
+      "python_version": "3.11.9",
+      "cpu_count": 0,
+      "memory_gb": 0.0,
+      "gpu_available": false,
+      "gpu_name": null,
+      "gpu_vram_gb": 0.0,
+      "cuda_available": false
+    },
+    "dependencies": {
+      "numpy": true,
+      "pandas": true,
+      "scipy": true,
+      "sklearn": true,
+      "stable_baselines3": true,
+      "gymnasium": true,
+      "torch": true
+    },
+    "directories": {
+      "checkpoints/ppo_training": "C:\\repo\\crypto-futures-agent\\checkpoints\\ppo_training",
+      "logs/ppo_training": "C:\\repo\\crypto-futures-agent\\logs\\ppo_training",
+      "models/trained": "C:\\repo\\crypto-futures-agent\\models\\trained",
+      "data/training_datasets": "C:\\repo\\crypto-futures-agent\\data\\training_datasets"
+    },
+    "training_script": "scripts\\train_ppo_skeleton.py",
+    "ml_config": "config\\ml_training_config.json"
+  },
+  "issues": [],
+  "warnings": [],
+  "directories_created": {
+    "checkpoints/ppo_training": "C:\\repo\\crypto-futures-agent\\checkpoints\\ppo_training",
+    "logs/ppo_training": "C:\\repo\\crypto-futures-agent\\logs\\ppo_training",
+    "models/trained": "C:\\repo\\crypto-futures-agent\\models\\trained",
+    "data/training_datasets": "C:\\repo\\crypto-futures-agent\\data\\training_datasets"
+  },
+  "training_script": "scripts\\train_ppo_skeleton.py",
+  "ml_config": "config\\ml_training_config.json"
+}

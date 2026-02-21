@@ -1,0 +1,271 @@
+{
+  "project": "Crypto Futures Agent - PPO Training Phase 4",
+  "version": "1.0",
+  "deadline": "2026-02-23 14:00 UTC",
+  "generated_at": "2026-02-21T12:52:01.796546",
+  "data_format": {
+    "input": {
+      "observation_space": {
+        "type": "Box",
+        "shape": [
+          104
+        ],
+        "dtype": "float32",
+        "low": -Infinity,
+        "high": Infinity,
+        "description": "104 features normalizadas: OHLC, indicadores t\u00e9cnicos, SMC, sentimento, macro"
+      },
+      "action_space": {
+        "type": "Discrete",
+        "n": 5,
+        "actions": {
+          "0": "HOLD",
+          "1": "OPEN_LONG",
+          "2": "OPEN_SHORT",
+          "3": "CLOSE_POSITION",
+          "4": "REDUCE_50_PERCENT"
+        }
+      },
+      "episode_length": {
+        "min": 100,
+        "max": 250,
+        "recommended": 200,
+        "description": "Quantidade m\u00e1xima de timesteps por epis\u00f3dio"
+      }
+    },
+    "training_data": {
+      "format": "Parquet (Apache Parquet)",
+      "location": "backtest/cache/",
+      "symbols": [
+        "OGNUSDT",
+        "1000PEPEUSDT"
+      ],
+      "timeframe": "4h",
+      "candles_per_symbol": 1000,
+      "columns": [
+        "timestamp",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "split": {
+        "train": "80%",
+        "validation": "20%",
+        "test": "None (use validation para avaliar)"
+      },
+      "dataset_metadata": "data/training_datasets/dataset_info.json"
+    },
+    "environment": {
+      "class": "BacktestEnvironment",
+      "location": "backtest/backtest_environment.py",
+      "key_features": [
+        "Determin\u00edstico (seed=42)",
+        "Sem randomiza\u00e7\u00e3o de start_step",
+        "Trade State Machine com PnL preciso",
+        "6 m\u00e9tricas de risk clearance"
+      ],
+      "initialization": {
+        "data": "dict com {h4, h1, d1, symbol, sentiment, macro, smc}",
+        "initial_capital": "10000 USDT",
+        "episode_length": "200 timesteps recomendado",
+        "deterministic": true,
+        "seed": 42
+      }
+    }
+  },
+  "monitoring": {
+    "csv_logging": {
+      "enabled": true,
+      "path": "logs/ppo_training/training_metrics.csv",
+      "frequency": "every episode",
+      "metrics": [
+        "episode_number",
+        "timesteps_total",
+        "episode_reward",
+        "episode_length",
+        "success_rate",
+        "win_rate",
+        "profit_factor",
+        "sharpe_ratio",
+        "max_drawdown",
+        "learning_rate"
+      ]
+    },
+    "tensorboard_logging": {
+      "enabled": true,
+      "path": "logs/ppo_training/tensorboard",
+      "scalars": [
+        "policy_loss",
+        "value_loss",
+        "entropy",
+        "episode_reward",
+        "episode_length",
+        "exploration_rate"
+      ]
+    },
+    "checkpoint_saving": {
+      "enabled": true,
+      "path": "checkpoints/ppo_training",
+      "frequency": "every 10,000 timesteps",
+      "keep_last_n": 5,
+      "naming_convention": "{symbol}_ppo_steps_{timesteps}.zip"
+    },
+    "alert_thresholds": {
+      "performance": {
+        "episode_reward_too_low": {
+          "threshold": -5000,
+          "action": "Log warning + check environment",
+          "frequency": "per episode"
+        },
+        "win_rate_below_threshold": {
+          "threshold": 0.4,
+          "action": "Log warning + review reward function",
+          "frequency": "every 100 episodes"
+        },
+        "max_drawdown_exceeded": {
+          "threshold": 0.25,
+          "action": "Log warning + check risk parameters",
+          "frequency": "every 100 episodes"
+        }
+      },
+      "training": {
+        "loss_diverging": {
+          "check": "policy_loss > 1000 OR value_loss > 10000",
+          "action": "Log critical + reduce learning rate",
+          "frequency": "per step"
+        },
+        "learning_rate_too_high": {
+          "threshold": "> 1e-2",
+          "action": "Warn: may cause instability",
+          "frequency": "on init"
+        }
+      }
+    }
+  },
+  "hooks": {
+    "pre_training_hooks": [
+      "env_validation()",
+      "data_integrity_check()",
+      "model_initialization_check()",
+      "checkpoint_dir_ready()"
+    ],
+    "per_step_hooks": [
+      "log_episode_metrics()",
+      "check_alert_thresholds()",
+      "save_tensorboard_scalar()"
+    ],
+    "per_checkpoint_hooks": [
+      "save_checkpoint(model, timesteps)",
+      "evaluate_on_validation_set()",
+      "update_best_model_metrics()"
+    ],
+    "post_training_hooks": [
+      "save_final_model()",
+      "generate_training_summary()",
+      "export_metrics_csv()",
+      "cleanup_old_checkpoints(keep_last_n=5)"
+    ]
+  },
+  "hyperparameters": {
+    "learning_rate": {
+      "value": 0.0003,
+      "recommended_range": [
+        1e-05,
+        0.001
+      ],
+      "notes": "Usar learning rate schedule se diverg\u00eancia"
+    },
+    "n_steps": {
+      "value": 2048,
+      "notes": "N\u00famero de passos antes de atualizar policy"
+    },
+    "batch_size": {
+      "value": 64,
+      "notes": "Deve dividir n_steps evenly"
+    },
+    "n_epochs": {
+      "value": 10,
+      "notes": "Epochs de treinamento por exper\u00eancia"
+    },
+    "gamma": {
+      "value": 0.99,
+      "notes": "Fator de desconto (0.99 = valor long-term)"
+    },
+    "gae_lambda": {
+      "value": 0.95,
+      "notes": "GAE lambda para redu\u00e7\u00e3o de vari\u00e2ncia"
+    },
+    "clip_range": {
+      "value": 0.2,
+      "notes": "Range para clipping de policy ratio"
+    },
+    "ent_coef": {
+      "value": 0.01,
+      "notes": "Coeficiente de entropia (regulariza\u00e7\u00e3o)"
+    },
+    "vf_coef": {
+      "value": 0.5,
+      "notes": "Coeficiente de value function loss"
+    }
+  },
+  "training_spec": {
+    "total_timesteps": 1000000,
+    "eval_frequency": 10000,
+    "n_eval_episodes": 5,
+    "device": "cuda (if available) else cpu",
+    "mixed_precision": false,
+    "gradient_clipping": 0.5
+  },
+  "deliverables": [
+    "Trained model weights (checkpoints/ppo_training/SYMBOL_ppo_final.zip)",
+    "Training metrics CSV (logs/ppo_training/training_metrics.csv)",
+    "TensorBoard logs (logs/ppo_training/tensorboard/)",
+    "Training summary report (models/trained/SYMBOL_training_summary.json)",
+    "Performance curves (win_rate, sharpe_ratio over time)",
+    "Validation results on hold-out testset"
+  ],
+  "success_criteria": {
+    "minimum": {
+      "win_rate": ">= 45%",
+      "profit_factor": ">= 1.0",
+      "max_consecutive_losses": "<= 5",
+      "training_stability": "No divergence in loss"
+    },
+    "target": {
+      "sharpe_ratio": ">= 1.0",
+      "max_drawdown": "<= 15%",
+      "profit_factor": ">= 1.5",
+      "calmar_ratio": ">= 2.0"
+    }
+  },
+  "edge_cases": [
+    {
+      "risk": "Model divergence (loss explodes)",
+      "mitigation": "Early stopping + learning rate schedule",
+      "monitor": "Check policy_loss per 100 steps"
+    },
+    {
+      "risk": "Overfitting ao treino (win_rate 90% treino, 45% valida\u00e7\u00e3o)",
+      "mitigation": "Aumentar regulariza\u00e7\u00e3o (ent_coef), dropout, data augmentation",
+      "monitor": "Track train/val win_rate separately"
+    },
+    {
+      "risk": "Imbalance entre explora\u00e7\u00e3o e explora\u00e7\u00e3o",
+      "mitigation": "Ajustar ent_coef + annealing schedule",
+      "monitor": "Check entropy e rewards ao longo do time"
+    },
+    {
+      "risk": "Dados stale (parquets n\u00e3o atualizados)",
+      "mitigation": "Validar timestamps e volume no setup",
+      "monitor": "Log data range em init"
+    }
+  ],
+  "support": {
+    "data_questions": "SWE - Backend (data extraction, ParquetCache)",
+    "env_questions": "SWE - Backtest (BacktestEnvironment API)",
+    "infrastructure": "SWE - DevOps (hardware, storage, compute)",
+    "deadline_extensions": "CTO (Phase 4 owner)"
+  }
+}
