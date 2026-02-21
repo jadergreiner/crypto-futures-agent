@@ -1,0 +1,404 @@
+{
+  "board_config": {
+    "total_members": 16,
+    "quorum_required": 12,
+    "critical_members": 4,
+    "voting_weight": "majority_simple"
+  },
+  "members": [
+    {
+      "id": 1,
+      "nome": "Angel",
+      "especialidade": "Executiva",
+      "prioridade": "⭐⭐⭐ CRÍTICA",
+      "bloco": 1,
+      "responsabilidades": [
+        "Aprovação executiva de go-live",
+        "Validação de ROI e critérios de negócio",
+        "Autorização de alocação de capital",
+        "Decisão final em escalações críticas"
+      ],
+      "perfil": "Executive Leader | Risk Authority | Final Sign-Off",
+      "email": "angel@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 2,
+      "nome": "Elo",
+      "especialidade": "Governança & Facilitation",
+      "prioridade": "⭐⭐⭐ CRÍTICA",
+      "bloco": 1,
+      "responsabilidades": [
+        "Facilitar reuniões com foco em decisões",
+        "Garantir seguimento de procedimentos",
+        "Manutenção da rastreabilidade de decisões",
+        "Alinhamento do team com governance"
+      ],
+      "perfil": "Governance Officer | Facilitator | Process Owner",
+      "email": "elo@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 3,
+      "nome": "The Brain",
+      "especialidade": "ML/IA & Strategy",
+      "prioridade": "⭐⭐⭐ CRÍTICA",
+      "bloco": 2,
+      "responsabilidades": [
+        "Validação de qualidade do modelo heurístico",
+        "Avaliação de generalização para live trading",
+        "Oversight do PPO training futuro",
+        "Estratégia de evolução do algoritmo"
+      ],
+      "perfil": "ML/IA Architect | Research Leader | Model Authority",
+      "email": "the.brain@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 4,
+      "nome": "Dr. Risk",
+      "especialidade": "Risco Financeiro",
+      "prioridade": "⭐⭐⭐ CRÍTICA",
+      "bloco": 2,
+      "responsabilidades": [
+        "Avaliação de risco financeiro da operação",
+        "Validação de limitações de drawdown",
+        "Análise de cenários de estresse",
+        "Aprovação de parâmetros de risco"
+      ],
+      "perfil": "Financial Risk Officer | Scenario Analyst | VaR Expert",
+      "email": "dr.risk@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 5,
+      "nome": "Guardian",
+      "especialidade": "Arquitetura de Risco",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 2,
+      "responsabilidades": [
+        "Validação de circuit breakers e proteções",
+        "Audit de RiskGate implementation",
+        "Liquidation safety verification",
+        "Emergency stop procedure validation"
+      ],
+      "perfil": "Risk Architecture Engineer | Safety Officer",
+      "email": "guardian@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 6,
+      "nome": "Arch",
+      "especialidade": "Arquitetura Software",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 3,
+      "responsabilidades": [
+        "Arquitetura pronta para produção",
+        "Validação de performance",
+        "Escalabilidade assessment",
+        "Technical debt review"
+      ],
+      "perfil": "Software Architect | System Designer | Performance Expert",
+      "email": "arch@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 7,
+      "nome": "The Blueprint",
+      "especialidade": "Infraestrutura+ML",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 3,
+      "responsabilidades": [
+        "Infraestrutura operacional para 24/7",
+        "Validação WebSocket e API connectivity",
+        "Database backup/restore procedures",
+        "Monitoring stack readiness"
+      ],
+      "perfil": "Infrastructure Lead | DevOps Engineer | Deployment Owner",
+      "email": "the.blueprint@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 8,
+      "nome": "Audit",
+      "especialidade": "QA & Documentação",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 3,
+      "responsabilidades": [
+        "Auditoria de unit tests (28/28 passing)",
+        "Verificação de edge cases",
+        "Documentação completeness",
+        "Sign-off de QA gates"
+      ],
+      "perfil": "QA Lead | Documentation Officer | Audit Authority",
+      "email": "audit@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 9,
+      "nome": "Planner",
+      "especialidade": "Operacional & Timeline",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 4,
+      "responsabilidades": [
+        "Validação de timeline executável",
+        "Coordinate pre-flight checks (09:00-10:00)",
+        "3-phase canary schedule management",
+        "Resource allocation e staff availability"
+      ],
+      "perfil": "Operations Manager | Project Coordinator | Timeline Owner",
+      "email": "planner@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 10,
+      "nome": "Executor",
+      "especialidade": "Implementação & Delivery",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 4,
+      "responsabilidades": [
+        "Deploy script readiness",
+        "Rollback procedure testing",
+        "Live execution durante canary",
+        "Troubleshooting durante fases"
+      ],
+      "perfil": "Lead Developer | Delivery Engineer | Hands-On Lead",
+      "email": "executor@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 11,
+      "nome": "Data",
+      "especialidade": "Dados/Binance Integration",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 4,
+      "responsabilidades": [
+        "Connectividade Binance API validation",
+        "Rate limits compliance",
+        "Data quality during live trading",
+        "WebSocket stability monitoring"
+      ],
+      "perfil": "Data Engineer | Binance API Expert | Integration Lead",
+      "email": "data@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 12,
+      "nome": "Quality",
+      "especialidade": "QA/Testes Automation",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 3,
+      "responsabilidades": [
+        "Test automation coverage",
+        "Regression risk assessment",
+        "Performance baseline validation",
+        "E2E testing readiness"
+      ],
+      "perfil": "QA Automation Engineer | Test Lead | Coverage Owner",
+      "email": "quality@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 13,
+      "nome": "Trader",
+      "especialidade": "Trading/Produto Expertise",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 5,
+      "responsabilidades": [
+        "Validação de sinais SMC",
+        "P&L realism check",
+        "Risk/reward alignment",
+        "Trading procedure sign-off"
+      ],
+      "perfil": "Senior Trader | Domain Expert | Signal Validator",
+      "email": "trader@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 14,
+      "nome": "Product",
+      "especialidade": "Produto & UX Strategy",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 5,
+      "responsabilidades": [
+        "User experience assessment",
+        "Dashboard readiness",
+        "Documentation for operators",
+        "Product requirements validation"
+      ],
+      "perfil": "Product Manager | UX Lead | User Advocate",
+      "email": "product@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 15,
+      "nome": "Compliance",
+      "especialidade": "Conformidade & Legal",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 5,
+      "responsabilidades": [
+        "Audit trail completeness",
+        "Documentation compliance",
+        "Legal requirements validation",
+        "Regulatory alignment"
+      ],
+      "perfil": "Compliance Officer | Legal Liaison | Audit Trail Owner",
+      "email": "compliance@crypto-futures-agent.local",
+      "voto": null
+    },
+    {
+      "id": 16,
+      "nome": "Board Member",
+      "especialidade": "Estratégia & Oversight",
+      "prioridade": "⭐ MÉDIA",
+      "bloco": 6,
+      "responsabilidades": [
+        "Strategic oversight of go-live",
+        "Contingency planning review",
+        "Long-term roadmap alignment",
+        "Final approval recommendation"
+      ],
+      "perfil": "Strategic Advisor | Board Representative | Vision Keeper",
+      "email": "board.member@crypto-futures-agent.local",
+      "voto": null
+    }
+  ],
+  "blocos": [
+    {
+      "id": 1,
+      "nome": "Executiva & Governança",
+      "duracao_min": 5,
+      "membros": ["Angel", "Elo"],
+      "topicos": [
+        "ROI dentro do plano?",
+        "Risco de capital aceitável?",
+        "Gates foram seguidos?",
+        "Team alinhado?"
+      ]
+    },
+    {
+      "id": 2,
+      "nome": "Modelo & Risco",
+      "duracao_min": 10,
+      "membros": ["The Brain", "Dr. Risk", "Guardian"],
+      "topicos": [
+        "Confidence no modelo heurístico?",
+        "Generalização para live?",
+        "Risco financeiro aceitável?",
+        "Circuit breaker certo?",
+        "Proteções estão armadas?"
+      ]
+    },
+    {
+      "id": 3,
+      "nome": "Infraestrutura & QA",
+      "duracao_min": 10,
+      "membros": ["Arch", "The Blueprint", "Audit", "Quality"],
+      "topicos": [
+        "Arquitetura pronta para produção?",
+        "Performance OK?",
+        "Infra 24/7 ready?",
+        "Testes cobertura OK?",
+        "Regression risk baixo?"
+      ]
+    },
+    {
+      "id": 4,
+      "nome": "Operacional & Implementação",
+      "duracao_min": 10,
+      "membros": ["Planner", "Executor", "Data"],
+      "topicos": [
+        "Timeline é executável?",
+        "Deploy script pronto?",
+        "Rollback testado?",
+        "Binance API estável?",
+        "Rate limits OK?"
+      ]
+    },
+    {
+      "id": 5,
+      "nome": "Trading & Produto",
+      "duracao_min": 10,
+      "membros": ["Trader", "Product", "Compliance"],
+      "topicos": [
+        "Sinais fazem sentido?",
+        "P&L realista?",
+        "UX para live OK?",
+        "Dashboards prontos?",
+        "Audit trail OK?"
+      ]
+    },
+    {
+      "id": 6,
+      "nome": "Síntese & Votação",
+      "duracao_min": 5,
+      "membros": ["Board Member", "Angel"],
+      "topicos": [
+        "Estratégia geral OK?",
+        "Aprovação final?"
+      ]
+    }
+  ],
+  "voting_options": [
+    {
+      "key": "A",
+      "label": "SIM — Liberar go-live 22 FEV 10:00 UTC",
+      "emoji": "✅",
+      "action": "APROVADO"
+    },
+    {
+      "key": "B",
+      "label": "CAUTELA — Sim, mas com condições",
+      "emoji": "⚠️",
+      "action": "APROVADO_COM_CONDICOES"
+    },
+    {
+      "key": "C",
+      "label": "NÃO — Adiar, problemas críticos",
+      "emoji": "🔴",
+      "action": "BLOQUEADO"
+    }
+  ],
+  "success_criteria": {
+    "code_quality": {
+      "metric": "Unit tests passing",
+      "target": "28/28",
+      "status": "✅ PASSED"
+    },
+    "qa_validation": {
+      "metric": "Total tests passing",
+      "target": "40/40",
+      "status": "✅ PASSED"
+    },
+    "trader_approval": {
+      "metric": "SMC alignment",
+      "target": "≥80%",
+      "status": "✅ PASSED (100%)"
+    },
+    "architecture_ready": {
+      "metric": "Production readiness",
+      "target": "All gates",
+      "status": "✅ PASSED"
+    },
+    "infrastructure_ready": {
+      "metric": "24/7 operations",
+      "target": "Monitored + Backed up",
+      "status": "✅ PASSED"
+    },
+    "risk_gates_armed": {
+      "metric": "Circuit breaker -3%",
+      "target": "Armed & tested",
+      "status": "✅ PASSED"
+    },
+    "operations_ready": {
+      "metric": "Pre-flight + Phases",
+      "target": "All procedures testada",
+      "status": "✅ PASSED"
+    },
+    "documentation_complete": {
+      "metric": "Audit trail",
+      "target": "Complete",
+      "status": "✅ PASSED"
+    }
+  }
+}
