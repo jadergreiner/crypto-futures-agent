@@ -18,7 +18,7 @@ from config.settings import DB_PATH
 
 def quick_status():
     """Status executivo em uma linha"""
-    
+
     try:
         client = create_binance_client()
         db = DatabaseManager(DB_PATH)
@@ -35,7 +35,7 @@ def quick_status():
     # Calcular totais
     total_pnl = sum(p.get('unrealized_pnl', 0) for p in positions)
     avg_pnl_pct = sum(p.get('unrealized_pnl_pct', 0) for p in positions) / len(positions)
-    
+
     # Contar positivas e negativas
     winners = sum(1 for p in positions if p.get('unrealized_pnl_pct', 0) >= 0)
     losers = len(positions) - winners

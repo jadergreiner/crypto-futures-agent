@@ -19,7 +19,7 @@ from config.settings import DB_PATH
 
 def show_positions_summary():
     """Mostra posições abertas de forma simples"""
-    
+
     try:
         client = create_binance_client()
         db = DatabaseManager(DB_PATH)
@@ -86,10 +86,10 @@ def show_positions_summary():
 
     print()
     print("-" * 100)
-    
+
     # Resumo final
     avg_pnl_pct = total_pnl_pct / len(positions) if positions else 0
-    
+
     if total_pnl_usdt >= 0:
         final_color = "🟢 POSITIVO"
     else:

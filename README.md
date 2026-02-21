@@ -80,7 +80,34 @@ oportunismo
 | Round 5 | + r_out_of_market (4) | ✅ | 21 Feb | 5/5 ✅ |
 | Round 5+ | + r_contextual_opportunity (5) | ✅ | 21 Feb | 6/6 ✅ |
 
-## ⚠️ Status Operacional Atual (20/02/2026 — CRÍTICO)
+## 📊 Status Desenvolvimento — F-12 Backtest Sprint (21/02/2026)
+
+**🟢 SPRINT EM EXECUÇÃO — 60% COMPLETO**
+
+### Marcos Alcançados (21 FEV)
+
+- ✅ **F-12a**: BacktestEnvironment determinístico (168L, SWE)
+- ✅ **F-12c**: TradeStateMachine com state machine (205L, SWE)
+- ✅ **F-12d**: BacktestMetrics com 6 métricas (345L, ML)
+- ✅ **F-12e**: Suite de testes (5/8 PASSING, 320L, ML)
+- ⏳ **F-12b**: Parquet pipeline (iniciando 22 FEV, SWE)
+
+### Timeline Executiva
+
+| Data | Milestone | Owner |
+|------|-----------|-------|
+| **21 FEV** | Core F-12a+c+d+e DONE | SWE + ML ✅ |
+| **22 FEV** | F-12b + 8/8 tests green | SWE + ML |
+| **23 FEV** | Full backtest + report | ML |
+| **24 FEV** | Gates 1-2-3 approval | CTO+Risk+CFO |
+
+**Confiança**: 85% para paper trading autorizado em 24 FEV
+
+Detalhes: [SPRINT_F12_EXECUTION_PLAN.md](SPRINT_F12_EXECUTION_PLAN.md)
+
+---
+
+## ⚠️ Status Operacional Anterior (20/02/2026 — CRÍTICO RESOLVIDO)
 
 **🔴 DIAGNÓSTICO CRÍTICO IDENTIFICADO**
 

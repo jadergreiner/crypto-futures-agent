@@ -1,7 +1,7 @@
 # Implementação Completa: Aprendizado "Ficar Fora do Mercado"
 
-**Data**: 21 de fevereiro de 2026, 02:20 UTC  
-**Status**: ✅ **IMPLEMENTADO E VALIDADO**  
+**Data**: 21 de fevereiro de 2026, 02:20 UTC
+**Status**: ✅ **IMPLEMENTADO E VALIDADO**
 **Teste**: 5/5 passaram
 
 ---
@@ -55,17 +55,17 @@ EXCESS_INACTIVITY_PENALTY = 0.03      # Penalidade: inatividade > 16d
 
 ```python
 IF sem_posição_aberta:
-    
+
     # Trigger 1: Drawdown >= 2%
     if drawdown >= 2.0:
         r_out_of_market = +0.15
         Log: "Out-of-market bonus (drawdown protection)"
-    
+
     # Trigger 2: Múltiplos trades nos últimos dias
     if trades_24h >= 3:
         r_out_of_market += 0.10 * (trades_24h / 10)
         Log: "Out-of-market bonus (rest after losses)"
-    
+
     # Trigger 3: Inatividade excessiva
     if flat_steps > 96:  # ~16 dias
         r_out_of_market -= 0.03 * (flat_steps / 100)
@@ -86,7 +86,7 @@ IF sem_posição_aberta:
 ### Teste 2: Inicialização ✅
 ```
 ✅ RewardCalculator inicializado
-✅ Pesos: {'r_pnl': 1.0, 'r_hold_bonus': 1.0, 
+✅ Pesos: {'r_pnl': 1.0, 'r_hold_bonus': 1.0,
            'r_invalid_action': 1.0, 'r_out_of_market': 1.0}
 ```
 
@@ -153,7 +153,7 @@ corretamente e pronto para training do agente RL.
    # Para mais seletividade:
    OUT_OF_MARKET_LOSS_AVOIDANCE = 0.25  # De 0.15
    OUT_OF_MARKET_THRESHOLD_DD = 1.5     # De 2.0
-   
+
    # Para mais agressividade:
    EXCESS_INACTIVITY_PENALTY = 0.10     # De 0.03
    ```
@@ -173,10 +173,10 @@ corretamente e pronto para training do agente RL.
 
 O agente agora **aprende que ficar fora do mercado é uma decisão tática válida**, não uma "falha" ou "perda de oportunidade". Isso resultará em:
 
-✅ Menos operações ruins  
-✅ Maior seletividade  
-✅ Capital melhor preservado  
-✅ Wins maiores e mais consistentes  
+✅ Menos operações ruins
+✅ Maior seletividade
+✅ Capital melhor preservado
+✅ Wins maiores e mais consistentes
 
 **A prudência é aprendida, não codificada.**
 

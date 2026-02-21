@@ -32,7 +32,7 @@ class BinanceCollector:
     Collects OHLCV data from Binance Futures API using official SDK.
     Implements retry logic with exponential backoff.
     """
-    
+
     # Map interval strings to SDK enum values
     INTERVAL_MAP = {
         "1m": KlineCandlestickDataIntervalEnum.INTERVAL_1m,
@@ -51,7 +51,7 @@ class BinanceCollector:
         "1w": KlineCandlestickDataIntervalEnum.INTERVAL_1w,
         "1M": KlineCandlestickDataIntervalEnum.INTERVAL_1M,
     }
-    
+
     # Interval durations in milliseconds
     INTERVAL_MS = {
         "1m": 60 * 1000,
@@ -70,31 +70,31 @@ class BinanceCollector:
         "1w": 7 * 24 * 60 * 60 * 1000,
         "1M": 30 * 24 * 60 * 60 * 1000,  # Approximation (may vary by actual month length)
     }
-    
+
     MAX_KLINES_PER_REQUEST = 1000
-    
+
     def __init__(self, client: DerivativesTradingUsdsFutures):
         """
         Initialize Binance collector with SDK client.
-        
+
         Args:
             client: Configured DerivativesTradingUsdsFutures client
         """
         self._client = client
         logger.info("BinanceCollector initialized with SDK client")
-    
+
     def _retry_request(self, func, *args, **kwargs):
         """
         Execute request with retry logic and exponential backoff.
-        
+
         Args:
             func: Function to call
             *args: Positional arguments for func
             **kwargs: Keyword arguments for func
-            
+
         Returns:
             Function result
-            
+
         Raises:
             Exception: If all retry attempts fail
         """
@@ -112,14 +112,14 @@ class BinanceCollector:
                 else:
                     logger.error(f"Request failed after {API_MAX_RETRIES} attempts: {e}")
                     raise
-    
+
     def _extract_data(self, response):
         """
         Extrai dados do wrapper ApiResponse do SDK e converte SDK objects em dicts.
-        
+
         O SDK Binance retorna objetos com atributos snake_case mas o código pode
         esperar dicts com método .get() e chaves camelCase.
-        
+
         Esta função:
         1. Extrai .data do ApiResponse wrapper
         2. Converte SDK objects em dicts Python
@@ -128,7 +128,7 @@ class BinanceCollector:
         """
         if response is None:
             return None
-        
+
         # Passo 1: ApiResponse tem um atributo .data contendo o payload real
         if hasattr(response, 'data'):
             data = response.data
@@ -138,31 +138,31 @@ class BinanceCollector:
         else:
             # Se não tem .data, assumir que já são os dados diretos
             data = response
-        
+
         # Passo 2: Converter SDK objects para dicts
         return self._convert_sdk_object_to_dict(data)
-    
+
     def _convert_sdk_object_to_dict(self, obj):
         """
         Converte objetos SDK da Binance em dicts Python com mapeamento snake_case → camelCase.
-        
+
         Args:
             obj: Pode ser None, dict, list, ou SDK object com atributos
-            
+
         Returns:
             Dict, list de dicts, ou valor primitivo
         """
         if obj is None:
             return None
-        
+
         # Se já é dict ou tipo primitivo, retornar como está
         if isinstance(obj, (dict, str, int, float, bool, bytes, type(None))):
             return obj
-        
+
         # Se é lista, processar cada elemento recursivamente
         if isinstance(obj, list):
             return [self._convert_sdk_object_to_dict(item) for item in obj]
-        
+
         # Se é um SDK object (tem __dict__ mas não é dict), converter para dict
         if hasattr(obj, '__dict__'):
             # Extrair atributos, filtrando os privados (começam com _)
@@ -170,34 +170,34 @@ class BinanceCollector:
                 key: value for key, value in vars(obj).items()
                 if not key.startswith('_')
             }
-            
+
             # Converter valores aninhados recursivamente
             converted_dict = {
                 key: self._convert_sdk_object_to_dict(value)
                 for key, value in raw_dict.items()
             }
-            
+
             # Mapear snake_case → camelCase para compatibilidade com código existente
             camel_dict = self._map_to_camel_case(converted_dict)
-            
+
             # Log para debug
             if converted_dict:  # Só logar se não for vazio
                 logger.debug(f"[COLLECTOR] SDK object convertido para dict: {type(obj).__name__} → {len(camel_dict)} campos")
-            
+
             return camel_dict
-        
+
         # Fallback: retornar o objeto como está
         return obj
-    
+
     def _map_to_camel_case(self, data: dict) -> dict:
         """
         Mapeia chaves snake_case para camelCase mantendo ambas as versões.
-        
+
         Mantemos tanto snake_case quanto camelCase para máxima compatibilidade.
-        
+
         Args:
             data: Dict com chaves em snake_case
-            
+
         Returns:
             Dict com chaves adicionais em camelCase
         """
@@ -209,16 +209,16 @@ class BinanceCollector:
             'taker_buy_base_volume': 'takerBuyBaseVolume',
             'taker_buy_quote_volume': 'takerBuyQuoteVolume',
         }
-        
+
         result = dict(data)  # Cópia para não modificar original
-        
+
         # Adicionar versões camelCase das chaves snake_case
         for snake_key, camel_key in snake_to_camel.items():
             if snake_key in result and camel_key not in result:
                 result[camel_key] = result[snake_key]
-        
+
         return result
-    
+
     def fetch_klines(
         self,
         symbol: str,
@@ -229,26 +229,26 @@ class BinanceCollector:
     ) -> pd.DataFrame:
         """
         Fetch kline/candlestick data from Binance using SDK.
-        
+
         Args:
             symbol: Trading pair symbol (e.g., "BTCUSDT")
             interval: Kline interval ("1h", "4h", "1d")
             limit: Number of klines to fetch (max 1000)
             start_time: Start time in milliseconds
             end_time: End time in milliseconds
-            
+
         Returns:
-            DataFrame with columns: timestamp, symbol, open, high, low, close, 
+            DataFrame with columns: timestamp, symbol, open, high, low, close,
                                    volume, quote_volume, trades_count
         """
         # Map interval string to enum
         interval_enum = self.INTERVAL_MAP.get(interval)
         if not interval_enum:
             raise ValueError(f"Invalid interval: {interval}. Must be one of {list(self.INTERVAL_MAP.keys())}")
-        
+
         # Limit to max per request
         limit = min(limit, self.MAX_KLINES_PER_REQUEST)
-        
+
         def _fetch():
             response = self._client.rest_api.kline_candlestick_data(
                 symbol=symbol,
@@ -257,30 +257,30 @@ class BinanceCollector:
                 start_time=start_time,
                 end_time=end_time,
             )
-            
+
             # Log rate limits if available
             if hasattr(response, 'rate_limits'):
                 logger.debug(f"Rate limits: {response.rate_limits}")
-            
+
             return response
-        
+
         response = self._retry_request(_fetch)
         raw_data = self._extract_data(response)
         df = self._parse_klines(raw_data, symbol)
-        
+
         logger.debug(f"Fetched {len(df)} {interval} candles for {symbol}")
         return df
-    
+
     def _parse_klines(self, raw_data: Any, symbol: str) -> pd.DataFrame:
         """
         Parse klines data from SDK response to DataFrame.
-        
+
         Supports both Pydantic model objects and raw arrays.
-        
+
         Args:
             raw_data: Response from SDK (list of klines)
             symbol: Trading pair symbol
-            
+
         Returns:
             Parsed DataFrame
         """
@@ -289,9 +289,9 @@ class BinanceCollector:
                 'timestamp', 'symbol', 'open', 'high', 'low', 'close',
                 'volume', 'quote_volume', 'trades_count'
             ])
-        
+
         parsed_data = []
-        
+
         for kline in raw_data:
             # Check if it's a Pydantic model or raw array
             if hasattr(kline, 'open_time'):
@@ -320,15 +320,15 @@ class BinanceCollector:
                     'quote_volume': float(kline[7]) if len(kline) > 7 else 0.0,
                     'trades_count': int(kline[8]) if len(kline) > 8 else 0,
                 })
-        
+
         df = pd.DataFrame(parsed_data)
-        
+
         # Sort by timestamp
         if not df.empty:
             df = df.sort_values('timestamp').reset_index(drop=True)
-        
+
         return df
-    
+
     def fetch_historical(
         self,
         symbol: str,
@@ -337,12 +337,12 @@ class BinanceCollector:
     ) -> pd.DataFrame:
         """
         Fetch historical data with automatic pagination.
-        
+
         Args:
             symbol: Trading pair symbol
             interval: Kline interval ("1h", "4h", "1d")
             days: Number of days to fetch. If None, uses HISTORICAL_PERIODS defaults.
-            
+
         Returns:
             DataFrame with historical OHLCV data
         """
@@ -356,15 +356,15 @@ class BinanceCollector:
             }
             key = interval_to_key.get(interval, "H1")
             days = HISTORICAL_PERIODS.get(key, 90)
-        
+
         end_time = int(datetime.now().timestamp() * 1000)
         start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
-        
+
         all_dfs = []
         current_start = start_time
-        
+
         logger.debug(f"Fetching {days} days of {interval} data for {symbol}")
-        
+
         while current_start < end_time:
             chunk_df = self.fetch_klines(
                 symbol,
@@ -373,34 +373,34 @@ class BinanceCollector:
                 start_time=current_start,
                 end_time=end_time,
             )
-            
+
             if chunk_df.empty:
                 break
-            
+
             all_dfs.append(chunk_df)
-            
+
             # Update start time for next iteration (add 1ms to last timestamp)
             current_start = int(chunk_df['timestamp'].iloc[-1]) + 1
-            
+
             # Rate limiting between paginated requests
             time.sleep(0.2)
-        
+
         if not all_dfs:
             logger.warning(f"No historical data fetched for {symbol} {interval}")
             return pd.DataFrame(columns=[
                 'timestamp', 'symbol', 'open', 'high', 'low', 'close',
                 'volume', 'quote_volume', 'trades_count'
             ])
-        
+
         # Concatenate all chunks
         df = pd.concat(all_dfs, ignore_index=True)
-        
+
         # Remove duplicates and sort
         df = df.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
-        
+
         logger.debug(f"Fetched {len(df)} {interval} candles for {symbol}")
         return df
-    
+
     def fetch_all_symbols(
         self,
         interval: str,
@@ -408,30 +408,30 @@ class BinanceCollector:
     ) -> Dict[str, pd.DataFrame]:
         """
         Fetch data for all configured symbols.
-        
+
         Args:
             interval: Kline interval
             limit: Number of klines per symbol
-            
+
         Returns:
             Dictionary mapping symbol to DataFrame
         """
         result = {}
-        
+
         for symbol in ALL_SYMBOLS:
             try:
                 df = self.fetch_klines(symbol, interval, limit)
                 result[symbol] = df
-                
+
                 # Rate limiting between symbols
                 time.sleep(0.1)
             except Exception as e:
                 logger.error(f"Failed to fetch data for {symbol}: {e}")
                 result[symbol] = pd.DataFrame()
-        
+
         logger.info(f"Fetched data for {len(result)} symbols")
         return result
-    
+
     def validate_data(
         self,
         df: pd.DataFrame,
@@ -439,58 +439,58 @@ class BinanceCollector:
     ) -> tuple[bool, list[str]]:
         """
         Validate OHLCV data for integrity issues.
-        
+
         NEVER interpolates missing data - only reports issues.
-        
+
         Args:
             df: DataFrame to validate
             interval: Interval string for gap detection
-            
+
         Returns:
             Tuple of (is_valid, list_of_issues)
         """
         issues = []
-        
+
         if df.empty:
             issues.append("DataFrame is empty")
             return False, issues
-        
+
         # Check for null values
         null_cols = df.columns[df.isnull().any()].tolist()
         if null_cols:
             issues.append(f"Null values found in columns: {null_cols}")
-        
+
         # Check for negative values in price/volume columns
         numeric_cols = ['open', 'high', 'low', 'close', 'volume', 'quote_volume']
         for col in numeric_cols:
             if col in df.columns:
                 if (df[col] < 0).any():
                     issues.append(f"Negative values found in {col}")
-        
+
         # Check for timestamp gaps
         if len(df) > 1:
             expected_diff_ms = self.INTERVAL_MS.get(interval)
-            
+
             if expected_diff_ms:
                 df_sorted = df.sort_values('timestamp')
                 timestamps = df_sorted['timestamp'].values
                 diffs = timestamps[1:] - timestamps[:-1]
-                
+
                 # Allow 50% tolerance for gaps
                 max_allowed_diff = expected_diff_ms * 1.5
                 gaps = diffs > max_allowed_diff
-                
+
                 if gaps.any():
                     gap_count = gaps.sum()
                     issues.append(
                         f"Found {gap_count} timestamp gaps (>{max_allowed_diff}ms) in {interval} data"
                     )
-        
+
         is_valid = len(issues) == 0
-        
+
         if issues:
             logger.warning(f"Data validation issues: {', '.join(issues)}")
         else:
             logger.debug("Data validation passed")
-        
+
         return is_valid, issues

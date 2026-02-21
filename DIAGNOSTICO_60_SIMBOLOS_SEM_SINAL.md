@@ -130,7 +130,7 @@ python resumo_ciclo.py
 
 Se quiser reduzir threshold de 8/14 para 7/14 ou 6/14:
 
-**Arquivo**: `config/risk_params.py`  
+**Arquivo**: `config/risk_params.py`
 **Linha**: ~37
 
 ```python
@@ -184,6 +184,6 @@ Output mostrará:
 
 ---
 
-**Tempo para primeira execução**: ⏳ Aguardando mais dados  
-**Tempo esperado até 10+ sinais**: 1-2 horas (com trend strong)  
+**Tempo para primeira execução**: ⏳ Aguardando mais dados
+**Tempo esperado até 10+ sinais**: 1-2 horas (com trend strong)
 **Status geral**: ✅ **SISTEMA OPERACIONAL**

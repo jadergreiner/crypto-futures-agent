@@ -1,7 +1,7 @@
 # [OPERADOR] Guia Rápido: Aprendizado "Ficar Fora do Mercado"
 
-**Data**: 21 de fevereiro de 2026  
-**Versão**: Round 5  
+**Data**: 21 de fevereiro de 2026
+**Versão**: Round 5
 **Status**: ✅ Pronto para usar
 
 ---
@@ -10,7 +10,7 @@
 
 O agente RL agora **aprende que ficar FORA do mercado é tão importante quanto operar**.
 
-Antes: O agente era incentivado a sempre estar operando ("algo é melhor que nada")  
+Antes: O agente era incentivado a sempre estar operando ("algo é melhor que nada")
 Depois: O agente aprende a escolher quando **NÃO** operar é melhor
 
 ---
@@ -43,10 +43,10 @@ Depois: O agente aprende a escolher quando **NÃO** operar é melhor
 
 Depois desse aprendizado, o agente deve:
 
-✅ **Menos operações** (6-8 → 3-4 por episódio)  
-✅ **Mais ganhos por trade** (1.2x → 1.8x R-multiple)  
-✅ **Maior taxa de acertos** (45% → 60%+)  
-✅ **Capital melhor protegido** (70% → 85%+)  
+✅ **Menos operações** (6-8 → 3-4 por episódio)
+✅ **Mais ganhos por trade** (1.2x → 1.8x R-multiple)
+✅ **Maior taxa de acertos** (45% → 60%+)
+✅ **Capital melhor protegido** (70% → 85%+)
 
 **Analogia**: O agente aprende a ser um investidor paciente, não um trader compulsivo.
 
@@ -151,7 +151,7 @@ Para operadores técnicos que queiram entender em detalhes:
 
 ## Sumário
 
-O agente agora aprende a **inovação mais importante do RL**: 
+O agente agora aprende a **inovação mais importante do RL**:
 
 > **Não fazer nada no tempo certo é melhor que fazer algo no tempo errado.**
 

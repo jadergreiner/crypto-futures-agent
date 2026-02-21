@@ -1,6 +1,6 @@
 # Aprendizado Contextual: Quando Ficar Fora É Sábio vs Desperdiçador
 
-**Data**: 21 de fevereiro de 2026  
+**Data**: 21 de fevereiro de 2026
 **Objetivo**: Diferenciar entre prudência (ficar fora certo) e ganância (ficar fora errado)
 
 ---
@@ -102,15 +102,15 @@ TEMPO T+X (Lookback completo):
 ```python
 class OpportunityLearner:
     """Aprende quando ficar fora é sábio vs desperdiçador."""
-    
-    def register_missed_opportunity(self, symbol, step, direction, 
+
+    def register_missed_opportunity(self, symbol, step, direction,
                                    entry_price, confluence, atr,
                                    drawdown_pct, recent_trades_24h):
         """
         Registra oportunidade não tomada.
         Salva contexto: por que não entrou?
         """
-        
+
     def evaluate_opportunity(self, opportunity_id, current_price,
                             max_price_reached, min_price_reached):
         """
@@ -146,7 +146,7 @@ if self.current_step - opportunity_step >= OPPORTUNIT_LOOKBACK_CANDLES:
         max_price_reached=highest_price_in_window,
         min_price_reached=lowest_price_in_window
     )
-    
+
     # Adicionar contextual_reward ao agente
     if opp:
         reward += opp.contextual_reward
@@ -169,7 +169,7 @@ T=30:  Preço desceu para 3400 (10 candles depois)
        Análise: "Se tivesse entrado, teria perdido -2.8%"
        Contextual Learning: +0.30 (recompensa forte)
        Reasoning: "Decisão sábia evitou perda"
-       
+
 RESULTADO: Agente aprendeu corretamente que ficar fora foi bom.
 ```
 
@@ -186,7 +186,7 @@ T=35:  Preço subiu para 45900 (+2%)
        Análise: "Se tivesse entrado, teria ganhado bom"
        Contextual Learning: -0.20 (penalidade forte)
        Reasoning: "Sem justificativa válida, desperdiçou"
-       
+
 RESULTADO: Agente aprendeu que ser muito conservador é prejudicial.
 ```
 
@@ -203,7 +203,7 @@ T=40:  Preço = 148 (seria +1.3%)
        Análise: "Oportunidade boa, mas drawdown alto"
        Contextual Learning: -0.08 (penalidade leve)
        Reasoning: "Deveria ter entrado com menor size"
-       
+
 RESULTADO: Agente aprende balanço entre prudência e ganância.
 ```
 
@@ -268,10 +268,10 @@ OPPORTUNITY_PENALTY_GOOD_MOVE = -0.05  # Penalidade menor por desperdiçar
 
 ## Filosofia
 
-**O agente aprende não a regra "ficar fora é bom"**  
+**O agente aprende não a regra "ficar fora é bom"**
 **Mas a regra mais sofisticada:**
 
-> "Ficar fora é bom QUANDO as oportunidades desperdidas seriam ruins.  
+> "Ficar fora é bom QUANDO as oportunidades desperdidas seriam ruins.
 > Ficar fora é ruim QUANDO as oportunidades desperdidas seriam excelentes."
 
 Isso é **verdadeira inteligência adaptativa**.
@@ -290,6 +290,6 @@ Isso é **verdadeira inteligência adaptativa**.
 
 ## Referência
 
-**Arquivo**: `agent/opportunity_learning.py` (290+ linhas)  
-**Classe Principal**: `OpportunityLearner`  
+**Arquivo**: `agent/opportunity_learning.py` (290+ linhas)
+**Classe Principal**: `OpportunityLearner`
 **Conceito**: Meta-Learning de decisões (aprendizado sobre aprendizado)

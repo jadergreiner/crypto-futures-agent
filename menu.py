@@ -22,7 +22,7 @@ def exibir_banner():
 def exibir_verificacoes():
     print("[*] Executando verificacoes pre-operacionais...")
     print()
-    
+
     verificacoes = [
         ("Ambiente virtual", lambda: os.path.exists("venv")),
         ("Arquivo .env", lambda: os.path.exists(".env")),
@@ -30,11 +30,11 @@ def exibir_verificacoes():
         ("Diretorio de logs", lambda: os.path.exists("logs")),
         ("Diretorio de modelos", lambda: os.path.exists("models"))
     ]
-    
+
     for idx, (nome, verificacao) in enumerate(verificacoes, 1):
         status = "OK" if verificacao() else "AVISO"
         print(f"[{idx}/5] [{status}] {nome}")
-    
+
     print()
     print("=" * 70)
     print("[PRE-OPERACIONAL] TODAS AS VERIFICACOES OK")
@@ -80,7 +80,7 @@ def opcao_1():
     print("Pressione Ctrl+C para interromper a execucao.")
     print()
     time.sleep(2)
-    
+
     subprocess.run(["python", "main.py", "--mode", "paper"])
 
 def opcao_2():
@@ -103,17 +103,17 @@ def opcao_2():
     print()
     print("Confirme 2 vezes que compreende os riscos:")
     print()
-    
+
     conf1 = input("  [1/2] Os orders sao REAIS? Digite 'SIM': ").strip().upper()
     if conf1 != "SIM":
         print("  Operacao cancelada.")
         return
-    
+
     conf2 = input("  [2/2] Voce eh o operador autorizado? Digite 'INICIO': ").strip().upper()
     if conf2 != "INICIO":
         print("  Operacao cancelada.")
         return
-    
+
     print()
     print("Iniciando em modo LIVE OPERACIONAL...")
     print()
@@ -126,9 +126,9 @@ def opcao_2():
     print("Pressione Ctrl+C para PARAR SISTEMA COM SEGURANCA.")
     print()
     time.sleep(3)
-    
-    subprocess.run(["python", "main.py", "--mode", "live", "--integrated", 
-                   "--integrated-interval", "300", "--concurrent-training", 
+
+    subprocess.run(["python", "main.py", "--mode", "live", "--integrated",
+                   "--integrated-interval", "300", "--concurrent-training",
                    "--training-interval", "7200"])
 
 def opcao_3():
@@ -149,7 +149,7 @@ def opcao_5():
 def opcao_6():
     """Consolidado de Ciclo (5 min)"""
     print()
-    subprocess.run(["python", "-c", 
+    subprocess.run(["python", "-c",
                    "import sys; sys.path.insert(0, '.'); from monitoring.cycle_summary import print_cycle_summary; from config.symbols import ALL_SYMBOLS; print_cycle_summary(ALL_SYMBOLS)"])
 
 def opcao_7():
@@ -162,18 +162,18 @@ def opcao_8():
     print("MONITORAR POSICOES ABERTAS")
     print("=" * 70)
     print()
-    
+
     simbolo = input("Digite o simbolo para monitorar (ex: BTCUSDT) ou deixe em branco para TODAS: ").strip().upper()
     intervalo = input("Digite o intervalo em segundos (padrao: 300 = 5 minutos): ").strip()
-    
+
     if intervalo == "":
         intervalo = "300"
-    
+
     print()
     print("Iniciando monitor de posicoes...")
     if simbolo:
         print(f"Modo: Monitorando apenas {simbolo}")
-        subprocess.run(["python", "main.py", "--monitor", "--monitor-symbol", simbolo, 
+        subprocess.run(["python", "main.py", "--monitor", "--monitor-symbol", simbolo,
                        "--monitor-interval", intervalo])
     else:
         print("Modo: Monitorando TODAS as posicoes abertas")
@@ -184,17 +184,17 @@ def opcao_9():
     print("EXECUTAR BACKTEST")
     print("=" * 70)
     print()
-    
+
     data_inicio = input("Digite a data inicial (formato: YYYY-MM-DD): ").strip()
     data_fim = input("Digite a data final (formato: YYYY-MM-DD): ").strip()
-    
+
     if not data_inicio or not data_fim:
         print("Datas obrigatorias!")
         return
-    
+
     print()
     print("Executando backtest...")
-    subprocess.run(["python", "main.py", "--backtest", "--backtest-start", data_inicio, 
+    subprocess.run(["python", "main.py", "--backtest", "--backtest-start", data_inicio,
                    "--backtest-end", data_fim])
 
 def opcao_10():
@@ -202,11 +202,11 @@ def opcao_10():
     print("TREINAR MODELO RL MANUALMENTE")
     print("=" * 70)
     print()
-    
+
     epochs = input("Digite o numero de epochs (padrao: 100): ").strip()
     if epochs == "":
         epochs = "100"
-    
+
     print()
     print("Iniciando treinamento...")
     subprocess.run(["python", "main.py", "--train", "--train-epochs", epochs])
@@ -245,11 +245,11 @@ def main():
         exibir_banner()
         exibir_verificacoes()
         exibir_menu()
-        
+
         opcao = input("Digite o numero da opcao desejada (1-14): ").strip()
-        
+
         print()
-        
+
         if opcao == "1":
             opcao_1()
         elif opcao == "2":

@@ -1,15 +1,15 @@
 # 📋 Sincronização de Documentação — Round 5 & 5+ Learning
 
-**Data**: 21/02/2026 03:00 UTC  
-**Responsável**: GitHub Copilot  
-**Status**: ✅ EM IMPLAMENTAÇÃO  
+**Data**: 21/02/2026 03:00 UTC
+**Responsável**: GitHub Copilot
+**Status**: ✅ EM IMPLAMENTAÇÃO
 **Escopo**: Atualizar 14 documentos com mudanças de Round 5 e Round 5+
 
 ---
 
 ## 🎯 Mudança Primária
 
-**Commit**: `abf27c8` [FEATURE] Round 5 e 5+: Aprendizado Stay-Out com Meta-learning  
+**Commit**: `abf27c8` [FEATURE] Round 5 e 5+: Aprendizado Stay-Out com Meta-learning
 **Impacto**: Arquitetura de reward fundamentalmente evoluída (3 → 5 componentes)
 
 ### Novo na Arquitetura
@@ -95,7 +95,7 @@ ROUND 5+: + r_contextual_opportunity (5 componentes)
 
 **Módulo Novo**: `agent/opportunity_learning.py` (290+ linhas)
 
-**Lógica**: 
+**Lógica**:
 - Registra oportunidades não tomadas
 - Avalia retrospectivamente (após ~20 candles)
 - Computa reward contextual (-0.20 a +0.30)

@@ -24,11 +24,11 @@ def test_reward_imports():
     logger.info("=" * 70)
     logger.info("TESTE 1: Imports do módulo reward")
     logger.info("=" * 70)
-    
+
     try:
         from agent.reward import RewardCalculator
         logger.info("✅ RewardCalculator importado com sucesso")
-        
+
         # Verificar se constantes novas existem
         from agent.reward import (
             OUT_OF_MARKET_THRESHOLD_DD,
@@ -41,7 +41,7 @@ def test_reward_imports():
         logger.info(f"   - OUT_OF_MARKET_BONUS = {OUT_OF_MARKET_BONUS}")
         logger.info(f"   - OUT_OF_MARKET_LOSS_AVOIDANCE = {OUT_OF_MARKET_LOSS_AVOIDANCE}")
         logger.info(f"   - EXCESS_INACTIVITY_PENALTY = {EXCESS_INACTIVITY_PENALTY}")
-        
+
         return True
     except ImportError as e:
         logger.error(f"❌ Erro ao importar: {e}")
@@ -56,24 +56,24 @@ def test_reward_calculator_initialization():
     logger.info("\n" + "=" * 70)
     logger.info("TESTE 2: Inicialização do RewardCalculator")
     logger.info("=" * 70)
-    
+
     try:
         from agent.reward import RewardCalculator
-        
+
         calc = RewardCalculator()
         logger.info("✅ RewardCalculator inicializado")
-        
+
         # Verificar weights
         weights = calc.get_weights()
         logger.info(f"✅ Pesos dos componentes: {weights}")
-        
+
         # Verificar se o novo componente está lá
         if 'r_out_of_market' in weights:
             logger.info("✅ Componente 'r_out_of_market' presente nos pesos")
         else:
             logger.error("❌ Componente 'r_out_of_market' NÃO encontrado")
             return False
-        
+
         return True
     except Exception as e:
         logger.error(f"❌ Erro: {e}")
@@ -87,12 +87,12 @@ def test_reward_calculation_no_position_with_drawdown():
     logger.info("\n" + "=" * 70)
     logger.info("TESTE 3: Reward sem posição com drawdown (proteção)")
     logger.info("=" * 70)
-    
+
     try:
         from agent.reward import RewardCalculator
-        
+
         calc = RewardCalculator()
-        
+
         # Cenário: Sem posição, drawdown > threshold
         reward_dict = calc.calculate(
             trade_result=None,
@@ -109,16 +109,16 @@ def test_reward_calculation_no_position_with_drawdown():
             trades_recent=[],
             flat_steps=10
         )
-        
+
         logger.info(f"Reward components: {reward_dict}")
-        
+
         if reward_dict['r_out_of_market'] > 0:
             logger.info(f"✅ Reward 'out_of_market' gerado: +{reward_dict['r_out_of_market']:.3f}")
             logger.info("   (Proteção em drawdown reconhecida)")
         else:
             logger.error(f"❌ Esperava r_out_of_market > 0, got {reward_dict['r_out_of_market']}")
             return False
-        
+
         return True
     except Exception as e:
         logger.error(f"❌ Erro: {e}")
@@ -132,12 +132,12 @@ def test_reward_calculation_rest_after_trades():
     logger.info("\n" + "=" * 70)
     logger.info("TESTE 4: Reward por descanso após múltiplos trades")
     logger.info("=" * 70)
-    
+
     try:
         from agent.reward import RewardCalculator
-        
+
         calc = RewardCalculator()
-        
+
         # Cenário: Sem posição, múltiplos trades recentes
         reward_dict = calc.calculate(
             trade_result=None,
@@ -154,16 +154,16 @@ def test_reward_calculation_rest_after_trades():
             trades_recent=[],
             flat_steps=5
         )
-        
+
         logger.info(f"Reward components: {reward_dict}")
-        
+
         if reward_dict['r_out_of_market'] > 0:
             logger.info(f"✅ Reward 'out_of_market' gerado: +{reward_dict['r_out_of_market']:.3f}")
             logger.info("   (Descanso após atividade reconhecido)")
         else:
             logger.error(f"❌ Esperava r_out_of_market > 0, got {reward_dict['r_out_of_market']}")
             return False
-        
+
         return True
     except Exception as e:
         logger.error(f"❌ Erro: {e}")
@@ -177,12 +177,12 @@ def test_reward_calculation_excess_inactivity():
     logger.info("\n" + "=" * 70)
     logger.info("TESTE 5: Penalidade por inatividade excessiva (>16 dias)")
     logger.info("=" * 70)
-    
+
     try:
         from agent.reward import RewardCalculator
-        
+
         calc = RewardCalculator()
-        
+
         # Cenário: Sem posição, mas muito tempo inativo
         reward_dict = calc.calculate(
             trade_result=None,
@@ -199,16 +199,16 @@ def test_reward_calculation_excess_inactivity():
             trades_recent=[],
             flat_steps=150  # > 96 H4 candles (~16 dias)
         )
-        
+
         logger.info(f"Reward components: {reward_dict}")
-        
+
         if reward_dict['r_out_of_market'] < 0:
             logger.info(f"✅ Penalidade de inatividade gerada: {reward_dict['r_out_of_market']:.3f}")
             logger.info("   (Inatividade excessiva penalizada)")
         else:
             logger.warning(f"⚠️  Esperava r_out_of_market < 0 para inatividade, got {reward_dict['r_out_of_market']}")
             return False
-        
+
         return True
     except Exception as e:
         logger.error(f"❌ Erro: {e}")
@@ -224,7 +224,7 @@ def main():
     logger.info("║" + " VALIDAÇÃO: Aprendizado 'Ficar Fora do Mercado' ".center(68) + "║")
     logger.info("║" + " Agent Reward Round 5 ".center(68) + "║")
     logger.info("╚" + "=" * 68 + "╝")
-    
+
     tests = [
         ("Imports", test_reward_imports),
         ("Inicialização", test_reward_calculator_initialization),
@@ -232,7 +232,7 @@ def main():
         ("Reward (Rest)", test_reward_calculation_rest_after_trades),
         ("Penalidade (Inatividade)", test_reward_calculation_excess_inactivity),
     ]
-    
+
     results = []
     for name, test_func in tests:
         try:
@@ -243,23 +243,23 @@ def main():
             import traceback
             traceback.print_exc()
             results.append((name, False))
-    
+
     # Sumário
     logger.info("\n" + "=" * 70)
     logger.info("SUMÁRIO DOS TESTES")
     logger.info("=" * 70)
-    
+
     passed = sum(1 for _, result in results if result)
     total = len(results)
-    
+
     for name, result in results:
         status = "✅ PASS" if result else "❌ FAIL"
         logger.info(f"{status}: {name}")
-    
+
     logger.info("=" * 70)
     logger.info(f"Resultado: {passed}/{total} testes passaram")
     logger.info("=" * 70)
-    
+
     if passed == total:
         logger.info("\n🎉 TODOS OS TESTES PASSARAM!")
         logger.info("Implementação do componente 'r_out_of_market' está funcionando corretamente.")

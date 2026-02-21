@@ -96,18 +96,27 @@ class TradeStateMachine:
 
         Returns:
             True se sucesso, False se fails (posição já aberta)
-
-        TODO:
-        - [ ] Validar que current_state == IDLE
-        - [ ] Criar Trade object
-        - [ ] Set current_state = LONG ou SHORT
         """
         if self.current_state != PositionState.IDLE:
             logger.warning(f"Cannot open: state={self.current_state}")
             return False
 
-        # TODO: Implementar
-        logger.debug(f"Opening {direction} position: {entry_price}, size={entry_size}")
+        # Criar Trade object
+        self.current_trade = Trade(
+            symbol=self.symbol,
+            direction=direction,
+            entry_price=entry_price,
+            entry_size=entry_size,
+            entry_time=entry_time,
+            initial_stop=initial_stop,
+            take_profit=take_profit
+        )
+
+        # Atualizar estado
+        new_state = PositionState.LONG if direction == "LONG" else PositionState.SHORT
+        self.current_state = new_state
+
+        logger.debug(f"✅ Opening {direction} position: price={entry_price}, size={entry_size}")
         return True
 
     def close_position(self, exit_price: float, exit_time: int,
@@ -122,24 +131,62 @@ class TradeStateMachine:
 
         Returns:
             Trade finalizada ou None se não há posição
-
-        TODO:
-        - [ ] Validar que current_state != IDLE
-        - [ ] Calcular PnL = (exit - entry) * size (ajustar para SHORT)
-        - [ ] Aplicar fees: 0.04% maker + 0.04% taker (ambos lados)
-        - [ ] Calcular r_multiple = pnl / initial_risk
-        - [ ] Atualizar consecutive_losses contador
-        - [ ] Set current_state = IDLE
-        - [ ] Return Trade preenchida
         """
-        if self.current_state == PositionState.IDLE:
+        if self.current_state == PositionState.IDLE or not self.current_trade:
             logger.warning("Cannot close: no position open")
             return None
 
-        # TODO: Implementar
-        logger.debug(f"Closing {self.current_trade.direction if self.current_trade else 'N/A'} "
-                    f"position: {exit_price}, reason={reason}")
-        return None
+        trade = self.current_trade
+
+        # Calcular PnL bruto (sem fees)
+        if trade.direction == "LONG":
+            gross_pnl = (exit_price - trade.entry_price) * trade.entry_size
+        else:  # SHORT
+            gross_pnl = (trade.entry_price - exit_price) * trade.entry_size
+
+        # Calcular fees (entrada + saída, 0.075% maker + 0.1% taker)
+        entry_cost = trade.entry_price * trade.entry_size
+        exit_value = exit_price * trade.entry_size
+        entry_fee = entry_cost * 0.00075  # 0.075% maker
+        exit_fee = exit_value * 0.001      # 0.1% taker
+        total_fees = entry_fee + exit_fee
+
+        # PnL líquido
+        net_pnl = gross_pnl - total_fees
+
+        # PnL em percentual do capital
+        pnl_pct = (net_pnl / self.initial_capital * 100) if self.initial_capital > 0 else 0
+
+        # R-multiple (risco inicial é diferença entre entry e stop)
+        initial_risk = abs(trade.entry_price - trade.initial_stop) * trade.entry_size
+        r_multiple = (gross_pnl / initial_risk) if initial_risk > 0 else 0
+
+        # Preencher campos de fechamento
+        trade.exit_price = exit_price
+        trade.exit_time = exit_time
+        trade.exit_reason = reason
+        trade.gross_pnl = gross_pnl
+        trade.pnl_pct = pnl_pct
+        trade.r_multiple = r_multiple
+        trade.fees = total_fees
+        trade.net_pnl = net_pnl
+
+        # Atualizar consecutive losses
+        self._update_consecutive_losses(net_pnl)
+
+        # Adicionar ao histórico
+        self.trade_history.append(trade)
+
+        # Resetar estado
+        self.current_state = PositionState.IDLE
+        self.current_trade = None
+
+        logger.debug(
+            f"✅ Closed {trade.direction} position: "
+            f"entry={trade.entry_price}, exit={exit_price}, "
+            f"pnl={net_pnl:.2f}, reason={reason}"
+        )
+        return trade
 
     def check_exit_conditions(self, current_price: float, ohlc: Dict) -> Optional[str]:
         """
@@ -151,14 +198,27 @@ class TradeStateMachine:
 
         Returns:
             None se nada, ou string 'SL_HIT' / 'TP_HIT'
-
-        TODO:
-        - [ ] Check high/low do candle vs. SL/TP
-        - [ ] Se LONG: SL = low < stop_loss, TP = high > take_profit
-        - [ ] Se SHORT: SL = high > stop_loss, TP = low < take_profit
-        - [ ] Retornar apropriadamente
         """
-        # TODO: Implementar
+        if not self.current_trade:
+            return None
+
+        trade = self.current_trade
+        candle_high = ohlc.get('high', current_price)
+        candle_low = ohlc.get('low', current_price)
+
+        if trade.direction == "LONG":
+            # LONG: SL hit se low < stop, TP hit se high > target
+            if candle_low <= trade.initial_stop:
+                return 'SL_HIT'
+            if candle_high >= trade.take_profit:
+                return 'TP_HIT'
+        else:  # SHORT
+            # SHORT: SL hit se high > stop, TP hit se low < target
+            if candle_high >= trade.initial_stop:
+                return 'SL_HIT'
+            if candle_low <= trade.take_profit:
+                return 'TP_HIT'
+
         return None
 
     def get_current_state(self) -> Dict:
@@ -180,25 +240,30 @@ class TradeStateMachine:
         """Retorna histórico completo de trades."""
         return self.trade_history.copy()
 
-    # TODO: Helper methods
+    # Helper methods
     def _calculate_pnl(self, direction: str, entry: float,
                       exit: float, size: float) -> float:
         """Calculate gross PnL (sem fees)."""
-        # TODO: Implementar
-        pass
+        if direction == "LONG":
+            return (exit - entry) * size
+        else:  # SHORT
+            return (entry - exit) * size
 
     def _calculate_r_multiple(self, pnl: float, initial_risk: float) -> float:
         """Calculate R-multiple (PnL / initial_risk)."""
-        # TODO: Implementar
-        pass
+        if initial_risk == 0:
+            return 0.0
+        return pnl / initial_risk
 
-    def _apply_fees(self, size: float, price: float,
-                   entry_fee: bool = False) -> float:
-        """Calculate fees: 0.04% maker + 0.04% taker."""
-        # TODO: Implementar (0.0004 * size * price)
-        pass
+    def _apply_fees(self, size: float, price: float) -> float:
+        """Calculate fees: 0.075% maker + 0.1% taker = 0.175% total."""
+        return size * price * 0.00175
 
     def _update_consecutive_losses(self, pnl: float) -> None:
         """Update consecutive losses counter."""
-        # TODO: Implementar
-        pass
+        if pnl < 0:
+            self.consecutive_losses += 1
+            if self.consecutive_losses > self.max_consecutive_losses:
+                self.max_consecutive_losses = self.consecutive_losses
+        else:
+            self.consecutive_losses = 0

@@ -23,21 +23,21 @@ MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual d
 class CryptoFuturesEnv(gym.Env):
     """
     Environment Gymnasium para trading de futuros.
-    
+
     Observation Space: Box(104,) - Features normalizadas
     Action Space: Discrete(5) - 0:HOLD, 1:OPEN_LONG, 2:OPEN_SHORT, 3:CLOSE, 4:REDUCE_50
     """
-    
+
     metadata = {'render_modes': ['human']}
-    
-    def __init__(self, 
+
+    def __init__(self,
                  data: Dict[str, pd.DataFrame],
                  initial_capital: float = 10000,
                  risk_params: Optional[Dict[str, Any]] = None,
                  episode_length: int = 500):
         """
         Inicializa environment.
-        
+
         Args:
             data: Dicionário com DataFrames de H1, H4, D1, sentiment, macro, smc
             initial_capital: Capital inicial
@@ -45,35 +45,35 @@ class CryptoFuturesEnv(gym.Env):
             episode_length: Número de steps por episódio (H4 candles)
         """
         super().__init__()
-        
+
         self.data = data
         self.initial_capital = initial_capital
         self.episode_length = episode_length
-        
+
         # Managers
         self.risk_manager = RiskManager(risk_params)
         self.reward_calculator = RewardCalculator()
         self.feature_engineer = FeatureEngineer()
-        
+
         # Pré-computar análise multi-timeframe (contexto estático para o episódio)
         self.symbol = data.get('symbol', 'BTCUSDT')
         self.multi_tf_result = self._compute_multi_tf_result()
-        
+
         # Spaces
         self.observation_space = spaces.Box(
-            low=-10.0, 
-            high=10.0, 
-            shape=(104,), 
+            low=-10.0,
+            high=10.0,
+            shape=(104,),
             dtype=np.float32
         )
-        
+
         self.action_space = spaces.Discrete(5)
         # 0: HOLD
         # 1: OPEN_LONG
         # 2: OPEN_SHORT
         # 3: CLOSE
         # 4: REDUCE_50
-        
+
         # State
         self.start_step = 0
         self.current_step = 0
@@ -81,22 +81,22 @@ class CryptoFuturesEnv(gym.Env):
         self.position = None  # None ou Dict com info da posição
         self.trades_history = []
         self.episode_trades = []
-        
+
         # Portfolio tracking
         self.peak_capital = initial_capital
         self.daily_start_capital = initial_capital
         self.flat_steps = 0  # Contador de steps sem posição (para penalidade de inatividade)
         self.pnl_history = []  # Histórico de PnL% para calcular momentum
-        
+
         logger.info(f"CryptoFuturesEnv initialized: capital=${initial_capital}, "
                    f"episode_length={episode_length}")
-    
+
     def _compute_multi_tf_result(self) -> Dict[str, Any]:
         """
         Pré-computa análise multi-timeframe a partir dos dados disponíveis.
         Chamado uma vez durante __init__ e fornece bias D1, regime de mercado,
         correlação e beta BTC para o builder de observação.
-        
+
         Returns:
             Dict[str, Any]: Dicionário contendo 'symbol' (str), 'd1_bias' (str: 'BULLISH'/'BEARISH'/'NEUTRO'),
                            'market_regime' (str: 'RISK_ON'/'RISK_OFF'/'NEUTRO'),
@@ -108,7 +108,7 @@ class CryptoFuturesEnv(gym.Env):
             d1_data = self.data.get('d1', pd.DataFrame())
             macro = self.data.get('macro')
             btc_data = self.data.get('btc_d1')  # Dados de referência BTC opcionais
-            
+
             result = MultiTimeframeAnalysis.aggregate(
                 h1_data=h1_data if isinstance(h1_data, pd.DataFrame) else pd.DataFrame(),
                 h4_data=h4_data if isinstance(h4_data, pd.DataFrame) else pd.DataFrame(),
@@ -117,13 +117,13 @@ class CryptoFuturesEnv(gym.Env):
                 macro_data=macro if isinstance(macro, dict) else None,
                 btc_data=btc_data if isinstance(btc_data, pd.DataFrame) else None
             )
-            
+
             logger.info(f"Análise multi-TF computada: D1={result['d1_bias']}, "
                         f"Regime={result['market_regime']}, "
                         f"Corr={result['correlation_btc']:.3f}, "
                         f"Beta={result['beta_btc']:.3f}")
             return result
-            
+
         except Exception as e:
             logger.warning(f"Falha ao computar análise multi-TF: {e}")
             return {
@@ -132,26 +132,26 @@ class CryptoFuturesEnv(gym.Env):
                 'correlation_btc': 0.0,
                 'beta_btc': 1.0
             }
-    
+
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> Tuple[np.ndarray, Dict]:
         """
         Reset environment para novo episódio.
-        
+
         Returns:
             (observation, info)
         """
         super().reset(seed=seed)
-        
+
         # Começar após warm-up period para evitar NaN nos indicadores
         warmup_steps = 30  # Pular primeiros 30 candles
         max_start = max(0, len(self.data.get('h4', [])) - self.episode_length - warmup_steps)
-        
+
         if max_start > warmup_steps:
             # Selecionar ponto de início aleatório após warm-up
             self.start_step = np.random.randint(warmup_steps, max_start)
         else:
             self.start_step = warmup_steps
-        
+
         self.current_step = self.start_step
         self.capital = self.initial_capital
         self.position = None
@@ -160,31 +160,31 @@ class CryptoFuturesEnv(gym.Env):
         self.daily_start_capital = self.initial_capital
         self.flat_steps = 0  # Resetar contador de inatividade
         self.pnl_history = []  # Resetar histórico de PnL
-        
+
         observation = self._get_observation()
         info = self._get_info()
-        
+
         logger.debug(f"Environment reset at step {self.start_step}")
-        
+
         return observation, info
-    
+
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         """
         Executa um step no environment.
-        
+
         Args:
             action: Ação a executar (0-4)
-            
+
         Returns:
             (observation, reward, terminated, truncated, info)
         """
         action_valid = True
         trade_result = None
-        
+
         # Executar ação
         if action == 0:  # HOLD
             pass
-        
+
         elif action == 1:  # OPEN_LONG
             if self.position is None:
                 action_valid = self._open_position("LONG")
@@ -192,7 +192,7 @@ class CryptoFuturesEnv(gym.Env):
                     self.flat_steps = 0  # Resetar contador de inatividade
             else:
                 action_valid = False
-        
+
         elif action == 2:  # OPEN_SHORT
             if self.position is None:
                 action_valid = self._open_position("SHORT")
@@ -200,24 +200,24 @@ class CryptoFuturesEnv(gym.Env):
                     self.flat_steps = 0  # Resetar contador de inatividade
             else:
                 action_valid = False
-        
+
         elif action == 3:  # CLOSE
             if self.position is not None:
                 # Calcular R-multiple atual da posição
                 h4_idx = self.current_step
                 if h4_idx < len(self.data['h4']):
                     current_price = float(self.data['h4'].iloc[h4_idx]['close'])
-                    
+
                     # Calcular PnL atual
                     if self.position['direction'] == "LONG":
                         pnl = (current_price - self.position['entry_price']) * self.position['size']
                     else:
                         pnl = (self.position['entry_price'] - current_price) * self.position['size']
-                    
+
                     # Calcular R-multiple atual
                     initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
                     current_r_multiple = pnl / initial_risk if initial_risk > 0 else 0
-                    
+
                     # Bloquear CLOSE se R < MIN_R_MULTIPLE_TO_CLOSE E posição em lucro
                     if pnl > 0 and current_r_multiple < MIN_R_MULTIPLE_TO_CLOSE:
                         # CLOSE bloqueado - forçar o agente a deixar stop/TP gerenciar a saída
@@ -231,26 +231,26 @@ class CryptoFuturesEnv(gym.Env):
                     action_valid = False
             else:
                 action_valid = False
-        
+
         elif action == 4:  # REDUCE_50
             if self.position is not None:
                 self._reduce_position(0.5)
             else:
                 action_valid = False
-        
+
         # Avançar para próximo candle
         self.current_step += 1
-        
+
         # Verificar stops e trailing (pode fechar posição)
         if self.position is not None:
             stop_result = self._check_stops()
             if stop_result:
                 trade_result = stop_result
-        
+
         # Atualizar contador de inatividade (após todas as ações e verificações)
         if self.position is None:
             self.flat_steps += 1
-        
+
         # Calcular reward
         reward_dict = self.reward_calculator.calculate(
             trade_result=trade_result,
@@ -261,31 +261,31 @@ class CryptoFuturesEnv(gym.Env):
             flat_steps=self.flat_steps  # NOVO: Passar contador de inatividade
         )
         reward = reward_dict['total']
-        
+
         # Clipping adicional do reward como camada extra de segurança
         reward = np.clip(reward, -10.0, 10.0)
-        
+
         # Verificar término
         terminated = self._check_termination()
         # Truncado se número de steps no episódio atingiu limite
         steps_in_episode = self.current_step - self.start_step
         truncated = steps_in_episode >= self.episode_length
-        
+
         # Próxima observação
         observation = self._get_observation()
         info = self._get_info()
         info['reward_components'] = reward_dict
         info['action_valid'] = action_valid
-        
+
         return observation, reward, terminated, truncated, info
-    
+
     def _open_position(self, direction: str) -> bool:
         """
         Abre uma posição.
-        
+
         Args:
             direction: "LONG" ou "SHORT"
-            
+
         Returns:
             True se posição foi aberta
         """
@@ -294,47 +294,47 @@ class CryptoFuturesEnv(gym.Env):
             h4_idx = self.current_step
             if h4_idx >= len(self.data['h4']):
                 return False
-            
+
             current_candle = self.data['h4'].iloc[h4_idx]
             entry_price = float(current_candle['close'])
             atr = float(current_candle.get('atr_14', entry_price * 0.02))
-            
+
             # Garantir que ATR não seja zero
             if atr == 0 or np.isnan(atr):
                 atr = entry_price * 0.02
-            
+
             # Calcular stop e TP
             stop_loss = self.risk_manager.calculate_stop_loss(entry_price, atr, direction)
             take_profit = self.risk_manager.calculate_take_profit(entry_price, atr, direction)
-            
+
             # Calcular tamanho da posição
             stop_distance_pct = abs(entry_price - stop_loss) / entry_price * 100
-            
+
             # Garantir que stop_distance_pct não seja zero
             if stop_distance_pct == 0 or np.isnan(stop_distance_pct):
                 stop_distance_pct = 2.0  # Default 2%
-            
+
             # Validar distância do stop
             if stop_distance_pct > self.risk_manager.params['max_stop_distance_pct'] * 100:
                 logger.warning(f"Stop too far: {stop_distance_pct:.2f}%")
                 return False
-            
+
             position_size = self.risk_manager.calculate_position_size(
                 self.capital, entry_price, stop_distance_pct
             )
-            
+
             # Validar com risk manager
             risk_usd = position_size * entry_price * (stop_distance_pct / 100)
             open_positions = [self.position] if self.position else []
-            
+
             allowed, reason = self.risk_manager.validate_new_trade(
                 open_positions, "SYMBOL", direction, self.capital, risk_usd
             )
-            
+
             if not allowed:
                 logger.debug(f"Trade rejected: {reason}")
                 return False
-            
+
             # Criar posição
             self.position = {
                 'direction': direction,
@@ -346,56 +346,56 @@ class CryptoFuturesEnv(gym.Env):
                 'initial_stop': stop_loss,
                 'atr': atr
             }
-            
+
             logger.info(f"Position opened: {direction} @ {entry_price:.2f}, "
                        f"size={position_size:.4f}, stop={stop_loss:.2f}, tp={take_profit:.2f}")
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error opening position: {e}")
             return False
-    
+
     def _close_position(self, reason: str) -> Optional[Dict[str, Any]]:
         """
         Fecha a posição atual.
-        
+
         Args:
             reason: Razão do fechamento
-            
+
         Returns:
             Dicionário com resultado do trade
         """
         if self.position is None:
             return None
-        
+
         try:
             h4_idx = self.current_step
             if h4_idx >= len(self.data['h4']):
                 return None
-            
+
             current_candle = self.data['h4'].iloc[h4_idx]
             exit_price = float(current_candle['close'])
-            
+
             # Calcular PnL
             if self.position['direction'] == "LONG":
                 pnl = (exit_price - self.position['entry_price']) * self.position['size']
             else:  # SHORT
                 pnl = (self.position['entry_price'] - exit_price) * self.position['size']
-            
+
             pnl_pct = pnl / self.capital * 100
-            
+
             # Calcular R-multiple
             initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
             r_multiple = pnl / initial_risk if initial_risk > 0 else 0
-            
+
             # Atualizar capital
             self.capital += pnl
-            
+
             # Atualizar peak
             if self.capital > self.peak_capital:
                 self.peak_capital = self.capital
-            
+
             # Registrar trade
             trade_result = {
                 'direction': self.position['direction'],
@@ -408,94 +408,94 @@ class CryptoFuturesEnv(gym.Env):
                 'r_multiple': r_multiple,
                 'exit_reason': reason
             }
-            
+
             self.episode_trades.append(trade_result)
             self.trades_history.append(trade_result)
-            
+
             logger.info(f"Position closed: {reason}, PnL=${pnl:.2f} ({pnl_pct:.2f}%), "
                        f"R={r_multiple:.2f}")
-            
+
             # Limpar posição
             self.position = None
-            
+
             return trade_result
-            
+
         except Exception as e:
             logger.error(f"Error closing position: {e}")
             self.position = None
             return None
-    
+
     def _reduce_position(self, factor: float) -> None:
         """
         Reduz posição por um fator.
-        
+
         Args:
             factor: Fator de redução (0-1)
         """
         if self.position is None:
             return
-        
+
         # Reduzir tamanho
         self.position['size'] *= (1 - factor)
-        
+
         # Mover stop para breakeven
         self.position['stop_loss'] = self.position['entry_price']
-        
+
         logger.info(f"Position reduced by {factor*100}%, stop moved to breakeven")
-    
+
     def _check_stops(self) -> Optional[Dict[str, Any]]:
         """
         Verifica se stop loss ou take profit foram atingidos.
-        
+
         Returns:
             Resultado do trade se fechado, None caso contrário
         """
         if self.position is None:
             return None
-        
+
         h4_idx = self.current_step
         if h4_idx >= len(self.data['h4']):
             return None
-        
+
         current_candle = self.data['h4'].iloc[h4_idx]
         high = float(current_candle['high'])
         low = float(current_candle['low'])
         close = float(current_candle['close'])
-        
+
         direction = self.position['direction']
-        
+
         # Verificar stop loss
         if direction == "LONG" and low <= self.position['stop_loss']:
             return self._close_position("stop_loss")
         elif direction == "SHORT" and high >= self.position['stop_loss']:
             return self._close_position("stop_loss")
-        
+
         # Verificar take profit
         if direction == "LONG" and high >= self.position['take_profit']:
             return self._close_position("take_profit")
         elif direction == "SHORT" and low <= self.position['take_profit']:
             return self._close_position("take_profit")
-        
+
         # Atualizar trailing stop
         atr = float(current_candle.get('atr_14', self.position['atr']))
         new_stop = self.risk_manager.update_trailing_stop(
-            close, self.position['stop_loss'], atr, 
+            close, self.position['stop_loss'], atr,
             direction, self.position['entry_price']
         )
         self.position['stop_loss'] = new_stop
-        
+
         return None
-    
+
     def _get_observation(self) -> np.ndarray:
         """
         Constrói observação atual.
-        
+
         Returns:
             Array de 104 features
         """
         try:
             h4_idx = self.current_step
-            
+
             # Pegar dados
             h4_data = self.data.get('h4')
             h1_data = self.data.get('h1')
@@ -503,7 +503,7 @@ class CryptoFuturesEnv(gym.Env):
             sentiment = self.data.get('sentiment')
             macro = self.data.get('macro')
             smc = self.data.get('smc')
-            
+
             # Garantir que sentiment não é None (valores neutros)
             if sentiment is None:
                 sentiment = {
@@ -516,7 +516,7 @@ class CryptoFuturesEnv(gym.Env):
                     'liquidations_long_vol': 0.0,
                     'liquidations_short_vol': 0.0,
                 }
-            
+
             # Garantir que macro não é None (valores neutros)
             if macro is None:
                 macro = {
@@ -527,7 +527,7 @@ class CryptoFuturesEnv(gym.Env):
                     'dxy_change_pct': 0.0,
                     'stablecoin_exchange_flow_net': 0.0,
                 }
-            
+
             # Garantir que smc não é None (estrutura vazia)
             if smc is None:
                 smc = {
@@ -541,16 +541,16 @@ class CryptoFuturesEnv(gym.Env):
                     'liquidity_sweeps': [],
                     'premium_discount': None,
                 }
-            
+
             # Window de dados
             if h4_data is not None and h4_idx < len(h4_data):
                 h4_window = h4_data.iloc[max(0, h4_idx-30):h4_idx+1]
             else:
                 h4_window = None
-            
+
             # Estado da posição
             position_state = self._get_position_state()
-            
+
             # Construir features
             observation = self.feature_engineer.build_observation(
                 symbol=self.symbol,
@@ -563,20 +563,20 @@ class CryptoFuturesEnv(gym.Env):
                 position_state=position_state,
                 multi_tf_result=self.multi_tf_result
             )
-            
+
             # Garantir que não há NaN - substituir por 0
             observation = np.nan_to_num(observation, nan=0.0, posinf=0.0, neginf=0.0)
-            
+
             # Clippar valores extremos para evitar problemas
             observation = np.clip(observation, -10.0, 10.0)
-            
+
             return observation.astype(np.float32)
-            
+
         except Exception as e:
             logger.error(f"Error building observation: {e}")
             # Retornar observação zero em caso de erro
             return np.zeros(104, dtype=np.float32)
-    
+
     def _get_position_state(self) -> Optional[Dict[str, Any]]:
         """Retorna estado da posição atual."""
         if self.position is None:
@@ -584,24 +584,24 @@ class CryptoFuturesEnv(gym.Env):
                 'has_position': False,
                 'flat_steps': self.flat_steps  # Incluir contador de inatividade
             }
-        
+
         h4_idx = self.current_step
         if h4_idx >= len(self.data['h4']):
             return {'has_position': False}
-        
+
         current_price = float(self.data['h4'].iloc[h4_idx]['close'])
-        
+
         # Calcular PnL
         if self.position['direction'] == "LONG":
             pnl = (current_price - self.position['entry_price']) * self.position['size']
         else:
             pnl = (self.position['entry_price'] - current_price) * self.position['size']
-        
+
         pnl_pct = pnl / self.capital * 100
-        
+
         # Adicionar PnL atual ao histórico
         self.pnl_history.append(pnl_pct)
-        
+
         # Calcular momentum do PnL (taxa de variação nos últimos 3 candles H4)
         pnl_momentum = 0.0
         if len(self.pnl_history) >= 6:
@@ -609,18 +609,18 @@ class CryptoFuturesEnv(gym.Env):
             recent_avg = np.mean(self.pnl_history[-3:])
             previous_avg = np.mean(self.pnl_history[-6:-3])
             pnl_momentum = recent_avg - previous_avg
-        
+
         # Calcular R-multiple atual
         initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
         current_r_multiple = pnl / initial_risk if initial_risk > 0 else 0
-        
+
         # Tempo na posição
         time_in_pos = (self.current_step - self.position['entry_step']) * 4  # H4 em horas
-        
+
         # Distâncias
         stop_dist_pct = abs(current_price - self.position['stop_loss']) / current_price * 100
         tp_dist_pct = abs(self.position['take_profit'] - current_price) / current_price * 100
-        
+
         return {
             'has_position': True,
             'direction': self.position['direction'],
@@ -632,14 +632,14 @@ class CryptoFuturesEnv(gym.Env):
             'tp_distance_pct': tp_dist_pct,
             'has_stop_loss': True
         }
-    
+
     def _get_portfolio_state(self) -> Dict[str, Any]:
         """Retorna estado do portfólio."""
         current_dd = (self.peak_capital - self.capital) / self.peak_capital * 100 if self.peak_capital > 0 else 0
-        
+
         # Contar trades nas últimas 24h (24 H4 candles = 96h, aproximar para 24 candles = 96/4 = 24h)
         recent_trades = [t for t in self.episode_trades if (self.current_step - t['exit_step']) <= 6]
-        
+
         return {
             'initial_capital': self.initial_capital,
             'current_capital': self.capital,
@@ -648,7 +648,7 @@ class CryptoFuturesEnv(gym.Env):
             'current_drawdown_pct': current_dd,
             'trades_24h': len(recent_trades)
         }
-    
+
     def _get_info(self) -> Dict[str, Any]:
         """Retorna informações adicionais."""
         return {
@@ -657,11 +657,11 @@ class CryptoFuturesEnv(gym.Env):
             'has_position': self.position is not None,
             'trades_count': len(self.episode_trades)
         }
-    
+
     def _check_termination(self) -> bool:
         """
         Verifica condições de término do episódio.
-        
+
         Returns:
             True se deve terminar
         """
@@ -669,20 +669,20 @@ class CryptoFuturesEnv(gym.Env):
         if self.capital < self.initial_capital * 0.5:
             logger.warning(f"Episode terminated: capital < 50% (${self.capital:.2f})")
             return True
-        
+
         # Término por fim dos dados
         if self.current_step >= len(self.data.get('h4', [])):
             logger.info("Episode terminated: end of data")
             return True
-        
+
         return False
-    
+
     def render(self) -> None:
         """Renderiza estado atual (opcional)."""
         if self.current_step % 50 == 0:
             print(f"Step: {self.current_step}, Capital: ${self.capital:.2f}, "
                   f"Position: {self.position['direction'] if self.position else 'None'}")
-    
+
     def close(self) -> None:
         """Limpa recursos."""
         pass

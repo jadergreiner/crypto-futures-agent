@@ -45,7 +45,7 @@ def get_signal_status():
         try:
             # Buscar todos os sinais do símbolo
             all_signals = db.get_signals_for_training(symbol)
-            
+
             if not all_signals:
                 data_rows.append({
                     'Símbolo': symbol,
@@ -64,7 +64,7 @@ def get_signal_status():
             won_count = sum(1 for s in all_signals if s.get('outcome_label') == 'win')
             lost_count = sum(1 for s in all_signals if s.get('outcome_label') == 'loss')
             total_count = len(all_signals)
-            
+
             win_rate = (won_count / total_count * 100) if total_count > 0 else 0
 
             # Último sinal
@@ -88,7 +88,7 @@ def get_signal_status():
             # Sinal claro?
             signal_direction = last_signal.get('direction', 'NONE') if last_signal else 'NENHUM'
             confluence = last_signal.get('confluence_score', 0) if last_signal else 0
-            
+
             if confluence >= 10:
                 signal_quality = f"🟢 FORTE ({signal_direction})"
             elif confluence >= 7:
@@ -114,10 +114,10 @@ def get_signal_status():
     # Exibir tabela formatada
     if data_rows:
         df = pd.DataFrame(data_rows)
-        
+
         # Ordenar por sinais totais (descendente)
         df = df.sort_values('Sinais Totais', ascending=False)
-        
+
         print(df.to_string(index=False))
         print()
     else:
@@ -128,12 +128,12 @@ def get_signal_status():
     print("=" * 100)
     print("RESUMO GERAL")
     print("=" * 100)
-    
+
     total_signals = sum(d['Sinais Totais'] for d in data_rows)
     total_active = sum(d['Sinais Ativos'] for d in data_rows)
     total_wins = sum(d['Vitórias'] for d in data_rows)
     total_losses = sum(d['Derrotas'] for d in data_rows)
-    
+
     if total_signals > 0:
         overall_win_rate = (total_wins / (total_wins + total_losses) * 100) if (total_wins + total_losses) > 0 else 0
         print(f"Total de Sinais Gerados: {total_signals}")

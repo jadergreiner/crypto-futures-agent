@@ -1,6 +1,6 @@
 # SIMPLIFICAÇÃO DE LOGS - CONSOLIDADO DE CICLO
 
-**Data**: 2026-02-21 02:04  
+**Data**: 2026-02-21 02:04
 **Status**: ✅ IMPLEMENTADO E TESTADO
 
 ---
@@ -86,7 +86,7 @@ Menu atualizado (`menu.py`) agora tem **13 opções** (era 12):
   4. Posições Detalhadas
   5. Status em Tempo Real (completo)
   6. Consolidado de Ciclo (de 5 minutos) ← NOVO
-  
+
   --- Opcoes Avancadas ---
   7. Monitorar Posicoes Abertas (verbose)
   8. Executar Backtest
@@ -255,9 +255,9 @@ Quando o sistema rodando em **OPERACAO PADRAO**:
 ## RESUMO
 
 ✅ **Tela de logs simplificada**: Consolidado visual ao invés de linhas verbosas por símbolo
-✅ **A cada 5 minutos**: Automático durante OPERACAO PADRAO  
-✅ **Todas as informações solicitadas**: Cotação, indicadores, sinais, posições, treinamento  
-✅ **Padrão uniforme**: Uma linha cleanly formatada por símbolo  
+✅ **A cada 5 minutos**: Automático durante OPERACAO PADRAO
+✅ **Todas as informações solicitadas**: Cotação, indicadores, sinais, posições, treinamento
+✅ **Padrão uniforme**: Uma linha cleanly formatada por símbolo
 ✅ **Acesso fácil**: Menu opção 6 + script `resumo_ciclo.py` standalone
 
 **Sistema pronto para operação com visibilidade clara!**

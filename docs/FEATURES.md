@@ -51,22 +51,16 @@ CRÍTICA | ✅ DONE (20/02 20:15) |
 | F-15 | Autorização formal (AUTHORIZATION_OPÇÃO_C_20FEV.txt) | 🔴 CRÍTICA | ✅
 DONE (20/02 20:30) |
 
-## v0.4 — Backtest Engine (21-23/02/2026)
+## v0.4 — Backtest Engine (21-24/02/2026)
 
 | ID | Feature | Prioridade | Status | Detalhes |
 |----|---------|-----------|--------|----------|
-| F-12 | Backtester funcional com 6 métricas + Risk Clearance | 🔴 CRÍTICA | ⏳
-TODO | Sharpe≥1.0, MaxDD≤15%, WR≥45%, PF≥1.5, CFactor≥2.0, ConsecLosses≤5 |
-| F-12a | BacktestEnvironment (subclasse CryptoFuturesEnv) | 🔴 CRÍTICA | ⏳ TODO
-| Determinístico, reutiliza 95% de step() |
-| F-12b | Data pipeline 3-camadas (cache Parquet) | 🔴 CRÍTICA | ⏳ TODO | 6-10x
-mais rápido que SQLite direto |
-| F-12c | TradeStateMachine (IDLE/LONG/SHORT) | 🔴 CRÍTICA | ⏳ TODO | Rastreia
-posições + calcula PnL com fees |
-| F-12d | Reporter (Text + JSON) | 🟡 ALTA | ⏳ TODO | Relatório legível em
-terminal + estruturado |
-| F-12e | 8 unit tests (determinismo, state machine, metrics) | 🔴 CRÍTICA | ⏳
-TODO | Coverage de validação core |
+| F-12 | Backtester funcional com 6 métricas + Risk Clearance | 🔴 CRÍTICA | 🔄 IN PROGRESS (60%) | Sharpe≥1.0, DD≤15%, WR≥45%, PF≥1.5, Calmar≥2.0, CL≤5 |
+| F-12a | BacktestEnvironment (subclasse CryptoFuturesEnv) | 🔴 CRÍTICA | ✅ DONE (21/02) | Determinístico, herança 99%, 168L |
+| F-12b | Data pipeline 3-camadas (cache Parquet) | 🔴 CRÍTICA | 🔄 IN PROGRESS (22/02) | 6-10x mais rápido, iniciando amanhã |
+| F-12c | TradeStateMachine (IDLE/LONG/SHORT) | 🔴 CRÍTICA | ✅ DONE (21/02) | Estados + PnL/fees exatos, 205L |
+| F-12d | BacktestMetrics Reporter (JSON+text) | 🔴 CRÍTICA | ✅ DONE (21/02) | 6 métricas GO/NO-GO, 345L |
+| F-12e | 8 unit tests (core coverage) | 🔴 CRÍTICA | 🔄 5/8 PASSING (21/02) | 3 testes bloqueados, resolved 22 FEV |
 | F-13 | Walk-forward com janelas train/test | 🟡 ALTA | ⏳ Após F-12 | Valida
 retreinamento incremental (v0.4.1) |
 | F-14 | Métricas extras (Sortino, Calmar) | 🟡 ALTA | ⏳ Após F-12 | Análise mais

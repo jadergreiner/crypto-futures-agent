@@ -7,12 +7,17 @@ Requer aprovaçãoexplícita do operador (AUTHORIZATION_OPÇÃO_C_20FEV.txt)
 """
 
 import logging
+import os
 import threading
 import time
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# Suprimir warnings do TensorFlow/Keras antes de importar qualquer módulo que o use
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Supprime INFO e WARNING (mantém ERROR)
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Evita warnings de oneDNN
 
 # Setup logger
 logging.basicConfig(

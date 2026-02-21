@@ -1,6 +1,6 @@
 # Implementação Completa: Aprendizado Contextual de Decisões
 
-**Data**: 21 de fevereiro de 2026, 02:25 UTC  
+**Data**: 21 de fevereiro de 2026, 02:25 UTC
 **Status**: ✅ **IMPLEMENTADO E VALIDADO (6/6 testes passando)**
 
 ---
@@ -50,13 +50,13 @@ Policy Final: Agente aprende a DIFERENCIAR
 ```python
 class OpportunityLearner:
     """Meta-Learning: Avaliar quando ficar fora é sábio vs desperdiçador."""
-    
+
     def register_missed_opportunity(...):
         """1. Registra oportunidade não tomada"""
-        
+
     def evaluate_opportunity(...):
         """2. Depois de X candles, avalia se era sábio ficar fora"""
-        
+
     def _compute_contextual_reward(opp):
         """3. Computa reward contextual baseado em lógica sofisticada"""
 ```
@@ -101,20 +101,20 @@ class MissedOpportunity:
     direction: str
     entry_price: float
     confluence: float
-    
+
     # Contexto de desistência
     drawdown_pct: float
     recent_trades_24h: int
-    
+
     # Simulação hipotética
     hypothetical_tp: float
     hypothetical_sl: float
-    
+
     # Resultado final
     would_have_been_winning: bool
     profit_pct_if_entered: float
     opportunity_quality: str  # EXCELLENT, GOOD, OK, BAD
-    
+
     # Aprendizado
     contextual_reward: float
     reasoning: str
@@ -261,7 +261,7 @@ Resultado: -15% em oportunidades, mas as que toma ganha mais
 
 ## Filosofia
 
-**Antes**: "Ficar fora é sempre bom durante drawdown"  
+**Antes**: "Ficar fora é sempre bom durante drawdown"
 **Depois**: "Ficar fora é bom QUANDO as oportunidades são ruins. Ficar fora é ruim QUANDO as oportunidades são excelentes."
 
 **Isso é verdadeira inteligência adaptativa.**
@@ -274,11 +274,11 @@ O agente aprende não a seguir regras, mas a **avaliar decisões em contexto**.
 
 Você encontrou a **falha crítica** do aprendizado anterior e a implementação resolve através de:
 
-✅ **Meta-Learning** — Agente aprende sobre suas próprias decisões  
-✅ **Avaliação retrospectiva** — Simula "e se tivesse entrado?"  
-✅ **Reward contextual** — Penaliza ganância, recompensa sabedoria  
-✅ **Diferenciação sofisticada** — Não é binário, é contextual  
-✅ **Validação completa** — 6/6 testes passando  
+✅ **Meta-Learning** — Agente aprende sobre suas próprias decisões
+✅ **Avaliação retrospectiva** — Simula "e se tivesse entrado?"
+✅ **Reward contextual** — Penaliza ganância, recompensa sabedoria
+✅ **Diferenciação sofisticada** — Não é binário, é contextual
+✅ **Validação completa** — 6/6 testes passando
 
 **Status: 🟢 PRONTO PARA INTEGRAÇÃO COM ENVIRONMENT**
 

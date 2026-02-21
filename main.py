@@ -4,11 +4,16 @@ Entry point do agente autônomo de futuros de criptomoedas.
 
 import argparse
 import logging
+import os
 import sys
 import threading
 from pathlib import Path
 from datetime import datetime
 import numpy as np
+
+# Suprimir warnings do TensorFlow/Keras antes de importar qualquer módulo que o use
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Supprime INFO e WARNING (mantém ERROR)
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Evita warnings de oneDNN
 
 from config.settings import DB_PATH, TRADING_MODE, HISTORICAL_PERIODS
 from config.symbols import ALL_SYMBOLS

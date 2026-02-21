@@ -1,7 +1,7 @@
 # Aprendizado: Ficar Fora do Mercado com Inteligência
 
-**Data**: 21/02/2026  
-**Versão**: Reward Round 5  
+**Data**: 21/02/2026
+**Versão**: Reward Round 5
 **Objetivo**: Ensinar ao agente RL que ficar fora do mercado é uma decisão válida e frequentemente melhor
 
 ---
@@ -150,15 +150,15 @@ reward_dict = self.reward_calculator.calculate(
 ```python
 # Somente quando FORA do mercado (sem posição)
 if portfolio_state and not has_position:
-    
+
     # Se drawdown > 2%, recompensar por ficar fora
     if drawdown >= 2.0%:
         r_out_of_market = 0.15
-    
+
     # Se múltiplos trades recentes, recompensar descanso
     if trades_24h >= 3:
         r_out_of_market += 0.10 * (trades_24h / 10)
-    
+
     # Se muito tempo sem posição, penalidade leve
     if flat_steps > 96:
         r_out_of_market -= 0.03 * (flat_steps / 100)

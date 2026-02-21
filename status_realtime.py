@@ -28,7 +28,7 @@ def format_timestamp(ts_ms):
 
 def get_realtime_status():
     """Obter status em tempo real"""
-    
+
     print("\n" + "=" * 100)
     print("STATUS EM TEMPO REAL - AGENTE DE TRADING")
     print("=" * 100)
@@ -47,13 +47,13 @@ def get_realtime_status():
     print("=" * 100)
     print("POSIÇÕES ABERTAS NA BINANCE")
     print("=" * 100)
-    
+
     try:
         positions = monitor.fetch_open_positions(symbol=None, log_each_position=False)
-        
+
         if positions:
             print(f"\n✅ {len(positions)} posição(ões) aberta(s):\n")
-            
+
             for pos in positions:
                 symbol = pos.get('symbol', 'N/A')
                 direction = pos.get('direction', 'N/A')
@@ -63,7 +63,7 @@ def get_realtime_status():
                 pnl = pos.get('unrealized_pnl', 0)
                 pnl_pct = pos.get('unrealized_pnl_pct', 0)
                 margin = pos.get('margin_invested', 0)
-                
+
                 # Símbolo com cor baseado em PnL
                 if pnl_pct >= 5:
                     pnl_indicator = "🟢"  # Muito lucrativo
@@ -71,7 +71,7 @@ def get_realtime_status():
                     pnl_indicator = "🟡"  # Positivo
                 else:
                     pnl_indicator = "🔴"  # Negativo
-                
+
                 print(f"  {pnl_indicator} {symbol:12} {direction:6} | "
                       f"Qty: {qty:12.6f} | "
                       f"Entry: {entry_price:12.8f} | "
@@ -89,26 +89,26 @@ def get_realtime_status():
     print("=" * 100)
     print("STATUS DE MONITORAMENTO")
     print("=" * 100)
-    
+
     try:
         # Buscar últimos snapshots (decisões)
         with db.get_connection() as conn:
             cursor = conn.cursor()
-            
+
             query = """
-            SELECT symbol, agent_action, decision_confidence, risk_score, 
+            SELECT symbol, agent_action, decision_confidence, risk_score,
                     timestamp, unrealized_pnl_pct
             FROM position_snapshots
             ORDER BY timestamp DESC
             LIMIT 25
             """
-            
+
             cursor.execute(query)
             snapshots = cursor.fetchall()
-        
+
         if snapshots:
             print(f"\n✅ Últimas {len(snapshots)} decisões:\n")
-            
+
             for snap in snapshots:
                 symbol = snap[0]
                 action = snap[1]
@@ -116,7 +116,7 @@ def get_realtime_status():
                 risk_score = snap[3]
                 timestamp = snap[4]
                 pnl_pct = snap[5]
-                
+
                 # Ícone de ação
                 if action == 'HOLD':
                     action_icon = "⏸️ "
@@ -126,7 +126,7 @@ def get_realtime_status():
                     action_icon = "🔒"
                 else:
                     action_icon = "❓"
-                
+
                 # Confiança
                 if confidence and confidence >= 0.7:
                     conf_icon = "🟢"
@@ -134,7 +134,7 @@ def get_realtime_status():
                     conf_icon = "🟡"
                 else:
                     conf_icon = "🔴"
-                
+
                 # Risco
                 if risk_score and risk_score >= 8:
                     risk_icon = "⚠️ "
@@ -142,12 +142,12 @@ def get_realtime_status():
                     risk_icon = "⚡"
                 else:
                     risk_icon = "✓ "
-                
+
                 time_str = format_timestamp(timestamp)
                 conf_val = f"{confidence:.2f}" if confidence else "N/A"
                 risk_val = f"{risk_score:.1f}/10" if risk_score else "N/A"
                 pnl_val = f"{pnl_pct:.2f}%" if pnl_pct else "N/A"
-                
+
                 print(f"  {time_str} | {action_icon} {symbol:12} {action:10} | "
                       f"Conf: {conf_icon} {conf_val:5} | "
                       f"Risco: {risk_icon} {risk_val:6} | "
@@ -163,11 +163,11 @@ def get_realtime_status():
     print("=" * 100)
     print("SINAIS GERADOS (LAYER H4)")
     print("=" * 100)
-    
+
     try:
         with db.get_connection() as conn:
             cursor = conn.cursor()
-            
+
             query = """
             SELECT symbol, direction, confluence_score, status, timestamp
             FROM trade_signals
@@ -175,20 +175,20 @@ def get_realtime_status():
             ORDER BY timestamp DESC
             LIMIT 10
             """
-            
+
             cursor.execute(query)
             signals = cursor.fetchall()
-        
+
         if signals:
             print(f"\n✅ {len(signals)} sinal(ns) ativo(s):\n")
-            
+
             for signal in signals:
                 symbol = signal[0]
                 direction = signal[1]
                 confluence = signal[2]
                 status = signal[3]
                 timestamp = signal[4]
-                
+
                 # Indicador de força do sinal
                 if confluence and confluence >= 10:
                     signal_strength = "🟢 FORTE"
@@ -196,10 +196,10 @@ def get_realtime_status():
                     signal_strength = "🟡 MÉDIO"
                 else:
                     signal_strength = "🔴 FRACO"
-                
+
                 time_str = format_timestamp(timestamp)
                 conf_val = f"{confluence:.1f}" if confluence else "N/A"
-                
+
                 print(f"  {time_str} | {symbol:12} {direction:6} | "
                       f"Confluência: {conf_val:5}/14 | {signal_strength:15} | {status}")
         else:
@@ -213,30 +213,30 @@ def get_realtime_status():
     print("=" * 100)
     print("ESTATÍSTICAS")
     print("=" * 100)
-    
+
     try:
         # Total de símbolos monitorados
         monitored = len(ALL_SYMBOLS)
-        
+
         # Snapshots totais
         with db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM position_snapshots")
             total_snapshots = cursor.fetchone()[0]
-            
+
             # Sinais totais
             cursor.execute("SELECT COUNT(*) FROM trade_signals")
             total_signals = cursor.fetchone()[0]
-            
+
             # Posições monitoradas (estão nas posições abertas da Binance)
             total_opens = len(positions) if positions else 0
-        
+
         print()
         print(f"  Símbolos monitorados: {monitored}")
         print(f"  Posições abertas: {total_opens}")
         print(f"  Decisões tomadas: {total_snapshots}")
         print(f"  Sinais gerados: {total_signals}")
-        
+
     except Exception as e:
         print(f"[AVISO] Erro ao calcular estatísticas: {e}")
 

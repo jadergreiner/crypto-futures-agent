@@ -17,7 +17,7 @@ from pathlib import Path
 def get_symbol_status(cursor, symbol: str) -> dict:
     """Coleta status consolidado de um símbolo."""
     status = {"symbol": symbol}
-    
+
     try:
         # Última cotação
         cursor.execute(
@@ -28,7 +28,7 @@ def get_symbol_status(cursor, symbol: str) -> dict:
         status["price"] = f"{price[0]:.6f}" if price else "NA"
     except Exception:
         status["price"] = "NA"
-    
+
     try:
         # Últimos indicadores (H4)
         cursor.execute(
@@ -48,7 +48,7 @@ def get_symbol_status(cursor, symbol: str) -> dict:
         status["confluence"] = "NA"
         status["direction"] = "NA"
         status["regime"] = "NA"
-    
+
     try:
         # Último sinal
         cursor.execute(
@@ -59,7 +59,7 @@ def get_symbol_status(cursor, symbol: str) -> dict:
         status["signal"] = signal[0][:4] if signal else "NA"
     except Exception:
         status["signal"] = "NA"
-    
+
     try:
         # Posição aberta
         cursor.execute(
@@ -79,14 +79,14 @@ def get_symbol_status(cursor, symbol: str) -> dict:
             status["position"] = "NA"
     except Exception:
         status["position"] = "NA"
-    
+
     try:
         # Status de treinamento (% de wins na janela recente)
         cursor.execute(
             """
-            SELECT 
-                COUNT(CASE WHEN pnl_usd > 0 THEN 1 END) * 100.0 / COUNT(*) 
-            FROM positions 
+            SELECT
+                COUNT(CASE WHEN pnl_usd > 0 THEN 1 END) * 100.0 / COUNT(*)
+            FROM positions
             WHERE symbol=? AND status='CLOSED'
             LIMIT 100
             """,
@@ -97,7 +97,7 @@ def get_symbol_status(cursor, symbol: str) -> dict:
         status["training"] = f"{training_pct}%"
     except Exception:
         status["training"] = "NA"
-    
+
     return status
 
 
@@ -109,22 +109,22 @@ def print_cycle_summary(symbols: list[str], db_path: str = "db/crypto_agent.db")
     if not db_path.exists():
         print(f"⚠️  Banco de dados não encontrado: {db_path}")
         return
-    
+
     try:
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
+
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"\n{'='*160}")
         print(f"[CICLO] MONITORAMENTO - {now}")
         print(f"{'='*160}")
         print(f"{'SYMBOL':<12} {'PRICE':<12} {'CONF':<6} {'DIR':<5} {'REGIME':<6} {'SIGNAL':<6} {'POSITION':<50} {'TRAINING':<8}")
         print(f"{'-'*160}")
-        
+
         for symbol in sorted(symbols):
             status = get_symbol_status(cursor, symbol)
-            
+
             line = (
                 f"{status['symbol']:<12} "
                 f"{status['price']:<12} "
@@ -136,11 +136,11 @@ def print_cycle_summary(symbols: list[str], db_path: str = "db/crypto_agent.db")
                 f"{status['training']:<8}"
             )
             print(line)
-        
+
         print(f"{'='*160}\n")
-        
+
         conn.close()
-        
+
     except Exception as e:
         print(f"[ERRO] Ao consolidar ciclo: {e}")
 

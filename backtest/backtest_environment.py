@@ -35,7 +35,10 @@ class BacktestEnvironment(CryptoFuturesEnv):
                  initial_capital: float = 10000,
                  risk_params: Optional[Dict[str, Any]] = None,
                  episode_length: Optional[int] = None,
-                 deterministic: bool = True):
+                 deterministic: bool = True,
+                 seed: int = 42,
+                 data_start: int = 0,
+                 data_end: Optional[int] = None):
         """
         Inicializa BacktestEnvironment.
 
@@ -45,6 +48,9 @@ class BacktestEnvironment(CryptoFuturesEnv):
             risk_params: Parâmetros de risco opcionais
             episode_length: Comprimento máximo do episódio (Default: len(h4) - 1)
             deterministic: Se True, ignora randomização de start_step
+            seed: Seed para reproducibilidade (default=42)
+            data_start: Índice inicial dos dados (default=0)
+            data_end: Índice final dos dados (default=None = todo)
         """
         # Inferir episode_length se não fornecido
         if episode_length is None:
@@ -58,8 +64,12 @@ class BacktestEnvironment(CryptoFuturesEnv):
             risk_params=risk_params,
             episode_length=episode_length
         )
-
+        
         self.deterministic = deterministic
+        self.seed_value = seed
+        self.data_start = data_start
+        h4_len = len(self.data.get('h4', []))
+        self.data_end = data_end if data_end else h4_len
 
         logger.info(f"BacktestEnvironment initialized: symbol={data.get('symbol', 'UNKNOWN')}, "
                    f"deterministic={deterministic}, episode_length={episode_length}")
@@ -73,20 +83,24 @@ class BacktestEnvironment(CryptoFuturesEnv):
         Em backtesting, sempre começar após warmup (step 30) e ignorar randomização.
 
         Args:
-            seed: Seed (ignorado em modo determinístico)
+            seed: Seed (se None, usa self.seed_value)
             options: Opções customizadas
 
         Returns:
             (observation, info)
         """
+        # Usar seed fornecido ou default
+        if seed is not None:
+            self.seed_value = seed
+        
         if self.deterministic:
             # Modo determinístico: sempre começar em warmup + 0
+            np.random.seed(self.seed_value)
             warmup_steps = 30
-            self.start_step = warmup_steps
+            self.start_step = self.data_start + warmup_steps
         else:
             # Modo aleatório: usar seed
-            if seed is not None:
-                np.random.seed(seed)
+            np.random.seed(self.seed_value)
 
             warmup_steps = 30
             max_start = max(0, len(self.data.get('h4', [])) - self.episode_length - warmup_steps)
@@ -98,7 +112,7 @@ class BacktestEnvironment(CryptoFuturesEnv):
 
         # Chamar reset da classe pai (CryptoFuturesEnv) — isto cuida de tudo
         # (state reset, observation creation, info dict)
-        return super().reset(seed=seed, options=options)
+        return super().reset(seed=self.seed_value, options=options)
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         """
