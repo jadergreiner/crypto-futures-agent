@@ -1,0 +1,40 @@
+{
+  "phase": "3 - Full Backtest Run Integration",
+  "execution_date": "2026-02-21",
+  "status": "✅ SUCCESS",
+  "backtest_executed": true,
+  "steps_completed": 500,
+  "trades_logged": 101,
+  "equity_curve_points": 501,
+  "output_files_ready": true,
+  "ready_for_ml_metrics": true,
+  "blockers": [],
+  "output_files": {
+    "trades_log": "tests/output/trades_F12_backtest.csv",
+    "equity_curve": "tests/output/equity_curve_F12.csv"
+  },
+  "metrics": {
+    "initial_capital": 10000.0,
+    "final_equity": 10341.9,
+    "total_return_pct": 3.42,
+    "symbol": "1000PEPEUSDT",
+    "timeframe": "h4"
+  },
+  "validation": {
+    "trades_count_valid": true,
+    "trades_count": 101,
+    "trades_required": ">100",
+    "equity_points_valid": true,
+    "equity_points": 501,
+    "equity_required": ">500"
+  },
+  "next_step": "ML metrics calculation ready - SWE handoff complete",
+  "ready_for_ml": {
+    "status": true,
+    "files": [
+      "tests/output/trades_F12_backtest.csv",
+      "tests/output/equity_curve_F12.csv"
+    ],
+    "data_quality": "verified"
+  }
+}
