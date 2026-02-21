@@ -3,10 +3,10 @@
 """
 Script base para treinamento PPO com BacktestEnvironment.
 
-Configuração:
+Configuracao PPO:
 - Model: PPO (Proximal Policy Optimization)
 - Framework: Stable-Baselines3 + PyTorch
-- Environment: BacktestEnvironment (determinístico)
+- Environment: BacktestEnvironment (deterministico)
 - Data: OGNUSDT + 1000PEPEUSDT H4 (800 treino + 200 validacao)
 """
 
@@ -17,6 +17,7 @@ from pathlib import Path
 from datetime import datetime
 import numpy as np
 import pandas as pd
+from typing import Optional
 
 # Imports ML
 try:
@@ -27,7 +28,7 @@ try:
     from gymnasium import Env
     HAS_ML = True
 except ImportError as e:
-    print(f"❌ Erro ao importar bibliotecas ML: {e}")
+    print(f"[ERROR] Erro ao importar bibliotecas ML: {e}")
     HAS_ML = False
 
 # Imports locais
@@ -54,15 +55,15 @@ class PPOTrainer:
         
         Args:
             config: PPOConfig (opcional, usa phase4 default)
-            checkpoint_dir: Diretório para salvar checkpoints
-            log_dir: Diretório para logs
+            checkpoint_dir: Diretorio para salvar checkpoints
+            log_dir: Diretorio para logs
         """
         self.config = config or get_ppo_config("phase4")
         self.checkpoint_dir = Path(checkpoint_dir)
         self.log_dir = Path(log_dir)
         self.cache = ParquetCache(db_path='crypto_agent.db', cache_dir='backtest/cache')
         
-        # Criar diretórios
+        # Criar diretorios
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
@@ -77,10 +78,10 @@ class PPOTrainer:
     
     def prepare_environment(self, symbol: str) -> tuple:
         """
-        Prepara ambiente para símbolo com VecNormalize.
+        Prepara ambiente para simbolo com VecNormalize.
         
         Args:
-            symbol: Símbolo (ex: 'OGNUSDT')
+            symbol: Simbolo (ex: 'OGNUSDT')
             
         Returns:
             Tupla (BacktestEnvironment, VecNormalize)
@@ -92,7 +93,7 @@ class PPOTrainer:
             h4_data = self.cache.load_ohlcv_for_symbol(symbol, timeframe='4h')
             
             if h4_data is None or h4_data.empty:
-                raise ValueError(f"Dados não encontrados para {symbol}")
+                raise ValueError(f"Dados nao encontrados para {symbol}")
             
             logger.info(f"Carregados {len(h4_data)} candles H4 para {symbol}")
             
@@ -129,11 +130,11 @@ class PPOTrainer:
                 gamma=self.config.gamma
             )
             
-            logger.info(f"✅ Ambiente preparado para {symbol}")
+            logger.info(f"[OK] Ambiente preparado para {symbol}")
             return env, vec_env
             
         except Exception as e:
-            logger.error(f"❌ Erro ao preparar ambiente: {e}")
+            logger.error(f"[ERROR] Erro ao preparar ambiente: {e}")
             raise
     
     def train(self, symbol: str = 'OGNUSDT') -> dict:
@@ -141,13 +142,13 @@ class PPOTrainer:
         Treina modelo PPO com config Phase 4.
         
         Args:
-            symbol: Símbolo para treinar
+            symbol: Simbolo para treinar
             
         Returns:
             dict com resultado do treinamento
         """
         if not HAS_ML:
-            logger.error("❌ Bibliotecas ML não disponíveis")
+            logger.error("Bibliotecas ML nao disponiveis")
             return {"error": "ML libraries missing"}
         
         logger.info(f"\n[TRAINING] Iniciando treinamento para {symbol}")
@@ -197,12 +198,12 @@ class PPOTrainer:
             # 5. Salvar modelo final e stats
             model_path = self.checkpoint_dir / f"{symbol}_ppo_final.zip"
             model.save(str(model_path))
-            logger.info(f"✅ Modelo salvo: {model_path}")
+            logger.info(f"[OK] Modelo salvo: {model_path}")
             
             # Salvar VecNormalize stats
             vecnorm_path = self.checkpoint_dir / f"{symbol}_ppo_vecnorm.pkl"
             vec_env.save(str(vecnorm_path))
-            logger.info(f"✅ VecNormalize stats salvo: {vecnorm_path}")
+            logger.info(f"[OK] VecNormalize stats salvo: {vecnorm_path}")
             
             return {
                 "status": "SUCCESS",
@@ -214,7 +215,7 @@ class PPOTrainer:
             }
             
         except Exception as e:
-            logger.error(f"❌ Erro durante treinamento: {e}")
+            logger.error(f"[ERROR] Erro durante treinamento: {e}")
             import traceback
             traceback.print_exc()
             return {
@@ -226,7 +227,7 @@ class PPOTrainer:
 
 if __name__ == '__main__':
     if not HAS_ML:
-        print("❌ Bibliotecas ML não instaladas. Execute: pip install -r requirements.txt")
+        print("Bibliotecas ML nao instaladas. Execute: pip install -r requirements.txt")
         exit(1)
     
     logger.info("="*70)
