@@ -1,0 +1,138 @@
+{
+  "task_id": "TASK-003",
+  "timestamp": "2026-02-21T19:43:00.896466",
+  "backtest_type": "Alpha SMC Validation Simulation",
+  "duration_minutes": 7.563333333333333e-05,
+  "metrics": {
+    "total_signals": 6,
+    "buy_signals": 4,
+    "sell_signals": 2,
+    "neutral_signals": 0,
+    "avg_confidence_pct": 111.7,
+    "avg_confluence_score": 3.67,
+    "avg_r_ratio": 3.0,
+    "smc_alignment_pct": 100.0,
+    "liquidation_errors": 0
+  },
+  "approval_criteria": {
+    "smc_alignment": {
+      "value": 100.0,
+      "target": 80.0,
+      "status": "PASS"
+    },
+    "r_ratio": {
+      "value": 3.0,
+      "target": 1.3,
+      "status": "PASS"
+    },
+    "confluence_score": {
+      "value": 3.67,
+      "target": 3.0,
+      "status": "PASS"
+    },
+    "liquidation_errors": {
+      "value": 0,
+      "target": 0,
+      "status": "PASS"
+    }
+  },
+  "decision": "APPROVED",
+  "signals_detail": [
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "BTCUSDT",
+      "signal_type": "BUY",
+      "confidence": 115.0,
+      "confluence_score": 4.0,
+      "r_ratio": 3.0,
+      "entry_price": 42500.0,
+      "stop_loss": 41650.0,
+      "take_profit": 45050.0,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": true,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    },
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "BNBUSDT",
+      "signal_type": "BUY",
+      "confidence": 105.0,
+      "confluence_score": 3.0,
+      "r_ratio": 2.9999999999999907,
+      "entry_price": 622.48,
+      "stop_loss": 610.0304,
+      "take_profit": 659.8288,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": false,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    },
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "ADAUSDT",
+      "signal_type": "SELL",
+      "confidence": 115.0,
+      "confluence_score": 4.0,
+      "r_ratio": 3.0000000000000107,
+      "entry_price": 1.0416,
+      "stop_loss": 1.062432,
+      "take_profit": 0.979104,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": true,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    },
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "XRPUSDT",
+      "signal_type": "SELL",
+      "confidence": 105.0,
+      "confluence_score": 3.0,
+      "r_ratio": 3.000000000000009,
+      "entry_price": 2.45,
+      "stop_loss": 2.499,
+      "take_profit": 2.303,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": false,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    },
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "DOGE",
+      "signal_type": "BUY",
+      "confidence": 115.0,
+      "confluence_score": 4.0,
+      "r_ratio": 3.0,
+      "entry_price": 0.32064,
+      "stop_loss": 0.3142272,
+      "take_profit": 0.33987839999999997,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": true,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    },
+    {
+      "timestamp": "2026-02-21T19:43:00.893068",
+      "pair": "MATICUSDT",
+      "signal_type": "BUY",
+      "confidence": 115.0,
+      "confluence_score": 4.0,
+      "r_ratio": 2.9999999999999885,
+      "entry_price": 0.9576,
+      "stop_loss": 0.938448,
+      "take_profit": 1.015056,
+      "smc_detected": true,
+      "ema_aligned": true,
+      "rsi_valid": true,
+      "adx_trending": true,
+      "risk_gate_status": "CLEARED"
+    }
+  ]
+}
