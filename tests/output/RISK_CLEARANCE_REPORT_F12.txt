@@ -1,0 +1,67 @@
+=======================================================================================
+                    RISK CLEARANCE REPORT - F-12 BACKTEST
+               24 FEV 2026 GATES PREPARATION
+=======================================================================================
+
+Timestamp: 2026-02-21T12:21:27.413052Z
+Backtest Date: 22 FEV 2026
+Symbol: 1000PEPEUSDT
+Timeframe: H4
+Steps: 500+
+
+=======================================================================================
+                            6 METRICAS VALIDATION
+=======================================================================================
+
+[1] SHARPE RATIO (Annualized)
+    Value: 0.06
+    Threshold: >= 1.0
+    Status: [FAIL]
+    Decision: [NO-GO]
+
+[2] MAX DRAWDOWN
+    Value: 17.24%
+    Threshold: <= 15.0%
+    Status: [FAIL]
+    Decision: [NO-GO]
+
+[3] WIN RATE
+    Value: 48.51%
+    Threshold: >= 45.0%
+    Status: [PASS]
+    Decision: [GO]
+
+[4] PROFIT FACTOR
+    Value: 0.75
+    Threshold: >= 1.5
+    Status: [FAIL]
+    Decision: [NO-GO]
+
+[5] CONSECUTIVE LOSSES
+    Value: 5
+    Threshold: <= 5
+    Status: [PASS]
+    Decision: [GO]
+
+[6] CALMAR RATIO
+    Value: 0.10
+    Threshold: >= 2.0
+    Status: [FAIL]
+    Decision: [NO-GO]
+
+=======================================================================================
+                                OVERALL DECISION
+=======================================================================================
+
+Gates Passed: 2/6
+Final Status: [NO-GO]
+
+=======================================================================================
+                    ASSINATURA ML SPECIALIST
+=======================================================================================
+
+ML Specialist Approval: [NOT APPROVED]
+Date: 2026-02-21T12:21:27.413052Z
+Prepared for: CTO, Risk Manager, CFO
+
+=======================================================================================

@@ -1,0 +1,10 @@
+{
+  "metrics_calculated": 6,
+  "gates_passed": 2,
+  "overall_decision": "NO-GO",
+  "report_generated": true,
+  "ready_for_24feb_gates": false,
+  "blockers": [],
+  "timestamp": "2026-02-21T12:21:27.416114Z",
+  "report_path": "tests\\output\\RISK_CLEARANCE_REPORT_F12.txt"
+}
