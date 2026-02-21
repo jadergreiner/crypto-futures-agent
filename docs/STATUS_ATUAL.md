@@ -1,8 +1,11 @@
 # 🎯 STATUS ATUAL DO PROJETO — crypto-futures-agent
 
-**Atualizado:** 22 FEV 2026 21:50 UTC  
-**Decisor:** Investidor (Aprovado Governança Docs)  
-**Validade:** 24h (próxima reunião: 23 FEV)
+**Atualizado:** 23 FEV 2026 16:35 UTC
+**Decisor:** Angel (Investidor) + Elo (Facilitador) + Planner + Flux (Data) + The Blueprint (Tech) + The Brain (ML) + Guardian (Risk) + Audit (QA) + Dev (Core) + Conselheiro + Auditor
+**Equipe Interna:** 12 membros (Angel + 11 specialistas) expandidos
+**Membros Externos:** 2 (Conselheiro Estratégico + Auditor Independente)
+**Membros Expandidos:** 14 internos + 2 externos (16 total, 14 expandidos)
+**Validade:** 24h (próxima reunião: conforme decisão)
 
 ---
 
@@ -23,34 +26,40 @@
 ## 📋 DOCUMENTO ÚNICO POR TÓPICO
 
 ### 1️⃣ FEATURES IMPLANTADAS
-**👉 FONTE OFICIAL:** [docs/FEATURES.md](FEATURES.md)  
-**Próxima atualização:** a cada feature completada  
-**Owner:** Engenheiro de ML  
+**👉 FONTE OFICIAL:** [docs/FEATURES.md](FEATURES.md)
+**Próxima atualização:** a cada feature completada
+**Owner:** Engenheiro de ML
 **Status:** 15+ features v0.4, 5/8 testes F-12e passando
 
 ### 2️⃣ ROADMAP & TIMELINE
-**👉 FONTE OFICIAL:** [docs/ROADMAP.md](ROADMAP.md)  
-**Próxima atualização:** semanal (segunda-feira)  
-**Owner:** Arquiteto de Dados  
+**👉 FONTE OFICIAL:** [docs/ROADMAP.md](ROADMAP.md)
+**Próxima atualização:** semanal (segunda-feira)
+**Owner:** Arquiteto de Dados
 **Versão atual:** v0.4 Backtest Engine (21-24/FEV)
 
 ### 3️⃣ RELEASES & CHANGELOG
-**👉 FONTE OFICIAL:** [docs/RELEASES.md](RELEASES.md) + [CHANGELOG.md](/CHANGELOG.md)  
-**Próxima atualização:** por versão  
-**Owner:** Release Manager  
+**👉 FONTE OFICIAL:** [docs/RELEASES.md](RELEASES.md) + [CHANGELOG.md](/CHANGELOG.md)
+**Próxima atualização:** por versão
+**Owner:** Release Manager
 **Versão ativa:** v0.4 (in progress)
 
 ### 4️⃣ SINCRONIZAÇÃO & AUDITORIA
-**👉 FONTE OFICIAL:** [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md)  
-**Próxima atualização:** a cada mudança código → docs  
-**Owner:** Git Master / Facilitador  
+**👉 FONTE OFICIAL:** [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md)
+**Próxima atualização:** a cada mudança código → docs
+**Owner:** Git Master / Facilitador
 **Última sincronização:** 22 FEV 21:50 (governança docs)
 
 ### 5️⃣ DECISÕES DE BOARD
-**👉 FONTE OFICIAL:** [docs/DECISIONS.md](DECISIONS.md)  
-**Próxima atualização:** a cada reunião (semanal)  
-**Owner:** Facilitador  
+**👉 FONTE OFICIAL:** [docs/DECISIONS.md](DECISIONS.md)
+**Próxima atualização:** a cada reunião (semanal)
+**Owner:** Facilitador
 **Última decisão:** 22 FEV (Aprovado: Hierarquia única docs)
+
+### 6️⃣ EQUIPE FIXA
+**👉 FONTE OFICIAL:** [docs/EQUIPE_FIXA.md](EQUIPE_FIXA.md)
+**Próxima atualização:** quando houver mudanças de pessoal
+**Owner:** Investidor (aprovação) + Facilitador (manutenção)
+**Status:** 12 membros | Novo: Head Finanças (Dr. Risk) + Tech Lead + Product Owner + Product Manager | RACI Matrix completa
 
 ---
 
@@ -66,7 +75,7 @@
 | Win Rate | 48.51% | ≥45% | ✅ OK |
 | Consecutive Losses | 5 | ≤5 | ✅ OK |
 
-**Causa Raiz:** Modelo não treinado (usou ações aleatórias em backtest)  
+**Causa Raiz:** Modelo não treinado (usou ações aleatórias em backtest)
 **Resolução:** Necessário Decision Board — Option A (heurística) / B (treinar 5-7d) / C (híbrido)
 
 ### Bloqueador #2: Posições Underwater
@@ -133,5 +142,5 @@
 
 ---
 
-**Última alteração:** 22 FEV 21:50 UTC  
+**Última alteração:** 22 FEV 21:50 UTC
 **Próxima reunião:** 23 FEV 20:00 UTC (Board Meeting)

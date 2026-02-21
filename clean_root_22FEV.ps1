@@ -25,7 +25,7 @@ $FilesToDelete = @(
     "F08_DELIVERY_REPORT.md",
     "F09_DELIVERY_REPORT.md",
     "FINAL_DELIVERY_SUMMARY.md",
-    
+
     # CATEGORY 2: DECISÕES/EXECUTIVO (12)
     "AUTHORIZATION_OPÇÃO_C_20FEV.txt",
     "BACKLOG_ACOES_CRITICAS_20FEV.md",
@@ -39,7 +39,7 @@ $FilesToDelete = @(
     "RELATORIO_FINAL_F12_SPRINT.md",
     "RESUMO_EXECUCAO_FINAL.md",
     "RESUMO_FINAL_PRODUCAO.md",
-    
+
     # CATEGORY 3: PHASE REPORTS (15)
     "CONSOLIDADO_CICLO_IMPLEMENTACAO.md",
     "CONSOLIDADO_FEVEREIRO_2026.md",
@@ -54,7 +54,7 @@ $FilesToDelete = @(
     "PHASE4_FINAL_STATUS.json",
     "PHASE4_HANDOFF_EXECUTIVO.md",
     "PHASE4_REVALIDATION_READINESS.md",
-    
+
     # CATEGORY 4: SYNC/DOCUMENTATION (6)
     "DOCUMENTATION_SYNC_SUMMARY_20FEV.md",
     "SYNC_PHASE3_DOCUMENTATION_UPDATE.md",
@@ -62,7 +62,7 @@ $FilesToDelete = @(
     "SYNC_SUMMARY_21FEV_LEARNING.md",
     "SYNC_DOCS_21FEV_2026.md",
     "PROMPT_ATUALIZA_DOCS_RESUMO.md",
-    
+
     # CATEGORY 5: JSON STATUS FILES (9)
     "AGENTES_DELIVERY_STATUS_FINAL.json",
     "AGENTS_DELIVERY_STATUS.json",
@@ -73,7 +73,7 @@ $FilesToDelete = @(
     "FINAL_VALIDATION_CONSOLIDATED.json",
     "INTEGRATION_STATUS.json",
     "PRE_FLIGHT_STATUS.json",
-    
+
     # CATEGORY 6: MISCELLANEOUS (20+)
     "ADMINISTRACAO_NOVOS_7_PARES.md",
     "ARVORE_DECISAO_MODOS.md",
@@ -149,7 +149,7 @@ $SkippedCount = 0
 
 foreach ($File in $FilesToDelete) {
     $FilePath = Join-Path -Path $RootPath -ChildPath $File
-    
+
     if (Test-Path $FilePath) {
         # Arquivo existe - mover para archive
         try {

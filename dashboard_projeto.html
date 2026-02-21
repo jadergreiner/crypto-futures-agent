@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Futures Agent — Dashboard de Projeto</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Auto-refresh a cada 30 segundos
+        const REFRESH_INTERVAL = 30000; // 30 segundos
+        let lastDataUpdate = 0;
+        
+        // Função para recarregar dados
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('dashboard_data.json?t=' + Date.now());
+                if (response.ok) {
+                    window.dashboardData = await response.json();
+                    lastDataUpdate = Date.now();
+                    return window.dashboardData;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+            return null;
+        }
+        
+        // Carregar dados inicialmente
+        loadDashboardData().then(data => {
+            if (data) {
+                console.log('Dashboard data carregado:', data);
+                // Após dados carregados, renderizar dashboard
+                renderDashboard(data);
+            }
+        });
+        
+        // Auto-refresh a cada X segundos
+        setInterval(loadDashboardData, REFRESH_INTERVAL);
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #a0a0a0;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid;
+            text-align: center;
+        }
+
+        .status-card.success {
+            border-left-color: #4caf50;
+        }
+
+        .status-card.warning {
+            border-left-color: #ff9800;
+        }
+
+        .status-card.critical {
+            border-left-color: #f44336;
+        }
+
+        .status-card.info {
+            border-left-color: #2196f3;
+        }
+
+        .status-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #00d4ff;
+            margin: 10px 0;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 .icon {
+            font-size: 1.3em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        .milestone-list {
+            list-style: none;
+        }
+
+        .milestone-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .milestone-item.complete {
+            border-left-color: #4caf50;
+        }
+
+        .milestone-item.in-progress {
+            border-left-color: #ff9800;
+        }
+
+        .milestone-item.blocked {
+            border-left-color: #f44336;
+        }
+
+        .milestone-item.planned {
+            border-left-color: #2196f3;
+        }
+
+        .milestone-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .milestone-date {
+            color: #a0a0a0;
+            font-size: 0.9em;
+            margin: 0 15px;
+        }
+
+        .milestone-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .milestone-complete .milestone-badge {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .milestone-in-progress .milestone-badge {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .milestone-blocked .milestone-badge {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .milestone-planned .milestone-badge {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196f3;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .metric-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-label {
+            flex: 1;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-left: 15px;
+        }
+
+        .metric-value.good {
+            color: #4caf50;
+        }
+
+        .metric-value.bad {
+            color: #f44336;
+        }
+
+        .metric-value.warning {
+            color: #ff9800;
+        }
+
+        .blocker-card {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.15) 0%, rgba(244, 67, 54, 0.05) 100%);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .blocker-title {
+            color: #f44336;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .blocker-description {
+            color: #d0d0d0;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-3, .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .status-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .timeline {
+            margin-top: 20px;
+        }
+
+        .timeline-item {
+            padding-left: 40px;
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 212, 255, 0.3);
+            border: 2px solid #00d4ff;
+            border-radius: 50%;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 9px;
+            top: 20px;
+            width: 2px;
+            height: calc(100% + 25px);
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .timeline-label {
+            color: #00d4ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .timeline-description {
+            color: #b0b0b0;
+            font-size: 0.95em;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #707070;
+            font-size: 0.9em;
+        }
+
+        .decision-box {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.05) 100%);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .decision-title {
+            color: #2196f3;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .decision-status {
+            display: inline-block;
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196f3;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .decision-status.pending {
+            background: rgba(255, 152, 0, 0.2);
+            color: #ff9800;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .team-member {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-bottom: 2px solid #00d4ff;
+        }
+
+        .team-role {
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .team-name {
+            color: #d0d0d0;
+            margin-top: 8px;
+            font-size: 0.95em;
+        }
+
+        .team-status {
+            color: #707070;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Crypto Futures Agent</h1>
+            <p class="subtitle">Dashboard de Projeto — Visão Executiva</p>
+            <p class="subtitle" style="font-size: 0.95em; color: #888;">Atualizado automaticamente | Sincroniza a cada 30 segundos</p>
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <span style="background: rgba(76, 175, 80, 0.2); color: #4caf50; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #4caf50;">
+                    🔄 AUTO-SYNC ATIVO
+                </span>
+                <span style="background: rgba(33, 150, 243, 0.2); color: #2196f3; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #2196f3;">
+                    📖 Doc Advocate Ativo
+                </span>
+                <span style="background: rgba(255, 152, 0, 0.2); color: #ff9800; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; border: 1px solid #ff9800;">
+                    v0.4 F-12
+                </span>
+            </div>
+            <div class="status-bar">
+                <div class="status-card warning">
+                    <div class="status-label">Versão Ativa</div>
+                    <div class="status-value">v0.4</div>
+                </div>
+                <div class="status-card critical">
+                    <div class="status-label">Status Geral</div>
+                    <div class="status-value">🔴 BLOQUEADO</div>
+                </div>
+                <div class="status-card info">
+                    <div class="status-label">Próxima Versão</div>
+                    <div class="status-value">v0.5</div>
+                </div>
+                <div class="status-card warning">
+                    <div class="status-label">Risco Cronograma</div>
+                    <div class="status-value">ALTO</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- SEÇÃO 1: ROADMAP GANTT -->
+        <div class="card">
+            <h2><span class="icon">📅</span> Roadmap & Cronograma Crítico</h2>
+            <div class="chart-container tall">
+                <canvas id="roadmapChart"></canvas>
+            </div>
+            <p style="color: #a0a0a0; font-size: 0.9em; margin-top: 15px;">
+                ✅ Completo | 🔄 Em Progresso | 🔴 Bloqueado | 📅 Planejado
+            </p>
+        </div>
+
+        <!-- SEÇÃO 2: PROGRESSO DO PROJETO -->
+        <div class="grid-2" style="margin-bottom: 30px;">
+            <div class="card">
+                <h2><span class="icon">📊</span> Progresso Global</h2>
+                <div class="chart-container">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2><span class="icon">🎯</span> Componentes (v0.4)</h2>
+                <div class="chart-container">
+                    <canvas id="componentsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: RISCOS CRÍTICOS -->
+        <div class="card">
+            <h2><span class="icon">⚠️</span> Bloqueadores Críticos</h2>
+            <div class="blocker-card">
+                <div class="blocker-title">🔴 Bloqueador #1: Métricas de Risco Falhando</div>
+                <div class="blocker-description">
+                    <strong>Status:</strong> CRÍTICO | <strong>Prioridade:</strong> 🚨 MÁXIMA<br><br>
+                    <strong>Problema:</strong> Backtest com ações aleatórias falhou em 4 de 6 risk gates
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(244, 67, 54, 0.1); border-left: 3px solid #f44336; border-radius: 4px;">
+                        • Sharpe Ratio: 0.06 (precisa 1.0) ❌<br>
+                        • Max Drawdown: 17.24% (precisa ≤15%) ❌<br>
+                        • Profit Factor: 0.75 (precisa 1.5) ❌<br>
+                        • Calmar Ratio: 0.10 (precisa 2.0) ❌<br>
+                        • Win Rate: 48.51% (precisa 45%) ✅<br>
+                        • Consecutive Losses: 5 (precisa ≤5) ✅
+                    </div>
+                    <strong style="display: block; margin-top: 15px;">Ação Necessária:</strong> Decision Board aprovando Option A/B/C (ML mitigation)
+                </div>
+            </div>
+
+            <div class="blocker-card">
+                <div class="blocker-title">🔴 Bloqueador #2: 21 Posições Underwater</div>
+                <div class="blocker-description">
+                    <strong>Status:</strong> RISCO OPERACIONAL | <strong>Prioridade:</strong> 🚨 ALTA<br><br>
+                    <strong>Impacto:</strong> Capital imobilizado, agente congelado em modo defensivo
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(244, 67, 54, 0.1); border-left: 3px solid #f44336; border-radius: 4px;">
+                        • Quantidade: 21 posições abertas<br>
+                        • Perda média: -42% a -511%<br>
+                        • Oportunidade perdida: -$2.670/dia<br>
+                        • Modo: Profit Guardian (congelado)
+                    </div>
+                    <strong style="display: block; margin-top: 15px;">Ação Necessária:</strong> Decision Board: Liquidar vs Hedge vs Monitorar
+                </div>
+            </div>
+
+            <div class="blocker-card">
+                <div class="blocker-title">🟡 Bloqueador #3: Escalabilidade (F-12b)</div>
+                <div class="blocker-description">
+                    <strong>Status:</strong> INFRAESTRUTURA | <strong>Prioridade:</strong> ⚠️ MÉDIA<br><br>
+                    <strong>Problema:</strong> Parquet Cache a 60% de implementação
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(255, 152, 0, 0.1); border-left: 3px solid #ff9800; border-radius: 4px;">
+                        • Implementação: 60%→100% em 3 dias<br>
+                        • Universo: 60 pares (atual) → 200+ (proposta)<br>
+                        • Owner: Arquiteto de Dados (paralelo)
+                    </div>
+                    <strong style="display: block; margin-top: 15px;">Ação Necessária:</strong> Completar F-12b até 26 FEV (antes v0.5 start)
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 4: MILESTONES -->
+        <div class="grid-2">
+            <div class="card">
+                <h2><span class="icon">🎯</span> Milestones & Versões</h2>
+                <ul class="milestone-list">
+                    <li class="milestone-item complete">
+                        <span class="milestone-name">v0.1 Foundation</span>
+                        <span class="milestone-date">✅ 12 FEV</span>
+                    </li>
+                    <li class="milestone-item complete">
+                        <span class="milestone-name">v0.2 Pipeline Fix</span>
+                        <span class="milestone-date">✅ 15 FEV</span>
+                    </li>
+                    <li class="milestone-item complete">
+                        <span class="milestone-name">v0.2.1 Admin. Posições</span>
+                        <span class="milestone-date">✅ 20 FEV</span>
+                    </li>
+                    <li class="milestone-item complete">
+                        <span class="milestone-name">v0.3 Training Ready</span>
+                        <span class="milestone-date">✅ 20-23 FEV</span>
+                    </li>
+                    <li class="milestone-item blocked">
+                        <span class="milestone-name">v0.4 Backtest Engine</span>
+                        <span class="milestone-date">🔴 21-23 FEV</span>
+                    </li>
+                    <li class="milestone-item planned">
+                        <span class="milestone-name">v0.5 Paper Trading</span>
+                        <span class="milestone-date">📅 27 FEV-01 MAR</span>
+                    </li>
+                    <li class="milestone-item planned">
+                        <span class="milestone-name">v1.0 Live MVP</span>
+                        <span class="milestone-date">📅 MAI 2026</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">🔄</span> Decisões de Board</h2>
+                
+                <div class="decision-box">
+                    <div class="decision-title">Decision #1: Governança Documentação</div>
+                    <div class="decision-status">✅ APROVADO</div>
+                    <p style="color: #b0b0b0; font-size: 0.9em; margin-top: 8px;">
+                        Hierarquia única de docs implementada. 94 arquivos deletados. Portal centralizado criado.
+                    </p>
+                </div>
+
+                <div class="decision-box">
+                    <div class="decision-title">Decision #2: Machine Learning Strategy</div>
+                    <div class="decision-status pending">⏳ PENDENTE</div>
+                    <p style="color: #b0b0b0; font-size: 0.9em; margin-top: 8px;">
+                        Option A (Heurísticas 1-2d) / B (PPO 5-7d) / C (Híbrido 3-4d) ← Recomendado
+                    </p>
+                </div>
+
+                <div class="decision-box">
+                    <div class="decision-title">Decision #3: Posições Abertas</div>
+                    <div class="decision-status pending">⏳ PENDENTE</div>
+                    <p style="color: #b0b0b0; font-size: 0.9em; margin-top: 8px;">
+                        Liquidar / Hedge / Monitorar 21 posições underwater
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 5: TIMELINE DETALHADA -->
+        <div class="card">
+            <h2><span class="icon">⏱️</span> Timeline Executiva (Próximos 10 dias)</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-label">🔴 23 FEV (2 HORAS)</div>
+                    <div class="timeline-description">
+                        <strong>Decision Board Crítica:</strong> Votação ML + Risco. Impacto direto em cronograma v0.5/v1.0.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-label">24-25 FEV (48h)</div>
+                    <div class="timeline-description">
+                        <strong>Estágio de Execução:</strong> ML codificação + F-12b escalabilidade + Liquidação posições em paralelo.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-label">25 FEV 18:00 (Checkpoint)</div>
+                    <div class="timeline-description">
+                        <strong>Risk Clearance Gate:</strong> Validar Sharpe≥1.0, MaxDD≤15%, PF≥1.5, Calmar≥2.0. Gating v0.5.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-label">26 FEV</div>
+                    <div class="timeline-description">
+                        <strong>F-12b Completion:</strong> Parquet Cache 100%. Buffer antes v0.5 launch.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-label">27 FEV - 01 MAR</div>
+                    <div class="timeline-description">
+                        <strong>v0.5 Paper Trading Launch:</strong> 60+ pares em modo paper. Validação de sinais reais.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-label">MAI 2026 (+7 dias risco)</div>
+                    <div class="timeline-description">
+                        <strong>v1.0 Live MVP:</strong> Operação ao vivo com 200+ pares. Risco: cascata de atrasos anteriores.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 6: MÉTRICAS -->
+        <div class="grid-3">
+            <div class="card">
+                <h2><span class="icon">📈</span> Métricas de Backtest</h2>
+                <div class="metric-item">
+                    <span class="metric-label">Sharpe Ratio</span>
+                    <span class="metric-value bad">0.06</span>
+                    <span style="color: #f44336; margin-left: 10px; font-size: 0.85em;">Need: 1.0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Max Drawdown</span>
+                    <span class="metric-value bad">17.24%</span>
+                    <span style="color: #f44336; margin-left: 10px; font-size: 0.85em;">Need: ≤15%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Profit Factor</span>
+                    <span class="metric-value bad">0.75</span>
+                    <span style="color: #f44336; margin-left: 10px; font-size: 0.85em;">Need: 1.5</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Calmar Ratio</span>
+                    <span class="metric-value bad">0.10</span>
+                    <span style="color: #f44336; margin-left: 10px; font-size: 0.85em;">Need: 2.0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Win Rate</span>
+                    <span class="metric-value good">48.51%</span>
+                    <span style="color: #4caf50; margin-left: 10px; font-size: 0.85em;">Need: ≥45% ✓</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Consecutive Losses</span>
+                    <span class="metric-value good">5</span>
+                    <span style="color: #4caf50; margin-left: 10px; font-size: 0.85em;">Need: ≤5 ✓</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">✅</span> Status por Camada</h2>
+                <div class="metric-item">
+                    <span class="metric-label">Data Collection</span>
+                    <span class="metric-value good">70%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 70%;"></div>
+                </div>
+                <div class="metric-item" style="margin-top: 15px;">
+                    <span class="metric-label">Database & Indicadores</span>
+                    <span class="metric-value good">85%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 85%;"></div>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">RL Environment</span>
+                    <span class="metric-value warning">50%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 50%; background: linear-gradient(90deg, #ff9800, #ff6f00);"></div>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Backtest (F-12)</span>
+                    <span class="metric-value warning">60%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 60%; background: linear-gradient(90deg, #ff9800, #ff6f00);"></div>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Risk Clearance</span>
+                    <span class="metric-value bad">25%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 25%; background: linear-gradient(90deg, #f44336, #d32f2f);"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">100%</span> Composição v0.4</h2>
+                <div class="chart-container">
+                    <canvas id="compositonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 7: EQUIPE -->
+        <div class="card">
+            <h2><span class="icon">👥</span> Equipe & Responsabilidades</h2>
+            <div class="team-grid" id="teamGrid">
+                <!-- Carregado dinamicamente -->
+                <div class="team-member" style="grid-column: 1/-1; text-align: center; opacity: 0.5;">
+                    <p>Carregando equipe...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 8: PRÓXIMOS PASSOS -->
+        <div class="card">
+            <h2><span class="icon">🚀</span> Próximos Passos Críticos</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: rgba(244, 67, 54, 0.1); padding: 20px; border-radius: 8px; border-left: 3px solid #f44336;">
+                    <div style="color: #f44336; font-weight: bold; margin-bottom: 12px;">⚠️ HOJE (23 FEV) — 2H:</div>
+                    <ul style="list-style: none; color: #c0c0c0; font-size: 0.95em; line-height: 1.8;">
+                        <li>✓ Votação Decision #2 (ML: A/B/C)</li>
+                        <li>✓ Votação Decision #3 (Risco: Liquidar/Hedge)</li>
+                        <li>✓ Aprovação roadmap paralelo</li>
+                        <li>✓ Kick-off execução imediata</li>
+                    </ul>
+                </div>
+                <div style="background: rgba(255, 152, 0, 0.1); padding: 20px; border-radius: 8px; border-left: 3px solid #ff9800;">
+                    <div style="color: #ff9800; font-weight: bold; margin-bottom: 12px;">⚙️ 24-25 FEV — 48H:</div>
+                    <ul style="list-style: none; color: #c0c0c0; font-size: 0.95em; line-height: 1.8;">
+                        <li>✓ ML coding + F-12b completion</li>
+                        <li>✓ Liquidação de 21 posições</li>
+                        <li>✓ Validação unitária (9 testes)</li>
+                        <li>✓ Preparação Risk Clearance</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Dashboard em tempo real | Atualizado automaticamente via <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">update_dashboard.py</code></p>
+            <p style="margin-top: 10px; color: #606060;">
+                🔄 <strong>Auto-Sync:</strong> A cada 30s | 
+                📖 <strong>Doc Advocate:</strong> Sincroniza fluxo de documentação | 
+                🔧 <strong>Comando Manual:</strong> <code style="background: rgba(255,255,255,0.05); padding: 2px 4px;">python update_dashboard.py</code>
+            </p>
+            <p style="margin-top: 8px; color: #505050; font-size: 0.85em;">
+                Próxima atualização automática em: <span id="nextUpdate">~30s</span>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Auto-refresh a cada 30 segundos
+        const REFRESH_INTERVAL = 30000; // 30 segundos
+        let lastDataUpdate = 0;
+        let nextUpdateTime = Date.now() + REFRESH_INTERVAL;
+        
+        // Atualizar contador de próxima atualização
+        setInterval(() => {
+            const nextUpdate = document.getElementById('nextUpdate');
+            if (nextUpdate) {
+                const timeLeft = Math.ceil((nextUpdateTime - Date.now()) / 1000);
+                if (timeLeft > 0) {
+                    nextUpdate.innerText = `~${timeLeft}s`;
+                }
+            }
+        }, 1000);
+        
+        // Função para recarregar dados
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('dashboard_data.json?t=' + Date.now());
+                if (response.ok) {
+                    window.dashboardData = await response.json();
+                    lastDataUpdate = Date.now();
+                    nextUpdateTime = Date.now() + REFRESH_INTERVAL;
+                    return window.dashboardData;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+            return null;
+        }
+        
+        // Renderizar dashboard com dados dinâmicos
+        function renderDashboard(data) {
+            // Atualizar equipe
+            const teamGrid = document.getElementById('teamGrid');
+            if (teamGrid && data.team) {
+                teamGrid.innerHTML = '';
+                data.team.forEach(member => {
+                    const html = `
+                        <div class="team-member">
+                            <div class="team-role">${member.role}</div>
+                            <div class="team-name">${member.name}</div>
+                            <div class="team-status">${member.status}</div>
+                        </div>
+                    `;
+                    teamGrid.innerHTML += html;
+                });
+            }
+            
+            // Atualizar timestamp
+            const subtitle = document.querySelector('.subtitle:last-of-type');
+            if (subtitle && data.project.updated) {
+                const date = new Date(data.project.updated);
+                const formatted = date.toLocaleString('pt-BR');
+                subtitle.innerHTML = `🕐 Atualizado: ${formatted} | Dashboard auto-sincroniza a cada 30s`;
+            }
+        }
+        
+        // Carregar dados inicialmente
+        loadDashboardData().then(data => {
+            if (data) {
+                console.log('Dashboard data carregado:', data);
+                renderDashboard(data);
+            }
+        });
+        
+        // Auto-refresh a cada X segundos
+        setInterval(loadDashboardData, REFRESH_INTERVAL);
+        
+        // Log de sincronização no console
+        console.log('Dashboard Auto-Sync Ativo: Carregando a cada ' + (REFRESH_INTERVAL/1000) + 's');
+    </script>
+        const roadmapCtx = document.getElementById('roadmapChart').getContext('2d');
+        const roadmapData = {
+            labels: ['v0.1', 'v0.2', 'v0.2.1', 'v0.3', 'v0.4', 'v0.5', 'v1.0'],
+            datasets: [
+                {
+                    label: 'Timeline Planejado',
+                    data: [
+                        { x: 0, y: 12, duration: 3 },
+                        { x: 0, y: 15, duration: 5 },
+                        { x: 0, y: 20, duration: 4 },
+                        { x: 0, y: 20.5, duration: 3 },
+                        { x: 0, y: 21, duration: 3 },
+                        { x: 0, y: 27, duration: 5 },
+                        { x: 0, y: 75, duration: 30 }
+                    ],
+                    backgroundColor: [
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(244, 67, 54, 0.7)',
+                        'rgba(33, 150, 243, 0.7)',
+                        'rgba(33, 150, 243, 0.7)'
+                    ],
+                    borderColor: [
+                        '#4caf50',
+                        '#4caf50',
+                        '#4caf50',
+                        '#4caf50',
+                        '#f44336',
+                        '#2196f3',
+                        '#2196f3'
+                    ],
+                    borderWidth: 2,
+                    barPercentage: 0.8
+                }
+            ]
+        };
+
+        new Chart(roadmapCtx, {
+            type: 'bar',
+            data: roadmapData,
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 150,
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    },
+                    y: {
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                }
+            }
+        });
+
+        // GRÁFICO 2: PROGRESSO GLOBAL
+        const progressCtx = document.getElementById('progressChart').getContext('2d');
+        new Chart(progressCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completo', 'Em Progresso', 'Bloqueado', 'Planejado'],
+                datasets: [{
+                    data: [40, 25, 15, 20],
+                    backgroundColor: [
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(255, 152, 0, 0.7)',
+                        'rgba(244, 67, 54, 0.7)',
+                        'rgba(33, 150, 243, 0.7)'
+                    ],
+                    borderColor: [
+                        '#4caf50',
+                        '#ff9800',
+                        '#f44336',
+                        '#2196f3'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#a0a0a0', padding: 15 }
+                    }
+                }
+            }
+        });
+
+        // GRÁFICO 3: COMPONENTES V0.4
+        const componentsCtx = document.getElementById('componentsChart').getContext('2d');
+        new Chart(componentsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['F-12a', 'F-12c', 'F-12e', 'F-12b', 'Risk\nClearance'],
+                datasets: [{
+                    label: 'Progresso (%)',
+                    data: [90, 85, 90, 60, 25],
+                    backgroundColor: [
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(255, 152, 0, 0.7)',
+                        'rgba(244, 67, 54, 0.7)'
+                    ],
+                    borderColor: [
+                        '#4caf50',
+                        '#4caf50',
+                        '#4caf50',
+                        '#ff9800',
+                        '#f44336'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                indexAxis: 'x',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    },
+                    x: {
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                }
+            }
+        });
+
+        // GRÁFICO 4: COMPOSIÇÃO V0.4
+        const compositonCtx = document.getElementById('compositonChart').getContext('2d');
+        new Chart(compositonCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Backtest', 'Risk', 'ML Train', 'Infra'],
+                datasets: [{
+                    data: [30, 25, 25, 20],
+                    backgroundColor: [
+                        'rgba(33, 150, 243, 0.7)',
+                        'rgba(244, 67, 54, 0.7)',
+                        'rgba(76, 175, 80, 0.7)',
+                        'rgba(255, 152, 0, 0.7)'
+                    ],
+                    borderColor: [
+                        '#2196f3',
+                        '#f44336',
+                        '#4caf50',
+                        '#ff9800'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#a0a0a0', padding: 15 }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

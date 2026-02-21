@@ -1,7 +1,7 @@
 # 🎯 PROMPT MASTER — REUNIÃO DE ESTRATÉGIA
 ## Orquestrador de Agentes Autônomos (Crypto Futures Agent)
 
-**Data da Sessão:** {{DATA_SESSAO}}  
+**Data da Sessão:** {{DATA_SESSAO}}
 **Sistema:** crypto-futures-agent (F-12 Backtest Engine v0.4)
 
 ---
@@ -20,12 +20,12 @@
 
 ## 👥 AGENTES PARTICIPANTES
 
-**Facilitador:** Especialista em Governança e Decisão  
-**Investidor:** Stakeholder de Risco e Retorno  
-**Arquiteto de Dados:** Sênior em Infraestrutura  
-**Engenheiro de ML:** Especialista em Otimização  
-**QA Manager:** Responsável por Testes e Validação  
-**Risk Manager:** Guardião de Limites de Risco  
+**Facilitador:** Especialista em Governança e Decisão
+**Investidor:** Stakeholder de Risco e Retorno
+**Arquiteto de Dados:** Sênior em Infraestrutura
+**Engenheiro de ML:** Especialista em Otimização
+**QA Manager:** Responsável por Testes e Validação
+**Risk Manager:** Guardião de Limites de Risco
 
 ---
 

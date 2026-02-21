@@ -136,23 +136,23 @@ TESTES_EXECUTADOS = """
 [✅ PASSOU]  Teste 1: Parse JSON
    Input:  Texto com ### SNAPSHOT_PARA_BANCO {...} ---
    Output: Dict Python validado
-   
+
 [✅ PASSOU]  Teste 2: Carregamento de Template
    Input:  prompt_master.md
    Output: String 3182 caracteres com placeholders
-   
+
 [✅ PASSOU]  Teste 3: Montagem de Prompt
    Input:  Template + Contexto
    Output: Prompt sem placeholders (variáveis substituídas)
-   
+
 [✅ PASSOU]  Teste 4: Banco de Dados
    Operation: Insert snapshot + backlog
    Output:    Meeting ID retornado
-   
+
 [✅ PASSOU]  Teste 5: Simulação de Resposta
    Input:  Pergunta com palavra-chave
    Output: Resposta com JSON estruturado
-   
+
 [✅ PASSOU]  Teste 6: Validação JSON
    JSON válido → ✅ Aceito
    JSON inválido → ✅ Rejeitado
@@ -313,7 +313,7 @@ IA_REAL = """
 OPÇÃO 1: OpenAI GPT-4 (RECOMENDADO)
 
   import openai
-  
+
   async def _simular_resposta_facilitador(self, pergunta):
       response = await openai.ChatCompletion.create(
           model="gpt-4",
@@ -331,9 +331,9 @@ OPÇÃO 1: OpenAI GPT-4 (RECOMENDADO)
 OPÇÃO 2: Anthropic Claude
 
   from anthropic import Anthropic
-  
+
   client = Anthropic()
-  
+
   def _simular_resposta_facilitador(self, pergunta):
       message = client.messages.create(
           model="claude-3-opus-20240229",
@@ -350,9 +350,9 @@ OPÇÃO 2: Anthropic Claude
 OPÇÃO 3: Ollama Local (Gratuito)
 
   from ollama import Client
-  
+
   client = Client(host='http://localhost:11434')
-  
+
   def _simular_resposta_facilitador(self, pergunta):
       response = client.generate(
           model='mistral',

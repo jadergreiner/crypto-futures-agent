@@ -1,8 +1,8 @@
 # ✅ DECISÃO #1 IMPLEMENTADA — Governança de Documentação
 
-**Data:** 22 FEV 2026 22:00 UTC  
-**Status:** ✅ COMPLETO (Fase 1: Setup)  
-**Investidor:** Aprovado  
+**Data:** 22 FEV 2026 22:00 UTC
+**Status:** ✅ COMPLETO (Fase 1: Setup)
+**Investidor:** Aprovado
 **Facilitador:** Registrado em banco
 
 ---
@@ -201,11 +201,11 @@ Antes de proceder com Fase 2 (limpeza), preciso de **seu OK final** em:
 
 **Em 90 minutos, você tem:**
 
-✅ **Hierarquia documentacional clara** (6 documentos oficiais)  
-✅ **Portal centralizado** (STATUS_ATUAL.md = point of truth)  
-✅ **Decisões registradas formalmente** (DECISIONS.md)  
-✅ **Protocolo [SYNC] binding** (garante sincronização futura)  
-✅ **Lista de limpeza pronta** (77 duplicados, aprovação pendente)  
+✅ **Hierarquia documentacional clara** (6 documentos oficiais)
+✅ **Portal centralizado** (STATUS_ATUAL.md = point of truth)
+✅ **Decisões registradas formalmente** (DECISIONS.md)
+✅ **Protocolo [SYNC] binding** (garante sincronização futura)
+✅ **Lista de limpeza pronta** (77 duplicados, aprovação pendente)
 
 **Próximo passo:** Decidir sobre ML + Posições + Escalabilidade (domingo).
 

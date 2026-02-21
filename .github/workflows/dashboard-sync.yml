@@ -1,0 +1,81 @@
+name: 🔄 Dashboard Auto-Sync
+
+# Disparar quando há mudanças em documentação
+on:
+  push:
+    paths:
+      - 'docs/**/*.md'
+      - 'STATUS_ATUAL.md'
+      - 'DECISIONS.md'
+      - 'README.md'
+  workflow_dispatch:  # Permitir disparo manual
+
+jobs:
+  sync-dashboard:
+    runs-on: ubuntu-latest
+    name: Sincronizar Dashboard de Projeto
+    
+    steps:
+      - name: 📥 Checkout código
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 🔄 Executar sincronização de dashboard
+        run: |
+          echo "🔄 Iniciando sincronização automática do dashboard..."
+          python update_dashboard.py
+          echo "✅ Sincronização concluída!"
+
+      - name: 🔍 Validar JSON
+        run: |
+          echo "🔍 Validando integridade do dashboard_data.json..."
+          python -m json.tool dashboard_data.json > /dev/null
+          echo "✅ JSON válido!"
+
+      - name: 📝 Commit automático
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action [Dashboard]"
+          
+          # Verificar se há mudanças
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "📝 Commitando mudanças do dashboard..."
+            git add dashboard_data.json
+            git commit -m "[SYNC] Dashboard sincronizado automaticamente
+
+- Fonte: Mudanças em documentação (STATUS_ATUAL.md, DECISIONS.md)
+- Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+- Triggered by: ${{ github.event_name }}
+- Equipe: Doc Advocate ativo"
+            echo "✅ Commit realizado com sucesso!"
+          else
+            echo "ℹ️  Nenhuma mudança detectada no dashboard"
+          fi
+
+      - name: 🚀 Push das mudanças
+        if: success()
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+      - name: 📊 Log de sincronização
+        if: always()
+        run: |
+          echo "═════════════════════════════════════════"
+          echo "📊 DASHBOARD SYNC REPORT"
+          echo "═════════════════════════════════════════"
+          echo "Versão: $(jq -r '.project.version' dashboard_data.json)"
+          echo "Status: $(jq -r '.project.status' dashboard_data.json)"
+          echo "Atualizado: $(jq -r '.project.updated' dashboard_data.json)"
+          echo "Membros equipe: $(jq '.team | length' dashboard_data.json)"
+          echo "Milestones: $(jq '.milestones | length' dashboard_data.json)"
+          echo "Decisões: $(jq '.decisions | length' dashboard_data.json)"
+          echo "Bloqueadores: $(jq '.blockers | length' dashboard_data.json)"
+          echo "═════════════════════════════════════════"

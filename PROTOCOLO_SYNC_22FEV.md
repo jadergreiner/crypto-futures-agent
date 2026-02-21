@@ -1,8 +1,8 @@
 # 📋 PROTOCOLO [SYNC] — Sincronização Obrigatória de Documentação
 
-**Válido a partir de:** 22 FEV 2026  
-**Aprovado por:** Board Meeting (Investidor)  
-**Owner:** Git Master / Facilitador  
+**Válido a partir de:** 22 FEV 2026
+**Aprovado por:** Board Meeting (Investidor)
+**Owner:** Git Master / Facilitador
 **Referência:** docs/DECISIONS.md #1
 
 ---
@@ -203,7 +203,7 @@ def test_feature_x():
 
 2️⃣ Atualizar `docs/STATUS_ATUAL.md`:
 ```markdown
-**Atualizado:** 22 FEV 2026 15:30  
+**Atualizado:** 22 FEV 2026 15:30
 ...
 ## Features Recentes
 - [22/FEV] F-X implementado → docs/FEATURES.md
@@ -292,7 +292,7 @@ Se qualquer resposta for SIM → **SYNC docs obrigatório**
 
 ---
 
-**Válido até:** Próxima revisão (23 FEV reunião)  
-**Aprovado por:** Board Decision #1  
-**Implementado:** 22 FEV 2026  
+**Válido até:** Próxima revisão (23 FEV reunião)
+**Aprovado por:** Board Decision #1
+**Implementado:** 22 FEV 2026
 **Status:** ✅ ATIVO

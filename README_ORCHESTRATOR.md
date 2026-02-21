@@ -365,6 +365,6 @@ A **infraestrutura para um board de especialistas** em Crypto e ML, com **contin
 
 ---
 
-**Criado em:** 21 de Fevereiro de 2026  
-**Versão:** 1.0  
+**Criado em:** 21 de Fevereiro de 2026
+**Versão:** 1.0
 **Status:** ✅ ENTREGUE E TESTADO

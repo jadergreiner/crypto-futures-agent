@@ -8,10 +8,10 @@ Registo de decisões estratégicas tomadas em reuniões de Board.
 
 ## 🔔 DECISÃO #1 — GOVERNANÇA DE DOCUMENTAÇÃO
 
-**Data:** 22 FEV 2026 21:45 UTC  
-**Reunião:** Board Strategic Decision  
-**Investidor:** [Aprovado]  
-**Facilitador:** Registrado  
+**Data:** 22 FEV 2026 21:45 UTC
+**Reunião:** Board Strategic Decision
+**Investidor:** [Aprovado]
+**Facilitador:** Registrado
 
 ### O Problema
 - 100+ arquivos markdown/json/txt no root
@@ -139,7 +139,7 @@ Risk Manager + Investidor → 23 FEV
 ### Contexto
 F-12b Parquet Cache pronto para iniciar (22 FEV).
 
-Universo atual: 60 pares  
+Universo atual: 60 pares
 Capacidade potencial: 200+ pares com Parquet
 
 ### Opções
@@ -167,10 +167,10 @@ Capacidade potencial: 200+ pares com Parquet
 ```markdown
 ## 🟡 DECISÃO PENDENTE #N — [TÍTULO]
 
-**Data:** [Quando decidiu]  
-**Reunião:** [Qual reunião]  
-**Investidor:** [Aprovado / Rejeitado / Pendente]  
-**Facilitador:** [Status]  
+**Data:** [Quando decidiu]
+**Reunião:** [Qual reunião]
+**Investidor:** [Aprovado / Rejeitado / Pendente]
+**Facilitador:** [Status]
 
 ### Contexto
 [Explicar problema]
@@ -203,6 +203,6 @@ Capacidade potencial: 200+ pares com Parquet
 
 ---
 
-**Última atualização:** 22 FEV 21:50 UTC  
-**Próxima reunião:** 23 FEV 20:00 UTC  
+**Última atualização:** 22 FEV 21:50 UTC
+**Próxima reunião:** 23 FEV 20:00 UTC
 **Adicionadas:** 4 decisões (1 aprovada, 3 pendentes)

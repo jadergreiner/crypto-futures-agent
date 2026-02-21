@@ -1,0 +1,585 @@
+{
+  "project": {
+    "name": "Crypto Futures Agent",
+    "version": "v0.4",
+    "status": "BLOQUEADO",
+    "updated": "2026-02-21T14:22:53.240453",
+    "description": "F-12 Backtest Engine — Equipe 12 membros: Angel (Investidor) + Elo (Facilitador) + Audit (Doc Advocate) + Planner (Gerente Projetos) + Flux (Time-Series) + The Blueprint (Tech Lead) + The Brain (ML) + Guardian (Risk Mgr) + Head Finanças + Product Owner + Product Manager com RACI matrix + Governance Completa"
+  },
+  "status_cards": [
+    {
+      "label": "Versão Ativa",
+      "value": "v0.4",
+      "type": "warning"
+    },
+    {
+      "label": "Status Geral",
+      "value": "🔴 BLOQUEADO",
+      "type": "critical"
+    },
+    {
+      "label": "Próxima Versão",
+      "value": "v0.5",
+      "type": "info"
+    },
+    {
+      "label": "Risco Cronograma",
+      "value": "ALTO",
+      "type": "warning"
+    }
+  ],
+  "milestones": [
+    {
+      "name": "v0.1 Foundation",
+      "date": "12 FEV",
+      "status": "complete",
+      "type": "version"
+    },
+    {
+      "name": "v0.2 Pipeline Fix",
+      "date": "15 FEV",
+      "status": "complete",
+      "type": "version"
+    },
+    {
+      "name": "v0.2.1 Admin. Posições",
+      "date": "20 FEV",
+      "status": "complete",
+      "type": "version"
+    },
+    {
+      "name": "v0.3 Training Ready",
+      "date": "20-23 FEV",
+      "status": "complete",
+      "type": "version"
+    },
+    {
+      "name": "v0.4 Backtest Engine",
+      "date": "21-23 FEV",
+      "status": "blocked",
+      "type": "version"
+    },
+    {
+      "name": "v0.5 Paper Trading",
+      "date": "27 FEV-01 MAR",
+      "status": "planned",
+      "type": "version"
+    },
+    {
+      "name": "v1.0 Live MVP",
+      "date": "MAI 2026",
+      "status": "planned",
+      "type": "version"
+    }
+  ],
+  "decisions": [
+    {
+      "id": 1,
+      "title": "Governança Documentação",
+      "status": "approval",
+      "description": "Hierarquia única de docs implementada. 94 arquivos deletados. Portal centralizado criado.",
+      "date": "22 FEV 2026"
+    },
+    {
+      "id": 2,
+      "title": "Machine Learning Strategy",
+      "status": "pending",
+      "description": "Option A (Heurísticas 1-2d) / B (PPO 5-7d) / C (Híbrido 3-4d) ← Recomendado",
+      "date": "23 FEV 2026"
+    },
+    {
+      "id": 3,
+      "title": "Posições Abertas",
+      "status": "pending",
+      "description": "Liquidar / Hedge / Monitorar 21 posições underwater",
+      "date": "23 FEV 2026"
+    }
+  ],
+  "blockers": [
+    {
+      "id": 1,
+      "title": "Métricas de Risco Falhando",
+      "severity": "critical",
+      "problem": "Backtest com ações aleatórias falhou em 4 de 6 risk gates",
+      "metrics": [
+        {
+          "name": "Sharpe Ratio",
+          "current": "0.06",
+          "required": "1.0",
+          "status": "fail"
+        },
+        {
+          "name": "Max Drawdown",
+          "current": "17.24%",
+          "required": "≤15%",
+          "status": "fail"
+        },
+        {
+          "name": "Profit Factor",
+          "current": "0.75",
+          "required": "1.5",
+          "status": "fail"
+        },
+        {
+          "name": "Calmar Ratio",
+          "current": "0.10",
+          "required": "2.0",
+          "status": "fail"
+        },
+        {
+          "name": "Win Rate",
+          "current": "48.51%",
+          "required": "≥45%",
+          "status": "pass"
+        },
+        {
+          "name": "Consecutive Losses",
+          "current": "5",
+          "required": "≤5",
+          "status": "pass"
+        }
+      ],
+      "action": "Decision Board aprovando Option A/B/C (ML mitigation)"
+    },
+    {
+      "id": 2,
+      "title": "21 Posições Underwater",
+      "severity": "critical",
+      "problem": "Capital imobilizado, agente congelado em modo defensivo",
+      "impacts": [
+        "Quantidade: 21 posições abertas",
+        "Perda média: -42% a -511%",
+        "Oportunidade perdida: -$2.670/dia",
+        "Modo: Profit Guardian (congelado)"
+      ],
+      "action": "Decision Board: Liquidar vs Hedge vs Monitorar"
+    },
+    {
+      "id": 3,
+      "title": "Escalabilidade (F-12b)",
+      "severity": "warning",
+      "problem": "Parquet Cache a 60% de implementação",
+      "impacts": [
+        "Implementação: 60%→100% em 3 dias",
+        "Universo: 60 pares (atual) → 200+ (proposta)",
+        "Owner: Arquiteto de Dados (paralelo)"
+      ],
+      "action": "Completar F-12b até 26 FEV (antes v0.5 start)"
+    }
+  ],
+  "metrics": [
+    {
+      "category": "Backtest",
+      "items": [
+        {
+          "name": "Sharpe Ratio",
+          "value": "0.06",
+          "required": "≥1.0",
+          "status": "bad"
+        },
+        {
+          "name": "Max Drawdown",
+          "value": "17.24%",
+          "required": "≤15%",
+          "status": "bad"
+        },
+        {
+          "name": "Profit Factor",
+          "value": "0.75",
+          "required": "≥1.5",
+          "status": "bad"
+        },
+        {
+          "name": "Calmar Ratio",
+          "value": "0.10",
+          "required": "≥2.0",
+          "status": "bad"
+        },
+        {
+          "name": "Facilitador",
+          "value": "[Você]",
+          "required": "✅",
+          "status": "bad"
+        },
+        {
+          "name": "Risk Manager",
+          "value": "[Time]",
+          "required": "🔴",
+          "status": "bad"
+        },
+        {
+          "name": "Engenheiro ML",
+          "value": "[Time]",
+          "required": "🔄",
+          "status": "bad"
+        },
+        {
+          "name": "Arquiteto",
+          "value": "[Team]",
+          "required": "✅",
+          "status": "bad"
+        }
+      ]
+    },
+    {
+      "category": "Layers",
+      "items": [
+        {
+          "name": "Data Collection",
+          "progress": 70,
+          "status": "good"
+        },
+        {
+          "name": "Database & Indicadores",
+          "progress": 85,
+          "status": "good"
+        },
+        {
+          "name": "RL Environment",
+          "progress": 50,
+          "status": "warning"
+        },
+        {
+          "name": "Backtest (F-12)",
+          "progress": 60,
+          "status": "warning"
+        },
+        {
+          "name": "Risk Clearance",
+          "progress": 25,
+          "status": "bad"
+        }
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "date": "23 FEV (2 HORAS)",
+      "title": "Decision Board Crítica",
+      "description": "Votação ML + Risco. Impacto direto em cronograma v0.5/v1.0."
+    },
+    {
+      "date": "24-25 FEV (48h)",
+      "title": "Estágio de Execução",
+      "description": "ML codificação + F-12b escalabilidade + Liquidação posições em paralelo."
+    },
+    {
+      "date": "25 FEV 18:00 (Checkpoint)",
+      "title": "Risk Clearance Gate",
+      "description": "Validar Sharpe≥1.0, MaxDD≤15%, PF≥1.5, Calmar≥2.0. Gating v0.5."
+    },
+    {
+      "date": "26 FEV",
+      "title": "F-12b Completion",
+      "description": "Parquet Cache 100%. Buffer antes v0.5 launch."
+    },
+    {
+      "date": "27 FEV - 01 MAR",
+      "title": "v0.5 Paper Trading Launch",
+      "description": "60+ pares em modo paper. Validação de sinais reais."
+    },
+    {
+      "date": "MAI 2026 (+7 dias risco)",
+      "title": "v1.0 Live MVP",
+      "description": "Operação ao vivo com 200+ pares. Risco: cascata de atrasos anteriores."
+    }
+  ],
+  "team": [
+    {
+      "role": "📊 Investidor",
+      "name": "Angel (Sócio-Majoritário & LP)",
+      "status": "🆕 EXPANDIDO | VC/Trading Expertise",
+      "priority": "critical",
+      "specialties": [
+        "Venture Capital",
+        "Institutional Trading",
+        "Risk Appetite",
+        "Cost of Delay Analysis",
+        "Go/No-Go Decisions",
+        "Capital Allocation"
+      ],
+      "veto_power": true,
+      "decision_authority": "Strategic Direction, Go/No-Go Milestones, Capital Approval, Risk Appetite Setting"
+    },
+    {
+      "role": "🎯 Facilitador",
+      "name": "Elo (Agile Coach & Alinhamento)",
+      "status": "🆕 EXPANDIDO | Governance & Sync Orchestration",
+      "priority": "critical",
+      "specialties": [
+        "Agile Coaching",
+        "Board Facilitation",
+        "Comunicação Não-Violenta",
+        "[SYNC] Enforcement",
+        "Roadmap Orchestration",
+        "Decision Making"
+      ],
+      "veto_power": false,
+      "decision_authority": "Documentação Governance, Protocol Enforcement, Meeting Facilitation, Stakeholder Alignment"
+    },
+    {
+      "role": "📖 Doc Advocate",
+      "name": "Audit (Guardião Docs & Auditoria)",
+      "status": "🆕 EXPANDIDO | Docs-as-Code Specialist",
+      "priority": "critical",
+      "specialties": [
+        "Markdown Avançado",
+        "Docs-as-Code",
+        "[SYNC] Protocol",
+        "Auditoria Repositório",
+        "Tech Writing",
+        "Compliance"
+      ],
+      "veto_power": false,
+      "decision_authority": "Docs Governance, [SYNC] Protocol Enforcement, File Hierarchy, Onboarding"
+    },
+    {
+      "role": "💼 Gerente de Projetos",
+      "name": "Planner (Estrategista de Operações Ágeis)",
+      "status": "🆕 EXPANDIDO | Gestão Ágil Avançada",
+      "priority": "critical",
+      "specialties": [
+        "Ágil/Scrum/Kanban",
+        "Timeline Orchestration",
+        "Cost of Delay Analysis",
+        "Stakeholder Communication",
+        "GitHub Projects",
+        "Burndown Tracking"
+      ],
+      "veto_power": false,
+      "decision_authority": "Timeline Management, Blocker Resolution, ROI Prioritization, Executive Reporting"
+    },
+    {
+      "role": "🏗️ Arquiteto de Dados",
+      "name": "Flux (10+ anos Time-Series)",
+      "status": "✅ EXPANDIDO",
+      "priority": "high",
+      "specialties": [
+        "Time-Series Management",
+        "Parquet Optimization",
+        "Feature Engineering (104 indicadores)",
+        "Multi-Timeframe Consistency",
+        "Data Integrity (Zero Look-Ahead Bias)",
+        "Pipeline Performance"
+      ],
+      "veto_power": false,
+      "decision_authority": "Data Pipeline Architecture, Cache Optimization, Feature Consistency, Data Quality Validation"
+    },
+    {
+      "role": "🤖 Engenheiro ML",
+      "name": "The Brain (8+ anos Data Science)",
+      "status": "✅ EXPANDIDO | Especialista RL & Trading",
+      "priority": "critical",
+      "specialties": [
+        "Reinforcement Learning (PPO) Optimization",
+        "Feature Engineering (104 indicadores)",
+        "Reward Shaping & Incentive Design",
+        "Walk-Forward Validation (OOT testing)",
+        "Overfitting Detection & Generalization",
+        "Experiment Tracking & Reproducibility"
+      ],
+      "veto_power": false,
+      "decision_authority": "RL Algorithm Design, Feature Quality, Reward Function, Model Validation, Training Strategy"
+    },
+    {
+      "role": "💰 Head de Finanças & Risco",
+      "name": "Dr. 'Risk' (22+ anos experiência)",
+      "status": "🆕 NOVO | Integrado | Veto Power Ativo",
+      "priority": "critical",
+      "specialties": [
+        "Binance Futures",
+        "Derivativos Cripto",
+        "Risk Quantitativo",
+        "Hedge Strategies"
+      ],
+      "veto_power": true,
+      "decision_authority": "Decision #3 (Posições) + Risk Clearance Gates"
+    },
+    {
+      "role": "💻 Tech Lead",
+      "name": "The Blueprint (10+ anos System Design)",
+      "status": "✅ EXPANDIDO | Arquiteto de Soluções",
+      "priority": "critical",
+      "specialties": [
+        "Data Architecture Design (3-tier caching)",
+        "System Integration & Interoperability (Gymnasium ≡ Binance)",
+        "Operational Security & Resilience (Circuit Breakers, Kill Switches)",
+        "Horizontal Scalability (16 → 200 pares = config change)",
+        "Cloud Infrastructure Strategy",
+        "Cost Optimization & Efficiency"
+      ],
+      "veto_power": false,
+      "decision_authority": "System Architecture, Integration Strategy, Scalability Roadmap, Tech/Risk Trade-offs, Interop Validation"
+    },
+    {
+      "role": "🛣️ Product Owner",
+      "name": "Visão (Estrategista Produto)",
+      "status": "🆕 NOVO | Roadmap & DoD",
+      "priority": "critical",
+      "specialties": [
+        "Roadmap Planning",
+        "Backlog Priorização",
+        "Product Discovery",
+        "Go-to-Market",
+        "KPI Tracking"
+      ],
+      "veto_power": false,
+      "decision_authority": "Roadmap Execution, Feature Prioritization, DoD Definition"
+    },
+    {
+      "role": "📈 Product Manager (Vision)",
+      "name": "Estrategista Delivery | Fintech Expert",
+      "status": "✅ EXPANDIDO | Feature Delivery Strategist",
+      "priority": "critical",
+      "specialties": [
+        "Sprint Execution & Capacity Planning (story estimation, burndown, velocity)",
+        "MoSCoW Prioritization (Must/Should/Could/Won't framework, scope negotiation)",
+        "MVP & Iteração Rápida (hypothesis validation, release loops, feedback integration)",
+        "Stakeholder Management (Tech↔Finance translation, escalation, trade-off communication)",
+        "UX for Bots (structured logs, real-time dashboards, actionable alerts, audit trails)",
+        "Roadmap Ownership (v0.4→v1.0 versioning, F-01→F-15 sequencing, dependency mapping)"
+      ],
+      "veto_power": false,
+      "decision_authority": "Feature Prioritization, Sprint Breakdown, Roadmap Execution, Milestone Delivery, Blocker Resolution, MVP Validation"
+    },
+    {
+      "role": "🛡️ Risk Manager",
+      "name": "Guardian (10+ anos Derivativos)",
+      "status": "✅ EXPANDIDO | Especialista Risco de Cauda",
+      "priority": "critical",
+      "specialties": [
+        "Gestão de Exposição & Correlação",
+        "Métricas de Risco de Cauda (Max DD, Consecutive Losses)",
+        "Mecânicas de Liquidação (Binance leverage, ADL)",
+        "Profit Guardian Mode & Circuit Breakers",
+        "Validação de Sinais ML (Confidence threshold)",
+        "Kelly Criterion & Dimensionamento Dinâmico"
+      ],
+      "veto_power": false,
+      "decision_authority": "Risk Exposure Limits, Position Sizing, Kill Switch Activation, ML Signal Validation, Drawdown Protection"
+    },
+    {
+      "role": "✅ Audit (QA Manager)",
+      "name": "10+ anos Automation | Chaos Engineering",
+      "status": "✅ EXPANDIDO | Especialista Testes Críticos",
+      "priority": "critical",
+      "specialties": [
+        "pytest/unittest.mock (test automation mastery)",
+        "Edge case detection (falta liquidez, timeouts, divergência)",
+        "Data leakage detection (Point-in-Time validation, look-ahead bias)",
+        "Chaos Engineering (simulate failures, latency, crashes)",
+        "Stress testing (volatilidade extrema, circuit breaker validation)",
+        "Metrics-driven QA (coverage, regression rate, MTTR, release gates)"
+      ],
+      "veto_power": false,
+      "decision_authority": "Test Coverage Enforcement, Quality Gates (90%+ required), Backtest Integrity Validation, Release Readiness Certification, Edge Case Coverage Requirements"
+    },
+    {
+      "role": "✅ The Implementer (Dev)",
+      "name": "6+ anos Python/Finanças | Core Engineer",
+      "status": "✅ EXPANDIDO | Engenheiro de Software Sênior",
+      "priority": "critical",
+      "specialties": [
+        "Python fluente (decoradores, geradores, context managers, POO)",
+        "Data wrangling (Pandas vectorization, K-line manipulation, 104 indicadores)",
+        "Testes automatizados (pytest, unittest.mock, E2E testing, 100% coverage)",
+        "API Binance mastery (Futures, Spot, WebSocket, rate limiting, error handling)",
+        "Performance optimization (Big-O analysis, profiling, caching, parallelization)",
+        "Resilience & error handling (exponential backoff, circuit breaker, graceful degradation)"
+      ],
+      "veto_power": false,
+      "decision_authority": "Feature Implementation Authority (F-01→F-15), Code Quality Gates (100% coverage critical), Performance Optimization Decisions, API Integration Strategy, Refactoring Approval"
+    },
+    {
+      "role": "🤖 Tech Lead & AI Architect",
+      "name": "Arch (10+ Data Eng + 5+ HFT RL)",
+      "status": "✅ NOVO | RL & PPO Specialist",
+      "priority": "critical",
+      "specialties": [
+        "Reinforcement Learning (PPO) — Domínio total de hyperparameters, entropy bonus, clip ratio tuning",
+        "Gymnasium Environment Design (F-12a) — State/action space, observation normalization, latency optimization",
+        "Feature Engineering & Data Leakage Detection (F-04) — 104 indicators audit, point-in-time validation, look-ahead bias prevention",
+        "Model Monitoring & Drift Detection — Training stability metrics, inference monitoring, A/B testing framework",
+        "Curriculum Learning & Training Strategy — Progressive difficulty, warm-up vs. online learning, exploration vs. exploitation",
+        "Statistical Validation & Backtesting Rigor — Out-of-sample testing, walk-forward analysis, Sharpe bootstrap confidence intervals"
+      ],
+      "veto_power": false,
+      "decision_authority": "Reward Shaping (F-11), PPO Training Strategy, Gymnasium Environment Validation, Feature Leakage Audit, Model Convergence Gates, Statistical Validation Rigor"
+    },
+    {
+      "role": "📉 Senior Crypto Trader",
+      "name": "Alpha (10.000+ horas | SMC Specialist)",
+      "status": "✅ NOVO | Price Action & Signal Validator",
+      "priority": "critical",
+      "specialties": [
+        "Smart Money Concepts (SMC) — BOS, CHoCH, Order Blocks, Fair Value Gaps identification",
+        "Liquidez & Stop Loss Mapping — Equal Highs/Lows, Premium/Discount zones, Liquidity Sweeps",
+        "Multi-Timeframe Analysis (MTF) — D1→H4→H1/M15 alignment, regime detection",
+        "Gerenciamento de Trade & R:R — Risk/Reward 1:3+ ratio, entry precision, sniper discipline",
+        "Price Action & Harmonic Patterns — Rejections, wicks, breakouts, trend/retests, W-bottoms/M-tops",
+        "Signal Validation & Confluence Scoring — Multi-signal veto, quality >quantity, checklist rigor"
+      ],
+      "veto_power": false,
+      "decision_authority": "Signal Validation & Approval, Price Action Analysis, R:R Ratio Enforcement, Multi-Timeframe Alignment, Confluence Scoring, Market Regime Detection"
+    },
+    {
+      "role": "🏛️ Conselheiro Estratégico",
+      "name": "15+ anos VC/FinTech | Board Member",
+      "status": "✅ NOVO | Membro Conselho Externo",
+      "priority": "critical",
+      "specialties": [
+        "Market & competitive intelligence (trend analysis, TAM, unit economics)",
+        "Governance & risk management (board decision frameworks, capital allocation)",
+        "Scaling & business model (go-to-market, multi-asset expansion, revenue strategy)",
+        "Team & organization (hiring, incentive alignment, succession planning)",
+        "Investor relations (quarterly updates, fundraising strategy, LP communication)",
+        "Crisis management (regulatory, breach, liquidation response)"
+      ],
+      "veto_power": false,
+      "decision_authority": "Strategic direction, Capital allocation, Investor relations, Board meeting agenda, Regulatory/crisis decisions"
+    },
+    {
+      "role": "🔍 Auditor Independente",
+      "name": "12+ anos Big 4 | Compliance & Audit",
+      "status": "✅ NOVO | Membro Auditoria Externo",
+      "priority": "critical",
+      "specialties": [
+        "Integridade de dados (validation, reconciliation, point-in-time reconstruction)",
+        "Rastreabilidade de decisões (audit logs, blockchain-style trails, approval workflows)",
+        "Conformidade regulatória (Binance ToS, AML/KYC, GDPR, reporting)",
+        "Prevenção de fraude (segregation of duties, access controls, change management)",
+        "Avaliação de risco (control gaps, single points of failure, disaster recovery)",
+        "Incident response (playbook validation, forensic analysis, regulatory reporting)"
+      ],
+      "veto_power": false,
+      "decision_authority": "Audit findings, Control validation, Compliance certification, Third-party risk assessment, Incident reporting"
+    }
+  ],
+  "components": [
+    {
+      "name": "F-12a (BacktestEnv)",
+      "progress": 90,
+      "status": "complete"
+    },
+    {
+      "name": "F-12c (TradeStateMachine)",
+      "progress": 85,
+      "status": "complete"
+    },
+    {
+      "name": "F-12e (UnitTests)",
+      "progress": 90,
+      "status": "complete"
+    },
+    {
+      "name": "F-12b (ParquetCache)",
+      "progress": 60,
+      "status": "in-progress"
+    },
+    {
+      "name": "Risk Clearance",
+      "progress": 25,
+      "status": "blocked"
+    }
+  ]
+}

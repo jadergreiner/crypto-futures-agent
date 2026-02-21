@@ -136,17 +136,17 @@ class DatabaseManager:
 
                 # Criar índices para otimizar queries
                 cursor.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_meetings_date 
+                    CREATE INDEX IF NOT EXISTS idx_meetings_date
                     ON meetings(date DESC)
                 """)
 
                 cursor.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_backlog_meeting_id 
+                    CREATE INDEX IF NOT EXISTS idx_backlog_meeting_id
                     ON backlog(meeting_id)
                 """)
 
                 cursor.execute("""
-                    CREATE INDEX IF NOT EXISTS idx_backlog_status 
+                    CREATE INDEX IF NOT EXISTS idx_backlog_status
                     ON backlog(status)
                 """)
 
@@ -213,9 +213,9 @@ class DatabaseManager:
 
                 # Recuperar última reunião
                 cursor.execute("""
-                    SELECT id, date, executive_summary, decisions 
-                    FROM meetings 
-                    ORDER BY date DESC 
+                    SELECT id, date, executive_summary, decisions
+                    FROM meetings
+                    ORDER BY date DESC
                     LIMIT 1
                 """)
                 ultima_reuniao = cursor.fetchone()
@@ -227,9 +227,9 @@ class DatabaseManager:
 
                 # Recover itens de backlog abertos dessa reunião
                 cursor.execute("""
-                    SELECT task, owner, priority, status 
-                    FROM backlog 
-                    WHERE meeting_id = ? 
+                    SELECT task, owner, priority, status
+                    FROM backlog
+                    WHERE meeting_id = ?
                     AND status IN ('OPEN', 'IN_PROGRESS')
                     ORDER BY priority DESC, created_at ASC
                 """, (meeting_id,))

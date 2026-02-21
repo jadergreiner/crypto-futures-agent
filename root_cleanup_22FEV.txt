@@ -1,7 +1,7 @@
 # 🗑️ LISTA DE ARQUIVOS A DELETAR (Root Cleanup)
 
-**Gerado:** 22 FEV 2026 21:55 UTC  
-**Status:** Aguardando aprovação Investidor  
+**Gerado:** 22 FEV 2026 21:55 UTC
+**Status:** Aguardando aprovação Investidor
 **Owner:** Facilitador / Git Master
 
 ---
@@ -12,7 +12,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 1: DELIVERY/STATUS/REPORTS (Duplicam RELEASES.md)
 
-**Quantidade:** 15 arquivos  
+**Quantidade:** 15 arquivos
 **Razão:** Histórico de entregas deve estar centralizado em `/docs/RELEASES.md`
 
 ```
@@ -35,7 +35,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 2: DECISÕES/EXECUTIVO (Duplicam DECISIONS.md + STATUS_ATUAL.md)
 
-**Quantidade:** 12 arquivos  
+**Quantidade:** 12 arquivos
 **Razão:** Decisões board devem estar em `/docs/DECISIONS.md`; status em `STATUS_ATUAL.md`
 
 ```
@@ -55,7 +55,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 3: PHASE REPORTS (Duplicam ROADMAP.md + FEATURES.md)
 
-**Quantidade:** 10 arquivos  
+**Quantidade:** 10 arquivos
 **Razão:** Status de phases deve estar em `/docs/FEATURES.md` + `/docs/ROADMAP.md`
 
 ```
@@ -77,7 +77,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 4: SYNC/DOCUMENTATION (Duplicam SYNCHRONIZATION.md)
 
-**Quantidade:** 6 arquivos  
+**Quantidade:** 6 arquivos
 **Razão:** Sincronização documentação centralizada em `/docs/SYNCHRONIZATION.md`
 
 ```
@@ -91,7 +91,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 5: JSON STATUS FILES (Redundante)
 
-**Quantidade:** 8 arquivos  
+**Quantidade:** 8 arquivos
 **Razão:** Status em JSON duplica STATUS_ATUAL.md (markdown é mais legível + versionável)
 
 ```
@@ -108,7 +108,7 @@ Estes arquivos duplicam conteúdo que já está em `/docs/`:
 
 ### CATEGORY 6: MISCELLANEOUS (Não crítico, mas pode limpar)
 
-**Quantidade:** 15+ arquivos  
+**Quantidade:** 15+ arquivos
 **Razão:** Checklist, guias obsoletos, testes ad-hoc
 
 ```
@@ -238,7 +238,7 @@ Estes arquivos DEVEM permanecer no root:
 
 ---
 
-**Gerado:** 22 FEV 21:55 UTC  
-**Aprova deleção?** [Investidor responde]  
-**Arquivo backup:** Aguardando aprovação  
+**Gerado:** 22 FEV 21:55 UTC
+**Aprova deleção?** [Investidor responde]
+**Arquivo backup:** Aguardando aprovação
 **Status:** ⏳ AWAITING APPROVAL
