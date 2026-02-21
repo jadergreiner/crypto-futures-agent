@@ -1,0 +1,255 @@
+═══════════════════════════════════════════════════════════════════════════════
+                              QUICK REFERENCE GUIDE
+                    Operação do Sistema de Gestão de Posições
+═══════════════════════════════════════════════════════════════════════════════
+
+
+🔴 STATUS CRÍTICO ATUAL
+═════════════════════════════════════════════════════════════════════════════════
+  Margem: $6.00 (Margem esgotada)
+  ➜ NÃO ABRIR NOVAS POSIÇÕES
+  ➜ SÓ operações de leitura/análise
+  ➜ Aguardar recuperação para $50+
+
+
+🟢 VERIFICAÇÕES DE SEGURANÇA (SEM RISCO)
+═════════════════════════════════════════════════════════════════════════════════
+
+1. Ver TODAS as posições abertas:
+   ──────────────────────────────────
+   $ python scripts/manage_positions.py --list
+
+   Resultado esperado:
+   ✓ Trade IDs 5, 6, 7 listados
+   ✓ Status: ABERTA
+   ✓ SL/TP prices exibidos
+
+
+2. Ver Trade ID 7 (ESPECÍFICO):
+   ──────────────────────────────────
+   $ python verify_real_orders.py
+
+   Resultado esperado:
+   ✓ Binance Order ID: 5412778331
+   ✓ Binance SL Algo ID: 3000000742992546
+   ✓ Binance TP Algo ID: 3000000742992581
+
+
+3. Snapshot atual no banco (SQL):
+   ──────────────────────────────────
+   $ sqlite3 db/trading.db
+
+   sqlite> SELECT trade_id, symbol, direcao, entry_price,
+             binance_order_id, binance_sl_order_id,
+             binance_tp_order_id, status
+           FROM trade_log WHERE status='ABERTA';
+
+   Resultado esperado: IDs 5, 6, 7 com todos os 3 order IDs
+
+
+🟡 OPERAÇÕES DE GESTÃO (QUANDO MARGEM > $50)
+═════════════════════════════════════════════════════════════════════════════════
+
+A. REALIZAR PARCIAL (ex: 50% de lucro)
+   ──────────────────────────────────────
+   $ python scripts/manage_positions.py --partial --id 7 --pct 50
+
+   O que acontece:
+   1. Cancela SL antigo (Algo ID: ...546)
+   2. Cancela TP antigo (Algo ID: ...581)
+   3. Executa SELL de 50% da quantidade
+   4. Cria novo SL com 50% restante
+   5. Cria novo TP com 50% restante
+   6. Registra em trade_partial_exits
+
+
+B. MOVER SL PARA BREAKEVEN
+   ──────────────────────────
+   $ python scripts/manage_positions.py --breakeven --id 7
+
+   O que acontece:
+   1. Cancela SL antigo
+   2. Cria novo SL @ entry_price
+   3. TP permanece igual
+   4. Resultado: Sem risco, apenas upside
+
+
+C. FECHAR POSIÇÃO INTEIRA
+   ────────────────────────
+   $ python scripts/manage_positions.py --close-all --id 7
+
+   O que acontece:
+   1. Cancela SL (Algo ID: ...546)
+   2. Cancela TP (Algo ID: ...581)
+   3. Executa SELL de 100%
+   4. Registra saída no banco
+   5. Status: FECHADO
+
+
+🟢 MONITORAMENTO CONTÍNUO (BACKGROUND)
+═════════════════════════════════════════════════════════════════════════════════
+
+Modo Teste (uma vez):
+   $ python scripts/monitor_and_manage_positions.py --once
+
+   Resultado:
+   ✓ Lista posições abertas
+   ✓ Tempo aberto de cada
+   ✓ Aviso se > 2h aberta
+   ✓ Risco de liquidação %
+
+
+Modo Contínuo (toda a noite):
+   $ python scripts/monitor_and_manage_positions.py --interval 60
+
+   Resultado:
+   ✓ Executa scan a cada 60 seg
+   ✓ Registra em logs/monitor_
+   ✓ Ctrl+C para parar
+   ✓ Começa em novo terminal
+
+
+📊 ABRIR NOVA POSIÇÃO (QUANDO MARGEM OK)
+═════════════════════════════════════════════════════════════════════════════════
+
+   $ python scripts/execute_1dollar_trade.py --symbol SOLUSDT --direction LONG
+
+   O que acontece:
+   1. Verifica balance ($50+? OK/PARAR)
+   2. Busca preço atual de SOLUSDT
+   3. Calcula quantidade baseado em $1 margem × 10x
+   4. Executa MARKET order (entrada)
+   5. Cria STOP_MARKET order (SL) → Binance
+   6. Cria TAKE_PROFIT_MARKET order (TP) → Binance
+   7. Salva todos os 3 IDs no banco
+   8. Status: Trade ID 8 ABERTA
+
+   IMPORTANTE:
+   ✓ Sempre 3 ordens (1 MARKET + 1 SL + 1 TP)
+   ✓ Binance gerencia SL/TP 24/7
+   ✓ No monitor local necessário (backup apenas)
+
+
+🔧 MANUTENÇÃO DO SCHEMA
+═════════════════════════════════════════════════════════════════════════════════
+
+Criar tabela trade_partial_exits (1 vez apenas):
+   $ python schema_update.py
+
+   Resultado:
+   ✓ Tabela criada se não existir
+   ✓ 11 columns incluídas
+   ✓ Índices criados
+
+
+Verificar schema:
+   $ sqlite3 db/trading.db .schema trade_partial_exits
+
+
+📋 ARQUIVOS PRINCIPAIS (REFERÊNCIA)
+═════════════════════════════════════════════════════════════════════════════════
+
+execute_1dollar_trade.py
+   ├─ Abre 1 posição
+   ├─ Cria 3 ordens Binance (MARKET + SL + TP)
+   └─ Salva IDs no banco
+
+manage_positions.py
+   ├─ --list (ver todas)
+   ├─ --partial (realização parcial)
+   ├─ --breakeven (SL em entrada)
+   └─ --close-all (fechar tudo)
+
+monitor_and_manage_positions.py
+   ├─ --once (teste)
+   ├─ --interval 60 (contínuo)
+   └─ Logs health check
+
+schema_update.py
+   └─ Criar trade_partial_exits (1 vez)
+
+database (trade_log):
+   ├─ trade_id
+   ├─ symbol, direcao, entry_price
+   ├─ binance_order_id (MARKET)
+   ├─ binance_sl_order_id (SL Algo)
+   ├─ binance_tp_order_id (TP Algo)
+   └─ status (ABERTA/FECHADO)
+
+database (trade_partial_exits):
+   ├─ partial_id
+   ├─ trade_id (link)
+   ├─ partial_number (1º, 2º, etc)
+   ├─ quantity_closed / remaining
+   ├─ exit_price, exit_time
+   ├─ binance_sl_order_id_new (depois parcial)
+   ├─ binance_tp_order_id_new (depois parcial)
+   └─ reason (MANUAL, TP_TRIGGER, etc)
+
+
+⚠️  CHECKLIST DE OPERAÇÃO
+═════════════════════════════════════════════════════════════════════════════════
+
+ANTES DE QUALQUER OPERAÇÃO:
+  ☐ Verificar margem: $ python -c "print('$X.XX')"
+  ☐ Se margem < $50: PARAR, SÓ LEITURA
+  ☐ Se margem > $50: Pode operar conforme abaixo
+
+ANTES DE ABRIR POSIÇÃO:
+  ☐ Listar existentes: manage_positions.py --list
+  ☐ Se já 3 abertas: Fechar 1 antes
+  ☐ Confirmar símbolo (ex: SOLUSDT, NEOUSDT)
+  ☐ Confirmar direção (LONG ou SHORT)
+
+DEPOIS DE ABRIR:
+  ☐ Executar command (10 seg)
+  ☐ Verificar 3 IDs (MARKET + SL + TP)
+  ☐ Confirmar BD (verify_real_orders.py)
+  ☐ Notar Trade ID para futuro
+
+ADMINSTRAÇÃO DIÁRIA:
+  ☐ Rodar monitor --once (leitura, sem ação)
+  ☐ Ver quantas parciais realizadas
+  ☐ Checar PnL em tempo real
+  ☐ Se > 2h aberta + SL ativo = pode esperar
+  ☐ Se lucro visível + metade aberta = considerar mais parcial
+
+
+🎯 ESTRATÉGIA DE OPERAÇÃO (3 FASES)
+═════════════════════════════════════════════════════════════════════════════════
+
+FASE 1: ABERTURA (Execute → 10 seg)
+     Binance Order ID ✅
+     SL Algo ID ✅
+     TP Algo ID ✅
+
+FASE 2: GESTÃO (Quando quiser)
+     ├─ Se lucro 50% → Realiza 50%, ficam 50% abertos
+     ├─ Se lucro 30% + chão → Breakeven SL, espera TP
+     └─ Se SL/TP trigaram → Automático, sem ação
+
+FASE 3: MONITORAMENTO (Opcional, para logging)
+     ├─ Detecta SL/TP trigadas
+     ├─ Registra PnL
+     └─ Avisa timeout (2h)
+
+
+💡 DICAS PRÁTICAS
+═════════════════════════════════════════════════════════════════════════════════
+
+1. Sempre 3 ordens simultâneas (entrada + saída dupla)
+2. Binance gerencia, não depender de monitor
+3. Parciais toda hora (não preso numa)
+4. Capital é sagrado - $50+ antes de testar
+5. BD é fonte de verdade - sempre verificar
+6. Logs salvos em logs/ para auditoria
+7. Cada parcial = nova entrada na trade_partial_exits
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔴 HOJE: PARADO (margem $6)
+🟡 AMANHÃ: ANÁLISE (testar scripts, sem capital)
+🟢 QUANDO MARGEM > $50: OPERAÇÃO NORMAL
+
+═══════════════════════════════════════════════════════════════════════════════

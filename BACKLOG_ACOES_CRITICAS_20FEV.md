@@ -1,21 +1,723 @@
-# 🎯 BACKLOG DE AÇÃO CRÍTICA — Diagnóstico 2026-02-20
+# 🎯 BACKLOG DE AÇÃO CRÍTICA — Operação Live
 
 **Data de Criação**: 2026-02-20 20:50:00
+**Última Atualização**: 2026-02-21 00:15:00 UTC
 **Prioridade**: 🔴 CRÍTICA
-**Status**: Pendente
-**Reunião de Referência**: `docs/reuniao_diagnostico_profit_guardian.md`
+**Status**: 🟢 EM EXECUÇÃO — FILOSOFIA OPERACIONAL DEFINIDA
+**Reunião de Referência**: Reunião Investidor + Especialistas
 
 ---
 
-## 📋 ITEM 1 — FASE 1: Fechar 5 Maiores Posições Perdedoras
+## 🚀 DECISÃO ESTRATÉGICA — HEAD's Operação
+
+**Direção Executiva (23:50 UTC):**
+
+```text
+ESTRATÉGIA DE OPERAÇÃO - FASE 1 — TESTE DE PROCESSO
+
+Margem por Posição:       $1.00 USD
+Alavancagem:              10x
+Exposição por Posição:    $10.00 USD
+Máximo Simultâneo:        30 posições (~$30 margem)
+Total de Margem:          $40 (de $424 disponível)
+
+Racional:
+├─ Risco MÍNIMO: Cada posição limita PnL a ±$1
+├─ Validação: Testa processo end-to-end
+├─ Escalabilidade: Pode aumentar para $5-$10 por posição após sucesso
+└─ Focus: Processo primeiro, PnL depois
+```
+
+✅ **Aprovado por**: Investidor + Tech Lead + Especialista Risk
+
+---
+
+## 🎯 NOVO PLANO DE AÇÃO (2 horas)
+
+### FASE 0: Validação de Sistema (30 min)
+
+**ID**: VALIDATE-SYSTEM-1DOLLAR
+**Status**: 🔴 PRONTO PARA EXECUTAR AGORA
+**Responsável**: Tech Lead
+**Scripts**:
+- `scripts/test_executor_with_1dollar.py` ← Testar configuração
+- `scripts/execute_1dollar_trade.py` ← Executar trade piloto
+
+```
+PASSO 1 (10 min): Rodar test_executor_with_1dollar.py
+├─ Verificar conectividade com Binance
+├─ Validar que alavancagem 10x está disponível
+├─ Confirmar cálculo de quantidade para $1 margem
+└─ Status: GO/NO-GO para próximo passo
+
+PASSO 2 (15 min): Se GO — Executar dry-run de ordem
+├─ python execute_1dollar_trade.py --dry-run
+├─ Simular ordem sem executar
+└─ Validar cálculos
+
+PASSO 3 (5 min): Se tudo OK → GO para FASE 1
+```
+
+### FASE 1: Primeira Posição Live (45 min)
+
+**ID**: EXECUTE-FIRST-POSITION
+**Símbolo**: ANKRUSDT (estável, líquido)
+**Direção**: LONG (mais simples para teste)
+**Margem**: $1.00
+**Alavancagem**: 10x
+**Exposição**: $10.00
+
+```
+TIMELINE:
+├─ T+00 min: Executar python execute_1dollar_trade.py
+├─ T+01 min: Ordem MARKET executada
+├─ T+02 min: Posição aberta no Binance
+├─ T+05 min: Trade registrado em DB com status OPEN
+├─ T+30 min: Monitorar PnL (esperado ±$0.30)
+└─ T+45 min: Validar que tudo funcionou
+```
+
+**Critério de Sucesso**:
+- ✅ Ordem executada sem rejeitada
+- ✅ Posição aparece em Binance API
+- ✅ DB registrado com status correto
+- ✅ Agent consegue monitorar sem erros
+- ✅ Sem perdas inesperadas (stop loss não disparou)
+
+**Se Sucesso → FASE 2**
+
+### FASE 2: Aumentar para 3 Posições Paralelas (45 min)
+
+**ID**: EXECUTE-PARALLEL-POSITIONS
+**Símbolos**: BTCUSDT, ETHUSDT, AVAXUSDT
+**Margem Total**: $3.00 (3 × $1)
+**Alavancagem**: 10x cada
+**Exposição Total**: $30.00
+
+```
+TIMELINE:
+├─ T+45 min (de FASE 1): Gerar 3 sinais com score >= 4.0
+├─ T+50 min: Executar 3 trades em paralelo (podem ser automáticos)
+├─ T+55 min: Todos registrados em DB
+├─ T+90 min: Monitorar status final
+└─ T+120 min: DECISÃO: Aumentar ou parar?
+```
+
+**Critério de Sucesso**:
+- ✅ 3 posições abertas simultaneamente
+- ✅ Nenhuma rejeição de ordem
+- ✅ Agent conseguiu gerenciar sem travamento
+- ✅ DB sincronizado com Binance
+- ✅ Total de $3 margem utilizado corretamente
+
+### FASE 3: Decisão de Escalação (30 min)
+
+**ID**: DECISION-SCALE-UP
+**Status**: Análise e votação
+
+```
+SE tudo funcionou em FASE 2:
+├─ ✅ Aumentar para $5 margem por posição?
+├─ ✅ Deixar automático (agent dispara sozinho)?
+├─ ✅ Aumentar max simultâneo para 5-10 posições?
+└─ ✅ Retrainagem de modelo (data 13-20 feb)?
+
+SE houve erro em FASE 1 ou 2:
+├─ Debug específico
+├─ Correção imediata
+├─ Retry quando pronto
+└─ SEM escalar até saber causa raiz
+```
+
+---
+
+## 🏛️ FILOSOFIA OPERACIONAL — OS 5 PILARES
+
+**Definido em Reunião**: 2026-02-21 00:00+ UTC
+**Decisor**: Investidor (C-Level)
+**Aprovadores**: Tech Lead, Especialista RL, Especialista Risk
+
+### **PILAR 1: CONFLUÊNCIA > SORTE**
+
+```
+Abrir apenas quando MÚLTIPLOS indicadores convergem na MESMA direção.
+
+Métricas de Confluência (ponderadas):
+├─ TECHNICAL (45%):
+│  ├─ RSI oversold/overbought: 15%
+│  ├─ EMA alignment (3 EMAs): 15%
+│  └─ MACD histogram+signal: 15%
+│
+├─ SMART MONEY (30%):
+│  ├─ Order blocks: 10%
+│  ├─ Fair Value Gaps: 10%
+│  └─ Market structure: 10%
+│
+└─ SENTIMENTO (25%):
+   ├─ Funding rate: 12%
+   ├─ Long/Short ratio: 8%
+   └─ Open Interest: 5%
+
+Score >= 7.0: ABRIR com confiança 80%+
+Score 5.0-6.9: ABRIR com confiança 60-70%
+Score < 5.0: NÃO ABRIR (esperar) — MAS com monitoring inteligente
+
+GATILHO DE SAÍDA DE HOLD:
+├─ Se opportunity_cost_24h > $5 → reduz threshold 5.0 → 4.7
+├─ Se score trend positivo > 12h → força entrada
+└─ Máximo 24h em HOLD contínuo
+```
+
+### **PILAR 2: SKILL VALIDATION — POR QUE ACERTOU/ERROU?**
+
+```
+Cada trade registra: indicadores estavam REALMENTE certos?
+
+Classificações de Resultado:
+├─ ✅ GANHO COM SKILL: Indicadores 75%+ corretos
+│  └─ Recompensa: 1.0x (máxima)
+│  └─ Aprendizado: "SUBA confiança nesse padrão"
+│
+├─ ⚠️ GANHO COM SORTE: Indicadores <50% corretos
+│  └─ Recompensa: 0.2x (mínima)
+│  └─ Aprendizado: "Ignore esse padrão próxima vez"
+│
+├─ ✅ PERDA COM SKILL: Indicadores 75%+ corretos, mercado contra
+│  └─ Punição: -0.7x (leve, estava certo)
+│  └─ Aprendizado: "Modelo funciona, mercado surpresa"
+│
+└─ ❌ PERDA COM FALTA DE SKILL: Indicadores ruins
+   └─ Punição: -0.1x (esperado)
+   └─ Aprendizado: "Evita padrão, indicador falhou"
+
+MÉTRICA: SKILL_SCORE após N trades
+├─ Agregado de todas recompensas ajustadas
+├─ Se > 0.15: modelo tem SKILL genuíno
+├─ Se 0.05-0.15: borderline, refinar
+├─ Se < 0.05: sorte pura (NÃO escalar)
+```
+
+### **PILAR 3: INDICADOR DINAMISMO — PESOS EVOLUEM**
+
+```
+Cada indicador tem "taxa de acerto" rastreada:
+
+┌──────────────────┬────────┬────────┬──────┐
+│ Indicador        │ Acertos│ Erros  │ Taxa │ Ação
+├──────────────────┼────────┼────────┼──────┼─────┐
+│ RSI oversold     │ 28     │ 12     │ 70%  │ ↑ peso
+│ EMA cruzamento   │ 35     │ 15     │ 70%  │ ↑ peso
+│ Funding rate     │ 20     │ 20     │ 50%  │ ↓ peso
+│ SMC Order Block  │ 18     │ 22     │ 45%  │ ↓↓ peso
+└──────────────────┴────────┴────────┴──────┴─────┘
+
+REGRA AUTOMÁTICA:
+├─ If accuracy < 55%: reduz peso 15% → 5%
+├─ If accuracy > 75%: aumenta peso 15% → 25%
+└─ Modelo se auto-calibra iterativamente
+```
+
+### **PILAR 4: SEPARAÇÃO SKILL/LUCK — EVENTOS EXTERNOS**
+
+```
+Quando mercado faz "surpresa" (Fed, earnings, notícia macro):
+
+CENÁRIO: Indicadores bullish 7.5/10, você abre LONG
+         Mas Fed announcement cai (evento inesperado)
+         Mercado desaba -8%, stop loss em -$0.30
+
+ANÁLISE:
+├─ Skill component: +63% (modelo estava certo)
+├─ Luck component: -30% (Fed foi sorte ruim)
+├─ Recompensa modificada: -$0.30 × (0.63 - 0.30) = -$0.10
+└─ Interpretação: "Estava certo, absorva punição leve"
+
+AÇÃO:
+├─ Penalidade: -$0.10 (suave)
+├─ Aprendizado: incorporar Fed/earnings calendar
+├─ Log: "Evento macro destruiu trade, mas modelo acertou"
+```
+
+### **PILAR 5: PONTO DE EQUILÍBRIO = 55% WIN RATE**
+
+```
+MATEMÁTICA SIMPLES:
+
+Se Win Rate = 50%: Break-even (0 lucro)
+Se Win Rate = 55%: Lucro = +$2.50/100 trades = +$5-10/dia
+Se Win Rate = 60%: Lucro = +$10/100 trades = +$15-20/dia
+Se Win Rate = 65%: Lucro = +$15/100 trades = +$25-30/dia
+
+META PARA SEMANA 1:
+├─ 280-400 trades (40 trades/dia × 7 dias)
+├─ Descobrir: W/L = 55%+ ?
+├─ Se SIM: escalar para $5 margem  (semana 2)
+├─ Se NÃO: refinar indicadores antes escalar
+
+PONTO DE EQUILÍBRIO CRÍTICO:
+└─ Abaixo 55% = modelo sem skill (não escalar)
+└─ Acima 55% = skill genuíno (escalar com segurança)
+```
+
+---
+
+## 🚨 FRAMEWORK: HOLD COM INTELIGÊNCIA
+
+**Decisão Crítica Descoberta**: 2026-02-21 00:05 UTC
+**Problema**: Sistema em Profit Guardian (HOLD puro 14h), perdeu oportunidade
+**Solução**: HOLD inteligente com métricas
+
+### **O PARADOXO DO HOLD: "INAÇÃO TAMBÉM CUSTA"**
+
+```
+Quando sistema diz "score < 5.0, espera":
+├─ Economiza risco de entrada ruim ✅
+├─ MAS deixa ganho na mesa ❌
+│
+Exemplo 21 fev 10:00-00:00:
+├─ BTC subiu +1.6% (ganho possível $6.40)
+├─ Sistema em HOLD (etiquetado como "seguro")
+├─ Resultado: $0 ganho + opportunity cost -$6.40
+│
+QUESTÃO: É esse trade-off correto?
+RESPOSTA: Apenas se mercado FOSSE para baixo
+         Para cima = HOLD foi errado
+```
+
+### **MÉTRICA: OPPORTUNITY COST PER DAY**
+
+```
+opportunity_cost = (média_ganho_possível) - (ganho_modelo)
+
+Se HOLD deixa $2.50/dia na mesa × 7 dias = -$17.50/semana
+
+PERGUNTA: Vale risco de operar para ganhar $17.50?
+RESPOSTA: Sim, se operando você ganha 55%+ (skill > sorte)
+```
+
+### **HOLD DECISION MATRIX**
+
+```
+Volatilidade   Score      Ação            Justificativa
+─────────────────────────────────────────────────────
+BAIXA          >7.0       ABRIR 100%      Seguro
+               5.0-6.9    ABRIR 70%       Bom
+               <5.0       HOLD            Espera
+
+MÉDIA          >8.0       ABRIR 100%      Raro
+               6.0-8.0    ABRIR 70%       Cuidado
+               <6.0       HOLD            Demais
+
+ALTA           >9.0       ABRIR 30%       Muito seletivo
+               7.5-9.0    HOLD            Perigoso
+               <7.5       HOLD 100%       Não
+
+Evento macro   N/A        HOLD 100%       Risco externo
+(Fed, etc)                Esperando       Incontrolável
+```
+
+### **REGRAS OPERACIONAIS DE HOLD**
+
+```
+ENTRA EM HOLD:
+├─ Score < 5.0 AND (
+│  ├─ Volatilidade > 2.5% histórica, OU
+│  ├─ Evento macro próximo <4h, OU
+│  └─ Oportunidade loss < expected loss)
+
+VALIDA HOLD A CADA 2-4h:
+├─ Calcular opportunity_cost_24h
+├─ Se > $5: sai de HOLD, reduz threshold 5.0 → 4.7
+├─ Se score trend positivo: força entrada parcial
+└─ Se > 24h: força revalidação completa
+
+SAI DE HOLD:
+├─ Score >= 5.0, OU
+├─ Oportunidade acumulada > limite, OU
+├─ 24 horas passaram
+└─ Com novo(s) threshold(s) ajustado(s)
+
+LOG OBRIGATÓRIO:
+└─ "HOLD Duration: 4h | OpportunityCost: -$2.50 | Status: VALID"
+```
+
+### **HOLD QUALITY TRACKER (implementado em agent/hold_quality_tracker.py)**
+
+```python
+class HoldQualityTracker:
+    def check_hold_validity(self):
+        # A cada 2-4h, verifica:
+        market_return = get_market_performance()
+        opportunity_cost = market_return × portfolio_size
+
+        if abs(opportunity_cost) > abs(expected_loss_avoided):
+            # HOLD está custando mais que ajudando
+            self.exit_hold_early()
+            self.reduce_threshold(5.0 → 4.7)
+
+        if hold_duration > timedelta(hours=24):
+            # Máximo 24h contínuo
+            self.exit_hold_with_reevaluation()
+```
+
+---
+
+## 📊 MANTRAS FINAIS — FILOSOFIA DOCUMENTADA
+
+### **MANTRA #1: CONFLUÊNCIA COM CONFIANÇA**
+
+```
+"Não abro pela sorte de um indicador.
+ Abro quando múltiplos indicadores convergem na mesma direção.
+
+ Quando ganho, valido se foi pelos motivos certos.
+ Quando perdo, analiso se indicadores falharam
+ ou se fui punido por algo que não controlava.
+
+ Ganhos com SKILL são aprendizado valioso.
+ Ganhos com SORTE, ignoro na próxima decisão.
+ Perdas com SKILL ensinam mais que ganhos casuais."
+```
+
+### **MANTRA #2: INAÇÃO TAMBÉM CUSTA**
+
+```
+"Mas não fico em HOLD infinito.
+ HOLD é válido se:
+ ├─ Volatilidade está anormal (risco elevado), OU
+ ├─ Score realmente < 4.8, OU
+ └─ Evento macro pendente
+
+ Se nenhum desses: reduz threshold e experimenta.
+ Inação tem custo. Oportunidade perdida é risco também.
+
+ Após 24h em HOLD: revalido tudo.
+ Se opportunity_cost > benefício: saio mais cedo."
+```
+
+### **MANTRA #3: SKILL ANTES DE LUCRO**
+
+```
+"Não estou operando ainda.
+ Estou CALIBRANDO.
+ Cada trade de $1 é um teste de hipótese.
+
+ Lucro virá NATURALMENTE quando SKILL > 50%.
+ Até isso acontecer, coleto dados e refino modelo.
+
+ Ponto de equilíbrio: 55% win rate.
+ Abaixo disso = modelo sem skill (NÃO escalar).
+ Acima disso = skill genuíno (pode escalar com confiança)."
+```
+
+---
+
+
+## 📊 RISK CONTROLS
+
+```
+MÁXIMOS PERMISSIVOS PARA FASE 1:
+├─ Max 1ª posição: $1.00 margem → $10 exposição
+├─ Max acumulado: $40 margem (de $420 disponível)
+├─ Max pares simultâneos: 30
+├─ Max perda por posição: $1.00 (10% de $10 exposição)
+└─ Stop automático em: -10% (liquidação em alavancagem 10x)
+
+SE ATINGIR LIMITES:
+└─ Sistema para automaticamente, alerta investidor
+```
+
+---
+
+## 🚨 BLOQUEADOR ABSOLUTO #0 — VERIFICAR API KEY E CONTA
+
+**ID**: VERIFY-API-KEY-ACCOUNT (PRÉ-REQUISITO PARA TUDO)
+**Prioridade**: 🔴🔴🔴🔴 BLOQUEADOR CRÍTICO IMEDIATO
+**Tipo**: Verificação de conectividade
+**Status**: 🔴 EXECUTAR AGORA (antes de qualquer auditoria)
+**Tempo Estimado**: 15 minutos
+**Responsável**: Tech Lead
+**Dependência**: NENHUMA (executar IMEDIATAMENTE)
+**Descoberto em**: Reunião do Investidor 20/02/2026 23:33 UTC
+
+### ⚠️ CONTEXTO CRÍTICO
+
+**Discrepância impossível:**
+
+```
+INVESTIDOR RELATA (observa na conta Binance web):
+├─ Capital: $424 USDT
+├─ Posições abertas: 20
+└─ Perdas não realizadas: -$182
+
+SISTEMA RETORNA (auditoria API 23:32 UTC):
+├─ Capital: [N/A]
+├─ Posições abertas: 0
+└─ Perdas não realizadas: 0
+
+MATEMATICAMENTE IMPOSSÍVEL:
+└─ Se há -$182 em perdas não realizadas, OBRIGATORIAMENTE há posições abertas
+└─ Se sistema retorna 0 posições, não pode haver -$182 em PnL
+```
+
+### 🔴 PROBLEMA RAIZ IDENTIFICADO
+
+A **API Key configurada em `.env` pode estar:**
+
+1. **Apontando para CONTA ERRADA**
+   - Você tem múltiplas contas Binance
+   - `.env` tem chave de conta 2, mas você está vendo dados de conta 1
+   - Resultado: API retorna dados vazios da conta errada
+
+2. **Apontando para TESTNET ao invés de LIVE**
+   - Configuração `TRADING_MODE=paper`
+   - Sistema conecta ao testnet (dados vazios)
+   - Conta real está em outro lugar
+
+3. **API Key com Permissões Restritas**
+   - Chave não tem permissão de leitura
+   - Retorna resposta vazia
+
+4. **Defasagem de Dados**
+   - API está atrasada/em cache
+   - Mas isso não explica 0 vs 20 posições
+
+### ✅ AÇÃO: VERIFICAÇÃO IMEDIATA (15 min)
+
+```
+PASSO 1: Verificar `.env` (2 min)
+────────────────────────────────────────────────────────
+   □ Abrir arquivo config/.env (ou .env na raiz)
+   □ Anotar valor de BINANCE_API_KEY
+   □ Anotar valor de TRADING_MODE
+   □ Anotar valor de BINANCE_API_SECRET
+
+PASSO 2: Comparar com conta real (3 min)
+────────────────────────────────────────────────────────
+   □ Ir para https://www.binance.com
+   □ Login com suas credenciais
+   □ Ir para "Futuros" → "Posições Abertas"
+   □ Contar quantas posições aparecem
+   □ Anotar o PnL total
+
+   Resultado esperado:
+   ├─ Se vê 20 posições: API Key em `.env` está ERRADA
+   └─ Se vê 0 posições: Sistema está certo (há discrepância com seu relato)
+
+PASSO 3: Verificar qual API Key é qual (5 min)
+────────────────────────────────────────────────────────
+   □ Se tem múltiplas contas Binance:
+      └─ Anote a API Key de CADA conta
+      └─ Compare qual está em `.env`
+
+   □ Se tem apenas uma conta:
+      └─ A API Key em `.env` deve ser dessa conta
+      └─ Se mismatch: há erro de configuração
+
+PASSO 4: Validar TRADING_MODE (2 min)
+────────────────────────────────────────────────────────
+   □ Verificar se TRADING_MODE em `.env`
+   □ Se TRADING_MODE=paper: Sistema conecta ao testnet (dados vazios esperado)
+   □ Se TRADING_MODE=live: Sistema conecta à conta de produção
+
+PASSO 5: Corrigir e re-testar (3 min)
+────────────────────────────────────────────────────────
+   □ Se API Key estava errada: Atualizar `.env`
+   □ Se TRADING_MODE foi testnet: Mudar para live
+   □ Re-executar: python audit_positions_simple.py
+   □ Verificar se agora retorna 20 posições + -$182 PnL
+```
+
+### 📋 CRITÉRIO DE SUCESSO
+
+✅ API retorna exatamente 20 posições abertas
+✅ API retorna -$182 de PnL não realizado
+✅ Concordância 100% entre conta Binance web ↔ API
+✅ Configuração `.env` validada como correta
+✅ VALIDA-000 pode então prosseguir com segurança
+
+### ⚠️ SE ISSO FALHAR
+
+Se após ajustes a API ainda retornar dados diferentes:
+- 🔴 Escalar para Binance Support (problema de API ou permissões)
+- 🔴 Possível comprometimento de credenciais
+- 🔴 Necessário re-gerar API Keys
+
+---
+## � BLOQUEADOR ABSOLUTO — VALIDA-DATA-INTEGRITY
+
+**ID**: VALIDA-000 (PRÉ-REQUISITO PARA TODAS AS AÇÕES)
+**Prioridade**: 🔴🔴🔴 BLOQUEADOR CRÍTICO
+**Tipo**: Auditoria de Dados + Validação de Integridade
+**Status**: 🔴 EXECUTAR AGORA (antes de qualquer operação)
+**Tempo Estimado**: 2 horas
+**Responsável**: Tech Lead + Analista de Dados
+**Dependência**: NENHUMA (executar imediatamente)
+**Descoberto em**: Reunião do Investidor 20/02/2026 23:30
+
+### ⚠️ CONTEXTO CRÍTICO
+
+**Problema Identificado pelo Investidor:**
+
+Durante a reunião executiva, apresentamos:
+- 21 posições abertas com perdas de -$42k
+- Perdas de -$1.122 em ETHUSDT, -$4.600 em SOLUSDT, etc.
+- Capital em risco de liquidação
+
+**Realidade verificada em 20/02/2026 23:24:**
+- 0 posições abertas
+- Capital: ~$424 USDT
+- Perdas não realizadas: -$182 USDT
+- Nenhuma exposição ativa
+
+### 🔴 IMPACTO CRÍTICO
+
+```text
+QUESTÃO FUNDACIONAL:
+════════════════════════════════════════════════════════════
+
+Se os dados apresentados na reunião NÃO correspondem à realidade,
+então TODAS as decisões tomadas com base nesses dados são INVÁLIDAS.
+
+Exemplos de decisões afetadas:
+❌ ACAO-001 (fechar 5 posições) — Posições não existem!
+❌ Narrativa de "Profit Guardian Mode" — Fatos são diferentes
+❌ Impacto financeiro -$2.670/dia — Cálculo baseado em dado falso
+❌ Aprovação de operações — Baseada em dados inconsistentes
+
+CONFIANÇA NO MODELO:
+════════════════════════════════════════════════════════════
+
+Se o modelo está recebendo dados incorretos/desatualizados,
+como podemos confiar que ele toma as decisões certas?
+
+Riscos:
+  1. Modelo opera em base de fatos falsos
+  2. Validações de risco podem estar inoperantes
+  3. Histórico de operações pode estar comprometido
+  4. Auditoria pós-operação seria inválida
+```
+
+### ✅ AÇÃO: AUDITORIA COMPLETA DE DADOS
+
+```text
+FASE 1: RECONCILIAÇÃO DE DADOS (1.5h)
+════════════════════════════════════════════════════════════
+
+□ 1.1 — Conectar à Binance API LIVE
+        └─ Obter estado REAL de:
+           ├─ Balance (capital disponível)
+           ├─ Posições abertas (símbolo, quantidade, PnL)
+           ├─ Ordens abertas (SL/TP condicionais)
+           └─ Histórico de trades últimas 72h
+
+□ 1.2 — Verificar Database Local (db/crypto_futures.db)
+        └─ Consultar tabelas:
+           ├─ position_snapshots (últimas 441 entradas)
+           ├─ execution_log (última execução)
+           ├─ trade_log (histórico de fechamentos)
+           └─ Comparar timestamps com API Binance
+
+□ 1.3 — Verificar Documentação (markdown files)
+        └─ Arquivos mencionados com dados de posições:
+           ├─ DASHBOARD_EXECUTIVO_20FEV.md
+           ├─ DIRECTOR_BRIEF_20FEV.md
+           ├─ BACKLOG_ACOES_CRITICAS_20FEV.md
+           ├─ README.md
+           └─ Identificar QUANDO foram atualizados (last commit)
+
+□ 1.4 — Análise de Timeline
+        └─ Determinar:
+           ├─ Quando os dados dos docs foram precisos?
+           ├─ Quando as posições foram fechadas?
+           ├─ Por que documentação não foi atualizada?
+           ├─ Quem é responsável pela sincronização?
+           └─ Qual é o SLA de atualização esperado?
+
+FASE 2: ROOT CAUSE ANALYSIS (30 min)
+════════════════════════════════════════════════════════════
+
+□ 2.1 — Identificar fonte de desatualização
+        └─ É:
+           ├─ Processo manual não executado?
+           ├─ Automação quebrada?
+           ├─ Falta de monitoramento?
+           └─ Documentação nunca foi atualizada?
+
+□ 2.2 — Verificar integridade do execution_log na DB
+        └─ Existe registro de fechamento das posições?
+           └─ Se sim: QUANDO foi executado?
+           └─ Se não: As posições eram reais ou hipotéticas?
+
+□ 2.3 — Validar estado de config/execution_config.py
+        └─ Qual é o valor REAL de:
+           ├─ allowed_actions (OPEN está habilitada?)
+           ├─ AUTHORIZED_SYMBOLS (quantos pares permitidos?)
+           └─ profit_guardian_mode (ativo ou inativo?)
+
+FASE 3: DOCUMENTO DE VALIDAÇÃO (30 min)
+════════════════════════════════════════════════════════════
+
+Criar relatório OFICIAL:
+
+┌──────────────────────────────────────────────────────┐
+│ RELATÓRIO: DATA INTEGRITY AUDIT — 20 FEV 2026       │
+├──────────────────────────────────────────────────────┤
+│                                                       │
+│ SEÇÃO 1: ESTADO REAL DA CONTA (verificado)          │
+│   └─ Capital, posições, PnL (fonte: API Binance)    │
+│                                                       │
+│ SEÇÃO 2: ESTADO DOCUMENTADO (inconsistencies)       │
+│   └─ O que foi informado na reunião vs. realidade   │
+│                                                       │
+│ SEÇÃO 3: ANÁLISE DE INCONSISTÊNCIAS                 │
+│   ├─ Quais documentos estão desatualizados?         │
+│   ├─ Quando foram atualizados pela última vez?      │
+│   ├─ Por que a desatualização não foi detectada?    │
+│   └─ Impacto nas decisões tomadas                   │
+│                                                       │
+│ SEÇÃO 4: CAUSA RAIZ                                 │
+│   └─ Processos quebrados? Automação falhou? Manual  │
+│       não executado? Falta de validação de dados?   │
+│                                                       │
+│ SEÇÃO 5: RECOMENDAÇÕES                              │
+│   ├─ Como prevenir isso no futuro?                  │
+│   ├─ Qual é o SLA de sincronização de dados?        │
+│   ├─ Quem é responsável por validação?              │
+│   └─ Implementar checklist de dados antes de reunião│
+│                                                       │
+└──────────────────────────────────────────────────────┘
+
+Arquivo de saída: docs/DATA_INTEGRITY_AUDIT_20FEV_2026.md
+```
+
+### 📋 CRITÉRIO DE SUCESSO
+
+✅ Auditoria completa com timeline de atualização de cada documento
+✅ Reconciliação 100% entre Binance API ↔ DB Local ↔ Documentação
+✅ Identificação clara da causa raiz de desatualização
+✅ Processo de validação de dados proposto para futuro
+✅ ANTES de executar ACAO-001, ACAO-002, ou qualquer operação
+
+### ⚠️ IMPACTO NA REUNIÃO
+
+**Aguardando resultado desta auditoria para:**
+- ✋ PARAR ACAO-001 (fechar posições) até saber se existem mesmo
+- ✋ REVISAR narrativa de "Profit Guardian Mode"
+- ✋ QUESTIONAR quais outras informações estão incorretas
+- ✋ VALIDAR confiabilidade do modelo de trading
+
+---
+
+## �📋 ITEM 1 — FASE 1: Fechar 5 Maiores Posições Perdedoras
 
 **ID**: ACAO-001
 **Prioridade**: 🔴 CRÍTICA
 **Tipo**: Operação Manual + Monitoramento
-**Status**: ⏳ Aguardando Aprovação
+**Status**: 🛑 **BLOQUEADA até VALIDA-000 ser concluída**
 **Tempo Estimado**: 30 minutos
 **Responsável**: Operador Autônomo
-**Dependência**: Nenhuma (executar TODAY)
+**Dependência**: ✋ VALIDA-000 (Data Integrity Audit)
 
 ### Descrição
 

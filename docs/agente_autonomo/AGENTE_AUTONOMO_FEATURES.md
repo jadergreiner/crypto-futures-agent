@@ -26,6 +26,64 @@
 
 ---
 
+### v0.3.1 — POSIÇÃO MANAGEMENT (20-21 FEV) ⭐ NOVO
+
+| Feature | ID | Descr | Owner | Est. | Status |
+|---------|----|----|-------|-----|--------|
+| MARKET + SL + TP Real | F-09 | Ordens Binance (não local) | DevOps | 4h | ✅ v0.3.1 |
+| Gestão de Parciais | F-10 | 50%, 75%, custom close | DevOps | 6h | ✅ v0.3.1 |
+| Monitor 24/7 | F-11 | Health check + PnL + timeout | DevOps | 4h | ✅ v0.3.1 |
+
+**Problema Resolvido**: SL/TP simulados localmente dependem de monitor
+**Solução**: Ordens REAIS apregoadas Binance via `new_algo_order()` ✅
+
+**Trade ID 7 Prova**:
+```
+ANKRUSDT LONG | MARKET: 5412778331 ✅ | SL: 3000000742992546 ✅ | TP: 3000000742992581 ✅
+```
+
+---
+
+### v0.3.2 — LEARNING (21 FEV) ⭐ NOVO
+
+| Feature | ID | Descr | Status | Testes |
+|---------|----|----|--------|--------|
+| Stay-Out Learning (Round 5) | F-25 | r_out_of_market: proteção DD + descanso + inatividade | ✅ v0.3.2 | 5/5 ✅ |
+| Opportunity Learning (Round 5+) | F-26 | OpportunityLearner: meta-learning contextual | ✅ v0.3.2 | 6/6 ✅ |
+
+**Problema Resolvido**: Round 5 recompensava ficar fora sem diferenciar contexto
+**Solução**: OpportunityLearner avalia cada oportunidade perdida retrospectivamente ✅
+
+**Arquitetura Evolução**:
+```
+ROUND 4: r_pnl + r_hold_bonus + r_invalid_action (3)
+ROUND 5: + r_out_of_market (4)
+  ├─ Proteção drawdown: +0.15
+  ├─ Descanso pós-trades: +0.10
+  └─ Inatividade: -0.03
+
+ROUND 5+: + r_contextual_opportunity (5)
+  ├─ Registra missed opportunities
+  ├─ Avalia retrospectivamente
+  └─ Rewards contextuais: -0.20 a +0.30
+```
+
+**Componentes**:
+- `agent/reward.py`: Novo parâmetro `flat_steps`, r_out_of_market
+- `agent/environment.py`: Passa flat_steps para reward calculator
+- `agent/opportunity_learning.py`: NOVO (290+ linhas, meta-learning engine)
+- `test_stay_out_of_market.py`: 5/5 testes validando r_out_of_market
+- `test_opportunity_learning.py`: 6/6 testes validando OpportunityLearner
+
+**Documentação**:
+- `docs/LEARNING_STAY_OUT_OF_MARKET.md` (200+ linhas)
+- `docs/LEARNING_CONTEXTUAL_DECISIONS.md` (300+ linhas)
+- `IMPLEMENTATION_SUMMARY_OPPORTUNITY_LEARNING.md` (200+ linhas)
+
+**Validação Total**: 11/11 testes passando ✅
+
+---
+
 ### v0.4 — BACKTEST ENGINE (24-28 FEV)
 
 | Feature | ID | Descr | Owner | Est. |

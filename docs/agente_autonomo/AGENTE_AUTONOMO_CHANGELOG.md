@@ -9,6 +9,142 @@
 
 ## [Unreleased]
 
+### ⭐ [v0.3.2] — LEARNING: Round 5 & 5+ Meta-Learning (21 FEV 2026 02:30 UTC)
+
+#### ✨ Adicionado
+
+- **Round 5 — Stay-Out Learning**:
+  - Novo componente `r_out_of_market` no reward function
+  - 3 mecanismos:
+    - Proteção drawdown: +0.15 quando DD ≥ 2%
+    - Descanso pós-trades: +0.10 após 3+ trades em 24h
+    - Penalidade inatividade: -0.03 para > 16 dias sem posição
+  - Objetivo: Ensinar agente valor contextual de ficar fora
+  - Validação: 5/5 testes em `test_stay_out_of_market.py`
+
+- **Round 5+ — Opportunity Learning (Meta-Learning)**:
+  - Novo módulo `agent/opportunity_learning.py` (290+ linhas)
+  - Classe `OpportunityLearner`: Avalia oportunidades não tomadas
+  - Dataclass `MissedOpportunity`: Rastreia 15+ campos por oportunidade
+  - Fluxo:
+    1. Signal disparado → Agente fica fora
+    2. Registra como oportunidade perdida com contexto
+    3. Após ~20 candles → Avalia resultado hipotético
+    4. Computa reward contextual (-0.20 a +0.30)
+  - Lógica contextual 4 cenários:
+    - Opp excelente + drawdown alto → -0.15 (deveria entrar menor)
+    - Opp boa + múltiplos trades → -0.10 (descanso longo)
+    - Opp boa + normal → -0.20 (sem desculpa)
+    - Opp ruim + qualquer → +0.30 (evitou perda)
+  - Validação: 6/6 testes em `test_opportunity_learning.py`
+  - Impacto: Agente aprende balança sofisticado prudência vs oportunismo
+
+- **Documentação Técnica**:
+  - `docs/LEARNING_STAY_OUT_OF_MARKET.md` (200+ linhas)
+  - `docs/LEARNING_CONTEXTUAL_DECISIONS.md` (300+ linhas)
+  - `IMPLEMENTATION_SUMMARY_STAY_OUT.md`
+  - `IMPLEMENTATION_SUMMARY_OPPORTUNITY_LEARNING.md`
+  - `OPERATOR_GUIDE_STAY_OUT_LEARNING.md`
+
+#### 🔧 Alterado
+
+- `agent/reward.py`:
+  - Adicionadas 4 constantes: OUT_OF_MARKET_THRESHOLD_DD, OUT_OF_MARKET_BONUS,
+    OUT_OF_MARKET_REST_BONUS, OUT_OF_MARKET_INACTIVITY_PENALTY
+  - Novo parâmetro `flat_steps` em método `calculate()`
+  - Novo componente `r_out_of_market` integrado ao reward total
+  - Atualizado docstring e logs
+
+- `agent/environment.py`:
+  - Modificado método `step()` linha ~255 para passar `flat_steps=self.flat_steps`
+    ao reward calculator
+  - Non-breaking change (backward compatible)
+
+- `menu.py`:
+  - Sincronizado: prompt agora pede "1-14" (era "1-13")
+  - Adicionado handler para opção "14" (Exit)
+  - Todas 14 opções agora funcionais
+
+#### 📊 Métricas
+
+- Componentes de reward (evoluição):
+  - Round 4: 3 componentes
+  - Round 5: 4 componentes (+1)
+  - Round 5+: 5 componentes (+1 meta-learning)
+- Testes: 11/11 passando (5 Round 5 + 6 Round 5+)
+- Síntaxe: 100% validado (python -m py_compile)
+- Backward compatibility: ✅ Confirmado
+
+#### 📚 Referências
+
+- Commit: `abf27c8` [FEATURE] Round 5 e 5+: Aprendizado Stay-Out com
+  Meta-learning de Oportunidades
+- Docs: Ver `docs/SYNC_DOCS_21FEV_2026.md` para sincronização completa
+
+---
+
+### ⭐ [v0.3.1] — POSIÇÃO MANAGEMENT (21 FEV 2026 00:52 UTC)
+
+#### ✨ Adicionado
+
+- **Sistema de Gestão de Posições (3 Fases)**:
+  - Fase 1: Abertura com ordens REAIS Binance (não local)
+    - `execute_1dollar_trade.py` → MARKET + SL/TP via `new_algo_order()`
+    - NewAPI: `algo_type="CONDITIONAL"`, `trigger_price` (não `stopPrice`)
+    - Response: `algo_id` extraído para rastreamento
+
+  - Fase 2: Gestão de parciais e administração
+    - `manage_positions.py` → --list, --partial, --breakeven, --close-all
+    - Cancela/recria SL/TP após parciais
+    - Suporta 50%, 75%, custom %
+
+  - Fase 3: Monitoramento contínuo 24/7
+    - `monitor_and_manage_positions.py` → health checks, PnL, timeout detection
+    - Logs em `logs/monitor_*.log`
+    - Otimizado para background execution
+
+- **Database v0.3.1**:
+  - Schema: `trade_partial_exits` (11 colunas) para histórico de parciais
+  - Script: `schema_update.py` para criação automática
+
+- **Prova Funcional (Trade ID 7)**:
+  - ANKRUSDT LONG (2,174 @ $0.00459815)
+  - MARKET Order: 5412778331 ✅
+  - SL Algo: 3000000742992546 ✅ (-5%)
+  - TP Algo: 3000000742992581 ✅ (+10%)
+  - Status: Apregoado REAL na Binance (24/7)
+
+#### 🔧 Alterado
+
+- `docs/agente_autonomo/AGENTE_AUTONOMO_ARQUITETURA.md`:
+  - Adicionada Seção 6: "Sistema de Gestão de Posições"
+  - Mecanismo de sincronização obrigatória (novo)
+  - Checklist de sincronização (novo)
+
+- `docs/agente_autonomo/AGENTE_AUTONOMO_FEATURES.md`:
+  - Adicionado v0.3.1 com 3 features (F-09, F-10, F-11)
+  - Problema resolvido documentado
+
+- `docs/agente_autonomo/AGENTE_AUTONOMO_ROADMAP.md`:
+  - Adicionado v0.3.1 na timeline
+  - Seção v0.3.1 completa com milestones
+
+- `docs/agente_autonomo/AGENTE_AUTONOMO_TRACKER.md`:
+  - Status atual: v0.3.1 ✅ COMPLETO
+  - Adicionada tabela v0.3.1 progresso
+  - Trade ID 7 prova adicionada
+
+#### 🎯 Ganhos Operacionais
+
+- **Confiabilidade**: 95% → 99.9% (Binance 24/7)
+- **Risco SL/TP**: 100% falha possível → 0% (apregoado real)
+- **Escalabilidade**: 1-2 posições → 10+ concorrentes
+- **Monitor**: CRÍTICO (bloqueia lançamento) → OPCIONAL (observabilidade)
+
+---
+
+## [Unreleased]
+
 ### ✨ Adicionado
 
 - **Governança PO**: Estrutura completa com roles, decisões, reuniões

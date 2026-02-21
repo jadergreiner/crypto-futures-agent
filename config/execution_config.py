@@ -29,13 +29,40 @@ EXECUTION_CONFIG: Dict[str, Any] = {
     # 900s = 15 minutes = 3 monitor cycles at 5min interval
     "cooldown_per_symbol_seconds": 900,
 
-    # Allowed actions — ONLY reduce/close, NEVER open
-    # This is a hard safety guard: even if code has a bug, only these actions pass
-    "allowed_actions": ["CLOSE", "REDUCE_50"],
+    # Allowed actions — Allow OPEN, CLOSE, and REDUCE_50
+    # Phase 1: Testing with 10x leverage, $1 margin per position
+    "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
 
     # Reduce percentage for REDUCE_50 action
     "reduce_50_pct": 0.50,
 
+    # ========================================================================
+    # POSITION SIZING — $1 margin per position, 10x leverage
+    # ========================================================================
+    # Margem máxima por posição em USD (Binance USDS-M Futures)
+    "max_margin_per_position_usd": 1.0,
+
+    # Alavancagem fixa para todas posições
+    "leverage": 10,
+
+    # Exposição máxima por posição (margem × leverage)
+    "max_exposure_per_position_usd": 10.0,  # $1 × 10 = $10
+
+    # Máximo de posições simultâneas (com $420 margem, pode ter ~40)
+    "max_concurrent_positions": 30,
+
+    # Margem total máxima alocada (buffer de $4 para volatilidade)
+    "max_total_margin_usd": 40.0,
+
+    # Stop loss automático em % (10% = liquidação com 10x)
+    "auto_stop_loss_pct": 10.0,
+
+    # Margin type (CROSS para compartilhar margem entre posições)
+    "margin_type": "CROSS",
+
+    # ========================================================================
+    # ORDER TYPE & EXECUTION
+    # ========================================================================
     # Order type for execution (MARKET for immediate fills)
     "order_type": "MARKET",
 

@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\repo\crypto-futures-agent\ACTION_PLAN.py", line 263, in <module>
+    print_action_plan()
+  File "C:\repo\crypto-futures-agent\ACTION_PLAN.py", line 259, in print_action_plan
+    print(plan)
+  File "C:\Users\Usuario\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 4-85: character maps to <undefined>

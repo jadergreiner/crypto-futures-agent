@@ -13,11 +13,11 @@
 FEV 2026              MAR          ABR-JUN       JUL-SET      OUT-DEZ
 ─────────────────────────────────────────────────────────────────────
 
-v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
-├─ TODAY            ├─ 24/02         ├─ 30/04         ├─ Scaling 3×
-├─ Validação        ├─ Engine        ├─ Compliance    ├─ Multi-strat
-├─ 0 → 5 trades/d   ├─ Pronto        ├─ 24/7 Ops      ├─ Multi-exchange
-└─ Profit Guardian  └─ Release       └─ Licensing     └─ Revenue model
+v0.3 CRÍTICO    v0.3.1 POSIÇÃO  v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
+├─ TODAY        ├─ 20-21 FEV     ├─ 24/02         ├─ 30/04         ├─ Scaling 3×
+├─ Validação    ├─ Real SL/TP    ├─ Engine        ├─ Compliance    ├─ Multi-strat
+├─ 0 → 5 trades ├─ Parciais      ├─ Pronto        ├─ 24/7 Ops      ├─ Multi-exchange
+└─ Guardian     └─ Monitor 24/7  └─ Release       └─ Licensing     └─ Revenue model
 ```text
 
 ## 🎯 Roadmap Detalhado
@@ -46,6 +46,45 @@ v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
 - Sharpe > 0.5
 - No crashes
 - 5+ trades/day
+
+---
+
+### ⭐ v0.3.1 — POSIÇÃO MANAGEMENT (20-21 FEV — SPRINT RÁPIDO)
+
+**Objetivo**: Ordens REAIS Binance + Gestão de Parciais + Monitor 24/7
+
+| Milestone | Data | Status | Descr |
+|-----------|------|--------|-------|
+| F-09 complete | 20 FEV | ✅ DONE | MARKET + SL + TP real |
+| F-10 complete | 20 FEV | ✅ DONE | Gestão parciais (50%, 75%) |
+| F-11 complete | 21 FEV | ✅ DONE | Monitor health + PnL + timeout |
+| Trade ID 7 | 20 FEV | ✅ PROVA | 3 Binance IDs verificados |
+| v0.3.1 release | 21 FEV | ✅ READY | Deploy imediato |
+
+**Features**:
+- ✅ new_algo_order() API discovery
+- ✅ MARKET + SL/TP real Binance
+- ✅ Cancela/recria SL/TP em parciais
+- ✅ Monitor background contínuo
+- ✅ Trade partial_exits schema
+
+**Problema Resolvido**:
+- ❌ SL/TP simulados localmente (risco crítico)
+- ✅ Ordens REAIS apregoadas Binance 24/7
+
+**Prova Funcional**:
+```
+Trade ID 7: ANKRUSDT LONG
+├─ MARKET: 5412778331 ✅
+├─ SL Algo: 3000000742992546 ✅ (-5%)
+└─ TP Algo: 3000000742992581 ✅ (+10%)
+```
+
+**Success Metrics**:
+- ✅ 3 Binance IDs reais
+- ✅ DB sincronizado
+- ✅ Scripts compilam
+- ✅ Zero erros API
 
 ---
 

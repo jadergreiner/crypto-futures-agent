@@ -6,32 +6,32 @@ import re
 
 def break_long_lines(filepath, max_len=80):
     """Break lines longer than max_len while preserving markdown formatting"""
-    
+
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
-    
+
     fixed_lines = []
     changed = 0
-    
+
     for line_num, line in enumerate(lines, 1):
         line_clean = line.rstrip('\n')
-        
+
         # Skip code blocks and links
         if line_clean.startswith('```') or line_clean.startswith('    '):
             fixed_lines.append(line)
             continue
-        
+
         # If line is short enough, keep it
         if len(line_clean) <= max_len:
             fixed_lines.append(line)
             continue
-        
+
         # Try to break at natural boundaries
         if '|' in line_clean:  # Table row
             # Keep table rows as-is (they often exceed 80 chars legitimately)
             fixed_lines.append(line)
             continue
-        
+
         if line_clean.startswith('- ') or line_clean.startswith('├') or line_clean.startswith('└'):
             # List item — try to break at conjunction
             if ' → ' in line_clean:
@@ -47,33 +47,33 @@ def break_long_lines(filepath, max_len=80):
                     fixed_lines.append('  ' + ' | '.join(parts[1:]) + '\n')
                     changed += 1
                     continue
-        
+
         # For long text lines, try to break at word boundary
         if len(line_clean) > max_len + 20:  # More than 20 chars over limit
             # Find last space before max_len
             break_point = line_clean.rfind(' ', 0, max_len)
-            
+
             if break_point > max_len - 40:  # Reasonable break point found
                 first_part = line_clean[:break_point]
                 second_part = line_clean[break_point+1:]
-                
+
                 # Add appropriate indent for second line
                 indent = ''
                 if line_clean.startswith('  '):
                     indent = '  '
-                
+
                 fixed_lines.append(first_part + '\n')
                 fixed_lines.append(indent + second_part + '\n')
                 changed += 1
                 continue
-        
+
         # Default: keep as-is
         fixed_lines.append(line)
-    
+
     # Write back
     with open(filepath, 'w', encoding='utf-8') as f:
         f.writelines(fixed_lines)
-    
+
     return changed
 
 # Process markdown files
@@ -98,7 +98,7 @@ for filepath in md_files:
     if not os.path.exists(filepath):
         print(f'⚠️  SKIPPED (not found): {filepath}')
         continue
-    
+
     fixed = break_long_lines(filepath, max_len=80)
     if fixed > 0:
         print(f'✅ FIXED {filepath:50s} ({fixed} lines)')

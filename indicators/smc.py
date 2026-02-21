@@ -743,5 +743,5 @@ class SmartMoneyConcepts:
             'premium_discount': premium_discount
         }
         
-        logger.info("Completed SMC analysis")
+        logger.debug("Completed SMC analysis")
         return result

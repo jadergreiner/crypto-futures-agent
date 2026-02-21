@@ -791,7 +791,7 @@ class LayerManager:
 
         for symbol in ALL_SYMBOLS:
             try:
-                logger.info(f"H4: Processing {symbol}")
+                logger.debug(f"H4: Processing {symbol}")
 
                 # Step 1: Collect fresh H4 data and keep only the latest CLOSED H4 context
                 h4_raw_df = self.binance_collector.fetch_historical(symbol, "4h", days=30)

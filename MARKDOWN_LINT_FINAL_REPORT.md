@@ -1,6 +1,6 @@
 # MARKDOWN LINT FIX — Final Report
 
-**Data**: 20/FEB/2026 — 00:35 UTC  
+**Data**: 20/FEB/2026 — 00:35 UTC
 **Sprint**: F-12 Backtest Engine v0.4
 
 ## ✅ Resultados Finais
@@ -57,7 +57,7 @@ crypto-futures-agent.git)
 ```
 MARKDOWN DOCUMENTATION
 ├── MD040 (code blocks):    ✅ PASS (0 errors)
-├── MD009 (trailing WS):    ✅ PASS (0 errors)  
+├── MD009 (trailing WS):    ✅ PASS (0 errors)
 ├── MD034 (bare URLs):      ✅ PASS (0 errors)
 ├── Line length (general):  ✅ PASS (non-URL lines ≤80)
 └── Line length (URLs):     ⚠️  ACCEPTED (27 URLs > 80)

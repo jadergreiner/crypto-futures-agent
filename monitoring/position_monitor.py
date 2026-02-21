@@ -2928,6 +2928,14 @@ class PositionMonitor:
                 else:
                     logger.info(f"\n[OK] Ciclo #{cycle_count} completo - Nenhuma posição aberta")
 
+                # Consolidado visual de todos os símbolos
+                try:
+                    from monitoring.cycle_summary import print_cycle_summary
+                    from config.symbols import ALL_SYMBOLS
+                    print_cycle_summary(ALL_SYMBOLS)
+                except Exception as e:
+                    logger.error(f"Erro ao exibir consolidado do ciclo: {e}")
+
                 # Aguardar próximo ciclo
                 if self._running:
                     logger.info(f"\n[AGUARDANDO] Próximo ciclo em {interval_seconds}s...")

@@ -268,7 +268,7 @@ class BinanceCollector:
         raw_data = self._extract_data(response)
         df = self._parse_klines(raw_data, symbol)
         
-        logger.info(f"Fetched {len(df)} {interval} candles for {symbol}")
+        logger.debug(f"Fetched {len(df)} {interval} candles for {symbol}")
         return df
     
     def _parse_klines(self, raw_data: Any, symbol: str) -> pd.DataFrame:
@@ -363,7 +363,7 @@ class BinanceCollector:
         all_dfs = []
         current_start = start_time
         
-        logger.info(f"Fetching {days} days of {interval} data for {symbol}")
+        logger.debug(f"Fetching {days} days of {interval} data for {symbol}")
         
         while current_start < end_time:
             chunk_df = self.fetch_klines(
@@ -398,7 +398,7 @@ class BinanceCollector:
         # Remove duplicates and sort
         df = df.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
         
-        logger.info(f"Fetched {len(df)} historical {interval} candles for {symbol} ({days} days)")
+        logger.debug(f"Fetched {len(df)} {interval} candles for {symbol}")
         return df
     
     def fetch_all_symbols(
