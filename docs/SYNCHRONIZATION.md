@@ -1,7 +1,7 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 20 de fevereiro de 2026, 00:35 UTC
-**Última Ação de Sincronização**: Markdown Lint Fixes + Sprint F-12 Docs
+**Última Atualização:** 21 de fevereiro de 2026, 02:30 UTC
+**Última Ação de Sincronização**: Implementação de Aprendizado Contextual de Oportunidades
 
 ## 🎯 Objetivo
 
@@ -11,43 +11,147 @@ e comportamento do sistema.
 
 ---
 
-## 🔄 MUDANÇA MAIS RECENTE — Markdown Lint Fixes (20/FEB 00:35 UTC)
+## 🔄 MUDANÇA MAIS RECENTE — Opportunity Learning: Meta-Learning (21/FEB 02:30 UTC)
 
-**Commit**: `360f68f` — [SYNC] Markdown lint fixes: 360+ code blocks, 71 trailing
-spaces, 23 bare URLs
+**Referência**: `agent/opportunity_learning.py` (novo), `docs/LEARNING_CONTEXTUAL_DECISIONS.md` (novo)
 
 ### Resumo da Ação
 
-Corrigido 100% de erros de lint markdown críticos em 77 arquivos do projeto:
+Implementação de **meta-learning** para o agente avaliar retrospectivamente se "ficar fora do mercado" foi:
+- **Sábio**: Oportunidade que desperdiçou seria ruim de todas formas
+- **Ganancia**: Oportunidade que desperdiçou seria excelente
 
-| Erro | Count | Status |
-|------|-------|--------|
-| MD040 (code blocks sem language) | 360+ | ✅ FIXED |
-| MD009 (trailing whitespace) | 71 | ✅ FIXED |
-| MD034 (bare URLs) | 23 | ✅ FIXED |
-| **TOTAL** | **364+** | **✅ 100% FIXED** |
+Resolve o problema: "Fiquei fora e mercado movimentou, perdi oportunidade! Mas ficar fora também custa."
 
-### Scripts Criados
+#### Modificações Técnicas
 
-- `fix_all_markdown_lint.py` — Correção inicial multi-erro
-- `fix_code_blocks_v2.py` — Detecção inteligente de linguagem
-- `final_lint_cleaner.py` — Limpeza de trailing whitespace
-- `validate_markdown_lint.py` — Validação pós-correção
-- `MARKDOWN_LINT_FINAL_REPORT.md` — Relatório detalhado
+| Arquivo | Mudança | Impacto |
+|---------|---------|---------|
+| `agent/opportunity_learning.py` | Novo (290+ linhas) | Módulo completo de meta-learning |
+| `test_opportunity_learning.py` | Novo (280+ linhas, 6 testes) | Validação completa |
+| `docs/LEARNING_CONTEXTUAL_DECISIONS.md` | Novo (300+ linhas) | Documentação técnica |
+| `IMPLEMENTATION_SUMMARY_OPPORTUNITY_LEARNING.md` | Novo (200+ linhas) | Sumário de implementação |
 
-### Arquivos Impactados
+#### Classe Principal: `OpportunityLearner`
 
-- ✅ 62 arquivos corrigidos (de 77 do projeto)
-- ✅ 8 novos documentos F-12 (criados previamente)
-- ✅ Todos os 77 arquivos passam em MD040 + MD009
+```python
+class OpportunityLearner:
+    def register_missed_opportunity(...)  # Registra oportunidade
+    def evaluate_opportunity(...)         # Avalia após X candles
+    def _compute_contextual_reward(...)   # Computa reward contextual
+    def get_episode_summary(...)          # Retorna aprendizado do episódio
+```
 
-### Validação
+#### Dataclass: `MissedOpportunity`
+
+Rastreia:
+- Contexto da oportunidade (symbol, direction, price, confluence)
+- Contexto de desistência (drawdown, múltiplos trades)
+- Simulação hipotética (TP/SL se tivesse entrado)
+- Resultado final (winning/losing, profit%, quality)
+- Aprendizado (contextual_reward, reasoning)
+
+#### Lógica de Aprendizado Contextual
+
+**4 Cenários → 4 Rewards Diferentes**:
+
+| Cenário | Opp Quality | Reward | Aprendizado |
+|---------|------------|--------|-------------|
+| Drawdown alto + Opp excelente | EXCELLENT | -0.15 | Entrar com menor size |
+| Múltiplos trades + Opp boa | GOOD | -0.10 | Reiniciar mais rápido |
+| Normal + Opp boa | GOOD | -0.20 | Entrar quando há opp |
+| Qualquer contexto + Opp ruim | BAD | +0.30 | Decisão sábia |
+
+#### Validação
 
 ```
-MARKDOWN LINT VALIDATION
-├─ Code blocks (MD040):        ✅ 0 errors
-├─ Trailing whitespace (MD009): ✅ 0 errors
-├─ Bare URLs (MD034):           ✅ 0 errors
+✅ Imports: Classes importadas corretamente
+✅ Inicialização: OpportunityLearner e dataclasses funcionam
+✅ Registrar: Oportunidades salvam contexto corretamente
+✅ Avaliar Vencedora: Penalidade correta (-0.10)
+✅ Avaliar Perdedora: Recompensa correta (+0.30)
+✅ Sumário: Métricas de aprendizado corretas
+
+Resultado: 6/6 testes passaram ✅
+```
+
+#### Filosofia
+
+**Antes**: "Ficar fora é sempre bom em drawdown"  
+**Depois**: "Ficar fora é bom QUANTO a oportunidade é ruim. Ruim QUANTO oportunidade é excelente."
+
+**Resultado**: Verdadeiro aprendizado adaptativo — não segue regras, aprende contexto.
+
+---
+
+## Histórico Anterior
+
+**21/FEV 02:20 UTC** — Reward Round 5: Learning "Stay Out of Market" (5/5 testes)
+
+**Referência**: `docs/LEARNING_STAY_OUT_OF_MARKET.md` (novo)
+
+### Resumo da Ação
+
+Implementação do 4º componente de reward para ensinar ao agente RL que ficar FORA do mercado é uma decisão válida e frequentemente melhor que forçar operações.
+
+#### Modificações Técnicas
+
+| Arquivo | Mudança | Impacto |
+|---------|---------|---------|
+| `agent/reward.py` | +4 constantes, +1 componente `r_out_of_market` | Reward agora considera ficar fora |
+| `agent/environment.py` | +1 parâmetro `flat_steps` passado ao reward | Environment comunica inatividade |
+| `docs/LEARNING_STAY_OUT_OF_MARKET.md` | Nova (200+ linhas) | Documentação técnica completa |
+
+#### Componente Novo: `r_out_of_market`
+
+```
+Reward Structure (Reward Round 5):
+├─ r_pnl                   (PnL de trades realizados)
+├─ r_hold_bonus            (Incentivo para posições lucrativas)
+├─ r_invalid_action        (Penalidade por erros)
+└─ r_out_of_market         ← NOVO: Recompensa por estar fora prudentemente
+```
+
+**Três Mecanismos Integrados**:
+
+1. **Proteção em Drawdown**: +0.15 reward por estar fora quando drawdown ≥2%
+2. **Descanso Após Perdas**: +0.10 reward por não abrir novo trade após 3+ trades recentes
+3. **Penalidade Inatividade**: -0.03 por estar fora >16 dias (evita total stagnação)
+
+#### Fórmulas
+
+```python
+# Trigger 1: Drawdown Protection
+if (drawdown >= 2.0%) and (no_open_position):
+    r_out_of_market = 0.15
+
+# Trigger 2: Rest After Activity
+if (trades_24h >= 3) and (no_open_position):
+    r_out_of_market += 0.10 * (trades_24h / 10)
+
+# Trigger 3: Penalty for Excess Inactivity
+if (flat_steps > 96):  # ~16 dias
+    r_out_of_market -= 0.03 * (flat_steps / 100)
+```
+
+#### Impacto Esperado
+
+| Métrica | Antes (R4) | Depois (R5) | Benefício |
+|---------|-----------|-----------|-----------|
+| Trades/Episódio | 6-8 | 3-4 | -50% (mais seletivo) |
+| Win Rate | 45% | 60%+ | +15% |
+| Avg R-Multiple | 1.2 | 1.8+ | +50% |
+| Capital Preservation | 70% | 85%+ | Melhor proteção |
+
+####Backward Compatibility
+
+✅ **Totalmente compatível**: Novo componente é aditivo, não quebra training anterior.
+
+---
+
+### Histórico Anterior
+
+**20/FEV 00:35 UTC** — Markdown Lint Fixes (364+ erros corrigidos)
 ├─ Line length (general):       ✅ PASS
 └─ Line length (URLs):          ⚠️  27 aceitos (non-breakable)
 

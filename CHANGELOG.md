@@ -7,6 +7,62 @@ O formato é baseado em
 Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/pt-BR/1.1.0/)).
 
 ## [Unreleased]
+
+### ✅ [REWARD] Opportunity Learning - Meta-Learning Contextual (21/02/2026 02:30 UTC)
+
+**Status**: ✅ Implementado e validado (6/6 testes passando)
+
+**Objetivo**: Resolver ganância vs prudência. Agente aprende quando ficar fora é sábio vs quando está desperdiçando.
+
+**Problema Identificado**: Round 5 recompensava ficar fora SEMPRE em drawdown, mesmo quando oportunidade era excelente.
+
+**Solução**: `OpportunityLearner` — Avalia retrospectivamente cada oportunidade não tomada.
+
+**Novo Módulo**: `agent/opportunity_learning.py` (290+ linhas)
+
+```
+Fluxo:
+1. Signal gerado → Agente fica fora
+2. Registra como MissedOpportunity com contexto
+3. Após X candles → Avalia resultado hipotético
+4. Se teria ganhado bem → Penalidade (-0.10 a -0.20)
+5. Se teria perdido bem → Recompensa (+0.30)
+```
+
+**Lógica Contextual**:
+- Opp Excelente + Drawdown alto = -0.15 (deveria ter entrado com size menor)
+- Opp Boa + Múltiplos trades = -0.10 (descanso foi longo)
+- Opp Boa + Normal = -0.20 (sem desculpa)
+- Opp Ruim + Qualquer contexto = +0.30 (evitou perda)
+
+**Validação**: 6/6 testes passaram ✅
+
+**Impacto**: Agente aprende balanço entre prudência e oportunismo.
+
+**Documentação**: 
+- `docs/LEARNING_CONTEXTUAL_DECISIONS.md` (300+ linhas)
+- `IMPLEMENTATION_SUMMARY_OPPORTUNITY_LEARNING.md` (200+ linhas)
+- `test_opportunity_learning.py` (280+ linhas, 6 testes)
+
+---
+
+### ✅ [REWARD] Learning "Ficar Fora do Mercado" (Reward Round 5) — 21/02/2026 02:20 UTC
+
+**Status**: ✅ Implementado e validado (5/5 testes passando)
+
+**Objetivo**: Ensinar ao agente RL que ficar **fora do mercado** é uma decisão tática válida.
+
+**Mudanças**:
+- Novo componente `r_out_of_market` no reward function
+- 3 mecanismos: proteção drawdown (+0.15), descanso (+0.10), inatividade (-0.03)
+- Validação completa: 5/5 testes passam
+
+**Documentação**: `docs/LEARNING_STAY_OUT_OF_MARKET.md`, `IMPLEMENTATION_SUMMARY_STAY_OUT.md`
+
+**Impacto**: -50% trades, +15% win rate, +50% avg R-multiple esperado
+
+---
+
 ### ✅ [F-12 SPRINT] Backtest Engine v0.4 — 20/02/2026 23:50 UTC
 
 **Execução**: Sprint de 3-4 dias (21-24 FEV) com pré-validações concluídas

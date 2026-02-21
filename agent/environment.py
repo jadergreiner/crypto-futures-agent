@@ -257,7 +257,8 @@ class CryptoFuturesEnv(gym.Env):
             position_state=self._get_position_state(),
             portfolio_state=self._get_portfolio_state(),
             action_valid=action_valid,
-            trades_recent=self.episode_trades
+            trades_recent=self.episode_trades,
+            flat_steps=self.flat_steps  # NOVO: Passar contador de inatividade
         )
         reward = reward_dict['total']
         
