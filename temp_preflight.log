@@ -1,0 +1,10 @@
+2026-02-21 10:15:23 [INFO] ======================================================================
+2026-02-21 10:15:23 [INFO] INICIANDO PR╔-FLIGHT VALIDATION
+2026-02-21 10:15:23 [INFO] ======================================================================
+2026-02-21 10:15:23 [INFO] 
+[1/9] Validando config/ppo_config.py...
+2026-02-21 10:15:23 [INFO] \u2705 config.ppo_config: \u2713 ConfiguraþÒo vßlida (LR=0.0003, batch=64, steps=500,000)
+2026-02-21 10:15:23 [INFO] 
+[2/9] Validando agent/trainer.py...
+2026-02-21 10:15:41.125681: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-02-21 10:15:55.975446: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.

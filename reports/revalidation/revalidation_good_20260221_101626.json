@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-02-21T10:16:26.412592",
+  "scenario": "good",
+  "decision": "GO",
+  "gates_passed": "6/6",
+  "metrics": {
+    "sharpe_ratio": 1.45,
+    "max_drawdown_pct": 12.3,
+    "win_rate_pct": 58.5,
+    "profit_factor": 2.15,
+    "consecutive_losses": 3,
+    "calmar_ratio": 3.2,
+    "total_trades": 54,
+    "winning_trades": 31,
+    "losing_trades": 23,
+    "avg_win_pct": 3.1,
+    "avg_loss_pct": -1.5,
+    "total_return_pct": 35.2,
+    "periods": 500000
+  },
+  "gates": [
+    {
+      "name": "Sharpe Ratio",
+      "value": 1.45,
+      "threshold": 1.0,
+      "passed": true,
+      "requirement": ">= 1.0"
+    },
+    {
+      "name": "Max Drawdown",
+      "value": 12.3,
+      "threshold": 15.0,
+      "passed": true,
+      "requirement": "<= 15.0%",
+      "unit": "%"
+    },
+    {
+      "name": "Win Rate",
+      "value": 58.5,
+      "threshold": 45.0,
+      "passed": true,
+      "requirement": ">= 45.0%",
+      "unit": "%"
+    },
+    {
+      "name": "Profit Factor",
+      "value": 2.15,
+      "threshold": 1.5,
+      "passed": true,
+      "requirement": ">= 1.5"
+    },
+    {
+      "name": "Consecutive Losses",
+      "value": 3,
+      "threshold": 5,
+      "passed": true,
+      "requirement": "<= 5"
+    },
+    {
+      "name": "Calmar Ratio",
+      "value": 3.2,
+      "threshold": 2.0,
+      "passed": true,
+      "requirement": ">= 2.0"
+    }
+  ],
+  "summary": {
+    "total_trades": 54,
+    "winning_trades": 31,
+    "losing_trades": 23,
+    "total_return_pct": 35.2
+  }
+}

@@ -1,0 +1,2 @@
+ERRO: Sintaxe inválida. A opção padrão não é permitida mais de '1' vez(es).
+Digite "TIMEOUT /?" para obter detalhes sobre o uso.
