@@ -742,8 +742,9 @@ Timeline: Sprint até 24/02/2026
 - ✅ Roadmap executivo: COMPLETO (v0.3–v2.0)
 - ✅ Backlog priorizado: COMPLETO (45+ itens, 4 EPICs)
 - ✅ Director brief: COMPLETO (pronto aprovação)
-- ⏳ Sincronização com docs existentes: PENDENTE
-- ⏳ Commit com [GOVERNANCE] tag: PENDENTE
+- ✅ Dashboard executivo: COMPLETO (visão consolidada)
+- ✅ Sincronização com docs existentes: COMPLETA
+- ✅ Commit com [GOVERNANCE] tag: COMPLETO (87a3d45)
 - ✅ `BACKLOG_ACOES_CRITICAS_20FEV.md` — Backlog detalhado com 5 ações críticas
 - ✅ `diagnostico_operacoes.py` — Script de diagnóstico (685 erros, 249 avisos)
 
