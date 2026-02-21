@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Phase 2 API Data Retrieval - Simples e Direto
+Phase 2 API Data Retrieval - CORRIGIDO
 Recupera dados em tempo real da Binance para validar readiness de Phase 2
 """
 
@@ -46,13 +46,32 @@ def main():
 
         # 2. RECUPERAR SALDO
         logger.info("\n[2/5] RECUPERANDO SALDO...")
-        account_data = client.rest_api.account_information_v3()
 
-        # Extrair dados da resposta (pode ser dict ou objeto)
-        if hasattr(account_data, '__dict__'):
-            account = vars(account_data)
-        else:
-            account = account_data if isinstance(account_data, dict) else {}
+        try:
+            # Chamar método account_information_v3() e desserializar com .data()
+            response = client.rest_api.account_information_v3()
+
+            # ApiResponse.data() é um método que retorna os dados
+            account_data = response.data() if callable(response.data) else response.data
+
+            # Converter para dict se necessário
+            if hasattr(account_data, '__dict__'):
+                account = vars(account_data)
+            else:
+                account = account_data if isinstance(account_data, dict) else {}
+
+        except Exception as e:
+            # Se falhar por timestamp, tentar com sync
+            logger.warning(f"    ⚠️  Erro: {str(e)}")
+            logger.info("    Tentando sincronizar timestamp com servidor...")
+
+            # Sincronizar: obter timestamp do servidor via mark_price (não precisa assinatura)
+            market_resp = client.rest_api.mark_price('BTCUSDT')
+
+            # Tentar novamente
+            response = client.rest_api.account_information_v3()
+            account_data = response.data() if callable(response.data) else response.data
+            account = vars(account_data) if hasattr(account_data, '__dict__') else account_data or {}
 
         total_balance = float(account.get('totalWalletBalance', 0) or account.get('total_wallet_balance', 0))
         available = float(account.get('availableBalance', 0) or account.get('available_balance', 0))
@@ -101,8 +120,12 @@ def main():
         for symbol in PHASE2_SYMBOLS:
             try:
                 # Recuperar mark price e order book ticker
-                mark_price_data = client.rest_api.mark_price(symbol=symbol)
-                ticker_data = client.rest_api.symbol_order_book_ticker(symbol=symbol)
+                mark_price_response = client.rest_api.mark_price(symbol=symbol)
+                ticker_response = client.rest_api.symbol_order_book_ticker(symbol=symbol)
+
+                # Desserializar
+                mark_price_data = mark_price_response.data() if callable(mark_price_response.data) else mark_price_response.data
+                ticker_data = ticker_response.data() if callable(ticker_response.data) else ticker_response.data
 
                 # Converter para dict se necessário
                 mark_price_dict = vars(mark_price_data) if hasattr(mark_price_data, '__dict__') else mark_price_data

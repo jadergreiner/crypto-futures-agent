@@ -178,7 +178,7 @@ go_live_report = {
     "status": "ACTIVE",
     "environment": "Development (Production-Ready Code)",
     "phase_atual": "PHASE 1 (10% volume)",
-    
+
     "heuristics_deployed": {
         "version": "1.0.0",
         "signal_generator": "heuristic_signals.py",
@@ -187,10 +187,10 @@ go_live_report = {
         "confidence_minimum": 70.0,
         "risk_gate": "-3% circuit breaker"
     },
-    
+
     "phase_1_metrics": metrics_p1,
     "monitoring_current": monitoring_data,
-    
+
     "timeline": {
         "phase_1_start": timestamp_inicio.isoformat(),
         "phase_1_end": (timestamp_inicio + timedelta(minutes=30)).isoformat(),
@@ -198,14 +198,14 @@ go_live_report = {
         "phase_2_end": (timestamp_inicio + timedelta(minutes=180)).isoformat(),
         "phase_3_start": (timestamp_inicio + timedelta(minutes=180)).isoformat(),
     },
-    
+
     "authorization": {
         "board_members": 16,
         "votes_for_go": 16,
         "unanimous": True,
         "decision": "GO-LIVE APPROVED"
     },
-    
+
     "next_actions": [
         "Monitor Phase 1 metrics for 30 minutes",
         "Validate latency <500ms sustained",

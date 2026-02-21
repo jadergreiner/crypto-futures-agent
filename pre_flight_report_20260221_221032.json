@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-02-21T22:10:31.317443",
+  "summary": {
+    "total_checks": 8,
+    "passed": 2,
+    "warnings": 3,
+    "critical_failures": 3
+  },
+  "details": {
+    "env_variables": {
+      "status": "\u274c FAIL",
+      "missing": [
+        "BINANCE_API_KEY",
+        "BINANCE_API_SECRET",
+        "DATABASE_URL",
+        "ENVIRONMENT"
+      ],
+      "severity": "CRITICAL"
+    },
+    "binance_api": {
+      "status": "\u274c FAIL",
+      "error": "API Secret required for private endpoints",
+      "severity": "CRITICAL"
+    },
+    "websocket": {
+      "status": "\u2705 PASS",
+      "host": "stream.binance.com:9443",
+      "latency_tested": true,
+      "severity": "OK"
+    },
+    "database": {
+      "status": "\u26a0\ufe0f  WARNING",
+      "issue": "database_manager n\u00e3o encontrado",
+      "severity": "WARNING"
+    },
+    "heuristic_deployment": {
+      "status": "\u274c FAIL",
+      "error": "M\u00f3dulo n\u00e3o encontrado: No module named 'execution'",
+      "severity": "CRITICAL"
+    },
+    "order_placement": {
+      "status": "\u26a0\ufe0f  SKIPPED",
+      "reason": "N\u00e3o em paper mode, testando apenas conectividade",
+      "severity": "WARNING"
+    },
+    "database_backup": {
+      "status": "\u26a0\ufe0f  WARNING",
+      "issue": "Pasta backup n\u00e3o existe: backups/",
+      "severity": "WARNING"
+    },
+    "monitoring_stack": {
+      "status": "\u2705 PASS",
+      "monitoring_scripts": [
+        "scripts/canary_monitoring.py",
+        "scripts/pre_flight_canary_checks.py"
+      ],
+      "severity": "OK"
+    }
+  },
+  "decision": "NO-GO"
+}

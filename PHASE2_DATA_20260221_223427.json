@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-02-21T22:34:27.004328",
+  "mode": "LIVE",
+  "account": {
+    "total_balance": 413.37991526,
+    "available": 157.3833431,
+    "unrealized_pnl": -192.68404771,
+    "drawdown_pct": -46.611855244299704
+  },
+  "positions": 20,
+  "market_data_symbols": 5,
+  "gates": {
+    "circuit_breaker": -3.0,
+    "current_drawdown": -46.611855244299704,
+    "is_armed": false
+  },
+  "readiness": {
+    "capital": true,
+    "api": true,
+    "positions_clean": false,
+    "market_data": true,
+    "gates_armed": false,
+    "all_ready": false
+  }
+}

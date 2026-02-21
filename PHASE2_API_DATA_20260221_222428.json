@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-02-21T22:24:28.176231",
+  "mode": "live",
+  "api_status": "error: 'BinanceClientFactory' object has no attribute 'create'",
+  "account": null,
+  "positions": [],
+  "market_data": {},
+  "signals": {},
+  "gates": {},
+  "phase2_readiness": {
+    "capital_ready": false,
+    "api_ready": false,
+    "positions_clean": false,
+    "signals_operational": false,
+    "gates_armed": false
+  }
+}

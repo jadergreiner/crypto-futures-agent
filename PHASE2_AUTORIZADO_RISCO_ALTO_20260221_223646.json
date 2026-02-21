@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-02-21T22:36:46.904888",
+  "phase": "PHASE_2",
+  "status": "AUTHORIZED_HIGH_RISK",
+  "decision": "CONTINUAR_MESMO_COM_RISCOS",
+  "user_choice": "C",
+  "risks_acknowledged": [
+    "Drawdown cr\u00edtico (-46.61%)",
+    "Circuit breaker disparado",
+    "Posi\u00e7\u00f5es abertas (20)",
+    "Altcoins de baixa liquidez"
+  ],
+  "protections_active": [
+    "Risk Gate (bloqueia se drawdown < -3%)",
+    "Stop Loss (reduz 50% em perda)",
+    "Confluence m\u00ednima (3.0)",
+    "Confidence > 70%",
+    "Circuit Breaker monitorado"
+  ],
+  "account_state": {
+    "total_balance": 413.38,
+    "available": 157.38,
+    "unrealized_pnl": -192.68,
+    "margin_used": 63.21,
+    "drawdown_pct": -46.61,
+    "positions_open": 20,
+    "circuit_breaker_target": -3.0,
+    "circuit_breaker_status": "DISPARADO"
+  },
+  "next_step": "Executar: .\\iniciar.bat \u2192 Op\u00e7\u00e3o 2 \u2192 Confirmar SIM + INICIO"
+}

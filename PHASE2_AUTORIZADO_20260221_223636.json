@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-02-21T22:36:36.052356",
+  "status": "AUTHORIZED",
+  "account_state": {
+    "total_balance": 0.0,
+    "available": 0.0,
+    "drawdown": 0,
+    "positions": 0
+  },
+  "risk_score": 3,
+  "confirmations": {
+    "Entendo que drawdown est\u00e1 em -46.61%": true,
+    "Aceito risco de novas posi\u00e7\u00f5es serem bloqueadas": true,
+    "Estou ciente de 20 posi\u00e7\u00f5es abertas": true,
+    "Confirmo que li PHASE2_RISCO_ALTO_AVISOS.md": true
+  }
+}
