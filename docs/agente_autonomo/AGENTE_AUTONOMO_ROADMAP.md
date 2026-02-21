@@ -1,0 +1,236 @@
+# 🗺️ ROADMAP DO AGENTE AUTÔNOMO
+
+**Versão**: 1.0  
+**Data**: 2026-02-20  
+**Horizonte**: 12 meses (FEV 2026 — DEZ 2026)  
+**Responsável**: Product Owner
+
+---
+
+## 📅 Timeline Executiva
+
+```
+FEV 2026              MAR          ABR-JUN       JUL-SET      OUT-DEZ
+─────────────────────────────────────────────────────────────────────
+
+v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
+├─ TODAY            ├─ 24/02         ├─ 30/04         ├─ Scaling 3×
+├─ Validação        ├─ Engine        ├─ Compliance    ├─ Multi-strat
+├─ 0 → 5 trades/d   ├─ Pronto        ├─ 24/7 Ops      ├─ Multi-exchange
+└─ Profit Guardian  └─ Release       └─ Licensing     └─ Revenue model
+```
+
+## 🎯 Roadmap Detalhado
+
+### ✅ v0.3 — VALIDAÇÃO RL (20-23 FEV)
+
+**Objetivo**: Validar modelo PPO em 3 pares, sair de Profit Guardian Mode
+
+| Milestone | Data | Critério | Status |
+|-----------|------|----------|--------|
+| ACAO-001 → 005 | 20-21 FEV | 100 min completo | ⏳ Aprovação CFO |
+| Training complete | 21 FEV | CV < 1.5 | ⏳ Pending |
+| Signal validation | 22 FEV | 5+ sinais/dia | ⏳ Pending |
+| Go/No-Go decision | 23 FEV | Release OK? | ⏳ Pending |
+| v0.3 live | 23 FEV | Tag + deploy | ⏳ Pending |
+
+**Features**:
+- ✅ PPO training (100 episodes)
+- ✅ Signal generation (working)
+- ✅ Trade execution (ready)
+- ✅ Risk management (live)
+- ⏳ Profit Guardian reset (ACAO-001)
+
+**Success Metrics**:
+- Win rate ≥ 50%
+- Sharpe > 0.5
+- No crashes
+- 5+ trades/day
+
+---
+
+### 🟠 v0.4 — BACKTEST ENGINE (24-28 FEV)
+
+**Objetivo**: Ferramenta backtest pronta, validações históricas viáveis
+
+| Milestone | Data | Descr |
+|-----------|------|-------|
+| F-12a complete | 20 FEV | ✅ BacktestEnvironment |
+| F-12b complete | 25 FEV | Data pipeline 3-layer |
+| F-12c complete | 26 FEV | Trade state machine |
+| F-12d complete | 26 FEV | Reporter (text+JSON) |
+| F-12e complete | 27 FEV | Comprehensive tests |
+| v0.4 release | 28 FEV | Engine ready |
+
+**Features**:
+- ✅ BacktestEnvironment (deterministic)
+- ⏳ Data pipeline (Parquet cache)
+- ⏳ Trade state machine
+- ⏳ Reporter
+- ⏳ 8+ test suites
+
+**Success Metrics**:
+- 90 dias backtest em <10s
+- 85%+ test coverage
+- Sem regressions
+
+---
+
+### 🟡 v0.5 — SCALING + RISK (01-09 MAR)
+
+**Objetivo**: Scale to 10-20 concurrent, real-time monitoring, co-location
+
+| Sprint | Foco | Resultado |
+|--------|------|-----------|
+| Sprint 1 (01-05 MAR) | Risk mgmt v2 | Real-time monitoring live |
+| Sprint 2 (06-09 MAR) | Infrastructure | Co-location <1ms |
+| Sprint 3 | Scaling | 20 concurrent positions |
+
+**Features**:
+- Max drawdown 5% → 3%
+- Real-time Sharpe monitoring
+- Emergency stops
+- Co-location setup (Tokyo/SG)
+- Latency: 19ms → <1ms
+- Concurrent: 10 → 20
+
+**Success Metrics**:
+- 20+ trades/day
+- $500k AUM (from $50k)
+- Sharpe ≥ 1.2
+- Uptime 99.9%
+
+---
+
+### 🟢 v1.0 — PRODUCTION READY (10-30 ABR)
+
+**Objetivo**: Enterprise-grade, compliance-ready, 24/7 ops
+
+| Phase | Foco | Output |
+|-------|------|--------|
+| Compliance | Auditoria externa | ✅ Reports |
+| Automation | 24/7 sem manual | ✅ Scripts |
+| Multi-pair | Suporte dinâmico 16+ | ✅ Config |
+| Launch | Production deploy | ✅ Live |
+
+**Features**:
+- External audit complete
+- ANOD/CVM reporting
+- 24/7 no intervention
+- Dynamic pair support
+- Auto-scaling
+
+**Success Metrics**:
+- $2M+ AUM
+- 100+ trades/day
+- Sharpe > 1.5
+- Revenue > $0 (após custos)
+
+---
+
+### 🟣 v2.0 — ENTERPRISE (01-31 DEZ)
+
+**Objetivo**: Multi-clientela, multi-exchange, licensing, revenue
+
+| Quarter | Focus | Output |
+|---------|-------|--------|
+| Q3 2026 | Multi-account | 3+ clientes |
+| Q4 2026 | Multi-exchange | Deribit + OKEx |
+| Q4 2026 | Licensing | SaaS model |
+
+**Features**:
+- Multi-account orchestration
+- Multi-exchange APIs
+- Licensing dashboard
+- Client management
+- Billing system
+
+**Revenue Target**: $500k/ano
+
+---
+
+## 📈 Capacidade por Versão
+
+```
+v0.3:  5 trades/day    | $50k AUM    | Sharpe 0.5-1.0
+v0.4:  10 trades/day++ | $100k AUM   | Backtest validação
+v0.5:  20+ trades/day  | $500k AUM   | Sharpe 1.0-1.5
+v1.0:  100 trades/day  | $2M AUM     | Sharpe >1.5 (target)
+v2.0:  500+ trades/day | Multi-$M    | Revenue >$500k
+```
+
+## 🎁 Feature Roadmap Consolidado
+
+```
+v0.3 (HOJE):
+├─ RL Training ✅
+├─ Signal generation ✅
+├─ Live trading ✅
+└─ Risk constraints ✅
+
+v0.4 (24-28 FEV):
+├─ BacktestEnvironment ✅ (F-12a)
+├─ Data pipeline ⏳ (F-12b)
+├─ State machine ⏳ (F-12c)
+├─ Reporter ⏳ (F-12d)
+└─ Comprehensive tests ⏳ (F-12e)
+
+v0.5 (01-09 MAR):
+├─ Risk mgmt v2 ⏳
+├─ Real-time monitoring ⏳
+├─ Co-location ⏳
+└─ Scaling to 20 ⏳
+
+v1.0 (10-30 ABR):
+├─ Compliance ⏳
+├─ 24/7 automation ⏳
+├─ Multi-pair dynamic ⏳
+└─ Enterprise deployment ⏳
+
+v2.0 (01-31 DEZ):
+├─ Multi-account ⏳
+├─ Multi-exchange ⏳
+└─ Licensing model ⏳
+```
+
+## 🚨 Risco & Mitigação
+
+| Risco | Probabilidade | Mitigação |
+|-------|---------------|-----------|
+| v0.3 fails validation | BAIXA (10%) | Extended testing, v0.2 rollback |
+| Market crash | ALTA (50%) | Drawdown limits, emergency stops |
+| Co-location latency | BAIXA (5%) | Fallback to cloud (19ms acceptable) |
+| Regulatory change | MÉDIA (30%) | Compliance team, legal counsel |
+
+## 🎯 Decisão Gates
+
+```
+GATE 1: 22:00 BRT (HOJE)
+├─ CFO: Aprova ACAO-001?
+└─ Bloqueador para ACAO-002-005
+
+GATE 2: 09:00 BRT (22 FEV)
+├─ CTO: v0.3 validation OK?
+├─ Métrica: Win rate ≥50%, Sharpe >0.5
+└─ Bloqueador para v0.3 release
+
+GATE 3: 10:00 BRT (23 FEV)
+├─ PO: v0.3 release decision
+├─ Baseado em 24h live data
+└─ Kickoff v0.4 se aprovado
+
+GATE 4: 28 FEV
+├─ PO + CTO: v0.4 ready?
+└─ Start v0.5
+
+GATE 5: 09 MAR
+├─ CFO + CTO: v0.5 performance?
+└─ Roadmap adjustment se needed
+```
+
+---
+
+**Mantido por**: Product Owner + CTO  
+**Frequência revisão**: Semanal (ou por release)  
+**Last Updated**: 2026-02-20 22:15 UTC
+
