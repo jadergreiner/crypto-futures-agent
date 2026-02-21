@@ -97,7 +97,7 @@ validation_matrices = {}
 for context_group in contexts:
     print(f"\n{context_group['name']}")
     print("-" * 70)
-    
+
     for scenario in context_group['scenarios']:
         result = calc.calculate(
             trade_result=scenario.get('trade_result'),
@@ -105,36 +105,36 @@ for context_group in contexts:
             portfolio_state=scenario.get('portfolio_state'),
             action_valid=scenario.get('action_valid', True)
         )
-        
+
         print(f"\n  📌 {scenario['desc']}")
-        print(f"     r_pnl:{result['r_pnl']:7.2f}  " + 
+        print(f"     r_pnl:{result['r_pnl']:7.2f}  " +
               f"r_hold:{result['r_hold_bonus']:6.3f}  " +
               f"r_invalid:{result['r_invalid_action']:6.2f}  " +
               f"r_oum:{result['r_out_of_market']:6.3f}  " +
               f"TOTAL:{result['total']:7.2f}")
-        
+
         # VALIDAÇÃO POR CONTEXTO
         is_valid = True
         non_zero_components = []
-        
+
         if result['r_invalid_action'] != 0:
             non_zero_components.append('r_invalid_action')
             if context_group['name'].find('Inválida') >= 0:
                 # Esperamos penalidade aqui
                 is_valid = is_valid and (result['r_invalid_action'] <= -0.5)
-        
+
         if result['r_hold_bonus'] != 0:
             non_zero_components.append('r_hold_bonus')
             if context_group['name'].find('Hold') >= 0:
                 # Esperamos bonus positivo no hold
                 is_valid = is_valid and (result['r_hold_bonus'] > 0)
-        
+
         if result['r_out_of_market'] != 0:
             non_zero_components.append('r_out_of_market')
             if context_group['name'].find('Out-of-Market') >= 0:
                 # Esperamos bonus positivo fora do mercado
                 is_valid = is_valid and (result['r_out_of_market'] > 0)
-        
+
         if is_valid:
             print(f"     ✅ Componentes apropriados: {', '.join(non_zero_components) if non_zero_components else 'zero (baseline)'}")
             total_valid_components += 1

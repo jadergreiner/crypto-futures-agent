@@ -45,18 +45,18 @@ print("-" * 70)
 
 try:
     from config.ppo_config import get_ppo_config, PPOConfig
-    
+
     config = get_ppo_config("phase4")
-    
+
     # Verificar 11 hiperparâmetros
     required_params = [
         'learning_rate', 'batch_size', 'n_steps', 'n_epochs', 'gamma',
         'gae_lambda', 'ent_coef', 'clip_range', 'vf_coef', 'max_grad_norm',
         'total_timesteps'
     ]
-    
+
     missing = [p for p in required_params if not hasattr(config, p)]
-    
+
     if missing:
         logger.error(f"❌ PPO Config: Missing {len(missing)} params: {missing}")
         results["validations"]["ppo_config_ok"] = False
@@ -67,7 +67,7 @@ try:
         logger.info(f"   LR={config.learning_rate}, BS={config.batch_size}, "
                    f"TS={config.total_timesteps:,}")
         results["validations"]["ppo_config_ok"] = True
-        
+
 except Exception as e:
     logger.error(f"❌ PPO Config: Import/Load failed: {e}")
     results["validations"]["ppo_config_ok"] = False
@@ -84,9 +84,9 @@ print("-" * 70)
 
 try:
     from agent.reward import RewardCalculator
-    
+
     reward_calc = RewardCalculator()
-    
+
     # Test calculation
     result = reward_calc.calculate(
         trade_result=None,
@@ -94,11 +94,11 @@ try:
         portfolio_state=None,
         action_valid=True
     )
-    
+
     # Check components
     required_components = ['r_pnl', 'r_hold_bonus', 'r_invalid_action', 'r_out_of_market']
     missing_components = [c for c in required_components if c not in result]
-    
+
     if missing_components:
         logger.error(f"❌ Reward Function: Missing components: {missing_components}")
         results["validations"]["reward_function_ok"] = False
@@ -108,7 +108,7 @@ try:
         logger.info(f"✅ Reward Function: All 4/4 components present")
         logger.info(f"   Components: {', '.join(required_components)}")
         results["validations"]["reward_function_ok"] = True
-        
+
 except Exception as e:
     logger.error(f"❌ Reward Function: Load/test failed: {e}")
     results["validations"]["reward_function_ok"] = False
@@ -127,7 +127,7 @@ try:
     from backtest.backtest_environment import BacktestEnvironment
     logger.info(f"✅ BacktestEnvironment: Import successful")
     results["validations"]["backtest_environment_ok"] = True
-    
+
 except Exception as e:
     logger.error(f"❌ BacktestEnvironment: Import failed: {e}")
     results["validations"]["backtest_environment_ok"] = False
@@ -144,12 +144,12 @@ print("-" * 70)
 
 try:
     from backtest.data_cache import ParquetCache
-    
+
     cache = ParquetCache(db_path="crypto_agent.db", cache_dir="backtest/cache")
     logger.info(f"✅ ParquetCache: Instantiated successfully")
     logger.info(f"   Cache dir: {cache.cache_dir}")
     results["validations"]["parquet_cache_ok"] = True
-    
+
 except Exception as e:
     logger.error(f"❌ ParquetCache: Instantiation failed: {e}")
     results["validations"]["parquet_cache_ok"] = False
@@ -202,12 +202,12 @@ tensorboard_dir = logs_ppo_dir / "tensorboard"
 try:
     os.makedirs(logs_ppo_dir, exist_ok=True)
     os.makedirs(tensorboard_dir, exist_ok=True)
-    
+
     logger.info(f"✅ Logging structure: ready")
     logger.info(f"   PPO logs: {logs_ppo_dir}")
     logger.info(f"   TensorBoard: {tensorboard_dir}")
     results["validations"]["monitoring_structure_ok"] = True
-    
+
 except Exception as e:
     logger.error(f"❌ Logging structure: Setup failed: {e}")
     results["validations"]["monitoring_structure_ok"] = False
@@ -224,18 +224,18 @@ print("-" * 70)
 
 try:
     from scripts.revalidate_model import RevalidationValidator
-    
+
     validator = RevalidationValidator()
     logger.info(f"✅ RevalidationValidator: Instantiated")
-    
+
     # Check gates
     gates = [
-        'SHARPE_MIN', 'MAX_DD_MAX', 'WIN_RATE_MIN', 
+        'SHARPE_MIN', 'MAX_DD_MAX', 'WIN_RATE_MIN',
         'PROFIT_FACTOR_MIN', 'CONSECUTIVE_LOSSES_MAX', 'CALMAR_MIN'
     ]
-    
+
     missing_gates = [g for g in gates if not hasattr(validator, g)]
-    
+
     if missing_gates:
         logger.error(f"❌ Revalidation: Missing gates: {missing_gates}")
         results["validations"]["revalidation_framework_ok"] = False
@@ -251,7 +251,7 @@ try:
                    f"Calmar: {validator.CALMAR_MIN}")
         results["validations"]["revalidation_framework_ok"] = True
         results["validations"]["all_6_gates_implemented"] = True
-        
+
 except Exception as e:
     logger.error(f"❌ Revalidation: Load failed: {e}")
     results["validations"]["revalidation_framework_ok"] = False
@@ -269,9 +269,9 @@ print("-" * 70)
 
 try:
     from scripts.revalidate_model import RevalidationValidator
-    
+
     validator = RevalidationValidator()
-    
+
     # Mock test: simulate validation
     test_metrics = {
         'sharpe_ratio': 1.2,        # GO
@@ -281,13 +281,13 @@ try:
         'consecutive_losses': 4,    # GO
         'calmar_ratio': 2.1,        # GO
     }
-    
+
     decision_result = validator.validate_gates(test_metrics)
-    
+
     # Extract decision
     gates_passed = decision_result.get('gates_passed_count', sum(1 for k, v in decision_result.items() if k.endswith('_ok') and v))
     decision = decision_result.get('decision', 'UNKNOWN')
-    
+
     # Verify logic
     if gates_passed >= 5 and decision in ['GO', 'PASS']:
         logger.info(f"✅ Decision Logic: Correct (gates={gates_passed}/6 → GO)")
@@ -298,7 +298,7 @@ try:
     else:
         logger.warning(f"⚠️  Decision Logic: Review needed (gates={gates_passed}, decision={decision})")
         results["validations"]["decision_logic_correct"] = True  # Still OK, just different thresholds
-        
+
 except Exception as e:
     logger.error(f"❌ Decision Logic: Test failed: {e}")
     results["validations"]["decision_logic_correct"] = False

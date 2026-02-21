@@ -21,18 +21,18 @@ print(f"Símbolos encontrados: {symbols}")
 if symbols:
     symbol = symbols[0]
     print(f"\nTestando carregamento de {symbol}...")
-    
+
     df = pc.load_ohlcv_for_symbol(symbol, timeframe='h4')
     print(f"✅ Carregamento bem-sucedido: {len(df)} candles")
     print(f"   Colunas: {list(df.columns)}")
-    
+
     # Validar continuidade
     is_valid, error = pc.validate_candle_continuity(symbol, 'h4')
     if is_valid:
         print(f"✅ Continuidade validada")
     else:
         print(f"⚠️ Erro de continuidade: {error}")
-    
+
     # Testar get_cached_data_as_arrays
     print(f"\nTestando get_cached_data_as_arrays()...")
     arrays = pc.get_cached_data_as_arrays(symbol)

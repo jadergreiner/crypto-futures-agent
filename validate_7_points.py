@@ -118,7 +118,7 @@ for scenario in scenarios:
     print(f"      r_invalid: {result['r_invalid_action']:7.2f}")
     print(f"      r_out_of_market: {result['r_out_of_market']:7.2f}")
     print(f"      TOTAL (clipped): {result['total']:7.2f}")
-    
+
     for key in component_totals:
         component_totals[key] += abs(result[key])
 

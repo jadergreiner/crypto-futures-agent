@@ -83,26 +83,26 @@ try:
     print(f"      Episode length: {env.episode_length}")
     print(f"      Action space: {env.action_space}")
     print(f"      Observation space: {env.observation_space}")
-    
+
     # PASSO 4: Reset e primeiro step
     print("\n[4] Testando reset() e primeiro step()...")
     obs, info = env.reset()
     print(f"   [OK] Reset bem-sucedido")
     print(f"      Observation shape: {obs.shape}")
     print(f"      Info keys: {list(info.keys())}")
-    
+
     # Executar um step
     action = 0  # HOLD
     obs, reward, terminated, truncated, info = env.step(action)
     print(f"   [OK] Step bem-sucedido")
     print(f"      Reward: {reward:.4f}")
     print(f"      Terminated: {terminated}, Truncated: {truncated}")
-    
+
     print("\n" + "=" * 70)
     print("OK - INTEGRACAO PRONTA PARA FULL BACKTEST RUN")
     print("=" * 70)
     print("RESULT: SUCCESS")
-    
+
 except Exception as e:
     print(f"   [ERROR] {e}")
     import traceback

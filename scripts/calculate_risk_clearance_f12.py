@@ -21,21 +21,21 @@ def load_data():
     """Carrega dados reais do backtest SWE"""
     output_dir = Path("tests/output")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     trades_file = output_dir / "trades_F12_backtest.csv"
     equity_file = output_dir / "equity_curve_F12.csv"
-    
+
     print("[PHASE 3.1] Carregando dados SWE...")
-    
+
     if not trades_file.exists() or not equity_file.exists():
         print("[ERRO] Arquivos SWE nao encontrados!")
         sys.exit(1)
-    
+
     try:
         trades_df = pd.read_csv(trades_file)
         equity_df = pd.read_csv(equity_file)
         equity_curve = equity_df['equity'].values if 'equity' in equity_df.columns else equity_df.iloc[:, 0].values
-        
+
         print("[OK] Carregado: {} equity steps, {} trades".format(len(equity_curve), len(trades_df)))
         return equity_curve, trades_df
     except Exception as e:
@@ -58,7 +58,7 @@ def metric_1_sharpe_ratio(equity):
     mean_return = np.mean(returns)
     std_return = np.std(returns)
     rf_rate = 0.02 / 252  # 2% annual risk-free (daily)
-    
+
     if std_return == 0:
         return 0.0
     return (mean_return - rf_rate) / std_return * np.sqrt(252)
@@ -73,7 +73,7 @@ def metric_3_win_rate(trades_df):
     """Win Rate - Threshold: >= 45%"""
     if len(trades_df) == 0:
         return 0.0
-    
+
     # Calcular P&L a partir de reward ou balance
     if 'reward' in trades_df.columns:
         # Se tem reward, contar positivos
@@ -87,14 +87,14 @@ def metric_4_profit_factor(trades_df):
     """Profit Factor - Threshold: >= 1.5"""
     if len(trades_df) == 0:
         return 0.0
-    
+
     if 'reward' in trades_df.columns:
         gross_profit = trades_df[trades_df['reward'] > 0]['reward'].sum()
         gross_loss = abs(trades_df[trades_df['reward'] < 0]['reward'].sum())
-        
+
         if gross_loss == 0:
             return float('inf') if gross_profit > 0 else 1.0
-        
+
         return gross_profit / gross_loss
     else:
         # Fallback: assume 1.5 profit factor
@@ -104,19 +104,19 @@ def metric_5_consecutive_losses(trades_df):
     """Consecutive Losses - Threshold: <= 5"""
     if len(trades_df) == 0:
         return 0
-    
+
     if 'reward' in trades_df.columns:
         is_losing = (trades_df['reward'] < 0).values
         consecutive = 0
         max_consecutive = 0
-        
+
         for losing in is_losing:
             if losing:
                 consecutive += 1
                 max_consecutive = max(max_consecutive, consecutive)
             else:
                 consecutive = 0
-        
+
         return max_consecutive
     else:
         # Fallback
@@ -127,12 +127,12 @@ def metric_6_calmar_ratio(equity):
     total_return = (equity[-1] - equity[0]) / equity[0]
     n_periods = len(equity) - 1
     annual_return = total_return * (252 / max(n_periods, 1))
-    
+
     max_dd = metric_2_max_drawdown(equity) / 100
-    
+
     if max_dd == 0:
         return float('inf') if annual_return > 0 else 0.0
-    
+
     return annual_return / max_dd
 
 def calculate_all_metrics(equity, trades_df):
@@ -154,7 +154,7 @@ def calculate_all_metrics(equity, trades_df):
 
 def generate_report(metrics):
     """Gera relatorio formal"""
-    
+
     thresholds = {
         'sharpe_ratio': (1.0, '>='),
         'max_drawdown': (15.0, '<='),
@@ -163,7 +163,7 @@ def generate_report(metrics):
         'consecutive_losses': (5, '<='),
         'calmar_ratio': (2.0, '>=')
     }
-    
+
     metric_names = {
         'sharpe_ratio': '[1] SHARPE RATIO (Annualized)',
         'max_drawdown': '[2] MAX DRAWDOWN',
@@ -172,7 +172,7 @@ def generate_report(metrics):
         'consecutive_losses': '[5] CONSECUTIVE LOSSES',
         'calmar_ratio': '[6] CALMAR RATIO'
     }
-    
+
     metric_units = {
         'sharpe_ratio': '',
         'max_drawdown': '%',
@@ -181,33 +181,33 @@ def generate_report(metrics):
         'consecutive_losses': '',
         'calmar_ratio': ''
     }
-    
+
     # Validate metrics
     decisions = {}
     gates_passed = 0
-    
+
     for metric_name, value in metrics.items():
         threshold_val, operator = thresholds[metric_name]
-        
+
         if operator == '>=':
             passed = value >= threshold_val
         else:  # <=
             passed = value <= threshold_val
-        
+
         decisions[metric_name] = {
             'value': value,
             'threshold': threshold_val,
             'operator': operator,
             'passed': passed
         }
-        
+
         if passed:
             gates_passed += 1
-    
+
     # Generate report text
     timestamp = datetime.utcnow().isoformat() + 'Z'
     lines = []
-    
+
     lines.append("="*87)
     lines.append(" " * 20 + "RISK CLEARANCE REPORT - F-12 BACKTEST")
     lines.append(" " * 15 + "24 FEV 2026 GATES PREPARATION")
@@ -223,7 +223,7 @@ def generate_report(metrics):
     lines.append(" " * 28 + "6 METRICAS VALIDATION")
     lines.append("="*87)
     lines.append("")
-    
+
     # Adicionar metricas
     for metric_name, decision in decisions.items():
         metric_display = metric_names[metric_name]
@@ -232,56 +232,56 @@ def generate_report(metrics):
         threshold = decision['threshold']
         operator = decision['operator']
         passed = decision['passed']
-        
+
         if isinstance(value, int):
             value_str = str(value)
         else:
             value_str = "{:.2f}".format(value)
-        
+
         if isinstance(threshold, int):
             threshold_str = str(threshold)
         else:
             threshold_str = "{:.1f}".format(threshold)
-        
+
         status = "[PASS]" if passed else "[FAIL]"
         decision_text = "GO" if passed else "NO-GO"
-        
+
         lines.append(metric_display)
         lines.append("    Value: " + value_str + unit)
         lines.append("    Threshold: " + operator + " " + threshold_str + unit)
         lines.append("    Status: " + status)
         lines.append("    Decision: [" + decision_text + "]")
         lines.append("")
-    
+
     lines.append("="*87)
     lines.append(" " * 32 + "OVERALL DECISION")
     lines.append("="*87)
     lines.append("")
     lines.append("Gates Passed: {}/6".format(gates_passed))
-    
+
     if gates_passed >= 5:
         overall_status = "[GO] FOR RISK GATES"
     elif gates_passed >= 3:
         overall_status = "[PARTIAL]"
     else:
         overall_status = "[NO-GO]"
-    
+
     lines.append("Final Status: " + overall_status)
     lines.append("")
     lines.append("="*87)
     lines.append(" " * 20 + "ASSINATURA ML SPECIALIST")
     lines.append("="*87)
     lines.append("")
-    
+
     approval = "[APPROVED]" if gates_passed >= 5 else "[NOT APPROVED]"
     lines.append("ML Specialist Approval: " + approval)
     lines.append("Date: " + timestamp)
     lines.append("Prepared for: CTO, Risk Manager, CFO")
     lines.append("")
     lines.append("="*87)
-    
+
     report_text = "\n".join(lines)
-    
+
     return report_text, gates_passed
 
 
@@ -293,14 +293,14 @@ def main():
     print("\n" + "="*87)
     print(" " * 15 + "RISK CLEARANCE METRICS CALCULATOR - F-12")
     print("="*87 + "\n")
-    
+
     # Load data
     equity, trades = load_data()
-    
+
     # Calculate metrics
     print("\n[PHASE 3.2] Calculando 6 metricas com rigor matematico...")
     metrics = calculate_all_metrics(equity, trades)
-    
+
     print("\nMetricas Calculadas:")
     print("  1. Sharpe Ratio (Annualized): {:.2f}".format(metrics['sharpe_ratio']))
     print("  2. Max Drawdown: {:.2f}%".format(metrics['max_drawdown']))
@@ -308,26 +308,26 @@ def main():
     print("  4. Profit Factor: {:.2f}".format(metrics['profit_factor']))
     print("  5. Consecutive Losses: {}".format(metrics['consecutive_losses']))
     print("  6. Calmar Ratio: {:.2f}".format(metrics['calmar_ratio']))
-    
+
     # Generate report
     print("\n[PHASE 3.3] Gerando relatorio formal GO/NO-GO...")
     report_text, gates_passed = generate_report(metrics)
-    
+
     # Save report
     report_path = Path("tests/output/RISK_CLEARANCE_REPORT_F12.txt")
     with open(report_path, 'w', encoding='utf-8') as f:
         f.write(report_text)
-    
+
     print("[OK] Relatorio salvo: {}\n".format(report_path))
-    
+
     # Print report
     print(report_text)
-    
+
     # Generate status JSON
     print("\n[PHASE 3.4] Gerando status JSON...\n")
-    
+
     overall_decision = "GO" if gates_passed >= 5 else ("PARTIAL" if gates_passed >= 3 else "NO-GO")
-    
+
     status = {
         "metrics_calculated": 6,
         "gates_passed": gates_passed,
@@ -338,20 +338,20 @@ def main():
         "timestamp": datetime.utcnow().isoformat() + 'Z',
         "report_path": str(report_path)
     }
-    
+
     # Save status JSON
     status_path = Path("tests/output/RISK_CLEARANCE_STATUS_F12.json")
     with open(status_path, 'w', encoding='utf-8') as f:
         json.dump(status, f, indent=2, ensure_ascii=False)
-    
+
     print("STATUS JSON:")
     print(json.dumps(status, indent=2, ensure_ascii=False))
-    
+
     print("\n[OK] Status JSON salvo: {}".format(status_path))
     print("\n" + "="*87)
     print("RESULTADO FINAL: {} | Gates Passed: {}/6".format(overall_decision, gates_passed))
     print("="*87 + "\n")
-    
+
     return status
 
 if __name__ == "__main__":

@@ -1,0 +1,244 @@
+# 🗑️ LISTA DE ARQUIVOS A DELETAR (Root Cleanup)
+
+**Gerado:** 22 FEV 2026 21:55 UTC  
+**Status:** Aguardando aprovação Investidor  
+**Owner:** Facilitador / Git Master
+
+---
+
+## 📋 ARQUIVOS PARA DELEÇÃO IMEDIATA
+
+Estes arquivos duplicam conteúdo que já está em `/docs/`:
+
+### CATEGORY 1: DELIVERY/STATUS/REPORTS (Duplicam RELEASES.md)
+
+**Quantidade:** 15 arquivos  
+**Razão:** Histórico de entregas deve estar centralizado em `/docs/RELEASES.md`
+
+```
+❌ AGENTES_AUTONOMOS_ENTREGA_21FEV.md
+❌ AGENTES_FINAL_DELIVERY_21FEV.md
+❌ BRIEFING_AGENTES_AUTONOMOS_22FEV.md
+❌ BRIEFING_FINAL_VALIDATION_21FEV.md
+❌ DELIVERY_F08_SUMMARY.md
+❌ DELIVERY_SUMMARY.txt
+❌ DELIVERY_SUMMARY_F12_SPRINT_20FEV.md
+❌ ENTREGA_FINAL_F12_AGENTES.md
+❌ ENTREGA_PHASE_3_BACKTEST_21FEV.md
+❌ ENTREGA_SISTEMA_REUNIOES.txt
+❌ EXECUTION_PHASE_1_SUMMARY.md
+❌ F06_F07_DELIVERY_REPORT.md
+❌ F08_DELIVERY_REPORT.md
+❌ F09_DELIVERY_REPORT.md
+❌ FINAL_DELIVERY_SUMMARY.md
+```
+
+### CATEGORY 2: DECISÕES/EXECUTIVO (Duplicam DECISIONS.md + STATUS_ATUAL.md)
+
+**Quantidade:** 12 arquivos  
+**Razão:** Decisões board devem estar em `/docs/DECISIONS.md`; status em `STATUS_ATUAL.md`
+
+```
+❌ AUTHORIZATION_OPÇÃO_C_20FEV.txt
+❌ BACKLOG_ACOES_CRITICAS_20FEV.md
+❌ DASHBOARD_EXECUTIVO_20FEV.md
+❌ DIAGNOSTICO_EXECUTIVO_20FEV.md
+❌ DIRECTOR_BRIEF_20FEV.md
+❌ EXECUTIVE_SUMMARY.txt
+❌ PHASE_3_EXECUTIVE_DECISION_REPORT.md
+❌ PHASE_3_RISK_CLEARANCE_STATUS.md
+❌ RELATORIO_COMITE_REUNIAO_21FEV_2026.md
+❌ RELATORIO_FINAL_F12_SPRINT.md
+❌ RESUMO_EXECUCAO_FINAL.md
+❌ RESUMO_FINAL_PRODUCAO.md
+```
+
+### CATEGORY 3: PHASE REPORTS (Duplicam ROADMAP.md + FEATURES.md)
+
+**Quantidade:** 10 arquivos  
+**Razão:** Status de phases deve estar em `/docs/FEATURES.md` + `/docs/ROADMAP.md`
+
+```
+❌ CONSOLIDADO_CICLO_IMPLEMENTACAO.md
+❌ CONSOLIDADO_FEVEREIRO_2026.md
+❌ DAILY_SPRINT_REPORT_F12_DAY1.md
+❌ DAILY_SPRINT_REPORT_F12_DAY2.md
+❌ ENTREGA_PHASE_3_BACKTEST_21FEV.md  (já listado acima)
+❌ F12_KICKOFF_SUMMARY.md
+❌ FINAL_VALIDATION_CONSOLIDATED.json
+❌ FINAL_VALIDATION_SIGN_OFF_21FEV.md
+❌ PHASE_4_READINESS_REPORT.json
+❌ PHASE_4_READINESS_REPORT.py
+❌ PHASE4_FINAL_READINESS_REPORT.json
+❌ PHASE4_FINAL_STATUS.json
+❌ PHASE4_HANDOFF_EXECUTIVO.md
+❌ PHASE4_REVALIDATION_READINESS.md
+```
+
+### CATEGORY 4: SYNC/DOCUMENTATION (Duplicam SYNCHRONIZATION.md)
+
+**Quantidade:** 6 arquivos  
+**Razão:** Sincronização documentação centralizada em `/docs/SYNCHRONIZATION.md`
+
+```
+❌ DOCUMENTATION_SYNC_SUMMARY_20FEV.md
+❌ SYNC_PHASE3_DOCUMENTATION_UPDATE.md
+❌ SYNC_SUMMARY_20FEV_2026.md
+❌ SYNC_SUMMARY_21FEV_LEARNING.md
+❌ SYNC_DOCS_21FEV_2026.md
+❌ PROMPT_ATUALIZA_DOCS_RESUMO.md
+```
+
+### CATEGORY 5: JSON STATUS FILES (Redundante)
+
+**Quantidade:** 8 arquivos  
+**Razão:** Status em JSON duplica STATUS_ATUAL.md (markdown é mais legível + versionável)
+
+```
+❌ AGENTES_DELIVERY_STATUS_FINAL.json
+❌ AGENTS_DELIVERY_STATUS.json
+❌ F12B_VALIDATION_STATUS.json
+❌ FINAL_ML_OPERATIONAL_VALIDATION_JSON.json
+❌ FINAL_ML_VALIDATION_OUTPUT.json
+❌ FINAL_SWE_TECHNICAL_VALIDATION.json
+❌ FINAL_VALIDATION_CONSOLIDATED.json
+❌ INTEGRATION_STATUS.json
+❌ PRE_FLIGHT_STATUS.json
+```
+
+### CATEGORY 6: MISCELLANEOUS (Não crítico, mas pode limpar)
+
+**Quantidade:** 15+ arquivos  
+**Razão:** Checklist, guias obsoletos, testes ad-hoc
+
+```
+❌ ADMINISTRACAO_NOVOS_7_PARES.md (superceded por FEATURES.md)
+❌ ARVORE_DECISAO_MODOS.md (antigo, pode arquivar)
+❌ CARTAO_CONSULTA_IMPRESSAO.md (operacional, mover para docs/agente_autonomo/)
+❌ CHECKLIST_FINAL_EXECUTIVO.txt (antigo)
+❌ COMECE_AQUI.md (mover conteúdo para README.md + docs/)
+❌ CONCURRENT_TRAINING_BUGFIX.md (histórico, arquivar)
+❌ CONCURRENT_TRAINING_GUIDE.md (historico refinado, mover para docs/)
+❌ CONCURRENT_TRAINING_TESTING.md (histórico)
+❌ CORRECTIONS_AND_ACTIVATIONS.md (histórico de correções)
+❌ LEIA_ME_PRIMEIRO.md (duplica COMECE_AQUI.md)
+... e mais 20+
+```
+
+---
+
+## 📊 ESTATÍSTICAS
+
+| Categoria | Qtd | Tamanho | Ação |
+|-----------|-----|--------|------|
+| **Delivery/Status** | 15 | ~50 KB | Deletar |
+| **Decisões/Executivo** | 12 | ~40 KB | Deletar |
+| **Phase Reports** | 15 | ~60 KB | Deletar |
+| **Sync Docs** | 6 | ~20 KB | Deletar |
+| **JSON Status** | 9 | ~15 KB | Deletar |
+| **Misc** | 20+ | ~80 KB | Revisar + Deletar |
+| **TOTAL** | **~77** | **~265 KB** | 📊 **70% para Lixo** |
+
+---
+
+## ✅ CHECKLIST DE DELEÇÃO
+
+ANTES DE DELETAR QUALQUER ARQUIVO:
+
+### Fase 1: Auditoria (Hoje 22 FEV)
+- [ ] Investidor revisou e aprovou lista
+- [ ] Backup criado: `archive_22FEV_root_cleanup.tar.gz`
+- [ ] Conteúdo único migrado para `/docs/` (se houver)
+
+### Fase 2: Migração (Amanhã 23 FEV)
+- [ ] Conteúdo relevante copiado para docs/
+- [ ] Links atualizados em README.md
+- [ ] Arquivos movidos para `archive/`
+
+### Fase 3: Validação (24 FEV)
+- [ ] README.md review
+- [ ] Nenhum link quebrado
+- [ ] Git history preservado
+
+### Fase 4: Commit (25 FEV)
+```bash
+git add -A
+git commit -m "[SYNC] Cleanup root: remover 77 arquivos duplicados
+
+Removidos:
+- 15 delivery reports → docs/RELEASES.md
+- 12 executive briefs → docs/DECISIONS.md + STATUS_ATUAL.md
+- 15 phase reports → docs/FEATURES.md + ROADMAP.md
+- 6 sync docs → docs/SYNCHRONIZATION.md
+- 9 json status files → docs/STATUS_ATUAL.md
+- 20+ misc → archive/ ou docs/
+
+Mantidos:
+- Code (agent/, config/, etc)
+- Tests (tests/, backtest/)
+- Core scripts (main.py, etc)
+- README.md (refatorado para /docs/)
+- Configs (.env, .git, venv)
+
+Referência: docs/DECISIONS.md #1, root_cleanup_22FEV.txt"
+```
+
+---
+
+## 🚨 IMPORTANTE: NÃO DELETAR
+
+Estes arquivos DEVEM permanecer no root:
+
+### Código & Configuração
+- ✅ `main.py`, `menu.py`, `demo_orchestrator.py`
+- ✅ `config/`, `agent/`, `execution/`, `data/`, `indicators/`, `playbooks/`
+- ✅ `backtest/`, `models/`, `core/`, `monitoring/`
+- ✅ `requirements.txt`, `.env`, `.env.example`
+- ✅ `setup.bat`, `iniciar.bat`
+
+### Testes
+- ✅ `tests/` (diretório inteiro)
+- ✅ Scripts de validação (`validate_*.py`, `check_*.py`)
+
+### Readme Oficial
+- ✅ `README.md` (refatorado para apontar /docs/)
+- ✅ `CHANGELOG.md` (histórico público, manter)
+- ✅ `CONTRIBUTING.md` (guia de contribuição)
+
+### Banco de Dados
+- ✅ `reunioes.db` (historico de decisões)
+- ✅ `crypto_agent.db` (dados de operações)
+
+### Git
+- ✅ `.git/`, `.gitignore`
+- ✅ `.github/` (workflows, copilot-instructions)
+
+---
+
+## 📝 PLANO 24H
+
+```
+22 FEV (hoje):
+  ✅ Criar lista completa (este arquivo)
+  ✅ Atualizar docs/ (STATUS_ATUAL.md + DECISIONS.md)
+  ✅ Submeter para aprovação Investidor
+  ⏳ Backup arquivos (se aprovado)
+
+23 FEV (amanhã — Reunião):
+  ⏳ Investidor aprova deleção
+  ⏳ Iniciar migração conteúdo
+  ⏳ Refatorar README.md
+  ⏳ Testes de links
+
+24-25 FEV:
+  ⏳ Deletar arquivos
+  ⏳ Limpeza final
+  ⏳ Commit [SYNC]
+```
+
+---
+
+**Gerado:** 22 FEV 21:55 UTC  
+**Aprova deleção?** [Investidor responde]  
+**Arquivo backup:** Aguardando aprovação  
+**Status:** ⏳ AWAITING APPROVAL

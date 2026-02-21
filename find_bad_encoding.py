@@ -15,6 +15,6 @@ for i in range(len(content)):
             context_str = context.decode('utf-8', errors='replace')
         except:
             context_str = str(context)
-        
+
         print(f"Posicao {i}: byte {hex(content[i])}")
         print(f"  Context: ...{context_str}...")

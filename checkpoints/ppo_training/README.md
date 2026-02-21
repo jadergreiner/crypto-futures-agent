@@ -62,7 +62,7 @@ A configuração é carregada automaticamente de `config/ppo_config.py`:
 
 - **Learning Rate**: 3e-4 (conservador)
 - **Batch Size**: 64
-- **N-Steps**: 2048  
+- **N-Steps**: 2048
 - **Total Timesteps**: 500,000 (default, customizável)
 - **Phase**: Phase 4 (conservador, pós-Phase 3)
 
@@ -127,6 +127,6 @@ Se houver problemas, verifique:
 
 ---
 
-**Data**: 21 FEV 2026  
-**Version**: 1.0  
+**Data**: 21 FEV 2026
+**Version**: 1.0
 **Status**: READY FOR PHASE 4 TRAINING

@@ -36,16 +36,16 @@ class MLValidationFinal:
         Verificar todos 11 hiperparâmetros.
         """
         logger.info("CHECK 1: PPO Config (11 hyperparameters)")
-        
+
         try:
             from config.ppo_config import get_ppo_config, PPOConfig
-            
+
             config = get_ppo_config('phase4')
-            
+
             # Verificar classe
             if not isinstance(config, PPOConfig):
                 raise TypeError("get_ppo_config não retornou PPOConfig")
-            
+
             # Verificar 11 hiperparâmetros
             required_params = [
                 'learning_rate',
@@ -60,7 +60,7 @@ class MLValidationFinal:
                 'max_grad_norm',
                 'total_timesteps'
             ]
-            
+
             missing_params = []
             for param in required_params:
                 if not hasattr(config, param):
@@ -68,10 +68,10 @@ class MLValidationFinal:
                 else:
                     value = getattr(config, param)
                     logger.info(f"  ✓ {param}: {value}")
-            
+
             if missing_params:
                 raise AttributeError(f"Parâmetros faltando: {missing_params}")
-            
+
             # Validar valores
             if config.learning_rate <= 0:
                 raise ValueError("learning_rate deve ser > 0")
@@ -79,11 +79,11 @@ class MLValidationFinal:
                 raise ValueError("batch_size deve ser > 0")
             if config.total_timesteps <= 0:
                 raise ValueError("total_timesteps deve ser > 0")
-            
+
             logger.info("✅ PPO Config OK (11/11 hiperparâmetros)")
             self.checks_passed += 1
             return True
-            
+
         except Exception as e:
             msg = f"❌ PPO Config FAILED: {str(e)}"
             logger.error(msg)
@@ -96,19 +96,19 @@ class MLValidationFinal:
         Verificar RewardCalculator com 4 componentes.
         """
         logger.info("CHECK 2: Reward Function (4 components)")
-        
+
         try:
             from agent.reward import RewardCalculator
-            
+
             calc = RewardCalculator()
-            
+
             # Verificar método calculate
             if not hasattr(calc, 'calculate'):
                 raise AttributeError("RewardCalculator sem método calculate")
-            
+
             # Executar calulação dummy
             result = calc.calculate()
-            
+
             # Verificar 4 componentes
             required_components = [
                 'r_pnl',
@@ -116,16 +116,16 @@ class MLValidationFinal:
                 'r_invalid_action',
                 'r_out_of_market'
             ]
-            
+
             for component in required_components:
                 if component not in result:
                     raise KeyError(f"Componente faltando: {component}")
                 logger.info(f"  ✓ {component}: {result[component]}")
-            
+
             logger.info("✅ Reward Function OK (4/4 componentes)")
             self.checks_passed += 1
             return True
-            
+
         except Exception as e:
             msg = f"❌ Reward Function FAILED: {str(e)}"
             logger.error(msg)
@@ -138,12 +138,12 @@ class MLValidationFinal:
         Verificar que funciona com PPO config.
         """
         logger.info("CHECK 3: BacktestEnvironment")
-        
+
         try:
             from backtest.backtest_environment import BacktestEnvironment
             import pandas as pd
             import numpy as np
-            
+
             # Criar dados mock
             mock_data = {
                 'h4': pd.DataFrame({
@@ -155,7 +155,7 @@ class MLValidationFinal:
                 }),
                 'symbol': 'TESTUSDT'
             }
-            
+
             # Tentar instanciar
             env = BacktestEnvironment(
                 data=mock_data,
@@ -164,22 +164,22 @@ class MLValidationFinal:
                 deterministic=True,
                 seed=42
             )
-            
+
             # Verificar atributos básicos
             if not hasattr(env, 'step') or not hasattr(env, 'reset'):
                 raise AttributeError("BacktestEnvironment sem métodos step/reset")
-            
+
             # Tentar reset
             obs, info = env.reset()
             if obs is None:
                 raise RuntimeError("reset() retornou obs=None")
-            
+
             logger.info(f"  ✓ Environment instanciado")
             logger.info(f"  ✓ Observation shape: {obs.shape if hasattr(obs, 'shape') else 'unknown'}")
             logger.info("✅ BacktestEnvironment OK")
             self.checks_passed += 1
             return True
-            
+
         except Exception as e:
             msg = f"❌ BacktestEnvironment FAILED: {str(e)}"
             logger.error(msg)
@@ -192,26 +192,26 @@ class MLValidationFinal:
         Verificar que RevalidationValidator pode ser instanciado.
         """
         logger.info("CHECK 4: Revalidation Script")
-        
+
         try:
             from scripts.revalidate_model import RevalidationValidator
-            
+
             # Tentar instanciar
             validator = RevalidationValidator(model_dir="models/ppo_phase4")
-            
+
             # Verificar atributos
             if not hasattr(validator, 'load_model'):
                 raise AttributeError("RevalidationValidator sem método load_model")
-            
+
             if not hasattr(validator, 'run_backtest'):
                 raise AttributeError("RevalidationValidator sem método run_backtest")
-            
+
             logger.info("  ✓ RevalidationValidator instanciado")
             logger.info("  ✓ Métodos required presentes")
             logger.info("✅ Revalidation Script OK")
             self.checks_passed += 1
             return True
-            
+
         except Exception as e:
             msg = f"❌ Revalidation Script FAILED: {str(e)}"
             logger.error(msg)
@@ -224,10 +224,10 @@ class MLValidationFinal:
         Verificar que valores dos gates estão corretos.
         """
         logger.info("CHECK 5: Risk Gates (6/6)")
-        
+
         try:
             from scripts.revalidate_model import RevalidationValidator
-            
+
             # Verificar constantes
             gates_expected = {
                 "SHARPE_MIN": 1.0,
@@ -237,17 +237,17 @@ class MLValidationFinal:
                 "CONSECUTIVE_LOSSES_MAX": 5,
                 "CALMAR_MIN": 2.0
             }
-            
+
             for gate_name, expected_value in gates_expected.items():
                 actual_value = getattr(RevalidationValidator, gate_name)
                 if actual_value != expected_value:
                     raise ValueError(f"{gate_name}: esperado {expected_value}, got {actual_value}")
                 logger.info(f"  ✓ {gate_name}: {actual_value}")
-            
+
             logger.info("✅ Risk Gates OK (6/6 corretos)")
             self.checks_passed += 1
             return True
-            
+
         except Exception as e:
             msg = f"❌ Risk Gates FAILED: {str(e)}"
             logger.error(msg)

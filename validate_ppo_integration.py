@@ -35,7 +35,7 @@ try:
     import py_compile
     py_compile.compile('agent/trainer.py', doraise=True)
     print(f"  ✅ Sintaxe OK")
-    
+
     # Verificar que tem imports
     with open('agent/trainer.py', 'r') as f:
         content = f.read()
@@ -60,7 +60,7 @@ print("\n[3/6] Verificando scripts/train_ppo_skeleton.py...")
 try:
     py_compile.compile('scripts/train_ppo_skeleton.py', doraise=True)
     print(f"  ✅ Sintaxe OK")
-    
+
     with open('scripts/train_ppo_skeleton.py', 'r') as f:
         content = f.read()
         checks = [
@@ -111,14 +111,14 @@ try:
         print(f"  ✅ agent/reward.py (F-12 reward function)")
     else:
         print(f"  ⚠️  agent/reward.py não encontrado")
-    
+
     # Verificar que backtest_environment.py existe
     if os.path.exists('backtest/backtest_environment.py'):
         print(f"  ✅ backtest/backtest_environment.py")
     else:
         print(f"  ❌ backtest_environment.py não encontrado")
         errors.append("BacktestEnvironment missing")
-        
+
 except Exception as e:
     print(f"  ❌ Erro: {e}")
 

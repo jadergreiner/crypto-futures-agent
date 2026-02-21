@@ -27,7 +27,7 @@ MUST HAVE (Bloqueadores):
 Result: 2/6 gates PASSED → Release BLOCKED
 
 Root Cause: PPO model not trained (backtest used random actions)
-Resolution: 
+Resolution:
   - Option A: Override with capital limits (immediate, high risk)
   - Option B: Train PPO 5-7 days, revalidate (recommended, low risk)
   - Option C: Hybrid (start paper + train parallel) (balanced)

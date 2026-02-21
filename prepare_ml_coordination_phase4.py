@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DataFormat:
     """Especificação de formato de dados esperado pelo ML."""
-    
+
     input_specs: Dict[str, Any] = field(default_factory=lambda: {
         "observation_space": {
             "type": "Box",
@@ -52,7 +52,7 @@ class DataFormat:
             "description": "Quantidade máxima de timesteps por episódio"
         }
     })
-    
+
     training_data_specs: Dict[str, Any] = field(default_factory=lambda: {
         "format": "Parquet (Apache Parquet)",
         "location": "backtest/cache/",
@@ -67,7 +67,7 @@ class DataFormat:
         },
         "dataset_metadata": "data/training_datasets/dataset_info.json"
     })
-    
+
     environment_specs: Dict[str, Any] = field(default_factory=lambda: {
         "class": "BacktestEnvironment",
         "location": "backtest/backtest_environment.py",
@@ -90,7 +90,7 @@ class DataFormat:
 @dataclass
 class MonitoringConfig:
     """Configuração de monitoramento durante treinamento."""
-    
+
     csv_logging: Dict[str, Any] = field(default_factory=lambda: {
         "enabled": True,
         "path": "logs/ppo_training/training_metrics.csv",
@@ -108,7 +108,7 @@ class MonitoringConfig:
             "learning_rate"
         ]
     })
-    
+
     tensorboard_logging: Dict[str, Any] = field(default_factory=lambda: {
         "enabled": True,
         "path": "logs/ppo_training/tensorboard",
@@ -121,7 +121,7 @@ class MonitoringConfig:
             "exploration_rate"
         ]
     })
-    
+
     checkpoint_saving: Dict[str, Any] = field(default_factory=lambda: {
         "enabled": True,
         "path": "checkpoints/ppo_training",
@@ -129,7 +129,7 @@ class MonitoringConfig:
         "keep_last_n": 5,
         "naming_convention": "{symbol}_ppo_steps_{timesteps}.zip"
     })
-    
+
     alert_thresholds: Dict[str, Any] = field(default_factory=lambda: {
         "performance": {
             "episode_reward_too_low": {
@@ -166,26 +166,26 @@ class MonitoringConfig:
 @dataclass
 class HookInterface:
     """Especificação de hooks para integração durante treinamento."""
-    
+
     pre_training_hooks: List[str] = field(default_factory=lambda: [
         "env_validation()",
         "data_integrity_check()",
         "model_initialization_check()",
         "checkpoint_dir_ready()"
     ])
-    
+
     per_step_hooks: List[str] = field(default_factory=lambda: [
         "log_episode_metrics()",
         "check_alert_thresholds()",
         "save_tensorboard_scalar()"
     ])
-    
+
     per_checkpoint_hooks: List[str] = field(default_factory=lambda: [
         "save_checkpoint(model, timesteps)",
         "evaluate_on_validation_set()",
         "update_best_model_metrics()"
     ])
-    
+
     post_training_hooks: List[str] = field(default_factory=lambda: [
         "save_final_model()",
         "generate_training_summary()",
@@ -197,15 +197,15 @@ class HookInterface:
 @dataclass
 class MLCoordinationSpec:
     """Especificação completa de coordenação com ML team."""
-    
+
     project: str = "Crypto Futures Agent - PPO Training Phase 4"
     version: str = "1.0"
     deadline: str = "2026-02-23 14:00 UTC"
-    
+
     data_format: DataFormat = field(default_factory=DataFormat)
     monitoring: MonitoringConfig = field(default_factory=MonitoringConfig)
     hooks: HookInterface = field(default_factory=HookInterface)
-    
+
     ppo_hyperparameters: Dict[str, Any] = field(default_factory=lambda: {
         "learning_rate": {
             "value": 3e-4,
@@ -245,7 +245,7 @@ class MLCoordinationSpec:
             "notes": "Coeficiente de value function loss"
         }
     })
-    
+
     training_spec: Dict[str, Any] = field(default_factory=lambda: {
         "total_timesteps": 1_000_000,
         "eval_frequency": 10_000,
@@ -254,7 +254,7 @@ class MLCoordinationSpec:
         "mixed_precision": False,
         "gradient_clipping": 0.5
     })
-    
+
     expected_deliverables: List[str] = field(default_factory=lambda: [
         "Trained model weights (checkpoints/ppo_training/SYMBOL_ppo_final.zip)",
         "Training metrics CSV (logs/ppo_training/training_metrics.csv)",
@@ -263,7 +263,7 @@ class MLCoordinationSpec:
         "Performance curves (win_rate, sharpe_ratio over time)",
         "Validation results on hold-out testset"
     ])
-    
+
     success_criteria: Dict[str, Any] = field(default_factory=lambda: {
         "minimum": {
             "win_rate": ">= 45%",
@@ -278,7 +278,7 @@ class MLCoordinationSpec:
             "calmar_ratio": ">= 2.0"
         }
     })
-    
+
     edge_cases_and_risks: List[Dict[str, str]] = field(default_factory=lambda: [
         {
             "risk": "Model divergence (loss explodes)",
@@ -301,7 +301,7 @@ class MLCoordinationSpec:
             "monitor": "Log data range em init"
         }
     ])
-    
+
     support_contact: Dict[str, str] = field(default_factory=lambda: {
         "data_questions": "SWE - Backend (data extraction, ParquetCache)",
         "env_questions": "SWE - Backtest (BacktestEnvironment API)",
@@ -312,11 +312,11 @@ class MLCoordinationSpec:
 
 class MLCoordinationDocument:
     """Gera documento formal de coordenação com ML team."""
-    
+
     def __init__(self):
         """Inicializa gerador de documento."""
         self.spec = MLCoordinationSpec()
-    
+
     def generate_handoff_document(self) -> str:
         """Gera documento de handoff em Markdown."""
         doc = f"""# ML Team Handoff - Phase 4 PPO Training
@@ -333,7 +333,7 @@ class MLCoordinationDocument:
 - **Range**: Normalized features [-∞, +∞] (mostly [-1, 1])
 - **Features**: 104
   - Price/OHLC (8): timestamp, open, high, low, close, volume, vwap, returns
-  - Technical Indicators (40): EMA, MACD, RSI, Bollinger, ATR, etc  
+  - Technical Indicators (40): EMA, MACD, RSI, Bollinger, ATR, etc
   - Smart Money Concepts (16): Order Blocks, FVGs, BOS, CHoCH, Liquidity Zones
   - Sentiment (10): Social media, fear/greed, funding rates
   - Macro Data (20): DXY, bond yields, BTC dominance, crypto correlation
@@ -351,7 +351,7 @@ class MLCoordinationDocument:
 ### Training Data
 - **Location**: `backtest/cache/`
 - **Format**: Apache Parquet (.parquet)
-- **Symbols**: 
+- **Symbols**:
   - OGNUSDT: 1000 H4 candles (800 train / 200 validation)
   - 1000PEPEUSDT: 1000 H4 candles (800 train / 200 validation)
 - **Metadata**: `data/training_datasets/dataset_info.json`
@@ -483,23 +483,23 @@ Models saved automatically to `checkpoints/ppo_training/`
 **Last Updated**: {datetime.utcnow().isoformat()}
 """
         return doc
-    
+
     def generate_json_spec(self) -> Dict[str, Any]:
         """Gera especificação em formato JSON."""
         import numpy as np  # Para referência
-        
+
         return {
             "project": self.spec.project,
             "version": self.spec.version,
             "deadline": self.spec.deadline,
             "generated_at": datetime.utcnow().isoformat(),
-            
+
             "data_format": {
                 "input": self.spec.data_format.input_specs,
                 "training_data": self.spec.data_format.training_data_specs,
                 "environment": self.spec.data_format.environment_specs
             },
-            
+
             "monitoring": asdict(self.spec.monitoring),
             "hooks": asdict(self.spec.hooks),
             "hyperparameters": self.spec.ppo_hyperparameters,
@@ -513,18 +513,18 @@ Models saved automatically to `checkpoints/ppo_training/`
 
 def main():
     """TASK 3: ML Coordination."""
-    
+
     logger.info("="*70)
     logger.info("TASK 3: COMUNICAÇÃO COM ML TEAM")
     logger.info("="*70)
-    
+
     # Gerar documentação
     doc_gen = MLCoordinationDocument()
-    
+
     # 1. Gerar documento Markdown
     logger.info("\n[STEP 1] Gerando documento de handoff (Markdown)...")
     markdown_doc = doc_gen.generate_handoff_document()
-    
+
     markdown_path = Path('ML_TEAM_HANDOFF.md')
     try:
         with open(markdown_path, 'w', encoding='utf-8') as f:
@@ -532,26 +532,26 @@ def main():
         logger.info(f"✅ Documento Markdown salvo: {markdown_path}")
     except Exception as e:
         logger.error(f"❌ Erro ao salvar Markdown: {e}")
-    
+
     # 2. Gerar especificação JSON
     logger.info("\n[STEP 2] Gerando especificação técnica (JSON)...")
     json_spec = doc_gen.generate_json_spec()
-    
+
     json_path = Path('config/ml_coordination_spec.json')
     json_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         with open(json_path, 'w') as f:
             json.dump(json_spec, f, indent=2)
         logger.info(f"✅ Especificação JSON salva: {json_path}")
     except Exception as e:
         logger.error(f"❌ Erro ao salvar JSON: {e}")
-    
+
     # 3. Resumo
     logger.info("\n" + "="*70)
     logger.info("RESUMO - TASK 3")
     logger.info("="*70)
-    
+
     print(f"\n✅ Coordenação com ML concluída:")
     print(f"   - Documento handoff: {markdown_path}")
     print(f"   - Especificação técnica: {json_path}")
@@ -564,7 +564,7 @@ def main():
     print(f"   - Checkpoints: checkpoints/ppo_training/")
     print(f"\n🎯 Deadline: {doc_gen.spec.deadline}")
     print(f"✅ Status: READY FOR ML HANDOFF")
-    
+
     return {
         "status": "READY",
         "markdown_doc": str(markdown_path),

@@ -10,7 +10,7 @@ def main():
     print("=" * 80)
     print("VALIDAÇÃO DE INTEGRAÇÃO PPO - 21 FEV 2026")
     print("=" * 80)
-    
+
     # 1. Verificar imports
     print("\n1️⃣  Verificando imports...")
     try:
@@ -19,7 +19,7 @@ def main():
     except Exception as e:
         print(f"   ❌ config.ppo_config: {e}")
         return False
-    
+
     # 2. Verificar config
     print("\n2️⃣  Verificando config Phase 4...")
     try:
@@ -39,7 +39,7 @@ def main():
     except Exception as e:
         print(f"   ❌ Erro ao carregar config: {e}")
         return False
-    
+
     # 3. Verificar trainer.py imports
     print("\n3️⃣  Verificando agent/trainer.py...")
     try:
@@ -51,12 +51,12 @@ def main():
             else:
                 print("   ❌ Trainer não importa config.ppo_config")
                 return False
-            
+
             if 'Optional[PPOConfig]' in content:
                 print("   ✅ Trainer usa PPOConfig type hints")
             else:
                 print("   ❌ Trainer não usa PPOConfig type hints")
-                
+
             if 'self.config' in content:
                 print("   ✅ Trainer usa self.config")
             else:
@@ -64,7 +64,7 @@ def main():
     except Exception as e:
         print(f"   ❌ Erro ao verificar trainer.py: {e}")
         return False
-    
+
     # 4. Verificar train_ppo_skeleton.py
     print("\n4️⃣  Verificando scripts/train_ppo_skeleton.py...")
     try:
@@ -75,12 +75,12 @@ def main():
             else:
                 print("   ❌ train_ppo_skeleton não importa config.ppo_config")
                 return False
-            
+
             if 'VecNormalize' in content:
                 print("   ✅ train_ppo_skeleton usa VecNormalize")
             else:
                 print("   ⚠️  train_ppo_skeleton não menciona VecNormalize")
-                
+
             if 'self.config.learning_rate' in content or 'self.config.batch_size' in content:
                 print("   ✅ train_ppo_skeleton usa config attributes")
             else:
@@ -88,31 +88,31 @@ def main():
     except Exception as e:
         print(f"   ❌ Erro ao verificar train_ppo_skeleton.py: {e}")
         return False
-    
+
     # 5. Verificar dados
     print("\n5️⃣  Verificando dados...")
     data_files = [
         'backtest/cache/OGNUSDT_4h.parquet',
         'backtest/cache/1000PEPEUSDT_4h.parquet'
     ]
-    
+
     for f in data_files:
         if os.path.exists(f):
             print(f"   ✅ {f}")
         else:
             print(f"   ❌ {f} NÃO ENCONTRADO")
             return False
-    
+
     # 6. Verificar diretórios de saída
     print("\n6️⃣  Verificando diretórios de saída...")
     dirs = ['checkpoints', 'logs', 'models']
-    
+
     for d in dirs:
         if os.path.exists(d):
             print(f"   ✅ {d}/")
         else:
             print(f"   ⚠️  {d}/ não existe (será criado)")
-    
+
     # 7. Status final
     print("\n" + "=" * 80)
     print("✅ INTEGRAÇÃO PPO VALIDADA COM SUCESSO")
@@ -125,7 +125,7 @@ def main():
     print("  5. ✅ Diretórios de saída prontos")
     print("\n📅 Status: PRONTO PARA TREINAMENTO EM 23 FEV 14:00 UTC")
     print("⏰ Buffer: ~47 horas até deadline de 10:00 UTC em 23 FEV")
-    
+
     return True
 
 if __name__ == '__main__':

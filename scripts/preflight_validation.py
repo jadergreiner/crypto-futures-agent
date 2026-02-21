@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 class PreFlightValidator:
     """Validator para PRÉ-FLIGHT CHECK."""
-    
+
     def __init__(self):
         self.results = []
         self.errors = []
         self.warnings = []
         self.start_time = datetime.now()
-        
+
     def check(self, name: str, condition: bool, message: str):
         """Registra resultado de uma validação."""
         status = "✅" if condition else "❌"
@@ -44,14 +44,14 @@ class PreFlightValidator:
         logger.info(f"{status} {name}: {message}")
         if not condition:
             self.errors.append(f"{name}: {message}")
-    
+
     def run_all_validations(self) -> bool:
         """Executa todas as 9 validações críticas."""
-        
+
         logger.info("="*70)
         logger.info("INICIANDO PRÉ-FLIGHT VALIDATION")
         logger.info("="*70)
-        
+
         # 1. Validar config/ppo_config.py
         logger.info("\n[1/9] Validando config/ppo_config.py...")
         try:
@@ -69,7 +69,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("config.ppo_config", False, f"Erro ao importar: {e}")
             return False
-        
+
         # 2. Validar agent/trainer.py
         logger.info("\n[2/9] Validando agent/trainer.py...")
         try:
@@ -78,7 +78,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("agent.trainer", False, f"Erro ao importar: {e}")
             self.warnings.append(f"agent.trainer pode estar com issues: {e}")
-        
+
         # 3. Validar scripts/train_ppo_skeleton.py
         logger.info("\n[3/9] Validando scripts/train_ppo_skeleton.py...")
         try:
@@ -92,7 +92,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("scripts.train_ppo_skeleton", False, f"Erro aovalidar: {e}")
             return False
-        
+
         # 4. Validar BacktestEnvironment
         logger.info("\n[4/9] Validando BacktestEnvironment...")
         try:
@@ -101,7 +101,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("BacktestEnvironment", False, f"Erro ao importar: {e}")
             return False
-        
+
         # 5. Validar ParquetCache
         logger.info("\n[5/9] Validando ParquetCache...")
         try:
@@ -110,7 +110,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("ParquetCache", False, f"Erro ao importar: {e}")
             return False
-        
+
         # 6. Validar dados OGNUSDT
         logger.info("\n[6/9] Validando dados OGNUSDT_4h.parquet...")
         try:
@@ -122,7 +122,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("OGNUSDT_data", False, f"Erro: {e}")
             return False
-        
+
         # 7. Validar dados 1000PEPEUSDT
         logger.info("\n[7/9] Validando dados 1000PEPEUSDT_4h.parquet...")
         try:
@@ -134,7 +134,7 @@ class PreFlightValidator:
         except Exception as e:
             self.check("1000PEPEUSDT_data", False, f"Erro: {e}")
             return False
-        
+
         # 8. Validar diretórios de saída
         logger.info("\n[8/9] Validando diretórios de saída...")
         try:
@@ -149,7 +149,7 @@ class PreFlightValidator:
             self.check("output_directories", True, "✓ Todos os diretórios existem/criados")
         except Exception as e:
             self.check("output_directories", False, f"Erro ao validar: {e}")
-        
+
         # 9. Validar estrutura de imports do agent
         logger.info("\n[9/9] Validando estrutura completa do agent...")
         try:
@@ -164,33 +164,33 @@ class PreFlightValidator:
         except Exception as e:
             self.check("agent_structure", False, f"Erro: {e}")
             self.warnings.append(f"Estrutura do agent pode ter issues: {e}")
-        
+
         return len(self.errors) == 0
-    
+
     def print_summary(self):
         """Imprime sumário final."""
         logger.info("\n" + "="*70)
         logger.info("SUMÁRIO DO PRÉ-FLIGHT CHECK")
         logger.info("="*70)
-        
+
         passed = sum(1 for _, result in self.results if result)
         total = len(self.results)
-        
+
         logger.info(f"\nValidações: {passed}/{total} PASSADAS")
-        
+
         if self.errors:
             logger.error("\n❌ ERROS ENCONTRADOS:")
             for error in self.errors:
                 logger.error(f"   - {error}")
-        
+
         if self.warnings:
             logger.warning("\n⚠️  AVISOS:")
             for warning in self.warnings:
                 logger.warning(f"   - {warning}")
-        
+
         elapsed = (datetime.now() - self.start_time).total_seconds()
         logger.info(f"\nTempo total: {elapsed:.2f}s")
-        
+
         if len(self.errors) == 0:
             logger.info("\n✅ PRÉ-FLIGHT CHECK COMPLETO - TUDO OK!")
             logger.info("Sistema pronto para treinamento PPO Phase 4")
@@ -205,7 +205,7 @@ def main():
     validator = PreFlightValidator()
     success = validator.run_all_validations()
     validator.print_summary()
-    
+
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

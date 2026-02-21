@@ -1,13 +1,69 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 22 de fevereiro de 2026, 12:21 UTC
-**Última Ação de Sincronização**: Phase 3 Full Backtest + Risk Gates Validation Complete
+**Última Atualização:** 22 de fevereiro de 2026, 21:50 UTC
+**Última Ação de Sincronização**: Governança Docs — Hierarquia Única Implementada
 
 ## 🎯 Objetivo
 
 Garantir que toda a documentação do projeto (README, docs/, instruções do
 Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
 e comportamento do sistema.
+
+---
+
+## 🔄 MUDANÇA MAIS RECENTE — Governança Documentação (22/FEV 21:50 UTC)
+
+**Referência**: Board Decision #1 — Implementar Hierarquia Única
+
+### Resumo da Ação
+
+Aprovada implementação de governança de documentação para eliminar duplicação
+de 100+ arquivos no root em favor de estrutura oficial em `/docs/`.
+
+**Entregáveis**:
+- ✅ `docs/STATUS_ATUAL.md` — Portal centralizado (novo)
+- ✅ `docs/DECISIONS.md` — Arquivo de decisões board (novo)
+- ⏳ `docs/FEATURES.md` — Revisar e sincronizar
+- ⏳ `docs/ROADMAP.md` — Revisar e sincronizar
+- ⏳ `docs/RELEASES.md` — Revisar e sincronizar
+- ⏳ `CHANGELOG.md` — Aprimorar protocolo [SYNC]
+- ⏳ Root cleanup — Listar e deletar duplicados
+
+#### Sincronização de Documentação (22 FEV 21:50 UTC)
+
+| Documento | Mudança | Status |
+|-----------|---------|--------|
+| `docs/STATUS_ATUAL.md` | Criado (novo portal) | ✅ SYNCED |
+| `docs/DECISIONS.md` | Criado (decisões board) | ✅ SYNCED |
+| `docs/SYNCHRONIZATION.md` | Atualizado (esta entrada) | ✅ IN PROGRESS |
+| `README.md` | Será atualizado (aponta /docs/) | ⏳ TODO |
+
+### Protocolo [SYNC] Decisão
+
+**Commit Message Format:**
+```
+[SYNC] Decisão Board #1: Hierarquia única de documentação
+
+- Criado docs/STATUS_ATUAL.md (portal centralizado)
+- Criado docs/DECISIONS.md (arquivo decisões)
+- Iniciado cleanup root (100+ arquivos duplicados)
+- Timeline: 24h implementação, 48h validação
+
+Referência: docs/DECISIONS.md #1
+```
+
+### Critérios de Sucesso
+
+- [x] Portal centralizado (STATUS_ATUAL.md) criado
+- [x] Board decisions archive (DECISIONS.md) criado
+- [ ] 6 documentos oficiais revisados & sincronizados
+- [ ] README.md aponta para /docs/ (não duplica)
+- [ ] Root limpo de duplicados (80%+)
+- [ ] Protocolo [SYNC] em CONTRIBUTING.md
+
+---
+
+## 🔄 MUDANÇA ANTERIOR — F-12 Backtest Engine Sprint (21/FEB 10:15 UTC)
 
 ---
 

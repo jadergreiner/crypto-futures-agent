@@ -1,9 +1,9 @@
 # REWARD FUNCTION VALIDATION — F-12 ML Sign-off
 
-**Data:** 21 FEV 2026, 23:45 UTC  
-**Persona:** ML Specialist (Reinforcement Learning Expert)  
-**Sprint:** F-12 CTO/Risk Gates Clearance  
-**Status:** ✅ READY FOR RISK GATES (24 FEV)  
+**Data:** 21 FEV 2026, 23:45 UTC
+**Persona:** ML Specialist (Reinforcement Learning Expert)
+**Sprint:** F-12 CTO/Risk Gates Clearance
+**Status:** ✅ READY FOR RISK GATES (24 FEV)
 
 ---
 
@@ -106,6 +106,6 @@ Status: 3/3 PASSING
 
 ---
 
-**Timestamp:** 2026-02-21T23:45:00Z  
-**Signature:** ML Specialist  
+**Timestamp:** 2026-02-21T23:45:00Z
+**Signature:** ML Specialist
 **Status:** ✅ APPROVED

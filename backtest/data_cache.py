@@ -25,7 +25,7 @@ class ParquetCache:
     Cache Parquet para aceleração de backtesting.
 
     Carrega dados SQLite → converts para Parquet → loads como NumPy.
-    
+
     Pipeline:
     1. load_ohlcv_for_symbol(symbol) → check Parquet cache
     2. Se cache existe: retorna DataFrame rápido
@@ -43,7 +43,7 @@ class ParquetCache:
         self.db_path = db_path
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Memory cache (opcional, 3-tier adicional)
         self._memory_cache: Dict[str, pd.DataFrame] = {}
 
@@ -52,11 +52,11 @@ class ParquetCache:
     def _get_parquet_path(self, symbol: str, timeframe: str) -> Path:
         """
         Retorna path para arquivo Parquet de um símbolo/timeframe.
-        
+
         Args:
             symbol: Ex. 'BTCUSDT'
             timeframe: 'h1', 'h4', 'd1'
-            
+
         Returns:
             Path absoluto do arquivo Parquet
         """
@@ -91,7 +91,7 @@ class ParquetCache:
         """
         try:
             cache_key = f"{symbol}_{timeframe}"
-            
+
             # 1. Tentar memory cache (mais rápido)
             if cache_key in self._memory_cache:
                 logger.debug(f"Cache hit (memory): {cache_key}")
@@ -99,7 +99,7 @@ class ParquetCache:
             else:
                 # 2. Tentar Parquet cache
                 parquet_path = self._get_parquet_path(symbol, timeframe)
-                
+
                 if parquet_path.exists():
                     logger.debug(f"Cache hit (Parquet): {parquet_path}")
                     df = pd.read_parquet(parquet_path)
@@ -107,21 +107,21 @@ class ParquetCache:
                     # 3. Carregar do SQLite (fonte de verdade)
                     logger.debug(f"Cache miss, loading from SQLite: {symbol} {timeframe}")
                     df = self._load_from_sqlite(symbol, timeframe)
-                    
+
                     if df.empty:
                         logger.warning(f"No data found for {symbol} {timeframe}")
                         return pd.DataFrame()
-                    
+
                     # Salvar para Parquet cache
                     try:
                         df.to_parquet(parquet_path, index=False)
                         logger.debug(f"Parquet cache created: {parquet_path}")
                     except Exception as e:
                         logger.warning(f"Failed to save Parquet cache: {e}")
-                
+
                 # Armazenar em memory cache
                 self._memory_cache[cache_key] = df
-            
+
             # 4. Aplicar filtros de data
             if start_date or end_date:
                 df = df.copy()
@@ -130,7 +130,7 @@ class ParquetCache:
                         df = df[df['timestamp'] >= start_date]
                     if end_date:
                         df = df[df['timestamp'] <= end_date]
-            
+
             return df.reset_index(drop=True)
 
         except Exception as e:
@@ -140,11 +140,11 @@ class ParquetCache:
     def _load_from_sqlite(self, symbol: str, timeframe: str) -> pd.DataFrame:
         """
         Carrega dados OHLCV do SQLite.
-        
+
         Args:
             symbol: Ex. 'BTCUSDT'
             timeframe: 'h1', 'h4', 'd1'
-            
+
         Returns:
             DataFrame com dados históricos
         """
@@ -155,12 +155,12 @@ class ParquetCache:
                 'h4': 'ohlcv_h4',
                 'd1': 'ohlcv_d1'
             }
-            
+
             table_name = table_map.get(timeframe)
             if not table_name:
                 logger.error(f"Unknown timeframe: {timeframe}")
                 return pd.DataFrame()
-            
+
             # Query com ORDER BY para garantir continuidade
             query = f"""
             SELECT timestamp, open, high, low, close, volume
@@ -168,10 +168,10 @@ class ParquetCache:
             WHERE symbol = ?
             ORDER BY timestamp ASC
             """
-            
+
             with sqlite3.connect(self.db_path) as conn:
                 df = pd.read_sql_query(query, conn, params=(symbol,))
-            
+
             logger.info(f"Loaded {len(df)} candles from SQLite: {symbol} {timeframe}")
             return df
 
@@ -197,10 +197,10 @@ class ParquetCache:
         """
         try:
             result = {}
-            
+
             for timeframe in ['h1', 'h4', 'd1']:
                 df = self.load_ohlcv_for_symbol(symbol, timeframe)
-                
+
                 if df.empty:
                     logger.warning(f"No data for {symbol} {timeframe}, using zeros")
                     result[timeframe] = np.zeros((0, 5), dtype=np.float32)
@@ -210,7 +210,7 @@ class ParquetCache:
                     arr = df[cols].values.astype(np.float32)
                     result[timeframe] = arr
                     logger.debug(f"Loaded {len(arr)} rows for {symbol} {timeframe}")
-            
+
             return result
 
         except Exception as e:
@@ -240,10 +240,10 @@ class ParquetCache:
         """
         try:
             df = self.load_ohlcv_for_symbol(symbol, timeframe)
-            
+
             if df.empty:
                 return False, f"No data found for {symbol} {timeframe}"
-            
+
             # Validações
             # 1. Check gaps de timestamp
             timeframe_seconds = {
@@ -251,29 +251,29 @@ class ParquetCache:
                 'h4': 3600 * 4,
                 'd1': 3600 * 24
             }.get(timeframe, 3600)
-            
+
             if len(df) > 1 and 'timestamp' in df.columns:
                 diffs = df['timestamp'].diff()[1:]
                 invalid_gaps = diffs[diffs != timeframe_seconds]
-                
+
                 if len(invalid_gaps) > 0:
                     return False, f"Found {len(invalid_gaps)} gaps (expected {timeframe_seconds}s intervals)"
-            
+
             # 2. Check volume zero
             zero_volume = (df['volume'] == 0).sum()
             if zero_volume > 0:
                 return False, f"Found {zero_volume} candles with zero volume"
-            
+
             # 3. Check OHLC sanity
             max_open_close = df[['open', 'close']].max(axis=1)
             min_open_close = df[['open', 'close']].min(axis=1)
-            
+
             invalid_high = (df['high'] < max_open_close).sum()
             invalid_low = (df['low'] > min_open_close).sum()
-            
+
             if invalid_high > 0 or invalid_low > 0:
                 return False, f"OHLC sanity violations: {invalid_high} high, {invalid_low} low"
-            
+
             logger.info(f"✅ Continuity OK: {symbol} {timeframe} ({len(df)} candles)")
             return True, None
 
@@ -296,14 +296,14 @@ class ParquetCache:
 def timestamp_to_parquet_path(symbol: str, date: int, cache_dir: str = "backtest/cache") -> str:
     """
     Convert timestamp + symbol to Parquet file path com partição por data.
-    
+
     Útil para organizar cache por data (ex. para rebalancing semanal).
-    
+
     Args:
         symbol: Ex. 'BTCUSDT'
         date: Unix timestamp em ms
         cache_dir: Diretório base
-        
+
     Returns:
         Path string (ex. 'backtest/cache/BTCUSDT/2026/02/21.parquet')
     """
@@ -312,10 +312,10 @@ def timestamp_to_parquet_path(symbol: str, date: int, cache_dir: str = "backtest
     year = dt.strftime('%Y')
     month = dt.strftime('%m')
     day = dt.strftime('%d')
-    
+
     dir_path = Path(cache_dir) / symbol / year / month
     dir_path.mkdir(parents=True, exist_ok=True)
-    
+
     file_path = dir_path / f"{day}.parquet"
     return str(file_path)
 
@@ -323,14 +323,14 @@ def timestamp_to_parquet_path(symbol: str, date: int, cache_dir: str = "backtest
 def merge_timeframes(h1: pd.DataFrame, h4: pd.DataFrame, d1: pd.DataFrame) -> pd.DataFrame:
     """
     Merge múltiplos timeframes em DataFrame único com prefixo.
-    
+
     Útil para análise multi-timeframe em contexto único.
-    
+
     Args:
         h1: DataFrame H1 com colunas [timestamp, open, high, low, close, volume]
         h4: DataFrame H4 (idem)
         d1: DataFrame D1 (idem)
-        
+
     Returns:
         DataFrame merged com colunas:
         - timestamp (de H1, mais granular)
@@ -342,15 +342,15 @@ def merge_timeframes(h1: pd.DataFrame, h4: pd.DataFrame, d1: pd.DataFrame) -> pd
         if h1.empty:
             logger.warning("H1 data empty, returning empty DataFrame")
             return pd.DataFrame()
-        
+
         # Use H1 como base (mais granular)
         merged = h1.copy()
-        
+
         # Renomear colunas H1
         h1_cols = ['open', 'high', 'low', 'close', 'volume']
         h1_rename = {col: f'h1_{col}' for col in h1_cols if col in merged.columns}
         merged = merged.rename(columns=h1_rename)
-        
+
         # Merge H4 (interpolar para H1 timestamps)
         if not h4.empty:
             h4_renamed = h4.rename(columns={
@@ -365,7 +365,7 @@ def merge_timeframes(h1: pd.DataFrame, h4: pd.DataFrame, d1: pd.DataFrame) -> pd
                 on='timestamp',
                 direction='backward'
             )
-        
+
         # Merge D1 (interpolar para H1 timestamps)
         if not d1.empty:
             d1_renamed = d1.rename(columns={
@@ -380,7 +380,7 @@ def merge_timeframes(h1: pd.DataFrame, h4: pd.DataFrame, d1: pd.DataFrame) -> pd
                 on='timestamp',
                 direction='backward'
             )
-        
+
         logger.info(f"Merged {len(h1)} H1 rows with H4 and D1 data")
         return merged
 

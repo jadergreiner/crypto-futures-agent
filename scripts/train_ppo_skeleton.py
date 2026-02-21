@@ -46,13 +46,13 @@ logger = logging.getLogger(__name__)
 
 class PPOTrainer:
     """Treinador PPO para agente de trading."""
-    
+
     def __init__(self, config: Optional[PPOConfig] = None,
                  checkpoint_dir: str = 'checkpoints/ppo_training',
                  log_dir: str = 'logs/ppo_training'):
         """
         Inicializa treinador.
-        
+
         Args:
             config: PPOConfig (opcional, usa phase4 default)
             checkpoint_dir: Diretorio para salvar checkpoints
@@ -62,11 +62,11 @@ class PPOTrainer:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.log_dir = Path(log_dir)
         self.cache = ParquetCache(db_path='crypto_agent.db', cache_dir='backtest/cache')
-        
+
         # Criar diretorios
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(f"PPOTrainer inicializado com config Phase 4")
         logger.info(f"  Learning Rate: {self.config.learning_rate}")
         logger.info(f"  Batch Size: {self.config.batch_size}")
@@ -75,28 +75,28 @@ class PPOTrainer:
         logger.info(f"  Entropy Coef: {self.config.ent_coef}")
         logger.info(f"  Checkpoints: {self.checkpoint_dir}")
         logger.info(f"  Logs: {self.log_dir}")
-    
+
     def prepare_environment(self, symbol: str) -> tuple:
         """
         Prepara ambiente para simbolo com VecNormalize.
-        
+
         Args:
             symbol: Simbolo (ex: 'OGNUSDT')
-            
+
         Returns:
             Tupla (BacktestEnvironment, VecNormalize)
         """
         logger.info(f"Preparando ambiente para {symbol}...")
-        
+
         try:
             # Carregar dados do cache
             h4_data = self.cache.load_ohlcv_for_symbol(symbol, timeframe='4h')
-            
+
             if h4_data is None or h4_data.empty:
                 raise ValueError(f"Dados nao encontrados para {symbol}")
-            
+
             logger.info(f"Carregados {len(h4_data)} candles H4 para {symbol}")
-            
+
             # Preparar observation space com features
             env_data = {
                 'h4': h4_data,
@@ -107,7 +107,7 @@ class PPOTrainer:
                 'macro': pd.DataFrame(),
                 'smc': pd.DataFrame()
             }
-            
+
             # Criar ambiente base
             env = BacktestEnvironment(
                 data=env_data,
@@ -116,10 +116,10 @@ class PPOTrainer:
                 deterministic=True,
                 seed=42
             )
-            
+
             # Encapsular com DummyVecEnv
             vec_env = DummyVecEnv([lambda: env])
-            
+
             # Aplicar VecNormalize para estabilidade
             vec_env = VecNormalize(
                 vec_env,
@@ -129,38 +129,38 @@ class PPOTrainer:
                 clip_reward=self.config.clip_reward,
                 gamma=self.config.gamma
             )
-            
+
             logger.info(f"[OK] Ambiente preparado para {symbol}")
             return env, vec_env
-            
+
         except Exception as e:
             logger.error(f"[ERROR] Erro ao preparar ambiente: {e}")
             raise
-    
+
     def train(self, symbol: str = 'OGNUSDT') -> dict:
         """
         Treina modelo PPO com config Phase 4.
-        
+
         Args:
             symbol: Simbolo para treinar
-            
+
         Returns:
             dict com resultado do treinamento
         """
         if not HAS_ML:
             logger.error("Bibliotecas ML nao disponiveis")
             return {"error": "ML libraries missing"}
-        
+
         logger.info(f"\n[TRAINING] Iniciando treinamento para {symbol}")
         logger.info(f"  Total timesteps: {self.config.total_timesteps:,}")
         logger.info(f"  Learning rate: {self.config.learning_rate}")
         logger.info(f"  Batch size: {self.config.batch_size}")
         logger.info(f"  Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
-        
+
         try:
             # 1. Preparar ambiente
             env, vec_env = self.prepare_environment(symbol)
-            
+
             # 2. Criar modelo PPO com config
             logger.info("Criando modelo PPO com config Phase 4...")
             model = PPO(
@@ -179,32 +179,32 @@ class PPOTrainer:
                 device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
                 verbose=self.config.verbose
             )
-            
+
             # 3. Callbacks
             checkpoint_callback = CheckpointCallback(
                 save_freq=self.config.save_interval,
                 save_path=str(self.checkpoint_dir),
                 name_prefix=f"{symbol}_ppo"
             )
-            
+
             # 4. Treinar
             logger.info(f"Iniciando treinamento para {symbol}...")
-            
+
             model.learn(
                 total_timesteps=self.config.total_timesteps,
                 callback=checkpoint_callback
             )
-            
+
             # 5. Salvar modelo final e stats
             model_path = self.checkpoint_dir / f"{symbol}_ppo_final.zip"
             model.save(str(model_path))
             logger.info(f"[OK] Modelo salvo: {model_path}")
-            
+
             # Salvar VecNormalize stats
             vecnorm_path = self.checkpoint_dir / f"{symbol}_ppo_vecnorm.pkl"
             vec_env.save(str(vecnorm_path))
             logger.info(f"[OK] VecNormalize stats salvo: {vecnorm_path}")
-            
+
             return {
                 "status": "SUCCESS",
                 "symbol": symbol,
@@ -213,7 +213,7 @@ class PPOTrainer:
                 "timesteps": self.config.total_timesteps,
                 "config": self.config.to_dict()
             }
-            
+
         except Exception as e:
             logger.error(f"[ERROR] Erro durante treinamento: {e}")
             import traceback
@@ -229,16 +229,16 @@ if __name__ == '__main__':
     if not HAS_ML:
         print("Bibliotecas ML nao instaladas. Execute: pip install -r requirements.txt")
         exit(1)
-    
+
     logger.info("="*70)
     logger.info("PPO TRAINING - SKELETON SCRIPT")
     logger.info("="*70)
-    
+
     trainer = PPOTrainer()
-    
+
     # Treinar para OGNUSDT
     result = trainer.train(symbol='OGNUSDT')
-    
+
     # Resumo
     logger.info(f"\n{'='*70}")
     logger.info("RESULTADO DO TREINAMENTO")
