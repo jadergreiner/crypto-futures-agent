@@ -8,6 +8,43 @@ Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### ✅ [ML VALIDATION] Reward Function Formal Sign-off — 21/02/2026 23:45 UTC
+
+**Status**: ✅ APPROVED FOR RISK GATES (7/7 validation points passed)
+
+**Execução**: ML Specialist formal validation session
+
+**Validação Completa**:
+- ML Unit Tests: ✅ 3/3 PASSING
+  * test_reward_scaling: PASSED
+  * test_reward_components: PASSED
+  * test_invalid_action_penalty: PASSED
+
+- Parametric Validation: ✅ 7/7 APPROVED
+  1. PNL_SCALE=10.0 (Apropriada para PPO)
+  2. R_BONUS_THRESHOLD_HIGH=3.0 (Atingível)
+  3. HOLD_BASE_BONUS=0.05 (Incentivo adequado)
+  4. INVALID_ACTION_PENALTY=-0.5 (Penalidade apropriada)
+  5. REWARD_CLIP=10.0 (Clipping simétrico)
+  6. Backward Compatibility v0.2 (Mantida)
+  7. Distribuição Balanceada (Contexto-dependente)
+
+- Theoretical Distribution: ✅ VERIFIED
+  * Cenários validados: Winner, Hold, Out-of-Market, Loser
+  * Cada componente emerge apropriadamente em contexto
+  * r_pnl domina = correto para RL (sinal primário)
+
+**Documentação Gerada**:
+- `REWARD_VALIDATION_F12_ML_FINAL.md` (formal approval document)
+- `REWARD_VALIDATION_STATUS_F12.json` (status tracking)
+- Validação histórica sincronizada em CHANGELOG
+
+**Status para Risk Gates**: ✅ READY FOR BACKTEST + GATES 1/2/3
+
+**Bloqueadores**: NENHUM ✅
+
+---
+
 ### ✅ [F-12 SPRINT] Backtest Engine v0.4 — 21/02/2026 10:00 UTC (SWE + ML)
 
 **Status**: ✅ 60% Completo (F-12a+c+d+e implementados, F-12b pendente)
