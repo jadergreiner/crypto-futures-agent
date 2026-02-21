@@ -1,0 +1,107 @@
+{
+  "reuniao_id": "BOARD_21FEV_GOLIVE_16MEMBROS_VOTACAO_FINAL",
+  "timestamp_votacao": "2026-02-21T19:09:05.562829",
+  "total_membros": 16,
+  "total_votos_registrados": 16,
+  "quorum_atingido": true,
+  "votacao_percentual": {
+    "SIM": 100.0,
+    "CAUTELA": 0.0,
+    "NAO": 0.0
+  },
+  "votos_por_opcao": {
+    "A": 16,
+    "B": 0,
+    "C": 0
+  },
+  "votos_detalhados": {
+    "Angel": {
+      "voto": "A",
+      "especialidade": "Executiva"
+    },
+    "Elo": {
+      "voto": "A",
+      "especialidade": "Governança"
+    },
+    "The Brain": {
+      "voto": "A",
+      "especialidade": "ML/IA"
+    },
+    "Dr. Risk": {
+      "voto": "A",
+      "especialidade": "Risco"
+    },
+    "Guardian": {
+      "voto": "A",
+      "especialidade": "Arquitetura Risco"
+    },
+    "Arch": {
+      "voto": "A",
+      "especialidade": "Arquitetura SW"
+    },
+    "The Blueprint": {
+      "voto": "A",
+      "especialidade": "Infraestrutura"
+    },
+    "Audit": {
+      "voto": "A",
+      "especialidade": "QA & Docs"
+    },
+    "Quality": {
+      "voto": "A",
+      "especialidade": "QA Automation"
+    },
+    "Planner": {
+      "voto": "A",
+      "especialidade": "Operacional"
+    },
+    "Executor": {
+      "voto": "A",
+      "especialidade": "Implementação"
+    },
+    "Data": {
+      "voto": "A",
+      "especialidade": "Binance/Dados"
+    },
+    "Trader": {
+      "voto": "A",
+      "especialidade": "Trading"
+    },
+    "Product": {
+      "voto": "A",
+      "especialidade": "Produto"
+    },
+    "Compliance": {
+      "voto": "A",
+      "especialidade": "Compliance"
+    },
+    "Board Member": {
+      "voto": "A",
+      "especialidade": "Estratégia"
+    }
+  },
+  "sistema_votacao": "Maioria Simples (9/16 = GO)",
+  "decisao_final": "✅ GO-LIVE APROVADO — UNÂNIME (16/16 SIM)",
+  "maioria_simples_atingida": true,
+  "membros_criticos_unanimes": true,
+  "timeline_target": "22 FEV 10:00 UTC — PRE-FLIGHT CHECKS COMEÇAM",
+  "proximo_passo": "Executar: scripts/pre_flight_canary_checks.py (09:00 UTC)",
+  "autorizado_por": [
+    "Angel (Executiva)",
+    "Elo (Governança)",
+    "The Brain (ML/IA)",
+    "Dr. Risk (Risco)",
+    "Guardian (Arquitetura Risco)",
+    "Arch (Arquitetura SW)",
+    "The Blueprint (Infraestrutura)",
+    "Audit (QA & Docs)",
+    "Quality (QA Automation)",
+    "Planner (Operacional)",
+    "Executor (Implementação)",
+    "Data (Binance/Dados)",
+    "Trader (Trading)",
+    "Product (Produto)",
+    "Compliance (Compliance)",
+    "Board Member (Estratégia)"
+  ]
+}
