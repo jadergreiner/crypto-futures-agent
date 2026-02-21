@@ -9,7 +9,33 @@
 
 ## 📋 Release Criteria Framework
 
-### Entrada (Pre-release)
+### F-12 Backtest Engine (Phase 3 — 22 FEV Validation)
+
+**Status**: ⚠️ NO-GO (2/6 gates) — Executando em paralelo
+
+```text
+Release Blocking Criteria (Pre-Gate):
+
+MUST HAVE (Bloqueadores):
+├─ [ ] Sharpe Ratio >= 1.0 (FAILED: 0.06)
+├─ [ ] Max Drawdown <= 15% (FAILED: 17.24%)
+├─ [ ] Win Rate >= 45% (PASSED: 48.51%)
+├─ [ ] Profit Factor >= 1.5 (FAILED: 0.75)
+├─ [ ] Consecutive Losses <= 5 (PASSED: 5)
+└─ [ ] Calmar Ratio >= 2.0 (FAILED: 0.10)
+
+Result: 2/6 gates PASSED → Release BLOCKED
+
+Root Cause: PPO model not trained (backtest used random actions)
+Resolution: 
+  - Option A: Override with capital limits (immediate, high risk)
+  - Option B: Train PPO 5-7 days, revalidate (recommended, low risk)
+  - Option C: Hybrid (start paper + train parallel) (balanced)
+```
+
+**Refs**: `PHASE_3_EXECUTIVE_DECISION_REPORT.md`, backtest logs in `tests/output/`
+
+### Entrada (Pre-release) — UPDATED 22 FEV
 
 ```text
 Para QUALQUER release (v0.3+):

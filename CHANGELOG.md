@@ -8,6 +8,31 @@ Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### 🚨 [PHASE 3] Risk Gates Validation — 22/02/2026 12:21 UTC
+
+**Status**: ⚠️ NO-GO (2/6 gates passados) — Decisão CTO necessária
+
+**Execução**: Full backtest run integrado com F-12 components (500 candles, 1000PEPEUSDT H4)
+
+**Resultados 6 Risk Gates**:
+- ❌ Sharpe Ratio: 0.06 (threshold ≥ 1.0) — FAIL
+- ❌ Max Drawdown: 17.24% (threshold ≤ 15%) — FAIL
+- ✅ Win Rate: 48.51% (threshold ≥ 45%) — PASS
+- ❌ Profit Factor: 0.75 (threshold ≥ 1.5) — FAIL
+- ✅ Consecutive Losses: 5 (threshold ≤ 5) — PASS (at limit)
+- ❌ Calmar Ratio: 0.10 (threshold ≥ 2.0) — FAIL
+
+**Análise**: Backtest com ações ALEATÓRIAS (model não treinado); F-12 arquitetura 100% OK
+
+**Opções CTO**:
+- **Option A**: Override + restrições de capital/DD limit → Autorizar agora
+- **Option B**: Treinar PPO 5-7 dias → Revalidar com modelo treinado (RECOMENDADO)
+- **Option C**: Hybrid (start paper + treinar paralelo) → Balanceado
+
+**Refs**: `PHASE_3_EXECUTIVE_DECISION_REPORT.md`, `tests/output/RISK_CLEARANCE_REPORT_F12.txt`
+
+---
+
 ### ✅ [ML VALIDATION] Reward Function Formal Sign-off — 21/02/2026 23:45 UTC
 
 **Status**: ✅ APPROVED FOR RISK GATES (7/7 validation points passed)

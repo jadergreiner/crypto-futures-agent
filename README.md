@@ -29,6 +29,9 @@ operacionais com gestão de risco completa.
   proteção de drawdown e descanso após trades
 - **Round 5+ Meta-Learning**: Oportunidade Learning para diferenciar decisões
   prudentes (evitar perdas) vs desperdiçadoras (perder ganhos)
+- **F-12 Backtest Engine** (22/02/2026): Backtester determinístico com
+  3-tier data pipeline (SQLite→Parquet→Memory), trade state machine com PnL
+  preciso, 6 métricas risk clearance para gates de aprovação
 
 ## 🎓 Evolução da Arquitetura de Reward (21/02/2026)
 

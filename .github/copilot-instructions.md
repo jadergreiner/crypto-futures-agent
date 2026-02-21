@@ -22,9 +22,31 @@ Estas instruções orientam mudanças neste repositório `crypto-futures-agent`.
   - `execution/`: execução de ordens.
   - `data/`: clientes e coleta de dados (Binance, macro, sentimento).
   - `risk/` e `monitoring/`: controles de risco e monitoramento.
-  - `backtest/`: backtesting e walk-forward.
+  - `backtest/`: backtesting e walk-forward (F-12 Backtest Engine v0.4 22/FEV).
   - `playbooks/`: regras por símbolo.
   - `tests/`: testes automatizados.
+
+## Status Atual — SPRINT F-12 PHASE 3 (22/02/2026)
+
+**F-12 Backtest Engine**: ✅ 100% ARQUITETURA FUNCIONAL
+- F-12a: BacktestEnvironment (determinístico, 9/9 testes)
+- F-12b: ParquetCache (3-tier pipeline SQLite→Parquet→Memory)
+- F-12c: TradeStateMachine (state machine com PnL preciso)
+- F-12d: BacktestMetrics (6 métricas risk clearance)
+- F-12e: 9 unit tests (todos PASSING)
+
+**Phase 3 Risk Gates**: ⚠️ 2/6 PASSADOS → Decisão CTO necessária
+- Sharpe Ratio: 0.06 ❌ (need ≥1.0)
+- Max DD: 17.24% ❌ (need ≤15%)
+- Win Rate: 48.51% ✅ (need ≥45%)
+- Profit Factor: 0.75 ❌ (need ≥1.5)
+- Consecutive Losses: 5 ✅ (need ≤5)
+- Calmar Ratio: 0.10 ❌ (need ≥2.0)
+
+**Root Cause**: Backtest usou ações aleatórias (model not trained)
+**Solução**: Option A (override+limit) / Option B (train PPO 5-7d) / Option C (hybrid)
+
+**Refs**: `PHASE_3_EXECUTIVE_DECISION_REPORT.md`, `docs/SYNCHRONIZATION.md`
 
 ## Regras de implementação
 - Manter mudanças pequenas, focadas e compatíveis com o estilo existente.

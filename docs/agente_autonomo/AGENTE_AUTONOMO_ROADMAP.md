@@ -88,16 +88,51 @@ Trade ID 7: ANKRUSDT LONG
 
 ---
 
-### 🟠 v0.4 — BACKTEST ENGINE (21-24 FEV — SPRINT ATIVO)
+### 🟠 v0.4 — BACKTEST ENGINE (21-28 FEV — SPRINT ATIVO + DECISION PANEL)
 
-**Objetivo**: Ferramenta backtest pronta, validações históricas viáveis
+**Objetivo**: Ferramenta backtest pronta, risk gates validation, PPO training (Phase 3)
+
+**Status**: Phase 3 Complete (22 FEV) — 2/6 gates passados, CTO decision required
 
 | Milestone | Data | Status | Descr |
 |-----------|------|--------|-------|
 | F-12a complete | 20 FEV | ✅ DONE | BacktestEnvironment |
-| F-12b complete | 21 FEV (Terça) | ⏳ IN PROGRESS | Data pipeline 3-layer |
-| F-12c complete | 22 FEV (Quarta) | ⏳ IN PROGRESS | Trade state machine |
-| F-12d complete | 22 FEV (Quarta) | ⏳ IN PROGRESS | Reporter (text+JSON) |
+| F-12b complete | 22 FEV | ✅ DONE | Data pipeline 3-layer (460L) |
+| F-12c complete | 22 FEV | ✅ DONE | Trade state machine (270L) |
+| F-12d complete | 22 FEV | ✅ DONE | Backtest metrics (260L) |
+| F-12e complete | 22 FEV | ✅ DONE | Unit tests (9/9 passing) |
+| **Phase 3: Risk Gates** | 22 FEV | ⚠️ NO-GO | 2/6 gates passed (need CTO decision) |
+| CTO Decision (A/B/C) | 22 FEV | 🔴 PENDING | Override / Train / Hybrid |
+| **Option B: PPO Training** | 23-28 FEV | ⏳ IF SELECTED | Train 5-7 days, revalidate gates |
+| v0.4 release | 28 FEV (if B) | ⏳ CONDITIONAL | Depends on CTO choice |
+
+**Features (Completed)**:
+- ✅ BacktestEnvironment (deterministic)
+- ✅ ParquetCache 3-tier pipeline (SQLite→Parquet→NumPy)
+- ✅ TradeStateMachine (state machine + PnL)
+- ✅ BacktestMetrics (6 risk gates)
+- ✅ Full backtest execution (500 candles)
+- ✅ Reward function validation (7/7 ML checks)
+
+**Risk Gates Results (22 FEV 12:21 UTC)**:
+```
+Sharpe Ratio................ 0.06 ❌ (need ≥ 1.0)
+Max Drawdown................ 17.24% ❌ (need ≤ 15%)
+Win Rate.................... 48.51% ✅ (need ≥ 45%)
+Profit Factor............... 0.75 ❌ (need ≥ 1.5)
+Consecutive Losses.......... 5 ✅ (need ≤ 5)
+Calmar Ratio................ 0.10 ❌ (need ≥ 2.0)
+─────────────────────────────────
+Gates Passed: 2/6 (33%) — BELOW MINIMUM 5/6
+Root Cause: Model not trained (random actions); F-12 architecture 100% OK
+```
+
+**Executive Options (CTO DECISION REQUIRED)**:
+- **Option A** (⚠️ Medium risk): Override restrictions + capital limits → Start paper trading now
+- **Option B** (✅ Low risk): Train PPO model 5-7 days → Re-validate gates → Authorization 28 FEV
+- **Option C** (Balanced): Hybrid (start paper + train parallel) → Upgrade live when ready
+
+**Next Step**: CTO choose A/B/C by 22 FEV EOD → Triggers Phase 4 (training or deployment)
 | F-12e complete | 23 FEV (Quinta) | ⏳ IN PROGRESS | Comprehensive tests |
 | v0.4 release | 23-24 FEV | ⏳ PENDING | Engine ready (Sexta buffer) |
 

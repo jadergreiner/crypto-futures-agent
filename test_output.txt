@@ -1,0 +1,16 @@
+INFO:backtest.data_cache:ParquetCache initialized: cache_dir=backtest\cache
+INFO:backtest.data_cache:Loaded 0 candles from SQLite: 1000PEPEUSDT d1
+WARNING:backtest.data_cache:No data found for 1000PEPEUSDT d1
+======================================================================
+TESTE INTEGRAÃ├O F-12b ParquetCache + BacktestEnvironment
+======================================================================
+
+[1] Carregando dados via ParquetCache...
+   SÝmbolo: 1000PEPEUSDT
+Traceback (most recent call last):
+  File "C:\repo\crypto-futures-agent\test_integration_backtest.py", line 35, in <module>
+    print(f"   \u2705 H1: {len(h1_df)} candles")
+  File "C:\Users\Usuario\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 3: character maps to <undefined>
