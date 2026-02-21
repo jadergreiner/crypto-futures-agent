@@ -3,24 +3,27 @@
 ## 🎯 Problema Resolvido
 
 Quando o operador selecionava **Opção [2] (Live Integrado)** e respondia:
-```
+```text
 Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): S
 Intervalo de treinamento em horas (padrao: 4): 2
-```
+```text
 
 O sistema mostraria mensagens contraditórias e os logs indicariam:
-```
+```text
 ❌ Concurrent training is disabled
-```
+```text
 
 Mesmo com o usuário tendo selecionado "S" (sim) para treino concorrente.
 
 ## 🔧 O que foi Corrigido
 
 ### Causa Raiz
-As variáveis batch `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não estavam inicializadas **antes** do bloco `if` no arquivo `iniciar.bat`.
+As variáveis batch `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não estavam
+inicializadas **antes** do bloco `if` no arquivo `iniciar.bat`.
 
-Em Windows batch, mesmo com `setlocal enabledelayedexpansion`, variáveis precisam ser inicializadas antes de um bloco condicional para expandirem corretamente fora dele.
+Em Windows batch, mesmo com `setlocal enabledelayedexpansion`, variáveis
+precisam ser inicializadas antes de um bloco condicional para expandirem
+corretamente fora dele.
 
 ### Solução Implementada
 
@@ -34,7 +37,7 @@ if /i "!ENABLE_TRAINING!"=="s" (
 )
 
 python main.py ... !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
-```
+```python
 
 **Depois (CORRETO):**
 ```batch
@@ -50,19 +53,20 @@ if /i "!ENABLE_TRAINING!"=="s" (
 )
 
 python main.py ... !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
-```
+```python
 
 ### Validação Adicionada
 
 O script agora mostra o comando exato que será executado:
 
-```
+```text
 [DEBUG] Treino concorrente ATIVADO
 [DEBUG] Intervalo: --training-interval 7200
 
 Comando executado:
-python main.py --mode live --integrated --integrated-interval 300 --concurrent-training --training-interval 7200
-```
+python main.py --mode live --integrated --integrated-interval 300
+--concurrent-training --training-interval 7200
+```python
 
 Isso permite o operador verificar se os flags estão sendo passados corretamente.
 
@@ -72,7 +76,7 @@ Isso permite o operador verificar se os flags estão sendo passados corretamente
 
 ```bash
 .\iniciar.bat
-```
+```bash
 
 1. Selecione: `2` (Live Integrado)
 2. Confirme [1/3]: `SIM`
@@ -82,27 +86,28 @@ Isso permite o operador verificar se os flags estão sendo passados corretamente
 6. Intervalo em horas?: `2` ✅
 
 **Esperado nas próximas 5 linhas:**
-```
+```text
 [*] Treino concorrente ATIVADO: a cada 2 hora(s)
 [DEBUG] Treino concorrente ATIVADO
 [DEBUG] Intervalo: --training-interval 7200
 
 Comando executado:
-python main.py --mode live --integrated --integrated-interval 300 --concurrent-training --training-interval 7200
-```
+python main.py --mode live --integrated --integrated-interval 300
+--concurrent-training --training-interval 7200
+```python
 
 **Esperado nos logs (5-10 segundos depois):**
-```
+```text
 INFO - Concurrent training is ENABLED
 INFO - Training interval: 7200 seconds (2.0 hours)
 INFO - TrainingScheduler started with interval: 2.0 hours
-```
+```text
 
 ### Teste 2: Opção [2] com Treino NÃO
 
 ```bash
 .\iniciar.bat
-```
+```bash
 
 1. Selecione: `2`
 2. Confirme [1/3]: `SIM`
@@ -112,18 +117,18 @@ INFO - TrainingScheduler started with interval: 2.0 hours
 6. Intervalo em horas?: (não será perguntado)
 
 **Esperado:**
-```
+```text
 [*] Treino concorrente DESATIVADO
 [DEBUG] Treino concorrente DESATIVADO
 
 Comando executado:
 python main.py --mode live --integrated --integrated-interval 300
-```
+```python
 
 **Esperado nos logs:**
-```
+```text
 INFO - Concurrent training is disabled
-```
+```text
 
 ## 📊 Status da Correção
 
@@ -173,22 +178,22 @@ Se ainda vir "Concurrent training is disabled" após a correção:
    - Batch pode estar em cache
 
 2. **Verifique iniciar.bat foi atualizado:**
-   ```
+```text
    git status
-   ```
+```text
    Deve mostrar iniciar.bat modificado
 
 3. **Verifique linhas 216-222 em iniciar.bat:**
-   ```
+```text
    REM Inicializar variáveis de treino antes do bloco if
    set "TRAINING_FLAG="
    set "TRAINING_INTERVAL_FLAG="
-   ```
+```json
 
 4. **Tente o test_batch_variables.bat:**
-   ```
+```text
    .\test_batch_variables.bat
-   ```
+```text
    Deve mostrar flags sendo setadas corretamente
 
 5. **Procure por "Treino concorrente ATIVADO" no output:**

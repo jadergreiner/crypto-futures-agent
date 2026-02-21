@@ -4,7 +4,7 @@
 
 ```bash
 .\iniciar.bat
-```
+```bash
 
 ---
 
@@ -26,7 +26,7 @@
 
 ## Fluxo Recomendado (Primeira Vez)
 
-```
+```text
 1. Executar Setup (Opção 6)
    ↓
 2. Executar Backtest (Opção 4)
@@ -36,13 +36,13 @@
 4. Paper Trading (Opção 1)
    ↓
 5. Live (Opção 2) — APENAS se satisfeito
-```
+```text
 
 ---
 
 ## Fluxo Operacional (Diário)
 
-```
+```text
 Manhã:    Paper Trading (Opção 1) — 1-2 horas
 Tarde:    Monitorar Posições (Opção 3) — Contínuo (se houver trades abertos)
 Noite:    Revisar Logs (logs/agent.log)
@@ -51,7 +51,7 @@ MELHORADO COM TREINO CONCORRENTE:
 ├─ Live (Opção 2 + Treino) — Treina modelos a cada 4-6 horas automaticamente
 ├─ Monitor (Opção 3) — Acompanhar trades sem interrupção
 └─ Backtest (Opção 4) — Validar melhorias semanalmente
-```
+```text
 
 ---
 
@@ -60,17 +60,17 @@ MELHORADO COM TREINO CONCORRENTE:
 ### Revisar última execução
 ```bash
 Get-Content logs/agent.log -Tail 20
-```
+```bash
 
 ### Buscar erros
 ```bash
 Select-String "ERRO|ERROR" logs/agent.log
-```
+```bash
 
 ### Diagnosticar (sem menu)
 ```bash
 python main.py --test-connection
-```
+```bash
 
 ---
 
@@ -98,12 +98,12 @@ python main.py --test-connection
 
 Antes de usar **Opção 2 (Live)**:
 
-- [ ] Revisei `.env` e confirmei credenciais  
-- [ ] Fiz backtest em últimos 90 dias (Opção 4)  
-- [ ] Testei paper trading (Opção 1) por 1+ hora  
-- [ ] Revisei logs recentes (logs/agent.log)  
-- [ ] Confirmei montante de capital  
-- [ ] Lembrei de 3 confirmações obrigatórias no menu  
+- [ ] Revisei `.env` e confirmei credenciais
+- [ ] Fiz backtest em últimos 90 dias (Opção 4)
+- [ ] Testei paper trading (Opção 1) por 1+ hora
+- [ ] Revisei logs recentes (logs/agent.log)
+- [ ] Confirmei montante de capital
+- [ ] Lembrei de 3 confirmações obrigatórias no menu
 
 ---
 
@@ -132,6 +132,6 @@ Se alguma métrica estiver baixa → Treinar novamente (Opção 5)
 
 ---
 
-**Criado em:** 20/02/2026  
-**Status:** ✅ Pronto para operação  
+**Criado em:** 20/02/2026
+**Status:** ✅ Pronto para operação
 **Próximo passo:** `.\iniciar.bat`

@@ -3,13 +3,46 @@
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em
-[Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+[Keep a
+Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/pt-BR/1.1.0/)).
 
 ## [Unreleased]
+### ✅ [F-12 SPRINT] Backtest Engine v0.4 — 20/02/2026 23:50 UTC
 
+**Execução**: Sprint de 3-4 dias (21-24 FEV) com pré-validações concluídas
+
+#### Pre-Sprint Validação
+- ✅ BacktestEnvironment refactored (150 linhas, 99% code reuse)
+- ✅ Reward function approved (CTO sign-off, no changes needed)
+- ✅ Database validated (13.814 H4 candles + 5.290 H1 candles)
+- ✅ Architecture validated (inheritance pattern sound)
+- ✅ Timeline validated (80% confidence by CFO)
+
+#### Sprint Deliverables
+- BacktestEnvironment (F-12a): ✅ DONE
+- Data Cache Pipeline (F-12b): ⏳ In Progress
+- Trade State Machine (F-12c): ⏳ In Progress
+- Reporter (F-12d): ⏳ In Progress
+- Comprehensive Tests (F-12e): ⏳ In Progress
+- Walk-Forward Validation (F-13): ⏳ In Progress
+
+#### Documentation
+- `F12_KICKOFF_SUMMARY.md` — 3-page executive summary
+- `SPRINT_F12_EXECUTION_PLAN.md` — 40+ pages detailed plan
+- `reward_validation_20feb.txt` — CTO approval document
+- `SYNC_F12_TRACKER_20FEV.md` — Documentation sync tracker
+
+#### Timeline
+- **Terça 21/02**: Start ESP-ENG + ESP-ML parallel work
+- **Quarta-Quinta 22-23/02**: Implementation + testing
+- **Quinta 23/02 14:00**: Green light + code review
+- **Sexta 24/02**: Buffer (if needed)
+
+---
 ### � [GOVERNANCE] Estrutura PO Estabelecida — 20/02/2026 21:45 UTC
 
-**Execução**: Product Owner governance structure com roadmap, backlog prioritizado e matriz de decisões
+**Execução**: Product Owner governance structure com roadmap, backlog
+prioritizado e matriz de decisões
 
 #### Documentação de Governança
 - **Governança & Roadmap (12 meses)**: `docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md`
@@ -42,16 +75,19 @@ O formato é baseado em
 
 ### �🔴 [CRÍTICO] Diagnóstico Operacional — 20/02/2026 20:45 UTC
 
-**Situação Crítica Identificada**: Agente em Profit Guardian Mode, 0 sinais novos em 3+ dias
+**Situação Crítica Identificada**: Agente em Profit Guardian Mode, 0 sinais
+  novos em 3+ dias
 
 #### Documentação de Diagnóstico
-- **Reunião diagnóstica de 10 rodadas**: `docs/reuniao_diagnostico_profit_guardian.md`
+- **Reunião diagnóstica de 10 rodadas**:
+  `docs/reuniao_diagnostico_profit_guardian.md`
 - **Sumário executivo**: `DIAGNOSTICO_EXECUTIVO_20FEV.md`
 - **Backlog com 5 ações críticas**: `BACKLOG_ACOES_CRITICAS_20FEV.md`
 - **Script de diagnóstico**: `diagnostico_operacoes.py`
 
 #### Causa Raiz
-`config/execution_config.py` possui `"allowed_actions": ["CLOSE", "REDUCE_50"]` bloqueando "OPEN"
+`config/execution_config.py` possui `"allowed_actions": ["CLOSE", "REDUCE_50"]`
+  bloqueando "OPEN"
 
 #### Impacto
 - 21 pares monitorados (41 snapshots)
@@ -84,7 +120,8 @@ O formato é baseado em
 
 ### Mudado
 - Atualizado `docs/SYNCHRONIZATION.md` com registro de implementação
-- Adicionado registro de F-12a em `docs/SYNCHRONIZATION.md` (20/02/2026 22:40 UTC)
+- Adicionado registro de F-12a em `docs/SYNCHRONIZATION.md` (20/02/2026 22:40
+  UTC)
 
 ## [v0.3] — Training Ready 🔴 _OPERAÇÃO PARALELA C TRANSPARENTE_ (20/02/2026)
 
@@ -113,8 +150,9 @@ O formato é baseado em
 ### Adicionado
 
 - **Feature F-06: step() Completo no CryptoFuturesEnv** (20/02/2026)
-  - Implementação completa de `step(action)` retornando (obs, reward, terminated,
-    
+  - Implementação completa de `step(action)` retornando (obs, reward,
+    terminated,
+
     truncated, info)
   - Suporte às 5 ações: HOLD, OPEN_LONG, OPEN_SHORT, CLOSE, REDUCE_50
   - Stops automáticos (SL, TP) e trailing stop
@@ -306,8 +344,9 @@ O formato é baseado em
 
 ### Corrigido
 
-- 🐛 **FIX:** Integrado `multi_tf_result` no `build_observation` — Blocos 7 e 8 agora usam valores reais de correlação BTC,
-  
+- 🐛 **FIX:** Integrado `multi_tf_result` no `build_observation` — Blocos 7 e 8
+agora usam valores reais de correlação BTC,
+
   beta, D1 bias e market regime
 - 🐛 **FIX:** Corrigida lógica de R-multiple no `RewardCalculator` — if/elif
   invertidos para que bonus de 3R+ funcione corretamente

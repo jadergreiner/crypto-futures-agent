@@ -75,7 +75,7 @@ STATUS: ✅ PRONTO PARA TESTES
 
 ### Arquitetura de Dados
 
-```
+```text
 SQLite Database (ohlcv_h1)
   └─> load_training_data("BTCUSDT", "2024-08-01", "2026-02-20")
        ├─ Query otimizada com índices (symbol, timestamp)
@@ -92,11 +92,11 @@ SQLite Database (ohlcv_h1)
   ├─ Generator lazy-loaded (não carrega tudo em memória)
   ├─ Yield: (X_batch, y_batch) tuplas
   └─ Pronto para env.step() no ambiente Gymnasium
-```
+```json
 
 ### Validação Dupla Integrada
 
-```
+```text
 DataLoader (Engenheiro)
   └─> load_training_data()
        └─ 7 validações internas
@@ -119,7 +119,7 @@ MLValidator (Especialista ML)
             ├ 6. Target Imbalance (placeholder)
             ├ 7. Missing Values (NaN, inf audit)
             └ 8. Performance Benchmark (time/memory)
-```
+```text
 
 ### Dependências Adicionadas
 
@@ -149,7 +149,7 @@ df = loader.load_training_data(
 )
 
 print(f"Loaded: {df.shape[0]} candles, shape={df.shape}")
-```
+```json
 
 ### 2. Preparar Sequências para Treinamento
 
@@ -164,7 +164,7 @@ X, scalers = loader.prepare_training_sequences(
 )
 
 print(f"Sequences: shape={X.shape}")  # (n_sequences, 50, 104)
-```
+```json
 
 ### 3. Gerar Batches para Modelo
 
@@ -178,7 +178,7 @@ for X_batch, y_batch in loader.get_training_batches(
     # X_batch: (32, 50, 104)
     # y_batch: (32, 5) one-hot actions
     model.train_on_batch(X_batch, y_batch)
-```
+```bash
 
 ### 4. Validar Qualidade de Dados
 
@@ -194,7 +194,7 @@ results = validator.run_all_checks(
 
 print(f"Overall Status: {results['overall_status']}")
 # Exibe relatório formatado com 8 checks
-```
+```json
 
 
 🧪 TESTES UNITÁRIOS
@@ -205,13 +205,15 @@ print(f"Overall Status: {results['overall_status']}")
 ```bash
 cd c:\repo\crypto-futures-agent
 python -m pytest tests/test_data_loader.py -v
-```
+```bash
 
 ### Executar Teste Específico
 
 ```bash
-python -m pytest tests/test_data_loader.py::TestDataLoaderIntegration::test_load_training_data_shape_and_dtypes -v
-```
+python -m pytest
+tests/test_data_loader.py::TestDataLoaderIntegration::test_load_training_data_shape_and_dtypes
+-v
+```bash
 
 ### Validação Manual (sem pytest)
 
@@ -226,14 +228,16 @@ python data/data_loader.py
 #
 # [TEST] Gerando batches...
 # Batch 1: X=(32, 50, 104), y=(32, 5)
-```
+```bash
 
 
 ✅ CRITÉRIOS DE ACEIÇÃO ATENDIDOS
 ──────────────────────────────────────────────────────────────
 
-[✓] CA-01: load_training_data() valida período contínuo, sem gaps >15min, volume>0
-[✓] CA-02: prepare_training_sequences() segmenta observações c/ janela deslizante
+[✓] CA-01: load_training_data() valida período contínuo, sem gaps >15min,
+volume>0
+[✓] CA-02: prepare_training_sequences() segmenta observações c/ janela
+deslizante
 [✓] CA-03: DataLoader.get_training_batches() carrega 100K timesteps em <5s
 [✓] CA-04: validate_training_data.py com 8+ checks, pytest passa 100%
 [✓] CA-05: Docstrings completos (NumPy style)

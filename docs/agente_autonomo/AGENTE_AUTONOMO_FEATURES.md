@@ -1,8 +1,8 @@
 # ✨ FEATURES DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Status**: Feature inventory  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Status**: Feature inventory
 **Responsável**: Product Owner
 
 ---
@@ -83,44 +83,44 @@
 
 ### 🔴 CRÍTICO (Bloqueia release)
 
-```
+```text
 F-01: PPO Training → F-02: Signals → F-03: Live Trading
 └─ Sem qualquer um = v0.3 rejected
 
 F-04: Risk Management
 └─ Bloqueia qualquer release de segurança
-```
+```text
 
 ### 🟠 Alta (Esperada em release)
 
-```
+```text
 F-05: Multi-timeframe → F-06: Indicators
 └─ Faz diferença em performance, mas não bloqueia
 
 F-12a: BacktestEnvironment → F-12b-e
 └─ Faz diferença em validação de futuro
-```
+```text
 
 ### 🟡 MÉDIA (Nice to have)
 
-```
+```text
 F-13: Walk-Forward → F-14: Parameter Opt
 F-15: Risk v2 → F-16: Monitoring
 └─ Melhoram operação, não bloqueiam
-```
+```text
 
 ### 🔵 BAIXA (Future)
 
-```
+```text
 F-20+: Multi-exchange, licensing, etc
 └─ Post v1.0
-```
+```bash
 
 ---
 
 ## ✅ Feature Dependency Graph
 
-```
+```text
 F-01 (PPO)
     ↓
 F-02 (Signals)
@@ -159,7 +159,7 @@ F-02 (Signals)
     └─ F-25 (Licensing)
         ↓
         v1.0 RELEASE
-```
+```text
 
 ---
 
@@ -175,7 +175,7 @@ F-02 (Signals)
 
 ---
 
-**Mantido por**: Product Owner  
-**Frequência**: Atualizado por release  
+**Mantido por**: Product Owner
+**Frequência**: Atualizado por release
 **Last Updated**: 2026-02-20 22:20 UTC
 

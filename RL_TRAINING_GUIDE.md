@@ -1,17 +1,22 @@
 # Pipeline de Treinamento RL - Guia de Uso
 
-Este documento descreve como usar o pipeline de treinamento de Reinforcement Learning implementado para o agente de trading de futuros de criptomoedas.
+Este documento descreve como usar o pipeline de treinamento de Reinforcement
+Learning implementado para o agente de trading de futuros de criptomoedas.
 
 ## Visão Geral
 
-O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3 fases com **VecNormalize**:
+O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3
+fases com **VecNormalize**:
 
 1. **Fase 1: Exploração** (500k timesteps) - Alta entropia para exploração
-   - Hiperparâmetros ajustados: `n_steps=4096`, `batch_size=128`, `ent_coef=0.03`
+- Hiperparâmetros ajustados: `n_steps=4096`, `batch_size=128`, `ent_coef=0.03`
    - `normalize_advantage=True` para estabilidade
-   - **VecNormalize** aplicado para normalização automática de observações e rewards
-   - **Nota**: `ent_coef=0.03` (aumentado de 0.02) evita convergência prematura para HOLD
-2. **Fase 2: Refinamento** (1M timesteps) - Redução da entropia para convergência
+- **VecNormalize** aplicado para normalização automática de observações e
+rewards
+- **Nota**: `ent_coef=0.03` (aumentado de 0.02) evita convergência prematura
+para HOLD
+2. **Fase 2: Refinamento** (1M timesteps) - Redução da entropia para
+convergência
    - `ent_coef=0.005` para refinamento
    - Carrega estatísticas de normalização da Fase 1
 3. **Fase 3: Validação** - Testes em dados out-of-sample
@@ -20,7 +25,8 @@ O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3
 
 ### Componentes Principais
 
-- **`agent/data_loader.py`**: Carrega dados históricos do SQLite ou gera dados sintéticos
+- **`agent/data_loader.py`**: Carrega dados históricos do SQLite ou gera dados
+sintéticos
 - **`agent/environment.py`**: Environment Gymnasium customizado para trading
 - **`agent/reward.py`**: Calculadora de recompensas multi-componente
 - **`agent/trainer.py`**: Gerenciador de treinamento em 3 fases
@@ -32,7 +38,7 @@ O pipeline implementa um agente PPO (Proximal Policy Optimization) treinado em 3
 
 O environment retorna 104 features normalizadas:
 - Preço e retornos (11 features)
-- Indicadores técnicos (33 features) 
+- Indicadores técnicos (33 features)
 - SMC structures (15 features)
 - Volume e liquidez (10 features)
 - Sentiment (12 features)
@@ -57,7 +63,7 @@ O environment retorna 104 features normalizadas:
 ```bash
 # Instalar dependências
 pip install -r requirements.txt
-```
+```bash
 
 As principais dependências RL já estão no `requirements.txt`:
 - `gymnasium>=0.29.0`
@@ -66,16 +72,19 @@ As principais dependências RL já estão no `requirements.txt`:
 
 ### 2. Diagnóstico de Disponibilidade de Dados
 
-**NOVO:** Antes de treinar, você pode verificar se há dados suficientes no banco:
+**NOVO:** Antes de treinar, você pode verificar se há dados suficientes no
+banco:
 
 ```bash
 python test_diagnosis_demo.py
-```
+```bash
 
 O diagnóstico verifica:
 - ✅ Quantidade de candles disponíveis por timeframe (H1, H4, D1)
-- ✅ Quantidade necessária considerando split treino/validação (80/20) e min_length
-- ✅ Se há candles suficientes para indicadores de longo prazo (ex: EMA_610 precisa de 610 dias)
+- ✅ Quantidade necessária considerando split treino/validação (80/20) e
+min_length
+- ✅ Se há candles suficientes para indicadores de longo prazo (ex: EMA_610
+precisa de 610 dias)
 - ✅ Atualização dos dados (último candle vs tempo atual)
 - ✅ Recomendações claras de quantos dias coletar se houver dados insuficientes
 
@@ -86,7 +95,8 @@ Para treinar com `min_length=1000` (padrão em `main.py`):
 - **D1**: 730+ candles (≈ 2 anos) para suportar EMA(610) com margem
 - **H1**: 5000+ candles (≈ 120 dias) recomendado
 
-Estes valores estão configurados em `config/settings.py` no `HISTORICAL_PERIODS`.
+Estes valores estão configurados em `config/settings.py` no
+`HISTORICAL_PERIODS`.
 
 ### 3. Treinamento
 
@@ -98,7 +108,7 @@ python main.py --setup
 
 # O comando agora faz diagnóstico automático antes de treinar
 python main.py --train
-```
+```bash
 
 **MUDANÇA IMPORTANTE:** O treinamento agora:
 1. ✅ Executa diagnóstico automático de dados
@@ -107,14 +117,14 @@ python main.py --train
 4. ✅ Mostra recomendações claras de como resolver
 
 Se o diagnóstico detectar dados insuficientes, você verá:
-```
+```text
 ❌ DADOS INSUFICIENTES PARA TREINAMENTO
   H4: faltam 500 candles → Coletar mais 104 dias de dados H4
   D1: insuficiente para EMA(610) → Colete mais 245 dias
 
 Execute: python main.py --setup
 Ou aumente HISTORICAL_PERIODS em config/settings.py
-```
+```python
 
 #### Opção B: Treinar com Dados Sintéticos
 
@@ -123,7 +133,7 @@ Para testes rápidos sem dados reais, use o fallback manual:
 ```bash
 # Edite agent/data_loader.py ou use flag especial (a implementar)
 python main.py --train --synthetic
-```
+```bash
 
 O treinamento (quando dados OK) irá:
 1. Verificar disponibilidade de dados
@@ -137,7 +147,7 @@ O treinamento (quando dados OK) irá:
 
 ```bash
 python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31
-```
+```bash
 
 Isso irá:
 - Carregar o modelo treinado
@@ -151,7 +161,7 @@ Para testar todo o pipeline rapidamente:
 
 ```bash
 python test_rl_pipeline.py
-```
+```bash
 
 Este script executa:
 - Geração de dados sintéticos
@@ -174,7 +184,7 @@ O DataLoader espera dados em formato `Dict[str, Any]`:
     'macro': Dict,          # Dados macro (Fear/Greed, DXY, etc.)
     'smc': Dict            # Estruturas SMC (Order Blocks, FVGs, etc.)
 }
-```
+```bash
 
 ### Indicadores Calculados Automaticamente
 
@@ -200,7 +210,8 @@ Configurados em `config/risk_params.py`:
 
 Recompensa multi-componente **normalizada** com 8 componentes:
 
-1. **PnL** (peso 1.0): Baseado em % do capital diretamente (não multiplicado por 100)
+1. **PnL** (peso 1.0): Baseado em % do capital diretamente (não multiplicado por
+100)
    - Amplificação × 10 para sinal mais forte
    - Bonus de **0.5** para R-multiples > 3.0
    - Bonus de **0.2** para R-multiples > 2.0
@@ -208,22 +219,28 @@ Recompensa multi-componente **normalizada** com 8 componentes:
 2. **Risk** (peso 1.0): Penalidade por não ter stop ou drawdown alto
 3. **Consistency** (peso 0.5): Sharpe ratio rolante dos últimos 20 trades
 4. **Overtrading** (peso 0.5): Penalidade por mais de 3 trades em 24h
-5. **Hold Bonus** (peso 0.5): **Proporcional ao PnL** - `0.02 + pnl_pct × 0.05` para posições lucrativas
+5. **Hold Bonus** (peso 0.5): **Proporcional ao PnL** - `0.02 + pnl_pct × 0.05`
+para posições lucrativas
    - Penalidade `-0.01` para PnL < -2% (incentiva sair de perdedoras)
 6. **Invalid Action** (peso 0.2): Penalidade por ações inválidas
-7. **Unrealized PnL** (peso 0.3): Sinal contínuo baseado em PnL não-realizado × 0.1
+7. **Unrealized PnL** (peso 0.3): Sinal contínuo baseado em PnL não-realizado ×
+0.1
 8. **Inactivity** (peso 0.5): Penalidade por inatividade prolongada
    - Threshold: 10 candles H4 (~40h sem operar)
    - Penalidade: -0.02 por step excedente (cap em -0.8 após 40 steps)
 
-**⚠️ IMPORTANTE**: Os rewards foram normalizados para a faixa [-10, +10] para evitar problemas de escala com o PPO. Versões anteriores usavam `pnl_pct * 100` que gerava valores de centenas, incompatíveis com o treinamento RL.
+**⚠️ IMPORTANTE**: Os rewards foram normalizados para a faixa [-10, +10] para
+evitar problemas de escala com o PPO. Versões anteriores usavam `pnl_pct * 100`
+que gerava valores de centenas, incompatíveis com o treinamento RL.
 
 ### Mudanças Recentes (v2.0)
 
 Para combater o **conservadorismo excessivo** do agente (HOLD demais):
-- **Penalidade de inatividade** aumentada: threshold reduzido de 20→10 candles, taxa 0.01→0.02, peso 0.3→0.5
+- **Penalidade de inatividade** aumentada: threshold reduzido de 20→10 candles,
+taxa 0.01→0.02, peso 0.3→0.5
 - **Hold bonus** tornado proporcional ao lucro (antes era fixo em +0.01)
-- **Entropia** na Fase 1 aumentada de 0.02→0.03 para evitar convergência prematura
+- **Entropia** na Fase 1 aumentada de 0.02→0.03 para evitar convergência
+prematura
 
 ## Modelos Salvos
 
@@ -235,7 +252,9 @@ Os modelos são salvos em `models/`:
 - `phase2_vec_normalize.pkl`: Estatísticas de normalização da fase 2
 - `crypto_agent_ppo_final.zip`: Modelo final promovido (Sharpe>1.0, DD<15%)
 
-**⚠️ IMPORTANTE**: As estatísticas de normalização (`vec_normalize.pkl`) devem ser carregadas junto com o modelo para manter a mesma escala de observações e rewards durante inferência.
+**⚠️ IMPORTANTE**: As estatísticas de normalização (`vec_normalize.pkl`) devem
+ser carregadas junto com o modelo para manter a mesma escala de observações e
+rewards durante inferência.
 
 ## Walk-Forward Optimization
 
@@ -250,7 +269,7 @@ trainer = Trainer()
 
 # Executar walk-forward com janelas de 365d treino, 30d teste
 results = wf.run(data=full_data, trainer=trainer)
-```
+```bash
 
 ## Métricas de Avaliação
 
@@ -267,11 +286,12 @@ O trainer calcula automaticamente:
 
 ### Erro: "Binance SDK not found"
 
-O treinamento funciona sem a Binance SDK usando dados sintéticos. Para usar dados reais, instale:
+O treinamento funciona sem a Binance SDK usando dados sintéticos. Para usar
+dados reais, instale:
 
 ```bash
 pip install binance-sdk-derivatives-trading-usds-futures
-```
+```bash
 
 ### Erro: "NaN in observations"
 
@@ -297,11 +317,16 @@ Se você observar nos logs do TensorBoard:
 
 **Solução**: As correções implementadas incluem:
 1. **Rewards normalizados** para [-10, +10] via clipping
-2. **VecNormalize** aplicado para normalizar observações e rewards automaticamente
-3. **Hiperparâmetros ajustados**: `n_steps=4096`, `batch_size=128`, `normalize_advantage=True`
-4. **Entropia aumentada** na fase 1 (`ent_coef=0.03`) para melhor exploração e evitar convergência prematura para HOLD
-5. **Hold bonus proporcional** ao PnL (0.02 + pnl_pct × 0.05) para incentivar manter trades lucrativos
-6. **Penalidade de inatividade agressiva** (threshold 10 candles, taxa 0.02, peso 0.5) para combater conservadorismo
+2. **VecNormalize** aplicado para normalizar observações e rewards
+automaticamente
+3. **Hiperparâmetros ajustados**: `n_steps=4096`, `batch_size=128`,
+`normalize_advantage=True`
+4. **Entropia aumentada** na fase 1 (`ent_coef=0.03`) para melhor exploração e
+evitar convergência prematura para HOLD
+5. **Hold bonus proporcional** ao PnL (0.02 + pnl_pct × 0.05) para incentivar
+manter trades lucrativos
+6. **Penalidade de inatividade agressiva** (threshold 10 candles, taxa 0.02,
+peso 0.5) para combater conservadorismo
 
 ## Próximos Passos
 
@@ -312,10 +337,14 @@ Se você observar nos logs do TensorBoard:
 
 ## Referências
 
-- [Stable-Baselines3 Documentation](https://stable-baselines3.readthedocs.io/)
-- [Gymnasium Documentation](https://gymnasium.farama.org/)
-- [PPO Paper](https://arxiv.org/abs/1707.06347)
+- [Stable-Baselines3
+Documentation]([https://stable-baselines3.readthedocs.io/](https://stable-baselines3.readthedocs.io/))
+- [Gymnasium
+Documentation]([https://gymnasium.farama.org/](https://gymnasium.farama.org/))
+- [PPO
+Paper]([https://arxiv.org/abs/1707.06347](https://arxiv.org/abs/1707.06347))
 
 ---
 
-**Nota**: Este é um sistema experimental para fins educacionais. Sempre teste em modo paper antes de usar capital real.
+**Nota**: Este é um sistema experimental para fins educacionais. Sempre teste em
+modo paper antes de usar capital real.

@@ -1,19 +1,20 @@
 # 📑 ÍNDICE — DOCUMENTAÇÃO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20 22:50 UTC  
-**Responsável**: Product Owner  
+**Versão**: 1.0
+**Data**: 2026-02-20 22:50 UTC
+**Responsável**: Product Owner
 **Status**: ✅ COMPLETO
 
 ---
 
 ## 📊 Estrutura de Documentação
 
-A documentação do **Agente Autônomo** está organizada em `docs/agente_autonomo/` seguindo nomenclatura padrão `AGENTE_AUTONOMO_*.md`.
+A documentação do **Agente Autônomo** está organizada em `docs/agente_autonomo/`
+seguindo nomenclatura padrão `AGENTE_AUTONOMO_*.md`.
 
 ### 🏗️ Documentação Estratégica
 
-```
+```text
 docs/agente_autonomo/
 │
 ├─ AGENTE_AUTONOMO_ARQUITETURA.md
@@ -76,7 +77,7 @@ docs/agente_autonomo/
    ├─ Escalação automática + SLAs
    ├─ Responsabilidades (Quem decide quê)
    └─ Para: CTO, Operador, Risk manager
-```
+```text
 
 ---
 
@@ -84,7 +85,7 @@ docs/agente_autonomo/
 
 ### 📌 Para DIRETORIA (5-10 min)
 
-```
+```text
 LEIA PRIMEIRO:
 1. DIRECTOR_BRIEF_20FEV.md (5 min) ← Situação + plano
 2. DASHBOARD_EXECUTIVO_20FEV.md (10 min) ← Visão consolidada
@@ -92,11 +93,11 @@ LEIA PRIMEIRO:
 Se precisa mais contexto:
 3. docs/agente_autonomo/AGENTE_AUTONOMO_ROADMAP.md ← Timeline 12 meses
 4. docs/agente_autonomo/AUTOTRADER_MATRIX.md ← Decisões estruturadas
-```
+```text
 
 ### 👔 Para PRODUCT OWNER (20-30 min)
 
-```
+```text
 LEIA:
 1. docs/agente_autonomo/AGENTE_AUTONOMO_ROADMAP.md
 2. docs/agente_autonomo/AGENTE_AUTONOMO_BACKLOG.md
@@ -106,11 +107,11 @@ LEIA:
 Referência:
 - docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md
 - docs/SYNCHRONIZATION.md
-```
+```text
 
 ### 🏗️ Para CTO / ENGENHEIROS (30-45 min)
 
-```
+```text
 LEIA:
 1. docs/agente_autonomo/AGENTE_AUTONOMO_ARQUITETURA.md
 2. docs/agente_autonomo/AGENTE_AUTONOMO_FEATURES.md
@@ -121,11 +122,11 @@ Detalhes:
 - docs/agente_autonomo/AGENTE_AUTONOMO_BACKLOG.md (features)
 - docs/agente_autonomo/AUTOTRADER_MATRIX.md (decisions)
 - Source code (agent/, backtest/, execution/, etc)
-```
+```text
 
 ### 📊 Para OPERADOR (15-20 min)
 
-```
+```text
 LEIA:
 1. OPERATOR_MANUAL.md (se existe)
 2. docs/agente_autonomo/AUTOTRADER_MATRIX.md ← Decision matrix
@@ -134,7 +135,7 @@ LEIA:
 
 Padrão operacional:
 └─ Executar ACAO-001 → 005 today/tomorrow
-```
+```text
 
 ---
 
@@ -153,7 +154,7 @@ Padrão operacional:
 
 ### Matriz de Interdependências
 
-```
+```text
 AGENTE_AUTONOMO_ARQUITETURA.md
     ↓↔↓
 AGENTE_AUTONOMO_ROADMAP.md
@@ -169,9 +170,10 @@ AGENTE_AUTONOMO_RELEASE.md
 AGENTE_AUTONOMO_CHANGELOG.md
     ↓↔↓
 AUTOTRADER_MATRIX.md
-```
+```text
 
-**Protocolo**: Mudança em qualquer doc → sincronizar todos → commit com `[SYNC]` tag
+**Protocolo**: Mudança em qualquer doc → sincronizar todos → commit com `[SYNC]`
+tag
 
 ---
 
@@ -179,7 +181,7 @@ AUTOTRADER_MATRIX.md
 
 Antes de **QUALQUER** commit com mudança em `docs/agente_autonomo/`:
 
-```
+```text
 [ ] Arquivo alterado está pronto?
 [ ] Mudanças são consistentes?
 [ ] Afeta outros docs AGENTE_AUTONOMO_*? Se sim:
@@ -194,7 +196,7 @@ Antes de **QUALQUER** commit com mudança em `docs/agente_autonomo/`:
 [ ] docs/SYNCHRONIZATION.md registrou mudança?
 [ ] README.md links corretos?
 [ ] Commit message com [SYNC] tag?
-```
+```text
 
 ---
 
@@ -245,7 +247,7 @@ Antes de **QUALQUER** commit com mudança em `docs/agente_autonomo/`:
 
 ---
 
-**Mantido por**: Product Owner  
-**Freqüência**: Atualizado quando nova doc adicionada  
+**Mantido por**: Product Owner
+**Freqüência**: Atualizado quando nova doc adicionada
 **Last Updated**: 2026-02-20 22:50 UTC
 

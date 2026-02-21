@@ -1,8 +1,8 @@
 # ⚙️ AUTOTRADER MATRIX — DECISÕES E AUTOMAÇÃO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Status**: Decision matrix para agente autônomo  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Status**: Decision matrix para agente autônomo
 **Responsável**: CTO + Head Tradinf
 
 ---
@@ -11,7 +11,7 @@
 
 ### Nível 1: Governança (Decisões Estratégicas)
 
-```
+```text
 ┌──────────────────────────────────────────────────────────┐
 │           DECISÃO ESTRATÉGICA EXECUTIVA                   │
 │  (Quem? O quê? Quando? Por quê? Como? Quanto tempo?)    │
@@ -24,18 +24,18 @@
     │(Budget)│    │(Técnico)│   │(Produto)│
     └───┬────┘    └────┬────┘   └────┬────┘
         │              │            │
-        
+
 DECISÕES:
 │
 ├─ ACAO-001 approval (CFO) ← Bloqueador CRÍTICO
 ├─ v0.3 release (CTO) ← Validação
 ├─ Backlog prioritization (PO) ← Roadmap
 └─ Budget expansion (CFO) ← Scaling
-```
+```text
 
 ### Nível 2: Operacional (Decisões Táticas)
 
-```
+```text
 AGENTE RL:
 ├─ Sinais gerados? (decisão automática)
 │  ├─ SIM: Passar para F-03 (Live Trading)
@@ -49,11 +49,11 @@ AGENTE RL:
 └─ Risk constraints OK? (validação)
    ├─ Max DD < 20%? → SIM: executar
    └─ Else: BLOQUEAR + alert
-```
+```text
 
 ### Nível 3: Automação (Decisões de Tempo Real)
 
-```
+```text
 EXECUTOR (Order Builder):
 ├─ Posição existe? ──→ SIM: UPDATE (reduce/close)
 │                  └─→ NÃO: CREATE (new)
@@ -62,7 +62,7 @@ EXECUTOR (Order Builder):
 ├─ Profit target? ──→ 5% above entry
 ├─ Amount? ────────→ 0.2 BTC (fixed allocation)
 └─ Execute? ──────→ SIM: Send to Binance
-```
+```text
 
 ---
 
@@ -70,7 +70,7 @@ EXECUTOR (Order Builder):
 
 ### Trading Decision
 
-```
+```text
 SITUAÇÃO                    AÇÃO              OWNER         TEMPO
 ─────────────────────────────────────────────────────────────────
 Sinal gerado (score >5.5)   Executar LONG     Agente        <5 min
@@ -80,11 +80,11 @@ Posição no vermelho (-5%)   Aplicar stop      Executor      imediato
 Posição com lucro (+3%)     Mover SL para 0   Executor      <10 min
 Max DD atingido (20%)       FECHAR todas      Risk mgmt     imediato
 Market crash (>-15%)        Emergency stop    CTO + ops     imediato
-```
+```text
 
 ### Release Decision
 
-```
+```text
 MÉTRICA           TARGET    STATUS    DECISION    TIMELINE
 ──────────────────────────────────────────────────────────
 v0.3:
@@ -102,7 +102,7 @@ v0.5:
 ├─ Uptime         99.9%     ?         Deploy      09/03
 ├─ Latency        <1ms      ?         Deploy      09/03
 └─ Concurrent     20+       ?         Deploy      09/03
-```
+```text
 
 ---
 
@@ -110,7 +110,7 @@ v0.5:
 
 ### Trade Execution
 
-```
+```text
 START
   │
   ├─ Signal generated?
@@ -136,11 +136,11 @@ START
   └─ Trade open?
      YES → Monitor (SL/TP/DD)
      NO  → Log error + retry
-```
+```text
 
 ### Release Decision
 
-```
+```text
 START (Release candidate)
   │
   ├─ All tests PASS?
@@ -168,7 +168,7 @@ START (Release candidate)
   │  YES → Continue
   │
   └─ RELEASE ✅
-```
+```text
 
 ---
 
@@ -176,7 +176,7 @@ START (Release candidate)
 
 ### ✅ Nível 1: Full Automation (Agora)
 
-```
+```text
 DECISÕES AUTOMÁTICAS (Sem aprovação):
 ├─ Signal generation (se score OK)
 ├─ Trade execution (se risk OK)
@@ -189,11 +189,11 @@ GATILHOS AUTOMÁTICOS (<100ms):
 ├─ Risk monitoring (1s)
 ├─ Alert notifications (real-time)
 └─ Emergency stops (imediato)
-```
+```text
 
 ### ⏳ Nível 2: Semi-Automation (v0.5+)
 
-```
+```text
 DECISÕES COM INPUT (Operador confirmação):
 ├─ Trade size adjustment (operador)
 ├─ Strategy modification (CTO)
@@ -201,11 +201,11 @@ DECISÕES COM INPUT (Operador confirmação):
 └─ Position management override (operador)
 
 SLA: <30 min para resposta esperada
-```
+```text
 
 ### 🔐 Nível 3: Manual (Crítico)
 
-```
+```text
 DECISÕES ESTRATÉGICAS (Aprovação explícita):
 ├─ ACAO-001-005 (head approval, CFO sign-off)
 ├─ Release decisions (CTO + PO gate)
@@ -214,13 +214,13 @@ DECISÕES ESTRATÉGICAS (Aprovação explícita):
 └─ Major architecture changes (CTO + diretoria)
 
 SLA: 1-24 horas (dependendo criticidade)
-```
+```text
 
 ---
 
 ## 🚨 Escalação Automática
 
-```
+```text
 EVENTO                    NÍVEL    AÇÃO                SLA
 ──────────────────────────────────────────────────────────
 Signal score < 0          AUTO     Log + ignore        N/A
@@ -231,7 +231,7 @@ Max DD reached            AUTO     Close all           imediato
 >5 erros em 1h            EXEC     Operador intervention<15 min
 Market halt               MAN      Operador decision   <5 min
 Regulatory issue          EXEC     Legal + diretoria   SLA nego
-```
+```text
 
 ---
 
@@ -239,7 +239,7 @@ Regulatory issue          EXEC     Legal + diretoria   SLA nego
 
 ### Quem Decidir Quê?
 
-```
+```text
            CFO    CTO    PO    OPS    AGENTE
 Sinais     ─      ─      ─     Y      ✅
 Trade exec ─      ─      ─     Y      ✅
@@ -253,13 +253,13 @@ Compliance Y      ─      ─     Y      ─
 Emergency  Y      ✅     ─     ✅     ✅(auto)
 
 Legend: ✅ = Primary | Y = Secondary | ─ = Not involved
-```
+```text
 
 ---
 
 ## 🔄 Ciclo de Decisão (48 horas)
 
-```
+```text
 HOJE (20/02 22:00)
 ├─ CFO: Decisão ACAO-001 ← CRÍTICO
 ├─ PO: Comunicação RCA se rejeitado
@@ -281,7 +281,7 @@ AMANHÃ NOITE (21/02 20:00)
 ├─ HEAD: Decisão v0.3 release
 ├─ PO: Comunicação stakeholders
 └─ OPS: Preparação v0.4 kickoff
-```
+```text
 
 ---
 
@@ -289,7 +289,7 @@ AMANHÃ NOITE (21/02 20:00)
 
 Toda decisão automática DEVE ter:
 
-```
+```text
 [ ] IF condition clearly defined
 [ ] THEN action unambiguous
 [ ] ELSE fallback specified
@@ -299,11 +299,11 @@ Toda decisão automática DEVE ter:
 [ ] SLA compliance enforced
 [ ] Owner assigned
 [ ] Tested with data
-```
+```text
 
 ---
 
-**Mantido por**: CTO + Head Trading  
-**Frequência**: Atualizado por mudança governance  
+**Mantido por**: CTO + Head Trading
+**Frequência**: Atualizado por mudança governance
 **Last Updated**: 2026-02-20 22:40 UTC
 

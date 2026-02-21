@@ -8,7 +8,7 @@
 
 ## 🎯 Problema Diagnosticado
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │  AGENTE EM PROFIT GUARDIAN MODE         │
 │  ├─ 21 pares monitorados ✅             │
@@ -18,11 +18,11 @@
 │  ├─ 685 erros em logs ⚠️                │
 │  └─ 3+ dias SEM receita 🔴              │
 └─────────────────────────────────────────┘
-```
+```text
 
 ### Root Cause Identificada
 
-```
+```text
 ALLOWED_ACTIONS = ["CLOSE", "REDUCE_50"]
                     ↓
         NÃO INCLUI "OPEN"
@@ -30,7 +30,7 @@ ALLOWED_ACTIONS = ["CLOSE", "REDUCE_50"]
         Sinais identificados mas NUNCA disparados
                     ↓
             ZERO novos trades
-```
+```json
 
 ---
 
@@ -52,7 +52,7 @@ ALLOWED_ACTIONS = ["CLOSE", "REDUCE_50"]
 ## 📈 Oportunidades Perdidas (Enquanto Você Monitorava Risco)
 
 | Data | Par | Movimento | Score | Ação Bloqueada |
-|------|-----|-----------|-------|----------------| 
+|------|-----|-----------|-------|----------------|
 | 2026-02-20 | BTCUSDT | +8.2% | 5.7 | ❌ OPEN bloqueado |
 | 2026-02-20 | ETHUSDT | +4.1% | 4.9 | ❌ OPEN bloqueado |
 | 2026-02-20 | SOLUSDT | +6.7% | 4.8 | ❌ OPEN bloqueado |
@@ -68,10 +68,13 @@ ALLOWED_ACTIONS = ["CLOSE", "REDUCE_50"]
 
 ### Rodadas Compiladas
 
-1. ✅ **O Problema Raiz**: Agente não tem permissão de "OPEN" (Profit Guardian Mode)
-2. ✅ **Por Que Profit Guardian?**: Posições com -42% a -511%, proteção era defensiva
+1. ✅ **O Problema Raiz**: Agente não tem permissão de "OPEN" (Profit Guardian
+Mode)
+2. ✅ **Por Que Profit Guardian?**: Posições com -42% a -511%, proteção era
+defensiva
 3. ✅ **Análise de Oportunidades**: BTCUSDT +8.2%, ETHUSDT +4.1% foram perdidas
-4. ✅ **Score Insuficiente?**: Não, Profit Guardian é o bloqueante primário (70% do problema)
+4. ✅ **Score Insuficiente?**: Não, Profit Guardian é o bloqueante primário (70%
+do problema)
 5. ✅ **Decisão Operacional**: **Opção B — fechar perdas, voltar ao trading**
 6. ✅ **Plano de Fechamento**: FASE 1 (30min), FASE 2-3 (gradual)
 7. ✅ **Reconfiguração**: Mudança única linha em `config/execution_config.py:35`
@@ -86,13 +89,13 @@ ALLOWED_ACTIONS = ["CLOSE", "REDUCE_50"]
 ### ⏱️ HOJE (Próximas 4 horas)
 
 #### 30 MIN — Fase 1: Fechar Top 5 Maiores Perdas
-```
+```text
 1. BERTAUSDT -511% → CLOSE (market order)
 2. MERLUSDT -42% → CLOSE (market order)
 3. BCHUSDT -93% → CLOSE (market order)
 4. AAVEUSDT -34% → CLOSE (market order)
 5. ADAUSDT -60% → CLOSE (market order)
-```
+```text
 **Estimado**: -$8.500 realizado, **portfólio 24% limpo**
 
 #### 2-3h — FASES 2-3 (Consultivos)
@@ -108,7 +111,7 @@ Fechar próximas 8 posições gradualmente (se aprovado)
 
 # DEPOIS:
 "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
-```
+```bash
 **Tempo**: 1 min de edição + 5 min reinicialização
 
 ---
@@ -133,9 +136,12 @@ Agente reativado. Dispara sinais que estavam em fila.
 | Arquivo | Conteúdo | Links |
 |---------|----------|-------|
 | `diagnostico_operacoes.py` | Script de diagnóstico | Analisa DB + logs |
-| `docs/reuniao_diagnostico_profit_guardian.md` | **Reunião completa** | 10 rodadas HEAD×Operador |
-| `config/execution_config.py` | Configuração de ações | Linhas 33-37 (mudança) |
-| `docs/reuniao_2026_08_sem8.md` | Reunião genérica 2026-08 | Exemplo de estrutura |
+| `docs/reuniao_diagnostico_profit_guardian.md` | **Reunião completa** | 10
+rodadas HEAD×Operador |
+| `config/execution_config.py` | Configuração de ações | Linhas 33-37 (mudança)
+|
+| `docs/reuniao_2026_08_sem8.md` | Reunião genérica 2026-08 | Exemplo de
+estrutura |
 
 ---
 
@@ -163,26 +169,30 @@ Agente reativado. Dispara sinais que estavam em fila.
 ## 💡 Insights Principais
 
 ### Insight 1: Uma Decisão Levou a Outra
-```
+```text
 Posições perdedoras → Profit Guardian Mode → OPEN bloqueado
           ↓                    ↓                    ↓
     Proteção Correta    Modo Defensivo      ZERO sinais
-```
+```bash
 
 ### Insight 2: Gerador de Sinais Continua Ativo
-O agente **NÃO está quebrado**. Está simplesmente com as mãos atadas, incapaz de traduzir sinais em ações.
+O agente **NÃO está quebrado**. Está simplesmente com as mãos atadas, incapaz de
+traduzir sinais em ações.
 
 ### Insight 3: Custo Real é Oportunidade
-Cada dia em Profit Guardian = **-$890 em ganhos perdidos** (BTCUSDT +8.2% × 0.2 BTC, ETHUSDT +4.1%, etc)
+Cada dia em Profit Guardian = **-$890 em ganhos perdidos** (BTCUSDT +8.2% × 0.2
+BTC, ETHUSDT +4.1%, etc)
 
 ### Insight 4: Solução é Simples
-Uma mudança de linha em `config/execution_config.py` recupera trading normal. Risco controlado com entradas pequenas (0.2 BTC).
+Uma mudança de linha em `config/execution_config.py` recupera trading normal.
+Risco controlado com entradas pequenas (0.2 BTC).
 
 ---
 
 ## 🎯 Decisão Final
 
-**Pergunta Central**: Fechar -$18.000 em posições perdedoras hoje para voltar ao trading normal?
+**Pergunta Central**: Fechar -$18.000 em posições perdedoras hoje para voltar ao
+trading normal?
 
 **Recomendação**: ✅ **SIM, HOJE**
 - Posições têm -42% a -511% — improvável recuperação natural
@@ -192,5 +202,6 @@ Uma mudança de linha em `config/execution_config.py` recupera trading normal. R
 
 ---
 
-**Próxima Ação**: Ler `docs/reuniao_diagnostico_profit_guardian.md` e confirmar FASE 1.
+**Próxima Ação**: Ler `docs/reuniao_diagnostico_profit_guardian.md` e confirmar
+FASE 1.
 

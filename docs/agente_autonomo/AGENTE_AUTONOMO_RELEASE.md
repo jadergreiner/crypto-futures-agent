@@ -1,8 +1,8 @@
 # 🎯 RELEASE PLAN DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Status**: Release criteria & gates  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Status**: Release criteria & gates
 **Responsável**: CTO + Product Owner
 
 ---
@@ -11,7 +11,7 @@
 
 ### Entrada (Pre-release)
 
-```
+```text
 Para QUALQUER release (v0.3+):
 
 MUST HAVE (Bloqueadores):
@@ -31,11 +31,11 @@ NICE TO HAVE:
 ├─ [ ] Performance optimization (10%+)
 ├─ [ ] Enhancement features
 └─ [ ] UX improvements
-```
+```text
 
 ### Saída (Post-release)
 
-```
+```text
 DEPOIS de release:
 
 IMMEDIATE (1-2 horas):
@@ -54,18 +54,18 @@ MEDIUM-TERM (1-2 semanas):
 ├─ [ ] Performance otimizado
 ├─ [ ] Incident retrospective (se needed)
 └─ [ ] Planning próxima release
-```
+```text
 
 ---
 
 ## 🔴 v0.3 — VALIDAÇÃO RL
 
-**Target Release Date**: 23/02/2026  
+**Target Release Date**: 23/02/2026
 **Current Status**: ⏳ WAITING ACAO-001 approval
 
 ### Pre-release Checklist
 
-```
+```text
 FEATURES:
 ├─ [ ] PPO Training (F-01) ✅ PRONTO
 ├─ [ ] Signal Generation (F-02) ✅ PRONTO
@@ -95,15 +95,15 @@ DOCUMENTAÇÃO:
 ├─ [ ] CHANGELOG.md entry → ✅ PRONTO
 ├─ [ ] Release notes escrito → ⏳
 └─ [ ] Customer communication → ⏳
-```
+```text
 
 ### Go/No-Go Decision
 
-**Date**: 23/02/2026 10:00 BRT  
-**Owner**: CTO + PO  
+**Date**: 23/02/2026 10:00 BRT
+**Owner**: CTO + PO
 **Decision Tree**:
 
-```
+```text
 ┌─ Todos testes PASS? ────────→ SIM
 │                              │
 └─ Nenhum crash em 24h? ───────→ SIM
@@ -113,14 +113,14 @@ DOCUMENTAÇÃO:
                               └─ Sharpe > 0.5? ──────→ SIM
                                                      │
                                                    ✅ GO
-                                                   
+
 Se qualquer NÃO:
 └─ RCA + retry 1 semana depois
-```
+```text
 
 ### Release Notes (Template)
 
-```
+```text
 ## Agente Autônomo v0.3 — Validação RL (23/02/2026)
 
 ### Overview
@@ -155,20 +155,56 @@ Se qualquer NÃO:
 - Date: 24/02–28/02
 - Focus: Backtest engine
 - Timeline: 1 semana
-```
+```bash
 
 ---
 
 ## 🟠 v0.4 — BACKTEST ENGINE
 
-**Target Release Date**: 28/02/2026  
-**Prerequisites**: 
-- v0.3 aprovado (23/02)
-- ACAO-001-005 executado com sucesso
+**Target Release Date**: 23-24/02/2026 (Sprint de 3-4 dias)
+**Status**: ✅ PRÉ-SPRINT VALIDAÇÃO COMPLETA
+**Prerequisites**:
+- ✅ v0.3 validação em paralelo (not blocker)
+- ✅ BacktestEnvironment refactored (F-12a done)
+- ✅ Reward function approved (CTO sign-off)
+- ✅ Database validated (13.814 H4 rows)
+- ✅ Sprint execs designados (ESP-ENG fulltime, ESP-ML paralelo)
+
+### v0.4 Release Gates & Quality Thresholds
+
+**MUST PASS** (✅ Bloqueadores):
+```text
+Sharpe Ratio:
+  ├─ GATE MIN:    ≥ 0.80 (pass/fail)
+  └─ TARGET:      ≥ 1.20
+
+Max Drawdown:
+  ├─ GATE LIMIT:  ≤ 12%
+  └─ ORANGE ALERT: > 10%
+
+Win Rate:        ≥ 45%
+Profit Factor:   ≥ 1.5
+Consecutive Losses: ≤ 5
+Test Coverage:   ≥ 85%
+```text
+
+**Walk-Forward Validation**:
+- Period: 90-day backtest window
+- Method: 10-day rolling walk-forward
+- Stability: Variation < 10% (no overfitting)
+- Generalization: Consistent performance across periods
+
+**Manual Validation** (Quinta 23/02 14:00):
+- [ ] All 8 test suites PASS
+- [ ] Metrics thresholds validated
+- [ ] Walk-forward analysis OK
+- [ ] Zero critical bugs
+- [ ] Code review gates passed
+- [ ] CTO + PO green light
 
 ### Pre-release Checklist
 
-```
+```text
 FEATURES:
 ├─ [ ] BacktestEnvironment (F-12a) ✅ PRONTO
 ├─ [ ] Data Pipeline v2 (F-12b) → 2 dias
@@ -188,18 +224,18 @@ PERFORMANCE:
 ├─ [ ] Baseline: 100 ms/trade
 ├─ [ ] Target: <50 ms/trade
 └─ [ ] No memory leaks (profiled)
-```
+```text
 
 ---
 
 ## 🟡 v0.5 — SCALING + RISK
 
-**Target Release Date**: 09/03/2026  
+**Target Release Date**: 09/03/2026
 **Prerequisites**: v0.4 aprovado
 
 ### Go/No-Go Criteria
 
-```
+```text
 ✅ GO criteria:
 ├─ v0.4 stable 7+ dias
 ├─ 20+ concurrent trades running
@@ -208,18 +244,18 @@ PERFORMANCE:
 └─ Zero critical incidents
 
 ❌ NO-GO → hold 1 semana + RCA
-```
+```text
 
 ---
 
 ## 🟢 v1.0 — PRODUCTION
 
-**Target Release Date**: 30/04/2026  
+**Target Release Date**: 30/04/2026
 **Prerequisites**: v0.5 stable + compliance approved
 
 ### Enterprise Certification
 
-```
+```text
 COMPLIANCE:
 ├─ [ ] External audit complete
 ├─ [ ] ANOD registration
@@ -231,7 +267,7 @@ OPERATIONS:
 ├─ [ ] Auto-healing enabled
 ├─ [ ] Incident response tested
 └─ [ ] Rollback < 5 min
-```
+```text
 
 ---
 
@@ -261,7 +297,7 @@ OPERATIONS:
 
 ### Ativação
 
-```
+```text
 IF:
 ├─ Critical bug detected
 ├─ >5% performance regression
@@ -274,7 +310,7 @@ THEN:
 ├─ Revert ao version anterior
 ├─ Database rollback (if needed)
 └─ Incident post-mortem em 24h
-```
+```text
 
 ### Timeline
 
@@ -296,7 +332,7 @@ THEN:
 
 ---
 
-**Mantido por**: CTO + Product Owner  
-**Frequência**: Atualizado por release  
+**Mantido por**: CTO + Product Owner
+**Frequência**: Atualizado por release
 **Last Updated**: 2026-02-20 22:35 UTC
 

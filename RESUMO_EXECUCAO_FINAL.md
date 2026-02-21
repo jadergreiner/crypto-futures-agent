@@ -7,7 +7,8 @@
 
 ## 🎯 Objetivo Alcançado
 
-Administração de 10 pares USDT na Binance Futures com proteção automática de Stop Loss e Take Profit:
+Administração de 10 pares USDT na Binance Futures com proteção automática de
+Stop Loss e Take Profit:
 
 1. **ZKUSDT** - ZK Infrastructure (β=3.2)
 2. **1000WHYUSDT** - Memecoin (β=4.2)
@@ -96,7 +97,7 @@ Funcionalidades:
 
 ## 🔄 Fluxo de Operação
 
-```
+```text
 iniciar.bat (Opção 2: Integrated)
     ↓
 main.py --mode live --integrated --integrated-interval 300
@@ -111,7 +112,7 @@ OrderExecutor
     ├─ Aplica 7 camadas de proteção
     ├─ Envia CLOSE e REDUCE_50 para Binance
     └─ Log auditável de todas operações
-```
+```text
 
 ---
 
@@ -133,12 +134,12 @@ OrderExecutor
 1. ✅ **Monitorar logs em tempo real**
    ```bash
    tail -f logs/agent.log
-   ```
+```bash
 
 2. ✅ **Executar verificação de ordens**
    ```bash
    python check_open_orders.py
-   ```
+```bash
 
 3. ✅ **Validar P&L das posições**
    - Acompanhar em tempo real na Binance
@@ -154,9 +155,12 @@ OrderExecutor
 
 ## 🎉 Conclusão
 
-**Sistema pronto para operação 24/7 com proteção automática e risco controlado.**
+**Sistema pronto para operação 24/7 com proteção automática e risco
+controlado.**
 
-Todos os componentes foram integrados, testados e validados. O orquestrador está gerenciando as 10 posições em Profit Guardian Mode, com Stop Loss e Take Profit colocados automaticamente na Binance.
+Todos os componentes foram integrados, testados e validados. O orquestrador está
+gerenciando as 10 posições em Profit Guardian Mode, com Stop Loss e Take Profit
+colocados automaticamente na Binance.
 
 **Status:** 🟢 **OPERACIONAL**
 

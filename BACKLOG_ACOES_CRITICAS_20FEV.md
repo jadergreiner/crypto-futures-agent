@@ -1,20 +1,20 @@
 # 🎯 BACKLOG DE AÇÃO CRÍTICA — Diagnóstico 2026-02-20
 
-**Data de Criação**: 2026-02-20 20:50:00  
-**Prioridade**: 🔴 CRÍTICA  
-**Status**: Pendente  
+**Data de Criação**: 2026-02-20 20:50:00
+**Prioridade**: 🔴 CRÍTICA
+**Status**: Pendente
 **Reunião de Referência**: `docs/reuniao_diagnostico_profit_guardian.md`
 
 ---
 
 ## 📋 ITEM 1 — FASE 1: Fechar 5 Maiores Posições Perdedoras
 
-**ID**: ACAO-001  
-**Prioridade**: 🔴 CRÍTICA  
-**Tipo**: Operação Manual + Monitoramento  
-**Status**: ⏳ Aguardando Aprovação  
-**Tempo Estimado**: 30 minutos  
-**Responsável**: Operador Autônomo  
+**ID**: ACAO-001
+**Prioridade**: 🔴 CRÍTICA
+**Tipo**: Operação Manual + Monitoramento
+**Status**: ⏳ Aguardando Aprovação
+**Tempo Estimado**: 30 minutos
+**Responsável**: Operador Autônomo
 **Dependência**: Nenhuma (executar TODAY)
 
 ### Descrição
@@ -36,7 +36,7 @@ Fechar as 5 maiores posições abertas com perdas catastróficas para:
 
 ### Passos Técnicos
 
-```
+```text
 PASSO 1 (2 min):
   └─ Conectar ao cliente Binance autenticado
      └─ Verificar balance atual
@@ -54,13 +54,13 @@ PASSO 3 (10 min):
      ├─ Verificar position_snapshots em DB
      ├─ Confirmar 5 posições desaparecerem
      └─ Calcular PnL total realizado
-     
+
 PASSO 4 (3 min):
   └─ Documentar:
      ├─ Criar arquivo logs/fecha_posicoes_fase1_20fev.log
      ├─ Registrar timestamps + slippage + PnL
      └─ Summarizar resultados
-```
+```text
 
 ### Código de Execução
 
@@ -85,7 +85,7 @@ POSICOES_FECHAR_FASE1 = [
 
 def fechar_fase1():
     logger.info("=[FASE 1]= Iniciando fechamento de 5 posições críticas")
-    
+
     resultados = []
     for symbol in POSICOES_FECHAR_FASE1:
         try:
@@ -94,7 +94,7 @@ def fechar_fase1():
             if not posicao:
                 logger.warning(f"Posição {symbol} não encontrada")
                 continue
-            
+
             # Executar CLOSE
             logger.info(f"Fechando {symbol} (direção: {posicao['direction']})")
             ordem_id = executor.execute_order(
@@ -102,7 +102,7 @@ def fechar_fase1():
                 action="CLOSE",
                 confidence=0.95
             )
-            
+
             resultados.append({
                 "symbol": symbol,
                 "order_id": ordem_id,
@@ -110,7 +110,7 @@ def fechar_fase1():
                 "status": "OK"
             })
             logger.info(f"✓ {symbol} fechado com sucesso")
-            
+
         except Exception as e:
             logger.error(f"✗ Erro fechando {symbol}: {e}")
             resultados.append({
@@ -119,15 +119,16 @@ def fechar_fase1():
                 "timestamp": datetime.now(),
                 "status": "ERRO"
             })
-    
+
     # Resumo
     sucessos = sum(1 for r in resultados if r["status"] == "OK")
-    logger.info(f"=[FASE 1]= Resultado: {sucessos}/{len(POSICOES_FECHAR_FASE1)} posições fechadas")
+logger.info(f"=[FASE 1]= Resultado: {sucessos}/{len(POSICOES_FECHAR_FASE1)}
+posições fechadas")
     return resultados
 
 if __name__ == "__main__":
     fechar_fase1()
-```
+```json
 
 ### Critérios de Aceitação
 
@@ -146,11 +147,11 @@ if __name__ == "__main__":
 ### Monitoramento & Rollback
 
 **Se alguma ordem falhar**:
-```
+```text
 ├─ 1ª tentativa: MARKET order com slippage 0.2%
 ├─ 2ª tentativa: MARKET order com slippage 0.5% (não recomendado)
 └─ Parar e reportar se >2 falhas
-```
+```text
 
 **Rollback** (se necessário):
 - Operação é irreversível (posições fechadas no exchange)
@@ -165,27 +166,29 @@ if __name__ == "__main__":
 
 ### Notas Operacionais
 
-⚠️ **Aviso**: Essa operação é **DEFINITIVA**. Uma vez executada, posições estão fechadas no exchange e realizadas em PnL.
+⚠️ **Aviso**: Essa operação é **DEFINITIVA**. Uma vez executada, posições estão
+fechadas no exchange e realizadas em PnL.
 
 ---
 
 ## 📋 ITEM 2 — FASE 1.5: Validar e Documentar Fechamento
 
-**ID**: ACAO-002  
-**Prioridade**: 🟠 ALTA  
-**Tipo**: Validação + Documentação  
-**Status**: ⏳ Bloqueado por ACAO-001  
-**Tempo Estimado**: 15 minutos  
-**Responsável**: Operador + Revisor  
+**ID**: ACAO-002
+**Prioridade**: 🟠 ALTA
+**Tipo**: Validação + Documentação
+**Status**: ⏳ Bloqueado por ACAO-001
+**Tempo Estimado**: 15 minutos
+**Responsável**: Operador + Revisor
 **Dependência**: ACAO-001 (COMPLETA)
 
 ### Descrição
 
-Validar que o fechamento foi bem-sucedido e documentar estado final para rastreabilidade.
+Validar que o fechamento foi bem-sucedido e documentar estado final para
+rastreabilidade.
 
 ### Passos Técnicos
 
-```
+```text
 PASSO 1 (5 min): Validação em Database
   ├─ Query: SELECT * FROM position_snapshots WHERE symbol IN (...)
   └─ Esperado: 0 registros para cada símbolo de ACAO-001
@@ -199,7 +202,7 @@ PASSO 3 (5 min): Documentação
   ├─ Criar arquivo: docs/FASE1_VALIDACAO_20FEV.md
   ├─ Listar: Símbolos fechados, PnL confirmado, timestamps
   └─ Anexar: Screenshots de confirmação Binance
-```
+```text
 
 ### Código de Validação
 
@@ -219,39 +222,40 @@ POSICOES_ESPERADAS_ZERO = [
 
 def validar_fase1():
     logger.info("=[VALIDAÇÃO FASE 1]=")
-    
+
     # Check 1: Database
     falhas_db = []
     for symbol in POSICOES_ESPERADAS_ZERO:
         snapshots = db.get_position_snapshots(symbol, limit=1)
         if snapshots and snapshots[0]["position_amount"] != 0:
             falhas_db.append(symbol)
-    
+
     if falhas_db:
         logger.error(f"✗ DB: Posições ainda abertas em DB: {falhas_db}")
         raise Exception("Validação de DB falhou")
     else:
         logger.info("✓ DB: Todas as 5 posições confirmadas como fechadas")
-    
+
     # Check 2: Binance Live
     falhas_binance = []
     for symbol in POSICOES_ESPERADAS_ZERO:
         position = client.get_position(symbol)
         if position and position["positionAmt"] != 0:
             falhas_binance.append((symbol, position["positionAmt"]))
-    
+
     if falhas_binance:
         logger.error(f"✗ Binance: Posições ainda abertas: {falhas_binance}")
         raise Exception("Validação de Binance falhou")
     else:
-        logger.info("✓ Binance: Todas as 5 posições confirmadas como fechadas no exchange")
-    
+logger.info("✓ Binance: Todas as 5 posições confirmadas como fechadas no
+exchange")
+
     logger.info("✓ =[VALIDAÇÃO FASE 1]= SUCESSO")
     return True
 
 if __name__ == "__main__":
     validar_fase1()
-```
+```json
 
 ### Critérios de Aceitação
 
@@ -275,40 +279,41 @@ if __name__ == "__main__":
 
 ## 📋 ITEM 3 — Reconfiguração de `allowed_actions` para Habilitar "OPEN"
 
-**ID**: ACAO-003  
-**Prioridade**: 🔴 CRÍTICA  
-**Tipo**: Mudança de Configuração  
-**Status**: ⏳ Bloqueado por ACAO-002  
-**Tempo Estimado**: 10 minutos (5 min edição + 5 min reinicialização)  
-**Responsável**: Engenheiro  
+**ID**: ACAO-003
+**Prioridade**: 🔴 CRÍTICA
+**Tipo**: Mudança de Configuração
+**Status**: ⏳ Bloqueado por ACAO-002
+**Tempo Estimado**: 10 minutos (5 min edição + 5 min reinicialização)
+**Responsável**: Engenheiro
 **Dependência**: ACAO-002 (VALIDAÇÃO PASSOU)
 
 ### Descrição
 
-Modificar arquivo de configuração para habilitar abertura de novas posições. Isso reverte o agente de "Profit Guardian Mode" para "Trading Ativo".
+Modificar arquivo de configuração para habilitar abertura de novas posições.
+Isso reverte o agente de "Profit Guardian Mode" para "Trading Ativo".
 
 ### Mudança Exata
 
-**Arquivo**: `config/execution_config.py`  
+**Arquivo**: `config/execution_config.py`
 **Linhas**: 33-37
 
 ### Pré-Mudança (Atual)
 ```python
     # Allowed actions — ONLY reduce/close, NEVER open
-    # This is a hard safety guard: even if code has a bug, only these actions pass
+# This is a hard safety guard: even if code has a bug, only these actions pass
     "allowed_actions": ["CLOSE", "REDUCE_50"],
-```
+```bash
 
 ### Pós-Mudança (Desejado)
 ```python
     # Allowed actions — CLOSE, REDUCE_50, and OPEN new positions
     # Profit Guardian Mode disabled; trading active resumed
     "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
-```
+```bash
 
 ### Passos Técnicos
 
-```
+```text
 PASSO 1 (2 min): Editar arquivo
   ├─ Abrir config/execution_config.py
   ├─ Linha 35: adicionar "OPEN" no início da lista
@@ -327,7 +332,7 @@ PASSO 3 (5 min): Reiniciar agente
 PASSO 4 (2 min): Validar em memória
   └─ Verificar que agente carregou nova config
      └─ Log deve mostrar: "Agent initialized with allowed_actions: ..."
-```
+```json
 
 ### Código de Mudança
 
@@ -335,7 +340,7 @@ PASSO 4 (2 min): Validar em memória
 # Mudança exata (diff):
 - "allowed_actions": ["CLOSE", "REDUCE_50"],
 + "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
-```
+```python
 
 ### Script de Validação Pós-Mudança
 
@@ -349,10 +354,10 @@ logger = logging.getLogger(__name__)
 def validar_allowed_actions():
     actions = EXECUTION_CONFIG.get("allowed_actions", [])
     logger.info(f"Allowed actions carregadas: {actions}")
-    
+
     esperado = {"OPEN", "CLOSE", "REDUCE_50"}
     atual = set(actions)
-    
+
     if atual == esperado:
         logger.info("✓ Validação PASSOU: 'OPEN' está habilitado")
         return True
@@ -364,7 +369,7 @@ def validar_allowed_actions():
 if __name__ == "__main__":
     if not validar_allowed_actions():
         exit(1)
-```
+```json
 
 ### Critérios de Aceitação
 
@@ -385,34 +390,37 @@ if __name__ == "__main__":
 - ✅ Arquivo modificado: `config/execution_config.py`
 - ✅ Log de reinicialização: `logs/reconfig_allowed_actions_20fev.log`
 - ✅ Validação: `validar_allowed_actions.py` reporta PASSOU
-- ✅ Commit git: `[CONFIG] Habilitar 'OPEN' em allowed_actions — fim de Profit Guardian Mode`
+- ✅ Commit git: `[CONFIG] Habilitar 'OPEN' em allowed_actions — fim de Profit
+Guardian Mode`
 
 ### Rollback (Se Necessário)
 
 ```bash
 git revert <commit-hash>
 # Agente volta para Profit Guardian Mode
-```
+```bash
 
 ---
 
 ## 📋 ITEM 4 — Disparo de Primeiro Sinal: BTCUSDT LONG Score 5.7
 
-**ID**: ACAO-004  
-**Prioridade**: 🟠 ALTA  
-**Tipo**: Trading + Monitoramento  
-**Status**: ⏳ Bloqueado por ACAO-003  
-**Tempo Estimado**: 15 minutos (aguardar market, executar, monitorar)  
-**Responsável**: Operador (com aprovação HEAD para primeiro sinal)  
+**ID**: ACAO-004
+**Prioridade**: 🟠 ALTA
+**Tipo**: Trading + Monitoramento
+**Status**: ⏳ Bloqueado por ACAO-003
+**Tempo Estimado**: 15 minutos (aguardar market, executar, monitorar)
+**Responsável**: Operador (com aprovação HEAD para primeiro sinal)
 **Dependência**: ACAO-003 (AGENTE RECONFIGURADO)
 
 ### Descrição
 
-Executar primeiro sinal novo gerado pela agente após reabilitação de "OPEN" em `allowed_actions`. Teste de validação de que gerador de sinais continua funcionando.
+Executar primeiro sinal novo gerado pela agente após reabilitação de "OPEN" em
+`allowed_actions`. Teste de validação de que gerador de sinais continua
+funcionando.
 
 ### Parâmetros do Sinal
 
-```
+```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Símbolo:              BTCUSDT
 Direção:              LONG
@@ -428,11 +436,11 @@ TP1:                  43.200 (+3.2% reward = ~$700)
 TP2:                  43.800 (+5.0%)
 
 Risco/Reward:         1:1.7 (satisfatório para score 5.7)
-```
+```text
 
 ### Passos Técnicos
 
-```
+```text
 PRÉ-EXECUÇÃO (TODAY ~12h-16h antes mercadoX):
   ├─ Aguardar confirmação do HEAD em Slack/email
   ├─ Revisar sinais pendentes: agent.get_pending_signals()
@@ -455,7 +463,7 @@ PÓS-EXECUÇÃO (PRIMEIRA HORA):
   ├─ Se stop atingido: CLOSE automático
   ├─ Se TP1 atingido: vendor 50% (lock profit)
   └─ Log tudo em monitoring/
-```
+```text
 
 ### Código de Execução
 
@@ -473,15 +481,15 @@ executor = OrderExecutor()
 
 def executar_btcusdt_sinal():
     """Executa primeiro sinal BTCUSDT score 5.7 após reconfiguração"""
-    
+
     logger.info("=[PRIMEIRO SINAL]= Iniciando execução BTCUSDT LONG")
-    
+
     symbol = "BTCUSDT"
     direction = "LONG"
     tamanho = 0.2  # BTC
     stop_loss = 41.800
     tp_1 = 43.200
-    
+
     try:
         # Pré-voo
         logger.info(f"Verificando signal: {symbol} score 5.7")
@@ -489,15 +497,15 @@ def executar_btcusdt_sinal():
         if not sinal or sinal["score"] < 5.0:
             logger.error("Sinal não encontrado ou score insuficiente")
             return False
-        
+
         logger.info(f"Score confirmado: {sinal['score']:.1f}")
-        
+
         # Obter balance
         balance = executor.get_balance()
         if balance < tamanho:
             logger.error(f"Balance insuficiente: {balance} < {tamanho}")
             return False
-        
+
         # Executar LONG
         logger.info(f"Executando {tamanho} BTC LONG em market price")
         ordem_entrada = executor.execute_order(
@@ -507,10 +515,10 @@ def executar_btcusdt_sinal():
             size=tamanho,
             confidence=0.72
         )
-        
+
         entry_price = ordem_entrada["fill_price"]
         logger.info(f"✓ Entry: {entry_price:.2f} USD")
-        
+
         # Log transação
         db.save_trade_signal({
             "symbol": symbol,
@@ -523,44 +531,45 @@ def executar_btcusdt_sinal():
             "score": sinal["score"],
             "status": "OPEN"
         })
-        
+
         logger.info(f"✓ Trade registrado em DB")
         logger.info(f"Monitorando... Stop: {stop_loss}, TP1: {tp_1}")
-        
+
         # Monitor primeiros 30 minutos
         for i in range(12):  # 12 × 5seg = 60seg = 1min check interval
             time.sleep(5)
             posicao = executor.get_position(symbol)
             preco_atual = executor.get_price(symbol)
-            
+
             # Setar SL/TP no exchange
             if i == 0:  # First iteration
-                logger.info(f"Setando SL/TP no exchange: SL={stop_loss}, TP={tp_1}")
+logger.info(f"Setando SL/TP no exchange: SL={stop_loss}, TP={tp_1}")
                 executor.set_stop_loss(symbol, stop_loss, tamanho)
-                executor.set_take_profit(symbol, tp_1, 0.5 * tamanho)  # Vender 50%
-            
-            logger.info(f"[{i+1}min] Preço: {preco_atual:.2f} | PnL: {((preco_atual - entry_price) / entry_price * 100):.2f}%")
-            
+executor.set_take_profit(symbol, tp_1, 0.5 * tamanho)  # Vender 50%
+
+logger.info(f"[{i+1}min] Preço: {preco_atual:.2f} | PnL: {((preco_atual -
+entry_price) / entry_price * 100):.2f}%")
+
             # Check if stop hit
             if preco_atual <= stop_loss:
                 logger.critical(f"✗ STOP HIT em {preco_atual:.2f}")
                 break
-            
+
             # Check if TP hit
             if preco_atual >= tp_1:
                 logger.info(f"✓ TP1 HIT em {preco_atual:.2f}")
                 break
-        
+
         logger.info("=[PRIMEIRO SINAL]= Conclusão com sucesso")
         return True
-        
+
     except Exception as e:
         logger.error(f"✗ Erro: {e}")
         raise
 
 if __name__ == "__main__":
     executar_btcusdt_sinal()
-```
+```json
 
 ### Critérios de Aceitação
 
@@ -596,17 +605,18 @@ if __name__ == "__main__":
 
 ## 📋 ITEM 5 — Reunião de Follow-up & Análise de Resultados
 
-**ID**: ACAO-005  
-**Prioridade**: 🟠 ALTA  
-**Tipo**: Análise + Decisão  
-**Status**: ⏳ Bloqueado por ACAO-004  
-**Tempo Estimado**: 30 minutos (reunião + análise)  
-**Responsável**: HEAD + Operador  
+**ID**: ACAO-005
+**Prioridade**: 🟠 ALTA
+**Tipo**: Análise + Decisão
+**Status**: ⏳ Bloqueado por ACAO-004
+**Tempo Estimado**: 30 minutos (reunião + análise)
+**Responsável**: HEAD + Operador
 **Dependência**: ACAO-004 (SINAL EXECUTADO)
 
 ### Descrição
 
-Reunião de follow-up 24 horas após reconfiguração (2026-02-21 ~16:00 BRT) para avaliar:
+Reunião de follow-up 24 horas após reconfiguração (2026-02-21 ~16:00 BRT) para
+avaliar:
 1. Se BTCUSDT LONG funcionou (ganho/perda)
 2. Se FASES 2-3 de fechamento devem ser executadas
 3. Se próximos sinais são disparados
@@ -614,7 +624,7 @@ Reunião de follow-up 24 horas após reconfiguração (2026-02-21 ~16:00 BRT) pa
 
 ### Agenda da Reunião
 
-```
+```text
 ┌─ DURAÇÃO: 30 minutos ─────────────────────────────
 │
 ├─ [0-5 min] BTCUSDT Análise
@@ -641,7 +651,7 @@ Reunião de follow-up 24 horas após reconfiguração (2026-02-21 ~16:00 BRT) pa
    ├─ Retrainagem modelo (data feb 13-20)
    ├─ Ajustes de MIN_ENTRY_SCORE se necessário
    └─ Calendário: próxima reunião?
-```
+```text
 
 ### Dados a Coletar PRÉ-REUNIÃO
 
@@ -655,18 +665,19 @@ db = DatabaseManager("db/crypto_futures.db")
 
 def preparar_dados():
     """Coleta dados para reunião follow-up"""
-    
+
     # 1. BTCUSDT resultado
     btc_trade = db.get_latest_trade("BTCUSDT")
     btc_resultado = {
         "simbolo": "BTCUSDT",
         "entry": btc_trade["entry_price"],
         "saida": btc_trade["exit_price"],
-        "ganho_pct": ((btc_trade["exit_price"] - btc_trade["entry_price"]) / btc_trade["entry_price"] * 100),
-        "duracao": (btc_trade["exit_time"] - btc_trade["entry_time"]).total_seconds(),
+"ganho_pct": ((btc_trade["exit_price"] - btc_trade["entry_price"]) /
+btc_trade["entry_price"] * 100),
+"duracao": (btc_trade["exit_time"] - btc_trade["entry_time"]).total_seconds(),
         "status": "GANHO" if btc_trade["pnl"] > 0 else "PERDA"
     }
-    
+
     # 2. Sinais atuais
     sinais_agora = db.get_all_pending_signals()
     sinais_info = [
@@ -678,27 +689,27 @@ def preparar_dados():
         }
         for s in sinais_agora
     ]
-    
+
     # 3. Posições abertas
     posicoes = db.get_all_positions()
-    
+
     # 4. PnL do dia
     trades_hoje = db.get_trades(desde=datetime.now() - timedelta(hours=24))
     pnl_total = sum(t["pnl"] for t in trades_hoje)
-    
+
     return {
         "data": datetime.now().isoformat(),
         "btc_resultado": btc_resultado,
         "novos_sinais": sinais_info,
         "posicoes_abertas": len(posicoes),
         "pnl_24h": pnl_total,
-        "pares_com_score_5plus": sum(1 for s in sinais_info if s["score"] >= 5.0)
+"pares_com_score_5plus": sum(1 for s in sinais_info if s["score"] >= 5.0)
     }
 
 if __name__ == "__main__":
     dados = preparar_dados()
     print(json.dumps(dados, indent=2))
-```
+```json
 
 ### Estrutura de Relatório
 
@@ -732,7 +743,7 @@ if __name__ == "__main__":
 
 ## 📅 Próximos Passos
 - [...lista...]
-```
+```bash
 
 ### Critérios de Sucesso da Reunião
 
@@ -758,7 +769,7 @@ if __name__ == "__main__":
 
 ## 📌 Sumário de Dependências
 
-```
+```text
 ACAO-001 (Fechar 5 posições)
     ↓ (sucesso)
 ACAO-002 (Validar fechamento)
@@ -770,7 +781,7 @@ ACAO-004 (Disparo BTCUSDT LONG)
 ACAO-005 (Reunião follow-up)
     ↓ (análise e decisão)
 PRÓXIMAS AÇÕES (FASES 2-3, scaling, etc)
-```
+```text
 
 ---
 
@@ -803,6 +814,6 @@ PRÓXIMAS AÇÕES (FASES 2-3, scaling, etc)
 
 ---
 
-**Última atualização**: 2026-02-20 20:50  
+**Última atualização**: 2026-02-20 20:50
 **Revisão necessária em**: 24 horas (2026-02-21 16:00)
 

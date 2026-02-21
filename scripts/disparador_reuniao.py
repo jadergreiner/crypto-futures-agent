@@ -5,7 +5,7 @@ Chama a reunião com contexto de mercado opcional
 
 Uso:
     python scripts/disparador_reuniao.py
-    
+
     Ou com contexto:
     python scripts/disparador_reuniao.py --contexto "BTC caiu 15%, FVG aberto em H4"
 """

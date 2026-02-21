@@ -17,7 +17,8 @@
 
 ## 1. Visão Geral
 
-O **Crypto Futures Agent** é um agente autônomo de trading de futuros de criptomoedas projetado para operar na Binance Futures (USDⓈ-M). Utiliza:
+O **Crypto Futures Agent** é um agente autônomo de trading de futuros de
+criptomoedas projetado para operar na Binance Futures (USDⓈ-M). Utiliza:
 
 - **Reinforcement Learning (PPO)** para aprendizado e tomada de decisão
 - **Smart Money Concepts (SMC)** para análise de estrutura de mercado
@@ -87,12 +88,13 @@ O **Crypto Futures Agent** é um agente autônomo de trading de futuros de cript
 
 ```batch
 # 1. Clone o repositório
-git clone https://github.com/jadergreiner/crypto-futures-agent.git
+git clone
+[https://github.com/jadergreiner/crypto-futures-agent.git](https://github.com/jadergreiner/crypto-futures-agent.git)
 cd crypto-futures-agent
 
 # 2. Execute o script de setup
 setup.bat
-```
+```bash
 
 O `setup.bat` irá:
 
@@ -104,7 +106,8 @@ O `setup.bat` irá:
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/jadergreiner/crypto-futures-agent.git
+git clone
+[https://github.com/jadergreiner/crypto-futures-agent.git](https://github.com/jadergreiner/crypto-futures-agent.git)
 cd crypto-futures-agent
 
 # 2. Crie ambiente virtual
@@ -118,14 +121,14 @@ source venv/bin/activate
 
 # 4. Instale dependências
 pip install -r requirements.txt
-```
+```bash
 
 ### 3.3. Verificação da Instalação
 
 ```bash
 # Teste rápido - deve executar sem erros
 python main.py --dry-run
-```
+```bash
 
 Se ver a mensagem "Dry-run concluído com sucesso", a instalação está OK!
 
@@ -139,7 +142,7 @@ Copie o arquivo de exemplo e configure suas credenciais:
 
 ```bash
 cp .env.example .env
-```
+```bash
 
 Edite `.env` com suas informações:
 
@@ -159,7 +162,7 @@ LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR
 
 # Database
 DATABASE_PATH=db/crypto_futures.db
-```
+```bash
 
 **Configurações Importantes:**
 
@@ -193,24 +196,24 @@ Parâmetros de gestão de risco:
 RISK_PARAMS = {
     # Risco por trade (% do capital)
     'max_risk_per_trade_pct': 1.0,  # 1% do capital por trade
-    
+
     # Stop Loss e Take Profit (multiplicadores de ATR)
     'stop_loss_atr_multiplier': 2.0,
     'take_profit_atr_multiplier': 4.0,
-    
+
     # Limites de drawdown
     'max_drawdown_pct': 10.0,  # Pausa se drawdown > 10%
     'daily_loss_limit_pct': 3.0,  # Pausa se perda diária > 3%
-    
+
     # Limites de posições
     'max_positions': 3,  # Máximo 3 posições simultâneas
     'max_leverage': 3,  # Máximo 3x de alavancagem
-    
+
     # Trailing stop
     'trailing_stop_activation_pct': 2.0,  # Ativa trailing em 2% lucro
     'trailing_stop_distance_pct': 1.0,  # Distância do trailing
 }
-```
+```bash
 
 **Recomendações:**
 
@@ -226,7 +229,7 @@ RISK_PARAMS = {
 
 ```bash
 python main.py --dry-run
-```
+```bash
 
 **O que faz:**
 
@@ -249,7 +252,7 @@ python main.py --setup
 
 # Setup com modo específico
 python main.py --setup --mode paper
-```
+```bash
 
 **O que faz:**
 
@@ -269,7 +272,7 @@ python main.py --setup --mode paper
 
 ```bash
 python main.py --train
-```
+```bash
 
 **O que faz:**
 
@@ -299,7 +302,7 @@ python main.py --backtest --start-date 2025-01-01 --end-date 2025-12-31
 
 # Backtest com modelo específico
 python main.py --backtest --model-path models/crypto_agent_ppo_final.zip
-```
+```bash
 
 **O que faz:**
 
@@ -320,7 +323,7 @@ python main.py --backtest --model-path models/crypto_agent_ppo_final.zip
 
 ```bash
 python main.py --mode paper
-```
+```bash
 
 **O que faz:**
 
@@ -341,7 +344,7 @@ python main.py --mode paper
 
 ```bash
 python main.py --mode live
-```
+```bash
 
 ⚠️ **ATENÇÃO: OPERA COM CAPITAL REAL!**
 
@@ -379,7 +382,7 @@ python main.py --monitor --monitor-symbol BTCUSDT
 
 # Intervalo customizado (em segundos)
 python main.py --monitor --monitor-interval 60
-```
+```bash
 
 **O que mostra:**
 
@@ -719,7 +722,7 @@ Pausa automática em caso de:
 
 Visualização em tempo real:
 
-```
+```text
 ═══════════════════════════════════════
       MONITORAMENTO DE POSIÇÕES
 ═══════════════════════════════════════
@@ -731,7 +734,7 @@ Stop Loss: $44,100.00 (-2.0%)
 Take Profit: $49,500.00 (+10.0%)
 Tempo: 2h 35min
 ═══════════════════════════════════════
-```
+```text
 
 #### Logs Estruturados
 
@@ -744,11 +747,12 @@ Localização: `logs/`
 
 Formato:
 
-```
+```text
 2026-02-15 12:34:56 INFO [LayerManager] Layer 4 decision: OPEN_LONG BTCUSDT
-2026-02-15 12:34:57 INFO [OrderExecutor] Order executed: BTCUSDT LONG 0.05 @ $45,000
+2026-02-15 12:34:57 INFO [OrderExecutor] Order executed: BTCUSDT LONG 0.05 @
+$45,000
 2026-02-15 12:34:57 INFO [RiskManager] Stop loss set: $44,100 (-2.0%)
-```
+```text
 
 ---
 
@@ -756,7 +760,7 @@ Formato:
 
 ### 7.1. Estrutura de Diretórios
 
-```
+```text
 crypto-futures-agent/
 ├── agent/              # Agente RL
 │   ├── environment.py  # Gymnasium environment
@@ -807,11 +811,11 @@ crypto-futures-agent/
 ├── main.py             # Entry point
 ├── requirements.txt    # Dependências
 └── .env                # Variáveis de ambiente
-```
+```python
 
 ### 7.2. Fluxo de Dados
 
-```
+```text
 ┌─────────────────┐
 │  Binance API    │
 │  (OHLCV, Sent.) │
@@ -853,7 +857,7 @@ crypto-futures-agent/
 │ Order Executor  │
 │  (Binance API)  │
 └─────────────────┘
-```
+```text
 
 ### 7.3. Camadas de Execução
 
@@ -903,16 +907,25 @@ crypto-futures-agent/
 
 | Comando | Descrição | Requer API | Produz Output |
 |---------|-----------|------------|---------------|
-| `python main.py --dry-run` | Valida pipeline com dados sintéticos | ❌ Não | Console |
-| `python main.py --setup` | Coleta dados históricos e inicializa DB | ✅ Sim | DB + Console |
-| `python main.py --setup --mode paper` | Setup em modo paper | ✅ Sim | DB + Console |
-| `python main.py --train` | Treina modelo RL em 3 fases | ✅ Sim | Models + Logs |
-| `python main.py --backtest --start-date YYYY-MM-DD --end-date YYYY-MM-DD` | Executa backtest | ✅ Sim | Relatório + Gráfico |
+| `python main.py --dry-run` | Valida pipeline com dados sintéticos | ❌ Não |
+Console |
+| `python main.py --setup` | Coleta dados históricos e inicializa DB | ✅ Sim |
+DB + Console |
+| `python main.py --setup --mode paper` | Setup em modo paper | ✅ Sim | DB +
+Console |
+| `python main.py --train` | Treina modelo RL em 3 fases | ✅ Sim | Models + Logs
+|
+| `python main.py --backtest --start-date YYYY-MM-DD --end-date YYYY-MM-DD` |
+Executa backtest | ✅ Sim | Relatório + Gráfico |
 | `python main.py --mode paper` | Paper trading em tempo real | ✅ Sim | Logs |
-| `python main.py --mode live` | Live trading (⚠️ CAPITAL REAL) | ✅ Sim | Logs + Ordens |
-| `python main.py --monitor` | Monitora todas as posições | ✅ Sim | Console (live) |
-| `python main.py --monitor --monitor-symbol BTCUSDT` | Monitora símbolo específico | ✅ Sim | Console (live) |
-| `python main.py --monitor --monitor-interval 60` | Intervalo de 60s entre atualizações | ✅ Sim | Console (live) |
+| `python main.py --mode live` | Live trading (⚠️ CAPITAL REAL) | ✅ Sim | Logs +
+Ordens |
+| `python main.py --monitor` | Monitora todas as posições | ✅ Sim | Console
+(live) |
+| `python main.py --monitor --monitor-symbol BTCUSDT` | Monitora símbolo
+específico | ✅ Sim | Console (live) |
+| `python main.py --monitor --monitor-interval 60` | Intervalo de 60s entre
+atualizações | ✅ Sim | Console (live) |
 
 ### Flags Adicionais
 
@@ -973,7 +986,7 @@ cp .env.example .env
 
 # 2. Edite .env e adicione suas keys
 nano .env  # ou use editor de texto
-```
+```bash
 
 ### Problema: "Database not found"
 
@@ -984,7 +997,7 @@ nano .env  # ou use editor de texto
 ```bash
 # Execute setup para criar e popular o DB
 python main.py --setup
-```
+```bash
 
 ### Problema: "Insufficient data"
 
@@ -997,7 +1010,7 @@ python main.py --setup
 python main.py --setup
 
 # Aguarde completar (pode levar 10-30 min)
-```
+```bash
 
 ### Problema: Import errors
 
@@ -1014,7 +1027,7 @@ python -m venv venv_new
 source venv_new/bin/activate  # Linux/Mac
 # ou venv_new\Scripts\activate  # Windows
 pip install -r requirements.txt
-```
+```bash
 
 ### Problema: Erros de Binance SDK
 
@@ -1033,7 +1046,7 @@ pip install --upgrade binance-connector
 #    - ✅ Enable Reading
 #    - ✅ Enable Futures
 #    - ❌ NÃO habilite Withdrawals
-```
+```bash
 
 ### Problema: "Connection timeout"
 
@@ -1060,7 +1073,7 @@ pip install --upgrade binance-connector
 # 2. Limpe cache e retreine
 rm -rf models/*
 python main.py --train
-```
+```bash
 
 ---
 
@@ -1106,7 +1119,7 @@ python main.py --train
 # O modelo anterior será sobrescrito
 # Faça backup se quiser preservar:
 cp models/crypto_agent_ppo_final.zip models/backup_modelo.zip
-```
+```python
 
 **Status:** ⚠️ Em desenvolvimento (v0.3)
 
@@ -1128,7 +1141,8 @@ cp models/crypto_agent_ppo_final.zip models/backup_modelo.zip
 
 ### Posso rodar em servidor?
 
-**Sim!** O sistema foi projetado para rodar localmente, mas pode ser adaptado para servidor:
+**Sim!** O sistema foi projetado para rodar localmente, mas pode ser adaptado
+para servidor:
 
 **Servidor Linux:**
 
@@ -1139,14 +1153,14 @@ python main.py --mode paper
 
 # Detach: Ctrl+A, D
 # Reattach: screen -r trading
-```
+```python
 
 **Docker (em desenvolvimento):**
 
 ```bash
 # Futuro suporte via Docker
 docker-compose up -d
-```
+```bash
 
 ### O agente opera 24/7?
 
@@ -1207,7 +1221,7 @@ docker-compose up -d
 
 **Exemplo:**
 
-```
+```text
 Preço entrada: $50,000
 ATR: $1,000
 Stop multiplier: 2.0
@@ -1215,7 +1229,7 @@ Stop loss: $50,000 - ($1,000 * 2.0) = $48,000 (-4%)
 
 Se > 3%, ajusta para 3%:
 Stop loss: $50,000 - ($50,000 * 0.03) = $48,500 (-3%)
-```
+```text
 
 ### O que acontece se o bot cair?
 
@@ -1256,7 +1270,8 @@ Stop loss: $50,000 - ($50,000 * 0.03) = $48,500 (-3%)
 
 **GitHub Issues:**
 
-1. Acesse: <https://github.com/jadergreiner/crypto-futures-agent/issues>
+1. Acesse:
+<[https://github.com/jadergreiner/crypto-futures-agent/issues>](https://github.com/jadergreiner/crypto-futures-agent/issues>)
 2. Clique "New Issue"
 3. Descreva:
    - Comportamento esperado

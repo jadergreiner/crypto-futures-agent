@@ -12,7 +12,7 @@ import json
 @dataclass
 class BacktestMetrics:
     """Métricas de backteste com critérios de risco."""
-    
+
     # 6 Métricas Críticas (GO/NO-GO)
     sharpe_ratio: float
     max_drawdown_pct: float
@@ -20,8 +20,8 @@ class BacktestMetrics:
     profit_factor: float
     consecutive_losses: int
     recovery_factor: float
-    
-    # Métricas Informativas  
+
+    # Métricas Informativas
     sortino_ratio: float = 0.0
     calmar_ratio: float = 0.0
     total_trades: int = 0
@@ -31,7 +31,7 @@ class BacktestMetrics:
     largest_win_pct: float = 0.0
     largest_loss_pct: float = 0.0
     total_return_pct: float = 0.0
-    
+
     # Critérios de Passagem
     SHARPE_MIN = 1.0
     MAX_DD_MAX = 15.0
@@ -39,12 +39,12 @@ class BacktestMetrics:
     PROFIT_FACTOR_MIN = 1.5
     CONSECUTIVE_LOSSES_MAX = 5
     RECOVERY_FACTOR_MIN = 2.0
-    
+
     @property
     def risk_clearance_status(self) -> str:
         """
         Determina GO/NO-GO baseado em 6 métricas críticas.
-        
+
         Returns:
             "✅ GO" se TODAS as métricas passam
             "❌ NO-GO" se qualquer métrica falha
@@ -57,10 +57,10 @@ class BacktestMetrics:
             ("Consecutive Losses", self.consecutive_losses <= self.CONSECUTIVE_LOSSES_MAX),
             ("Recovery Factor", self.recovery_factor >= self.RECOVERY_FACTOR_MIN),
         ]
-        
+
         all_pass = all(check[1] for check in checks)
         return "✅ GO" if all_pass else "❌ NO-GO"
-    
+
     def get_checklist(self) -> List[tuple]:
         """Retorna checklist de validação com status."""
         return [
@@ -72,34 +72,34 @@ class BacktestMetrics:
              self.win_rate_pct >= self.WIN_RATE_MIN),
             ("Profit Factor", self.profit_factor, "≥", self.PROFIT_FACTOR_MIN,
              self.profit_factor >= self.PROFIT_FACTOR_MIN),
-            ("Consecutive Losses", self.consecutive_losses, "≤", 
+            ("Consecutive Losses", self.consecutive_losses, "≤",
              self.CONSECUTIVE_LOSSES_MAX,
              self.consecutive_losses <= self.CONSECUTIVE_LOSSES_MAX),
-            ("Recovery Factor", self.recovery_factor, "≥", 
+            ("Recovery Factor", self.recovery_factor, "≥",
              self.RECOVERY_FACTOR_MIN,
              self.recovery_factor >= self.RECOVERY_FACTOR_MIN),
         ]
-    
-    def print_report(self, symbol: str = "BTCUSDT", 
+
+    def print_report(self, symbol: str = "BTCUSDT",
                     start_date: str = "2023-01-01",
                     end_date: str = "2023-12-31"):
         """Imprime relatório formatado."""
-        
+
         status = self.risk_clearance_status
-        
+
         print("\n" + "="*60)
         print(f"Backtester Report — {symbol}")
         print(f"Period: {start_date} → {end_date}")
         print("="*60)
         print(f"\nRISK CLEARANCE STATUS: {status}\n")
-        
+
         # Checklist
         print("Critérios de Risk Clearance:")
         print("-"*60)
         for metric, value, op, threshold, passed in self.get_checklist():
             status_icon = "✓" if passed else "✗"
             print(f" [{status_icon}] {metric:20} {value:8.2f} {op} {threshold}")
-        
+
         # Métricas Extras
         print("\nMétricas Informativas:")
         print("-"*60)
@@ -111,7 +111,7 @@ class BacktestMetrics:
         print(f"  Largest Win:        +{self.largest_win_pct:.2f}%")
         print(f"  Largest Loss:       -{self.largest_loss_pct:.2f}%")
         print(f"  Total Return:       {self.total_return_pct:+.1f}%")
-        
+
         # Recomendação Final
         print("\n" + "="*60)
         if self.risk_clearance_status == "✅ GO":
@@ -124,9 +124,9 @@ class BacktestMetrics:
                 if not passed:
                     diff = value - threshold if op == "≥" else threshold - value
                     print(f"     - {metric}: melhorar {diff:.2f} unidades")
-        
+
         print("="*60 + "\n")
-    
+
     def to_json(self) -> str:
         """Serializa para JSON."""
         return json.dumps({
@@ -173,10 +173,10 @@ if __name__ == "__main__":
         largest_loss_pct=3.8,
         total_return_pct=34.5,
     )
-    
+
     # Imprimir relatório
     metrics.print_report("BTCUSDT", "2023-01-01", "2023-12-31")
-    
+
     # Exportar JSON
     print("JSON Output:")
     print(metrics.to_json())

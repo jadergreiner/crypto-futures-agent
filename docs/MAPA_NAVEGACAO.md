@@ -5,7 +5,8 @@
 
 ## 🎯 O Que Você Vai Encontrar?
 
-Este documento explica **onde ir** para entender e **como usar** o sistema de reuniões **ad-hoc** (sob demanda, sem agendamento fixo).
+Este documento explica **onde ir** para entender e **como usar** o sistema de
+reuniões **ad-hoc** (sob demanda, sem agendamento fixo).
 
 ---
 
@@ -38,7 +39,7 @@ db.adicionar_dialogo(...)
 db.criar_acao(...)
 db.criar_investimento(...)
 db.exportar_relatorio_markdown(...)
-```
+```bash
 
 **Tempo de leitura**: 10 minutos | **Linhas**: 550
 
@@ -55,7 +56,7 @@ db.exportar_relatorio_markdown(...)
 **Como rodar**:
 ```bash
 python scripts/executar_reuniao_semanal.py
-```
+```bash
 
 **Tempo de leitura**: 5 minutos | **Linhas**: 470
 
@@ -108,8 +109,8 @@ python scripts/executar_reuniao_semanal.py
 
 #### `db/reunioes_weekly.db`
 **O QUE CONTÉM**:
-```
-8 tabelas (reunioes, dialogos, topicos, feedbacks, acoes, 
+```text
+8 tabelas (reunioes, dialogos, topicos, feedbacks, acoes,
 investimentos, evolucoes, comparacoes)
 
 - reunioes: 1 registro (exemplo)
@@ -117,12 +118,12 @@ investimentos, evolucoes, comparacoes)
 - feedbacks_reuniao: 3 registros (exemplo)
 - acoes_reuniao: 2 registros (exemplo)
 - investimentos_reuniao: 3 registros (exemplo)
-```
+```text
 
 **Como consultar**:
 ```bash
 sqlite3 db/reunioes_weekly.db "SELECT * FROM acoes_reuniao"
-```
+```bash
 
 ---
 
@@ -134,7 +135,7 @@ sqlite3 db/reunioes_weekly.db "SELECT * FROM acoes_reuniao"
 2. Execute (quando precisar de uma reunião):
    ```bash
    python scripts/executar_reuniao_semanal.py
-   ```
+```json
 3. Veja resultado: `docs/reuniao_YYYY_MM_DD_HHMMSS.md`
 
 **Status**: Reunião ad-hoc criada automaticamente ✅
@@ -145,7 +146,8 @@ sqlite3 db/reunioes_weekly.db "SELECT * FROM acoes_reuniao"
 
 1. **Leia (5 min)**: `docs/SISTEMA_REUNIOES_RESUMO.md` (Overview)
 2. **Leia (20 min)**: `docs/GUIA_REUNIOES_SEMANAIS.md` (Completo)
-3. **Explore (10 min)**: Template `prompts/prompts_reuniao_head_operador_crypto_futures.md`
+3. **Explore (10 min)**: Template
+`prompts/prompts_reuniao_head_operador_crypto_futures.md`
 4. **Veja (5 min)**: Código `scripts/reuniao_manager.py` (classe principal)
 5. **Teste (5 min)**: Execute `python scripts/executar_reuniao_semanal.py`
 
@@ -175,13 +177,14 @@ id_reuniao = db.criar_reuniao(
 
 # Adicione diálogos, feedback, ações...
 # Exporte relatório
-```
+```json
 
 ---
 
 ### 🎯 Roteiro 4: "Quero Criar Meu Próprio Template (60 minutos)"
 
-1. **Leia (15 min)**: Template completo `prompts/prompts_reuniao_head_operador_crypto_futures.md`
+1. **Leia (15 min)**: Template completo
+`prompts/prompts_reuniao_head_operador_crypto_futures.md`
 2. **Compreenda (20 min)**: Estrutura, papeisponto, matriz de análise
 3. **Customize (15 min)**: Edite seções que você quer mudar
 4. **Valide (10 min)**: Teste com `ExecutorReuniaoSemanal`
@@ -198,34 +201,36 @@ id_reuniao = db.criar_reuniao(
 | Aprender API Python | `docs/GUIA_REUNIOES_SEMANAIS.md` (Usar) | 20 min |
 | Estrutura do banco | `SISTEMA_REUNIOES_RESUMO.md` (Schema) | 5 min |
 | Customizar prompt | `prompts/prompts_reuniao_*.md` | 30 min |
-| Troubleshoot erro | `docs/GUIA_REUNIOES_SEMANAIS.md` (Troubleshooting) | 10 min |
-| Integrar em projeto | `docs/GUIA_REUNIOES_SEMANAIS.md` (Programático) | 30 min |
+| Troubleshoot erro | `docs/GUIA_REUNIOES_SEMANAIS.md` (Troubleshooting) | 10
+min |
+| Integrar em projeto | `docs/GUIA_REUNIOES_SEMANAIS.md` (Programático) | 30 min
+|
 
 ---
 
 ## 📊 Árvore de Dependências
 
-```
+```text
 prompts/prompts_reuniao_head_operador_crypto_futures.md
     ↓ (define estrutura)
-    
+
 scripts/reuniao_manager.py (ReuniaoWeeklyDB)
     ├─ Cria: db/reunioes_weekly.db
     ├─ Lê/escreve 8 tabelas
     └─ Exporta: Markdown
-        
+
 scripts/executar_reuniao_semanal.py (ExecutorReuniaoSemanal)
     ├─ Usa: ReuniaoWeeklyDB
     ├─ Carrega: Métricas (simuladas)
     ├─ Gera: docs/reuniao_YYYY_NN_semNN.md
     └─ Imprime: Resumo ejecutivo
-        
+
 docs/
     ├─ GUIA_REUNIOES_SEMANAIS.md (Learn)
     ├─ SISTEMA_REUNIOES_RESUMO.md (Summary)
     ├─ reuniao_2026_09_sem9.md (Example output)
     └─ MAPA_NAVEGACAO.md (← You are here)
-```
+```text
 
 ---
 
@@ -234,29 +239,32 @@ docs/
 ### Executar Reunião
 ```bash
 python scripts/executar_reuniao_semanal.py
-```
+```bash
 
 ### Ver Última Reunião
 ```bash
 cat docs/reuniao_*.md | tail -50
-```
+```bash
 
 ### Listar Todas as Reuniões
 ```bash
-sqlite3 db/reunioes_weekly.db "SELECT data_reuniao, id_reuniao FROM reunioes ORDER BY data_reuniao DESC"
-```
+sqlite3 db/reunioes_weekly.db "SELECT data_reuniao, id_reuniao FROM reunioes
+ORDER BY data_reuniao DESC"
+```bash
 
 ### Ver Ações Pendentes
 ```bash
-sqlite3 db/reunioes_weekly.db "SELECT descricao_acao, prioridade FROM acoes_reuniao WHERE status_acao = 'pendente'"
-```
+sqlite3 db/reunioes_weekly.db "SELECT descricao_acao, prioridade FROM
+acoes_reuniao WHERE status_acao = 'pendente'"
+```bash
 
 ### Gerar Novo Relatório
 ```python
 from scripts.reuniao_manager import ReuniaoWeeklyDB
 db = ReuniaoWeeklyDB()
-db.exportar_relatorio_markdown(id_reuniao=1, arquivo_saida="docs/nova_reuniao.md")
-```
+db.exportar_relatorio_markdown(id_reuniao=1,
+arquivo_saida="docs/nova_reuniao.md")
+```bash
 
 ---
 
@@ -307,7 +315,8 @@ db.exportar_relatorio_markdown(id_reuniao=1, arquivo_saida="docs/nova_reuniao.md
 → Vá para: `GUIA_REUNIOES_SEMANAIS.md` seção "Uso Programático"
 
 ### "Posso apagar reuniões antigas?"
-→ Vá para: `GUIA_REUNIOES_SEMANAIS.md` seção "Troubleshooting" (Database corrompido)
+→ Vá para: `GUIA_REUNIOES_SEMANAIS.md` seção "Troubleshooting" (Database
+corrompido)
 
 ---
 
@@ -315,12 +324,19 @@ db.exportar_relatorio_markdown(id_reuniao=1, arquivo_saida="docs/nova_reuniao.md
 
 | Arquivo | Propósito | Link |
 |---------|-----------|------|
-| Template de Prompt | Estrutura de reunião | [`prompts_reuniao_*.md`](../prompts/prompts_reuniao_head_operador_crypto_futures.md) |
-| Biblioteca Python | API de persistência | [`reuniao_manager.py`](../scripts/reuniao_manager.py) |
-| Executor | Automatização | [`executar_reuniao_semanal.py`](../scripts/executar_reuniao_semanal.py) |
-| Guia Completo | Learn everything | [`GUIA_REUNIOES_SEMANAIS.md`](GUIA_REUNIOES_SEMANAIS.md) |
-| Resumo | 5-min overview | [`SISTEMA_REUNIOES_RESUMO.md`](SISTEMA_REUNIOES_RESUMO.md) |
-| Exemplo Real | Ver output | [`reuniao_2026_09_sem9.md`](reuniao_2026_09_sem9.md) |
+| Template de Prompt | Estrutura de reunião |
+[`prompts_reuniao_*.md`](../prompts/prompts_reuniao_head_operador_crypto_futures.md)
+|
+| Biblioteca Python | API de persistência |
+[`reuniao_manager.py`](../scripts/reuniao_manager.py) |
+| Executor | Automatização |
+[`executar_reuniao_semanal.py`](../scripts/executar_reuniao_semanal.py) |
+| Guia Completo | Learn everything |
+[`GUIA_REUNIOES_SEMANAIS.md`](GUIA_REUNIOES_SEMANAIS.md) |
+| Resumo | 5-min overview |
+[`SISTEMA_REUNIOES_RESUMO.md`](SISTEMA_REUNIOES_RESUMO.md) |
+| Exemplo Real | Ver output |
+[`reuniao_2026_09_sem9.md`](reuniao_2026_09_sem9.md) |
 | Este Arquivo | You are here | [`MAPA_NAVEGACAO.md`](MAPA_NAVEGACAO.md) |
 
 ---
@@ -347,5 +363,6 @@ db.exportar_relatorio_markdown(id_reuniao=1, arquivo_saida="docs/nova_reuniao.md
 
 ---
 
-**Comece aqui**: [Quick Start em 5 minutos](GUIA_REUNIOES_SEMANAIS.md#-como-usar-quick-start)
+**Comece aqui**: [Quick Start em 5
+minutos](GUIA_REUNIOES_SEMANAIS.md#-como-usar-quick-start)
 

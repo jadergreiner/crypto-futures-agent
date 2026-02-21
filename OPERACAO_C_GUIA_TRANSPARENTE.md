@@ -93,7 +93,7 @@ Se Operação C está rodando, você pode verificar logs:
    $ tail -f logs/critical_monitor.log
 
    Verá a cada 60 segundos:
-   [CRITICAL-MONITOR] Health OK | API: 150ms | Memory: 45% | Loss: 0% | LIVE: RUN
+[CRITICAL-MONITOR] Health OK | API: 150ms | Memory: 45% | Loss: 0% | LIVE: RUN
 
 3. Logs normais do agent (LIVE):
    $ tail -f logs/agent.log

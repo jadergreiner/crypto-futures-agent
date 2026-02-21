@@ -74,7 +74,7 @@ print(f"  • Pares monitorados: {pares_monitorados}")
 print("\n🕐 5. OPERAÇÕES MAIS RECENTES")
 print("-" * 90)
 cursor.execute('''
-    SELECT symbol, direcao, entry_price, exit_price, pnl_usdt, 
+    SELECT symbol, direcao, entry_price, exit_price, pnl_usdt,
            datetime(timestamp_entrada/1000, 'unixepoch') as entrada
     FROM trade_log
     ORDER BY timestamp_entrada DESC

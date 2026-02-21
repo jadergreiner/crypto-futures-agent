@@ -7,21 +7,25 @@ Quando o operador selecionava Opção [2] (Live Integrado) e respondia:
 - "Intervalo de treinamento em horas?" → **2**
 
 O sistema apresentava mensagens contraditórias e logs mostravam:
-```
+```text
 Concurrent training is disabled
-```
+```json
 
 Mesmo que o usuário tivesse selecionado sim para treino.
 
 ## Causa Raiz
 
-As variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não estavam inicializadas **antes** do bloco `if` no arquivo `iniciar.bat`.
+As variáveis `TRAINING_FLAG` e `TRAINING_INTERVAL_FLAG` não estavam
+inicializadas **antes** do bloco `if` no arquivo `iniciar.bat`.
 
-Em batch (mesmo com `setlocal enabledelayedexpansion`), variáveis que não são inicializadas antes de um bloco condicional podem não se expandir corretamente fora dele.
+Em batch (mesmo com `setlocal enabledelayedexpansion`), variáveis que não são
+inicializadas antes de um bloco condicional podem não se expandir corretamente
+fora dele.
 
 ### Código Antes (ERRADO):
 ```batch
-set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): "
+set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)?
+(s/n): "
 
 if /i "!ENABLE_TRAINING!"=="s" (
     set TRAINING_FLAG=--concurrent-training
@@ -34,7 +38,7 @@ if /i "!ENABLE_TRAINING!"=="s" (
 
 REM Aqui, as variáveis podem estar vazias
 python main.py ... !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
-```
+```python
 
 ### Código Depois (CORRETO):
 ```batch
@@ -42,7 +46,8 @@ REM Inicializar ANTES do bloco if
 set "TRAINING_FLAG="
 set "TRAINING_INTERVAL_FLAG="
 
-set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): "
+set /p ENABLE_TRAINING="Deseja TREINAR modelos enquanto opera (mais recursos)?
+(s/n): "
 
 if /i "!ENABLE_TRAINING!"=="s" (
     set TRAINING_FLAG=--concurrent-training
@@ -55,64 +60,67 @@ if /i "!ENABLE_TRAINING!"=="s" (
 
 REM Agora as variáveis estarão bem definidas
 python main.py ... !TRAINING_FLAG! !TRAINING_INTERVAL_FLAG!
-```
+```python
 
 ## Validação Adicionada
 
 O script agora mostra o comando exato que será executado:
 
-```
+```text
 [DEBUG] Treino concorrente ATIVADO
 [DEBUG] Intervalo: --training-interval 7200
 
 Comando executado:
-python main.py --mode live --integrated --integrated-interval 300 --concurrent-training --training-interval 7200
-```
+python main.py --mode live --integrated --integrated-interval 300
+--concurrent-training --training-interval 7200
+```python
 
-Isso permite ao operador verificar se os flags estão sendo passados corretamente.
+Isso permite ao operador verificar se os flags estão sendo passados
+corretamente.
 
 ## Como Testar a Correção
 
 ### Passo 1: Execute `iniciar.bat` normalmente
-```
+```text
 .\iniciar.bat
-```
+```bash
 
 ### Passo 2: Selecione Opção [2]
-```
+```text
 Seleção: 2
-```
+```bash
 
 ### Passo 3: Confirme as 3 questões
-```
+```text
 [1/3] Digite 'SIM': SIM
 [2/3] Digite 'SIM': SIM
 [3/3] Digite 'INICIO': INICIO
-```
+```bash
 
 ### Passo 4: Responda sobre treino concorrente
-```
+```text
 Deseja TREINAR modelos enquanto opera (mais recursos)? (s/n): S
 Intervalo de treinamento em horas (padrao: 4): 2
-```
+```bash
 
 ### Passo 5: Verifique a saída
 Você deve ver:
-```
+```text
 [DEBUG] Treino concorrente ATIVADO
 [DEBUG] Intervalo: --training-interval 7200
 
 Comando executado:
-python main.py --mode live --integrated --integrated-interval 300 --concurrent-training --training-interval 7200
-```
+python main.py --mode live --integrated --integrated-interval 300
+--concurrent-training --training-interval 7200
+```python
 
 ### Passo 6: Verifique os logs
 Procure por:
-```
+```text
 Concurrent training is ENABLED
 Training interval: 7200 seconds (2.0 hours)
 TrainingScheduler started with interval: 2.0 hours
-```
+```text
 
 ## Comportamento Esperado Agora
 
@@ -154,9 +162,11 @@ TrainingScheduler started with interval: 2.0 hours
 ## Referências Técnicas
 
 **Batch Variable Scope:**
-- Com `setlocal enabledelayedexpansion`, variáveis setadas dentro de blocos if permanecem acessíveis fora
+- Com `setlocal enabledelayedexpansion`, variáveis setadas dentro de blocos if
+permanecem acessíveis fora
 - PORÉM, melhor prática é inicializar antes para evitar ambiguidade
-- Batch expande variáveis no parse-time (sem delay) antes do bloco, causando potenciais problemas
+- Batch expande variáveis no parse-time (sem delay) antes do bloco, causando
+potenciais problemas
 
 **Delayed Expansion Syntax:**
 - `%VAR%` — Expandido imediatamente (parse-time)

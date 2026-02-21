@@ -1,15 +1,15 @@
 # 🏗️ ARQUITETURA DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Status**: ✅ DOCUMENTADO  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Status**: ✅ DOCUMENTADO
 **Responsável**: Product Owner + CTO
 
 ---
 
 ## 📊 Visão Estratégica
 
-```
+```text
 AGENTE AUTÔNOMO DE RL (Reinforcement Learning)
 │
 ├─ Objetivo: Operar futuros de criptomoedas com gestão de risco inviolável
@@ -18,11 +18,11 @@ AGENTE AUTÔNOMO DE RL (Reinforcement Learning)
 ├─ Pares: 16 USDT (BTC, ETH, SOL, +13 outros)
 ├─ Timeframes: D1, H4, H1 (multi-timeframe)
 └─ Features: 104 indicadores + SMC + sentimento + macro
-```
+```text
 
 ## 🏛️ Estrutura em Camadas
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │              EXECUÇÃO OPERACIONAL                    │
 │  (Live Trading + Paralela C + Monitoring)           │
@@ -46,7 +46,7 @@ AGENTE AUTÔNOMO DE RL (Reinforcement Learning)
         │  Data Collector       │
         │  (OHLCV + Macro)      │
         └───────────────────────┘
-```
+```text
 
 ## 🎯 Componentes Críticos
 
@@ -99,40 +99,40 @@ AGENTE AUTÔNOMO DE RL (Reinforcement Learning)
 ## 🔐 Modos Operacionais
 
 ### Mode 1: Automático Live
-```
+```text
 Agente RL → Sinais → Executor → Binance Live
 └─ Sem intervenção manual
    Riscos: Capital real em jogo
    SLA: 99.9% uptime
-```
+```text
 
 ### Mode 2: Backtest
-```
+```text
 PPO Model → Backtest Env → Métricas → Report
 └─ Validação histórica
    Riscos: Overfitting
    Timeline: 1-2 horas por teste
-```
+```text
 
 ### Mode 3: Paper Trading
-```
+```text
 Agente RL → Simulador → Report
 └─ Sem marcar posições reais
    Riscos: Nenhum (fictício)
    Uso: QA, testing
-```
+```text
 
 ### Mode 4: Profit Guardian (Defensiva)
-```
+```text
 Posições existentes → Apenas CLOSE/REDUCE
 ├─ Sinais bloqueados (no "OPEN")
 ├─ Objetivo: Proteção capital
 └─ Status: 🔴 ATIVO (20/02, bloqueador ACAO-001)
-```
+```json
 
 ## 📐 Fluxo de Dados
 
-```
+```text
 COLETA CONTÍNUA (Horária)
 ├─ OHLCV H1: Binance API
 ├─ OHLCV H4: Agregado de H1
@@ -142,7 +142,7 @@ COLETA CONTÍNUA (Horária)
 └─ Macro: Economic calendar
 
    ↓↓↓
-   
+
 STORAGE (SQLite)
 ├─ 89k+ candles H1 (3-4 meses)
 ├─ 78k+ candles H4
@@ -150,7 +150,7 @@ STORAGE (SQLite)
 └─ 30k+ indicador records
 
    ↓↓↓
-   
+
 RL TRAINING (Episódio = 100 steps)
 ├─ Input: Observation (104 features)
 ├─ PPO Process: π(a|s) → action → reward
@@ -158,18 +158,18 @@ RL TRAINING (Episódio = 100 steps)
 └─ Timeline: 10+ horas (100 episódios)
 
    ↓↓↓
-   
+
 DEPLOYMENT (Live ou Backtest)
 ├─ Load trained model
 ├─ Initialize env + tracker
 ├─ Step/episode loop
 ├─ Action execution
 └─ Real-time reporting
-```
+```text
 
 ## 🎛️ Governança de Decisões
 
-```
+```text
 CFO (Finanças)
 ├─ Aprova: ACAO-001 (posição closes)
 ├─ Oversee: Budget, risk limits
@@ -184,11 +184,11 @@ PO (Produto)
 ├─ Aprova: Backlog, roadmap, features
 ├─ Oversee: Delivery, documentation
 └─ SLA: 24 horas (médio)
-```
+```text
 
 ## 🔄 Ciclo de Desenvolvimento
 
-```
+```text
 PLANEJAMENTO (Roadmap 12 meses)
     ↓
 IMPLEMENTAÇÃO (Sprint 1-4 semanas)
@@ -214,11 +214,11 @@ MONITORING (24/7)
     ├─ Alert rules
     ├─ Incident response
     └─ Continuous optimization
-```
+```text
 
 ## 📋 Matriz de Sincronização
 
-```
+```text
 Código (agente/*.py)
     ↓↔↓
 Documentos (AGENTE_AUTONOMO_*.md)
@@ -234,7 +234,7 @@ Configuração (config/*)
     ├─ symbols.py (16 pares)
     ├─ execution_config.py (bloqueante?)
     └─ risk_params.py (limites)
-```
+```python
 
 ## ✅ Validação de Integridade
 
@@ -247,11 +247,11 @@ Antes de cada commit, validar:
 [ ] AGENTE_AUTONOMO_*.md atualizados
 [ ] Nenhuma breaking change
 [ ] Risk constraints respeitadas
-```
+```text
 
 ---
 
-**Mantido por**: CTO + Product Owner  
-**Próxima revisão**: Quando mudança arquitetura  
+**Mantido por**: CTO + Product Owner
+**Próxima revisão**: Quando mudança arquitetura
 **Last Updated**: 2026-02-20 22:05 UTC
 

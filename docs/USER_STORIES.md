@@ -4,7 +4,9 @@
 
 ### US-01: Integrar Multi-Timeframe no Observation Vector ✅ DONE
 
-**Como** desenvolvedor, **quero** que o `build_observation` consuma o `multi_tf_result` **para que** os Blocos 7 (Correlação BTC) e 8 (D1 Bias/Regime) tenham valores reais em vez de placeholders.
+**Como** desenvolvedor, **quero** que o `build_observation` consuma o
+`multi_tf_result` **para que** os Blocos 7 (Correlação BTC) e 8 (D1 Bias/Regime)
+tenham valores reais em vez de placeholders.
 
 **Critérios de aceite:**
 
@@ -15,7 +17,8 @@
 
 ### US-02: Fix Bug R-Multiple no Reward Calculator ✅ DONE
 
-**Como** desenvolvedor, **quero** corrigir o bug da lógica de R-multiple no `RewardCalculator` **para que** bonus de 3R+ funcione corretamente.
+**Como** desenvolvedor, **quero** corrigir o bug da lógica de R-multiple no
+`RewardCalculator` **para que** bonus de 3R+ funcione corretamente.
 
 **Critérios de aceite:**
 
@@ -24,13 +27,15 @@
 
 ### US-03: Sincronizar Feature Names ✅ DONE
 
-**Como** desenvolvedor, **quero** que `get_feature_names()` esteja 100% sincronizado com `build_observation()` **para** debugging confiável.
+**Como** desenvolvedor, **quero** que `get_feature_names()` esteja 100%
+sincronizado com `build_observation()` **para** debugging confiável.
 
 ## v0.3 — Training Ready
 
 ### US-04: Episódio Completo de Treinamento
 
-**Como** agente, **quero** executar um episódio completo de treinamento (reset → N steps → done) com dados históricos reais **para** aprender padrões de mercado.
+**Como** agente, **quero** executar um episódio completo de treinamento (reset →
+N steps → done) com dados históricos reais **para** aprender padrões de mercado.
 
 **Critérios de aceite:**
 
@@ -41,13 +46,15 @@
 
 ### US-05: Salvar e Carregar Modelos
 
-**Como** desenvolvedor, **quero** salvar e carregar modelos treinados **para** iterar sem retreinar do zero.
+**Como** desenvolvedor, **quero** salvar e carregar modelos treinados **para**
+iterar sem retreinar do zero.
 
 ## v0.4 — Backtest
 
 ### US-06: Backtest com Métricas Reais
 
-**Como** trader, **quero** executar um backtest sobre dados históricos reais e ver métricas de performance **para** validar se o modelo é rentável.
+**Como** trader, **quero** executar um backtest sobre dados históricos reais e
+ver métricas de performance **para** validar se o modelo é rentável.
 
 **Critérios de aceite:**
 
@@ -59,10 +66,13 @@
 
 ### US-07: Operação Autônoma em Paper Mode
 
-**Como** trader, **quero** rodar o agente em modo paper 24/7, observando decisões e PnL simulado, **para** validar antes de arriscar capital real.
+**Como** trader, **quero** rodar o agente em modo paper 24/7, observando
+decisões e PnL simulado, **para** validar antes de arriscar capital real.
 
 ## v1.0 — Live
 
 ### US-08: Execução Real com Proteções
 
-**Como** trader, **quero** que o agente execute ordens reais na Binance Futures com proteções (max drawdown, max posições, circuit breaker) **para** operar de forma segura.
+**Como** trader, **quero** que o agente execute ordens reais na Binance Futures
+com proteções (max drawdown, max posições, circuit breaker) **para** operar de
+forma segura.

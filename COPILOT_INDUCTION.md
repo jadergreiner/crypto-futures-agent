@@ -20,13 +20,13 @@ Quando inicia sessão com o Copilot neste projeto:
 ```bash
 ✅ [SYNC] Sumário de atualização (correto)
 ❌ ee8dfb1 docs: Sumário de atualiza├º├úo (quebrado)
-```
+```bash
 
 ### 3️⃣ **Lint em Documentação (máx 80 chars/linha)**
 ```bash
 markdownlint *.md docs/*.md  # Verificar antes de commit
 markdownlint --fix *.md      # Corrigir automaticamente
-```
+```bash
 
 ---
 
@@ -55,7 +55,7 @@ Quando assumindo papel de Copilot/agente:
 
 ## 🎯 Fluxo de Trabalho Esperado
 
-```
+```text
 1. [PLANEJAMENTO]
    └─ Ler instrções em .github/copilot-instructions.md
       (3 regras críticas no final)
@@ -89,7 +89,7 @@ Quando assumindo papel de Copilot/agente:
 
 6. [PUSH]
    └─ Pronto para review/merge!
-```
+```text
 
 ---
 
@@ -97,7 +97,7 @@ Quando assumindo papel de Copilot/agente:
 
 **Regra de Ouro:** Código + Documentação sempre juntos
 
-```
+```text
 Alterou symbols.py?
   └─ Atualizar: playbooks/, README, SYNC
 
@@ -109,7 +109,7 @@ Alterou README.md?
 
 Criou docs/ novo?
   └─ OBRIGATÓRIO: SYNCHRONIZATION.md + lint
-```
+```text
 
 ---
 
@@ -126,7 +126,7 @@ markdownlint *.md docs/*.md
 
 # Corrigir automaticamente
 markdownlint --fix *.md docs/*.md
-```
+```bash
 
 ### Para Git
 
@@ -139,7 +139,7 @@ git log --oneline -10
 
 # Commit com template
 git commit -m "[FEAT] Sua descrição em português"
-```
+```bash
 
 ### Para Python
 
@@ -152,7 +152,7 @@ flake8 seu_modulo.py
 
 # Type check
 mypy seu_modulo.py
-```
+```bash
 
 ---
 
@@ -163,7 +163,7 @@ mypy seu_modulo.py
    git log --oneline -1         # Verificar mensagem
    markdownlint *.md docs/*.md  # Lint docs
    pytest -q                    # Rodar testes
-   ```
+```bash
 
 2. **Se quebrou uma regra:**
    - Avisar no PR qual regra foi quebrada
@@ -192,7 +192,7 @@ SYMBOLS["NOVOUSDT"] = {
     "beta_estimado": 3.5,
     # ...
 }
-```
+```json
 
 ### Passo 2: Criar playbook
 ```python
@@ -200,13 +200,13 @@ SYMBOLS["NOVOUSDT"] = {
 class NovoPlaybook(BasePlaybook):
     """Estratégia para NOVOUSDT."""
     pass
-```
+```python
 
 ### Passo 3: Registrar
 ```python
 # playbooks/__init__.py
 from playbooks.novo_playbook import NovoPlaybook
-```
+```bash
 
 ### Passo 4: Atualizar docs
 ```markdown
@@ -217,18 +217,18 @@ from playbooks.novo_playbook import NovoPlaybook
 
 # docs/SYNCHRONIZATION.md
 - NOVOUSDT | ✅ | 20/02 | Novo símbolo adicionado
-```
+```bash
 
 ### Passo 5: Lint docs
 ```bash
 markdownlint README.md docs/SYNCHRONIZATION.md
 markdownlint --fix README.md docs/SYNCHRONIZATION.md
-```
+```bash
 
 ### Passo 6: Commit
 ```bash
 git commit -m "[SYNC] Adicionado símbolo NOVOUSDT e playbook"
-```
+```bash
 
 ---
 

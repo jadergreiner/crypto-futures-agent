@@ -9,7 +9,8 @@
 
 ## 📋 O Que Foi Entregue?
 
-Um **sistema completo e automático** para simulação, rastreamento e iteração de reuniões **ad-hoc** (sob demanda, sem agendamento fixo) entre:
+Um **sistema completo e automático** para simulação, rastreamento e iteração de
+reuniões **ad-hoc** (sob demanda, sem agendamento fixo) entre:
 
 - **HEAD FINANCEIRO**: Especialista em futuros de criptomoedas (Binance Futures)
 - **OPERADOR AUTÔNOMO**: Agente RL em PPO (v0.3)
@@ -41,11 +42,14 @@ Sistema persiste em:
 **Arquivo**: `scripts/reuniao_manager.py`
 
 **Funcionalidades:**
-- ✅ **Banco SQLite** com 8 tabelas (reuniões, diálogos, feedbacks, ações, investimentos, evoluções, comparações)
+- ✅ **Banco SQLite** com 8 tabelas (reuniões, diálogos, feedbacks, ações,
+investimentos, evoluções, comparações)
 - ✅ **CRUD completo**: criar, ler, atualizar, deletar reuniões
 - ✅ **Exportação Markdown**: relatórios formatados em um clique
-- ✅ **Rastreamento de status**: ações progridem de pendente → em andamento → concluído
-- ✅ **Comparação automática**: delta de Sharpe, PnL, ações completadas vs. pendentes
+- ✅ **Rastreamento de status**: ações progridem de pendente → em andamento →
+concluído
+- ✅ **Comparação automática**: delta de Sharpe, PnL, ações completadas vs.
+pendentes
 - ✅ **Logging estruturado**: auditoria total de operações
 
 **Classe Principal**: `ReuniaoWeeklyDB`
@@ -57,7 +61,7 @@ db.criar_acao(...)                 # Cria ação em backlog
 db.criar_investimento(...)         # Propõe investimento
 db.gerar_comparacao_reunioes(...)  # Compara com semana anterior
 db.exportar_relatorio_markdown(...) # Exporta relatório
-```
+```bash
 
 **Tamanho**: ~550 linhas | **Readiness**: 100%
 
@@ -99,7 +103,7 @@ db.exportar_relatorio_markdown(...) # Exporta relatório
 
 ## 📊 Banco de Dados (Schema)
 
-```
+```text
 reunioes_weekly.db (SQLite)
 ├── reunioes ..................... Metadata da reunião
 ├── topicos_reuniao .............. Tópicos discutidos
@@ -109,7 +113,7 @@ reunioes_weekly.db (SQLite)
 ├── investimentos_reuniao ........ Propostas de capital ($, ROI, justificativa)
 ├── evolucoes_reuniao ............ Status de cada ação ao longo das semanas
 └── comparacao_reunioes .......... Delta entre reuniões (Sharpe, PnL, status)
-```
+```text
 
 **Total de colunas**: 78 | **Índices**: Automáticos em FKs
 
@@ -121,7 +125,7 @@ reunioes_weekly.db (SQLite)
 ```bash
 cd c:\repo\crypto-futures-agent
 python scripts/executar_reuniao_semanal.py
-```
+```bash
 
 **Resultado**:
 - ✅ Cria reunião no banco (com data/hora atual)
@@ -174,21 +178,21 @@ db.exportar_relatorio_markdown(
     id_reuniao=id_reuniao,
     arquivo_saida="docs/reuniao_2026_02_20.md"
 )
-```
+```bash
 
 ---
 
 ## 📈 Recursos Principais
 
 ### ✅ Simulação de Conversa Realista
-```
+```text
 HEAD 🧠: Por que você executou com score baixo?
 
 OPERADOR 🤖: Havia confluência SMC. Reconheço erro.
 Taxa de acerto em <5.0 é 35%. Peço aumento do threshold.
 
 HEAD 🧠 (Tréplica): Concordo. Ação: elevar MIN_ENTRY_SCORE
-```
+```text
 
 ### ✅ Rastreamento Automático de Ações
 
@@ -224,7 +228,7 @@ HEAD 🧠 (Tréplica): Concordo. Ação: elevar MIN_ENTRY_SCORE
   "acoes_completadas_desde": 3,
   "acoes_ainda_pendentes": 2
 }
-```
+```json
 
 ---
 
@@ -232,7 +236,7 @@ HEAD 🧠 (Tréplica): Concordo. Ação: elevar MIN_ENTRY_SCORE
 
 Após cada execução automática:
 
-```
+```text
 docs/
 ├── reuniao_2026_09_sem9.md              # Relatório completo
 ├── backlog_acoes_2026_09_sem9.md        # Ações com snippets (futuro)
@@ -244,7 +248,7 @@ db/
 
 logs/
 └── reuniao_execucao.log                 # Auditoria completa
-```
+```bash
 
 ---
 
@@ -282,14 +286,15 @@ O sistema se integra naturalmente:
 # 3. Atualiza apenas o que mudou
 # 4. Não repete análises
 # 5. Marca bloqueadores novos
-```
+```bash
 
 ### 🗂️ Sincronização de Documentação
 ```bash
 # Antes de commitar:
 git add docs/reuniao_*.md
-git commit -m "[SYNC] Relatório de reunião semana 9 — 3 ações, 1 investimento aprovado"
-```
+git commit -m "[SYNC] Relatório de reunião semana 9 — 3 ações, 1 investimento
+aprovado"
+```bash
 
 ### 📊 Consultas SQL Prontas
 ```python
@@ -297,13 +302,13 @@ git commit -m "[SYNC] Relatório de reunião semana 9 — 3 ações, 1 investime
 SELECT * FROM reunioes ORDER BY data_reuniao DESC
 
 # Ações pendentes críticas
-SELECT * FROM acoes_reuniao 
+SELECT * FROM acoes_reuniao
 WHERE status_acao = 'pendente' AND prioridade = 'crítica'
 
 # Investimentos com Sharpe positivo
-SELECT * FROM investimentos_reuniao 
+SELECT * FROM investimentos_reuniao
 WHERE roi_esperado > 0 ORDER BY roi_esperado DESC
-```
+```bash
 
 ---
 
@@ -396,7 +401,8 @@ Se quiser expandir:
 
 | Arquivo | Propósito | Readiness |
 |---------|-----------|-----------|
-| `prompts/prompts_reuniao_head_operador_crypto_futures.md` | Template de prompt | 100% ✅ |
+| `prompts/prompts_reuniao_head_operador_crypto_futures.md` | Template de prompt
+| 100% ✅ |
 | `scripts/reuniao_manager.py` | Biblioteca Python | 100% ✅ |
 | `scripts/executar_reuniao_semanal.py` | Executor automático | 100% ✅ |
 | `docs/GUIA_REUNIOES_SEMANAIS.md` | Guia de uso | 100% ✅ |
@@ -418,13 +424,14 @@ sqlite3 db/reunioes_weekly.db "SELECT COUNT(*) FROM reunioes"
 # Relatório gerado
 ls -la docs/reuniao_*.md
 # ✅ Resultado: docs/reuniao_2026_09_sem9.md (2.5 KB)
-```
+```bash
 
 ---
 
 **Status**: ✅ **ENTREGUE E VALIDADO**
 
-**Tempo de Desenvolvimento**: 2 horas (análise + design + implementação + testes)
+**Tempo de Desenvolvimento**: 2 horas (análise + design + implementação +
+testes)
 
 **Pronto para Produção**: SIM
 

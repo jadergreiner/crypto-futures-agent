@@ -94,7 +94,7 @@ Quando alterado:
 
 ### Matriz de Dependências
 
-```
+```text
 symbols.py ← Fonte de Verdade
   ├── playbooks/*.py (um playbook por símbolo)
   ├── playbooks/__init__.py (registro de imports)
@@ -116,7 +116,7 @@ README.md
 
 docs/*
   └── docs/SYNCHRONIZATION.md (sempre ratrear)
-```
+```text
 
 ### Checklist de Atualização
 
@@ -132,7 +132,7 @@ Antes de confirmar qualquer mudança:
 ### Exemplos de Sincronização Correta
 
 **Exemplo 1: Adicionar novo símbolo**
-```
+```text
 1. Editar config/symbols.py → adicionar XYZUSDT
 2. Criar playbooks/xyz_playbook.py
 3. Editar playbooks/__init__.py → adicionar importação
@@ -140,10 +140,10 @@ Antes de confirmar qualquer mudança:
 5. Criar tests/test_xyz_playbook.py
 6. Editar docs/SYNCHRONIZATION.md → rastrear mudança
 7. Commit: "[SYNC] Adicionados símbolo XYZ e playbook correspondente"
-```
+```python
 
 **Exemplo 2: Alterar reward function**
-```
+```text
 1. Editar agent/reward.py
 2. Editar tests/test_reward.py
 3. Editar docs/REWARD_FIXES_*.md (se arquivo específico existe)
@@ -151,7 +151,7 @@ Antes de confirmar qualquer mudança:
 5. Editar CHANGELOG.md → adicionar entry
 6. Editar docs/SYNCHRONIZATION.md → rastrear mudança
 7. Commit: "[SYNC] Corrigido reward function, documentação atualizada"
-```
+```json
 
 ## O que evitar
 - Não criar funcionalidades "nice to have" fora do pedido.
@@ -182,15 +182,15 @@ deve retornar vazio (exceto comentários técnicos)
 **Padrão:** `[TAG] Escopo breve em português`
 
 **Exemplo ERRADO:**
-```
+```text
 ee8dfb1 docs: Sumário de atualiza├º├úo
 (caracteres corrompidos, linha quebrada)
-```
+```text
 
 **Exemplo CORRETO:**
-```
+```text
 ee8dfb1 [SYNC] Sumário de atualização de arquitetura
-```
+```text
 
 **Regras:**
 - Usar apenas ASCII (0-127)
@@ -209,19 +209,19 @@ ee8dfb1 [SYNC] Sumário de atualização de arquitetura
 npm install -g markdownlint-cli
 markdownlint *.md docs/*.md
 markdownlint --fix *.md docs/*.md  # Corrigir
-```
+```bash
 
 **Exemplo ERRADO:**
 ```markdown
 ## Análise de Dados de Treinamento com RobustScaler Normalizado
-```
+```bash
 
 **Exemplo CORRETO:**
 ```markdown
 ## Análise de Dados com Normalização
 
 Usando RobustScaler para evitar data leakage
-```
+```bash
 
 **Checklist antes de commit:**
 - [ ] Nenhuma linha > 80 caracteres
@@ -234,13 +234,16 @@ Usando RobustScaler para evitar data leakage
 
 ## Sincronização Obrigatória de Documentação
 
-**CRÍTICO:** Toda mudança em código deve sincronizar documentação automaticamente.
+**CRÍTICO:** Toda mudança em código deve sincronizar documentação
+automaticamente.
 
 ### Protocolo de Sincronização (Automático)
 
 Sempre que alterar um dos documentos principais:
-- `config/symbols.py` → atualizar `README.md`, `playbooks/__init__.py`, `docs/SYNCHRONIZATION.md`
-- `docs/FEATURES.md` → atualizar `docs/ROADMAP.md`, `CHANGELOG.md`, `docs/SYNCHRONIZATION.md`
+- `config/symbols.py` → atualizar `README.md`, `playbooks/__init__.py`,
+`docs/SYNCHRONIZATION.md`
+- `docs/FEATURES.md` → atualizar `docs/ROADMAP.md`, `CHANGELOG.md`,
+`docs/SYNCHRONIZATION.md`
 - Qualquer arquivo em `docs/` → registrar em `docs/SYNCHRONIZATION.md`
 
 ### Checklist de Sincronização Obrigatória
@@ -264,7 +267,7 @@ Antes de cada commit com mudanças:
 
 Antes de commitar qualquer mudança que afete documentação:
 
-```
+```text
 SINCRONIZAÇÃO DE DOCUMENTAÇÃO — CHECKLIST
 ──────────────────────────────────────────
 
@@ -298,7 +301,7 @@ SINCRONIZAÇÃO DE DOCUMENTAÇÃO — CHECKLIST
 
 □ SUBMETER
   └─ [ ] git commit -m "[SYNC] Descrição clara da mudança"
-```
+```json
 
 #### Validação Automática (Script)
 
@@ -316,7 +319,7 @@ python scripts/validate_sync.py
 # ✅ CHANGELOG: CHANGELOG.md com entrada recente
 # ✅ SYNCHRONIZATION: últimas mudanças registradas
 # ✅ TUDO OK → Pronto para commit
-```
+```bash
 
 **Script criado em:** `scripts/validate_sync.py`
 - Verifica consistência README ↔ docs/FEATURES ↔ config/symbols

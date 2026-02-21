@@ -15,7 +15,7 @@
 
 ### 📁 Estrutura Implementada
 
-```
+```text
 crypto-futures-agent/
 ├── config/              ✅ Configurações gerais, símbolos, risco
 ├── data/                ✅ Collectors, database SQLite, WebSocket
@@ -29,7 +29,7 @@ crypto-futures-agent/
 ├── main.py              ✅ Entry point completo com CLI
 ├── README.md            ✅ Documentação completa
 └── requirements.txt     ✅ Dependências
-```
+```python
 
 ### 🎯 Componentes Principais
 
@@ -41,8 +41,10 @@ crypto-futures-agent/
 - ✅ DatabaseManager: 12 tabelas SQLite com CRUD completo
 
 #### 2. Indicators Layer
-- ✅ TechnicalIndicators: EMAs, RSI, MACD, Bollinger, Volume Profile, OBV, ATR, ADX
-- ✅ SmartMoneyConcepts: Swings, BOS, CHoCH, Order Blocks, FVGs, Liquidity, Premium/Discount
+- ✅ TechnicalIndicators: EMAs, RSI, MACD, Bollinger, Volume Profile, OBV, ATR,
+ADX
+- ✅ SmartMoneyConcepts: Swings, BOS, CHoCH, Order Blocks, FVGs, Liquidity,
+Premium/Discount
 - ✅ MultiTimeframeAnalysis: D1 bias, regime de mercado, correlações, beta
 - ✅ FeatureEngineer: 104 features normalizadas para RL
 
@@ -137,7 +139,7 @@ python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31
 
 # 5. Executar testes
 pytest tests/ -v
-```
+```bash
 
 ### 📝 Próximos Passos (Implementação Futura)
 
@@ -166,6 +168,8 @@ MIT License - Uso educacional e de pesquisa.
 
 ### 🎉 Conclusão
 
-O projeto está completamente scaffoldado com arquitetura profissional, modular e escalável. Todos os componentes principais estão implementados e prontos para integração e testes.
+O projeto está completamente scaffoldado com arquitetura profissional, modular e
+escalável. Todos os componentes principais estão implementados e prontos para
+integração e testes.
 
 **Status: READY FOR DEVELOPMENT & TESTING** ✅

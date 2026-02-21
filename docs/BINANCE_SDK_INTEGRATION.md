@@ -2,7 +2,8 @@
 
 ## Resumo das Mudanças
 
-Esta integração substitui as chamadas diretas via `requests` pelo SDK oficial da Binance para USDS-M Futures, trazendo benefícios como:
+Esta integração substitui as chamadas diretas via `requests` pelo SDK oficial da
+Binance para USDS-M Futures, trazendo benefícios como:
 
 - ✅ **Tipagem completa** com modelos Pydantic
 - ✅ **Suporte nativo** a REST API + WebSocket API + WebSocket Streams
@@ -88,7 +89,7 @@ df = collector.fetch_klines("BTCUSDT", "1h", limit=100)
 
 # Buscar dados de sentimento
 sentiment = sentiment_collector.fetch_all_sentiment("BTCUSDT")
-```
+```bash
 
 ### Script de Exemplo
 
@@ -96,7 +97,7 @@ Execute o script de exemplo para validar a integração:
 
 ```bash
 python examples/binance_sdk_usage_example.py
-```
+```bash
 
 ## Configuração de Ambiente
 
@@ -106,7 +107,7 @@ python examples/binance_sdk_usage_example.py
 BINANCE_API_KEY=sua_chave_api
 BINANCE_API_SECRET=seu_secret
 TRADING_MODE=paper  # ou "live"
-```
+```json
 
 ### Autenticação Ed25519 (mais seguro)
 
@@ -115,7 +116,7 @@ BINANCE_API_KEY=sua_chave_api
 BINANCE_PRIVATE_KEY_PATH=/caminho/para/private_key.pem
 BINANCE_PRIVATE_KEY_PASSPHRASE=sua_senha_opcional
 TRADING_MODE=paper  # ou "live"
-```
+```json
 
 ## Intervalos Suportados
 
@@ -132,7 +133,7 @@ pytest tests/test_binance_sdk_integration.py -v
 
 # Todos os testes
 pytest tests/ -v
-```
+```bash
 
 ## Validação de Dados
 
@@ -179,38 +180,41 @@ Para migrar código existente:
    ```python
    # Antes
    collector = BinanceCollector(api_key, api_secret)
-   
+
    # Depois
    client = create_binance_client()
    collector = BinanceCollector(client)
-   ```
+```bash
 
 2. Retornos agora são DataFrames ao invés de listas:
 
    ```python
    # Antes: List[Dict]
    data = collector.fetch_klines("BTCUSDT", "1h")
-   
+
    # Depois: pd.DataFrame
    df = collector.fetch_klines("BTCUSDT", "1h")
-   ```
+```bash
 
 3. WebSocketManager agora requer client no **init**:
 
    ```python
    # Antes
    ws_manager = WebSocketManager()
-   
+
    # Depois
    client = create_binance_client()
    ws_manager = WebSocketManager(client)
-   ```
+```bash
 
 ## Referências
 
-- SDK Python oficial: <https://github.com/binance/binance-connector-python/tree/master/clients/derivatives_trading_usds_futures>
-- Documentação API: <https://www.binance.com/en/binance-api>
-- Docs USDS-M Futures: <https://developers.binance.com/docs/derivatives/usds-margined-futures>
+- SDK Python oficial:
+<[https://github.com/binance/binance-connector-python/tree/master/clients/derivatives_trading_usds_futures>](https://github.com/binance/binance-connector-python/tree/master/clients/derivatives_trading_usds_futures>)
+- Documentação API:
+<[https://www.binance.com/en/binance-api>](https://www.binance.com/en/binance-api>)
+- Docs USDS-M Futures:
+<[https://developers.binance.com/docs/derivatives/usds-margined-futures>](https://developers.binance.com/docs/derivatives/usds-margined-futures>)
 
 ## Notas de Segurança
 

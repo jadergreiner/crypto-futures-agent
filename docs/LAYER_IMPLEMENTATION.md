@@ -2,7 +2,9 @@
 
 ## Visão Geral
 
-Este documento descreve a implementação completa dos métodos `h4_main_decision()` (Layer 4) e `d1_trend_macro()` (Layer 5) no `LayerManager`, que são o coração do sistema de decisão do agente de trading.
+Este documento descreve a implementação completa dos métodos
+`h4_main_decision()` (Layer 4) e `d1_trend_macro()` (Layer 5) no `LayerManager`,
+que são o coração do sistema de decisão do agente de trading.
 
 ## Layer 5: D1 Trend & Macro Analysis
 
@@ -44,9 +46,10 @@ Este documento descreve a implementação completa dos métodos `h4_main_decisio
          'macro': dict,
          'sentiment': dict
      }
-     ```
+```text
 
-   - Persiste no banco: `insert_indicators()`, `insert_sentiment()`, `insert_macro()`
+- Persiste no banco: `insert_indicators()`, `insert_sentiment()`,
+`insert_macro()`
 
 ### Lógica de D1 Bias
 
@@ -204,7 +207,8 @@ Rejeita sinal se:
 
 3. **High-Beta Sem RISK_ON:**
    - Se beta >= 2.0 e regime != RISK_ON
-   - Símbolos afetados: SOLUSDT (2.0), 0GUSDT (3.5), KAIAUSDT (2.8), AXLUSDT (2.5), NILUSDT (4.0), FOGOUSDT (3.8)
+- Símbolos afetados: SOLUSDT (2.0), 0GUSDT (3.5), KAIAUSDT (2.8), AXLUSDT (2.5),
+NILUSDT (4.0), FOGOUSDT (3.8)
 
 4. **Alta Correlação:**
    - Se posição existente na mesma direção
@@ -219,7 +223,7 @@ Rejeita sinal se:
    risk_capital = capital × max_risk_per_trade_pct  # 2%
    risk_per_unit = entry_price × (stop_distance_pct / 100)
    position_size = risk_capital / risk_per_unit
-   ```
+```python
 
 2. **Ajusta por Confluência:**
    - Score < 8: size = 0 (rejeitado)
@@ -297,7 +301,7 @@ Cada execução do Layer 4 armazena:
     'di_plus': float,
     'di_minus': float,
 }
-```
+```text
 
 ## Constantes Definidas
 
@@ -312,7 +316,7 @@ LIQUIDITY_SSL = "Sell Side Liquidity"
 
 # Default capital (TODO: replace with portfolio manager)
 DEFAULT_CAPITAL = 10000
-```
+```json
 
 ## Testes
 
@@ -452,7 +456,7 @@ DEFAULT_CAPITAL = 10000
 ```python
 # Adicionar logs temporários em _calculate_confluence_score
 logger.info(f"Bullish score: {bullish_score}, Bearish: {bearish_score}")
-```
+```python
 
 ### Muitos Sinais Rejeitados
 

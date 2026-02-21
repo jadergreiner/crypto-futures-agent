@@ -1,0 +1,132 @@
+# 🔍 REWARD FUNCTION VALIDATION REPORT — ESP-ML
+
+**Data**: 20/02/2026 22:25 UTC
+**Analista**: ESP-ML (Especialista Machine Learning)
+**Objeto**: `agent/reward.py` (Round 4 - simplificado)
+
+---
+
+## ✅ VALIDAÇÃO DE COMPONENTES
+
+### **Componente 1: r_pnl (PnL Realizado)**
+
+```python
+components['r_pnl'] = pnl_pct * PNL_SCALE  # PNL_SCALE = 10.0
+```
+
+**Análise**:
+- ✅ Escala apropriada: 10.0 está bem calibrado para PPO (reward range ~[-10, 10])
+- ✅ Incentiva fechar trades com lucro
+- ✅ Bonus adicional para R > 3.0 (leave profits run)
+- ✅ Lógica clara: pnl_pct é percentual decimal (0.05 = 5% ganho)
+
+**Validação**: ✅ **OK — PNL_SCALE = 10.0 apropriado**
+
+---
+
+### **Componente 2: r_hold_bonus (Hold Assimétrico)**
+
+```python
+if pnl_pct > 0:
+    components['r_hold_bonus'] = HOLD_BASE_BONUS + pnl_pct * HOLD_SCALING
+    # HOLD_BASE_BONUS = 0.05
+    # HOLD_SCALING = 0.1
+```
+
+**Análise**:
+- ✅ Assimetria correta (penaliza perdedores, incentiva ganhadores)
+- ✅ HOLD_BASE_BONUS (0.05) não é muito agressivo
+- ✅ HOLD_SCALING (0.1) aumenta proporção com lucro
+- ✅ Momentum extra (0.05) para posições em trend positivo
+- ⚠️ HOLD_LOSS_PENALTY (-0.02) é muito suave
+  - Comentário: Talvez poderia ser -0.05 para desincentivar mais, mas -0.02 é conservador (OK para v0.4)
+
+**Validação**: ✅ **OK — Hold bonus bem calibrado, conservador em penalties**
+
+---
+
+### **Componente 3: r_invalid_action (Penalidade)**
+
+```python
+if not action_valid:
+    components['r_invalid_action'] = INVALID_ACTION_PENALTY  # -0.5
+```
+
+**Análise**:
+- ✅ INVALID_ACTION_PENALTY (-0.5) é suficiente para desencorajar bad actions
+- ✅ Inclui tentativa prematura de CLOSE (R < 1.0 em lucro)
+- ✅ Equivalente a ~50 steps ruins (0.01 per bad action em média)
+- ✅ Não é punição extrema (que causaria agent paralysis)
+
+**Validação**: ✅ **OK — Penalty apropriada para bad actions**
+
+---
+
+### **Clipping e Normalização**
+
+```python
+total_reward = np.clip(total_reward, -REWARD_CLIP, REWARD_CLIP)  # ±10.0
+```
+
+**Análise**:
+- ✅ Range [-10, 10] é standard para PPO
+- ✅ Evita outliers extremos que descalibram o treinamento
+- ✅ Consistente com observation space normalization
+
+**Validação**: ✅ **OK — Clipping apropriado**
+
+---
+
+## 🎯 COMPARAÇÃO COM HISTÓRICO v0.2
+
+**v0.2 Características Lembradas**:
+- Múltiplos componentes (6+) causavam conflito de sinais
+- Rewards oscilavam muito (-50 a +50)
+- Agent aprende, mas instável
+
+**v0.4 (Round 4)**:
+- ✅ Apenas 3 componentes (clean, simples)
+- ✅ Range normalizado [-10, +10]
+- ✅ Componentes ortogonais (não competem)
+- ✅ Melhor sinal para PPO aprender
+
+**Conclusion**: ✅ **Melhoria clara vs. v0.2**
+
+---
+
+## ✅ SIGN-OFF
+
+**Análise Completa**: ✅ **REWARD FUNCTION APPROVED FOR v0.4 BACKTESTING**
+
+### Status Final:
+- ✅ PNL_SCALE = 10.0 → Apropriado
+- ✅ HOLD assimetria → Bem calibrada
+- ✅ INVALID_ACTION penalty → Suficiente
+- ✅ Clipping ±10.0 → Standard PPO
+- ✅ 3 componentes → Clean arquitetura
+
+### Ação Recomendada:
+**NÃO ALTERAR** `agent/reward.py` para v0.4. Prosseguir com sprint sem mudanças.
+
+Se futuro (v0.4.1):
+- Considerar HOLD_LOSS_PENALTY = -0.05 (vs. atual -0.02)
+- Considerar dynamic PNL_SCALE baseado em volatilidade
+
+---
+
+**Aprovado por**: ESP-ML
+**Data**: 20/02/2026 22:25 UTC
+**Status**: ✅ **GREEN LIGHT FOR BACKTEST ENGINE SPRINT**
+
+---
+
+## 📋 Checklist Final
+
+- [x] Reward.py lido completamente
+- [x] 3 componentes validados
+- [x] Escalas de reward OK
+- [x] Clipping apropriado
+- [x] Comparação v0.2 ✅ melhoria
+- [x] Sign-off assinado
+
+**READY TO PROCEED**

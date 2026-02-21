@@ -1,29 +1,30 @@
 # Treino Concorrente Explicado — Para Operadores
 
-**Data:** 20/02/2026  
-**Versão:** v0.3  
+**Data:** 20/02/2026
+**Versão:** v0.3
 **Nível Técnico:** Iniciante (sem pré-requisitos)
 
 ---
 
 ## O Que É "Treino Concorrente"?
 
-Imagine seu agente operando na Binance normalmente, mas também **aprendendo enquanto opera**.
+Imagine seu agente operando na Binance normalmente, mas também **aprendendo
+enquanto opera**.
 
 Sem treino concorrente:
-```
+```text
 Operação (24h) → Manual: Parar, Treinar, Reiniciar (perda de oportunidades)
-```
+```text
 
 Com treino concorrente:
-```
+```text
 Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
 │                │
 ├─ Busca trades  ├─ Melhora modelo
 ├─ Executa ordem ├─ Calcula novos pesos
 ├─ Gerencia SL   ├─ Valida performance
 └─ Monitora      └─ Salva modelo melhorado
-```
+```text
 
 ---
 
@@ -31,7 +32,7 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
 
 ### Topologia
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │ Terminal do Operador (iniciar.bat)                     │
 └─────────────────────────────────────────────────────────┘
@@ -74,7 +75,7 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
 └─────────────────────────────────────────────────────────┘
                          ↓
          Binance API (Ordens, Cotações, Posições)
-```
+```text
 
 ### Processo de Treino Detalhado
 
@@ -87,7 +88,7 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
 
 **A cada ciclo:**
 
-```
+```text
 [00:00] CICLO 1 INICIADO
        Carregando dados de treinamento...
        → BTCUSDT: 10k trades últimos 30 dias
@@ -98,7 +99,7 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
        Fase 1: PPO explora novo espaço estratégico
        Fase 2: Refina baseado em trades reais
        Fase 3: Valida em dados que modelo nunca viu
-       
+
        👉 Durante isso: Operação continua NORMAL
           Trades continuam sendo executados
           SLs/TPs são monitorados
@@ -107,13 +108,13 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
        Sharpe Ratio (novo):   1.25 ✅
        Win Rate (novo):       42.5% ✅
        Max Drawdown (novo):   8.2% ✅
-       
+
        Comparação anterior: SR=1.10, WR=41%, DD=10%
-       
+
        ✅ Modelo MELHOROU → Salva em: models/crypto_agent_ppo_final.zip
-       
+
 [04:00] PRÓXIMO CICLO
-```
+```text
 
 ---
 
@@ -121,7 +122,7 @@ Operação (24h) + Aprendizado Background (a cada 4h, sem parar a operação)
 
 ### CPU/RAM Durante Treino
 
-```
+```text
 OPERAÇÃO NORMAL:
 ├─ CPU: 2-5%   (checando oportunidades, monitorando)
 ├─ RAM: ~200MB (dados carregados)
@@ -137,11 +138,11 @@ DURANTE TREINO:
    ✅ EXECUÇÃO: Continuam normais (espera <1ms)
    ✅ MONITORAMENTO: Sem atraso (thread própria)
    ✅ SL/TP: Executados normalmente
-```
+```text
 
 ### Consumo de Rede
 
-```
+```text
 Treino Concorrente baixa dados UMA VEZ por ciclo:
 - 4h intervalo: ~5-15 MB baixados em 1 ciclo
 - 12h intervalo: ~10-30 MB baixados em 1 ciclo
@@ -149,7 +150,7 @@ Treino Concorrente baixa dados UMA VEZ por ciclo:
 Comparação:
 - Netflix 1 hora: ~500-1500 MB
 - Treino concorrente por dia: ~30-60 MB
-```
+```text
 
 ---
 
@@ -157,36 +158,36 @@ Comparação:
 
 ### Cenário 1: Iniciante Cauteloso
 
-```
+```text
 config:   --concurrent-training --training-interval 43200
           (12 HORAS = 1x por dia)
 
 Vantagem: Aprende, mas sem risco de "overfitting" em curto prazo
 Desvantagem: Aprendizado mais lento
 Ideal para: Testar segurança do conceito
-```
+```json
 
 ### Cenário 2: Operador Confiante
 
-```
+```text
 config:   --concurrent-training --training-interval 14400
           (4 HORAS = 6x por dia)
 
 Vantagem: Modelo adapta-se rapidamente a mudanças de mercado
 Desvantagem: Alto consumo de CPU
 Ideal para: Mercados voláteis, ajustes frequentes
-```
+```text
 
 ### Cenário 3: Mode Econômico
 
-```
+```text
 config:   --concurrent-training --training-interval 86400
           (24 HORAS = 1x dia, durante madrugada)
 
 Vantagem: Aprendizado sem sobrecarregar sistema
 Desvantagem: Visão atrasada ao mercado
 Ideal para: Produção de longo prazo
-```
+```text
 
 ---
 
@@ -203,27 +204,29 @@ Get-Content logs/agent.log -Tail 50 -Wait | Select-String "TRAINING"
 # [TRAINING] BTCUSDT...
 # [TRAINING OK] BTCUSDT: sharpe=1.25, winrate=42.5%
 # [TRAINING CYCLE COMPLETE] 17 OK, 0 FAILED
-```
+```bash
 
 ### Arquivo — Histórico de Treinos
 
 ```powershell
 # Listar modelos treinados
-Get-ChildItem models/crypto_agent_ppo_* | Format-Table LastWriteTime, Length, Name
+Get-ChildItem models/crypto_agent_ppo_* | Format-Table LastWriteTime, Length,
+Name
 
 # Resultado:
 # Time              Size      Name
 # 2026-02-20 12:00 290 KB    crypto_agent_ppo_phase1_exploration.zip
-# 2026-02-20 16:00 290 KB    crypto_agent_ppo_phase2_refinement.zip  ← Atualizado!
+# 2026-02-20 16:00 290 KB    crypto_agent_ppo_phase2_refinement.zip  ←
+Atualizado!
 # 2026-02-20 20:00 290 KB    crypto_agent_ppo_final.zip              ← Novo!
-```
+```bash
 
 ### Backtest — Validar Melhoria
 
 ```bash
 # Opção 4 em iniciar.bat para confirmar que modelo melhorou
 # Comparar métricas antes/depois do treino
-```
+```bash
 
 ---
 
@@ -231,17 +234,17 @@ Get-ChildItem models/crypto_agent_ppo_* | Format-Table LastWriteTime, Length, Na
 
 ### Proteção 1: Threads Isoladas
 
-```
+```text
 Se treino FALHA ou CONGELA:
 ├─ Operação continua normal ✅
 ├─ Modelo antigo permanece em uso
 ├─ Próximo ciclo tenta novamente
 └─ Nenhum trade perdido
-```
+```text
 
 ### Proteção 2: Validação Antes de Usar
 
-```
+```text
 Modelo novo é aceito APENAS se:
 ├─ Sharpe Ratio > 1.0      (melhor risco/retorno)
 ├─ Win Rate > 30%          (mais ganhos que perdas)
@@ -249,17 +252,17 @@ Modelo novo é aceito APENAS se:
 └─ Completa cycle sem erro  (treino perfeito)
 
 Se FALHA qualquer critério → Modelo antigo continua em uso
-```
+```text
 
 ### Proteção 3: Timeout Automático
 
-```
+```text
 Se treino dura > 2 horas:
 ├─ Força parada segura
 ├─ Salva progresso
 ├─ Alerta operador
 └─ Operação retoma normal
-```
+```text
 
 ---
 
@@ -275,7 +278,7 @@ Se treino dura > 2 horas:
 1. Opção 6: Setup inicial (coleta dados)
 2. Opção 1: Paper trading (gera trades de teste)
 3. Tentar novamente Opção 2 com --concurrent-training
-```
+```bash
 
 ### Problema 2: Treino Muito Lento
 
@@ -287,7 +290,7 @@ Se treino dura > 2 horas:
 ```bash
 # Aumentar intervalo para reduzir frequência
 Opção 2 → Intervalo: 8 (em vez de 4)
-```
+```bash
 
 ### Problema 3: CPU/RAM Muito Alto
 
@@ -298,7 +301,7 @@ Opção 2 → Intervalo: 8 (em vez de 4)
 ```bash
 # Próxima execução: Aumentar intervalo
 Opção 2 → Intervalo: 12 (em vez de 4)
-```
+```bash
 
 ---
 
@@ -317,26 +320,26 @@ Opção 2 → Intervalo: 12 (em vez de 4)
 ## Impacto Esperado — Real World
 
 ### Semana 1 (Treino 4h)
-```
+```text
 Dia 1 -> Sharpe: 1.15 → 1.20 (+4%)
 Dia 2 -> Sharpe: 1.20 → 1.24 (+3%)
 Dia 3 -> Win Rate: 40% → 42% (+ 2 trades/dia)
 ...
-```
+```text
 
 ### Semana 2 (Contínuo)
-```
+```text
 Sharpe Ratio: +8-12% acumulado
 Win Rate: +3-5% acumulado
 Max Drawdown: -15 até -25% (mais proteção)
-```
+```bash
 
 ### Mês 1
-```
+```text
 Modelo 10-15% mais lucrativo que inicial
 Adaptado a padrões do mês
 Ready para próxima fase
-```
+```bash
 
 ---
 
@@ -354,6 +357,6 @@ Ready para próxima fase
 
 ---
 
-**Criado em:** 20/02/2026  
-**Status:** ✅ Pronto para operação  
+**Criado em:** 20/02/2026
+**Status:** ✅ Pronto para operação
 **Próximo passo:** `Opção 2 + Treino Concorrente = Aprendizado Contínuo`

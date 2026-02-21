@@ -8,7 +8,8 @@
 
 ## 🏆 **RESUMO EXECUTIVO**
 
-A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implementada através de trabalho paralelo de dois agentes specialistas:
+A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente
+implementada através de trabalho paralelo de dois agentes specialistas:
 
 ### **Agente 1: Engenheiro de Software Senior** 🏗️
 - ✅ Implementou `data/data_loader.py` (16.9 KB, ~400 LOC)
@@ -26,7 +27,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
 
 ### **1. Módulo Principal: `data/data_loader.py`**
 
-```
+```text
 ✓ Class DataLoader (API limpa e extensível)
   ├─ __init__(db_path)
   ├─ load_training_data(symbol, start_date, end_date, timeframe)
@@ -55,7 +56,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
   │
   └─ Static Method: _extract_features_simple()
       └─ Extração de 104 features sem look-ahead
-```
+```sql
 
 **Linhas de Código:** ~400
 **Documentação:** Docstrings NumPy style completos
@@ -66,7 +67,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
 
 ### **2. Validador ML: `validate_training_data.py`**
 
-```
+```text
 ✓ Class MLValidator (8 checks estruturados)
   │
   ├─ run_all_checks(symbols, start_date, end_date)
@@ -101,7 +102,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
   │
   └─ Função print_validation_report()
       └─ Relatório formatado com status e métricas
-```
+```text
 
 **Linhas de Código:** ~450
 **Documentação:** Docstrings completos
@@ -112,7 +113,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
 
 ### **3. Suite de Testes: `tests/test_data_loader.py`**
 
-```
+```text
 ✓ TestDataLoaderIntegration (6 testes)
   ├─ test_load_training_data_shape_and_dtypes
   │   └─ Valida shape (n, 8), dtypes float64, índice DatetimeIndex
@@ -138,7 +139,7 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
   │
   └─ test_validate_training_data_btcusdt
       └─ Validação específica com dados reais do DB
-```
+```text
 
 **Total de Testes:** 8
 **Tipo:** Testes de integração (uso DB real)
@@ -154,10 +155,10 @@ A **Feature F-08 (Pipeline de Dados para Treinamento)** foi completamente implem
 - F-08 | ... | 🔴 CRÍTICA | (sem status)
 + F-08 | ... | 🔴 CRÍTICA | 🔄 IN PROGRESS (20/02)
 + F-09 | ... | 🔴 CRÍTICA | ⏳ Bloqueado por F-08
-```
+```bash
 
 #### ✅ `docs/SYNCHRONIZATION.md` — Atualizado
-```
+```markdown
 Seção v0.3 Adicionada:
 ├─ data/data_loader.py ✅ 20/02
 ├─ validate_training_data.py ✅ 20/02
@@ -170,17 +171,17 @@ Responsabilidades próximas:
 - Completar sincronização antes de merge
 - Atualizar README com seção v0.3
 - Adicionar entry em CHANGELOG.md
-```
+```text
 
 #### ✅ `DELIVERY_F08_SUMMARY.md` — Criado
-```
+```markdown
 Documento consolidado com:
 - Escopo completo da entrega
 - Implementação técnica detalhada
 - Exemplos de uso
 - Critérios de aceição validados
 - Checklist de conclusão
-```
+```text
 
 ---
 
@@ -253,7 +254,7 @@ Documento consolidado com:
 1. **Testes de Integração Completa**
    ```bash
    pytest tests/test_data_loader.py -v --tb=short
-   ```
+```bash
 
 2. **Syncronização Final**
    - [ ] Atualizar `README.md` com v0.3
@@ -263,7 +264,7 @@ Documento consolidado com:
 3. **Validação ML Contra DB Real**
    ```bash
    python validate_training_data.py
-   ```
+```bash
 
 ### Próxima Feature (F-09)
 - Implementar `main.py --train`
@@ -271,7 +272,7 @@ Documento consolidado com:
 - Executar session de treinamento minimal para validar pipeline
 
 ### Roadmap v0.3
-```
+```text
 Semana Atual (20-24/02):
 ├─ [✓] F-08: Pipeline de Dados (ENTREGUE HOJE)
 ├─ [ ] F-06: step() completo no Environment
@@ -282,7 +283,7 @@ Semana Próxima (25-28/02):
 ├─ Tests de integração E2E
 ├─ Primeiro treinamento
 └─ v0.3 beta ready
-```
+```text
 
 ---
 

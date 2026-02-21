@@ -626,45 +626,45 @@ class ReuniaoManagerDB:
         # Adicionar diálogos em 10 rodadas (3 por rodada)
         dialogos = relatorio["dialogos"]
         rodada_atual = 0
-        
+
         for i in range(0, min(len(dialogos), 30), 3):  # 10 rodadas = 30 diálogos
             rodada_atual += 1
-            
+
             # Pergunta
             if i < len(dialogos):
                 d_pergunta = dialogos[i]
                 md += f"### 🔹 Rodada {rodada_atual} — Análise Operacional\n\n"
                 md += f"**HEAD 🧠:**\n{d_pergunta['pergunta_ou_resposta']}\n\n"
-            
+
             # Resposta
             if i+1 < len(dialogos):
                 d_resposta = dialogos[i+1]
                 md += f"**OPERADOR 🤖:**\n{d_resposta['pergunta_ou_resposta']}\n\n"
-            
+
             # Tréplica
             if i+2 < len(dialogos):
                 d_trepica = dialogos[i+2]
                 md += f"**HEAD 🧠 (Tréplica):**\n{d_trepica['pergunta_ou_resposta']}\n\n"
-            
+
             md += "---\n\n"
 
         # Síntese (força/fraqueza/oportunidade)
         md += "## ✅ SÍNTESE — O que funcionou BEM\n\n"
-        
+
         forcas = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "força"]
         for i, fb in enumerate(forcas[:3], 1):
             md += f"### {i}️⃣ {fb['descricao']}\n"
             md += f"(Impacto: {fb['impacto_score']}/10)\n\n"
 
         md += "---\n\n## ❌ SÍNTESE — O que NÃO funcionou\n\n"
-        
+
         fraquezas = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "fraqueza"]
         for i, fb in enumerate(fraquezas[:3], 1):
             md += f"### {i}️⃣ {fb['descricao']}\n"
             md += f"(Impacto: {fb['impacto_score']}/10)\n\n"
 
         md += "---\n\n## 🔄 SÍNTESE — O que funcionou MAS pode melhorar\n\n"
-        
+
         oportunidades = [fb for fb in relatorio["feedbacks"] if fb["categoria"] == "oportunidade"]
         for i, fb in enumerate(oportunidades[:3], 1):
             md += f"### {i}️⃣ {fb['descricao']}\n"
@@ -672,7 +672,7 @@ class ReuniaoManagerDB:
 
         # Plano de ação
         md += "---\n\n## 🚀 PLANO DE AÇÃO — Itens para Aplicar Imediatamente\n\n"
-        
+
         for i, acao in enumerate(relatorio["acoes"][:6], 1):
             prioridade_emoji = "🔴" if acao["prioridade"] == "crítica" else "🟠" if acao["prioridade"] == "alta" else "🟡"
             md += f"### {i}️⃣ {prioridade_emoji} {acao['descricao_acao']}\n\n"
@@ -682,7 +682,7 @@ class ReuniaoManagerDB:
 
         # Investments
         md += "---\n\n## 💰 INVESTIMENTOS PROPOSTOS\n\n"
-        
+
         for inv in relatorio["investimentos"]:
             md += f"### {inv['tipo_investimento'].title()}\n"
             md += f"{inv['descricao']}\n"

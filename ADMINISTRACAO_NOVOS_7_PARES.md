@@ -7,7 +7,8 @@
 
 ## 🎯 Objetivos Alcançados
 
-Adição de 7 novos pares USDT em Profit Guardian Mode com proteção automática de SL/TP:
+Adição de 7 novos pares USDT em Profit Guardian Mode com proteção automática de
+SL/TP:
 
 | # | Ticker | Nome Completo | Classificação | Beta | Status |
 |---|--------|---------------|----------------|------|--------|
@@ -34,7 +35,7 @@ Adicionados 7 novos pares com metadados completos:
 - **Classificação:** Tipo de ativo
 - **Características:** Tags de classificação
 
-```
+```text
 ✅ FIL     → Storage infrastructure (β=2.5)
 ✅ GRT     → DeFi infrastructure (β=2.8)
 ✅ ATA     → Privacy infrastructure (β=3.2)
@@ -42,7 +43,7 @@ Adicionados 7 novos pares com metadados completos:
 ✅ GPS     → Speculative emerging (β=3.5)
 ✅ GUN     → Trading bot ecosystem (β=3.8)
 ✅ POWER   → Governance token (β=3.6)
-```
+```text
 
 ### 2. Playbooks Especializados
 **Pasta:** [playbooks/](playbooks/)
@@ -114,47 +115,47 @@ __all__ = [
     'FILPlaybook', 'GRTPlaybook', 'ATAPlaybook', 'PENGUPlaybook',
     'GPSPlaybook', 'GUNPlaybook', 'POWERPlaybook'
 ]
-```
+```text
 
 ---
 
 ## 📊 Matriz de Risco por Tipo de Ativo
 
 ### Mid-Cap Stables (FIL, GRT)
-```
+```text
 Position Size: 65-70%
 SL/TP: 1.5x / 3.0x ATR (padrão)
 Regime: Risk-on com D1 LONG
 Risco Máximo: 2.5-3.0%
-```
+```text
 
 ### Low-Cap Mid-Volatility (ATA, GPS, POWER)
-```
+```text
 Position Size: 48-50%
 SL/TP: 1.4x / 2.5x ATR (ligeiramente apertado)
 Regime: Risk-on com D1 LONG/STRONG_LONG
 Risco Máximo: 2.3-2.5%
 Confluência Mínima: 10+
-```
+```text
 
 ### Low-Cap High-Volatility (GUN)
-```
+```text
 Position Size: 45%
 SL/TP: 1.3x / 2.2x ATR (apertado)
 Regime: Risk-on + D1 STRONG_LONG APENAS
 Especial: BREAKOUT_ONLY (apenas confirmados)
 Risco Máximo: 2.2%
 Confluência Mínima: 10+
-```
+```text
 
 ### Low-Cap Memecoin (PENGU)
-```
+```text
 Position Size: 40% (MÁXIMO CONSERVADOR)
 SL/TP: 1.2x / 2.0x ATR (MUITO apertado)
 Regime: Risk-on + D1 STRONG_LONG APENAS
 Risco Máximo: 2.0%
 Confluência Mínima: 11+ (EXIGENTE)
-```
+```text
 
 ---
 
@@ -170,18 +171,18 @@ Confluência Mínima: 11+ (EXIGENTE)
 7. **Audit Trail** - Log completo de cada decisão
 
 ### Risco Máximo
-```
+```text
 Total Portfolio: 6.0% exposto simultaneamente
 Por Par: 2.0-3.0% (conforme β e fase de ciclo)
 Drawdown Máximo: 2.2-3.0% por posição
 Liquidação: Protegida contra margem insuficiente
-```
+```text
 
 ---
 
 ## 🔄 Fluxo de Operação
 
-```
+```text
 Iniciar Sistema (Option 2)
     ↓
 PositionMonitor (background, 5-min intervals)
@@ -195,7 +196,7 @@ PositionMonitor (background, 5-min intervals)
         ├─ 7 camadas de proteção
         ├─ Envia ao Binance
         └─ Log auditável
-```
+```text
 
 ---
 
@@ -221,7 +222,7 @@ PositionMonitor (background, 5-min intervals)
 
 ## ✅ Checklist de Validação
 
-```
+```text
 ✓ Config/symbols.py:       7/7 pares adicionados
 ✓ Playbooks criados:       7/7 implementados
 ✓ Métodos obrigatórios:    get_confluence_adjustments ✓
@@ -232,7 +233,7 @@ PositionMonitor (background, 5-min intervals)
 ✓ PositionMonitor:         Rastreará 7 novos pares
 ✓ OrderExecutor:           Executará ordens destes pares
 ✓ System validation:       PASSOU
-```
+```python
 
 ---
 
@@ -242,12 +243,12 @@ PositionMonitor (background, 5-min intervals)
 1. **Monitorar logs em tempo real**
    ```bash
    tail -f logs/agent.log | grep -E "FIL|GRT|ATA|PENGU|GPS|GUN|POWER"
-   ```
+```bash
 
 2. **Executar validação**
    ```bash
    python validar_novos_7_pares.py
-   ```
+```bash
 
 3. **Monitorar P&L das posições**
    - PENGU e GUN requerem atenção especial (high beta)
@@ -278,9 +279,11 @@ PositionMonitor (background, 5-min intervals)
 
 ## 🎉 Conclusão
 
-**Sistema totalmente preparado para gerenciar 7 novos pares em Profit Guardian Mode com proteção automática 24/7.**
+**Sistema totalmente preparado para gerenciar 7 novos pares em Profit Guardian
+Mode com proteção automática 24/7.**
 
-Todos os componentes foram integrados, testados e validados. Os novos pares estão prontos para operação no próximo ciclo do agendador.
+Todos os componentes foram integrados, testados e validados. Os novos pares
+estão prontos para operação no próximo ciclo do agendador.
 
 ---
 

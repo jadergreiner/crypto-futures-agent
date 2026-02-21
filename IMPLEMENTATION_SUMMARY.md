@@ -1,7 +1,10 @@
 # Relatório Detalhado de Análise de Posições - Resumo da Implementação
 
 ## Objetivo
-Implementar um relatório de análise detalhada que exibe informações completas sobre cada posição monitorada, incluindo indicadores técnicos, análise SMC, dados de sentimento e recomendações de trading. Todos os dados são persistidos para treinamento de Aprendizagem por Reforço (RL).
+Implementar um relatório de análise detalhada que exibe informações completas
+sobre cada posição monitorada, incluindo indicadores técnicos, análise SMC,
+dados de sentimento e recomendações de trading. Todos os dados são persistidos
+para treinamento de Aprendizagem por Reforço (RL).
 
 ## Funcionalidades Implementadas
 
@@ -114,7 +117,8 @@ Gera e registra relatório completo com:
 ### 4. Persistência para Aprendizagem por Reforço
 
 #### Campo `analysis_summary` no Banco de Dados
-Novo campo TEXT na tabela `position_snapshots` que armazena JSON estruturado com:
+Novo campo TEXT na tabela `position_snapshots` que armazena JSON estruturado
+com:
 
 ```json
 {
@@ -160,30 +164,36 @@ Novo campo TEXT na tabela `position_snapshots` que armazena JSON estruturado com
     "take_profit": 54000.0
   }
 }
-```
+```json
 
 #### Método `_generate_analysis_summary(position, indicators, decision)`
 Gera o resumo estruturado em JSON para persistência.
 
 #### Integração no Fluxo
 - `monitor_cycle()` chama `_log_analysis_report()` após `evaluate_position()`
-- `create_snapshot()` inclui `analysis_summary` gerado por `_generate_analysis_summary()`
+- `create_snapshot()` inclui `analysis_summary` gerado por
+`_generate_analysis_summary()`
 - Dados são persistidos via `insert_position_snapshot()`
 
 ### 5. Benefícios para Aprendizagem por Reforço
 
 O agente RL pode:
 
-1. **Aprender Padrões**: Identificar quais combinações de indicadores levam a trades bem-sucedidos
+1. **Aprender Padrões**: Identificar quais combinações de indicadores levam a
+trades bem-sucedidos
 2. **Contexto Completo**: Entender o estado completo do mercado em cada decisão
-3. **Avaliação Retroativa**: Calcular recompensas baseado no outcome final da posição
-4. **Aprendizado Contínuo**: Construir dataset abrangente automaticamente a cada ciclo
-5. **Análise de Decisões**: Revisar reasoning e condições que levaram a cada ação
-6. **Otimização de Estratégia**: Ajustar parâmetros baseado em performance histórica
+3. **Avaliação Retroativa**: Calcular recompensas baseado no outcome final da
+posição
+4. **Aprendizado Contínuo**: Construir dataset abrangente automaticamente a cada
+ciclo
+5. **Análise de Decisões**: Revisar reasoning e condições que levaram a cada
+ação
+6. **Otimização de Estratégia**: Ajustar parâmetros baseado em performance
+histórica
 
 ## Exemplo de Output
 
-```
+```text
 ============================================================
 ANALISE DETALHADA: BTCUSDT LONG
 ============================================================
@@ -230,7 +240,7 @@ ANALISE DETALHADA: BTCUSDT LONG
     2. EMAs alinhadas para alta - tendencia bullish confirmada
     3. LONG em estrutura favorável (RSI: 62.3, preco acima EMAs)
 ============================================================
-```
+```text
 
 ## Qualidade e Segurança
 
@@ -249,4 +259,7 @@ ANALISE DETALHADA: BTCUSDT LONG
 
 ## Conclusão
 
-A implementação fornece um sistema completo de análise e relatório para posições, com todos os dados persistidos para treinamento de Aprendizagem por Reforço. O sistema é robusto, seguro e fornece informações acionáveis ao usuário a cada ciclo de monitoramento.
+A implementação fornece um sistema completo de análise e relatório para
+posições, com todos os dados persistidos para treinamento de Aprendizagem por
+Reforço. O sistema é robusto, seguro e fornece informações acionáveis ao usuário
+a cada ciclo de monitoramento.

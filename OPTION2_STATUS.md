@@ -1,19 +1,21 @@
 # Opção [2] — Live Integrado com Treino Concorrente
 
-**Status:** ✅ PRONTO PARA OPERAÇÃO  
-**Data:** 20/02/2026  
-**Versão:** v0.3 Training Ready  
+**Status:** ✅ PRONTO PARA OPERAÇÃO
+**Data:** 20/02/2026
+**Versão:** v0.3 Training Ready
 **Testes:** 8/8 PASSANDO ✅
 
 ---
 
 ## 📋 Resumo Executivo
 
-A **Opção [2]** do orquestrador (`iniciar.bat`) agora permite que o operador execute o agente em modo live trading **enquanto o modelo melhora continuamente em background**.
+A **Opção [2]** do orquestrador (`iniciar.bat`) agora permite que o operador
+execute o agente em modo live trading **enquanto o modelo melhora continuamente
+em background**.
 
 ### O Que É Treino Concorrente?
 
-```
+```text
 ANTES (sem treino concorrente):
 ├─ Operação (24h)
 ├─ PARAR operação
@@ -27,7 +29,7 @@ AGORA (com treino concorrente):
 │  ├─ Thread 2: Monitora posições
 │  └─ Thread 3: Treina modelo (não atrapalha)
 └─ Resultado: Operação ininterrupta + Melhorias automáticas
-```
+```text
 
 ---
 
@@ -58,7 +60,7 @@ Sistema inicia:
 ├─ Live Trading (buscando oportunidades)
 ├─ Monitor de posições (SL/TP)
 └─ Treino em background (a cada 4h)
-```
+```text
 
 ### Comando Equivalente (PowerShell)
 
@@ -69,7 +71,7 @@ python main.py `
   --integrated-interval 300 `
   --concurrent-training `
   --training-interval 14400
-```
+```text
 
 ---
 
@@ -77,7 +79,7 @@ python main.py `
 
 ### 3 Threads em Paralelo
 
-```
+```text
 ┌────────────────────────────────────────────────────────┐
 │ OPERAÇÃO LIVE (Thread 1)                              │
 │ ├─ Coleta preços (D1, H4, H1)                         │
@@ -119,7 +121,7 @@ do)                │
     ├─ Trades executados
     ├─ Modelos PPO (.zip)
     └─ Métricas
-```
+```text
 
 ---
 
@@ -138,25 +140,25 @@ do)                │
 ### Exemplo: Setup para Diferentes Cenários
 
 **Cenário 1: High-Performance Trading**
-```
+```text
 Intervalo: 2 horas
 Descrição: Adaptação rápida a mudanças
 Ideal para: Mercados voláteis, períodos de turbulência
-```
+```text
 
 **Cenário 2: Padrão Balanceado**
-```
+```text
 Intervalo: 4 horas (default)
 Descrição: Equilíbrio ótimo
 Ideal para: Uso normal em qualquer mercado
-```
+```text
 
 **Cenário 3: Modo Econômico**
-```
+```text
 Intervalo: 24 horas
 Descrição: Uma vez por dia, idealmente à noite
 Ideal para: Produção de longo prazo, máquinas fracas
-```
+```text
 
 ---
 
@@ -166,7 +168,7 @@ Ideal para: Produção de longo prazo, máquinas fracas
 
 Modelo novo é aceito **APENAS SE** atender todos critérios:
 
-```
+```text
 ✅ Sharpe Ratio > 1.0      (risco/retorno adequado)
 ✅ Win Rate > 30%          (mais ganhos que perdas)
 ✅ Max Drawdown < 15%      (proteção de capital)
@@ -176,11 +178,11 @@ SE ALGUM CRITÉRIO FALHAR:
   → Modelo antigo continua em uso
   → Próximo ciclo tenta novamente
   → Nenhum trade é perdido
-```
+```text
 
 ### Isolamento de Falhas
 
-```
+```text
 Se treino CONGELA/TRAVA:
   ✅ Operação continua normal
   ✅ Modelo antigo em uso
@@ -195,7 +197,7 @@ Timeout seguro:
   ✅ Se treino > 2 horas: força parada
   ✅ Salva progresso
   ✅ Alerta operador
-```
+```text
 
 ---
 
@@ -203,21 +205,21 @@ Timeout seguro:
 
 ### Primeira Semana
 
-```
+```text
 Dia 1: Sharpe 1.15 → 1.20 (+4%)
 Dia 2: Sharpe 1.20 → 1.24 (+3%)
 Dia 3: Win Rate 40% → 42% (+2%)
 ...
 Semana: +8-12% Sharpe acumulado
-```
+```text
 
 ### Primeira Mês
 
-```
+```text
 Modelo 10-15% mais lucrativo
 Adaptado a padrões do período
 Fundação para próxima fase
-```
+```text
 
 ---
 
@@ -235,23 +237,24 @@ Get-Content logs/agent.log -Tail 50 -Wait | Select-String "TRAINING"
 # [TRAINING] ETHUSDT... OK
 # ... (todos)
 # [TRAINING CYCLE COMPLETE] 17 OK, 0 FAILED
-```
+```bash
 
 ### Verificar Modelos Atualizados
 
 ```powershell
 # Ver histórico de modelos
-Get-ChildItem models/crypto_agent_ppo_* | Format-Table LastWriteTime, Length, Name
+Get-ChildItem models/crypto_agent_ppo_* | Format-Table LastWriteTime, Length,
+Name
 
 # Modelos são salvos ao completar treino bem-sucedido
-```
+```bash
 
 ### Validar Métricas
 
 ```powershell
 # Após 24h de operação:
 # Opção 4 (Backtest) para confirmar melhoria
-```
+```bash
 
 ---
 
@@ -265,7 +268,7 @@ Solução:
 1. Opção 6 (Setup inicial) → Coleta dados
 2. Opção 1 (Paper) → 1 hora (gera trades)
 3. Tentar Opção 2 novamente
-```
+```bash
 
 ### Problema: Treino Muito Lento
 
@@ -274,7 +277,7 @@ Solução:
 Solução:
 Próxima execução: Intervalo maior
 Opção 2 → Intervalo: 8 (em vez de 4)
-```
+```bash
 
 ### Problema: CPU/RAM Alto
 
@@ -283,7 +286,7 @@ Opção 2 → Intervalo: 8 (em vez de 4)
 Solução:
 Próxima execução: Aumentar intervalo
 Opção 2 → Intervalo: 12+ horas
-```
+```bash
 
 ### Problema: Operação Para Durante Treino
 
@@ -293,13 +296,13 @@ Solução:
 1. Ctrl+C (para tudo)
 2. Deativar treino concorrente (responda N)
 3. Reportar em GitHub Issues
-```
+```bash
 
 ---
 
 ## 🔄 Ciclo Típico de Treino (Intervalo = 4h)
 
-```
+```text
 [00:00] CICLO 1 INICIADO
   └─ Carregando 10k+ trades dos últimos 30 dias
 
@@ -327,7 +330,7 @@ Solução:
 
 [04:00] PRÓXIMO CICLO
   └─ Operação continua ININTERRUPTA
-```
+```text
 
 ---
 
@@ -351,40 +354,41 @@ Antes de usar **Opção [2] com Treino Concorrente**:
 **Arquivo de logs:** `logs/agent.log`
 
 **Palavras-chave para buscar:**
-```
+```text
 TRAINING         → Ciclo de treino
 TRAINING CYCLE   → Início/fim de ciclo
 TRAINING OK      → Símbolo treinado com sucesso
 TRAINING FAILED  → Erro em um símbolo
 [SECURITY]       → Alertas de segurança
-```
+```text
 
 ---
 
 ## ✅ Validação Final
 
-```
+```text
 ✅ Implementação: 100% completo
 ✅ Testes E2E: 8/8 PASSANDO
 ✅ Documentação: COMPLETA
 ✅ Segurança: VALIDADA
 ✅ Performance: TESTADA
 ✅ Pronto para producao: SIM
-```
+```text
 
 ---
 
 ## 📚 Documentação Relacionada
 
 - [OPERATOR_MANUAL.md](OPERATOR_MANUAL.md) — Guia completo operacional
-- [CONCURRENT_TRAINING_GUIDE.md](CONCURRENT_TRAINING_GUIDE.md) — Treino detalhado
+- [CONCURRENT_TRAINING_GUIDE.md](CONCURRENT_TRAINING_GUIDE.md) — Treino
+detalhado
 - [OPERATOR_QUICKSTART.md](OPERATOR_QUICKSTART.md) — Quick reference
 - [test_option2_e2e.py](test_option2_e2e.py) — Testes validados
 
 ---
 
-**Status:** ✅ **OPERACIONAL**  
-**Data:** 20/02/2026  
+**Status:** ✅ **OPERACIONAL**
+**Data:** 20/02/2026
 **Próximo passo:** Execute `.\iniciar.bat` → Opção [2]
 
 🚀 **Agora o agente treina enquanto trabalha!**

@@ -80,11 +80,11 @@ class ExecutorReuniao:
         # Verificar trades
         trades = self._obter_trades_periodo(dias=dias)
         tem_trades = len(trades) > 0
-        
+
         # Verificar logs operacionais
         logs_analise = self._analisar_logs_operacionais(dias=1)
         tem_eventos = bool(logs_analise.get("erros") or logs_analise.get("avisos") or logs_analise.get("falhas_execucao"))
-        
+
         # Verificar position snapshots (dados de monitoramento em tempo real)
         try:
             with self.db_trades.get_connection() as conn:
@@ -288,12 +288,12 @@ class ExecutorReuniao:
 
             # Buscar logs recentes (últimas 24h por padrão)
             cutoff_time = datetime.now() - timedelta(days=dias)
-            
+
             # Procurar por padrões em arquivos de log
             erros = []
             avisos = []
             falhas_execucao = []
-            
+
             # Procurar especificamente por live_trading_*.log e paper_trading_*.log
             log_patterns = [
                 "logs/live_trading_*.log",
@@ -301,17 +301,17 @@ class ExecutorReuniao:
                 "logs/app_*.log",
                 "logs/errors_*.log"
             ]
-            
+
             for pattern in log_patterns:
                 for log_file in glob.glob(pattern):
                     try:
                         file_stat = Path(log_file).stat()
                         file_time = datetime.fromtimestamp(file_stat.st_mtime)
-                        
+
                         # Só processar logs recentes
                         if file_time < cutoff_time:
                             continue
-                        
+
                         with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
                             for line in f:
                                 # Procurar por padrões de ERROrm WARNING, FAILED, etc
@@ -324,7 +324,7 @@ class ExecutorReuniao:
                     except Exception as e:
                         logger.debug(f"Erro ao ler {log_file}: {e}")
                         continue
-            
+
             # Análise de padrões
             padroes = []
             if erros:
@@ -333,9 +333,9 @@ class ExecutorReuniao:
                 padroes.append(f"Detectados {len(avisos)} avisos nas últimas 24h")
             if falhas_execucao:
                 padroes.append(f"Detectadas {len(falhas_execucao)} falhas de execução")
-            
+
             logger.info(f"Análise de logs: {len(erros)} erros, {len(avisos)} avisos, {len(falhas_execucao)} falhas")
-            
+
             return {
                 "erros": erros[:3],  # Top 3 erros
                 "avisos": avisos[:3],  # Top 3 avisos
@@ -761,7 +761,7 @@ class ExecutorReuniao:
         # Carregamentos dados reais para análise
         trades = self._obter_trades_periodo(dias=7)
         logs_analise = self._analisar_logs_operacionais(dias=1)
-        
+
         # Se há trades reais, gerar feedbacks dinamicamente
         if trades and len(trades) > 0:
             feedbacks = self._gerar_feedbacks_dinamicos(trades, logs_analise)

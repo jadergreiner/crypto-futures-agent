@@ -6,24 +6,26 @@
 
 Após o Round 2 de treinamento, a validação (Fase 3) mostrou:
 
-```
+```text
 Win Rate: 52.50%        ← Bom (acima de 50%)
 Profit Factor: 0.57     ← Ruim (perde mais $ que ganha)
 Sharpe Ratio: -0.20     ← Ruim (retornos negativos)
 Max Drawdown: 11.52%    ← Aceitável
 Avg R-Multiple: -0.15   ← Ruim (trades perdedores > vencedores)
-```
+```bash
 
 ### Causa Raiz
 
-O agente aprendeu a operar (Win Rate 52.50%), mas está fazendo o oposto do desejado: **corta os lucros cedo e deixa as perdas correrem**. Quando ganha, ganha pouco; quando perde, perde muito → Profit Factor 0.57.
+O agente aprendeu a operar (Win Rate 52.50%), mas está fazendo o oposto do
+desejado: **corta os lucros cedo e deixa as perdas correrem**. Quando ganha,
+ganha pouco; quando perde, perde muito → Profit Factor 0.57.
 
 Evidências dos logs:
 
-```
+```text
 Position closed: manual_close, PnL=$-136.66 (-1.51%), R=-0.76
 Position closed: manual_close, PnL=$-41.92 (-0.47%), R=-0.24
-```
+```text
 
 ## Mudanças Implementadas
 
@@ -38,7 +40,7 @@ if pnl_pct > 0:
     components['r_hold_bonus'] = 0.02 + pnl_pct * 0.05
 elif pnl_pct < -2.0:
     components['r_hold_bonus'] = -0.01
-```
+```python
 
 - Peso: 0.5
 
@@ -51,7 +53,7 @@ if pnl_pct > 0:
 elif pnl_pct < -0.5:
     # Penalidade crescente para posições perdedoras
     components['r_hold_bonus'] = -0.02 * abs(pnl_pct)
-```
+```bash
 
 - Peso: **0.8** (aumentado)
 - Incentivo muito mais forte para segurar lucros
@@ -69,7 +71,7 @@ elif r_multiple < -0.5:
     exit_reason = trade_result.get('exit_reason', '')
     if exit_reason == 'manual_close':
         components['r_exit_quality'] = r_multiple * 0.3
-```
+```bash
 
 - Peso: **1.0**
 - Recompensa explícita por qualidade da saída
@@ -84,7 +86,7 @@ elif r_multiple < -0.5:
 INACTIVITY_THRESHOLD = 10      # ~40h em H4
 INACTIVITY_PENALTY_RATE = 0.02
 # Peso: 0.5
-```
+```python
 
 **Depois:**
 
@@ -92,7 +94,7 @@ INACTIVITY_PENALTY_RATE = 0.02
 INACTIVITY_THRESHOLD = 15      # ~60h em H4
 INACTIVITY_PENALTY_RATE = 0.015
 # Peso: 0.3
-```
+```python
 
 - Dá mais tempo ao agente para encontrar setups
 - Penalidade mais branda
@@ -110,7 +112,7 @@ def _on_rollout_end(self) -> None:
         ep_info = self.model.ep_info_buffer[-1]  # Apenas o último!
         self.episode_rewards.append(ep_info.get('r', 0))
         self.episode_lengths.append(ep_info.get('l', 0))
-```
+```bash
 
 - Problema: Capturava apenas o último episódio
 - Resultado: reward_mean=0.00 sempre nos logs
@@ -134,7 +136,7 @@ def _on_step(self) -> bool:
             self.episode_rewards.append(ep_info.get('r', 0))
             self.episode_lengths.append(ep_info.get('l', 0))
         self._last_ep_info_len = current_len
-    
+
     # Log melhorado
     if self.n_calls % self.log_interval == 0:
         if self.episode_rewards:
@@ -142,11 +144,12 @@ def _on_step(self) -> bool:
             logger.info(f"Training step {self.n_calls}: "
                        f"reward_mean={np.mean(recent_rewards):.4f}, "
                        f"episodes={len(self.episode_rewards)}, "
-                       f"ep_len_mean={np.mean(self.episode_lengths[-100:]):.0f}")
-```
+f"ep_len_mean={np.mean(self.episode_lengths[-100:]):.0f}")
+```json
 
 - Captura TODOS os episódios novos
-- Log com mais informações (reward_mean correto, contagem de episódios, tamanho médio)
+- Log com mais informações (reward_mean correto, contagem de episódios, tamanho
+médio)
 
 ## Testes
 
@@ -229,25 +232,27 @@ Script `examples/demonstrate_reward_fixes.py` mostra:
 
 ```bash
 python main.py --mode train
-```
+```bash
 
 ### Ver demonstração das mudanças
 
 ```bash
 python examples/demonstrate_reward_fixes.py
-```
+```bash
 
 ### Rodar testes
 
 ```bash
 pytest tests/test_reward*.py tests/test_training_callback.py -v
-```
+```bash
 
 ## Observações
 
 1. As mudanças são **retrocompatíveis** - código existente continua funcionando
-2. O agente precisará ser **retreinado do zero** para aprender o novo comportamento
-3. As constantes podem ser ajustadas via `RewardCalculator.update_weights()` se necessário
+2. O agente precisará ser **retreinado do zero** para aprender o novo
+comportamento
+3. As constantes podem ser ajustadas via `RewardCalculator.update_weights()` se
+necessário
 4. O TrainingCallback agora fornece logs mais informativos durante o treinamento
 
 ## Conclusão
@@ -260,4 +265,5 @@ As mudanças implementam um sistema de incentivos assimétrico que:
 - **Penaliza** fechar manualmente no prejuízo (mas não stop loss)
 - **Reduz pressão** para operar demais
 
-Isso deve resolver o problema de Profit Factor baixo e R-Multiple negativo, mantendo o Win Rate.
+Isso deve resolver o problema de Profit Factor baixo e R-Multiple negativo,
+mantendo o Win Rate.

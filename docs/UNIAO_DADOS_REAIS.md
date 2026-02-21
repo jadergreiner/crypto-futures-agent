@@ -2,11 +2,13 @@
 
 ## 📋 Visão Geral
 
-O sistema de reunião (Head Financeiro × Operador Autônomo) agora integra **dados reais** de operações, logs e análises dinâmicas. Anteriormente, usava exemplos hardcoded; agora carrega histórico atual do banco de dados e logs operacionais.
+O sistema de reunião (Head Financeiro × Operador Autônomo) agora integra **dados
+reais** de operações, logs e análises dinâmicas. Anteriormente, usava exemplos
+hardcoded; agora carrega histórico atual do banco de dados e logs operacionais.
 
 ## 🔄 Fluxo de Dados
 
-```
+```text
 iniciar.bat (opera o agente)
     ↓
 db/crypto_futures.db (trade_log, execution_log)
@@ -21,7 +23,7 @@ _gerar_feedbacks_dinamicos() [identifica força/fraqueza/oportunidade]
 _gerar_acoes_dinamicas()     [cria plano baseado em problemas reais]
     ↓
 Relatório markdown com dados atualizados
-```
+```text
 
 ## 📊 Dados Carregados
 
@@ -40,7 +42,7 @@ Relatório markdown com dados atualizados
 **Consulta realizada:**
 ```python
 trades = self.db_trades.get_trades(start_time=data_inicio)
-```
+```python
 Padrão: últimas 7 dias (configurável)
 
 #### Tabela: `execution_log`
@@ -52,8 +54,9 @@ Padrão: últimas 7 dias (configurável)
 
 **Consulta realizada:**
 ```python
-execucoes = self.db_trades.get_execution_log(start_time=data_inicio, executed_only=True)
-```
+execucoes = self.db_trades.get_execution_log(start_time=data_inicio,
+executed_only=True)
+```python
 
 ### De `logs/`
 
@@ -71,7 +74,7 @@ execucoes = self.db_trades.get_execution_log(start_time=data_inicio, executed_on
 **Função:**
 ```python
 logs_analise = self._analisar_logs_operacionais(dias=1)
-```
+```python
 Retorna: top 3 erros, avisos, falhas + padrões identificados
 
 ## 📈 Métricas Calculadas
@@ -116,7 +119,8 @@ Top 5 pares por PnL:
 
 ### Fallback (sem dados)
 
-Se não houver trades, usa exemplos pré-definidos como antes. Permite testes sem produção.
+Se não houver trades, usa exemplos pré-definidos como antes. Permite testes sem
+produção.
 
 ## 🚀 Geração de Ações (6 itens)
 
@@ -151,7 +155,7 @@ Se sem dados, usa 6 ações pré-definidas como antes.
 2. **Disparar reunião**
    ```bash
    python scripts/disparador_reuniao.py --contexto "Contexto do mercado"
-   ```
+```bash
    - Carrega dados do DB (últimas 7 dias)
    - Analisa logs (últimas 24h)
    - Gera feedbacks e ações dinamicamente
@@ -173,25 +177,25 @@ Se não há trades em DB (primeira viagem), sistema:
 ```python
 trades = self._obter_trades_periodo(dias=7)      # Últimos 7 dias
 logs_analise = self._analisar_logs_operacionais(dias=1)  # Últimas 24h
-```
+```python
 
 **Modificar:**
 ```python
 trades = self._obter_trades_periodo(dias=30)     # 30 dias
-```
+```python
 
 ### Número de pares analisados
 
 ```python
 top_pares = self._obter_pares_mais_operados(trades, top_n=2)
-```
+```bash
 Top 2 pares aparecem no relatório. Modificar `top_n=5` para top 5.
 
 ### Limite de erros em logs
 
 ```python
 erros = erros[:3]  # Top 3 erros
-```
+```bash
 Modificar para `:5` para top 5 erros.
 
 ## 🐛 Debug
@@ -201,11 +205,12 @@ Modificar para `:5` para top 5 erros.
 Arquivo: `logs/reuniao_execucao.log`
 
 Exemplo:
-```
+```text
 2026-02-20 20:24:29,206 [INFO] Carregados 0 trades do período
 2026-02-20 20:24:29,206 [INFO] Análise de logs: 0 erros, 0 avisos, 0 falhas
-2026-02-20 20:24:29,207 [INFO] Métricas carregadas (dados reais): PnL=0.00 USDT, Ops=0, Sharpe=0.00
-```
+2026-02-20 20:24:29,207 [INFO] Métricas carregadas (dados reais): PnL=0.00 USDT,
+Ops=0, Sharpe=0.00
+```text
 
 ### Verificar dados carregados
 
@@ -220,7 +225,7 @@ for t in trades[:3]:
 metricas = self.carregar_metricas()
 print(f"PnL geral: {metricas['globais']['pnl_usdt']:.2f} USDT")
 print(f"Taxa acertos: {metricas['globais']['taxa_acertos']:.1%}")
-```
+```bash
 
 ## 🎯 Próximas Melhorias
 
@@ -279,7 +284,7 @@ metricas = {
         "padroes": [...]
     }
 }
-```
+```json
 
 ## ✅ Status
 

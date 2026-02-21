@@ -2,9 +2,12 @@
 
 ## O que é?
 
-Documento executável que chama o motor de reunião ad-hoc com **contexto opcional de mercado ou operacional**.
+Documento executável que chama o motor de reunião ad-hoc com **contexto opcional
+de mercado ou operacional**.
 
-Sempre que você vir um movimento importante ou tiver questionamentos sobre a operação, dispara uma reunião instantânea entre o **Head Financeiro** e o **Operador Autônomo**.
+Sempre que você vir um movimento importante ou tiver questionamentos sobre a
+operação, dispara uma reunião instantânea entre o **Head Financeiro** e o
+**Operador Autônomo**.
 
 ---
 
@@ -16,7 +19,7 @@ Despara reunião imediatamente com status operacional:
 
 ```bash
 python scripts/disparador_reuniao.py
-```
+```bash
 
 **Resultado:**
 - Cria registro em `db/reunioes.db`
@@ -32,7 +35,7 @@ Passa observação de mercado para discussão:
 ```bash
 python scripts/disparador_reuniao.py \
   --contexto "BTC caiu 15%, FVG aberto em H4, sinal bearish em Daily"
-```
+```bash
 
 **O que acontece:**
 1. Sistema registra o contexto observado
@@ -49,7 +52,7 @@ Quando há latência, rejeições ou falhas:
 ```bash
 python scripts/disparador_reuniao.py \
   --contexto "3 rejeições de ordem hoje, latência 45-60ms em Binance"
-```
+```bash
 
 **Output:**
 - Debate sobre cause root (API, network, posição?)
@@ -65,7 +68,7 @@ Propõe novo hardware ou integração:
 ```bash
 python scripts/disparador_reuniao.py \
   --contexto "Proposta: RAM 32GB para cache ML, custo R$4.2k, ROI +12%"
-```
+```bash
 
 **Resultado:**
 - Head avalia ROI vs. risco
@@ -83,7 +86,7 @@ python scripts/disparador_reuniao.py \
   --head "Carlos Rafael" \
   --operador "v0.4beta" \
   --contexto "Teste de nova versão do RL agent"
-```
+```bash
 
 ---
 
@@ -93,48 +96,49 @@ python scripts/disparador_reuniao.py \
 
 ```bash
 python scripts/disparador_reuniao.py \
-  --contexto "ETH pump 8% em 4h, volatilidade acima histórica, 3 liquidações de shorts"
-```
+--contexto "ETH pump 8% em 4h, volatilidade acima histórica, 3 liquidações de
+shorts"
+```bash
 
 **Diálogo gerado:**
-```
+```text
 HEAD: "Você entrou nessas 3 velas?"
 OP: "Sim, 0.5 BNB LONG + 1 ETH SHORT hedge"
 HEAD: "Razão para short ETH com pump?"
 OP: "Divergência Stoch em H1, expectativa pullback"
 AÇÃO: Monitorar suportes 2400, 2350 para stop loss
-```
+```json
 
 ### Exemplo B: Erro de Máquina
 
 ```bash
 python scripts/disparador_reuniao.py \
   --contexto "Websocket desconectou 2x em 30min, perdemos sinal ao vivo"
-```
+```bash
 
 **Resultado:**
-```
+```text
 HEAD: "Impacto?"
 OP: "Parei operação em BTC/USDT por 8 minutos"
 HEAD: "Plano?"
 OP: "Implementar fallback + heartbeat custom (3 dias)"
 INVESTIMENTO: Servidor secundário + health check (R$ 2k)
-```
+```json
 
 ### Exemplo C: Performance Questionável
 
 ```bash
 python scripts/disparador_reuniao.py \
   --contexto "Sharpe caiu de 1.8 para 1.2 em 1 semana, Win rate 42%"
-```
+```bash
 
 **Output:**
-```
+```text
 FEEDBACK:
 - Fraqueza: Parâmetros defasados pro mercado volatilidade atual
 - Oportunidade: Retreinar com últimos 30 dias dados
 - Ação: Backteste novo modelo vs. live (2 dias)
-```
+```text
 
 ---
 
@@ -159,7 +163,8 @@ FEEDBACK:
 
 ### Banco de Dados
 - **Arquivo:** `db/reunioes.db` (SQLite3)
-- **Tabelas:** 8 tabelas (reunioes, dialogos, feedbacks, acoes, investimentos, comparacao, evolucoes, topicos)
+- **Tabelas:** 8 tabelas (reunioes, dialogos, feedbacks, acoes, investimentos,
+comparacao, evolucoes, topicos)
 - **Query:** Busca automática de reunião anterior para delta Sharpe/PnL
 
 ---
@@ -185,11 +190,12 @@ contexto = "BTC +12%, Volume 2x media, FVG acima"
 executor.executar_fluxo_completo()
 
 # Contexto será registrado automaticamente nos dados da reunião
-```
+```bash
 
 ### Salvando Contexto Explicitamente
 
-Dentro do `ExecutorReuniao`, o contexto é passado para a tabela `topicos_reuniao`:
+Dentro do `ExecutorReuniao`, o contexto é passado para a tabela
+`topicos_reuniao`:
 
 ```python
 db.criar_topico_reuniao(
@@ -197,7 +203,7 @@ db.criar_topico_reuniao(
     topico=contexto,
     tipo_topico="mercado"  # ou "tecnico", "investimento", "performance"
 )
-```
+```json
 
 ---
 
@@ -229,7 +235,7 @@ Antes de disparar, considere:
 ## Outputs Gerados
 
 ### 1. Registro em Banco
-```
+```text
 db/reunioes.db
 ├── reunioes (ID, data, head, operador)
 ├── dialogos_reuniao (pergunta, resposta, tréplica)
@@ -239,10 +245,10 @@ db/reunioes.db
 ├── topicos_reuniao (contexto passado)
 ├── comparacao_reunioes (delta vs. anterior)
 └── evolucoes_reuniao (histórico estado do agente)
-```
+```text
 
 ### 2. Relatório Markdown
-```
+```markdown
 docs/reuniao_2026_02_20_20_15_31.md
 ├── # Reunião Head × Operador [timestamp]
 ├── ## Contexto Observado
@@ -252,17 +258,17 @@ docs/reuniao_2026_02_20_20_15_31.md
 ├── ## Investimentos Propostos
 ├── ## Comparação Com Reunião Anterior
 └── ## Próximos Passos
-```
+```bash
 
 ### 3. Log Executivo
-```
+```text
 ✅ Reunião disparada com sucesso!
    ID: 1
    Head: Roberto Silva
    Operador: v0.3
    Contexto: "BTC caiu 15%..."
    Arquivo: docs/reuniao_2026_02_20_20_15_31.md
-```
+```json
 
 ---
 
@@ -275,7 +281,7 @@ cd c:\repo\crypto-futures-agent
 
 # Depois rodar
 python scripts/disparador_reuniao.py
-```
+```bash
 
 ### "Erro ao conectar BD"
 ```bash
@@ -287,7 +293,7 @@ mkdir db
 
 # Rodar script novamente (vai inicializar BD)
 python scripts/disparador_reuniao.py
-```
+```bash
 
 ### "Contexto muito longo"
 - Máximo de caracteres é ~1000 (recomendado: 100-200)
@@ -312,6 +318,8 @@ python scripts/disparador_reuniao.py \
 
 # Ver help
 python scripts/disparador_reuniao.py --help
-```
+```json
 
-**Próximo Destino:** Veja [GUIA_REUNIOES_SEMANAIS.md](../docs/GUIA_REUNIOES_SEMANAIS.md) para análise profunda de cada etapa de reunião.
+**Próximo Destino:** Veja
+[GUIA_REUNIOES_SEMANAIS.md](../docs/GUIA_REUNIOES_SEMANAIS.md) para análise
+profunda de cada etapa de reunião.

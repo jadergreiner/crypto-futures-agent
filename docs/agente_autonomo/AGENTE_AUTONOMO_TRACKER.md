@@ -1,15 +1,15 @@
 # 📊 TRACKER DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20 22:30 UTC  
-**Status**: REAL-TIME  
+**Versão**: 1.0
+**Data**: 2026-02-20 22:30 UTC
+**Status**: REAL-TIME
 **Responsável**: Product Owner + CTO
 
 ---
 
 ## 🚀 Status Atual (v0.3 — HOJE)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │  AGENTE AUTÔNOMO — STATUS CRÍTICO (20/02/2026 22:30)    │
 │                                                         │
@@ -24,7 +24,7 @@
 │  23 FEV                 → Go/No-Go decision (PO+CTO)   │
 │  24 FEV+                → v0.4 kickoff                  │
 └─────────────────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -90,7 +90,7 @@
 
 ### Status por Ação
 
-```
+```text
 ACAO-001: Fechar 5 posições (30 min)
 ├─ Status: ⏳ AÇÃO CFO (22:00 BRT decision)
 ├─ Owner: Operador
@@ -121,13 +121,13 @@ ACAO-005: Follow-up reunião 24h (30 min)
 └─ Decisão: Scale up ou hold?
 
 TOTAL TEMPO: 100 minutos
-```
+```text
 
 ---
 
 ## 📈 Burn-down Chart (Esperado)
 
-```
+```text
 Dias de Trabalho vs. Features Completadas
 ─────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ Features
         FEV    MAR    ABR    MAY    JUN ... DEC
 
 Expected velocity: 8+ features/week
-```
+```text
 
 ---
 
@@ -176,7 +176,7 @@ Expected velocity: 8+ features/week
 
 ## 📞 Escalação Crítica
 
-```
+```text
 BLOQUEADOR DETECTADO?
         ↓
     Slack @po
@@ -189,7 +189,7 @@ BLOQUEADOR DETECTADO?
  │      └─→ RCA + mitigation plan
  │
  └─→ Próximo passo (desbloqueador)
-```
+```text
 
 ---
 
@@ -218,7 +218,7 @@ BLOQUEADOR DETECTADO?
 
 ---
 
-**Mantido por**: Product Owner + CTO  
-**Frequência**: Daily updates  
+**Mantido por**: Product Owner + CTO
+**Frequência**: Daily updates
 **Last Updated**: 2026-02-20 22:30 UTC
 

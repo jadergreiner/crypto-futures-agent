@@ -1,17 +1,40 @@
 # 📚 BACKLOG DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Status**: 45+ itens priorizado  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Status**: 45+ itens priorizado
 **Responsável**: Product Owner
 
 ---
 
 ## 🎯 Backlog Priorizado (45+ itens)
 
-### 🔴 CRÍTICO (0-24h)
+### � EM ANDAMENTO — F-12 SPRINT (21-24 FEV)
 
-```
+```text
+[E3.1] F-12 Backtest Engine Sprint
+├─ Descrição: Deliver b backtest engine com 6 métricas + risk clearance
+├─ Subtasks:
+│   ├─ F-12a BacktestEnvironment ✅ DONE (20/02)
+│   ├─ F-12b Data Pipeline 3-layer (21 FEV)
+│   ├─ F-12c Trade State Machine (22 FEV)
+│   ├─ F-12d Reporter (22 FEV)
+│   ├─ F-12e Comprehensive Tests (23 FEV)
+│   └─ F-13 Walk-Forward Validation (23 FEV)
+├─ Esforço: 50h (4 devs × 3 dias com parallelização)
+├─ Owner: ESP-ENG (lead) + ESP-ML
+├─ Timeline: 21-24 FEV
+├─ Metrics:
+│   ├─ Sharpe ≥ 0.80 (target 1.20)
+│   ├─ Max DD ≤ 12%
+│   ├─ Test coverage ≥ 85%
+│   └─ Performance < 10s for 90-day backtest
+└─ Success: v0.4 release ready on 23/02
+```text
+
+### �🔴 CRÍTICO (0-24h)
+
+```text
 [ACAO-001] Fechar 5 posições perdedoras
 ├─ Descrição: Encerrar ETHUSDT, SOLUSDT, ADAUSDT, DOGEUSDT, LINKUSDT
 ├─ Esforço: 30 min
@@ -52,11 +75,11 @@
 ├─ Status: ⏳ Bloqueado por ACAO-004
 ├─ Desbloqueador: N/A
 └─ Success: Decisão escrita (scale up ou hold)
-```
+```text
 
 ### 🟠 ALTA (1-3 dias)
 
-```
+```text
 [E2.1] Treinar PPO 100 episódios
 ├─ Descrição: Training loop v0.3 em 3 pares (BTC, ETH, SOL)
 ├─ Critério: CV(reward) < 1.5
@@ -87,11 +110,11 @@
 ├─ Owner: PO + CTO
 ├─ Timeline: 23/02
 └─ Success: Versão v0.3 tagged no git
-```
+```text
 
 ### 🟡 MÉDIO (4-7 dias)
 
-```
+```text
 [E3.1] BacktestEnvironment ✅ COMPLETO
 ├─ Código: backtest/backtest_environment.py
 ├─ Tests: tests/test_backtest_environment.py
@@ -127,24 +150,24 @@
 ├─ Go/No-Go: 28/02
 ├─ Status: Backtest engine ready
 └─ Next: v0.5 kickoff
-```
+```text
 
 ### 🔵 BAIXO (1-4 semanas)
 
-```
+```text
 [E4.*, E5.*] v0.5–v1.0
 ├─ v0.5: Scaling, risk, co-location (01-09/03)
 ├─ v1.0: Production, compliance (10-30/04)
 └─ v2.0: Enterprise features (01-31/12)
 
 Total: 40+ features, 3+ sprints
-```
+```text
 
 ---
 
 ## 📊 Backlog Burndown (Esperado)
 
-```
+```text
 SEMANA 1 (20-26 FEV)
 ├─ ACAO-001-005: 100 min total
 ├─ E2.1-E2.4: 42 horas
@@ -161,7 +184,7 @@ SEMANA 3-4 (06-20 MAR)
 └─ Cumulative: 20 horas
 
 Total 30 dias: ~120 horas de trabalho
-```
+```text
 
 ---
 
@@ -175,7 +198,7 @@ Cada item está linkado a:
 
 ---
 
-**Mantido por**: Product Owner  
-**Frequência atualização**: Daily  
+**Mantido por**: Product Owner
+**Frequência atualização**: Daily
 **Last Updated**: 2026-02-20 22:10 UTC
 

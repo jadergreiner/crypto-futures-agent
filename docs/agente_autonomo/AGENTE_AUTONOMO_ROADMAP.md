@@ -1,15 +1,15 @@
 # 🗺️ ROADMAP DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Horizonte**: 12 meses (FEV 2026 — DEZ 2026)  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Horizonte**: 12 meses (FEV 2026 — DEZ 2026)
 **Responsável**: Product Owner
 
 ---
 
 ## 📅 Timeline Executiva
 
-```
+```text
 FEV 2026              MAR          ABR-JUN       JUL-SET      OUT-DEZ
 ─────────────────────────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
 ├─ Validação        ├─ Engine        ├─ Compliance    ├─ Multi-strat
 ├─ 0 → 5 trades/d   ├─ Pronto        ├─ 24/7 Ops      ├─ Multi-exchange
 └─ Profit Guardian  └─ Release       └─ Licensing     └─ Revenue model
-```
+```text
 
 ## 🎯 Roadmap Detalhado
 
@@ -49,18 +49,18 @@ v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
 
 ---
 
-### 🟠 v0.4 — BACKTEST ENGINE (24-28 FEV)
+### 🟠 v0.4 — BACKTEST ENGINE (21-24 FEV — SPRINT ATIVO)
 
 **Objetivo**: Ferramenta backtest pronta, validações históricas viáveis
 
-| Milestone | Data | Descr |
-|-----------|------|-------|
-| F-12a complete | 20 FEV | ✅ BacktestEnvironment |
-| F-12b complete | 25 FEV | Data pipeline 3-layer |
-| F-12c complete | 26 FEV | Trade state machine |
-| F-12d complete | 26 FEV | Reporter (text+JSON) |
-| F-12e complete | 27 FEV | Comprehensive tests |
-| v0.4 release | 28 FEV | Engine ready |
+| Milestone | Data | Status | Descr |
+|-----------|------|--------|-------|
+| F-12a complete | 20 FEV | ✅ DONE | BacktestEnvironment |
+| F-12b complete | 21 FEV (Terça) | ⏳ IN PROGRESS | Data pipeline 3-layer |
+| F-12c complete | 22 FEV (Quarta) | ⏳ IN PROGRESS | Trade state machine |
+| F-12d complete | 22 FEV (Quarta) | ⏳ IN PROGRESS | Reporter (text+JSON) |
+| F-12e complete | 23 FEV (Quinta) | ⏳ IN PROGRESS | Comprehensive tests |
+| v0.4 release | 23-24 FEV | ⏳ PENDING | Engine ready (Sexta buffer) |
 
 **Features**:
 - ✅ BacktestEnvironment (deterministic)
@@ -151,17 +151,17 @@ v0.3 CRÍTICO        v0.4 BACKTEST   v1.0 PRODUCTION  v2.0 ENTERPRISE
 
 ## 📈 Capacidade por Versão
 
-```
+```text
 v0.3:  5 trades/day    | $50k AUM    | Sharpe 0.5-1.0
 v0.4:  10 trades/day++ | $100k AUM   | Backtest validação
 v0.5:  20+ trades/day  | $500k AUM   | Sharpe 1.0-1.5
 v1.0:  100 trades/day  | $2M AUM     | Sharpe >1.5 (target)
 v2.0:  500+ trades/day | Multi-$M    | Revenue >$500k
-```
+```text
 
 ## 🎁 Feature Roadmap Consolidado
 
-```
+```text
 v0.3 (HOJE):
 ├─ RL Training ✅
 ├─ Signal generation ✅
@@ -191,7 +191,7 @@ v2.0 (01-31 DEZ):
 ├─ Multi-account ⏳
 ├─ Multi-exchange ⏳
 └─ Licensing model ⏳
-```
+```text
 
 ## 🚨 Risco & Mitigação
 
@@ -204,7 +204,7 @@ v2.0 (01-31 DEZ):
 
 ## 🎯 Decisão Gates
 
-```
+```text
 GATE 1: 22:00 BRT (HOJE)
 ├─ CFO: Aprova ACAO-001?
 └─ Bloqueador para ACAO-002-005
@@ -226,11 +226,11 @@ GATE 4: 28 FEV
 GATE 5: 09 MAR
 ├─ CFO + CTO: v0.5 performance?
 └─ Roadmap adjustment se needed
-```
+```text
 
 ---
 
-**Mantido por**: Product Owner + CTO  
-**Frequência revisão**: Semanal (ou por release)  
+**Mantido por**: Product Owner + CTO
+**Frequência revisão**: Semanal (ou por release)
 **Last Updated**: 2026-02-20 22:15 UTC
 

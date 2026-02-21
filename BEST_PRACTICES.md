@@ -56,7 +56,7 @@
 - Rodar testes após toda mudança relevante:
   ```bash
   pytest -q tests/test_seu_modulo.py
-  ```
+```bash
 - Não "consertar" testes não relacionados
 - Mínimo de cobertura: 70% para módulos críticos
 - Nomes de testes descrevem o que testam
@@ -90,22 +90,22 @@
   ```markdown
   Descrição curta que cabe em 80 caracteres
   Próxima linha com mais informação clara
-  ```
+```text
 
 - ❌ Errado:
   ```markdown
   Descrição muito longa que cabe MAIS de 80 caracteres e por
   isso quebrará a formatação em diferentes resoluções
-  ```
+```text
 
 - ❌ Errado com título:
   ```markdown
   # Este é um título muito longo que excede 80 caracteres (93)
-  ```
+```bash
 
 ### Estrutura de Documentação
 
-```
+```text
 docs/
 ├── FEATURES.md          → Roadmap de features
 ├── RELEASES.md          → Detalhes por versão
@@ -115,7 +115,7 @@ docs/
 ├── USER_MANUAL.md       → Guia para usuários finais
 ├── USER_STORIES.md      → Histórias de usuário estruturadas
 └── TRACKER.md           → Sprint tracker
-```
+```text
 
 Quando criar novo doc: adicionar referência em `SYNCHRONIZATION.md`
 
@@ -126,14 +126,14 @@ Quando criar novo doc: adicionar referência em `SYNCHRONIZATION.md`
 ### Formato de Mensagem
 
 **Template:**
-```
+```text
 [TAG] Escopo breve em português
 
 Descrição detalhada (opcional):
 - Por que foi feita a mudança
 - Como foi implementada
 - Qualquer nota relevante
-```
+```text
 
 ### Tags Obrigatórias
 
@@ -150,15 +150,15 @@ Descrição detalhada (opcional):
 ### ⚠️ REGRA CRÍTICA: Não Quebrar Texto
 
 **NÃO fazer:**
-```
+```text
 ee8dfb1 docs: Sumário de atualiza├º├úo de arquitetura
 (BaseAutoTrader pattern + Quick
-```
+```text
 
 **FAZER:**
-```
+```text
 ee8dfb1 [SYNC] Sumário de atualização de arquitetura
-```
+```text
 
 **Explicação:**
 - Usar apenas caracteres ASCII (0-127)
@@ -169,7 +169,7 @@ ee8dfb1 [SYNC] Sumário de atualização de arquitetura
 **Verificar antes de commitar:**
 ```bash
 git log --oneline -1  # Verificar última mensagem
-```
+```bash
 
 ---
 
@@ -199,7 +199,7 @@ Manter atualizado com padrão Keep a Changelog:
 
 ### Changed
 - RobustScaler por símbolo (sem data leakage)
-```
+```bash
 
 ---
 
@@ -304,27 +304,35 @@ Alvos de performance esperados:
 
 ### Estilo de Código Python
 
-- [PEP 8](https://www.python.org/dev/peps/pep-0008/) —
+- [PEP
+8]([https://www.python.org/dev/peps/pep-0008/](https://www.python.org/dev/peps/pep-0008/))
+—
   Style guide
-- [PEP 257](https://www.python.org/dev/peps/pep-0257/) —
+- [PEP
+257]([https://www.python.org/dev/peps/pep-0257/](https://www.python.org/dev/peps/pep-0257/))
+—
   Docstring conventions
 
 ### Versionamento
 
-- [SemVer](https://semver.org/) — Semantic Versioning
-- [Keep a Changelog](https://keepachangelog.com/) — CHANGELOG
+- [SemVer]([https://semver.org/](https://semver.org/)) — Semantic Versioning
+- [Keep a Changelog]([https://keepachangelog.com/](https://keepachangelog.com/))
+— CHANGELOG
   format
 
 ### Git Commits
 
-- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Conventional
+Commits]([https://www.conventionalcommits.org/](https://www.conventionalcommits.org/))
   — Padrão para commits
 
 ### Markdown
 
-- [Markdown Lint](https://github.com/markdownlint/markdownlint)
+- [Markdown
+Lint]([https://github.com/markdownlint/markdownlint](https://github.com/markdownlint/markdownlint))
   — Validação
-- [CommonMark](https://spec.commonmark.org/) — Especificação
+- [CommonMark]([https://spec.commonmark.org/](https://spec.commonmark.org/)) —
+Especificação
 
 ---
 

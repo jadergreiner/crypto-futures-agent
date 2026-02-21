@@ -1,8 +1,8 @@
 # 📊 GOVERNANÇA DE DOCS, BACKLOG E ROADMAP
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Role**: Product Owner  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Role**: Product Owner
 **Público**: Diretoria, Stakeholders, Time de Desenvolvimento
 
 ---
@@ -26,7 +26,7 @@
 
 ### Roles e Responsabilidades
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                   DIRETORIA EXECUTIVA                │
 │             (Decisões estratégicas > $10k)          │
@@ -44,20 +44,23 @@
 CFO:  Budget, risk parameters, trading size, drawdown limits
 CTO:  Architecture, testing, deployment, infrastructure
 PO:   Roadmap, backlog prioritization, release planning, docs
-```
+```text
 
 ### Matriz de Decisões
 
 | Tipo | Autoridade | Prazo | Escopo |
 |------|-----------|-------|--------|
-| **Crítico** (>$10k ou risco sistêmico) | Diretoria | 1 hora| ACAO-001, closing positions |
-| **Alto** ($1k-$10k ou release) | PO+CTO+CFO | 4 horas | v0.3 release, new features |
-| **Médio** ($100-$1k ou bug) | PO+CTO | 24 horas | backlog items, optimizations |
+| **Crítico** (>$10k ou risco sistêmico) | Diretoria | 1 hora| ACAO-001, closing
+positions |
+| **Alto** ($1k-$10k ou release) | PO+CTO+CFO | 4 horas | v0.3 release, new
+features |
+| **Médio** ($100-$1k ou bug) | PO+CTO | 24 horas | backlog items, optimizations
+|
 | **Baixo** (<$100 ou doc) | PO | 7 dias | docs, CI/CD, cleanup |
 
 ### Responsabilidades PO (Product Owner)
 
-```
+```text
 PLANEJAMENTO (40%):
 ├─ Roadmap: Visão 12 meses (Q1, Q2, Q3, Q4 2026)
 ├─ Release planning: v0.3 (hoje), v0.4 (24/02), v0.5 (10/03)
@@ -81,7 +84,7 @@ GESTÃO (10%):
 ├─ Comunicação: Diretoria, stakeholders, time
 ├─ Métricas: Velocity, deployment frequency, lead time
 └─ Priorização: Trocas (trade-offs) de features vs. time
-```
+```text
 
 ---
 
@@ -89,7 +92,7 @@ GESTÃO (10%):
 
 ### Timeline
 
-```
+```text
 FEVEREIRO 2026 (Hoje)
 ├─ v0.3: Training Ready 🔴 OPERAÇÃO PARALELA C
 │  ├─ Status: 🔄 IN PROGRESS (iniciado 20/02 20:30)
@@ -130,7 +133,7 @@ OUTUBRO-DEZEMBRO 2026
    ├─ Suporte a exchanges (Deribit, OKEx)
    ├─ Licensing model
    └─ Target: Revenue >$500k anuais
-```
+```text
 
 ### Status por Versão
 
@@ -149,7 +152,7 @@ OUTUBRO-DEZEMBRO 2026
 
 **Objetivo**: Resolver Profit Guardian Mode, voltar ao trading
 
-```
+```text
 📌 E1.1 — Diagnóstico & Reconfiguração (HOJE)
 ├─ ACAO-001: Fechar 5 posições perdedoras ⏳ Aprovação
 ├─ ACAO-002: Validar fechamento ⏳ Bloqueado
@@ -160,13 +163,13 @@ OUTUBRO-DEZEMBRO 2026
    └─ Owner: Operador/HEAD
    └─ Status: 0% completo
    └─ End Date: 21/02/2026 16:00 UTC
-```
+```text
 
 ### EPIC 2: v0.3 VALIDATION (21-23 FEV)
 
 **Objetivo**: Validar modelo PPO em 3 símbolos (BTC, ETH, SOL)
 
-```
+```text
 📌 E2.1 — Training + Backtesting
 ├─ [ ] Treinar PPO 100 episódios
 ├─ [ ] Backtest 3 meses histórico
@@ -202,13 +205,13 @@ OUTUBRO-DEZEMBRO 2026
    └─ Owner: PO + CTO
    └─ Time: 2 horas
    └─ Start: 23/02
-```
+```text
 
 ### EPIC 3: v0.4 BACKTEST ENGINE (24-28 FEV)
 
 **Objetivo**: Backtest engine pronto, walktests históricos viáveis
 
-```
+```text
 📌 E3.1 — BacktestEnvironment (✅ COMPLETO)
 ├─ [x] Subclass determinística
 ├─ [x] 3 test suites (determinismo, sequência, propriedades)
@@ -250,13 +253,13 @@ OUTUBRO-DEZEMBRO 2026
    └─ Owner: PO + CTO
    └─ Time: 2 horas
    └─ Start: 28/02
-```
+```text
 
 ### EPIC 4: v0.5 SCALING + RISK (01-09 MAR)
 
 **Objetivo**: Scaling to 10+ trades/day, co-location, monitoring
 
-```
+```text
 📌 E4.1 — Risk Management v2
 ├─ [ ] Max drawdown limits 5% → 3%
 ├─ [ ] Real-time Sharpe monitoring
@@ -285,13 +288,13 @@ OUTUBRO-DEZEMBRO 2026
 ├─ [ ] Aprovação CFO (budget)
 ├─ [ ] Aprovação CTO (infra)
 └─ Priority: 🔴 CRÍTICO
-```
+```text
 
 ### EPIC 5: v1.0 PRODUCTION (10-30 ABR)
 
 **Objetivo**: Enterprise-ready, auditado, compliance
 
-```
+```text
 📌 E5.1 — Compliance & Auditoria
 ├─ [ ] Auditoria externa
 ├─ [ ] ReportingANAD/CVM
@@ -309,13 +312,13 @@ OUTUBRO-DEZEMBRO 2026
 📌 E5.4 — Release v1.0 (GO/NO-GO)
 ├─ [ ] Production deployment
 └─ Milestone: Launch oficial
-```
+```text
 
 ---
 
 ## 📊 MATRIZ DE DEPENDÊNCIAS (DOCUMENTAÇÃO)
 
-```
+```text
 CÓDIGO ↔ DOCUMENTAÇÃO
 
 1. config/symbols.py (16 pares USDT)
@@ -357,7 +360,7 @@ CÓDIGO ↔ DOCUMENTAÇÃO
    ├─ README.md (link PO pode incluir)
    ├─ CHANGELOG.md (governança entry)
    └─ .github/copilot-instructions.md (procedimentos)
-```
+```text
 
 ---
 
@@ -365,7 +368,7 @@ CÓDIGO ↔ DOCUMENTAÇÃO
 
 ### Toda mudança NO CÓDIGO requer:
 
-```
+```text
 1. Editar arquivo fonte (config, agent, execution, etc)
 2. Rodar testes: pytest -q <arquivo_teste>
 3. Identificar impacto em documentação (ver matriz acima)
@@ -374,11 +377,11 @@ CÓDIGO ↔ DOCUMENTAÇÃO
 6. Commit com tag apropriada: [FEAT], [FIX], [SYNC], [TEST]
 7. Atualizar docs/SYNCHRONIZATION.md com data/hora/quem
 8. Notificar PO de mudanças que afetam roadmap
-```
+```python
 
 ### Toda mudança em DOCUMENTAÇÃO requer:
 
-```
+```text
 1. Editar documento
 2. Verificar se afeta outros docs (matriz de deps)
 3. Atualizar CADA documento dependente
@@ -388,7 +391,7 @@ CÓDIGO ↔ DOCUMENTAÇÃO
 7. Registrar em docs/SYNCHRONIZATION.md
 8. Criar CHANGELOG entry
 9. Notificar stakeholders se mudança crítica (README, ROADMAP)
-```
+```python
 
 ### Validação Automática
 
@@ -405,7 +408,7 @@ python scripts/validate_sync.py
 # ✅ SYNCHRONIZATION: registradas mudanças
 # ✅ CHANGELOG: entrada recente adicionada
 # ✅ TUDO OK → Pronto para commit
-```
+```bash
 
 ---
 
@@ -457,7 +460,7 @@ python scripts/validate_sync.py
 
 ### Reuniões Regulares
 
-```
+```text
 DAILY (09:30 BRT):
 └─ Standup: 10 min, problemas do dia
 
@@ -483,11 +486,11 @@ MENSAL (1º Thursday):
 ├─ KPI dashboard
 ├─ Budget review
 └─ Duração: 30 min
-```
+```text
 
 ### Escalação Crítica
 
-```
+```text
 CRÍTICO (impacto >$10k ou risco sistêmico):
 └─ Slack notification → CFO + CTO + PO
    └─ Resposta esperada: <1 hora
@@ -503,10 +506,10 @@ ALTO (impacto $1k-$10k ou release):
 MÉDIO (backlog item):
 └─ Weekly sprint planning
    └─ Resposta esperada: semana seguinte
-   
+
 BAIXO (doc, cleanup):
 └─ Backlog (sem urgência)
-```
+```text
 
 ---
 
@@ -515,15 +518,16 @@ BAIXO (doc, cleanup):
 **Da situação crítica de hoje (Profit Guardian Mode)**:
 
 1. ✅ **Monitoramento reativo**: Precisamos proativo dashboard
-2. ✅ **Documentação crítica**: OPERACOES_CRITICAS_20FEV.md previne futuros bloqueios
+2. ✅ **Documentação crítica**: OPERACOES_CRITICAS_20FEV.md previne futuros
+bloqueios
 3. ✅ **Bom diagnóstico**: 10 rodadas de detalhamento revelou issue em 30 min
 4. ✅ **Dependent tracking**: Matriz de deps mapeou 5 AÇÕES encadeadas
 5. ✅ **Governança PO**: Falta input PO levou a config bloqueante silent
 
 ---
 
-**Mantido por**: Product Owner  
-**Frequência de Revisão**: Bi-semanal (ou quando mudança crítica)  
-**Próxima Revisão**: 2026-02-27 (após v0.3 release + v0.4 kickoff)  
+**Mantido por**: Product Owner
+**Frequência de Revisão**: Bi-semanal (ou quando mudança crítica)
+**Próxima Revisão**: 2026-02-27 (após v0.3 release + v0.4 kickoff)
 **Last Updated**: 2026-02-20 21:15 UTC
 

@@ -8,7 +8,9 @@
 
 ## Resumo Executivo
 
-Implementação e validação da feature **F-09: Script de treinamento funcional** (`python main.py --train`). A feature integra completamente F-06, F-07 e F-08 para criar um pipeline de treinamento end-to-end do modelo RL.
+Implementação e validação da feature **F-09: Script de treinamento funcional**
+(`python main.py --train`). A feature integra completamente F-06, F-07 e F-08
+para criar um pipeline de treinamento end-to-end do modelo RL.
 
 - ✅ Argparse reconhece `--train` flag
 - ✅ Diagnóstico de dados funcional (força-parada se dados insuficientes)
@@ -42,14 +44,14 @@ parser.add_argument(
     action='store_true',
     help='Train the RL model'
 )
-```
+```text
 
 **Fluxo de execução:**
 ```python
 if args.train:
     train_model()
     sys.exit(0)
-```
+```python
 
 ### Trainer.py: 3 Fases Completas
 
@@ -83,7 +85,7 @@ if args.train:
 
 **Resultados do teste:**
 
-```
+```text
 [1/5] Preparando dados de treinamento...
   [OK] DataLoader criado para BTCUSDT
 
@@ -114,7 +116,7 @@ if args.train:
   [OK] Modelo final salvo: 290.3 KB
 
 [OK] Teste concluido com sucesso
-```
+```text
 
 ## Integração com F-06, F-07, F-08
 
@@ -122,7 +124,8 @@ if args.train:
 
 1. ✅ **F-06 (step()):** Episódios rodam até episode_length
 2. ✅ **F-07 (_get_observation()):** 104 features válidas por step
-3. ✅ **F-08 (DataLoader):** Carrega dados e retorna dict com todas as chaves necessárias
+3. ✅ **F-08 (DataLoader):** Carrega dados e retorna dict com todas as chaves
+necessárias
 4. ✅ **Trainer:** Recebe dados, cria environments, treina modelo
 5. ✅ **Callbacks:** Registra rewards e comprimento dos episódios
 6. ✅ **Métricas:** Calcula corretamente win_rate, sharpe, max_dd
@@ -134,14 +137,14 @@ if args.train:
 python main.py --dry-run      # Validar pipeline
 python main.py --setup         # Coletar dados
 # [Manual] Convocar trainer.py
-```
+```bash
 
 **Agora:** (com F-09)
 ```bash
 python main.py --setup         # Coletar dados históricos
 python main.py --train         # Treina 3 fases automaticamente
 # [Resultado] Modelo em models/crypto_agent_ppo_final.zip
-```
+```bash
 
 ## Mudanças de Documentação
 
@@ -157,14 +160,14 @@ python main.py --train         # Treina 3 fases automaticamente
 
 ## Status Atual v0.3
 
-```
+```text
 F-06 [████████████████████████████████] DONE
 F-07 [████████████████████████████████] DONE
 F-08 [████████████████████████████████] DONE
 F-09 [████████████████████████████████] DONE
 F-10 [████░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% (
 Reward shaping)
-```
+```text
 
 ## Próximas Prioridades
 

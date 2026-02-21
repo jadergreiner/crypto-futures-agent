@@ -16,7 +16,8 @@
 ### Instruções para a Conversa
 
 A reunião consiste em:
-1. **10 rodadas de Q&A estruturado** (pergunta HEAD → resposta OPERADOR → tréplica HEAD)
+1. **10 rodadas de Q&A estruturado** (pergunta HEAD → resposta OPERADOR →
+tréplica HEAD)
 2. **Síntese de insights** (3 força, 3 fraqueza, 3 oportunidade)
 3. **Plano de ação** (6 itens com prioridade)
 4. **Investimentos propostos** (se houver)

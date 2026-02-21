@@ -6,20 +6,21 @@
 
 ## 🎯 Situação Crítica
 
-**Data**: 20/02/2026 20:45 UTC  
-**Status**: 🔴 CRÍTICO — Agente em Profit Guardian Mode, 0 sinais novos há 3+ dias
+**Data**: 20/02/2026 20:45 UTC
+**Status**: 🔴 CRÍTICO — Agente em Profit Guardian Mode, 0 sinais novos há 3+
+dias
 
 ### Causa Raiz
 
 `config/execution_config.py` linha 35:
 ```python
 "allowed_actions": ["CLOSE", "REDUCE_50"]  # ❌ Bloqueia "OPEN"
-```
+```bash
 
 ### Impacto
 
 - 21 pares monitorados mas 0 sinais novos gerados
-- -$2.670/dia em oportunidades perdidas  
+- -$2.670/dia em oportunidades perdidas
 - 21 posições com perdas -42% a -511%
 
 ---
@@ -90,7 +91,7 @@
 
 # DEPOIS:
 "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
-```
+```bash
 
 **Passos**:
 1. Editar 1 linha (1 min)
@@ -99,7 +100,8 @@
 
 **Verificação**: Script `scripts/validar_allowed_actions.py` passa com sucesso
 
-**Commit**: `[CONFIG] Habilitar 'OPEN' em allowed_actions — fim de Profit Guardian Mode`
+**Commit**: `[CONFIG] Habilitar 'OPEN' em allowed_actions — fim de Profit
+Guardian Mode`
 
 ---
 
@@ -108,7 +110,7 @@
 **Status**: 🔒 Bloqueado por ACAO-003
 
 **Parâmetros do Trade**:
-```
+```text
 Símbolo:    BTCUSDT
 Direção:    LONG
 Tamanho:    0.2 BTC
@@ -116,7 +118,7 @@ Entry:      ~42.850 (MARKET)
 Stop Loss:  41.800 (1.2% risco)
 TP:         43.200 (+3.2% reward)
 Score:      5.7 (confluência confirmada)
-```
+```text
 
 **Quando**: AMANHÃ 06:00 UTC (Market Open Binance)
 
@@ -152,7 +154,7 @@ Score:      5.7 (confluência confirmada)
 
 Sempre que trabalhar com diagnóstico/backlog:
 
-```
+```text
 □ IDENTIFICAR MUDANÇA
   └─ Qual aspecto do plano foi atualizado?
 
@@ -175,7 +177,7 @@ Sempre que trabalhar com diagnóstico/backlog:
 
 □ COMMITAR COM [OPERAÇÃO] TAG
   └─ git commit -m "[OPERAÇÃO] Descrição + qual ACAO"
-```
+```python
 
 ---
 

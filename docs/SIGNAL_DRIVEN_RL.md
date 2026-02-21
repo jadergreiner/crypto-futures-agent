@@ -2,7 +2,10 @@
 
 ## Visão Geral
 
-A arquitetura **Signal-Driven RL** representa uma evolução fundamental na forma como o agente aprende. Em vez de treinar em um environment simulado com dados históricos, o modelo agora aprende com **outcomes reais** de trades executados, criando um ciclo de feedback direto entre execução e aprendizado.
+A arquitetura **Signal-Driven RL** representa uma evolução fundamental na forma
+como o agente aprende. Em vez de treinar em um environment simulado com dados
+históricos, o modelo agora aprende com **outcomes reais** de trades executados,
+criando um ciclo de feedback direto entre execução e aprendizado.
 
 ## Conceito
 
@@ -14,15 +17,18 @@ A arquitetura **Signal-Driven RL** representa uma evolução fundamental na form
 
 ### Nova Abordagem: Signal-Driven RL
 
-```
-Modelo gera sinal → Execução (autotrade/manual) → Persistência rica de detalhes →
+```text
+Modelo gera sinal → Execução (autotrade/manual) → Persistência rica de detalhes
+→
 Acompanhamento a cada 15 min → Outcomes reais (parcial/stop/TP) →
 Aprendizagem devolvida ao modelo
-```
+```text
 
 ### Especialização por Símbolo
 
-Cada símbolo tem seu próprio **sub-agente** especializado. Nem tudo que funciona para BTC funciona para ETH. Os sub-agentes aprendem padrões específicos de cada ativo.
+Cada símbolo tem seu próprio **sub-agente** especializado. Nem tudo que funciona
+para BTC funciona para ETH. Os sub-agentes aprendem padrões específicos de cada
+ativo.
 
 ## Arquitetura
 
@@ -35,7 +41,8 @@ Armazena sinais com **riqueza completa de detalhes** do momento da geração:
 **Campos principais:**
 
 - **Sinal**: direction, entry_price, stop_loss, take_profit_1/2/3
-- **Risco**: position_size_suggested, risk_pct, risk_reward_ratio, leverage_suggested
+- **Risco**: position_size_suggested, risk_pct, risk_reward_ratio,
+leverage_suggested
 - **Confluência**: confluence_score, confluence_details (JSON)
 - **Contexto técnico**: RSI, EMAs, MACD, BB, ATR, ADX, etc.
 - **Contexto SMC**: market_structure, BOS/CHOCH, order blocks, FVGs, liquidity
@@ -94,7 +101,7 @@ reward = calc.calculate_signal_reward(signal, evolutions)
 #   'r_timing': 0.3,
 #   'r_management': 0.4
 # }
-```
+```bash
 
 #### `agent/signal_environment.py` - SignalReplayEnv
 
@@ -122,7 +129,7 @@ env = SignalReplayEnv(signals=signals, evolutions_dict=evolutions)
 # Treinar agente
 obs, info = env.reset()
 obs, reward, done, truncated, info = env.step(action)
-```
+```bash
 
 #### `agent/sub_agent_manager.py` - SubAgentManager
 
@@ -153,7 +160,7 @@ result = manager.train_agent(
 
 # Avaliar novo sinal
 quality_score = manager.evaluate_signal_quality('BTCUSDT', signal_context)
-```
+```bash
 
 #### `agent/trainer.py` - Método `train_from_real_signals`
 
@@ -168,7 +175,7 @@ db = DatabaseManager('db/crypto_agent.db')
 
 # Treinar sub-agente com sinais acumulados
 result = trainer.train_from_real_signals(symbol='BTCUSDT', db=db)
-```
+```bash
 
 ### 3. Integração com PositionMonitor
 
@@ -194,7 +201,7 @@ SIGNAL_MONITORING_INTERVAL_MINUTES = 15  # Intervalo para snapshots
 SIGNAL_MIN_TRADES_FOR_RETRAINING = 20    # Mínimo para retreino
 SIGNAL_RETRAINING_TIMESTEPS = 10000      # Timesteps para retreino
 SUB_AGENTS_BASE_DIR = "models/sub_agents"  # Diretório sub-agentes
-```
+```bash
 
 ## Fluxo de Uso
 
@@ -215,7 +222,7 @@ signal_data = {
 }
 
 signal_id = db.insert_trade_signal(signal_data)
-```
+```text
 
 ### 2. Execução
 
@@ -228,7 +235,7 @@ db.update_signal_execution(
     execution_mode='AUTOTRADE',
     execution_slippage_pct=0.2
 )
-```
+```text
 
 ### 3. Monitoramento (a cada 15 min)
 
@@ -246,7 +253,7 @@ evolution_data = {
 }
 
 db.insert_signal_evolution(evolution_data)
-```
+```text
 
 ### 4. Finalização
 
@@ -277,7 +284,7 @@ outcome_data = {
 }
 
 db.update_signal_outcome(signal_id, outcome_data)
-```
+```text
 
 ### 5. Retreino (após acumular trades)
 
@@ -290,14 +297,14 @@ signals = db.get_signals_for_training(symbol='BTCUSDT')
 if len(signals) >= SIGNAL_MIN_TRADES_FOR_RETRAINING:
     # Retreinar sub-agente
     from agent.trainer import Trainer
-    
+
     trainer = Trainer()
     result = trainer.train_from_real_signals(symbol='BTCUSDT', db=db)
-    
+
     if result['success']:
         logger.info(f"Sub-agente BTCUSDT retreinado: "
                    f"win_rate={result['win_rate']:.2%}")
-```
+```json
 
 ## Testes
 
@@ -305,14 +312,15 @@ if len(signals) >= SIGNAL_MIN_TRADES_FOR_RETRAINING:
 
 ```bash
 # Todos os testes
-pytest tests/test_signal_*.py tests/test_sub_agent_manager.py tests/test_database_signals.py -v
+pytest tests/test_signal_*.py tests/test_sub_agent_manager.py
+tests/test_database_signals.py -v
 
 # Testes individuais
 pytest tests/test_signal_reward.py -v
 pytest tests/test_signal_environment.py -v
 pytest tests/test_sub_agent_manager.py -v
 pytest tests/test_database_signals.py -v
-```
+```bash
 
 ### Cobertura
 
@@ -324,8 +332,10 @@ pytest tests/test_database_signals.py -v
 
 ## Vantagens da Nova Arquitetura
 
-1. **Aprendizado com Dados Reais**: Modelo aprende com outcomes reais, não simulações
-2. **Especialização por Símbolo**: Sub-agentes capturam padrões específicos de cada ativo
+1. **Aprendizado com Dados Reais**: Modelo aprende com outcomes reais, não
+simulações
+2. **Especialização por Símbolo**: Sub-agentes capturam padrões específicos de
+cada ativo
 3. **Feedback Rico**: Reward multidimensional captura qualidade, timing e gestão
 4. **Gestão de Posição**: Agente aprende quando reduzir, fechar ou segurar
 5. **Evolução Contínua**: Sistema se adapta conforme acumula mais trades
@@ -350,6 +360,6 @@ pytest tests/test_database_signals.py -v
 
 ---
 
-**Autor**: Sistema Signal-Driven RL  
-**Data**: 2026-02-17  
+**Autor**: Sistema Signal-Driven RL
+**Data**: 2026-02-17
 **Versão**: 1.0

@@ -3,13 +3,14 @@
 **Versão:** v0.3 Training Ready
 **Data:** 20/02/2026
 **Audiência:** Operadores do agente de trading
-**Status Operacional:** ⚠️ **PARADO PARA VALIDAÇÃO v0.3** (20/02/2026 ~19:00 BRT)
+**Status Operacional:** ⚠️ **PARADO PARA VALIDAÇÃO v0.3** (20/02/2026 ~19:00
+BRT)
 
 ---
 
 ## 🚨 **ALERTA CRÍTICO — 20 DE FEVEREIRO DE 2026**
 
-```
+```text
 ╔════════════════════════════════════════════════════════════╗
 ║ OPERAÇÃO LIVE PAUSADA PARA VALIDAÇÃO CRÍTICA              ║
 ╠════════════════════════════════════════════════════════════╣
@@ -23,7 +24,7 @@
 ║ ✅ Execute opção 5 (Training) para validação               ║
 ║ ✅ Execute opção 4 (Backtest) para diagnóstico             ║
 ╚════════════════════════════════════════════════════════════╝
-```
+```text
 
 ### O que mudou?
 - ❌ **Opção 2 (Live Integrado)** → DESATIVADA até v0.3 OK
@@ -38,7 +39,7 @@
 
 ```bash
 .\iniciar.bat
-```
+```bash
 
 O script executará **verificações pré-operacionais** automaticamente:
 - ✅ Ambiente virtual (venv)
@@ -56,9 +57,9 @@ Se tudo estiver OK, você verá o **menu interativo** com 9 opções.
 
 **Use quando:** Testar a estratégia sem risco real
 
-```
+```text
 Opção: 1
-```
+```text
 
 **O que faz:**
 - Simula trades em capital virtual
@@ -74,10 +75,10 @@ Opção: 1
 **Status:** 🔴 PAUSADO para validação crítica (20/02/2026 ~19:00)
 **Use quando:** ✅ APÓS v0.3 Training Ready validado (estimado 23:59 BRT)
 
-```
+```text
 Opção: 2
 OBS: Não disponível no momento. Aguarde liberação após v0.3.
-```
+```text
 
 **Confirmações obrigatórias:**
 1. Confirme que as ordens são REAIS
@@ -97,7 +98,8 @@ OBS: Não disponível no momento. Aguarde liberação após v0.3.
 - *(Opcional)* Treina e aprende de operações em tempo real
 - Logs em: `logs/agent.log`
 
-**Resumo de segurança:** ⚠️ CRÍTICO — Capital REAL em risco. Requer 3 confirmações.
+**Resumo de segurança:** ⚠️ CRÍTICO — Capital REAL em risco. Requer 3
+confirmações.
 
 ---
 
@@ -105,9 +107,9 @@ OBS: Não disponível no momento. Aguarde liberação após v0.3.
 
 **Use quando:** Acompanhar trades abertos em tempo real
 
-```
+```text
 Opção: 3
-```
+```text
 
 **Dados de entrada:**
 - Símbolo: `BTCUSDT` (ou deixe em branco para TODAS)
@@ -127,9 +129,9 @@ Opção: 3
 
 **Use quando:** Validar performance histórica
 
-```
+```text
 Opção: 4
-```
+```text
 
 **Dados de entrada:**
 - Data inicial: `2024-01-01`
@@ -149,9 +151,9 @@ Opção: 4
 
 **Use quando:** Aprimorar o modelo com novos dados
 
-```
+```text
 Opção: 5
-```
+```text
 
 **Tempo estimado:** 4-7 horas (depende do hardware)
 
@@ -170,9 +172,9 @@ Opção: 5
 
 **Use quando:** Inicializar ambiente pela primeira vez
 
-```
+```text
 Opção: 6
-```
+```text
 
 **Tempo estimado:** 15-30 minutos
 
@@ -193,9 +195,9 @@ Opção: 6
 
 **Use quando:** Verificar saúde do ambiente
 
-```
+```text
 Opção: 7
-```
+```text
 
 **O que faz:**
 - Verifica dependências Python
@@ -211,9 +213,9 @@ Opção: 7
 
 **Use quando:** Gerenciar trade já executado na Binance
 
-```
+```text
 Opção: 8
-```
+```text
 
 **Dados de entrada:**
 - Símbolo: `BTCUSDT`
@@ -233,15 +235,15 @@ Opção: 8
 
 **Use quando:** Encerrar o orquestrador
 
-```
+```text
 Opção: 9
-```
+```text
 
 ---
 
 ## 📊 Estrutura de Arquivos Importantes
 
-```
+```text
 crypto-futures-agent/
 ├── .env                          ← Credenciais Binance (NUNCA fazer commit!)
 ├── logs/
@@ -253,7 +255,7 @@ crypto-futures-agent/
 ├── reports/
 │   └── backtest_report.html      ← Relatório de backtest
 └── README.md                     ← Documentação técnica
-```
+```html
 
 ---
 
@@ -266,17 +268,17 @@ crypto-futures-agent/
 ### PowerShell — Últimas linhas
 ```powershell
 Get-Content logs/agent.log -Tail 20
-```
+```bash
 
 ### PowerShell — Buscar erros
 ```powershell
 Select-String "ERRO|ERROR" logs/agent.log | Tail -10
-```
+```bash
 
 ### PowerShell — Monitorar em tempo real
 ```powershell
 Get-Content logs/agent.log -Tail 10 -Wait
-```
+```bash
 
 ---
 
@@ -287,7 +289,7 @@ Get-Content logs/agent.log -Tail 10 -Wait
 **Solução:**
 ```bash
 setup.bat
-```
+```json
 
 ---
 
@@ -296,10 +298,10 @@ setup.bat
 **Solução:**
 1. Copie `.env.example` para `.env`
 2. Edite `.env` com suas chaves:
-   ```
+```text
    BINANCE_API_KEY=sua_chave_aqui
    BINANCE_API_SECRET=seu_secret_aqui
-   ```
+```text
 
 ---
 
@@ -320,7 +322,7 @@ Use a **Opção 6** do menu para executar setup inicial.
 4. Teste conexão manual:
    ```bash
    python main.py --test-connection
-   ```
+```bash
 
 ---
 
@@ -361,13 +363,14 @@ Use a **Opção 6** do menu para executar setup inicial.
 
 ### O que é Treino Concorrente?
 
-Permite que o agente **se melhore enquanto opera**, usando dados reais de mercado coletados em tempo real.
+Permite que o agente **se melhore enquanto opera**, usando dados reais de
+mercado coletados em tempo real.
 
 ### Como Ativar?
 
-```
+```text
 Opção 2 → Responda SIM para "Treinar modelos enquanto opera"
-```
+```bash
 
 ### Intervalos Recomendados
 
@@ -386,7 +389,7 @@ Get-Content logs/agent.log -Tail 50 | Select-String "TRAINING|TRAINING_CYCLE"
 
 # Ver timestamp do último treino
 Get-Content logs/agent.log -Tail 1
-```
+```bash
 
 ### Performance esperada
 
@@ -400,7 +403,7 @@ Get-Content logs/agent.log -Tail 1
 ```bash
 # Opção 1: Ctrl+C (para tudo)
 # Opção 2: Próxima execução sem --concurrent-training
-```
+```bash
 
 ---
 

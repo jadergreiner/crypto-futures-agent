@@ -11,19 +11,26 @@
 
 ### HEAD 🧠:
 
-Vi que você executou DOGEUSDT LONG com score 4.2. Isso está abaixo do threshold de 5.0. Por quê?
+Vi que você executou DOGEUSDT LONG com score 4.2. Isso está abaixo do threshold
+de 5.0. Por quê?
 
-**Dados**: {"par": "DOGEUSDT", "tipo": "LONG", "score": 4.2, "pnl": -320, "threshold_esperado": 5.0}
+**Dados**: {"par": "DOGEUSDT", "tipo": "LONG", "score": 4.2, "pnl": -320,
+"threshold_esperado": 5.0}
 
 ### OPERADOR 🤖:
 
-O modelo apontou confluência SMC (liquidity sweep) + sentimento bullish no Telegram. No entanto, reconheço que a taxa de acerto em scores <5.0 foi apenas 35% (vs 62% geral). Operação precipitada. Peço que aumentemos o threshold.
+O modelo apontou confluência SMC (liquidity sweep) + sentimento bullish no
+Telegram. No entanto, reconheço que a taxa de acerto em scores <5.0 foi apenas
+35% (vs 62% geral). Operação precipitada. Peço que aumentemos o threshold.
 
-**Dados**: {"taxa_acerto_lowscore": 0.35, "taxa_acerto_geral": 0.62, "razao": "Conflu\u00eancia fraca, execu\u00e7\u00e3o por sentimento"}
+**Dados**: {"taxa_acerto_lowscore": 0.35, "taxa_acerto_geral": 0.62, "razao":
+"Conflu\u00eancia fraca, execu\u00e7\u00e3o por sentimento"}
 
 ### HEAD 🧠:
 
-Concordo. Score abaixo de 5.0 não têm edge estatístico. Ação: elevar MIN_ENTRY_SCORE de 4.0 para 5.5 em reward.py. Vamos reduzir volume mas aumentar taxa de acerto.
+Concordo. Score abaixo de 5.0 não têm edge estatístico. Ação: elevar
+MIN_ENTRY_SCORE de 4.0 para 5.5 em reward.py. Vamos reduzir volume mas aumentar
+taxa de acerto.
 
 ---
 
@@ -36,7 +43,8 @@ BTCUSDT LONG com score 8.7 — entrada perfeita, TP atingido (Impacto: 9.5/10)
 3 operações com score <5.0 — taxa de acerto 35% (Impacto: 8.0/10)
 
 ### 🔄 Oportunidade
-0GUSDT teve BOS confirmado. Limite de 10 ordens impediu execução. (Impacto: 7.5/10)
+0GUSDT teve BOS confirmado. Limite de 10 ordens impediu execução. (Impacto:
+7.5/10)
 
 ---
 

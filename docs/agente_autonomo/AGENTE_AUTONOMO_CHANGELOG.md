@@ -1,8 +1,8 @@
 # 📝 CHANGELOG DO AGENTE AUTÔNOMO
 
-**Versão**: 1.0  
-**Data**: 2026-02-20  
-**Formato**: Keep a Changelog  
+**Versão**: 1.0
+**Data**: 2026-02-20
+**Formato**: Keep a Changelog
 **Responsável**: Product Owner + CTO
 
 ---
@@ -45,7 +45,8 @@
 
 #### 🎯 Impacto
 
-- Causa raiz: `config/execution_config.py:35` → `"allowed_actions": ["CLOSE", "REDUCE_50"]` (falta "OPEN")
+- Causa raiz: `config/execution_config.py:35` → `"allowed_actions": ["CLOSE",
+"REDUCE_50"]` (falta "OPEN")
 - Oportunidade perdida: -$2.670/dia (BTCUSDT +8.2%, ETHUSDT +4.1%)
 - Solução: 5 ações sequenciais (ACAO-001 → 005, 100 minutos)
 - Timeline: HOJE → AMANHÃ (validação) → 23/02 (go/no-go)
@@ -85,10 +86,10 @@
 
 ### ⚠️ Análise
 
-**Status**: 🔴 CRÍTICO (bloqueador ACAO-001)  
-**Expected WinRate**: 50-60%  
-**Expected Sharpe**: 0.5-1.2  
-**Trading Capacity**: 5-10 trades/dia  
+**Status**: 🔴 CRÍTICO (bloqueador ACAO-001)
+**Expected WinRate**: 50-60%
+**Expected Sharpe**: 0.5-1.2
+**Trading Capacity**: 5-10 trades/dia
 **Success Gate**: CFO approval ACAO-001 + 24h validation
 
 ---
@@ -211,7 +212,7 @@ Toda mudança neste arquivo DEVE ser sincronizada com:
 
 ---
 
-**Mantido por**: CTO + Product Owner  
-**Frequência**: Atualizado por release/sprint  
+**Mantido por**: CTO + Product Owner
+**Frequência**: Atualizado por release/sprint
 **Last Updated**: 2026-02-20 22:25 UTC
 

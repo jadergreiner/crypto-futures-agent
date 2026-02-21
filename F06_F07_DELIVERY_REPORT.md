@@ -8,7 +8,9 @@
 
 ## Resumo Executivo
 
-Implementação e validação completa de **F-06** (step() no CryptoFuturesEnv) e **F-07** (_get_observation() com FeatureEngineer). Ambas as features são críticas para o treinamento RL e foram entregues com:
+Implementação e validação completa de **F-06** (step() no CryptoFuturesEnv) e
+**F-07** (_get_observation() com FeatureEngineer). Ambas as features são
+críticas para o treinamento RL e foram entregues com:
 
 - ✅ Código funcionando (1 bug de truncation corrigido)
 - ✅ Testes E2E passando
@@ -24,7 +26,8 @@ Implementação e validação completa de **F-06** (step() no CryptoFuturesEnv) 
 
 **O que foi implementado:**
 - Transição de estado com `env.step(action)` retornando tupla Gymnasium-completa
-- Suporte às 5 ações: HOLD (0), OPEN_LONG (1), OPEN_SHORT (2), CLOSE (3), REDUCE_50 (4)
+- Suporte às 5 ações: HOLD (0), OPEN_LONG (1), OPEN_SHORT (2), CLOSE (3),
+REDUCE_50 (4)
 - Validação de ações e transição de estado atômicas
 - Verificação automática de stops (SL, TP) e trailing stop após cada step
 - Cálculo de reward via RewardCalculator
@@ -33,7 +36,8 @@ Implementação e validação completa de **F-06** (step() no CryptoFuturesEnv) 
 **Bug Corrigido:**
 - Truncation check estava comparando `current_step >= episode_length`
 - Corrigido para `(current_step - start_step) >= episode_length`
-- Impacto: episódios agora rodam corretamente com `episode_length` steps em vez de terminar prematuramente
+- Impacto: episódios agora rodam corretamente com `episode_length` steps em vez
+de terminar prematuramente
 
 **Teste E2E:** test_f06_e2e.py
 - Valida reset() → observação válida (104,) float32
@@ -75,7 +79,7 @@ Executado em test_f06_e2e.py e test_f07_e2e.py:
 cd c:\repo\crypto-futures-agent
 python test_f06_e2e.py   # F-06 step() — PASSOU
 python test_f07_e2e.py   # F-07 _get_observation() — PASSOU
-```
+```bash
 
 **Pré-requisitos validados:**
 - ✅ agent/data_loader.py disponível (F-08)

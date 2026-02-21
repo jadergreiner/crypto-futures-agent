@@ -2,7 +2,8 @@
 
 ## Resumo Executivo
 
-Implementação de mudanças estruturais para resolver o problema de fechamento prematuro de posições lucrativas pelo agente PPO.
+Implementação de mudanças estruturais para resolver o problema de fechamento
+prematuro de posições lucrativas pelo agente PPO.
 
 **Status**: ✅ Completo - 22/22 testes passaram, 0 alertas de segurança
 
@@ -11,14 +12,18 @@ Implementação de mudanças estruturais para resolver o problema de fechamento 
 Após 3 rounds de ajustes na reward function, os resultados do Round 3 mostraram:
 
 - Win Rate: 48.48%, Profit Factor: 0.66, Sharpe: -0.14
-- **Agente fecha posições lucrativas cedo demais** (R=0.36, R=0.08 quando TP seria R≈2-3)
+- **Agente fecha posições lucrativas cedo demais** (R=0.36, R=0.08 quando TP
+seria R≈2-3)
 - Direção estava correta (DD caiu, PF subiu), mas comportamento persistia
 
 ### Causa Raiz
 
-1. **Ação CLOSE sempre disponível**: Agente aprende que fechar é "seguro" para evitar drawdown futuro
-2. **Observação sem informação de momentum**: Agente não "vê" se preço está acelerando a seu favor
-3. **Conflito de sinais**: 8 componentes de reward com pesos diferentes gerando sinais conflitantes
+1. **Ação CLOSE sempre disponível**: Agente aprende que fechar é "seguro" para
+evitar drawdown futuro
+2. **Observação sem informação de momentum**: Agente não "vê" se preço está
+acelerando a seu favor
+3. **Conflito de sinais**: 8 componentes de reward com pesos diferentes gerando
+sinais conflitantes
 
 ## Solução Implementada
 
@@ -28,7 +33,7 @@ Após 3 rounds de ajustes na reward function, os resultados do Round 3 mostraram
 
 ```python
 MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
-```
+```bash
 
 #### Lógica no step()
 
@@ -56,7 +61,7 @@ MIN_R_MULTIPLE_TO_CLOSE = 1.0  # R-multiple mínimo para permitir CLOSE manual
     'pnl_momentum': float,      # Taxa de variação do PnL
     'current_r_multiple': float # R-multiple atual da posição
 }
-```
+```python
 
 #### Cálculo de Momentum
 
@@ -67,7 +72,7 @@ if len(self.pnl_history) >= 6:
     pnl_momentum = recent_avg - previous_avg
 else:
     pnl_momentum = 0.0
-```
+```text
 
 **Interpretação**:
 
@@ -79,10 +84,10 @@ else:
 
 #### ANTES (Round 3): 8 Componentes
 
-```
-r_pnl, r_risk, r_consistency, r_overtrading, 
+```text
+r_pnl, r_risk, r_consistency, r_overtrading,
 r_hold_bonus, r_invalid_action, r_unrealized, r_inactivity
-```
+```bash
 
 #### DEPOIS (Round 4): 3 Componentes
 
@@ -94,36 +99,40 @@ r_pnl = pnl_pct × 10.0 (PNL_SCALE)
 Bonus adicional:
 - R > 3.0: +1.0 (R_BONUS_HIGH)
 - R > 2.0: +0.5 (R_BONUS_LOW)
-```
+```text
 
 **2. r_hold_bonus** (peso 1.0) - Incentivo assimétrico
 
 ```python
 Se pnl_pct > 0 (lucro):
     r_hold_bonus = 0.05 + pnl_pct × 0.1 + (momentum × 0.05 se momentum > 0)
-    
+
 Se pnl_pct < -2.0 (prejuízo alto):
     r_hold_bonus = -0.02 (penalidade leve)
-```
+```text
 
 **3. r_invalid_action** (peso 1.0) - Penalidade forte
 
 ```python
 Se action_valid == False:
     r_invalid_action = -0.5
-```
+```python
 
 #### Justificativa
 
-- **r_pnl**: Sinal primário - amplifica PnL realizado e recompensa R-multiples altos
-- **r_hold_bonus**: Incentiva segurar lucros (assimétrico: bonus cresce com lucro, penalidade leve para perda)
-- **r_invalid_action**: Penaliza tentativas de CLOSE prematuro (-0.5 é significativo)
+- **r_pnl**: Sinal primário - amplifica PnL realizado e recompensa R-multiples
+altos
+- **r_hold_bonus**: Incentiva segurar lucros (assimétrico: bonus cresce com
+lucro, penalidade leve para perda)
+- **r_invalid_action**: Penaliza tentativas de CLOSE prematuro (-0.5 é
+significativo)
 
 ### 4. Testes Completos
 
 #### tests/test_reward.py (12 testes)
 
-- ✅ `test_calculate_basic`: Valida 3 componentes, ausência de componentes antigos
+- ✅ `test_calculate_basic`: Valida 3 componentes, ausência de componentes
+antigos
 - ✅ `test_r_multiple_greater_than_3`: R=3.5 → r_pnl = 36.0 (35 + 1.0 bonus)
 - ✅ `test_r_multiple_between_2_and_3`: R=2.5 → r_pnl = 25.5 (25 + 0.5 bonus)
 - ✅ `test_r_multiple_exactly_2`: R=2.0 → r_pnl = 20.0 (sem bonus)
@@ -131,17 +140,21 @@ Se action_valid == False:
 - ✅ `test_r_multiple_exactly_3`: R=3.0 → r_pnl = 30.5 (30 + 0.5 bonus LOW)
 - ✅ `test_r_multiple_negative`: R=-1.0 → r_pnl = -10.0 (sem bonus)
 - ✅ `test_r_multiple_zero`: R=0.0 → r_pnl = 0.0
-- ✅ `test_r_multiple_5_receives_high_bonus`: R=5.0 → r_pnl = 51.0 (50 + 1.0 bonus)
+- ✅ `test_r_multiple_5_receives_high_bonus`: R=5.0 → r_pnl = 51.0 (50 + 1.0
+bonus)
 - ✅ `test_invalid_action_penalty`: r_invalid_action = -0.5
-- ✅ `test_close_blocked_is_invalid`: CLOSE bloqueado gera penalidade + hold_bonus
-- ✅ `test_hold_bonus_with_momentum`: Valida cálculo com momentum positivo/zero/negativo
+- ✅ `test_close_blocked_is_invalid`: CLOSE bloqueado gera penalidade +
+hold_bonus
+- ✅ `test_hold_bonus_with_momentum`: Valida cálculo com momentum
+positivo/zero/negativo
 
 #### tests/test_rl_environment.py (4 novos + 6 existentes)
 
 - ✅ `test_close_blocked_when_r_below_minimum`: R=0.5, lucro → CLOSE bloqueado
 - ✅ `test_close_allowed_when_losing`: Prejuízo → CLOSE permitido
 - ✅ `test_close_allowed_when_r_above_minimum`: R=1.5 → CLOSE permitido
-- ✅ `test_position_state_has_momentum`: Valida campos momentum e current_r_multiple
+- ✅ `test_position_state_has_momentum`: Valida campos momentum e
+current_r_multiple
 
 ## Impacto Esperado
 
@@ -199,7 +212,8 @@ Se action_valid == False:
 3. **Ajuste fino** (se necessário)
    - Se R-multiple ainda baixo: aumentar MIN_R_MULTIPLE_TO_CLOSE para 1.5
    - Se Win Rate muito baixo: ajustar bonus de hold
-   - Se DD muito alto: adicionar penalidade para segurar posições com momentum negativo
+- Se DD muito alto: adicionar penalidade para segurar posições com momentum
+negativo
 
 ## Resumo Técnico
 

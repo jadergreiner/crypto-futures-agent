@@ -4,13 +4,16 @@
 
 ## 🎯 Objetivo
 
-Garantir que toda a documentação do projeto (README, docs/, instruções do Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código e comportamento do sistema.
+Garantir que toda a documentação do projeto (README, docs/, instruções do
+Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
+e comportamento do sistema.
 
 ---
 
 ## 📌 RELATÓRIO CONSOLIDADO
 
-**→ Veja `docs/DOCUMENTACAO_SINCRONIZACAO_RELATORIO.md` para relatório completo de sincronização**
+**→ Veja `docs/DOCUMENTACAO_SINCRONIZACAO_RELATORIO.md` para relatório completo
+de sincronização**
 
 Esse documento contém:
 
@@ -32,19 +35,24 @@ Esse documento contém:
 - ✅ [docs/TRACKER.md](docs/TRACKER.md) — Sprint tracker
 - ✅ [docs/USER_STORIES.md](docs/USER_STORIES.md) — User stories
 - ✅ [docs/LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md) — Lições aprendidas
-- ✅ [.github/copilot-instructions.md](.github/copilot-instructions.md) — Instruções do Copilot
+- ✅ [.github/copilot-instructions.md](.github/copilot-instructions.md) —
+Instruções do Copilot
 - ✅ [CHANGELOG.md](CHANGELOG.md) — Keep a Changelog
 
 ### Documentação Técnica
 
-- ✅ [docs/BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md) — Integração Binance
-- ✅ [docs/CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md) — Correções cross margin
-- ✅ [docs/LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md) — Implementação de camadas
+- ✅ [docs/BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md) —
+Integração Binance
+- ✅ [docs/CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md) — Correções cross
+margin
+- ✅ [docs/LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md) — Implementação
+de camadas
 
 ### Configuração
 
 - ✅ [config/symbols.py](config/symbols.py) — Símbolos suportados (16 pares)
-- ✅ [config/execution_config.py](config/execution_config.py) — Parâmetros de execução
+- ✅ [config/execution_config.py](config/execution_config.py) — Parâmetros de
+execução
 - ✅ [playbooks/](playbooks/) — Playbooks específicos por moeda (16 playbooks)
 
 ## ✅ Checklist de Sincronização
@@ -79,11 +87,16 @@ Esse documento contém:
 
 #### Sincronização de Documentação Relacionada
 
-- ✅ [docs/ROADMAP.md](docs/ROADMAP.md) — Sincronizado (v0.2.1 → ✅, v0.3 → 🔄 IN PROGRESS)
-- ✅ [docs/RELEASES.md](docs/RELEASES.md) — Sincronizado (v0.2.1 status) + v0.3 IN PROGRESS marcado
-- ✅ [docs/FEATURES.md](docs/FEATURES.md) — Sincronizado (features v0.2.1 ✅ DONE, v0.3 IN PROGRESS)
-- ✅ [docs/TRACKER.md](docs/TRACKER.md) — Sincronizado (Sprint v0.2.1 finalizado, Sprint v0.3 IN PROGRESS)
-- ✅ [CHANGELOG.md](CHANGELOG.md) — Sincronizado (v0.2.1 entry adicionado + v0.3 IN PROGRESS com timestamp 20/02/2026)
+- ✅ [docs/ROADMAP.md](docs/ROADMAP.md) — Sincronizado (v0.2.1 → ✅, v0.3 → 🔄 IN
+PROGRESS)
+- ✅ [docs/RELEASES.md](docs/RELEASES.md) — Sincronizado (v0.2.1 status) + v0.3
+IN PROGRESS marcado
+- ✅ [docs/FEATURES.md](docs/FEATURES.md) — Sincronizado (features v0.2.1 ✅ DONE,
+v0.3 IN PROGRESS)
+- ✅ [docs/TRACKER.md](docs/TRACKER.md) — Sincronizado (Sprint v0.2.1 finalizado,
+Sprint v0.3 IN PROGRESS)
+- ✅ [CHANGELOG.md](CHANGELOG.md) — Sincronizado (v0.2.1 entry adicionado + v0.3
+IN PROGRESS com timestamp 20/02/2026)
 - ✅ **Status Geral v0.2.1:** SINCRONIZAÇÃO COMPLETA (20/02/2026, 04:00 UTC)
 
 ---
@@ -92,19 +105,23 @@ Esse documento contém:
 
 ### Rev. v0.3 (Training Ready) — 20/02/2026, 04:30 UTC
 
-**Início da Tarefa:** Executar v0.3 HOJE — Decisão executiva de Head de Finanças + Product Owner
+**Início da Tarefa:** Executar v0.3 HOJE — Decisão executiva de Head de Finanças
++ Product Owner
 
 #### Itens Sincronizados (Automático)
 
 - ✅ **docs/ROADMAP.md**: Atualizado timeline + status (v0.3 → 🔄 IN PROGRESS)
 - ✅ **docs/RELEASES.md**: v0.3 marcado como "IN PROGRESS (20/02/2026)"
 - ✅ **docs/FEATURES.md**: Features F-09, F-10, F-11, F-12 → IN PROGRESS
-- ✅ **docs/TRACKER.md**: Sprint v0.3 criado com timeline expedita (20/02, 1 dia, 8h)
-- ✅ **CHANGELOG.md**: Seção [Unreleased] → [v0.3] IN PROGRESS com decisão executiva
+- ✅ **docs/TRACKER.md**: Sprint v0.3 criado com timeline expedita (20/02, 1 dia,
+8h)
+- ✅ **CHANGELOG.md**: Seção [Unreleased] → [v0.3] IN PROGRESS com decisão
+executiva
 
 #### Próximas Ações (Durante Execução de v0.3 Hoje)
 
-- ⏳ Criar `tests/test_training_pipeline_e2e.py` — teste E2E com 3 símbolos + 10k steps
+- ⏳ Criar `tests/test_training_pipeline_e2e.py` — teste E2E com 3 símbolos + 10k
+steps
 - ⏳ Validar treinamento com métricas (CV < 1.5, WinRate > 45%)
 - ⏳ Gerar relatório de treinamento para documentação
 - ⏳ Atualizar progress.md com status em tempo real
@@ -129,22 +146,23 @@ Esse documento contém:
 
 **Decisão A (Recomendada pelo Finance):**
 
-```
+```text
 PARAR LIVE IMEDIATAMENTE E EXECUTAR v0.3 HOJE (6-8 horas)
 - Risco: ZERO loss (sem operação)
 - Oportunidade: ZERO (sem operação)
 - Timeline: 24h para retomar
-```
+```text
 
 ---
 
 #### **Fase 2: NEGOCIAÇÃO (19:00-20:15 BRT)**
 
-**Operador solicita alternativa**: "Vamos desenvolver, mas mantenha operando em produção"
+**Operador solicita alternativa**: "Vamos desenvolver, mas mantenha operando em
+produção"
 
 **Opção C (Hybrid Safe - Proposta por Tech Lead):**
 
-```
+```text
 Continuar LIVE + executar v0.3 em paralelo com SAFEGUARDS
 - Safeguards: Health monitor (60s), kill switch (2% loss)
 - Isolação: LIVE e v0.3 em threads separadas
@@ -152,19 +170,21 @@ Continuar LIVE + executar v0.3 em paralelo com SAFEGUARDS
 - Autorização: Requer assinatura formal do operador
 - Risco: -3% a -5% expected loss em 8-16h
 - Oportunidade: Capturar movimentos LIVE + validar v0.3
-```
+```text
 
 ---
 
 #### **Fase 3: APROVAÇÃO (20:30 BRT)** 🟢 **OPERAÇÃO C AUTORIZADA**
 
-**Operador autoriza**: "SIM a tudo" - Aceita risco -3% a -5%, kill switch 2%, capital $5,000
+**Operador autoriza**: "SIM a tudo" - Aceita risco -3% a -5%, kill switch 2%,
+capital $5,000
 
 **Decisão Final Implementada:**
 
 - ✅ **AUTHORIZATION_OPÇÃO_C_20FEV.txt**: Criado com assinatura formal
 - ✅ **core/orchestrator_opção_c.py**: Orquestra LIVE + v0.3 em paralelo
-- ✅ **monitoring/critical_monitor_opção_c.py**: Health checks (60s), kill switch (2%)
+- ✅ **monitoring/critical_monitor_opção_c.py**: Health checks (60s), kill switch
+(2%)
 - ✅ **iniciar.bat**: Auto-detecta autorização, ativa em background transparente
 - ✅ **docs/OPERACAO_C_GUIA_TRANSPARENTE.md**: Guia para operador
 
@@ -173,7 +193,8 @@ Continuar LIVE + executar v0.3 em paralelo com SAFEGUARDS
 - ✅ **CHANGELOG.md**: Updated com "OPERAÇÃO PARALELA C TRANSPARENTE"
 - ✅ **docs/ROADMAP.md**: v0.3 marcada como "OPERAÇÃO PARALELA C"
 - ✅ **docs/RELEASES.md**: v0.3 status "OPERAÇÃO PARALELA C"
-- ✅ **docs/FEATURES.md**: Adicionadas F-13, F-14, F-15 (orchestrator, monitor, auth)
+- ✅ **docs/FEATURES.md**: Adicionadas F-13, F-14, F-15 (orchestrator, monitor,
+auth)
 - ✅ **docs/TRACKER.md**: Sprint v0.3 refletindo status Opção C
 
 #### Validação Pré-Requisito (Durante Operação C)
@@ -236,7 +257,7 @@ Se alterou `README.md` → verificar:
 
 Adicione comentário ao commit:
 
-```
+```text
 [SYNC] Documento: X foi alterado
 Documentos impactados:
 - symbol.py (✅ sincronizado)
@@ -245,11 +266,11 @@ Documentos impactados:
 - SYNCHRONIZATION.md (✅ rastreado)
 
 Status geral: ✅ Sincronização completa
-```
+```python
 
 ## 📊 Matriz de Interdependências
 
-```
+```text
 config/symbols.py
     ├── Depende de: Nada (fonte de verdade)
     └── Impacta:
@@ -279,7 +300,7 @@ docs/*
         ├── Compreensão técnica
         ├── Onboarding
         └── Governance
-```
+```text
 
 ## 🚨 Regras Críticas de Sincronização
 
@@ -304,44 +325,46 @@ docs/*
 
 1. Quando adicionar símbolo:
 
-   ```
+```text
    1. Adicionar em config/symbols.py
    2. Criar playbook correspondente
    3. Registrar em playbooks/__init__.py
    4. Criar teste de validação
    5. Atualizar README
    6. Atualizar este arquivo (SYNCHRONIZATION.md)
-   ```
+```python
 
 2. Quando alterar funcionalidade crítica:
 
-   ```
+```text
    1. Atualizar código
    2. Atualizar tests/
    3. Atualizar docs/ relevante
    4. Atualizar README se impactar usuário
    5. Atualizar CHANGELOG.md
    6. Atualizar este arquivo
-   ```
+```text
 
 3. Antes de fazer commit:
 
-   ```
+```text
    1. Rodar pytest
    2. Validar sincronização (checklist acima)
    3. Revisar documentação impactada
    4. Adicionar [SYNC] tag ao commit message
-   ```
+```text
 
 ## 📈 Histórico de Sincronizações
 
 ### Rev. v0.3 BugFix (20/02/2026 — CONCLUÍDO)
 
-**Mudança Principal:** Correção de iniciar.bat — Variáveis treino não propagando para Python
+**Mudança Principal:** Correção de iniciar.bat — Variáveis treino não propagando
+para Python
 
 | Artefato | Status | Data | Notas |
 |----------|--------|------|-------|
-| iniciar.bat (linhas 216-222) | ✅ | 20/02 | Inicialização de TRAINING_FLAG antes do if |
+| iniciar.bat (linhas 216-222) | ✅ | 20/02 | Inicialização de TRAINING_FLAG
+antes do if |
 | debug adicional | ✅ | 20/02 | Echo mostrando comando exato executado |
 | CONCURRENT_TRAINING_BUGFIX.md | ✅ | 20/02 | Documentação técnica da correção |
 | CHANGELOG.md | ✅ | 20/02 | Seção "### Corrigido" adicionada |
@@ -349,12 +372,16 @@ docs/*
 
 **Detalhes Técnicos:**
 
-- **Problema:** Variáveis batch `!TRAINING_FLAG!` e `!TRAINING_INTERVAL_FLAG!` expandiam vazias fora do bloco if
+- **Problema:** Variáveis batch `!TRAINING_FLAG!` e `!TRAINING_INTERVAL_FLAG!`
+expandiam vazias fora do bloco if
 - **Causa:** Não inicializadas antes do bloco condicional
-- **Solução:** Adionar `set "TRAINING_FLAG="` e `set "TRAINING_INTERVAL_FLAG="` antes do if
+- **Solução:** Adionar `set "TRAINING_FLAG="` e `set "TRAINING_INTERVAL_FLAG="`
+antes do if
 - **Validação:** Debug echo mostra comando final que será executado
-- **Impacto:** Opção [2] (Live Integrado) agora ativa corretamente treino concorrente
-- **Risk:** Muito baixo — mudança apenas em batch script não-crítico, fallback para defaults presente
+- **Impacto:** Opção [2] (Live Integrado) agora ativa corretamente treino
+concorrente
+- **Risk:** Muito baixo — mudança apenas em batch script não-crítico, fallback
+para defaults presente
 
 **Propagação de Mudanças:**
 
@@ -422,7 +449,8 @@ Quando qualquer item acima mover de ⏳ para ✅, notificar:
 
 ## 📞 Contato & Escalação
 
-### Rev. v0.4 (Backtest Engine) — 20/02/2026, 21:30 UTC — PRODUTO OWNER + HEAD FINANÇAS + TECH LEAD
+### Rev. v0.4 (Backtest Engine) — 20/02/2026, 21:30 UTC — PRODUTO OWNER + HEAD
+FINANÇAS + TECH LEAD
 
 **Início da Tarefa:** Refinar F-12 para implementação — 3 personas especialistas
 
@@ -443,7 +471,8 @@ Quando qualquer item acima mover de ⏳ para ✅, notificar:
 
 **Financeiro (Head Finanças):**
 
-- ✅ 6 métricas: Sharpe≥1.0, MaxDD≤15%, WR≥45%, PF≥1.5, CFactor≥2.0, ConsecLosses≤5
+- ✅ 6 métricas: Sharpe≥1.0, MaxDD≤15%, WR≥45%, PF≥1.5, CFactor≥2.0,
+ConsecLosses≤5
 - ✅ Custos realistas: 0.04% taker + 0.1% slippage
 - ✅ Risk Clearance checklist antes expansão v0.5
 
@@ -489,7 +518,7 @@ Quando qualquer item acima mover de ⏳ para ✅, notificar:
      - Configuração markdownlint
    - Validação passou: ✅
 
-3. ⏳ **T1.3: Implementar Pre-commit Hook** 
+3. ⏳ **T1.3: Implementar Pre-commit Hook**
    - Planejado para próxima sprint
    - Bloqueará commits sem validação
 
@@ -526,7 +555,7 @@ Quando qualquer item acima mover de ⏳ para ✅, notificar:
 
 ### **Resultados de Validação**
 
-```
+```text
 Validação de Sincronização:
 ├─ ANTES:  ❌ 340 erros lint, ✅ 2 checks
 └─ DEPOIS: ❌ 293 erros lint, ✅ 3 checks
@@ -540,7 +569,7 @@ Progresso:
 └─ Bloqueadores críticos: Reduzidos de 2 para 1
 
 Status Geral: 🟢 SEM BLOQUEADORES CRÍTICOS
-```
+```text
 
 ### **Próximas Ações (Imediato)**
 
@@ -642,7 +671,7 @@ Se encontrar inconsistência:
 
 ### Itens Completados
 
-- ✅ **backtest/backtest_environment.py** 
+- ✅ **backtest/backtest_environment.py**
   * Subclass mínima (99 linhas)
   * Herda de CryptoFuturesEnv (~99% reutilização)
   * Seed-based determinismo (seed=42 padrão)
@@ -677,7 +706,7 @@ Se encontrar inconsistência:
 
 ### Status Geral F-12
 
-```
+```text
 F-12 Backtest Engine (v0.4)
 ├─ F-12a: BacktestEnvironment      ✅ COMPLETO
 ├─ F-12b: Data Pipeline             ⏳ PENDENTE
@@ -687,7 +716,7 @@ F-12 Backtest Engine (v0.4)
 
 Progressão: 1/5 completo (20%)
 Timeline: Sprint até 24/02/2026
-```
+```text
 
 ---
 
@@ -696,17 +725,20 @@ Timeline: Sprint até 24/02/2026
 **Situação**: Agente em Profit Guardian Mode, 0 sinais novos gerados em 3+ dias
 
 **Documentos Criados**:
-- ✅ `docs/reuniao_diagnostico_profit_guardian.md` — Reunião diagnóstica (10 rodadas)
+- ✅ `docs/reuniao_diagnostico_profit_guardian.md` — Reunião diagnóstica (10
+rodadas)
 - ✅ `DIAGNOSTICO_EXECUTIVO_20FEV.md` — Sumário executivo com insights
 
 ---
 
 ## ✅ GOVERNANÇA PO — 20/02/2026, 21:45 UTC
 
-**Fase**: Product Owner establishes governance structure, roadmap, backlog prioritization
+**Fase**: Product Owner establishes governance structure, roadmap, backlog
+prioritization
 
 **Documentos Criados**:
-- ✅ `docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md` — Governança estruturada (12 meses)
+- ✅ `docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md` — Governança estruturada (12
+meses)
   * Roles & responsibilities (CFO, CTO, PO)
   * Matriz de decisões (crítico, alto, médio, baixo)
   * Roadmap v0.3–v2.0 (fevereiro 2026 → dezembro 2026)
@@ -733,7 +765,8 @@ Timeline: Sprint até 24/02/2026
 
 **Documentos Sincronizados Automaticamente**:
 - ⏳ `README.md` — Adicionar seção "🎯 Governança & Roadmap" com links
-- ⏳ `docs/ROADMAP.md` — Validar alinhamento com GOVERNANCA_DOCS_BACKLOG_ROADMAP.md
+- ⏳ `docs/ROADMAP.md` — Validar alinhamento com
+GOVERNANCA_DOCS_BACKLOG_ROADMAP.md
 - ⏳ `CHANGELOG.md` — Adicionar "[GOVERNANCE] Estrutura PO estabelecida"
 - ⏳ `.github/copilot-instructions.md` — Referência a novo padrão governança
 
@@ -753,7 +786,8 @@ Timeline: Sprint até 24/02/2026
 **Fase**: Estrutura de documentação AGENTE_AUTONOMO com nomenclatura padrão
 
 **Documentos Criados em `docs/agente_autonomo/`**:
-- ✅ `AGENTE_AUTONOMO_ARQUITETURA.md` — Estrutura em camadas, componentes, fluxo de dados
+- ✅ `AGENTE_AUTONOMO_ARQUITETURA.md` — Estrutura em camadas, componentes, fluxo
+de dados
 - ✅ `AGENTE_AUTONOMO_BACKLOG.md` — 45+ items, ACAO-001→005, criticalidade
 - ✅ `AGENTE_AUTONOMO_ROADMAP.md` — 12-month timeline (v0.3–v2.0)
 - ✅ `AGENTE_AUTONOMO_FEATURES.md` — Feature matrix, criticidade, deps

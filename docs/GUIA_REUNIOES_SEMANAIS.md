@@ -5,7 +5,9 @@
 
 ## 📋 Visão Geral
 
-Este sistema mantém histórico completo de reuniões semanais entre o **Head Financeiro** (especialista em derivativos cripto) e o **Operador Autônomo** (agente RL em PPO).
+Este sistema mantém histórico completo de reuniões semanais entre o **Head
+Financeiro** (especialista em derivativos cripto) e o **Operador Autônomo**
+(agente RL em PPO).
 
 Cada reunião registra:
 - ✅ Diálogos técnicos com dados contextuais
@@ -25,7 +27,7 @@ python --version
 
 # Pacote sqlite3 (incluído no Python)
 python -c "import sqlite3; print(sqlite3.sqlite_version)"
-```
+```python
 
 ### Inicializar o Sistema
 
@@ -37,7 +39,7 @@ python scripts/reuniao_manager.py
 # ✅ Reunião criada com sucesso!
 # ID: 1
 # Relatório exportado para: docs/reuniao_YYYY_MM_DD_HHMMSS.md
-```
+```bash
 
 ### Usar em Seu Código Python
 
@@ -61,7 +63,7 @@ db.adicionar_dialogo(
     id_reuniao=id_reuniao,
     sequencia=1,
     quem_fala="HEAD",
-    pergunta_ou_resposta="Por que você entrou LONG em DOGEUSDT com score baixo?",
+pergunta_ou_resposta="Por que você entrou LONG em DOGEUSDT com score baixo?",
     tipo_conteudo="pergunta",
     contexto_dados={
         "par": "DOGEUSDT",
@@ -85,7 +87,7 @@ db.exportar_relatorio_markdown(
     id_reuniao=id_reuniao,
     arquivo_saida="docs/reuniao_2026_02_20.md"
 )
-```
+```bash
 
 ---
 
@@ -112,7 +114,7 @@ comparacao = {
     "acoes_completadas": 3,
     "acoes_pendentes": 2
 }
-```
+```json
 
 ### Passo 2: Criar Reunião
 ```python
@@ -123,7 +125,7 @@ id_reuniao = db.criar_reuniao(
     head_nome="Roberto Silva",
     operador_versao="v0.3"
 )
-```
+```bash
 
 ### Passo 3: Adicionar Diálogos
 Estrutura: HEAD faz pergunta → OPERADOR responde → HEAD faz tréplica
@@ -172,7 +174,7 @@ db.adicionar_dialogo(
     ),
     tipo_conteudo="trepica"
 )
-```
+```json
 
 ### Passo 4: Adicionar Feedbacks
 ```python
@@ -189,7 +191,8 @@ db.adicionar_feedback(
 db.adicionar_feedback(
     id_reuniao=id_reuniao,
     categoria="fraqueza",
-    descricao="Executou 3 operações com score <5.0. Taxa de acerto em low scores: 35%",
+descricao="Executou 3 operações com score <5.0. Taxa de acerto em low scores:
+35%",
     impacto_score=7.5,
     responsavel="OPERADOR"
 )
@@ -198,11 +201,12 @@ db.adicionar_feedback(
 db.adicionar_feedback(
     id_reuniao=id_reuniao,
     categoria="oportunidade",
-    descricao="0GUSDT teve sinal de BOS claro. Limite de ordens (10) impediu execução.",
+descricao="0GUSDT teve sinal de BOS claro. Limite de ordens (10) impediu
+execução.",
     impacto_score=8.0,
     responsavel="OPERADOR"
 )
-```
+```json
 
 ### Passo 5: Criar Ações
 ```python
@@ -228,7 +232,7 @@ id_acao2 = db.criar_acao(
     impacto_esperado="+18% throughput, +2.1% Sharpe",
     sequencia_acao=2
 )
-```
+```json
 
 ### Passo 6: Registrar Investimentos
 ```python
@@ -270,7 +274,7 @@ db.criar_investimento(
         "less slippage em futuros voláteis."
     )
 )
-```
+```json
 
 ### Passo 7: Exportar Relatório
 ```python
@@ -281,7 +285,7 @@ relatorio_md = db.exportar_relatorio_markdown(
 )
 
 print(f"✅ Relatório exportado: docs/reuniao_2026_02_20.md")
-```
+```json
 
 ---
 
@@ -300,7 +304,7 @@ db.atualizar_status_acao(
 )
 
 print("✅ Ação #1 concluída!")
-```
+```json
 
 ### Gerar Comparação Automática
 
@@ -317,7 +321,7 @@ id_comparacao = db.gerar_comparacao_reunioes(
 # - Quantas ações foram concluídas desde a reunião anterior?
 # - Quantas ainda estão pendentes?
 # - Status evoluiu (ex: 'pendente' → 'em_andamento' → 'concluido')?
-```
+```bash
 
 ---
 
@@ -325,7 +329,7 @@ id_comparacao = db.gerar_comparacao_reunioes(
 
 Por cada reunião, o sistema cria:
 
-```
+```text
 docs/
 ├── reuniao_2026_02_20.md          # Relatório markdown completo
 ├── backlog_acoes_2026_02_20.md    # Ações específicas com snippets
@@ -341,7 +345,7 @@ db/
     ├── investimentos_reuniao
     ├── evolucoes_reuniao
     └── comparacao_reunioes
-```
+```text
 
 ---
 
@@ -366,13 +370,13 @@ for row in cursor.fetchall():
     print(f"[{row[0]}] {row[1]} — {row[4]} vs {row[5]} — Status: {row[3]}")
 
 conn.close()
-```
+```json
 
 ### Ver Ações Pendentes
 
 ```python
 cursor.execute("""
-    SELECT a.id_acao, a.descricao_acao, a.prioridade, 
+    SELECT a.id_acao, a.descricao_acao, a.prioridade,
            r.data_reuniao, a.arquivo_alvo
     FROM acoes_reuniao a
     JOIN reunioes r ON a.id_reuniao = r.id_reuniao
@@ -383,13 +387,13 @@ cursor.execute("""
 for row in cursor.fetchall():
     print(f"[{row[2].upper()}] {row[1]}")
     print(f"     Reunião: {row[3]} | Alvo: {row[4]}\n")
-```
+```json
 
 ### Investimentos em Análise
 
 ```python
 cursor.execute("""
-    SELECT tipo_investimento, descricao, custo_estimado, 
+    SELECT tipo_investimento, descricao, custo_estimado,
            roi_esperado, status_investimento
     FROM investimentos_reuniao
     WHERE status_investimento IN ('proposto', 'aprovado')
@@ -403,7 +407,7 @@ for row in cursor.fetchall():
     total += row[2]
 
 print(f"\nTotal Investimento: ${total:.2f}")
-```
+```json
 
 ---
 
@@ -450,7 +454,7 @@ Use este template sempre que uma reunião for necessária:
 
 ## 🚀 Ações [n= ]
 
-### AÇÃO #1 [CRÍTICA] 
+### AÇÃO #1 [CRÍTICA]
 O Quê: [...]
 Por Quê: [...]
 Impacto: [...]
@@ -463,7 +467,7 @@ Data Alvo: 2026-02-22
 
 | Tipo | Descrição | Custo | ROI | Status |
 |------|-----------|-------|-----|--------|
-```
+```bash
 
 ---
 
@@ -473,7 +477,8 @@ Data Alvo: 2026-02-22
 2. **Feedbacks específicos**: Não genéricos. Anexar métricas
 3. **Ações mensuráveis**: "Aumentar de X para Y" (não "melhorar")
 4. **Investimentos com ROI claro**: Cada $ tem justificativa quantitativa
-5. **Atualizar status regularmente**: Não deixar ações "ghost" por dias ou semanas
+5. **Atualizar status regularmente**: Não deixar ações "ghost" por dias ou
+semanas
 6. **Exportar sempre**: Manter arquivo markdown para auditoria
 
 ---
@@ -487,14 +492,14 @@ cursor.execute(
     "DELETE FROM reunioes WHERE data_reuniao = '2026-02-20 17:00:00'"
 )
 # Antes de criar nova
-```
+```python
 
 ### "Foreign Key Constraint"
 Ação referencia ação_id que não existe. Verifique:
 ```python
 cursor.execute("SELECT id_acao FROM acoes_reuniao WHERE id_acao = ?", (id,))
 print(cursor.fetchone())
-```
+```json
 
 ### Banco corrompido
 ```bash
@@ -504,9 +509,10 @@ cp db/reunioes_weekly.db db/reunioes_weekly_backup.db
 # Resetar
 rm db/reunioes_weekly.db
 python scripts/reuniao_manager.py  # Recreia vazio
-```
+```bash
 
 ---
 
-**Documentação Completa** — Ver `.github/copilot-instructions.md` para protocolo formal de sincronização.
+**Documentação Completa** — Ver `.github/copilot-instructions.md` para protocolo
+formal de sincronização.
 

@@ -30,19 +30,23 @@ operacionais com gestão de risco completa.
 
 **🔴 DIAGNÓSTICO CRÍTICO IDENTIFICADO**
 
-**Situação**: Agente em "Profit Guardian Mode" há 3+ dias. 21 pares monitorados, 0 sinais novos gerados.
+**Situação**: Agente em "Profit Guardian Mode" há 3+ dias. 21 pares
+monitorados, 0 sinais novos gerados.
 
-**Causa Raiz**: `config/execution_config.py` possui `"allowed_actions": ["CLOSE", "REDUCE_50"]` — **bloqueia "OPEN"**
+**Causa Raiz**: `config/execution_config.py` possui `"allowed_actions":
+["CLOSE", "REDUCE_50"]` — **bloqueia "OPEN"**
 
 **Impacto**:
 - ✅ Monitoramento ativo (41 position snapshots coletados)
 - ❌ Zero novos sinais disparados
 - ❌ Zero novas posições abertas
-- 🔴 **-$2.670/dia em oportunidades perdidas** (BTCUSDT +8.2%, ETHUSDT +4.1%, etc)
+- 🔴 **-$2.670/dia em oportunidades perdidas** (BTCUSDT +8.2%, ETHUSDT +4.1%,
+  etc)
 - 🔴 21 posições com perdas -42% a -511%
 
 **Documentação**:
-- 📄 Reunião diagnóstica de 10 rodadas: `docs/reuniao_diagnostico_profit_guardian.md`
+- 📄 Reunião diagnóstica de 10 rodadas:
+  `docs/reuniao_diagnostico_profit_guardian.md`
 - 📄 Sumário executivo: `DIAGNOSTICO_EXECUTIVO_20FEV.md`
 - 📄 Backlog com 5 ações críticas: `BACKLOG_ACOES_CRITICAS_20FEV.md`
 
@@ -63,9 +67,14 @@ operacionais com gestão de risco completa.
 
 | Documento | Descrição | Público | Leitura |
 |-----------|-----------|---------|---------|
-| [`docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md`](docs/GOVERNANCA_DOCS_BACKLOG_ROADMAP.md) | Estrutura governança: roles, decisões, roadmap v0.3–v2.0 | Diretoria, PO, CTO | 20 min |
-| [`DIRECTOR_BRIEF_20FEV.md`](DIRECTOR_BRIEF_20FEV.md) | Situação crítica & plano ação (5 min read) | Diretoria | 5 min |
-| [`BACKLOG_ACOES_CRITICAS_20FEV.md`](BACKLOG_ACOES_CRITICAS_20FEV.md) | 5 ações sequenciais com código Python pronto | Tech, PO | 15 min |
+|
+| [GOVERNANCA_DOCS_BACKLOG_ROADMAP.md]
+  (docs/) | Governança, roadmap v0.3–v2.0
+  | Diretoria, PO, CTO | 20 min
+| [`DIRECTOR_BRIEF_20FEV.md`](DIRECTOR_BRIEF_20FEV.md) |
+| Situação crítica & plano ação (5 min read) | Diretoria | 5 min |
+| [`BACKLOG_ACOES_CRITICAS_20FEV.md`](BACKLOG_ACOES_CRITICAS_20FEV.md) |
+| 5 ações sequenciais com código Python pronto | Tech, PO | 15 min |
 
 **Métricas Operacionais**:
 - 🔴 Lucro MRR: $0 (pré-launch)
@@ -93,8 +102,40 @@ operacionais com gestão de risco completa.
 - **Operador**: Nenhuma ação necessária — execute `iniciar.bat` como sempre
   (transparente)
 
+---
+
+## 🟠 v0.4 SPRINT — BACKTEST ENGINE (21-24 FEV)
+
+**Status**: ✅ PRÉ-SPRINT VALIDAÇÕES COMPLETAS
+
+**Preparação Concluída**:
+- ✅ BacktestEnvironment refatorado (150 linhas, 99% reúso)
+- ✅ Reward function validada (CTO sign-off)
+- ✅ Database validada (13.814 H4 candles)
+- ✅ Skeleton code criado (4 componentes)
+- ✅ Sprint plan detalhado (40+ páginas)
+
+**Timeline Executiva**:
+- **Terça 21/02 08:00 UTC**: ESP-ENG + ESP-ML começam
+- **Quarta-Quinta 22-23/02**: Implementação + testes
+- **Quinta 23/02 14:00 UTC**: Green light + merge
+- **Sexta 24/02**: Buffer (se necessário)
+
+**Documentação Sprint**:
+- 📄 [`F12_KICKOFF_SUMMARY.md`](F12_KICKOFF_SUMMARY.md) — 3 páginas executivas
+- 📄 [`SPRINT_F12_EXECUTION_PLAN.md`](SPRINT_F12_EXECUTION_PLAN.md) — 40+ páginas
+  detalhadas
+- 📄 [`reward_validation_20feb.txt`](reward_validation_20feb.txt) — CTO sign-off
+
+**Métrica targets v0.4**:
+- Sharpe ratio ≥ 0.80 (target 1.20)
+- Max drawdown ≤ 12%
+- Win rate ≥ 45%
+- 85%+ test coverage
+
 **Ver também:**
-[docs/OPERACAO_C_GUIA_TRANSPARENTE.md](docs/OPERACAO_C_GUIA_TRANSPARENTE.md) para referência
+[docs/OPERACAO_C_GUIA_TRANSPARENTE.md](docs/OPERACAO_C_GUIA_TRANSPARENTE.md)
+  para operação v0.3
 
 ## 📊 Moedas Suportadas (16 Pares USDT)
 
@@ -133,7 +174,7 @@ operacionais com gestão de risco completa.
 
 ### Camadas de Execução
 
-```
+```text
 LAYER 1 (Heartbeat): 1 min    - Health check (API, DB, WebSocket)
 LAYER 2 (Risk):      5 min    - Gestão de risco (apenas com posições)
 LAYER 3 (H1):        1 hora   - Timing de entrada (apenas com sinais/posições)
@@ -141,11 +182,11 @@ LAYER 4 (H4): 4 horas - Decisão principal (00:00, 04:00, 08:00, 12:00, 16:00,
 20:00 UTC)
 LAYER 5 (D1):        00:00 UTC - Tendência e macro (ANTES da Layer 4)
 LAYER 6 (Semanal/Mensal):      - Performance review e retrain
-```
+```text
 
 ### Estrutura do Projeto
 
-```
+```text
 crypto-futures-agent/
 ├── config/              # Configurações gerais, símbolos, parâmetros de risco
 ├── data/                # Collectors (OHLCV, sentiment, macro) e database
@@ -157,7 +198,7 @@ crypto-futures-agent/
 ├── backtest/            # Backtester e walk-forward optimization
 ├── tests/               # Testes unitários
 └── main.py              # Entry point
-```
+```bash
 
 ## 🚀 Quick Start
 
@@ -169,7 +210,7 @@ setup.bat
 
 # 2. Inicie o agente com menu interativo
 iniciar.bat
-```
+```bash
 
 O script `iniciar.bat` oferece um menu interativo com todas as opções:
 
@@ -185,7 +226,8 @@ O script `iniciar.bat` oferece um menu interativo com todas as opções:
 
 ```bash
 # Clone o repositório
-git clone https://github.com/jadergreiner/crypto-futures-agent.git
+git clone
+[https://github.com/jadergreiner/crypto-futures-agent.git](https://github.com/jadergreiner/crypto-futures-agent.git)
 cd crypto-futures-agent
 
 # Instale as dependências
@@ -194,14 +236,14 @@ pip install -r requirements.txt
 # Configure variáveis de ambiente
 cp .env.example .env
 # Edite .env com suas API keys da Binance
-```
+```bash
 
 #### 2. Setup Inicial
 
 ```bash
 # Inicializar database e coletar dados históricos
 python main.py --setup
-```
+```bash
 
 Este comando irá:
 
@@ -216,7 +258,7 @@ Este comando irá:
 ```bash
 # Treinar o agente RL (3 fases: exploração, refinamento, validação)
 python main.py --train
-```
+```bash
 
 #### 4. Executar
 
@@ -233,14 +275,14 @@ python main.py --monitor --monitor-symbol C98USDT --monitor-interval 300
 # Cancelar ordens abertas fora da whitelist (primeiro validar com dry-run)
 python scripts/cancel_non_whitelist_orders.py --mode live --dry-run
 python scripts/cancel_non_whitelist_orders.py --mode live
-```
+```python
 
 #### 5. Backtest
 
 ```bash
 # Executar backtest em período específico
 python main.py --backtest --start-date 2024-01-01 --end-date 2024-12-31
-```
+```bash
 
 ## 📈 Features do Observation Space (104 features)
 
@@ -317,7 +359,7 @@ stop_loss_atr_multiplier: 1.5x ATR
 take_profit_atr_multiplier: 3.0x ATR
 trailing_stop_activation: 1.5R
 confluence_min_score: 8/14 para abrir posição
-```
+```text
 
 ## 🧪 Smart Money Concepts
 
@@ -339,13 +381,13 @@ Highs/Lows
 
 O agente pode executar 5 ações:
 
-```
+```text
 0: HOLD          - Manter posição atual ou aguardar
 1: OPEN_LONG     - Abrir posição comprada
 2: OPEN_SHORT    - Abrir posição vendida
 3: CLOSE         - Fechar posição atual
 4: REDUCE_50     - Reduzir posição em 50% e mover stop para breakeven
-```
+```text
 
 ## 📊 Reward Function
 
@@ -361,7 +403,7 @@ r_consistency: sharpe_rolling_20 * 0.1 (peso 0.5)
 r_overtrading: >3 trades/24h → -0.3 per extra (peso 0.5)
 r_hold_bonus: +0.01/candle para posição lucrativa (peso 0.3)
 r_invalid_action: -0.1 para ações impossíveis (peso 0.2)
-```
+```text
 
 ## 🔄 Training Pipeline
 
@@ -425,7 +467,7 @@ pytest tests/
 
 # Teste específico
 pytest tests/test_indicators.py -v
-```
+```bash
 
 ## 📚 Database Schema
 
@@ -459,20 +501,29 @@ Este projeto possui documentação extensiva organizada em `docs/`:
 
 ### Documentação do Projeto
 
-- **[ROADMAP.md](docs/ROADMAP.md)** — Roadmap do projeto, releases planejadas e status atual
+- **[ROADMAP.md](docs/ROADMAP.md)** — Roadmap do projeto, releases planejadas e
+  status atual
 - **[RELEASES.md](docs/RELEASES.md)** — Detalhes de cada release (v0.1 a v1.1+)
-- **[FEATURES.md](docs/FEATURES.md)** — Listagem de todas as features por release
-- **[USER_STORIES.md](docs/USER_STORIES.md)** — User stories e critérios de aceite
+- **[FEATURES.md](docs/FEATURES.md)** — Listagem de todas as features por
+  release
+- **[USER_STORIES.md](docs/USER_STORIES.md)** — User stories e critérios de
+  aceite
 - **[TRACKER.md](docs/TRACKER.md)** — Sprint tracker com tasks e progresso
-- **[LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Lições aprendidas durante o desenvolvimento
-- **[CHANGELOG.md](CHANGELOG.md)** — Registro de mudanças seguindo Keep a Changelog
+- **[LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Lições aprendidas durante
+  o desenvolvimento
+- **[CHANGELOG.md](CHANGELOG.md)** — Registro de mudanças seguindo Keep a
+  Changelog
 
 ### Documentação Técnica
 
-- **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** — Integração com Binance SDK
-- **[CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md)** — Correções de cross margin
-- **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação das camadas de decisão
-- **[SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Rastreamento de sincronização de docs
+- **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** — Integração
+  com Binance SDK
+- **[CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md)** — Correções de cross
+  margin
+- **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação
+  das camadas de decisão
+- **[SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Rastreamento de
+  sincronização de docs
 
 ### 🔄 Validação Automática de Sincronização
 
@@ -482,7 +533,7 @@ O projeto implementa mecanismo obrigatório de sincronização:
 
 ```bash
 python scripts/validate_sync.py
-```
+```bash
 
 O script verifica:
 
