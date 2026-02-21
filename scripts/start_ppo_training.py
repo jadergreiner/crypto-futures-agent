@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Training PPO Starter — Script de Inicialização Segura
+Training PPO Starter — Script de Inicializacao Segura
 ======================================================
 
-Objetivo: Iniciar treinamento PPO Phase 4 com validações completas
+Objetivo: Iniciar treinamento PPO Phase 4 com validacoes completas
 
 Uso:
   python scripts/start_ppo_training.py --dry-run
@@ -11,11 +11,11 @@ Uso:
   python scripts/start_ppo_training.py --symbol 1000PEPEUSDT
 
 Features:
-  - Validação pré-treino completa
+  - Validacao pre-treino completa
   - Dry-run para teste de infraestrutura
   - Logs estruturados
   - Config-driven (pega de config/ppo_config.py)
-  - Checkpoint + Model saving automático
+  - Checkpoint + Model saving automatico
 
 Data: 21 FEV 2026
 Ready: 23 FEV 14:00 UTC
@@ -34,7 +34,7 @@ from typing import Dict, Any, Optional
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Configure logging
+# Configure logging with UTF-8 handling for Windows
 LOG_DIR = Path("logs/ppo_training")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -46,7 +46,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.FileHandler(log_file),
+        logging.FileHandler(log_file, encoding='utf-8'),
         logging.StreamHandler(sys.stdout),
     ],
 )
@@ -78,15 +78,15 @@ class TrainingStarter:
         try:
             from config.symbols import ALL_SYMBOLS
             if self.symbol not in ALL_SYMBOLS:
-                logger.warning(f"⚠️  Símbolo {self.symbol} não está em ALL_SYMBOLS")
-                self.warnings.append(f"Símbolo {self.symbol} não oficial")
+                logger.warning(f"[WARN] Simbolo {self.symbol} nao esta em ALL_SYMBOLS")
+                self.warnings.append(f"Simbolo {self.symbol} nao oficial")
             else:
-                logger.info(f"✅ Símbolo {self.symbol} validado")
+                logger.info(f"[OK] Simbolo {self.symbol} validado")
                 checks_passed += 1
         except Exception as e:
-            logger.warning(f"⚠️  Não conseguiu validar símbolo: {e}")
+            logger.warning(f"[WARN] Nao conseguiu validar simbolo: {e}")
             self.warnings.append(str(e))
-            checks_passed += 1  # passar mesmo sem validação
+            checks_passed += 1  # passar mesmo sem validacao
 
         # 2. Validar config PPO
         checks_total += 1
@@ -110,20 +110,20 @@ class TrainingStarter:
             self.errors.append(f"Config PPO inválida: {e}")
             return False
 
-        # 3. Validar dados do símbolo
+        # 3. Validar dados do simbolo
         checks_total += 1
         try:
             data_file = Path(f"backtest/cache/{self.symbol}_4h.parquet")
             if not data_file.exists():
-                logger.error(f"❌ Dados não encontrados: {data_file}")
-                self.errors.append(f"Arquivo de dados não existe: {data_file}")
+                logger.error(f"[ERROR] Dados nao encontrados: {data_file}")
+                self.errors.append(f"Arquivo de dados nao existe: {data_file}")
                 return False
 
             size_mb = data_file.stat().st_size / (1024 * 1024)
-            logger.info(f"✅ Dados {self.symbol} validados ({size_mb:.2f}MB)")
+            logger.info(f"[OK] Dados {self.symbol} validados ({size_mb:.2f}MB)")
             checks_passed += 1
         except Exception as e:
-            logger.error(f"❌ Erro ao validar dados: {e}")
+            logger.error(f"[ERROR] Erro ao validar dados: {e}")
             self.errors.append(str(e))
             return False
 
@@ -131,10 +131,10 @@ class TrainingStarter:
         checks_total += 1
         try:
             from backtest.backtest_environment import BacktestEnvironment
-            logger.info("✅ BacktestEnvironment importado com sucesso")
+            logger.info("[OK] BacktestEnvironment importado com sucesso")
             checks_passed += 1
         except Exception as e:
-            logger.error(f"❌ Erro ao importar BacktestEnvironment: {e}")
+            logger.error(f"[ERROR] Erro ao importar BacktestEnvironment: {e}")
             self.errors.append(str(e))
             return False
 
@@ -142,10 +142,10 @@ class TrainingStarter:
         checks_total += 1
         try:
             from backtest.data_cache import ParquetCache
-            logger.info("✅ ParquetCache importado com sucesso")
+            logger.info("[OK] ParquetCache importado com sucesso")
             checks_passed += 1
         except Exception as e:
-            logger.error(f"❌ Erro ao importar ParquetCache: {e}")
+            logger.error(f"[ERROR] Erro ao importar ParquetCache: {e}")
             self.errors.append(str(e))
             return False
 
@@ -153,23 +153,23 @@ class TrainingStarter:
         checks_total += 1
         try:
             from agent.trainer import PPOStrategy
-            logger.info("✅ PPOStrategy (trainer) importado com sucesso")
+            logger.info("[OK] PPOStrategy (trainer) importado com sucesso")
             checks_passed += 1
         except Exception as e:
-            logger.warning(f"⚠️  Aviso ao importar PPOStrategy: {e}")
+            logger.warning(f"[WARN] Aviso ao importar PPOStrategy: {e}")
             self.warnings.append(f"Trainer pode ter issues: {e}")
-            checks_passed += 1  # não bloquear
+            checks_passed += 1  # nao bloquear
 
-        # 7. Validar diretórios de saída
+        # 7. Validar diretorios de saida
         checks_total += 1
         try:
             for dir_path in ["checkpoints/ppo_training", "logs/ppo_training", "models/trained"]:
                 Path(dir_path).mkdir(parents=True, exist_ok=True)
-                assert Path(dir_path).exists(), f"Não conseguiu criar {dir_path}"
-            logger.info("✅ Diretórios de saída validados/criados")
+                assert Path(dir_path).exists(), f"Nao conseguiu criar {dir_path}"
+            logger.info("[OK] Diretorios de saida validados/criados")
             checks_passed += 1
         except Exception as e:
-            logger.error(f"❌ Erro com diretórios: {e}")
+            logger.error(f"[ERROR] Erro com diretorios: {e}")
             self.errors.append(str(e))
             return False
 
@@ -179,16 +179,16 @@ class TrainingStarter:
             from agent.environment import TradingEnvironment
             from agent.reward import RewardCalculator
             from agent.risk_manager import RiskManager
-            logger.info("✅ Estrutura do agent validada (Env, Reward, Risk)")
+            logger.info("[OK] Estrutura do agent validada (Env, Reward, Risk)")
             checks_passed += 1
         except Exception as e:
-            logger.warning(f"⚠️  Aviso na estrutura do agent: {e}")
+            logger.warning(f"[WARN] Aviso na estrutura do agent: {e}")
             self.warnings.append(f"Agent structure: {e}")
             checks_passed += 1
 
-        # 9. Space para extensão
+        # 9. Space para extensao
         checks_total += 1
-        logger.info("✅ Validação estendida OK")
+        logger.info("[OK] Validacao estendida OK")
         checks_passed += 1
 
         logger.info("")
@@ -200,7 +200,7 @@ class TrainingStarter:
         """Inicializa o environment de treinamento (sem treinar)."""
         logger.info("")
         logger.info("="*70)
-        logger.info("INICIALIZAÇÃO: Preparando environment...")
+        logger.info("INICIALIZACAO: Preparando environment...")
         logger.info("="*70)
 
         try:
@@ -209,26 +209,26 @@ class TrainingStarter:
 
             # Carregar dados
             logger.info(f"   - Carregando dados para {self.symbol}...")
-            cache = ParquetCache()
-            ohlcv = cache.load(f"{self.symbol}_4h")
+            cache = ParquetCache(db_path='db/crypto_agent.db', cache_dir='backtest/cache')
+            ohlcv = cache.load_ohlcv_for_symbol(self.symbol, timeframe='4h')
             logger.info(f"   - {len(ohlcv)} candles carregados")
 
             # Inicializar environment
             logger.info("   - Inicializando BacktestEnvironment...")
             env = BacktestEnvironment(
-                symbol=self.symbol,
-                ohlcv_data=ohlcv,
-                initial_balance=10000,
-                use_risk_limits=True,
+                data={'4h': ohlcv, 'symbol': self.symbol},
+                initial_capital=10000,
+                episode_length=len(ohlcv) - 1,
+                deterministic=True,
             )
 
             self.results["environment_initialized"] = True
             self.results["candles_loaded"] = len(ohlcv)
-            logger.info("✅ Environment inicializado com sucesso")
+            logger.info("[OK] Environment inicializado com sucesso")
             return True
 
         except Exception as e:
-            logger.error(f"❌ Erro ao inicializar environment: {e}")
+            logger.error(f"[ERROR] Erro ao inicializar environment: {e}")
             self.errors.append(f"Environment init failed: {e}")
             self.results["environment_initialized"] = False
             return False
@@ -243,19 +243,19 @@ class TrainingStarter:
             logger.info("TREINAMENTO: Iniciando PPO Phase 4")
         logger.info("="*70)
 
-        logger.info(f"Símbolo: {self.symbol}")
+        logger.info(f"Simbolo: {self.symbol}")
         logger.info(f"Timesteps: {self.timesteps:,}")
         logger.info(f"Config: phase4 (conservadora)")
         logger.info(f"Log: {log_file}")
 
         if self.dry_run:
             logger.info("")
-            logger.info("🔄 DRY-RUN: Apenas validando, não treinando")
-            logger.info("   ✓ Validações pré-treino: OK")
-            logger.info("   ✓ Environment inicializado: OK")
-            logger.info("   ✓ Dados carregados: OK")
+            logger.info("[DRY-RUN] Apenas validando, nao treinando")
+            logger.info("   [OK] Validacoes pre-treino: OK")
+            logger.info("   [OK] Environment inicializado: OK")
+            logger.info("   [OK] Dados carregados: OK")
             logger.info("")
-            logger.info("✅ DRY-RUN COMPLETO - Sistema pronto para treinamento real!")
+            logger.info("[OK] DRY-RUN COMPLETO - Sistema pronto para treinamento real!")
             return {
                 "status": "dry_run_success",
                 "symbol": self.symbol,
@@ -264,7 +264,7 @@ class TrainingStarter:
             }
         else:
             logger.info("")
-            logger.info("⏳ Iniciando treinamento PPO (pode levar alguns minutos)...")
+            logger.info("[INFO] Iniciando treinamento PPO (pode levar alguns minutos)...")
             logger.info("")
 
             try:
@@ -273,8 +273,8 @@ class TrainingStarter:
 
                 config = get_ppo_config("phase4")
 
-                # Aqui entraria a lógica real de treinamento
-                # Por enquanto, apenas log de que está iniciando
+                # Aqui entraria a logica real de treinamento
+                # Por enquanto, apenas log de que esta iniciando
                 logger.info(f"PPOStrategy configurado com {self.timesteps:,} timesteps")
                 logger.info("Treinamento em progresso...")
 
@@ -287,7 +287,7 @@ class TrainingStarter:
                 }
 
             except Exception as e:
-                logger.error(f"❌ Erro ao iniciar treinamento: {e}")
+                logger.error(f"[ERROR] Erro ao iniciar treinamento: {e}")
                 self.errors.append(str(e))
                 return {
                     "status": "training_failed",
@@ -295,10 +295,10 @@ class TrainingStarter:
                 }
 
     def generate_report(self) -> Dict[str, Any]:
-        """Gera relatório final."""
+        """Gera relatorio final."""
         logger.info("")
         logger.info("="*70)
-        logger.info("RELATÓRIO FINAL")
+        logger.info("RELATORIO FINAL")
         logger.info("="*70)
 
         report = {
@@ -314,17 +314,17 @@ class TrainingStarter:
         report.update(self.results)
 
         if len(self.errors) == 0:
-            logger.info("✅ Todas as validações passaram!")
+            logger.info("[OK] Todas as validacoes passaram!")
             if self.dry_run:
-                logger.info("✅ DRY-RUN bem-sucedido")
-                logger.info("   Sistema está 100% pronto para treinamento")
+                logger.info("[OK] DRY-RUN bem-sucedido")
+                logger.info("   Sistema esta 100%% pronto para treinamento")
             logger.info("")
-            logger.info("Próximas ações:")
+            logger.info("Proximas acoes:")
             logger.info("  1. Monitorar logs em logs/ppo_training/")
             logger.info("  2. Usar scripts/check_training_progress.py para status")
             logger.info("  3. Usar scripts/ppo_training_dashboard.py para visualizar")
         else:
-            logger.error(f"❌ {len(self.errors)} erro(s) encontrado(s)")
+            logger.error(f"[ERROR] {len(self.errors)} erro(s) encontrado(s)")
             for err in self.errors:
                 logger.error(f"   - {err}")
 
@@ -335,7 +335,7 @@ class TrainingStarter:
 
 
 def main():
-    """Função principal."""
+    """Funcao principal."""
     parser = argparse.ArgumentParser(
         description="Training PPO Starter - Inicialize treinamento PPO Phase 4",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -350,13 +350,13 @@ Exemplos:
     parser.add_argument(
         "--symbol",
         default="OGNUSDT",
-        help="Símbolo para treinar (default: OGNUSDT)",
+        help="Simbolo para treinar (default: OGNUSDT)",
     )
     parser.add_argument(
         "--timesteps",
         type=int,
         default=None,
-        help="Número de timesteps (default: usa config/ppo_config.py total_timesteps)",
+        help="Numero de timesteps (default: usa config/ppo_config.py total_timesteps)",
     )
     parser.add_argument(
         "--dry-run",
@@ -377,22 +377,22 @@ Exemplos:
     logger.info(f"Training Starter v1.0 | {datetime.utcnow().isoformat()}Z")
     logger.info("")
 
-    # 1. Validar precondições
+    # 1. Validar precondicions
     if not starter.validate_preconditions():
-        logger.error("❌ Validações pré-treino falharam!")
+        logger.error("[ERROR] Validacoes pre-treino falharam!")
         starter.generate_report()
         sys.exit(1)
 
     # 2. Inicializar environment
     if not starter.initialize_environment():
-        logger.error("❌ Inicialização do environment falhou!")
+        logger.error("[ERROR] Inicializacao do environment falhou!")
         starter.generate_report()
         sys.exit(1)
 
     # 3. Iniciar treinamento (ou dry-run)
     result = starter.start_training()
 
-    # 4. Gerar relatório
+    # 4. Gerar relatorio
     report = starter.generate_report()
 
     # Exibir resultado em JSON

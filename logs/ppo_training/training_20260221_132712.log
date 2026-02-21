@@ -1,0 +1,86 @@
+2026-02-21 10:27:12 [INFO] Training Starter v1.0 | 2026-02-21T13:27:12.256057Z
+2026-02-21 10:27:12 [INFO] 
+2026-02-21 10:27:12 [INFO] ======================================================================
+2026-02-21 10:27:12 [INFO] PRÉ-TREINO: Validando precondições...
+2026-02-21 10:27:12 [INFO] ======================================================================
+2026-02-21 10:27:12 [INFO] [OK] Simbolo OGNUSDT validado
+2026-02-21 10:27:12 [INFO] ✅ Configuração PPO carregada:
+   - Learning rate: 0.0003
+   - Batch size: 64
+   - N-steps: 2048
+   - Total timesteps: 500,000
+2026-02-21 10:27:12 [INFO] [OK] Dados OGNUSDT validados (0.03MB)
+2026-02-21 10:27:14 [INFO] [OK] BacktestEnvironment importado com sucesso
+2026-02-21 10:27:14 [INFO] [OK] ParquetCache importado com sucesso
+2026-02-21 10:27:23 [WARNING] [WARN] Aviso ao importar PPOStrategy: cannot import name 'PPOStrategy' from 'agent.trainer' (C:\repo\crypto-futures-agent\agent\trainer.py)
+2026-02-21 10:27:23 [INFO] [OK] Diretorios de saida validados/criados
+2026-02-21 10:27:23 [WARNING] [WARN] Aviso na estrutura do agent: cannot import name 'TradingEnvironment' from 'agent.environment' (C:\repo\crypto-futures-agent\agent\environment.py)
+2026-02-21 10:27:23 [INFO] [OK] Validacao estendida OK
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] Validações: 9/9 PASSADAS
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] INICIALIZACAO: Preparando environment...
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO]    - Carregando dados para OGNUSDT...
+2026-02-21 10:27:23 [INFO] ParquetCache initialized: cache_dir=backtest\cache
+2026-02-21 10:27:23 [ERROR] Error loading OHLCV for OGNUSDT: Unable to find a usable engine; tried using: 'pyarrow', 'fastparquet'.
+A suitable version of pyarrow or fastparquet is required for parquet support.
+Trying to import the above resulted in these errors:
+ - `Import pyarrow` failed. pyarrow is required for parquet support. Use pip or conda to install the pyarrow package.
+ - `Import fastparquet` failed. fastparquet is required for parquet support. Use pip or conda to install the fastparquet package.
+2026-02-21 10:27:23 [INFO]    - 0 candles carregados
+2026-02-21 10:27:23 [INFO]    - Inicializando BacktestEnvironment...
+2026-02-21 10:27:23 [INFO] Risk Manager initialized with inviolable rules
+2026-02-21 10:27:23 [INFO] Reward Calculator initialized (Round 5 - com aprendizado de 'ficar fora')
+2026-02-21 10:27:23 [INFO] Multi-timeframe analysis for OGNUSDT: D1=NEUTRO, Regime=NEUTRO
+2026-02-21 10:27:23 [INFO] Análise multi-TF computada: D1=NEUTRO, Regime=NEUTRO, Corr=0.000, Beta=1.000
+2026-02-21 10:27:23 [INFO] CryptoFuturesEnv initialized: capital=$10000, episode_length=-1
+2026-02-21 10:27:23 [INFO] BacktestEnvironment initialized: symbol=OGNUSDT, deterministic=True, episode_length=-1
+2026-02-21 10:27:23 [INFO] [OK] Environment inicializado com sucesso
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] DRY-RUN: Validando sem treinar
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] Simbolo: OGNUSDT
+2026-02-21 10:27:23 [INFO] Timesteps: 500,000
+2026-02-21 10:27:23 [INFO] Config: phase4 (conservadora)
+2026-02-21 10:27:23 [INFO] Log: logs\ppo_training\training_20260221_132712.log
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] [DRY-RUN] Apenas validando, nao treinando
+2026-02-21 10:27:23 [INFO]    [OK] Validacoes pre-treino: OK
+2026-02-21 10:27:23 [INFO]    [OK] Environment inicializado: OK
+2026-02-21 10:27:23 [INFO]    [OK] Dados carregados: OK
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] [OK] DRY-RUN COMPLETO - Sistema pronto para treinamento real!
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] RELATORIO FINAL
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] [OK] Todas as validacoes passaram!
+2026-02-21 10:27:23 [INFO] [OK] DRY-RUN bem-sucedido
+2026-02-21 10:27:23 [INFO]    Sistema esta 100%% pronto para treinamento
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] Proximas acoes:
+2026-02-21 10:27:23 [INFO]   1. Monitorar logs em logs/ppo_training/
+2026-02-21 10:27:23 [INFO]   2. Usar scripts/check_training_progress.py para status
+2026-02-21 10:27:23 [INFO]   3. Usar scripts/ppo_training_dashboard.py para visualizar
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] ======================================================================
+2026-02-21 10:27:23 [INFO] 
+2026-02-21 10:27:23 [INFO] RESULTADO (JSON):
+2026-02-21 10:27:23 [INFO] {
+  "timestamp": "2026-02-21T13:27:23.548698Z",
+  "symbol": "OGNUSDT",
+  "timesteps": 500000,
+  "dry_run": true,
+  "validations_passed": 2,
+  "errors": [],
+  "warnings": [
+    "Trainer pode ter issues: cannot import name 'PPOStrategy' from 'agent.trainer' (C:\\repo\\crypto-futures-agent\\agent\\trainer.py)",
+    "Agent structure: cannot import name 'TradingEnvironment' from 'agent.environment' (C:\\repo\\crypto-futures-agent\\agent\\environment.py)"
+  ],
+  "log_file": "logs\\ppo_training\\training_20260221_132712.log",
+  "environment_initialized": true,
+  "candles_loaded": 0
+}
