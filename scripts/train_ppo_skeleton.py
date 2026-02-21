@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
 Script base para treinamento PPO com BacktestEnvironment.
 
@@ -6,7 +7,7 @@ Configuração:
 - Model: PPO (Proximal Policy Optimization)
 - Framework: Stable-Baselines3 + PyTorch
 - Environment: BacktestEnvironment (determinístico)
-- Data: OGNUSDT + 1000PEPEUSDT H4 (800 treino + 200 validação)
+- Data: OGNUSDT + 1000PEPEUSDT H4 (800 treino + 200 validacao)
 """
 
 import logging
@@ -22,6 +23,7 @@ try:
     import torch
     from stable_baselines3 import PPO
     from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
+    from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
     from gymnasium import Env
     HAS_ML = True
 except ImportError as e:
@@ -32,6 +34,7 @@ except ImportError as e:
 from backtest.backtest_environment import BacktestEnvironment
 from backtest.data_cache import ParquetCache
 from config.symbols import SYMBOLS
+from config.ppo_config import get_ppo_config, PPOConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,18 +46,18 @@ logger = logging.getLogger(__name__)
 class PPOTrainer:
     """Treinador PPO para agente de trading."""
     
-    def __init__(self, config_path: str = 'config/ml_training_config.json',
+    def __init__(self, config: Optional[PPOConfig] = None,
                  checkpoint_dir: str = 'checkpoints/ppo_training',
                  log_dir: str = 'logs/ppo_training'):
         """
         Inicializa treinador.
         
         Args:
-            config_path: Path para arquivo de configuração ML
+            config: PPOConfig (opcional, usa phase4 default)
             checkpoint_dir: Diretório para salvar checkpoints
             log_dir: Diretório para logs
         """
-        self.config = self._load_config(config_path)
+        self.config = config or get_ppo_config("phase4")
         self.checkpoint_dir = Path(checkpoint_dir)
         self.log_dir = Path(log_dir)
         self.cache = ParquetCache(db_path='crypto_agent.db', cache_dir='backtest/cache')
@@ -63,60 +66,24 @@ class PPOTrainer:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"PPOTrainer inicializado")
-        logger.info(f"  Config: {self.config}")
+        logger.info(f"PPOTrainer inicializado com config Phase 4")
+        logger.info(f"  Learning Rate: {self.config.learning_rate}")
+        logger.info(f"  Batch Size: {self.config.batch_size}")
+        logger.info(f"  N Steps: {self.config.n_steps}")
+        logger.info(f"  N Epochs: {self.config.n_epochs}")
+        logger.info(f"  Entropy Coef: {self.config.ent_coef}")
         logger.info(f"  Checkpoints: {self.checkpoint_dir}")
         logger.info(f"  Logs: {self.log_dir}")
     
-    def _load_config(self, config_path: str) -> dict:
-        """Carrega configuração de arquivo ou usa valores default."""
-        config_file = Path(config_path)
-        
-        if config_file.exists():
-            with open(config_file, 'r') as f:
-                return json.load(f)
-        else:
-            logger.warning(f"⚠️  Config não encontrada: {config_path}, usando defaults")
-            return self._get_default_config()
-    
-    def _get_default_config(self) -> dict:
-        """Retorna configuração default para treinamento."""
-        return {
-            "model": {
-                "policy": "MlpPolicy",
-                "learning_rate": 3e-4,
-                "n_steps": 2048,
-                "batch_size": 64,
-                "n_epochs": 10,
-                "gamma": 0.99,
-                "gae_lambda": 0.95,
-                "clip_range": 0.2,
-                "ent_coef": 0.01,
-                "vf_coef": 0.5
-            },
-            "training": {
-                "total_timesteps": 1_000_000,
-                "eval_freq": 10_000,
-                "n_eval_episodes": 5,
-                "verbose": 1,
-                "device": "cuda" if torch.cuda.is_available() else "cpu"
-            },
-            "data": {
-                "symbols": ["OGNUSDT", "1000PEPEUSDT"],
-                "timeframe": "4h",
-                "train_split": 0.8
-            }
-        }
-    
-    def prepare_environment(self, symbol: str) -> BacktestEnvironment:
+    def prepare_environment(self, symbol: str) -> tuple:
         """
-        Prepara ambiente para símbolo.
+        Prepara ambiente para símbolo com VecNormalize.
         
         Args:
             symbol: Símbolo (ex: 'OGNUSDT')
             
         Returns:
-            BacktestEnvironment configurado
+            Tupla (BacktestEnvironment, VecNormalize)
         """
         logger.info(f"Preparando ambiente para {symbol}...")
         
@@ -126,6 +93,8 @@ class PPOTrainer:
             
             if h4_data is None or h4_data.empty:
                 raise ValueError(f"Dados não encontrados para {symbol}")
+            
+            logger.info(f"Carregados {len(h4_data)} candles H4 para {symbol}")
             
             # Preparar observation space com features
             env_data = {
@@ -138,17 +107,30 @@ class PPOTrainer:
                 'smc': pd.DataFrame()
             }
             
-            # Criar ambiente
+            # Criar ambiente base
             env = BacktestEnvironment(
                 data=env_data,
-                initial_capital=10000,
-                episode_length=min(200, len(h4_data) - 1),
+                initial_capital=self.config.initial_capital,
+                episode_length=self.config.episode_length,
                 deterministic=True,
                 seed=42
             )
             
-            logger.info(f"✅ Ambiente preparado: {symbol}")
-            return env
+            # Encapsular com DummyVecEnv
+            vec_env = DummyVecEnv([lambda: env])
+            
+            # Aplicar VecNormalize para estabilidade
+            vec_env = VecNormalize(
+                vec_env,
+                norm_obs=self.config.norm_obs,
+                norm_reward=self.config.norm_reward,
+                clip_obs=self.config.clip_obs,
+                clip_reward=self.config.clip_reward,
+                gamma=self.config.gamma
+            )
+            
+            logger.info(f"✅ Ambiente preparado para {symbol}")
+            return env, vec_env
             
         except Exception as e:
             logger.error(f"❌ Erro ao preparar ambiente: {e}")
@@ -156,7 +138,7 @@ class PPOTrainer:
     
     def train(self, symbol: str = 'OGNUSDT') -> dict:
         """
-        Treina modelo PPO.
+        Treina modelo PPO com config Phase 4.
         
         Args:
             symbol: Símbolo para treinar
@@ -169,59 +151,72 @@ class PPOTrainer:
             return {"error": "ML libraries missing"}
         
         logger.info(f"\n[TRAINING] Iniciando treinamento para {symbol}")
-        logger.info(f"  Total timesteps: {self.config['training']['total_timesteps']:,}")
-        logger.info(f"  Device: {self.config['training']['device']}")
+        logger.info(f"  Total timesteps: {self.config.total_timesteps:,}")
+        logger.info(f"  Learning rate: {self.config.learning_rate}")
+        logger.info(f"  Batch size: {self.config.batch_size}")
+        logger.info(f"  Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
         
         try:
             # 1. Preparar ambiente
-            env = self.prepare_environment(symbol)
+            env, vec_env = self.prepare_environment(symbol)
             
-            # 2. Criar modelo
-            logger.info("Criando modelo PPO...")
+            # 2. Criar modelo PPO com config
+            logger.info("Criando modelo PPO com config Phase 4...")
             model = PPO(
-                policy=self.config['model']['policy'],
-                env=env,
-                learning_rate=self.config['model']['learning_rate'],
-                n_steps=self.config['model']['n_steps'],
-                batch_size=self.config['model']['batch_size'],
-                n_epochs=self.config['model']['n_epochs'],
-                gamma=self.config['model']['gamma'],
-                gae_lambda=self.config['model']['gae_lambda'],
-                clip_range=self.config['model']['clip_range'],
-                ent_coef=self.config['model']['ent_coef'],
-                vf_coef=self.config['model']['vf_coef'],
-                device=self.config['training']['device'],
-                verbose=self.config['training']['verbose']
+                policy="MlpPolicy",
+                env=vec_env,
+                learning_rate=self.config.learning_rate,
+                n_steps=self.config.n_steps,
+                batch_size=self.config.batch_size,
+                n_epochs=self.config.n_epochs,
+                gamma=self.config.gamma,
+                gae_lambda=self.config.gae_lambda,
+                clip_range=self.config.clip_range,
+                ent_coef=self.config.ent_coef,
+                vf_coef=self.config.vf_coef,
+                max_grad_norm=self.config.max_grad_norm,
+                device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+                verbose=self.config.verbose
             )
             
             # 3. Callbacks
             checkpoint_callback = CheckpointCallback(
-                save_freq=self.config['training']['eval_freq'],
+                save_freq=self.config.save_interval,
                 save_path=str(self.checkpoint_dir),
                 name_prefix=f"{symbol}_ppo"
             )
             
             # 4. Treinar
-            logger.info("Iniciando treinamento...")
+            logger.info(f"Iniciando treinamento para {symbol}...")
+            
             model.learn(
-                total_timesteps=self.config['training']['total_timesteps'],
+                total_timesteps=self.config.total_timesteps,
                 callback=checkpoint_callback
             )
             
-            # 5. Salvar modelo final
+            # 5. Salvar modelo final e stats
             model_path = self.checkpoint_dir / f"{symbol}_ppo_final.zip"
             model.save(str(model_path))
             logger.info(f"✅ Modelo salvo: {model_path}")
+            
+            # Salvar VecNormalize stats
+            vecnorm_path = self.checkpoint_dir / f"{symbol}_ppo_vecnorm.pkl"
+            vec_env.save(str(vecnorm_path))
+            logger.info(f"✅ VecNormalize stats salvo: {vecnorm_path}")
             
             return {
                 "status": "SUCCESS",
                 "symbol": symbol,
                 "model_path": str(model_path),
-                "timesteps": self.config['training']['total_timesteps']
+                "vecnorm_path": str(vecnorm_path),
+                "timesteps": self.config.total_timesteps,
+                "config": self.config.to_dict()
             }
             
         except Exception as e:
             logger.error(f"❌ Erro durante treinamento: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "status": "ERROR",
                 "symbol": symbol,

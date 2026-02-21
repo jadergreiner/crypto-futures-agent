@@ -15,6 +15,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from agent.environment import CryptoFuturesEnv
 from agent.data_loader import DataLoader
+from config.ppo_config import get_ppo_config, PPOConfig
 
 logger = logging.getLogger(__name__)
 
@@ -77,19 +78,23 @@ class Trainer:
     Fase 3: Validação (out-of-sample)
     """
 
-    def __init__(self, save_dir: str = "models"):
+    def __init__(self, save_dir: str = "models", config: Optional[PPOConfig] = None):
         """
         Inicializa trainer.
 
         Args:
             save_dir: Diretório para salvar modelos
+            config: Configuração PPO (opcional, usa default se não fornecida)
         """
         self.save_dir = save_dir
         os.makedirs(save_dir, exist_ok=True)
         self.model = None
         self.env = None
         self.vec_env = None  # Armazenar vec_env com VecNormalize
+        self.config = config or get_ppo_config("phase4")
         logger.info(f"Trainer initialized, save_dir={save_dir}")
+        logger.info(f"PPO Config loaded - learning_rate={self.config.learning_rate}, "
+                   f"n_steps={self.config.n_steps}, batch_size={self.config.batch_size}")
 
     def create_env(self, data: Dict[str, Any], **kwargs) -> CryptoFuturesEnv:
         """
@@ -141,22 +146,22 @@ class Trainer:
         # Determinar tensorboard_log baseado na disponibilidade
         tb_log = f"{self.save_dir}/tensorboard/phase1" if TENSORBOARD_AVAILABLE else None
 
-        # Criar modelo PPO com hiperparâmetros ajustados para exploração
+        # Criar modelo PPO com hiperparâmetros de config
         self.model = PPO(
             "MlpPolicy",
             vec_env,
-            learning_rate=3e-4,
-            n_steps=4096,          # Aumentado de 2048 para cobrir episódios completos
-            batch_size=128,        # Aumentado de 64 para estabilidade
-            n_epochs=10,
-            gamma=0.99,
-            gae_lambda=0.95,
-            clip_range=0.2,
-            ent_coef=0.03,         # Aumentado de 0.01 para mais exploração e evitar convergência prematura para HOLD
-            vf_coef=0.5,
-            max_grad_norm=0.5,
-            normalize_advantage=True,  # Adicionar normalização de advantage
-            verbose=1,
+            learning_rate=self.config.learning_rate,
+            n_steps=self.config.n_steps,
+            batch_size=self.config.batch_size,
+            n_epochs=self.config.n_epochs,
+            gamma=self.config.gamma,
+            gae_lambda=self.config.gae_lambda,
+            clip_range=self.config.clip_range,
+            ent_coef=self.config.ent_coef,
+            vf_coef=self.config.vf_coef,
+            max_grad_norm=self.config.max_grad_norm,
+            normalize_advantage=True,
+            verbose=self.config.verbose,
             tensorboard_log=tb_log
         )
 
@@ -165,6 +170,8 @@ class Trainer:
 
         # Treinar
         logger.info(f"Starting Phase 1 training: {total_timesteps} timesteps")
+        logger.info(f"Config - lr={self.config.learning_rate}, nt={self.config.n_epochs}, "
+                   f"ent_coef={self.config.ent_coef}")
         self.model.learn(
             total_timesteps=total_timesteps,
             callback=callback,
@@ -239,21 +246,27 @@ class Trainer:
                 self.model = PPO(
                     "MlpPolicy",
                     vec_env,
-                    learning_rate=3e-4,
-                    n_steps=4096,
-                    batch_size=128,
+                    learning_rate=self.config.learning_rate,
+                    n_steps=self.config.n_steps,
+                    batch_size=self.config.batch_size,
+                    n_epochs=self.config.n_epochs,
+                    gamma=self.config.gamma,
+                    gae_lambda=self.config.gae_lambda,
                     normalize_advantage=True,
-                    verbose=1
+                    verbose=self.config.verbose
                 )
         elif self.model is None:
             self.model = PPO(
                 "MlpPolicy",
                 vec_env,
-                learning_rate=3e-4,
-                n_steps=4096,
-                batch_size=128,
+                learning_rate=self.config.learning_rate,
+                n_steps=self.config.n_steps,
+                batch_size=self.config.batch_size,
+                n_epochs=self.config.n_epochs,
+                gamma=self.config.gamma,
+                gae_lambda=self.config.gae_lambda,
                 normalize_advantage=True,
-                verbose=1
+                verbose=self.config.verbose
             )
         else:
             # Atualizar environment
@@ -261,14 +274,17 @@ class Trainer:
 
         self.vec_env = vec_env
 
-        # Reduzir entropia para refinamento
-        self.model.ent_coef = 0.005
+        # Usar entropy coefficient de refinamento da config (reduzido para Phase 2)
+        refined_ent_coef = max(self.config.ent_coef * 0.5, 0.0001)  # Reduzir entropia para refinement
+        self.model.ent_coef = refined_ent_coef
+        logger.info(f"Phase 2 - Reduced entropy coefficient: {refined_ent_coef}")
 
         # Callback
         callback = TrainingCallback(log_interval=1000)
 
         # Treinar
         logger.info(f"Starting Phase 2 training: {total_timesteps} timesteps")
+        logger.info(f"Config - lr={self.config.learning_rate}, ent_coef={self.model.ent_coef}")
         self.model.learn(
             total_timesteps=total_timesteps,
             callback=callback,
