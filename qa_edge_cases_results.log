@@ -1,0 +1,38 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-7.4.0, pluggy-1.6.0 -- C:\Users\Usuario\AppData\Local\Programs\Python\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\repo\crypto-futures-agent
+plugins: anyio-3.7.1, asyncio-0.21.0, cov-4.1.0
+asyncio: mode=Mode.STRICT
+collecting ... collected 12 items
+
+tests/test_edge_cases_qa.py::TestEdgeCasesLowLiquidity::test_low_liquidity_signal_generation PASSED [  8%]
+tests/test_edge_cases_qa.py::TestEdgeCasesLowLiquidity::test_low_liquidity_wide_spread PASSED [ 16%]
+tests/test_edge_cases_qa.py::TestEdgeCasesFlashCrash::test_flash_crash_risk_assessment PASSED [ 25%]
+tests/test_edge_cases_qa.py::TestEdgeCasesFlashCrash::test_flash_crash_recovery PASSED [ 33%]
+tests/test_edge_cases_qa.py::TestEdgeCasesTimeout::test_missing_ohlcv_data PASSED [ 41%]
+tests/test_edge_cases_qa.py::TestEdgeCasesTimeout::test_single_candle_data PASSED [ 50%]
+tests/test_edge_cases_qa.py::TestEdgeCasesExtremeFundingRate::test_extreme_positive_funding PASSED [ 58%]
+tests/test_edge_cases_qa.py::TestEdgeCasesExtremeFundingRate::test_extreme_negative_funding PASSED [ 66%]
+tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_boundary_cleared FAILED [ 75%]
+tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_boundary_risky PASSED [ 83%]
+tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_boundary_blocked PASSED [ 91%]
+tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_beyond_blocked FAILED [100%]
+
+================================== FAILURES ===================================
+_______ TestEdgeCasesDrawdownThresholds.test_drawdown_boundary_cleared ________
+tests\test_edge_cases_qa.py:289: in test_drawdown_boundary_cleared
+    assert status == "CLEARED"
+E   AssertionError: assert 'RISKY' == 'CLEARED'
+E     - CLEARED
+E     + RISKY
+________ TestEdgeCasesDrawdownThresholds.test_drawdown_beyond_blocked _________
+tests\test_edge_cases_qa.py:317: in test_drawdown_beyond_blocked
+    assert "BLOCKED" in msg or "bloqueia" in msg.lower()
+E   AssertionError: assert ('BLOCKED' in '\U0001f6a8 Circuit breaker ativado: -10.00% exceeds -5.0%' or 'bloqueia' in '\U0001f6a8 circuit breaker ativado: -10.00% exceeds -5.0%')
+E    +  where '\U0001f6a8 circuit breaker ativado: -10.00% exceeds -5.0%' = <built-in method lower of str object at 0x000002059D993440>()
+E    +    where <built-in method lower of str object at 0x000002059D993440> = '\U0001f6a8 Circuit breaker ativado: -10.00% exceeds -5.0%'.lower
+=========================== short test summary info ===========================
+FAILED tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_boundary_cleared
+FAILED tests/test_edge_cases_qa.py::TestEdgeCasesDrawdownThresholds::test_drawdown_beyond_blocked
+======================== 2 failed, 10 passed in 3.23s =========================

@@ -1,0 +1,38 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-7.4.0, pluggy-1.6.0 -- C:\Users\Usuario\AppData\Local\Programs\Python\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\repo\crypto-futures-agent
+plugins: anyio-3.7.1, asyncio-0.21.0, cov-4.1.0
+asyncio: mode=Mode.STRICT
+collecting ... collected 28 items
+
+tests/test_heuristic_signals.py::TestRiskGate::test_initialization PASSED [  3%]
+tests/test_heuristic_signals.py::TestRiskGate::test_initialization_custom PASSED [  7%]
+tests/test_heuristic_signals.py::TestRiskGate::test_evaluate_cleared PASSED [ 10%]
+tests/test_heuristic_signals.py::TestRiskGate::test_evaluate_risky PASSED [ 14%]
+tests/test_heuristic_signals.py::TestRiskGate::test_evaluate_circuit_breaker PASSED [ 17%]
+tests/test_heuristic_signals.py::TestRiskGate::test_evaluate_zero_peak PASSED [ 21%]
+tests/test_heuristic_signals.py::TestRiskGate::test_evaluate_negative_peak PASSED [ 25%]
+tests/test_heuristic_signals.py::TestSignalComponentCreation::test_signal_component_creation PASSED [ 28%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_initialization PASSED [ 32%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_initialization_with_custom_risk_gate PASSED [ 35%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_validate_smc_insufficient_data PASSED [ 39%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_validate_ema_alignment_insufficient_data PASSED [ 42%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_validate_rsi_insufficient_data PASSED [ 46%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_validate_adx_insufficient_data PASSED [ 50%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_calculate_overall_confidence PASSED [ 53%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_calculate_overall_confidence_blocked PASSED [ 57%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_determine_final_signal_blocked PASSED [ 60%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_determine_final_signal_low_confluence PASSED [ 64%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_determine_final_signal_low_confidence PASSED [ 67%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_determine_final_signal_buy PASSED [ 71%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_determine_final_signal_sell PASSED [ 75%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_calculate_rr_ratio PASSED [ 78%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_calculate_rr_ratio_invalid PASSED [ 82%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_calculate_rr_ratio_none_values PASSED [ 85%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_log_signal PASSED [ 89%]
+tests/test_heuristic_signals.py::TestHeuristicSignalGenerator::test_generate_signal_format PASSED [ 92%]
+tests/test_heuristic_signals.py::TestIntegration::test_full_generation_pipeline PASSED [ 96%]
+tests/test_heuristic_signals.py::TestIntegration::test_risk_gate_integration PASSED [100%]
+
+============================= 28 passed in 3.50s ==============================
