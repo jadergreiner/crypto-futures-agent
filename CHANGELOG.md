@@ -23,7 +23,7 @@ Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/
   * 168 linhas, completo e testado
 
 - **F-12c**: TradeStateMachine ✅ DONE
-  * Estados: IDLE, LONG, SHORT  
+  * Estados: IDLE, LONG, SHORT
   * open_position() + close_position() + check_exit_conditions()
   * PnL com fees exatos (0.075% maker + 0.1% taker = 0.175%)
   * Histórico de trades com rastreamento de consecutive losses

@@ -148,7 +148,8 @@ class CryptoFuturesEnv(gym.Env):
 
         if max_start > warmup_steps:
             # Selecionar ponto de início aleatório após warm-up
-            self.start_step = np.random.randint(warmup_steps, max_start)
+            # Usar self.np_random para respeitar seed do Gymnasium (determinismo)
+            self.start_step = self.np_random.integers(warmup_steps, max_start)
         else:
             self.start_step = warmup_steps
 

@@ -73,7 +73,7 @@ class BacktestMetrics:
         # Sharpe = (mean_return - risk_free_rate) / std_deviation
         mean_ret = np.mean(returns_pct) if len(returns_pct) > 0 else 0
         std_ret = np.std(returns_pct) if len(returns_pct) > 1 else 1
-        
+
         # Converter taxa livre anual para daily equivalent
         daily_risk_free = (1 + risk_free_rate) ** (1/252) - 1
         sharpe = (mean_ret - daily_risk_free) / (std_ret + 1e-8) if std_ret > 0 else 0
@@ -105,7 +105,7 @@ class BacktestMetrics:
         pnls = [t.get('pnl_realized', 0) for t in trades]
         wins = [p for p in pnls if p > 0]
         losses = [p for p in pnls if p < 0]
-        
+
         winning_trades = len(wins)
         losing_trades = len(losses)
         total_trades = len(trades)
@@ -179,7 +179,7 @@ class BacktestMetrics:
             self.consecutive_losses <= self.CONSECUTIVE_LOSSES_MAX,
             self.calmar_ratio >= self.CALMAR_MIN,
         ]
-        
+
         all_pass = all(checks)
         return "✅ GO LIVE" if all_pass else "❌ NO-GO / ITERATE"
 
@@ -228,14 +228,14 @@ class BacktestMetrics:
                     start_date: str = "",
                     end_date: str = ""):
         """Imprime relatório formatado em terminal."""
-        
+
         print("\n" + "="*70)
         print(f"{'BACKTEST REPORT — Risk Clearance':^70}")
         print(f"{'Symbol: ' + symbol:^70}")
         if start_date and end_date:
             print(f"{'Period: ' + start_date + ' to ' + end_date:^70}")
         print("="*70)
-        
+
         print(f"\n{'STATUS: ' + self.risk_clearance_status:^70}\n")
 
         # Checklist
@@ -244,7 +244,7 @@ class BacktestMetrics:
         for metric, value, op, threshold, passed in self.get_checklist():
             status_icon = "✅" if passed else "❌"
             print(f"{status_icon} {metric:.<35} {value:>10} {op:>2} {threshold}")
-        
+
         # Informative metrics
         print("\nINFORMATIVE METRICS:")
         print("-"*70)
@@ -257,5 +257,5 @@ class BacktestMetrics:
         print(f"  Total Return %:         {self.total_return_pct:>10.2f}%")
         print(f"  Recovery Factor:        {self.recovery_factor:>10.2f}")
         print(f"  Sortino Ratio:          {self.sortino_ratio:>10.2f}")
-        
+
         print("\n" + "="*70 + "\n")

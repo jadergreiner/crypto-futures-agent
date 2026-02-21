@@ -64,7 +64,7 @@ class BacktestEnvironment(CryptoFuturesEnv):
             risk_params=risk_params,
             episode_length=episode_length
         )
-        
+
         self.deterministic = deterministic
         self.seed_value = seed
         self.data_start = data_start
@@ -92,7 +92,7 @@ class BacktestEnvironment(CryptoFuturesEnv):
         # Usar seed fornecido ou default
         if seed is not None:
             self.seed_value = seed
-        
+
         if self.deterministic:
             # Modo determinístico: sempre começar em warmup + 0
             np.random.seed(self.seed_value)

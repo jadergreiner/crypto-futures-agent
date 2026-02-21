@@ -238,7 +238,7 @@ class FeatureEngineer:
         
         # --- BLOCO 4: SMC (19 features) ---
         smc_features = [0.0] * 19  # Default
-        if smc:
+        if smc is not None and isinstance(smc, dict):
             # Structure (3 features): bullish, bearish, range (one-hot)
             structure = smc.get('structure')
             if structure:
@@ -335,7 +335,7 @@ class FeatureEngineer:
         features.extend(smc_features[:19])
         
         # --- BLOCO 5: Sentimento (4 features) ---
-        if sentiment:
+        if sentiment is not None and isinstance(sentiment, dict):
             # Long/Short Ratio (normalizar em torno de 1.0)
             ls_ratio = FeatureEngineer._safe_get(sentiment, 'long_short_ratio', 1.0)
             features.append(np.clip((ls_ratio - 1.0) * 2, -1, 1))
@@ -361,7 +361,7 @@ class FeatureEngineer:
             features.extend([0.0] * 4)
         
         # --- BLOCO 6: Macro (4 features) ---
-        if macro:
+        if macro is not None and isinstance(macro, dict):
             # DXY change
             dxy_change = FeatureEngineer._safe_get(macro, 'dxy_change_pct', 0)
             features.append(np.clip(dxy_change, -2, 2) / 2)
@@ -382,7 +382,7 @@ class FeatureEngineer:
         
         # --- BLOCO 7: Correlação (3 features) ---
         # BTC return, correlation, beta from multi_tf_result
-        if multi_tf_result:
+        if multi_tf_result is not None and isinstance(multi_tf_result, dict):
             # BTC return from D1 data
             # Note: For non-BTC symbols, btc_return requires BTC's D1 data which is not passed
             # Currently only BTCUSDT calculates its own return; other symbols use 0.0
@@ -412,7 +412,7 @@ class FeatureEngineer:
         
         # --- BLOCO 8: Contexto D1 (2 features) ---
         # D1 bias e regime (numeric scores)
-        if multi_tf_result:
+        if multi_tf_result is not None and isinstance(multi_tf_result, dict):
             # Map d1_bias: BULLISH -> 1, BEARISH -> -1, NEUTRO -> 0
             d1_bias = FeatureEngineer._safe_get(multi_tf_result, 'd1_bias', 'NEUTRO')
             if d1_bias == 'BULLISH':
