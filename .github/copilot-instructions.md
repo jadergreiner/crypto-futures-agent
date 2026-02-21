@@ -1,354 +1,78 @@
 # Instruções para o GitHub Copilot
 
-Estas instruções orientam mudanças neste repositório `crypto-futures-agent`.
+Orientações para mudanças no repositório `crypto-futures-agent`.
 
-## Objetivo
-- Priorizar segurança operacional, previsibilidade e rastreabilidade.
-- Evitar mudanças amplas sem necessidade.
-- Fazer correções na causa raiz, não apenas paliativos.
+## Princípios Essenciais
 
-## Idioma
-- Manter o idioma do projeto sempre em português.
-- Escrever documentação, comentários, mensagens de log e
-  textos de interface em português.
-- Permitir termos técnicos em inglês apenas quando forem
-  nomes próprios, APIs, bibliotecas ou padrões amplamente
-  usados.
+- **Segurança operacional**: Nunca remover controles de risco existentes.
+- **Previsibilidade**: Mudanças pequenas, focadas, compatíveis com estilo.
+- **Rastreabilidade**: Todas as decisões críticas devem ser auditáveis.
+- **Português**: Código, docs, logs em português (termos técnicos propriedade excetuados).
 
-## Stack e organização
-- Linguagem principal: Python.
-- Módulos importantes:
-  - `agent/`: lógica de RL, ambiente e reward.
-  - `execution/`: execução de ordens.
-  - `data/`: clientes e coleta de dados (Binance, macro, sentimento).
-  - `risk/` e `monitoring/`: controles de risco e monitoramento.
-  - `backtest/`: backtesting e walk-forward (F-12 Backtest Engine v0.4 22/FEV).
-  - `playbooks/`: regras por símbolo.
-  - `tests/`: testes automatizados.
+## Stack
 
-## Status Atual — SPRINT F-12 PHASE 3 (22/02/2026)
+- **Linguagem**: Python
+- **Módulos críticos**: `agent/` (RL), `execution/` (ordens), `data/` (Binance),
+  `risk/` (controles), `backtest/` (F-12), `tests/`
+- **Modo compatibilidade**: `paper` e `live` preservados
 
-**F-12 Backtest Engine**: ✅ 100% ARQUITETURA FUNCIONAL
-- F-12a: BacktestEnvironment (determinístico, 9/9 testes)
-- F-12b: ParquetCache (3-tier pipeline SQLite→Parquet→Memory)
-- F-12c: TradeStateMachine (state machine com PnL preciso)
-- F-12d: BacktestMetrics (6 métricas risk clearance)
-- F-12e: 9 unit tests (todos PASSING)
+## Status: F-12 PHASE 3 (22/02/2026)
 
-**Phase 3 Risk Gates**: ⚠️ 2/6 PASSADOS → Decisão CTO necessária
-- Sharpe Ratio: 0.06 ❌ (need ≥1.0)
-- Max DD: 17.24% ❌ (need ≤15%)
-- Win Rate: 48.51% ✅ (need ≥45%)
-- Profit Factor: 0.75 ❌ (need ≥1.5)
-- Consecutive Losses: 5 ✅ (need ≤5)
-- Calmar Ratio: 0.10 ❌ (need ≥2.0)
+**Backtest Engine**: ✅ 100% funcional (9/9 testes passando)
+**Risk Gates**: ⚠️ 2/6 passados → Decisão CTO necessária (ref: PHASE_3_EXECUTIVE_DECISION_REPORT.md)
 
-**Root Cause**: Backtest usou ações aleatórias (model not trained)
-**Solução**: Option A (override+limit) / Option B (train PPO 5-7d) / Option C (hybrid)
+**Root Cause**: Ações aleatórias (modelo não treinado)
+**Próximo**: Decision #2 (train PPO 5-7d, Option B recomendado)
 
-**Refs**: `PHASE_3_EXECUTIVE_DECISION_REPORT.md`, `docs/SYNCHRONIZATION.md`
+## Regras Críticas
 
-## Regras de implementação
-- Manter mudanças pequenas, focadas e compatíveis com o estilo existente.
-- Não renomear APIs públicas, arquivos ou funções sem necessidade explícita.
-- Não adicionar dependências novas se houver solução local simples.
-- Não inserir credenciais, chaves de API ou segredos em código, logs ou docs.
-- Evitar hardcode de parâmetros sensíveis de risco; preferir `config/`.
-- Preservar compatibilidade entre modos `paper` e `live`.
+### 1. Português Obrigatório
 
-## Regras de domínio (trading/risk)
-- Nunca remover validações de risco existentes para "fazer
-  funcionar".
-- Qualquer alteração em sizing, alavancagem, stop,
-  liquidação, margem ou reward deve:
-  - manter comportamento seguro por padrão;
-  - ter fallback conservador em caso de erro/ausência de
-    dados;
-  - registrar decisão relevante de forma auditável.
-- Em caso de dúvida, preferir bloquear operação a assumir
-  risco extra.
+- Diálogos, comentários, logs, docs: **SEMPRE português**
+- Exceção: APIs, bibliotecas, termos propriedade
 
-## Logs e observabilidade
-- Reutilizar o padrão de logging existente em
-  `monitoring/`.
-- Logs devem ser úteis para diagnóstico e curtos o
-  suficiente para operação contínua.
-- Não gerar ruído excessivo em loops de alta frequência.
+### 2. Commits ASCII, Max 72 Chars
 
-## Testes e validação
-- Sempre que alterar lógica, rodar ao menos os testes
-  mais próximos do escopo alterado.
-- Quando aplicável, usar:
-  - `pytest -q`
-  - ou teste específico, por exemplo: `pytest -q tests/test_new_symbols.py`
-- Não corrigir testes não relacionados sem solicitação explícita.
-
-## Estilo de código
-- Seguir padrões já usados no repositório (nomes, imports, estrutura).
-- Evitar comentários óbvios e variáveis de uma letra.
-- Preferir funções pequenas e com responsabilidade clara.
-- Tratar erros de integração externa com mensagens úteis e fallback seguro.
-
-## Documentação e Sincronização
-
-### Regra de Sincronização Obrigatória
-
-**CRÍTICO:** Toda mudança em código deve sincronizar
-documentação automaticamente.
-
-Quando alterado:
-- `config/symbols.py` → atualizar `README.md`,
-  `playbooks/__init__.py`, `docs/SYNCHRONIZATION.md`
-- `playbooks/*.py` → verificar `symbols.py`,
-  `playbooks/__init__.py`, testes
-- `README.md` versão → atualizar `docs/ROADMAP.md`,
-  `docs/RELEASES.md`, `CHANGELOG.md`
-- Qualquer ficheiro em `docs/` → rastrear em
-  `docs/SYNCHRONIZATION.md`
-
-### Protocolo de Sincronização
-
-1. **Identificar mudança** — Qual arquivo foi alterado?
-2. **Propagar mudança** — Quais documentos dependem deste?
-3. **Validar impacto** — Há testes que confirmam a mudança?
-4. **Documentar sincronização** — Atualizar `docs/SYNCHRONIZATION.md`
-5. **Commit com [SYNC] tag** — `[SYNC] Documento X sincronizado`
-
-### Matriz de Dependências
-
-```text
-symbols.py ← Fonte de Verdade
-  ├── playbooks/*.py (um playbook por símbolo)
-  ├── playbooks/__init__.py (registro de imports)
-  ├── config/execution_config.py (auto-sync via ALL_SYMBOLS)
-  ├── README.md (listagem de moedas)
-  └── docs/SYNCHRONIZATION.md (rastreamento)
-
-playbooks/*.py
-  ├── symbols.py (check: símbolo existe?)
-  ├── playbooks/__init__.py (check: registrado?)
-  ├── tests/test_*playbook.py (check: testa?)
-  └── README.md (atualizar listagem)
-
-README.md
-  ├── docs/ROADMAP.md (versão consistente)
-  ├── docs/RELEASES.md (features listadas)
-  ├── docs/FEATURES.md (status de features)
-  └── CHANGELOG.md (entrada de release)
-
-docs/*
-  └── docs/SYNCHRONIZATION.md (sempre ratrear)
-```text
-
-### Checklist de Atualização
-
-Antes de confirmar qualquer mudança:
-
-- [ ] Código alterado está funcional?
-- [ ] Testes passam (`pytest -q`)?
-- [ ] Documentação dependente foi atualizada?
-- [ ] `docs/SYNCHRONIZATION.md` foi atualizado?
-- [ ] `README.md` reflete mudança se impacta usuário?
-- [ ] Commit message contém `[SYNC]` se documentação foi alterada?
-
-### Exemplos de Sincronização Correta
-
-**Exemplo 1: Adicionar novo símbolo**
-```text
-1. Editar config/symbols.py → adicionar XYZUSDT
-2. Criar playbooks/xyz_playbook.py
-3. Editar playbooks/__init__.py → adicionar importação
-4. Editar README.md → adicionar moeda na listagem
-5. Criar tests/test_xyz_playbook.py
-6. Editar docs/SYNCHRONIZATION.md → rastrear mudança
-7. Commit: "[SYNC] Adicionados símbolo XYZ e playbook correspondente"
-```python
-
-**Exemplo 2: Alterar reward function**
-```text
-1. Editar agent/reward.py
-2. Editar tests/test_reward.py
-3. Editar docs/REWARD_FIXES_*.md (se arquivo específico existe)
-4. Editar README.md → seção "Reward Function"
-5. Editar CHANGELOG.md → adicionar entry
-6. Editar docs/SYNCHRONIZATION.md → rastrear mudança
-7. Commit: "[SYNC] Corrigido reward function, documentação atualizada"
-```json
-
-## O que evitar
-- Não criar funcionalidades "nice to have" fora do pedido.
-- Não alterar arquitetura inteira para resolver problema local.
-- Não executar ações destrutivas (ex.: apagar dados, cancelar
-  ordens em massa) sem solicitação explícita.
-- **NÃO deixar documentação desatualizada** — sincronização é
-  obrigatória.
-
-## Três Regras Críticas — Adicionadas 20/02/2026
-
-### Regra 1: Diálogo e Documentação SEMPRE em Português
-
-**OBRIGATÓRIO:**
-- Todos os diálogos (respostas do Copilot) em português
-- Comentários de código em português
-- Mensagens de log em português
-- Documentação em português
-- Exceção: Termos técnicos propriedade (APIs, bibliotecas)
-
-**Verificação:** `grep -r "english\|english" *.md src/ --include="*.py"`
-deve retornar vazio (exceto comentários técnicos)
-
-### Regra 2: Não Quebrar Texto de Commits
-
-**OBRIGATÓRIO:** Mensagens legíveis, ASCII apenas
-
-**Padrão:** `[TAG] Escopo breve em português`
-
-**Exemplo ERRADO:**
-```text
-ee8dfb1 docs: Sumário de atualiza├º├úo
-(caracteres corrompidos, linha quebrada)
-```text
-
-**Exemplo CORRETO:**
-```text
-ee8dfb1 [SYNC] Sumário de atualização de arquitetura
-```text
-
-**Regras:**
-- Usar apenas ASCII (0-127)
-- Máximo 72 caracteres primeira linha
+- Padrão: `[TAG] Descrição breve em português`
 - Tags: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`
-- Verificar: `git log --oneline -1` (sem `.` ruído)
+- Apenas ASCII (0-127), sem caracteres corrompidos
 
-### Regra 3: Aplicar Lint em TODOS os Docs
+### 3. Markdown Lint: Max 80 Chars
 
-**OBRIGATÓRIO:** Markdown lint em docs criadas/editadas
+- Usar `markdownlint *.md docs/*.md`
+- Sem linhas > 80 caracteres, UTF-8 válido
+- Títulos descritivos, blocos com linguagem (` ```python `)
 
-**Limitar:** Máximo 80 caracteres por linha
+## Regras de Domínio (Trading/Risk)
 
-**Tool:**
-```bash
-npm install -g markdownlint-cli
-markdownlint *.md docs/*.md
-markdownlint --fix *.md docs/*.md  # Corrigir
-```bash
+**Invioláveis:**
+- Nunca desabilitar validações de risco (sizing, alavancagem, stop, liquidação).
+- Alterações em reward/risk devem: manter segurança por padrão + fallback
+  conservador + auditoria.
+- Em dúvida: bloquear operação, não asumir risco.
 
-**Exemplo ERRADO:**
-```markdown
-## Análise de Dados de Treinamento com RobustScaler Normalizado
-```bash
+## Sincronização Obrigatória
 
-**Exemplo CORRETO:**
-```markdown
-## Análise de Dados com Normalização
+Toda mudança em código → sincronizar documentação. Checklist mínimo:
 
-Usando RobustScaler para evitar data leakage
-```bash
+- [ ] Código funcional + testes passam (`pytest -q`)
+- [ ] Docs dependentes atualizadas (ref: `docs/SYNCHRONIZATION.md`)
+- [ ] Commit message com tag (`[SYNC]`, `[FEAT]`, etc.)
 
-**Checklist antes de commit:**
-- [ ] Nenhuma linha > 80 caracteres
-- [ ] Títulos descritivos
-- [ ] Português correto
-- [ ] Listas consistentes (`-` ou `*`)
-- [ ] Blocos de código com linguagem: ` ```python `
+**Dependências principais:**
+- `config/symbols.py` → `README.md`, `playbooks/__init__.py`, `docs/SYNCHRONIZATION.md`
+- `docs/*` → sempre registrar em `docs/SYNCHRONIZATION.md`
+- `README.md` versão → `CHANGELOG.md`, `docs/ROADMAP.md`
 
-**Referência:** Ver `BEST_PRACTICES.md` para detalhes completos
+## O Que Evitar
 
-## Sincronização Obrigatória de Documentação
+- Não criar features "nice-to-have" sem solicitação.
+- Não alterar arquitetura para resolver problema local.
+- Não deixar documentação desatualizada.
 
-**CRÍTICO:** Toda mudança em código deve sincronizar documentação
-automaticamente.
+## Detalhes: Referência em BEST_PRACTICES.md
 
-### Protocolo de Sincronização (Automático)
-
-Sempre que alterar um dos documentos principais:
-- `config/symbols.py` → atualizar `README.md`, `playbooks/__init__.py`,
-`docs/SYNCHRONIZATION.md`
-- `docs/FEATURES.md` → atualizar `docs/ROADMAP.md`, `CHANGELOG.md`,
-`docs/SYNCHRONIZATION.md`
-- Qualquer arquivo em `docs/` → registrar em `docs/SYNCHRONIZATION.md`
-
-### Checklist de Sincronização Obrigatória
-
-Antes de cada commit com mudanças:
-
-- [ ] **Código alterado está funcional?**
-- [ ] **Testes passam?** (`pytest -q`)
-- [ ] **Documentação dependente foi atualizada?**
-  - [ ] `docs/SYNCHRONIZATION.md` registra mudança?
-  - [ ] `docs/FEATURES.md` reflete status?
-  - [ ] `docs/ROADMAP.md` reflete prioridades?
-  - [ ] `README.md` reflete mudança?
-- [ ] **Commit message contém tag?** (`[SYNC]`, `[FEAT]`, `[FIX]`, `[TEST]`)
-
-### Validação Automática de Sincronização
-
-**OBRIGATÓRIO:** Cada commit com `[SYNC]` tag DEVE passar por validação formal:
-
-#### Validação Manual (Checklist)
-
-Antes de commitar qualquer mudança que afete documentação:
-
-```text
-SINCRONIZAÇÃO DE DOCUMENTAÇÃO — CHECKLIST
-──────────────────────────────────────────
-
-□ IDENTIFICAR MUDANÇA
-  ├─ Qual arquivo foi alterado? ________________
-  ├─ Tipo de mudança? [ ] Feature [ ] Fix [ ] Docs [ ] Test
-  └─ Data/Hora: ________________
-
-□ MAPEAR DEPENDÊNCIAS
-  ├─ Documentos impactados? (usar Matriz de Dependências)
-  │   ├─ config/symbols.py       → [ ] README.md [ ] playbooks/__init__.py
-  │   ├─ playbooks/*.py          → [ ] symbols.py [ ] tests/
-  │   ├─ README.md               → [ ] ROADMAP [ ] RELEASES [ ] CHANGELOG
-  │   └─ docs/*                  → [ ] SYNCHRONIZATION.md
-  └─ Código associado testado?   [ ] Sim [ ] Não → EXECUTA: pytest -q
-
-□ ATUALIZAR DOCUMENTAÇÃO IMPACTADA
-  ├─ [ ] Arquivo primário (código/design)
-  ├─ [ ] docs/SYNCHRONIZATION.md (registrar mudança)
-  ├─ [ ] docs/FEATURES.md (se feature nova)
-  ├─ [ ] docs/ROADMAP.md (se impacta timeline)
-  ├─ [ ] CHANGELOG.md (versão + data)
-  └─ [ ] README.md (se visível ao usuário)
-
-□ VALIDAÇÃO FINAL
-  ├─ [ ] Nenhuma linha > 80 chars em docs/
-  ├─ [ ] Nenhuma linha sem encoding UTF-8 correto
-  ├─ [ ] Nenhum typo óbvio em português
-  ├─ [ ] Commit message: [SYNC] + descrição breve
-  └─ [ ] `git log --oneline -1` mostra mensagem correta (sem lixo)
-
-□ SUBMETER
-  └─ [ ] git commit -m "[SYNC] Descrição clara da mudança"
-```json
-
-#### Validação Automática (Script)
-
-**Execute antes de cada commit com mudanças de doc:**
-
-```bash
-# Validar sincronização de integridade
-python scripts/validate_sync.py
-
-# Saída esperada:
-# ✅ LINT: Sem erros markdown (max 80 chars)
-# ✅ SYMBOLS: config/symbols.py ↔ playbooks/ ↔ README.md sincronizado
-# ✅ FEATURES: docs/FEATURES.md ↔ ROADMAP.md ↔ RELEASES.md sincronizado
-# ✅ TRACKER: docs/TRACKER.md com status atualizado
-# ✅ CHANGELOG: CHANGELOG.md com entrada recente
-# ✅ SYNCHRONIZATION: últimas mudanças registradas
-# ✅ TUDO OK → Pronto para commit
-```bash
-
-**Script criado em:** `scripts/validate_sync.py`
-- Verifica consistência README ↔ docs/FEATURES ↔ config/symbols
-- Valida markdown (80 chars max, UTF-8, syntax)
-- Confirma CHANGELOG atualizado
-- Registra resultado em `docs/SYNCHRONIZATION.md`
-
----
-
-**Referência:** Ver `docs/SYNCHRONIZATION.md` para histórico completo
+Para mais contexto:
+- **Padrões**: Log, estilo código, testes → `BEST_PRACTICES.md`
+- **Sincronização**: Matriz de dependências, histórico → `docs/SYNCHRONIZATION.md`
+- **Decisões**: Phase 3 gates, opções PPO → `PHASE_3_EXECUTIVE_DECISION_REPORT.md`
