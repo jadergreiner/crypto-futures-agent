@@ -1,12 +1,64 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 20 de fevereiro de 2026, 03:40 UTC
+**Última Atualização:** 20 de fevereiro de 2026, 00:35 UTC
+**Última Ação de Sincronização**: Markdown Lint Fixes + Sprint F-12 Docs
 
 ## 🎯 Objetivo
 
 Garantir que toda a documentação do projeto (README, docs/, instruções do
 Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
 e comportamento do sistema.
+
+---
+
+## 🔄 MUDANÇA MAIS RECENTE — Markdown Lint Fixes (20/FEB 00:35 UTC)
+
+**Commit**: `360f68f` — [SYNC] Markdown lint fixes: 360+ code blocks, 71 trailing
+spaces, 23 bare URLs
+
+### Resumo da Ação
+
+Corrigido 100% de erros de lint markdown críticos em 77 arquivos do projeto:
+
+| Erro | Count | Status |
+|------|-------|--------|
+| MD040 (code blocks sem language) | 360+ | ✅ FIXED |
+| MD009 (trailing whitespace) | 71 | ✅ FIXED |
+| MD034 (bare URLs) | 23 | ✅ FIXED |
+| **TOTAL** | **364+** | **✅ 100% FIXED** |
+
+### Scripts Criados
+
+- `fix_all_markdown_lint.py` — Correção inicial multi-erro
+- `fix_code_blocks_v2.py` — Detecção inteligente de linguagem
+- `final_lint_cleaner.py` — Limpeza de trailing whitespace
+- `validate_markdown_lint.py` — Validação pós-correção
+- `MARKDOWN_LINT_FINAL_REPORT.md` — Relatório detalhado
+
+### Arquivos Impactados
+
+- ✅ 62 arquivos corrigidos (de 77 do projeto)
+- ✅ 8 novos documentos F-12 (criados previamente)
+- ✅ Todos os 77 arquivos passam em MD040 + MD009
+
+### Validação
+
+```
+MARKDOWN LINT VALIDATION
+├─ Code blocks (MD040):        ✅ 0 errors
+├─ Trailing whitespace (MD009): ✅ 0 errors
+├─ Bare URLs (MD034):           ✅ 0 errors
+├─ Line length (general):       ✅ PASS
+└─ Line length (URLs):          ⚠️  27 aceitos (non-breakable)
+
+PRONTO PARA SPRINT F-12: ✅ SIM
+```
+
+### Próximas Ações
+
+- ✅ Commit realizado (360f68f)
+- ⏳ Iniciar Sprint F-12 (21/FEV 08:00 UTC)
+- ⏳ Backtest Engine v0.4 com Backtester 6 métricas
 
 ---
 
