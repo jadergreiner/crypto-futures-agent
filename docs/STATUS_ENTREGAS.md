@@ -25,8 +25,8 @@
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
 | Integração de Conectividade     | 🟡     | Sprint 1 | #55    | WIP    | ✅ Impl   | REST/WS + rate limiting
 | Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | WIP    | ✅ Impl   | Stop Loss (-3%) + CB (-3.1%): 46 tests PASS
-| Módulo de Execução              | 🟡     | Sprint 1 | #58    | TODO   | TODO      | MARKET orders + error handling
-| Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Bloqueado por #58   |
+| Módulo de Execução              | 🟡     | Sprint 1 | #54    | TODO   | TODO      | Em andamento   |
+| Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Em andamento   |
 
 **Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 
