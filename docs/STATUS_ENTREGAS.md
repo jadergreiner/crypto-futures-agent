@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 14:30 UTC
+**Última atualização:** 2026-02-22 15:45 UTC (Issue #55 - Conectividade: Testes + Rate Limit + Collectors)
 **Sprint atual:** Sprint 1
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -23,14 +23,14 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Evidência | Notas          |
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
-| Integração de Conectividade     | 🟡     | Sprint 1 | #55    | TODO   | TODO      | Em andamento   |
+| Integração de Conectividade     | 🟡     | Sprint 1 | #55    | WIP    | ✅ Impl   | REST/WS + rate limiting
 | Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | TODO   | TODO      | Em andamento   |
 | Módulo de Execução              | 🟡     | Sprint 1 | #54    | TODO   | TODO      | Em andamento   |
 | Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Em andamento   |
 
 **Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 
-**Progresso NOW:** 0 concluídos de 4 itens
+**Progresso NOW:** 0 concluídos de 4 itens (Issue #55 em progresso: 60% - Testes + Rate Limit)
 
 ---
 
