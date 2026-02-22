@@ -21,7 +21,7 @@
 |---------------------------------|----------|--------|---------------------------------------|--------------------------------------------------|
 | Integração de Conectividade     | Sprint 1 | #55    | `data/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-1) |
 | Risk Gate 1.0                   | Sprint 1 | #57    | `risk/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-2) |
-| Módulo de Execução              | Sprint 1 | #54    | `execution/`                          | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-3) |
+| Módulo de Execução              | Sprint 1 | #58    | `execution/`                          | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-3) |
 | Telemetria Básica               | Sprint 1 | #56    | `logs/`, `main.py`                   | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-4) |
 
 ---
