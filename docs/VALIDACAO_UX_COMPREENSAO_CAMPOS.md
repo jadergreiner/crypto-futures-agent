@@ -1,15 +1,15 @@
 # ☑️ VALIDAÇÃO UX — OPERADOR ENTENDE CADA CAMPO?
 
-**Versão:** 1.0  
-**Data:** 22 FEV 2026 - 08:30 UTC  
-**Objetivo:** Confirmar que operadores conseguem **interpretar corretamente** cada métrica no dashboard  
-**Passagem:** Antes de 10:00 UTC (30 min antes go-live)  
+**Versão:** 1.0
+**Data:** 22 FEV 2026 - 08:30 UTC
+**Objetivo:** Confirmar que operadores conseguem **interpretar corretamente** cada métrica no dashboard
+**Passagem:** Antes de 10:00 UTC (30 min antes go-live)
 
 ---
 
 ## 🎯 Metodologia
 
-Apresente cada campo abaixo para o operador. Ele deve conseguir responder à pergunta **SEM ajuda**. 
+Apresente cada campo abaixo para o operador. Ele deve conseguir responder à pergunta **SEM ajuda**.
 
 **Critério de Aprovação:** ≥90% acertos (máx 1 erro)
 
@@ -38,7 +38,7 @@ Resposta esperada (em essência):
 
 **Se operador respondeu CORRETO:** ✅ PASSAR
 
-**Se respondeu ERRADO:** 
+**Se respondeu ERRADO:**
 - Explique: "CANARY é teste gradual: 10% → 50% → 100% volume"
 - Re-teste em 2 min
 - Se ainda errado: ⚠️ FLAG para retraining
@@ -129,7 +129,7 @@ Resposta esperada:
 #### **Campo 2.1: STATUS SIGNAL (🟢🔴)**
 
 ```
-Você vê (exemplo): 
+Você vê (exemplo):
 ┌────────────────────────────┐
 │ BTCUSDT  │ 🟢 SIGNAL ACTIVE │
 │          │ Confiança: 78%   │
@@ -425,7 +425,7 @@ RESULTADO FINAL:
 7. [ ] Se passou segunda vez, marque verde
 8. [ ] Ao final: score ≥12/13?
 
-**Se SIM:** Operador APROVADO  
+**Se SIM:** Operador APROVADO
 **Se NÃO:** Mais 15 min de treinamento, re-teste
 
 ---
@@ -443,7 +443,7 @@ Operador: _________________ (assinatura)
 Treiner: Product Manager
 Resultado: ✅ APROVADO (13/13)
 
-Operador está autorizado a monitorar 
+Operador está autorizado a monitorar
 dashboard do go-live de heurísticas.
 
 Conhece:

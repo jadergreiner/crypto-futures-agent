@@ -1,8 +1,8 @@
 # 📑 ÍNDICE — DOCUMENTAÇÃO OPERACIONAL PRODUCT
 
-**Data:** 22 FEV 2026  
-**Responsável:** Product Manager  
-**Objetivo:** Guia para encontrar e usar cada documento criado para o go-live  
+**Data:** 22 FEV 2026
+**Responsável:** Product Manager
+**Objetivo:** Guia para encontrar e usar cada documento criado para o go-live
 
 ---
 
@@ -249,7 +249,7 @@ Antes de dizer "pronto", confirme:
 [ ] Guia emergência: impresso & plastificado
 [ ] Contatos de emergência: preenchidos
 [ ] E-mail de síntese: pronto para enviar
-[ ] Checklist completada 
+[ ] Checklist completada
 [ ] Nenhum ❌ (red flag)
 
 Se TODOS ✅: Você está pronto!
@@ -258,7 +258,7 @@ Se ALGUM ❌: Escalate para Angel
 
 ---
 
-**Documento criado em:** 22 FEV 2026 - 08:45 UTC  
-**Responsável:** Product Manager  
+**Documento criado em:** 22 FEV 2026 - 08:45 UTC
+**Responsável:** Product Manager
 **Status:** ✅ Ready for execution
 

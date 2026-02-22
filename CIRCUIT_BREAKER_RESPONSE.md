@@ -1,8 +1,8 @@
 # 🔌 CIRCUIT BREAKER — GUIA DE RESPOSTA
 
-**Documento:** Procedimento de Resposta ao Circuit Breaker  
-**Audiência:** Operador/Risk Manager  
-**Status:** ✅ OPERACIONAL | **Versão:** 1.0  
+**Documento:** Procedimento de Resposta ao Circuit Breaker
+**Audiência:** Operador/Risk Manager
+**Status:** ✅ OPERACIONAL | **Versão:** 1.0
 **Data:** 22 FEV 2026
 
 ---
@@ -44,7 +44,7 @@ Interpretação:
 ```
 ANTES (CB não ativo):
   Sistema abre posições normalmente
-  
+
 DEPOIS (CB dispara):
   ✅ Stop Loss ATIVA (fecha posições em pânico)
   ✅ Take Profit ATIVA (fecha parciais)
@@ -98,12 +98,12 @@ Timeline:
   14:05 → Drawdown -3.1% (CB DISPARA) 🔌
   14:30 → Drawdown -3.2% (TRAVADO em -3%)
   15:00 → Drawdown -3.1% (oscila perto de -3%)
-  
+
 O que está acontecendo:
   - Sistema alcançou limite de proteção
   - Oscila perto do threshold
   - Stop losses ativam periodicamente
-  
+
 Ação do operador:
   1. NÃO ADORMECA (monitor contínuo)
   2. Aguarde decisão de Risk Manager
@@ -122,12 +122,12 @@ O quê fazer:
   - Deixar sistema com CB ativo
   - Monitorar drawdown a cada 5 minutos
   - NÃO intervir
-  
+
 Quando usar:
   - Drawdown oscila perto de -3%
   - Histórico mostra recuperação
   - Confiança em que vai melhorar
-  
+
 Risco:
   - Se piorar para -5%, liquidação acelerada
 ```
@@ -140,12 +140,12 @@ O quê fazer:
   2. Fechar 25-50% das posições manualmente
   3. Reduzir alavancagem
   4. Reiniciar com parâmetros conservadores
-  
+
 Quando usar:
   - CB permanece >10 minutos
   - Drawdown em tendência de piora
   - Board autoriza redução de exposição
-  
+
 Risco:
   - Realiza perdas (converte P&L negativo em PERDIDO)
   - Pode desativar CB e retomar trading com menos capital
@@ -160,13 +160,13 @@ O quê fazer:
   3. CONTATAR: Angel para decisão final
   4. SE AUTORIZADO: Fechar tudo (todas posições)
   5. Log de auditoria criado
-  
+
 Quando usar:
   - Drawdown cai abaixo de -4%
   - Circuit breaker permanece >30 minutos
   - Board decide: risco não é mais aceitável
   - Recuperação parece improvável (<20% probabilidade)
-  
+
 Risco:
   - REALIZA todas as perdas
   - Capital remanescente fica "seguro"

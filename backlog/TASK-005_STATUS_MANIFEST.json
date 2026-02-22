@@ -1,0 +1,420 @@
+{
+  "task_id": "TASK-005",
+  "task_name": "PPO Training — Treinamento de Política Adaptativa para 60 Pares",
+  "phase": "SPECIFICATION PHASE ✅ COMPLETE",
+  "timeline": {
+    "start": "22 FEV 2026 14:00 UTC",
+    "deadline": "25 FEV 2026 10:00 UTC",
+    "wall_clock_hours": 96,
+    "calendar_days": 2.375
+  },
+  "deliverables_created": {
+    "specification": {
+      "file": "prompts/TASK-005_ML_SPECIFICATION_PLAN.json",
+      "lines": 1088,
+      "sections": 12,
+      "status": "✅ COMPLETE"
+    },
+    "swe_coordination": {
+      "file": "prompts/TASK-005_SWE_COORDINATION_PLAN.md",
+      "lines": 520,
+      "phases": 6,
+      "status": "✅ COMPLETE"
+    },
+    "ml_theory": {
+      "file": "prompts/TASK-005_ML_THEORY_GUIDE.md",
+      "lines": 620,
+      "chapters": 8,
+      "status": "✅ COMPLETE"
+    },
+    "executive_summary": {
+      "file": "prompts/TASK-005_EXECUTIVE_SUMMARY.md",
+      "lines": 280,
+      "sections": 11,
+      "status": "✅ COMPLETE"
+    },
+    "daily_checklist": {
+      "file": "prompts/TASK-005_DAILY_EXECUTION_CHECKLIST.md",
+      "lines": 480,
+      "days": 4,
+      "phases_per_day": 2,
+      "status": "✅ COMPLETE"
+    },
+    "package_readme": {
+      "file": "prompts/TASK-005_SPECIFICATION_PACKAGE_README.md",
+      "lines": 310,
+      "status": "✅ COMPLETE"
+    }
+  },
+  "technical_specification": {
+    "environment": {
+      "num_pairs": 60,
+      "state_space": "Box(1320,)",
+      "state_composition": "60 pairs × 22 normalized features",
+      "action_space": "MultiDiscrete([3] × 60)",
+      "actions_per_pair": ["HOLD", "LONG", "SHORT"],
+      "feature_reduction_method": "PCA",
+      "features_original": 104,
+      "features_reduced": 22,
+      "variance_retained": "≥90%",
+      "normalization": "VecNormalize (running mean/std)"
+    },
+    "reward_function": {
+      "components": 6,
+      "component_1_pnl": "Realized trade PnL + R-multiple bonus",
+      "component_2_hold": "Asymmetric bonus/penalty for holding winners/losers",
+      "component_3_drawdown": "Scaled penalty, hard stop at -5%",
+      "component_4_win_rate": "+0.3 if WR >52%, -0.1 if <45%",
+      "component_5_inactivity": "Decays after 50 flat steps",
+      "component_6_sharpe": "Logged for monitoring (not per-step)",
+      "reward_range": "[-1.0, +10.0]",
+      "typical_range": "[-0.5, +0.5]"
+    },
+    "ppo_hyperparameters": {
+      "algorithm": "Proximal Policy Optimization (PPO)",
+      "learning_rate": "3e-4 (linear decay to 1e-5 over 500k steps)",
+      "batch_size": 64,
+      "n_steps": 2048,
+      "n_epochs": 10,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "entropy_coefficient": 0.001,
+      "value_function_coefficient": 0.5,
+      "max_grad_norm": 0.5,
+      "total_timesteps": 500000,
+      "vectorized_envs": 4,
+      "wall_clock_estimate": "≤96 hours"
+    },
+    "convergence_criteria": {
+      "primary_metric": "Sharpe Ratio",
+      "sharpe_target": "≥1.0",
+      "max_drawdown_target": "<5%",
+      "win_rate_target": "≥52%",
+      "oot_sharpe_target": "≥0.9",
+      "detection_method": "Moving average plateau (<2% change ×2 windows)",
+      "expected_completion": "Steps 375k-500k (wall-clock 72-96h)"
+    },
+    "data_pipeline": {
+      "symbols": 60,
+      "timeframe": "H4 (4-hour candles)",
+      "candles_minimum": 700,
+      "calendar_duration": "~116 days",
+      "split_method": "Point-in-time walk-forward",
+      "train_ratio": 0.8,
+      "train_set": "First 560 candles (timesteps 0-560)",
+      "validation_set": "Last 140 candles (timesteps 560-700)",
+      "look_ahead_bias_prevention": "Validated, no future data in features"
+    }
+  },
+  "implementation_phases": {
+    "phase_0_infrastructure": {
+      "duration_minutes": 90,
+      "owner": "SWE",
+      "status": "NOT STARTED",
+      "timeline": "22 FEV 14:30-16:00 UTC",
+      "deliverables": ["GPU server", "Python env", "Dependencies", "Directory structure"]
+    },
+    "phase_1_environment_data": {
+      "duration_minutes": 150,
+      "owner": "SWE",
+      "status": "NOT STARTED",
+      "timeline": "22 FEV 16:00-18:30 UTC",
+      "deliverables": ["feature_selector.py", "MultiPairEnv", "point-in-time split"]
+    },
+    "phase_2_reward": {
+      "duration_minutes": 90,
+      "owner": "SWE",
+      "status": "NOT STARTED",
+      "timeline": "22 FEV 18:30-20:00 UTC",
+      "deliverables": ["6-component reward", "unit tests", "range validation"]
+    },
+    "phase_3_ppo_training": {
+      "duration_minutes": 180,
+      "owner": "SWE + ML",
+      "status": "NOT STARTED",
+      "timeline": "22 FEV 20:00-23 FEV 08:00 UTC",
+      "deliverables": ["training script", "callbacks", "tensorboard logging"]
+    },
+    "phase_4_monitoring": {
+      "duration_hours": 28,
+      "owner": "ML (async)",
+      "status": "NOT STARTED",
+      "timeline": "23 FEV 08:00-24 FEV 12:00 UTC",
+      "deliverables": ["convergence detection", "early stopping", "checkpoint management"]
+    },
+    "phase_5_validation": {
+      "duration_hours": 20,
+      "owner": "ML + SWE",
+      "status": "NOT STARTED",
+      "timeline": "24 FEV 12:00-25 FEV 08:00 UTC",
+      "deliverables": ["OOT backtest", "bias check", "model export"]
+    },
+    "phase_6_handoff": {
+      "duration_minutes": 120,
+      "owner": "ML + SWE",
+      "status": "NOT STARTED",
+      "timeline": "25 FEV 08:00-10:00 UTC",
+      "deliverables": ["model artifact", "validation report", "QA ready"]
+    }
+  },
+  "decision_gates": {
+    "gate_0": {
+      "milestone": "Specification Approval",
+      "deadline": "22 FEV 15:00 UTC",
+      "status": "⏳ PENDING",
+      "decision": "Go/No-Go on spec",
+      "sign_off_required": ["ML", "SWE Lead", "Architecture"],
+      "criteria": ["Spec approved", "Arch feasible", "Timeline realistic"]
+    },
+    "gate_1": {
+      "milestone": "Environment + Reward Ready",
+      "deadline": "22 FEV 20:00 UTC",
+      "status": "⏳ PENDING",
+      "decision": "Begin training setup",
+      "sign_off_required": ["SWE"],
+      "criteria": ["Unit tests 100%", "Obs (1320,) verified", "Reward [-1,+10] verified"]
+    },
+    "gate_2": {
+      "milestone": "Training Running (50k done)",
+      "deadline": "23 FEV 12:00 UTC",
+      "status": "⏳ PENDING",
+      "decision": "Training quality check",
+      "sign_off_required": ["ML"],
+      "criteria": ["Steps 50k saved", "Reward improving", "No divergence"]
+    },
+    "gate_3": {
+      "milestone": "Model Converging",
+      "deadline": "24 FEV 12:00 UTC",
+      "status": "⏳ PENDING",
+      "decision": "On track for deadline",
+      "sign_off_required": ["ML"],
+      "criteria": ["Sharpe >0.8 at 250k", "Loss decreasing", "No early stop"]
+    },
+    "gate_4": {
+      "milestone": "Complete & Validated",
+      "deadline": "25 FEV 10:00 UTC",
+      "status": "⏳ PENDING",
+      "decision": "Ready for QA (TASK-006)",
+      "sign_off_required": ["ML", "SWE", "QA"],
+      "criteria": ["Sharpe ≥1.0", "OOT Sharpe ≥0.9", "No look-ahead bias"]
+    }
+  },
+  "success_metrics": {
+    "backtest": {
+      "sharpe_ratio": {
+        "target": "≥1.0",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "max_drawdown": {
+        "target": "<5%",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "win_rate": {
+        "target": "≥52%",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "profit_factor": {
+        "target": ">1.5",
+        "actual": "TBD",
+        "status": "PENDING"
+      }
+    },
+    "out_of_time": {
+      "oot_sharpe": {
+        "target": "≥0.9",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "oot_drawdown": {
+        "target": "<5.5%",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "oot_win_rate": {
+        "target": ">50%",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "look_ahead_bias": {
+        "target": "NONE",
+        "actual": "TBD",
+        "status": "PENDING"
+      }
+    },
+    "operational": {
+      "total_steps": {
+        "target": 500000,
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "wall_clock": {
+        "target": "≤96 hours",
+        "actual": "TBD",
+        "status": "PENDING"
+      },
+      "inference_latency": {
+        "target": "<100ms",
+        "actual": "TBD",
+        "status": "PENDING"
+      }
+    }
+  },
+  "risks_and_mitigations": [
+    {
+      "risk": "Training doesn't converge (Sharpe <0.9)",
+      "likelihood": "MEDIUM",
+      "impact": "CRITICAL",
+      "mitigation": "Regularization + walk-forward split + early monitoring",
+      "contingency": "Extend deadline 12h, tune hyperparams"
+    },
+    {
+      "risk": "Data quality issues (gaps, bias)",
+      "likelihood": "LOW",
+      "impact": "HIGH",
+      "mitigation": "Point-in-time split, OOT validation, stationarity checks",
+      "contingency": "Reload data from clean DB backup"
+    },
+    {
+      "risk": "Infrastructure failure (GPU crash)",
+      "likelihood": "LOW",
+      "impact": "MEDIUM",
+      "mitigation": "Checkpoint every 50k (resumeable), data backup",
+      "contingency": "Resume from latest checkpoint on new GPU"
+    },
+    {
+      "risk": "Deadline slip (>96h total)",
+      "likelihood": "MEDIUM",
+      "impact": "CRITICAL",
+      "mitigation": "Parallel phases, async monitoring, daily gates",
+      "contingency": "Escalate to Product for timeline extension"
+    },
+    {
+      "risk": "Model divergence (late-stage)",
+      "likelihood": "LOW",
+      "impact": "HIGH",
+      "mitigation": "Early stopping trigger, checkpoint reversion",
+      "contingency": "Revert to best checkpoint, retrain with adjusted LR"
+    }
+  ],
+  "team_roles": {
+    "ml_specialist": {
+      "name": "The Brain",
+      "role": "RL/ML Expert",
+      "responsibilities": [
+        "Design specification",
+        "Verify reward function",
+        "Monitor convergence",
+        "OOT validation",
+        "Decision gates #2, #3, #4"
+      ]
+    },
+    "swe_lead": {
+      "name": "Dev",
+      "role": "Senior Backend Engineer",
+      "responsibilities": [
+        "Implement all code phases",
+        "Unit testing",
+        "Infrastructure setup",
+        "Decision gates #0, #1"
+      ]
+    },
+    "architecture": {
+      "name": "Arch",
+      "role": "ML Architecture Reviewer",
+      "responsibilities": [
+        "Design feasibility review",
+        "RL best practices check",
+        "Technical sign-off"
+      ]
+    },
+    "qa": {
+      "name": "Audit",
+      "role": "QA Manager (TASK-006)",
+      "responsibilities": [
+        "Final validation",
+        "Risk gate verification",
+        "Deployment readiness"
+      ]
+    }
+  },
+  "resources_allocated": {
+    "infrastructure": {
+      "gpu_server": "1 × 4-core CPU, 16GB RAM, 100GB disk",
+      "duration": "4 days continuous",
+      "estimated_cost": "~$500 (cloud GPU rental)"
+    },
+    "human_resources": {
+      "ml_specialist_hours": "~40h (design + monitoring + validation)",
+      "swe_hours": "~60h (implementation + testing)",
+      "qa_hours": "~8h (TASK-006, not in this budget)"
+    },
+    "dependencies": {
+      "stable_baselines3": "2.3.0+",
+      "pytorch": "2.0+",
+      "tensorboard": "latest",
+      "numpy": "1.24+",
+      "pandas": "1.5+"
+    }
+  },
+  "next_immediate_actions": [
+    {
+      "action": "Gate #0 Review & Sign-Off",
+      "owner": "ML + SWE + Arch",
+      "deadline": "22 FEV 15:00 UTC",
+      "deliverable": "All 3 parties approve spec"
+    },
+    {
+      "action": "Confirm 60-Pair Symbol List",
+      "owner": "Data Team",
+      "deadline": "22 FEV 15:30 UTC",
+      "deliverable": "symbols_60.json file, data verified"
+    },
+    {
+      "action": "Allocate GPU Infrastructure",
+      "owner": "DevOps / SWE",
+      "deadline": "22 FEV 16:00 UTC",
+      "deliverable": "Server running, deps installed"
+    },
+    {
+      "action": "Begin Phase 0 Infrastructure",
+      "owner": "SWE",
+      "deadline": "22 FEV 16:00 UTC",
+      "deliverable": "Ready to code Phase 1"
+    }
+  ],
+  "status_summary": {
+    "overall_status": "🟢 SPECIFICATION PHASE COMPLETE",
+    "specification_status": "✅ 6 docs delivered",
+    "implementation_status": "⏳ NOT STARTED (waiting Gate #0)",
+    "training_status": "⏳ PENDING (after Phase 0-3)",
+    "validation_status": "⏳ PENDING (after 500k steps)",
+    "deployment_readiness": "⏳ PENDING (depends on metrics)"
+  },
+  "critical_path": [
+    "Gate #0 approval (22 FEV 15:00)",
+    "Infrastructure ready (22 FEV 16:00)",
+    "Env + Reward code (22 FEV 18:30)",
+    "Training started (~23 FEV 08:00)",
+    "500k steps complete (~25 FEV 08:00)",
+    "OOT validation pass (~25 FEV 10:00)",
+    "Gate #4 complete (25 FEV 10:00) ← DEADLINE"
+  ],
+  "estimated_cost": {
+    "infrastructure": 500,
+    "human_resources": 5000,
+    "total_usd": 5500
+  },
+  "document_metadata": {
+    "created_by": "The Brain (ML Specialist)",
+    "created_date": "22 FEV 2026 14:00 UTC",
+    "version": "1.0 FINAL",
+    "status": "🟢 READY FOR IMPLEMENTATION",
+    "total_docs": 6,
+    "total_lines": 3508,
+    "review_status": "AWAITING GATE #0 SIGN-OFF"
+  }
+}

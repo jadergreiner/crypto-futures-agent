@@ -1,10 +1,10 @@
 # ✅ PRODUCT — CHECKLIST PRÉ-GO-LIVE
 
-**Timeline:** 22 FEV 08:00 → 09:50 UTC (110 minutos até go-live)  
-**Responsável:** Product Manager (você)  
-**Objetivo:** Validar que dashboard & documentação operacional estão 100% prontos  
-**Status se TUDO OK:** Go-live pode prosseguir  
-**Status se ALGUM ✗:** Escalate para Angel imediatamente  
+**Timeline:** 22 FEV 08:00 → 09:50 UTC (110 minutos até go-live)
+**Responsável:** Product Manager (você)
+**Objetivo:** Validar que dashboard & documentação operacional estão 100% prontos
+**Status se TUDO OK:** Go-live pode prosseguir
+**Status se ALGUM ✗:** Escalate para Angel imediatamente
 
 ---
 
@@ -134,7 +134,7 @@
 ```
 [ ] 1 operador designado para monitorar (nome prenchido):
     Operador: _____________________
-    
+
 [ ] Operador tem 0 jargão técnico (se possível)
     Se é DEV: pior, vai entender "muito" e perder detalhe
     Se é completamente novo: mejor, aprende certo
@@ -184,37 +184,37 @@
 ```
 [ ] Criar arquivo de GO-LIVE (novo arquivo):
     Nome: PRODUCT_GO_LIVE_READINESS_22FEV.md
-    
+
     Conteúdo:
     ─────────────────────────────────────
     # GO-LIVE READINESS CHECKLIST — PRODUCT
-    
+
     **Data:** 22 FEV 2026 - 09:30 UTC
     **Preparado por:** Product Manager
     **Status:** ✅ PRONTO ou ❌ NÃO PRONTO
-    
+
     ## Dashboard
     - ✅ Renderiza sem erros
     - ✅ 60 pares visíveis
     - ✅ Atualiza a cada 30s
     - ✅ Cores funcionam
-    
+
     ## Documentação Operacional
     - ✅ 3 Cenários críticos documentados
     - ✅ UX Compreensão testada (13/13 campos)
     - ✅ Guia rápido impresso & plastificado
     - ✅ Contatos de emergência preenchidos
-    
+
     ## Operador
     - ✅ Teste UX: 12/13 aprovado
     - ✅ Conhece os 3 cenários
     - ✅ Sabe quando pausar
     - ✅ Contatos salvos no celular
-    
+
     ## Conclusão
     Dashboard e documentação operacional estão 100% prontos para go-live às 10:00 UTC.
     Operador aprovado e treinado.
-    
+
     Assinado: Product Manager
     Data: 22 FEV 2026 - 09:30 UTC
     ─────────────────────────────────────

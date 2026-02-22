@@ -1,0 +1,382 @@
+{
+  "task_005_sync_matrix": {
+    "version": "1.0",
+    "date": "2026-02-22T14:30:00Z",
+    "owner": "Doc Advocate",
+    "status": "READY FOR IMPLEMENTATION",
+    "purpose": "Master dependency map: code → docs → commit → audit trail",
+    
+    "code_to_docs_mapping": [
+      {
+        "code_file": "agent/checkpoint_manager.py",
+        "status": "PENDING (SWE Day 2)",
+        "doc_dependencies": [
+          {
+            "doc": "README.md",
+            "section": "### New Modules in TASK-005",
+            "action": "Add module description + link",
+            "priority": "🔴 CRITICAL",
+            "audit_rule": "grep README for checkpoint_manager link"
+          },
+          {
+            "doc": "BEST_PRACTICES.md",
+            "section": "### Checkpoint Serialization Patterns",
+            "action": "Add code example + best practices",
+            "priority": "🔴 CRITICAL",
+            "audit_rule": "Docstring example matches pattern"
+          },
+          {
+            "doc": "docs/SYNCHRONIZATION.md",
+            "section": "TASK-005 Progress Log",
+            "action": "Log creation timestamp + owner",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Entry exists with timestamp"
+          }
+        ],
+        "commit_format": "[SYNC] Add checkpoint_manager to docs — README.md, BEST_PRACTICES.md",
+        "markdown_lint_rules": [
+          "max_line_length: 80",
+          "no_trailing_spaces: true",
+          "no_hard_tabs: true"
+        ],
+        "encoding": "UTF-8",
+        "expected_completion": "2026-02-23T05:00:00Z"
+      },
+      {
+        "code_file": "agent/convergence_monitor.py",
+        "status": "PENDING (SWE Day 2)",
+        "doc_dependencies": [
+          {
+            "doc": "README.md",
+            "section": "### Real-Time Monitoring",
+            "action": "Add monitoring description",
+            "priority": "🔴 CRITICAL",
+            "audit_rule": "Section exists + link valid"
+          },
+          {
+            "doc": "BEST_PRACTICES.md",
+            "section": "### Training Monitoring Patterns",
+            "action": "Add TensorBoard integration example",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Code example matches source file"
+          },
+          {
+            "doc": "docs/SYNCHRONIZATION.md",
+            "section": "TASK-005 Progress Log",
+            "action": "Log creation",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Timestamp within 1h of code completion"
+          }
+        ],
+        "commit_format": "[SYNC] Add convergence monitor docs — README.md, BEST_PRACTICES.md",
+        "encoding": "UTF-8",
+        "expected_completion": "2026-02-23T08:00:00Z"
+      },
+      {
+        "code_file": "agent/rollback_handler.py",
+        "status": "PENDING (SWE Day 2)",
+        "doc_dependencies": [
+          {
+            "doc": "README.md",
+            "section": "### Automatic Rollback Strategy",
+            "action": "Explain fallback mechanism",
+            "priority": "🔴 CRITICAL",
+            "audit_rule": "Risk mitigation clearly explained"
+          },
+          {
+            "doc": "BEST_PRACTICES.md",
+            "section": "### Risk Management & Rollback",
+            "action": "Document when/how to trigger",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Matches agent/rollback_handler.py logic"
+          }
+        ],
+        "commit_format": "[SYNC] Add rollback strategy docs — README.md, BEST_PRACTICES.md",
+        "encoding": "UTF-8",
+        "expected_completion": "2026-02-23T10:00:00Z"
+      },
+      {
+        "code_file": "scripts/ppo_training_orchestrator.py",
+        "status": "PENDING (SWE Day 2)",
+        "doc_dependencies": [
+          {
+            "doc": "README.md",
+            "section": "### Training Orchestration & Lifecycle",
+            "action": "Add execution runbook",
+            "priority": "🔴 CRITICAL",
+            "audit_rule": "10-step process documented"
+          },
+          {
+            "doc": "backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md",
+            "section": "TASK-005 Timeline",
+            "action": "Cross-reference orchestrator phases",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Dates match expected_completion in this file"
+          },
+          {
+            "doc": "docs/SYNCHRONIZATION.md",
+            "section": "TASK-005 Orchestration Log",
+            "action": "Log 10-step process + checkpoints",
+            "priority": "🟠 HIGH",
+            "audit_rule": "Sequence matches script comments"
+          }
+        ],
+        "commit_format": "[SYNC] Add training orchestration docs — README.md, SPRINT_BACKLOG",
+        "encoding": "UTF-8",
+        "expected_completion": "2026-02-23T12:00:00Z"
+      },
+      {
+        "code_file": "tests/conftest.py",
+        "status": "PENDING (SWE Day 2)",
+        "doc_dependencies": [
+          {
+            "doc": "BEST_PRACTICES.md",
+            "section": "### Testing Fixtures for ML Training",
+            "action": "Document fixture usage + examples",
+            "priority": "🟡 MEDIUM",
+            "audit_rule": "Examples match source code exactly"
+          },
+          {
+            "doc": "README.md",
+            "section": "### Development Setup (Testing)",
+            "action": "How to run tests locally",
+            "priority": "🟡 MEDIUM",
+            "audit_rule": "Commands are executable"
+          }
+        ],
+        "commit_format": "[TEST] Add training fixtures — BEST_PRACTICES.md example",
+        "encoding": "UTF-8",
+        "expected_completion": "2026-02-23T14:00:00Z"
+      }
+    ],
+
+    "docs_to_update": {
+      "README.md": {
+        "priority": "🔴 CRITICAL",
+        "sections_to_add": [
+          {
+            "title": "### TASK-005: PPO Training Module",
+            "content_sections": [
+              "Module Overview (1 paragraph)",
+              "Key Components (4 items: checkpoint, monitor, rollback, orchestrator)",
+              "Installation & Setup (step-by-step)",
+              "Quick Start (training example)",
+              "Monitoring Dashboard (TensorBoard link)"
+            ],
+            "estimated_lines": 50,
+            "owner": "Doc Advocate",
+            "deadline": "2026-02-23T18:00:00Z"
+          },
+          {
+            "title": "### New Dependencies (TASK-005)",
+            "content_sections": [
+              "cryptography>=41.0.0",
+              "joblib>=1.3.0",
+              "tensorboard>=2.13.0"
+            ],
+            "estimated_lines": 15,
+            "owner": "Doc Advocate",
+            "deadline": "2026-02-23T18:00:00Z"
+          }
+        ]
+      },
+      "BEST_PRACTICES.md": {
+        "priority": "🔴 CRITICAL",
+        "sections_to_add": [
+          {
+            "title": "### PPO Training — Checkpoint Management",
+            "content": "Explain when/how to save checkpoints, encryption best practices",
+            "example_code": "from agent.checkpoint_manager import CheckpointManager",
+            "estimated_lines": 30,
+            "deadline": "2026-02-23T18:00:00Z"
+          },
+          {
+            "title": "### Convergence Monitoring Patterns",
+            "content": "Real-time metric logging, divergence detection, alerting",
+            "example_code": "from agent.convergence_monitor import ConvergenceMonitor",
+            "estimated_lines": 25,
+            "deadline": "2026-02-23T18:00:00Z"
+          },
+          {
+            "title": "### Rollback Strategy & Risk Mitigation",
+            "content": "When to trigger rollback, fallback to heuristics",
+            "example_code": "from agent.rollback_handler import RollbackHandler",
+            "estimated_lines": 20,
+            "deadline": "2026-02-23T18:00:00Z"
+          }
+        ]
+      },
+      "docs/SYNCHRONIZATION.md": {
+        "priority": "🔴 CRITICAL",
+        "action": "Add TASK-005 section with daily progress logging",
+        "frequency": "Every 2 hours (continuous update)",
+        "log_format": "DATE TIME | Event | Owner | Status | Notes",
+        "deadline": "2026-02-25T10:00:00Z"
+      },
+      "CHANGELOG.md": {
+        "priority": "🟠 HIGH",
+        "section": "### Version 0.4.0 (TASK-005 PPO Training)",
+        "content": [
+          "Added checkpoint_manager.py (checkpoint serialization + encryption)",
+          "Added convergence_monitor.py (real-time training metrics)",
+          "Added rollback_handler.py (automatic fallback to heuristics)",
+          "Added ppo_training_orchestrator.py (10-step automation)",
+          "Updated trainer.py (callback integration)",
+          "Added 4 test modules (800 LOC coverage)"
+        ],
+        "metrics": "Sharpe ratio convergence, training timeline 72h",
+        "deadline": "2026-02-25T20:00:00Z"
+      },
+      ".github/copilot-instructions.md": {
+        "priority": "🟡 MEDIUM",
+        "action": "Update 'Stack' section: mention agent/ PPO modules",
+        "deadline": "2026-02-25T15:00:00Z"
+      }
+    },
+
+    "commit_schedule": {
+      "day_1_22_fev": [
+        {
+          "time": "15:00 UTC",
+          "message": "[SYNC] Setup git hooks & markdown lint enforcement",
+          "files": [".githooks/pre-commit", ".githooks/pre-push", ".markdownlint.json"],
+          "owner": "Doc Advocate"
+        },
+        {
+          "time": "16:00 UTC",
+          "message": "[SYNC] Add PHASE4 doc governance policy",
+          "files": ["docs/POLICY_DOC_GOVERNANCE_PHASE4.md"],
+          "owner": "Doc Advocate"
+        }
+      ],
+      "day_2_23_fev": [
+        {
+          "time": "08:00 UTC",
+          "message": "[SYNC] Daily audit pass #1 — TASK-005 docs",
+          "files": ["docs/SYNCHRONIZATION.md"],
+          "owner": "Doc Advocate",
+          "note": "Post standup audit results"
+        },
+        {
+          "time": "12:00 UTC",
+          "message": "[SYNC] Update README for TASK-005 modules",
+          "files": ["README.md"],
+          "owner": "Doc Advocate",
+          "note": "Add 4 module sections post SWE implementation"
+        },
+        {
+          "time": "16:00 UTC",
+          "message": "[SYNC] Add TASK-005 patterns to BEST_PRACTICES",
+          "files": ["BEST_PRACTICES.md"],
+          "owner": "Doc Advocate",
+          "note": "3 sections: checkpoint, monitor, rollback"
+        },
+        {
+          "time": "20:00 UTC",
+          "message": "[SYNC] Daily audit pass #2 — accuracy check",
+          "files": ["docs/SYNCHRONIZATION.md"],
+          "owner": "Doc Advocate"
+        }
+      ],
+      "day_3-5": [
+        {
+          "time": "08:00 UTC",
+          "message": "[SYNC] Daily training progress log",
+          "files": ["docs/SYNCHRONIZATION.md", "backlog/TASKS_TRACKER_REALTIME.md"],
+          "owner": "Doc Advocate",
+          "frequency": "Daily (repeats 23-25 FEV)"
+        }
+      ],
+      "final_25_fev": [
+        {
+          "time": "10:00 UTC",
+          "message": "[SYNC] TASK-005 training completion — final metrics",
+          "files": ["docs/SYNCHRONIZATION.md"],
+          "owner": "Doc Advocate"
+        },
+        {
+          "time": "14:00 UTC",
+          "message": "[SYNC] Final documentation audit pass",
+          "files": ["docs/SYNCHRONIZATION.md"],
+          "owner": "Doc Advocate"
+        },
+        {
+          "time": "16:00 UTC",
+          "message": "[SYNC] Update CHANGELOG.md — TASK-005 completion",
+          "files": ["CHANGELOG.md"],
+          "owner": "Doc Advocate"
+        },
+        {
+          "time": "20:00 UTC",
+          "message": "[SYNC] Merge ready — all docs audit PASS",
+          "files": ["docs/SYNCHRONIZATION.md"],
+          "owner": "Doc Advocate",
+          "note": "Final sign-off before PR merge"
+        }
+      ]
+    },
+
+    "validation_rules": {
+      "commit_messages": {
+        "format": "[TAG] Título breve — arquivos afetados",
+        "max_length": 72,
+        "charset": "ASCII only (0-127)",
+        "tags_allowed": ["[SYNC]", "[FEAT]", "[FIX]", "[TEST]", "[DOCS]"],
+        "validation_script": ".githooks/validate-commit-msg.sh"
+      },
+      "markdown_lint": {
+        "line_length": 80,
+        "encoding": "UTF-8",
+        "no_trailing_spaces": true,
+        "no_hard_tabs": true,
+        "config_file": ".markdownlint.json"
+      },
+      "cross_references": {
+        "rule_1": "All README links must point to existing files",
+        "rule_2": "Line number references must use correct format: [file.md](file.md#L10)",
+        "rule_3": "No broken internal links allowed",
+        "validation_script": ".githooks/validate-cross-refs.sh"
+      }
+    },
+
+    "daily_audit_template": {
+      "date": "DATE",
+      "time": "08:00 UTC",
+      "owner": "Doc Advocate",
+      "checklist": [
+        "Code ↔ Docs sync (README, BEST_PRACTICES updated)?",
+        "All commits have [SYNC] tags?",
+        "Commit messages < 72 chars ASCII?",
+        "Markdown lint: 0 errors in all files?",
+        "Cross-references: 100% valid?",
+        "UTF-8 encoding: Valid in all files?",
+        "SYNCHRONIZATION.md up-to-date?",
+        "no blockers?",
+        "Sign-off ready?"
+      ],
+      "slack_report": "#docs-governance channel"
+    },
+
+    "acceptance_criteria_final": [
+      "✅ All TASK-005 code files documented",
+      "✅ README.md reflects 4 new modules",
+      "✅ BEST_PRACTICES.md has 3+ patterns",
+      "✅ SYNCHRONIZATION.md logs complete audit trail",
+      "✅ 100% [SYNC] tag compliance (zero violations)",
+      "✅ Markdown lint: 0 errors in all updated files",
+      "✅ UTF-8 encoding: Valid in 100%",
+      "✅ Cross-references: 100% valid",
+      "✅ CHANGELOG.md entry created",
+      "✅ Doc Advocate final sign-off complete"
+    ],
+
+    "metrics_to_track": [
+      "Total commits with [SYNC] tags",
+      "Total lines added to README + BEST_PRACTICES",
+      "Markdown lint errors found & fixed",
+      "Cross-reference validation passes",
+      "Daily audit completion rate (target: 100%)",
+      "Time from code completion → doc update (target: <2h)"
+    ]
+  }
+}

@@ -1,0 +1,709 @@
+{
+  "task_metadata": {
+    "id": "TASK-005",
+    "title": "PPO Training — Treinamento de Política Adaptativa",
+    "owner": "The Brain (ML Specialist) + Arch (RL Specialist)",
+    "timeline": "22 FEV 14:00 UTC → 25 FEV 10:00 UTC (96h)",
+    "status": "SPECIFICATION PHASE (Design before code)",
+    "goal_metrics": {
+      "convergence_deadline": "25 FEV 10:00 UTC",
+      "convergence_deadline_wall_clock": "≤96 horas",
+      "target_sharpe": "≥1.0 (backtest)",
+      "target_sharpe_oot": "≥0.9 (out-of-time)",
+      "target_win_rate": "≥52%",
+      "max_drawdown": "<5%",
+      "inference_latency": "<100ms",
+      "total_timesteps": 500000
+    },
+    "architecture": "🔄 HYBRID: Heurísticas (TASK-004 go-live) + PPO training paralelo"
+  },
+
+  "environment_design": {
+    "approach": "Multi-instrument gym wrapper para 60 pares simultâneos",
+    "wrapper_type": "DummyVecEnv com VecNormalize (stable-baselines3)",
+    "parallelization_strategy": "60 pares em 1 policy única (action_space expandido)",
+
+    "state_space": {
+      "summary": "Observation shape: Box(60 × 22,) = Box(1320,) total",
+      "rationale": "104 features originais → reduce via feature engineering a 22/par",
+      "normalization": "VecNormalize (running mean/std)",
+      "per_pair_features": {
+        "feature_count": 22,
+        "composition": [
+          {
+            "name": "OHLCV Normalized",
+            "dimensions": 5,
+            "description": "log-return open, high, low, close, volume (normalized z-score H4)"
+          },
+          {
+            "name": "Momentum Indicators",
+            "dimensions": 4,
+            "description": "RSI(14), MACD histogram, ADX(14), ATR(14) — normalized [-1, +1]"
+          },
+          {
+            "name": "Heuristic Signal Score",
+            "dimensions": 5,
+            "description": "SMC order blocks (0-1), FVG proximity (0-1), EMA alignment (3-tier: -1,0,+1), trend strength (0-1)"
+          },
+          {
+            "name": "Portfolio Context",
+            "dimensions": 3,
+            "description": "Current position PnL% (unrealized), position size (0-100%), portfolio drawdown %"
+          },
+          {
+            "name": "Risk State",
+            "dimensions": 4,
+            "description": "Distance to stop (%), distance to TP (%), funding rate (%), liquidation risk (0-1)"
+          },
+          {
+            "name": "Market Microstructure",
+            "dimensions": 1,
+            "description": "Long/short ratio gradient (momentum change, -1 to +1)"
+          }
+        ],
+        "formula": "state_t = [OHLCV(5) | Momentum(4) | Heuristic(5) | Portfolio(3) | Risk(4) | Micro(1)] per pair",
+        "shape_per_pair": "(22,)",
+        "shape_all_pairs": "(60, 22) → flatten → (1320,)"
+      },
+      "feature_engineering": {
+        "stage_1_raw": "104 original features from environment.py",
+        "stage_2_dimensionality_reduction": {
+          "method": "PCA + domain expert selection",
+          "target": "22 most informative features per pair",
+          "implementation": "agent/feature_selector.py (novo arquivo)"
+        },
+        "stage_3_normalization": {
+          "method": "VecNormalize from stable-baselines3",
+          "moving_window": "running mean/std de últimas 100 observações",
+          "clip_by_std": "±2.5σ (evita outliers extremos)"
+        },
+        "look_ahead_bias_prevention": {
+          "method": "Point-in-time data split (walk-forward)",
+          "train_window": "primeiros 80% do timeline",
+          "validation_window": "últimos 20% (temporalmente DEPOIS do treino)",
+          "seasonal_adjustment": "Resampling dados com gaps >24h"
+        }
+      },
+      "multi_timeframe_context": {
+        "primary": "H4 (4-hour) - base de observação",
+        "secondary": "D1 (daily) - market regime filter",
+        "tertiary": "H1 (1-hour) - fine-grained entry/exit",
+        "injection": "As features ponderadas (weighted 0.7:0.2:0.1)",
+        "regime_encoding": "RISK_ON=+0.5, NEUTRAL=0, RISK_OFF=-0.5 (D1 context)"
+      }
+    },
+
+    "action_space": {
+      "summary": "Discrete(3^60) → simplificado para Discrete(3) × 60 (Box approach)",
+      "note": "Cada par tem 3 ações independentes. Total = 3^60 combinações teóricas, mas PPO aprende distribução marginal.",
+      "approach": "MultiDiscrete([3, 3, ..., 3] × 60 pares)",
+      "actions_per_pair": {
+        "0_HOLD": {
+          "description": "Manter posição/estado atual ou permanecer flat",
+          "subtree": "Não abre nova posição"
+        },
+        "1_LONG": {
+          "description": "Abrir/manter posição LONG (ou aumentar se já long)",
+          "execution": "heuristic_signals.py valida entrada, PPO aprova",
+          "risk_gates": "Stop loss obrigatório (SL), Take profit tier 1 (TP1)",
+          "sizing": "Risk manager calcula fraction of capital"
+        },
+        "2_SHORT": {
+          "description": "Abrir/manter posição SHORT (ou aumentar se já short)",
+          "execution": "heuristic_signals.py valida, PPO aprova",
+          "risk_gates": "SL obrigatório, TP1 obrigatório",
+          "sizing": "Risk manager calcula"
+        }
+      },
+      "implementation": {
+        "action_head": "Separate linear head × 60: (output_layer → 3 logits per pair)",
+        "softmax": "Per pair (independent policy)",
+        "notation": "a_t = [a_t^{BTC}, a_t^{ETH}, ..., a_t^{DOGE}] onde a_t^i ∈ {0, 1, 2}"
+      }
+    },
+
+    "constraints_and_guards": {
+      "circuit_breaker": {
+        "trigger": "Portfolio drawdown ≥ -3%",
+        "action": "HALT todas ordens (policy ignora LONG/SHORT, força HOLD)",
+        "reset": "Manual via admin, com 24h cooldown"
+      },
+      "position_limits": {
+        "max_concurrent_longs": 15,
+        "max_concurrent_shorts": 15,
+        "max_concurrent_total": 30,
+        "rationale": "Evitar exposição sistêmica excessiva"
+      },
+      "notional_exposure": {
+        "max_per_pair": "5% of portfolio capital",
+        "max_total": "100% of portfolio capital (fully invested is OK)",
+        "leverage": "Max 2x (via position sizing, não alavancagem nominal)"
+      },
+      "validation_flow": {
+        "heuristic_checks": "Signal validation (SMC, EMA, RSI) → ALLOW/DENY action",
+        "ppo_override": "Se heuristic=ALLOW, PPO policy decides LONG/SHORT/HOLD",
+        "combined_risk": "Guardian (risk_manager.py) executa SL/TP matematicamente"
+      }
+    }
+  },
+
+  "reward_function": {
+    "summary": "Multi-component reward com sharpe-focused formulation",
+    "design_philosophy": "Align agent with risk-adjusted returns (Sharpe ratio >1.0)",
+    "clip_bounds": "[-1.0, +10.0] (normalized range)",
+
+    "component_1_pnl_realized": {
+      "trigger": "Trade fecha (SL hit, TP hit, manual close)",
+      "formula": "r_pnl = pnl_pct × PNL_SCALE + r_r_multiple_bonus",
+      "latex_formula": "r_{PnL} = \\frac{pnl\\_realized}{capital\\_t} \\times 10.0 + \\begin{cases} +1.0 & \\text{if } R_{multiple} > 3.0 \\\\ +0.5 & \\text{if } R_{multiple} > 2.0 \\\\ 0.0 & \\text{else} \\end{cases}",
+      "components": {
+        "pnl_pct": "% de retorno (e.g., +2% trade = +0.02)",
+        "PNL_SCALE": 10.0,
+        "r_multiple_bonus": "Reward for risk-adjusted wins (R:R >1:3)"
+      },
+      "examples": [
+        {
+          "scenario": "Win +2% com R:R 1:6",
+          "pnl_pct": 0.02,
+          "pnl_component": 0.2,
+          "r_multiple_bonus": 1.0,
+          "total_reward": 1.2
+        },
+        {
+          "scenario": "Loss -1% (SL hit at risk level)",
+          "pnl_pct": -0.01,
+          "pnl_component": -0.1,
+          "r_multiple_bonus": 0.0,
+          "total_reward": -0.1
+        }
+      ]
+    },
+
+    "component_2_hold_bonus": {
+      "trigger": "Every step while position is open",
+      "rationale": "Incentivize holding winners asymmetrically (não penalizar losers prematuramente)",
+      "formula": "r_hold = HOLD_BASE × sign(pnl_pct) + pnl_pct × HOLD_SCALING × max(0, momentum) + HOLD_LOSS_PENALTY × 𝟙[pnl_pct<0]",
+      "latex_formula": "r_{hold} = \\begin{cases} +0.05 + pnl\\_pct \\times 0.1 + 0.05 \\times momentum & \\text{if } pnl\\_pct > 0 \\\\ -0.02 & \\text{if } pnl\\_pct \\leq 0 \\text{ (hold losers longer)} \\end{cases}",
+      "parameters": {
+        "HOLD_BASE_BONUS": 0.05,
+        "HOLD_SCALING": 0.1,
+        "HOLD_LOSS_PENALTY": -0.02,
+        "momentum": "Derived from pnl_momentum_feature (d(PnL)/dt)"
+      },
+      "asymmetry_rationale": "Allow losers to recover (give them time), reward faster winners"
+    },
+
+    "component_3_drawdown_penalty": {
+      "trigger": "Every step, calculated at portfolio level",
+      "formula": "r_dd = max( -1.0, -0.2 × (current_dd_pct / max_dd_allowed))",
+      "latex_formula": "r_{dd} = \\max\\left(-1.0, -0.2 \\times \\frac{\\text{current\\_DD}\\%}{5\\%}\\right)",
+      "trigger_levels": [
+        {
+          "dd_range": "0% to -2%",
+          "penalty": "0 (no penalty)",
+          "description": "Normal operation"
+        },
+        {
+          "dd_range": "-2% to -5%",
+          "penalty": "-0.04 to -0.2",
+          "description": "Linear penalty escalation"
+        },
+        {
+          "dd_range": "< -5%",
+          "penalty": "-1.0",
+          "clipping": "Hard stop (episode terminates)"
+        }
+      ],
+      "implementation": "Tracked via peak_capital - current_capital"
+    },
+
+    "component_4_win_rate_bonus": {
+      "trigger": "Every 50 steps (rolling window)",
+      "calculation": "win_rate = (wins_50 / total_trades_50) if total_trades_50 > 0 else 0",
+      "formula": "r_wr = +0.3 if win_rate > 0.52 else -0.1 if win_rate < 0.45 else 0.0",
+      "latex_formula": "r_{wr} = \\begin{cases} +0.3 & \\text{if } WR > 52\\% \\\\ -0.1 & \\text{if } WR < 45\\% \\\\ 0.0 & \\text{else} \\end{cases}",
+      "threshold": 52,
+      "rationale": "Encourage >50% win rate for sustainability (Profit Factor > 1.5 → implies >52% WR with proper sizing)"
+    },
+
+    "component_5_activity_penalty": {
+      "trigger": "Every step where agent is FLAT (no position)",
+      "formula": "r_inactivity = -0.01 × min(flat_steps, 50) / 50",
+      "latex_formula": "r_{inact} = -0.01 \\times \\frac{\\min(\\text{flat\\_steps}, 50)}{50}",
+      "rationale": "Avoid excessive inactivity, but decay penalty after 50 steps (don't force bad trades)",
+      "note": "This is NOT the same as OUT_OF_MARKET_BONUS (which is smarter)"
+    },
+
+    "component_6_sharpe_ratio_proxy": {
+      "trigger": "Calculated at episode end (every 500 H4 candles ≈ 83 days)",
+      "formula": "sharpe_proxy = (episode_returns_mean / episode_returns_std) × sqrt(252 / episode_length)",
+      "latex_formula": "\\text{Sharpe} = \\frac{\\mu_{returns}}{\\sigma_{returns}} \\times \\sqrt{\\frac{252}{\\text{episode\\_length}}} \\quad \\text{(if } \\mu > 0 \\text{)}",
+      "implementation": "Internal tracking (logged, NOT in step reward)",
+      "backtest_metric": "Used for convergence detection and model selection"
+    },
+
+    "final_reward_aggregation": {
+      "formula": "r_total = clip(r_pnl + r_hold + r_dd + r_wr + r_inactivity, -1.0, +10.0)",
+      "latex_formula": "r_{total} = \\text{clip}(r_{PnL} + r_{hold} + r_{dd} + r_{wr} + r_{inactivity}, -1.0, +10.0)",
+      "stacking_order": "1) PnL, 2) Hold, 3) Drawdown, 4) Win Rate, 5) Inactivity",
+      "typical_range": "[-1.0, +5.0] under normal conditions"
+    }
+  },
+
+  "ppo_hyperparameters": {
+    "phase": "Phase 4 — 500k steps in 96h",
+    "base_config_reference": "config/ppo_config.py (PPOConfig class)",
+
+    "algorithm_hyperparameters": {
+      "learning_rate": {
+        "value": 3e-4,
+        "schedule": "linear decay from 3e-4 → 1e-5 over 500k steps",
+        "decay_formula": "lr_t = lr_0 × (1 - t/total_steps)^0.5",
+        "rationale": "Starts conservative (3e-4), decays to avoid divergence late-stage"
+      },
+
+      "batch_size": {
+        "value": 64,
+        "calculation": "2048 steps ÷ 64 = 32 mini-batches per epoch",
+        "adjustment": "If OOM, reduce to 32; if convergence slow, increase to 128"
+      },
+
+      "n_steps": {
+        "value": 2048,
+        "episode_per_rollout": "~4-5 episodes (2048 ÷ 500 steps/episode)",
+        "rationale": "Balance between computational efficiency and variance reduction"
+      },
+
+      "n_epochs": {
+        "value": 10,
+        "interpretation": "Each 2048-step rollout, train 10 times",
+        "computation": "32 mini-batches × 10 epochs = 320 parameter updates per rollout"
+      },
+
+      "gamma": {
+        "value": 0.99,
+        "interpretation": "Next step reward weighted at 99% of current step",
+        "formula": "G_t = r_t + 0.99 × G_{t+1}",
+        "rationale": "Prefer near-term certainty (multi-day episodes, noisy markets)"
+      },
+
+      "gae_lambda": {
+        "value": 0.95,
+        "interpretation": "GAE bias-variance tradeoff",
+        "formula": "A_t = Σ_{l=0}^∞ (γλ)^l δ_{t+l}^V",
+        "rationale": "0.95 standard, balances temporal credit assignment"
+      },
+
+      "clip_range": {
+        "value": 0.2,
+        "interpretation": "Policy change clipped to ±20% per step",
+        "formula": "L^CLIP(θ) = – E[ min(r_t(θ) × Â_t, clip(r_t(θ), 1-ε, 1+ε) × Â_t) ]",
+        "rationale": "Prevents unstable policy swaps (conservative for financial markets)"
+      },
+
+      "entropy_coefficient": {
+        "value": 0.001,
+        "schedule": "Stay at 0.001 (LOW exploration, already signaled well by heuristics)",
+        "alternative": "Increase to 0.005 if converges too fast",
+        "rationale": "Heuristics already provide good signal, don't over-explore"
+      },
+
+      "value_function_coefficient": {
+        "value": 0.5,
+        "interpretation": "Weight of value loss = 50% of policy loss",
+        "adjustment": "Can increase to 1.0 if value estimates lag"
+      },
+
+      "max_grad_norm": {
+        "value": 0.5,
+        "interpretation": "Gradient clipping threshold",
+        "rationale": "Prevents exploding gradients in volatile markets"
+      }
+    },
+
+    "training_duration": {
+      "total_timesteps": 500000,
+      "wall_clock_target": "≤96 hours",
+      "timeline_estimate": {
+        "environment_steps_per_hour": "~5200 (assuming 4-5 episodes/h in simulation)",
+        "hours_needed": "500k ÷ 5200 ≈ 96 hours",
+        "contingency": "+12h buffer (GPU slow, data loading delays)"
+      },
+      "rollout_structure": {
+        "steps_per_rollout": 2048,
+        "rollouts_total": 244,
+        "time_per_rollout": "100-150s (estimate)",
+        "epoch_time": "10-15s per epoch"
+      }
+    },
+
+    "vectorized_environment": {
+      "wrapper": "DummyVecEnv (sync), could upgrade to SubprocVecEnv for parallelization",
+      "num_envs": 4,
+      "rationale": "Run 4 RL episodes in parallel (different pairs)",
+      "normalization": "VecNormalize (track running mean/std across all envs)"
+    },
+
+    "stability_monitoring": {
+      "tracked_metrics": [
+        "policy_loss (pgm loss)",
+        "value_loss (mse between V(s) and returns)",
+        "entropy (mean policy entropy, >0.8 = exploring, <0.2 = exploiting)",
+        "kl_divergence (between old/new policy, target: <0.05)",
+        "approx_kl (approximate KL before clipping)"
+      ],
+      "early_stopping_trigger": "if reward_moving_avg < -0.5 over 50 rollouts → stop, revert checkpoint",
+      "checkpoint_frequency": "every 50k steps (save best 3 models)"
+    }
+  },
+
+  "convergence_criteria": {
+    "definition": "Model reaches stable, risk-controlled Sharpe >1.0 within 96h",
+
+    "primary_metrics": {
+      "sharpe_ratio_backtest": {
+        "target": "≥1.0",
+        "calculation": "sqrt(252) × mean_return / std_return (annualized)",
+        "measurement_window": "Last 100k steps (final convergence phase)",
+        "tolerance": "≥0.95 acceptable"
+      },
+      "max_drawdown": {
+        "target": "<5%",
+        "calculation": "max(peak_capital - current_capital) / peak_capital",
+        "measurement_window": "entire 500k step period",
+        "tolerance": "<5.5% acceptable"
+      },
+      "win_rate": {
+        "target": "≥52%",
+        "calculation": "closing trades with PnL > 0 / total closing trades",
+        "measurement_window": "last 100 trades from final 50k steps",
+        "tolerance": "≥50% acceptable"
+      }
+    },
+
+    "secondary_metrics": {
+      "profit_factor": {
+        "target": ">1.5",
+        "calculation": "sum_of_wins / abs(sum_of_losses)",
+        "rationale": "1.5 PF = sustainable (implies equilibrium at >50% WR)"
+      },
+      "returns_per_trade": {
+        "target": ">0.2%",
+        "calculation": "total_realized_pnl / num_trades",
+        "over_period": "last 50k steps"
+      },
+      "sortino_ratio": {
+        "target": ">2.0",
+        "focus": "Return per unit of downside risk",
+        "measurement": "annualized return / downside_std_dev"
+      }
+    },
+
+    "convergence_detection_algorithm": {
+      "step_1_compute_moving_average": "Sharpe over 50k-step windows (overlap by 25k)",
+      "step_2_check_plateau": "if sharpe_ma_current ≈ sharpe_ma_previous (relative change <2%), increment plateau_counter",
+      "step_3_trigger_convergence": "if plateau_counter >= 2 (two consecutive plateau windows), declare CONVERGED",
+      "step_4_early_termination": "Stop training, save model",
+      "expected_convergence_point": "Steps 350k-450k (last 50-150k steps)"
+    },
+
+    "wall_clock_timeline": {
+      "hour_0-24": "Initial exploration (steps 0-125k), reward curve noisy",
+      "hour_24-48": "Policy refinement (steps 125k-250k), Sharpe improves to 0.5-0.8",
+      "hour_48-72": "Convergence phase 1 (steps 250k-375k), Sharpe >0.8",
+      "hour_72-96": "Convergence phase 2 (steps 375k-500k), Sharpe stabilizes ≥1.0"
+    }
+  },
+
+  "edge_case_handling": {
+    "case_1_low_liquidity_markets": {
+      "trigger": "Order book imbalance >20% on entry price",
+      "detection": "Real-time via Binance mark price vs last traded price",
+      "action_space_reduction": "Remove LONG/SHORT actions for that pair, force HOLD",
+      "duration": "Until liquidity returns (monitored every candle)",
+      "fallback": "Use heuristic orders instead (market order with VWAP slippage)"
+    },
+
+    "case_2_funding_rate_extremo": {
+      "trigger": "Absolute funding rate >0.5% (very expensive to hold)",
+      "impact": "Margin requirements spike, risk of cascade liquidations",
+      "agent_response": {
+        "option_a": "Auto-close all open positions (reduce exposure)",
+        "option_b": "Revert to heuristic hedging (use inverse futures)",
+        "chosen": "option_a (conservative, avoid compounded risk)"
+      },
+      "recovery": "Resume PPO trading once funding <0.2%"
+    },
+
+    "case_3_data_gaps_network_timeout": {
+      "trigger": "Missing candles (>1h gap in H4 data) or API timeout",
+      "handling": {
+        "approach": "Interpolate or skip affected candle",
+        "method": "Linear interpolation for OHLC, forward-fill volume",
+        "episode_interrupt": "Environment gracefully returns, log warning"
+      },
+      "resume_logic": "Training pauses, waits up to 5min for data recovery, resumes with checkpoint"
+    },
+
+    "case_4_circuit_breaker_triggered": {
+      "trigger": "Portfolio DD = -3% (Guardian alert)",
+      "immediate_action": "Agent forced to HOLD all pairs (no new positions)",
+      "episode_termination": "Current episode terminates (done=True)",
+      "cooldown": "24 hours before new training can start",
+      "investigation": "Log full episode state for post-mortem analysis"
+    },
+
+    "case_5_model_divergence": {
+      "trigger": "Reward moving avg < -0.5 over 50 rolling samples",
+      "detection": "Automatic in TrainingCallback._on_step()",
+      "action": "Stop training immediately, revert to last good checkpoint (50k steps back)",
+      "diagnosis": "Log all training metrics, learning rate, recent rollouts"
+    },
+
+    "case_6_look_ahead_bias": {
+      "prevention": "Point-in-time walk-forward split (80% train, 20% test)",
+      "validation": "OOT (out-of-time) backtest on unseen data (last 20% of timeline)",
+      "acceptance_criteria": "OOT Sharpe >0.9 (vs backtest Sharpe >1.0)",
+      "detection": "If OOT Sharpe << backtest, model is overfitting → retrain with regularization"
+    },
+
+    "case_7_position_limits": {
+      "max_longs": 15,
+      "max_shorts": 15,
+      "max_total": 30,
+      "enforcement": "Guardian risk_manager rejects orders violating limits",
+      "agent_awareness": "Feature includes 'num_open_longs', 'num_open_shorts' → learns to respect limits"
+    }
+  },
+
+  "data_requirements": {
+    "training_dataset": {
+      "symbols": "60 liquid pairs (BTC, ETH, SOL, AVAX, ...)",
+      "timeframe_primary": "H4 (4-hour candles)",
+      "candle_count_minimum": 700,
+      "calendar_days": "~116 days of data (700 H4 candles × 4h ≈ 2800h ≈ 116 days)",
+      "data_source": "Binance Futures (live data + historical backfill)",
+      "features_per_candle": 104,
+      "total_feature_matrix": "60 pairs × 700 candles × 104 features = 4.368M values"
+    },
+
+    "feature_engineering": {
+      "stage_1_raw_indicators": "OHLCV, RSI(14), MACD, Bollinger Bands, ATR, ADX, EMA(9,21,50,200)",
+      "stage_2_smc_features": "Order blocks, FVGs, BOS, CHOCH, liquidity sweeps, premium/discount",
+      "stage_3_sentiment_macro": "Long/short ratio, funding rate, open interest, macro sentiment (optional)",
+      "stage_4_dimensionality_reduction": "PCA + correlation analysis → select 22 best features per pair"
+    },
+
+    "data_quality_checks": {
+      "completeness": "No missing OHLCV data (detect gaps >4h)",
+      "outlier_detection": "Flag extreme moves (>5 σ) for investigation",
+      "stationarity": "Log returns should be stationary (ADF test p-value >0.05)",
+      "correlation": "Check for structural breaks (rolling correlation with baseline)"
+    },
+
+    "data_split": {
+      "training_set": "First 560 H4 candles (80% of 700) — days 1-92",
+      "validation_set": "Last 140 H4 candles (20% of 700) — days 92-116",
+      "rationale": "Time-series split (no data leakage), chronological order preserved"
+    },
+
+    "preprocessing": {
+      "normalization_method": "VecNormalize (running mean/std), clipped at ±2.5σ",
+      "resampling": "If data has gaps >24h, interpolate linearly or skip candle",
+      "seasonal_adjustment": "Optional: detrend using 30-candle rolling mean (if seasonality detected)"
+    }
+  },
+
+  "implementation_checklist": {
+    "phase_0_infrastructure": [
+      "☐ Allocate GPU server (4-core CPU min, 16GB RAM, 100GB disk)",
+      "☐ Install dependencies: stable-baselines3==2.x + tensorboard + pytorch",
+      "☐ Create training log directory, checkpoint directory",
+      "☐ Configure environment variables (DB path, symbol list, model path)"
+    ],
+
+    "phase_1_environment": [
+      "☐ Modify CryptoFuturesEnv to accept 60-pair configuration (or wrap in DummyVecEnv)",
+      "☐ Update observation_space: Box(1320,) for 60 × 22 features",
+      "☐ Update action_space: MultiDiscrete([3]*60) or Discrete(3^60) approx",
+      "☐ Implement feature_selector.py: reduce 104 → 22 most informative features",
+      "☐ Add point-in-time walk-forward split in DataLoader",
+      "☐ Test environment.reset() and environment.step() with synthetic data"
+    ],
+
+    "phase_2_reward": [
+      "☐ Implement component_1_pnl_realized with R-multiple bonus logic",
+      "☐ Implement component_2_hold_bonus (asymmetric penalty/bonus)",
+      "☐ Implement component_3_drawdown_penalty (scaled to -5% max DD)",
+      "☐ Implement component_4_win_rate_bonus (rolling 50-step window)",
+      "☐ Implement component_5_activity_penalty",
+      "☐ Implement component_6_sharpe_ratio_proxy (for logging, not per-step)",
+      "☐ Test reward function with synthetic trades, verify ranges [-1, +10]"
+    ],
+
+    "phase_3_ppo": [
+      "☐ Update config/ppo_config.py with final hyperparameters",
+      "☐ Implement learning_rate decay schedule (linear, 3e-4 → 1e-5)",
+      "☐ Create PPO model: policy_kwargs with custom feature extractor (if needed)",
+      "☐ Vectorize environment: DummyVecEnv wrapper with 4 parallel envs",
+      "☐ Add VecNormalize for observation normalization",
+      "☐ Implement TrainingCallback: log policy_loss, value_loss, entropy, KL divergence"
+    ],
+
+    "phase_4_monitoring": [
+      "☐ Implement convergence detection algorithm (50k-step moving window)",
+      "☐ Implement early stopping (reward <-0.5 → stop, revert checkpoint)",
+      "☐ Create checkpoint system: save every 50k steps, keep best 3 models",
+      "☐ Setup TensorBoard logging: scalar plots (reward, loss, entropy, KL)",
+      "☐ Implement metrics tracking: Sharpe, Max DD, Win Rate (daily calculation)"
+    ],
+
+    "phase_5_validation": [
+      "☐ Run out-of-time (OOT) backtest on validation set (last 20% of candles)",
+      "☐ Verify OOT Sharpe >0.9",
+      "☐ Verify OOT Max DD <5.5%",
+      "☐ Verify OOT Win Rate >50%",
+      "☐ Check for look-ahead bias (see data_requirements section)"
+    ],
+
+    "phase_6_edge_cases": [
+      "☐ Test low_liquidity_markets handler: reduce action space for affected pair",
+      "☐ Test funding_rate_extremo handler: auto-close on trigger",
+      "☐ Test data_gaps handler: interpolation logic",
+      "☐ Test circuit_breaker trigger: environment termination on DD -3%",
+      "☐ Test model_divergence: checkpoint revert, training resume"
+    ]
+  },
+
+  "next_actions_para_swe": {
+    "immediate_tasks_before_swe_starts": [
+      {
+        "task": "Review this specification",
+        "owner": "Both ML & SWE",
+        "deadline": "22 FEV 15:00 UTC",
+        "deliverable": "Sign-off on state/action/reward design"
+      },
+      {
+        "task": "Confirm 60-pair symbol list + data availability",
+        "owner": "SWE + Data Engineer",
+        "deadline": "22 FEV 15:30 UTC",
+        "deliverable": "symbols.json with 60 liquid pairs, verify H4 data ≥700 candles per pair"
+      },
+      {
+        "task": "Setup GPU server infrastructure",
+        "owner": "DevOps/SWE",
+        "deadline": "22 FEV 16:00 UTC",
+        "deliverable": "Server running, all deps installed, training script can launch"
+      }
+    ],
+
+    "swe_phase_1_environment_90min": [
+      {
+        "module": "agent/feature_selector.py (NEW)",
+        "description": "PCA + correlation selection to reduce 104 → 22 features per pair",
+        "acceptance_criteria": "Feature importance ranking logged, top 22 selected, 90% variance retained"
+      },
+      {
+        "module": "agent/environment.py (MODIFY)",
+        "description": "Extend CryptoFuturesEnv for multi-pair support OR create MultiPairWrapper",
+        "acceptance_criteria": "Environment accepts 60-pair symbol list, observation shape (1320,), action shape (3,60)"
+      },
+      {
+        "module": "agent/data_loader.py (MODIFY)",
+        "description": "Implement point-in-time walk-forward split, prevent look-ahead bias",
+        "acceptance_criteria": "load_training_data() returns first 80%, load_validation_data() returns last 20%"
+      }
+    ],
+
+    "swe_phase_2_reward_60min": [
+      {
+        "module": "agent/reward.py (ENHANCE)",
+        "description": "Implement all 6 components with exact formulas above",
+        "acceptance_criteria": "Unit tests for each component, reward range verified [-1, +10], formulas match LaTeX"
+      }
+    ],
+
+    "swe_phase_3_ppo_training_180min": [
+      {
+        "module": "scripts/start_ppo_training.py (ENHANCE)",
+        "description": "Implement learning_rate schedule, checkout system, early stopping",
+        "acceptance_criteria": "Script runs 500k steps, creates checkpoints every 50k, logs Sharpe/DD/WR daily"
+      },
+      {
+        "module": "agent/trainer.py (MODIFY)",
+        "description": "Add convergence detection, VecNormalize wrapper, TensorBoard logging",
+        "acceptance_criteria": "Training callback logs all stability metrics, convergence detected automatically"
+      }
+    ],
+
+    "swe_phase_4_edge_cases_120min": [
+      {
+        "module": "agent/risk_manager.py (MODIFY)",
+        "description": "Position limits enforcement, circuit breaker hook into environment",
+        "acceptance_criteria": "Limits respected, circuit breaker stops training on -3% DD"
+      }
+    ],
+
+    "swe_phase_5_validation_90min": [
+      {
+        "module": "scripts/validate_ppo_model.py (NEW)",
+        "description": "OOT backtest on validation set, compute Sharpe/DD/WR, verify no look-ahead",
+        "acceptance_criteria": "Output: OOT Sharpe, OOT Max DD, OOT Win Rate, model_artifact.pkl ready for deploy"
+      }
+    ],
+
+    "testing_and_qa": [
+      {
+        "test_category": "Unit tests (agent/tests/)",
+        "coverage": "reward function, environment reset/step, data loader splits",
+        "target": "100% pass rate"
+      },
+      {
+        "test_category": "Integration test (backtest on sample data)",
+        "coverage": "Full training loop (50k steps only), checkpoint save/load, metric logging",
+        "target": "Completes in <30min, metrics logged correctly"
+      },
+      {
+        "test_category": "End-to-end (full 500k training)",
+        "coverage": "Convergence detection fires, best model selected, ready for QA validation TASK-006",
+        "target": "Complete in ≤96h, Sharpe ≥1.0"
+      }
+    ]
+  },
+
+  "coordination_with_swe": {
+    "communication_cadence": "Daily 08:00 UTC standup + async Slack updates",
+    "decision_gates": [
+      {
+        "gate": "Gate #0 (NOW)",
+        "decision": "Approve specification (state/action/reward design)",
+        "owner": "ML + SWE Lead",
+        "deadline": "22 FEV 15:00 UTC"
+      },
+      {
+        "gate": "Gate #1 (22 FEV 20:00 UTC)",
+        "decision": "Environment + Reward implementation ready",
+        "owner": "SWE",
+        "checks": "Unit tests pass, reward ranges OK, env step() works"
+      },
+      {
+        "gate": "Gate #2 (23 FEV 12:00 UTC)",
+        "decision": "Training loop running, first 50k steps checkpointed",
+        "owner": "SWE + ML",
+        "checks": "Training callback logging, Sharpe curve visualized, no divergence yet"
+      },
+      {
+        "gate": "Gate #3 (24 FEV 12:00 UTC)",
+        "decision": "Model converging (Sharpe >0.8), checkpoint system operational",
+        "owner": "ML + SWE",
+        "checks": "Convergence detection algorithm active, best model tracking works"
+      },
+      {
+        "gate": "Gate #4 (25 FEV 10:00 UTC)",
+        "decision": "500k steps done, Sharpe ≥1.0, ready for QA TASK-006",
+        "owner": "ML",
+        "checks": "Model artifact created, OOT validation done, no look-ahead bias"
+      }
+    ]
+  }
+}

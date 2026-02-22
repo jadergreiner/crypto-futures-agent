@@ -1,8 +1,8 @@
 # 📊 DASHBOARD — GUIA RÁPIDO DE ALERTAS
 
-**Documento:** Interpretação de Alertas do Dashboard  
-**Audiência:** Operador/Executivo  
-**Status:** ✅ OPERACIONAL  
+**Documento:** Interpretação de Alertas do Dashboard
+**Audiência:** Operador/Executivo
+**Status:** ✅ OPERACIONAL
 **Data:** 22 FEV 2026 | **Versão:** 1.0
 
 ---
@@ -162,7 +162,7 @@ Interpretação:
   ⚠️ Próximo ao threshold
   ⚠️ Drawdown deteriorando
   ⚠️ Circuit breaker pode disparar em minutos
-  
+
 Sua ação:
   1. MONITORAR a cada 5 minutos
   2. Prepare ação de redução de risco
@@ -192,7 +192,7 @@ Sua ação:
   4. Faça: Relatório de diagnostics
      → envie para Risk Manager
   5. Decida: Com Angel qual próximo passo
-  
+
 [Veja: EMERGENCY_STOP_PROCEDURE.md]
 [Veja: CIRCUIT_BREAKER_RESPONSE.md]
 ```
@@ -209,7 +209,7 @@ Exemplo:
   │                      │
   │ vs. safe -5% limit   │  ← Comparação (referência)
   └──────────────────────┘
-  
+
 Significado de "-46.61%":
   - Negativo = Perda
   - 46.61 = Magnitude (quase 50% de perda!)
@@ -285,8 +285,8 @@ Checklist de 2 minutos, 4x por dia:
 
 ---
 
-**Doc Advocate Note:**  
-Dashboard está sincronizado com dados reais.  
-Atualizado em: 22 FEV 02:05 Brasil  
+**Doc Advocate Note:**
+Dashboard está sincronizado com dados reais.
+Atualizado em: 22 FEV 02:05 Brasil
 Próxima atualização: Automática a cada 30s
 

@@ -1,0 +1,155 @@
+#!/bin/bash
+# .githooks/pre-push — Doc Advocate Git Hook for TASK-005
+# Validates commit messages, branch protection, and sync compliance
+# Installation: git config core.hooksPath .githooks && chmod +x .githooks/*
+# Status: READY FOR TASK-005 (22 FEV)
+
+set -e
+
+RESET='\033[0m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+
+echo -e "${BLUE}🛡️  DOC ADVOCATE PRE-PUSH VALIDATION${RESET}"
+echo ""
+
+# ============================================================================
+# 1. VALIDATE [SYNC] TAGS IN COMMITS
+# ============================================================================
+
+echo -e "${BLUE}[1/3] Checking [SYNC]/[FEAT]/[FIX] tags...${RESET}"
+
+# Get commits that will be pushed
+COMMITS=$(git rev-list --oneline @{u}..HEAD 2>/dev/null || git rev-list --oneline origin/main..HEAD 2>/dev/null || true)
+
+VIOLATIONS=0
+while IFS= read -r commit; do
+    # Skip empty lines
+    [ -z "$commit" ] && continue
+    
+    HASH=$(echo "$commit" | cut -d' ' -f1)
+    MSG=$(echo "$commit" | cut -d' ' -f2-)
+    
+    # Check if message starts with valid tag
+    if ! echo "$MSG" | grep -qE "^\[(SYNC|FEAT|FIX|TEST|DOCS)\]"; then
+        echo -e "${RED}❌ MISSING TAG: $HASH${RESET}"
+        echo "   Message: $MSG"
+        echo "   Add tag: [SYNC] or [FEAT] or [FIX] or [TEST]"
+        VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+    
+    # Check message length
+    if [ ${#MSG} -gt 72 ]; then
+        echo -e "${YELLOW}⚠️  LONG MESSAGE: $HASH (${#MSG} chars)${RESET}"
+        echo "   Message: $MSG"
+        echo "   Max: 72 chars. Current: ${#MSG}"
+        VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+    
+    # Check for non-ASCII characters
+    if echo "$MSG" | grep -qP '[^\x00-\x7F]'; then
+        echo -e "${RED}❌ NON-ASCII: $HASH${RESET}"
+        echo "   Message contains non-ASCII characters (UTF-8 detected)"
+        echo "   Use: ç→c, ã→a, é→e, ó→o, etc."
+        VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+done <<< "$COMMITS"
+
+if [ $VIOLATIONS -gt 0 ]; then
+    echo ""
+    echo -e "${RED}❌ $VIOLATIONS COMMIT MESSAGE VIOLATION(S)${RESET}"
+    echo ""
+    echo "Fix with: git rebase -i HEAD~N (where N = number of bad commits)"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}✅ All [SYNC]/[FEAT] tags valid${RESET}"
+echo ""
+
+# ============================================================================
+# 2. VALIDATE MARKDOWN LINT IN CHANGED FILES
+# ============================================================================
+
+echo -e "${BLUE}[2/3] Validating markdown files...${RESET}"
+
+MARKDOWN_FILES=$(git diff origin/main..HEAD --name-only --diff-filter=ACM | grep -E "\.(md)$" || true)
+
+if [ -n "$MARKDOWN_FILES" ]; then
+    LINT_FAILS=0
+    for file in $MARKDOWN_FILES; do
+        if [ ! -f "$file" ]; then
+            continue
+        fi
+        
+        # Check line length
+        LONG=$(awk 'length > 80' "$file" | wc -l)
+        if [ "$LONG" -gt 0 ]; then
+            echo -e "${YELLOW}⚠️  $file: $LONG line(s) exceed 80 chars${RESET}"
+            LINT_FAILS=$((LINT_FAILS + 1))
+        fi
+        
+        # Check encoding
+        if ! file -i "$file" 2>/dev/null | grep -q "UTF-8\|us-ascii"; then
+            echo -e "${RED}❌ $file: NOT UTF-8 encoded${RESET}"
+            LINT_FAILS=$((LINT_FAILS + 1))
+        fi
+        
+        # Check trailing whitespace
+        if grep -q ' $' "$file"; then
+            echo -e "${YELLOW}⚠️  $file: has trailing whitespace${RESET}"
+            LINT_FAILS=$((LINT_FAILS + 1))
+        fi
+    done
+    
+    if [ $LINT_FAILS -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}⚠️  $LINT_FAILS markdown issue(s) found${RESET}"
+        echo "   Warnings won't block push, but should be fixed"
+    else
+        echo -e "${GREEN}✅ All markdown files PASS lint${RESET}"
+    fi
+else
+    echo -e "${GREEN}✅ No markdown files changed${RESET}"
+fi
+
+echo ""
+
+# ============================================================================
+# 3. VERIFY SYNCHRONIZATION.md UPDATED (if doc files changed)
+# ============================================================================
+
+echo -e "${BLUE}[3/3] Checking SYNCHRONIZATION.md updates...${RESET}"
+
+DOC_FILES=$(git diff origin/main..HEAD --name-only | grep -E "README.md|BEST_PRACTICES.md|CHANGELOG.md|docs/" || true)
+SYNC_UPDATED=$(git diff origin/main..HEAD --name-only | grep "SYNCHRONIZATION.md" || true)
+
+if [ -n "$DOC_FILES" ] && [ -z "$SYNC_UPDATED" ]; then
+    echo -e "${YELLOW}⚠️  Doc files changed but SYNCHRONIZATION.md NOT updated${RESET}"
+    echo ""
+    echo "Files changed: "
+    echo "$DOC_FILES" | sed 's/^/   /'
+    echo ""
+    echo "Add SYNCHRONIZATION.md update to your commit:"
+    echo "  git add docs/SYNCHRONIZATION.md"
+    echo "  git commit --amend"
+else
+    echo -e "${GREEN}✅ SYNCHRONIZATION tracking up-to-date${RESET}"
+fi
+
+echo ""
+
+# ============================================================================
+# FINAL SUMMARY
+# ============================================================================
+
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${GREEN}✅ PRE-PUSH VALIDATION PASSED${RESET}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo ""
+echo "Proceeding with push... 🚀"
+echo ""
+
+exit 0

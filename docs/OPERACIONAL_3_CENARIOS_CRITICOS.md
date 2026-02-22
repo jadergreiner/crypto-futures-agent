@@ -1,9 +1,9 @@
 # 📋 OPERAÇÕES LIVE — 3 CENÁRIOS CRÍTICOS
 
-**Versão:** 1.0  
-**Data:** 22 FEV 2026 - 08:00 UTC  
-**Público:** Operadores de Trading (sem conhecimento técnico)  
-**Go-Live:** 22 FEV 10:00 UTC  
+**Versão:** 1.0
+**Data:** 22 FEV 2026 - 08:00 UTC
+**Público:** Operadores de Trading (sem conhecimento técnico)
+**Go-Live:** 22 FEV 10:00 UTC
 
 ---
 

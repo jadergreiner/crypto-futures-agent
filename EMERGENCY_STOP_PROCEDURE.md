@@ -1,8 +1,8 @@
 # 🚨 PROCEDIMENTO DE PARADA DE EMERGÊNCIA
 
-**Documento:** Procedimento de Parada Segura  
-**Audiência:** Operador/Executivo  
-**Crítico:** ⚠️ SIM — Leia ANTES de iniciar Phase 2  
+**Documento:** Procedimento de Parada Segura
+**Audiência:** Operador/Executivo
+**Crítico:** ⚠️ SIM — Leia ANTES de iniciar Phase 2
 **Data:** 22 FEV 2026 | **Status:** ✅ OPERACIONAL
 
 ---
@@ -23,8 +23,8 @@ Resultado esperado:
   - Logs escrito em: logs/agent.log
 ```
 
-**Tempo de parada:** ~2-5 segundos  
-**Capital em risco:** ⚠️ Posições PERMANECEM ABERTAS  
+**Tempo de parada:** ~2-5 segundos
+**Capital em risco:** ⚠️ Posições PERMANECEM ABERTAS
 **Próximo passo:** Contate Risk Manager
 
 ---
@@ -47,8 +47,8 @@ python posicoes.py
 #   - Salva em: reports/position_snapshot_*.json
 ```
 
-**Tempo:** ~5-10 segundos  
-**O que é salvo:** Estado completo de posições para auditoria  
+**Tempo:** ~5-10 segundos
+**O que é salvo:** Estado completo de posições para auditoria
 **Próximo passo:** Enviar diagnóstico para Risk Manager
 
 ---
@@ -99,7 +99,7 @@ Ação IMEDIATA:
   1. Pressione Ctrl+C (parar agente)
   2. Execute: python posicoes.py (salvar estado)
   3. Contate Angel AGORA (escalação crítica)
-  
+
 Status do sistema: MANTÉM posições abertas (protetor)
 Circuit breaker: JÁ bloqueou novas ordens
 ```
@@ -178,6 +178,6 @@ Antes de pressionar Ctrl+C:
 
 ---
 
-**Lembre:** Parar é melhor que continuar em crise.  
+**Lembre:** Parar é melhor que continuar em crise.
 **Sempre:** Salve o estado ANTES de reconectar.
 
