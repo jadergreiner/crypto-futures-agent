@@ -1,16 +1,44 @@
 # 📊 BACKLOG TRACKER — STATUS REAL-TIME
 
-**Data:** 21 FEV 2026
-**Atualizado:** 21 FEV 22:30 UTC
-**Status Geral:** 🔴 TODOS ITEMS STARTING (TASK-001 ligado AGORA)
+**Data:** 21-22 FEV 2026
+**Atualizado:** 22 FEV 00:15 UTC (urgência: Angel reportou status desatualizado)
+**Status Geral:** 🟠 TASK-001 EM PROGRESSO — SINCRONIA DE DOCS CRÍTICA INICIADA
 
 ---
 
-## 🔴 SPRINT 1: MUST ITEMS — STATUS ATUAL
+## � ALERTA CRÍTICO: SINCRONIZAÇÃO DE DOCUMENTAÇÃO
+
+## 🔴 SPRINT 1: MUST ITEMS — STATUS ATUAL (SINCRONIZADO 22 FEV 00:15 UTC)
+
+**⚠️ ATENÇÃO:** Status anterior ("WAITING") estava INCORRETO. Abaixo: status **REAL** conforme Angel reportou.
+
+| Task | Titulo | Owner | Timeline | Status | % Done | Blocker | Última Atualização |
+|------|--------|-------|----------|--------|--------|---------|-------------------|
+| **#1.1** | Heurísticas Dev | Dev | 21 23:15 → 22 06:00 | ✅ IN PROGRESS | ~15% | None | 22 FEV 00:15 |
+| **#1.2** | QA Testing | Audit(QA) | 22 06:00 → 22 08:00 | ⏳ WAITING | 0% | #1.1 | — |
+| **#1.3** | Alpha SMC Valid | Alpha | 22 08:00 → 22 10:00 | ⏳ WAITING | 0% | #1.2 | — |
+| **#1.4** | Go-Live Canary | Dev | 22 10:00 → 22 14:00 | ⏳ WAITING | 0% | #1.3 | — |
+| **#1.5** | PPO Training | Brain | 22 14:00 → 25 10:00 | ⏳ WAITING | 0% | #1.4 | — |
+| **#1.6** | PPO QA Gate | Audit(QA) | 25 10:00 → 25 14:00 | ⏳ WAITING | 0% | #1.5 | — |
+| **#1.7** | PPO Merge | Dev | 25 14:00 → 25 20:00 | ⏳ WAITING | 0% | #1.6 | —
+- Planner: não estava atualizando % de progresso
+
+**Ação Imediata (22 FEV 00:15 UTC):**
+1. ✅ Atualizar TASKS_TRACKER_REALTIME.md com status correto
+2. ✅ Criar entry de urgência em SYNCHRONIZATION.md
+3. ✅ Publicar Daily Status Report imediato
+4. ⏳ Reativar daily standup + audit
+
+**Protocolo Reativado:**
+- Daily standup: 22 FEV 08:00 UTC (obrigatório relatar TASK-001)
+- Daily audit (DOC Advocate): 22 FEV 08:00 UTC (sync docs imediatamente)
+- Status real-time: atualizar a cada 2h ou quando milestone atingido
+
+---
 
 | Task | Titulo | Owner | Timeline | Status | % Done | Blocker |
 |------|--------|-------|----------|--------|--------|---------|
-| **#1.1** | Heurísticas Dev | Dev | 21 23:00 → 22 06:00 | 🔴 STARTED | 0% | None |
+| **#1.1** | Heurísticas Dev | Dev | 21 23:15 → 22 06:00 | ✅ IN PROGRESS | 0% | None |
 | **#1.2** | QA Testing | Audit(QA) | 22 06:00 → 22 08:00 | ⏳ WAITING | 0% | #1.1 |
 | **#1.3** | Alpha SMC Valid | Alpha | 22 08:00 → 22 10:00 | ⏳ WAITING | 0% | #1.2 |
 | **#1.4** | Go-Live Canary | Dev | 22 10:00 → 22 14:00 | ⏳ WAITING | 0% | #1.3 |

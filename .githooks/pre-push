@@ -1,0 +1,38 @@
+#!/bin/bash
+# PRE-PUSH HOOK — DOC GOVERNANCE (21 FEV 2026)
+# Valida que PR terá [SYNC] tag se docs foram alteradas
+# Run: chmod +x .githooks/pre-push && git config core.hooksPath .githooks
+
+echo "🔍 PRE-PUSH: Verificando conformidade [SYNC] tag..."
+
+# Pega commits que são diferentes de origin/main
+COMMITS=$(git rev-list origin/main..HEAD 2>/dev/null || git rev-list HEAD~1..HEAD)
+
+# Verifica cada commit
+for commit in $COMMITS; do
+    MSG=$(git log -1 --format=%B $commit)
+
+    # Se commit alterou arquivos críticos
+    CHANGED_CRITICAL=$(git diff-tree --no-commit-id --name-only -r $commit | \
+        grep -E '(^docs/|^README|^BEST_PRACTICES|^\.github)' || true)
+
+    if [ -n "$CHANGED_CRITICAL" ]; then
+        # Valida que msg tem [SYNC] tag
+        if ! echo "$MSG" | grep -q "\[SYNC\]"; then
+            echo "⚠️  AVISO: Mudanças em arquivos críticos detectadas:"
+            echo "   Arquivos: $CHANGED_CRITICAL"
+            echo "   Commit: $commit"
+            echo ""
+            echo "❌ Sua mensagem de commit NÃO contém [SYNC] tag."
+            echo "   Tag [SYNC] é obrigatória para mudanças em docs críticas."
+            echo ""
+            echo "   CORRIGIR:"
+            echo "   $ git commit --amend -m \"[SYNC] Sua mensagem — docs atualizadas\""
+            echo "   $ git push"
+            exit 1
+        fi
+    fi
+done
+
+echo "✅ PRE-PUSH VALIDAÇÃO COMPLETA ([SYNC] tags OK)"
+exit 0

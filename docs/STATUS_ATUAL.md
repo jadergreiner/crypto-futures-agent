@@ -1,24 +1,48 @@
 # 🎯 STATUS ATUAL DO PROJETO — crypto-futures-agent
 
-**Atualizado:** 23 FEV 2026 16:35 UTC
+**Atualizado:** 22 FEV 2026 00:15 UTC (URGÊNCIA — Sync de Docs Reativada)
+**Status Geral:** 🟢 GO-LIVE EM PROGRESSO (PHASE 4 Operacionalização)
+**Decision #3:** ✅ APROVADA (Governança de Documentação) — 12/16 unanimidade
+**TASK-001:** ✅ IN PROGRESS (~15%, deadline 22 FEV 06:00 UTC)
+
 **Decisor:** Angel (Investidor) + Elo (Facilitador) + Planner + Flux (Data) + The Blueprint (Tech) + The Brain (ML) + Guardian (Risk) + Audit (QA) + Dev (Core) + Conselheiro + Auditor
-**Equipe Interna:** 12 membros (Angel + 11 specialistas) expandidos
-**Membros Externos:** 2 (Conselheiro Estratégico + Auditor Independente)
-**Membros Expandidos:** 14 internos + 2 externos (16 total, 14 expandidos)
-**Validade:** 24h (próxima reunião: conforme decisão)
+**Equipe Fixa:** 14 membros internos (Angel + 13 specialistas) + 2 externos (16 total)
+**Validade:** Atualizado em tempo real (última sync: 22 FEV 00:15 UTC)
+
+---
+
+## � URGÊNCIA CRÍTICA: SINCRONIZAÇÃO DE DOCS (22 FEV 00:15 UTC)
+
+**Problema Identificado:** Status em Go-Live estava desatualizado
+- Status anterior: "WAITING" (INCORRETO)
+- Status atual: "✅ IN PROGRESS (~15%)" (CORRETO)
+- **Ação:** Reativação de controles de sincronização
+
+**Protocolos Reativados:**
+- ✅ Daily standup @ 08:00 UTC (OBRIGATÓRIO)
+- ✅ DOC Advocate daily audit @ 08:00 UTC (OBRIGATÓRIO)
+- ✅ Real-time updates (a cada 2h OU milestone)
+- ✅ Accountability matrix ativa
+
+**Referência:** `backlog/DAILY_REPORT_22FEV_00H15_URGENT.md`
 
 ---
 
 ## 📊 STATUS EM 30 SEGUNDOS
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  BACKTEST: ✅ Completo (F-12a→F-12e, 60% F-12b)         │
-│  RISCO: 🔴 Bloqueador (Sharpe 0.06, need 1.0)           │
-│  INFRA: ⚠️ Duplicação docs root → Refatoração 24h       │
-│  ML: 🔄 Aguardando treinamento PPO (Decision: Option A/B/C) │
-│  POSIÇÕES: 🔴 21 underwater (-42% a -511%)              │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  PHASE 4 STATUS — OPERACIONALIZAÇÃO                       │
+│  ──────────────────────────────────────────────────────  │
+│  Decision #3: ✅ APROVADA (Governança de Docs)           │
+│  TASK-001:   ✅ IN PROGRESS (22 FEV 06:00 deadline)      │
+│  Docs Sync:  ✅ REATIVADA (22 FEV 00:15)                │
+│  GO-LIVE:    🟢 ACTIVE (heurísticas conservadoras)      │
+│                                                           │
+│  BACKTEST:   ✅ Completo (F-12a→F-12e)                   │
+│  RISCO:      ⚠️ Aguardando PPO training                  │
+│  POSIÇÕES:   🔴 21 underwater (em monitoramento)         │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ---

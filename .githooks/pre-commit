@@ -1,0 +1,79 @@
+#!/bin/bash
+# PRE-COMMIT HOOK — DOC GOVERNANCE (21 FEV 2026)
+# Valida markdown + docstrings ANTES de permitir commit
+# Run: chmod +x .githooks/pre-commit && git config core.hooksPath .githooks
+
+set -e
+
+echo "🔍 PRE-COMMIT: Validando documentação..."
+
+# 1. MARKDOWNLINT — Verifica .md files
+echo "  ├─ Executando markdownlint..."
+if command -v markdownlint &> /dev/null; then
+    # Verifica apenas arquivos staged
+    STAGED_MDS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
+
+    if [ -n "$STAGED_MDS" ]; then
+        if ! markdownlint $STAGED_MDS 2>&1 | grep -q "passed"; then
+            echo "  ❌ Markdownlint falhou!"
+            echo "     Corrija os erros de markdown antes de commitar."
+            .markdownlintrc.json para regras (80 chars, UTF-8, code blocks)."
+            exit 1
+        fi
+        echo "  ✅ Markdownlint: OK ($STAGED_MDS)"
+    fi
+else
+    echo "  ⚠️  markdownlint não encontrado. Install: npm install -g markdownlint-cli"
+fi
+
+# 2. PYTHON DOCSTRING CHECKER — Verifica docstrings em Python
+echo "  ├─ Executando docstring checker..."
+STAGED_PYS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+
+if [ -n "$STAGED_PYS" ]; then
+    for pyfile in $STAGED_PYS; do
+        # Skip test files e scripts auxiliares
+        if [[ $pyfile == *"test"* ]] || [[ $pyfile == *"check"* ]] || [[ $pyfile == *"diagnostico"* ]]; then
+            continue
+        fi
+
+        # Se é arquivo em agent/, execution/, risk/, backtest/ — requer docstring
+        if [[ $pyfile == agent/* ]] || [[ $pyfile == execution/* ]] || [[ $pyfile == risk/* ]] || [[ $pyfile == backtest/* ]]; then
+            # Simples check: arquivo tem pelo menos 10 linhas? Se sim, primeira linha deve ter docstring
+            lines=$(wc -l < "$pyfile")
+            if [ "$lines" -gt 10 ]; then
+                head -n 5 "$pyfile" | grep -q '"""' || {
+                    echo "  ❌ Docstring faltando: $pyfile"
+                    echo "     Adicione docstring no início do arquivo (ex: \"\"\"Descrição do módulo.\"\"\")"
+                    exit 1
+                }
+            fi
+        fi
+    done
+    echo "  ✅ Docstring checker: OK ($STAGED_PYS)"
+fi
+
+# 3. ENCODING CHECK — Valida UTF-8 válido
+echo "  ├─ Verificando encoding UTF-8..."
+for file in $(git diff --cached --name-only --diff-filter=ACM); do
+    if file "$file" | grep -q "text"; then
+        if ! iconv -f UTF-8 -t UTF-8 "$file" > /dev/null 2>&1; then
+            echo "  ❌ Encoding inválido: $file (não é UTF-8 válido)"
+            exit 1
+        fi
+    fi
+done
+echo "  ✅ Encoding: OK (UTF-8 válido)"
+
+# 4. SYNC TAG CHECK (WARN) — Alerta se código crítico muda sem [SYNC]
+echo "  ├─ Verificando [SYNC] tag para mudanças críticas..."
+COMMIT_MSG=$(git diff --cached --diff-filter=ACM --name-only | grep -E '(docs/|README|BEST_PRACTICES)' || true)
+
+if [ -n "$COMMIT_MSG" ]; then
+    echo "  ⚠️  Detectado mudança em docs críticas."
+    echo "     Certifique-se de usar [SYNC] tag no commit message."
+    echo "     Exemplo: [SYNC] Atualizado docs/ARCHITECTURE.md — heurística v2"
+fi
+
+echo "✅ PRE-COMMIT VALIDAÇÃO COMPLETA"
+exit 0

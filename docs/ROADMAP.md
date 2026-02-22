@@ -1,53 +1,63 @@
 # 🗺️ Roadmap — Crypto Futures Agent
 
-## Visão Geral
+**Última Atualização:** 22 FEV 2026, 00:30 UTC (Decision #3 + PHASE 4)
+**Status:** 🟢 v1.0-alpha GO-LIVE EM PROGRESSO
 
-```text
+---
+
+## Visão Geral (Atualizado PHASE 4)
+
+```
 v0.1 (Foundation)         ✅ CONCLUÍDO (12/02/2026)
 v0.2 (Pipeline Fix)       ✅ CONCLUÍDO (15/02/2026)
 v0.2.1 (Admin. Posições)  ✅ CONCLUÍDO (20/02/2026)
-v0.3 (Training Ready)     🔴 **OPERAÇÃO PARALELA C** (20/02 18:45-23:59 BRT) ✅
-AUTORIZADO
-v0.4 (Backtest Engine)    ← PRÓXIMO PASSO (início 21/02 após v0.3 validada) — 🔴
-PO PRIORITÁRIO
-v0.5 (Paper Trading)      📅 Planejado (27/02 - 01/03/2026)
-v1.0 (Live MVP)           📅 Planejado (Mai/2026)
+v0.3 (Training Ready)     ✅ CONCLUÍDO (20/02/2026 paralelo)
+
+v1.0-alpha (PHASE 4)      🟢 **OPERACIONALIZAÇÃO** — INICIADA 21 FEV 23:15 UTC
+├─ TASK-001: Heurísticas Conservadoras (deadline 22 FEV 06:00 UTC)
+├─ TASK-002 até TASK-004: Go-Live canary phases (22 FEV 06:00-14:00 UTC)
+└─ TASK-005 até TASK-007: PPO training paralelo (22-25 FEV)
+
+v1.0 (Live MVP)           📅 Planejado (pós-PPO integration, ~26 FEV)
 v1.1+ (Evolução)          📅 Roadmap Continuo
-```text
+```
 
-### Timeline — Crítica (v0.3 ATIVAÇÃO + v0.4 PLANEJAMENTO)
+## Timeline — PHASE 4 Crítica (v1.0-alpha Operacionalização)
 
-```text
-Fev/2026                              Mar/2026          Abr/2026
-Mai/2026
-|--- v0.2/0.2.1 ---|⚡ v0.3 ⚡|--|------ v0.4 --------|--- v0.5 --------|→ v1.0
-Pipeline + Admin.  CRÍTICA            Backtest Engine  Paper Trading    Live
-                   TODAY
-                 (18-24h)          (21-23 feb)
+```
+21 FEV 22:40 UTC - 22 FEV 14:00 UTC (20 horas críticas)
+├── 21 FEV 22:40 UTC │ Decision #3 aprovada (Governança de Docs)
+├── 21 FEV 23:15 UTC │ TASK-001 kickoff (Heurísticas Dev)
+├── 22 FEV 06:00 UTC │ TASK-001 delivery → TASK-002 QA
+├── 22 FEV 08:00 UTC │ Daily standup #1 + DOC Advocate audit
+├── 22 FEV 10:00 UTC │ TASK-003 Alpha validation → TASK-004 go-live
+├── 22 FEV 14:00 UTC │ Heurísticas LIVE canary phase 1 (3 símbolos)
+│
+└── 22 FEV 14:00-25 FEV 10:00 │ TASK-005 PPO training (96h paralelo)
+    └── 25 FEV 20:00 UTC │ PPO integration live
+```
 
-v0.3: Validação HOJE até 23:59 BRT
-v0.4: Backtest + Risk Clearance (21-23 fev) — PRONTO PARA EXPANSÃO LIVE v0.5
-```text
+## v1.0-alpha Status em Detalhe
 
-**v0.3 Execução Crítica (20/02/2026 18:45-23:59 BRT):**
+| Componente | Responsabilidade | Timeline | Status |
+|-----------|---|---|---|
+| **Heurísticas SM C+EMA+RSI** | TASK-001 | 21-22 FEV | 🔄 IN PROGRESS |
+| **QA Testing Full** | TASK-002 | 22 FEV 06-08 | ⏳ WAITING |
+| **Alpha Trader Validation** | TASK-003 | 22 FEV 08-10 | ⏳ WAITING |
+| **Go-Live Canary Phase 1** | TASK-004 | 22 FEV 10-14 | ⏳ WAITING |
+| **PPO Training Pipeline** | TASK-005 | 22-25 FEV paralelo | ⏳ WAITING |
+| **PPO Quality Gate** | TASK-006 | 25 FEV | ⏳ WAITING |
+| **PPO Merge Live** | TASK-007 | 25 FEV | ⏳ WAITING |
 
-- 🔴 DECISÃO ORIGINAL: STOP LIVE (Head de Finanças decisão 18:45)
-- ✅ DECISÃO FINAL: OPERAÇÃO PARALELA C (Opção C autorizada 20:30)
-- ⚡ LIVE continuando com safeguards + v0.3 treinando em paralelo
-- ✅ Health monitor: 60s checks, kill switch em 2% loss
-- ✅ v0.3 teste: 10k steps em 3 símbolos (BTC, ETH, SOL) isolado
-- ✅ Confirmar CV < 1.5 + WinRate > 45%
-- ✅ Debug signal generation (0 sinais = problema)
-- ✅ Resolver XIAUSDT error
-- 🟢 Validar antes de expandir para outros símbolos
+---
 
-## Status Atual do Projeto
+## Histórico (Versões Anteriores)
 
-| Camada | Status | Maturidade |
-|--------|--------|------------|
-| **Data Collection** (Binance, Sentiment, Macro) | ✅ Implementado | 70% |
-| **Database** (SQLite) | ✅ Implementado | 80% |
-| **Indicadores Técnicos** (EMAs, RSI, MACD, BB, VP, ADX) | ✅ Implementado | 90%
+### v0.3 — Training Ready (✅ 20/02/2026)
+
+Ambiente de treinamento funcional, reward refinado.
+
+### v0.2.1 — Administração (✅ 20/02/2026)
 |
 | **SMC** (Swings, BOS, CHoCH, OBs, FVGs, Liquidity) | ✅ Implementado | 85% |
 | **Multi-Timeframe** (D1 Bias, Market Regime, Correlação) | ✅ Implementado |

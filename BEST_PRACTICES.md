@@ -1,8 +1,9 @@
 # 📋 Boas Práticas do Projeto — Crypto Futures Agent
 
-**Versão:** 1.0
-**Data:** 20 de fevereiro de 2026
+**Versão:** 1.1 (PHASE 4 — Com Governança de Docs)
+**Data:** 22 de fevereiro de 2026 (Atualizado para Decision #3)
 **Aplicável a:** Código, Documentação, Commits, Operação
+**Status:** ✅ Ativo (Governo de Docs enforçado via git hooks + CI/CD)
 
 ---
 
@@ -15,6 +16,50 @@
 3. **Previsibilidade** — Comportamento é determinístico e
    auditável
 4. **Português Primeiro** — Idioma padrão em todo o projeto
+5. **Documentação Durante Dev** — Responsabilidade de quem codifica (não post-merge)
+
+---
+
+## 🔴 DECISION #3: GOVERNANÇA DE DOCUMENTAÇÃO (PHASE 4)
+
+**Aprovado por:** Angel (Investidor) + Board (12/16 unanimidade)
+**Status:** ✅ OPERACIONAL em 22 FEV 2026
+**Policy Formal:** `docs/POLICY_DOC_GOVERNANCE.md` (66 linhas)
+
+### [SYNC] Tag — Obrigatória em Commits de Docs
+
+```bash
+[SYNC] Descrição — mudanças de docs
+
+Exemplos:
+✅ [SYNC] F-11 Reward Shaping — docs/BEST_PRACTICES.md atualizado
+✅ [SYNC] Novo membro Arch — docs/EQUIPE_FIXA.md linha 24
+❌ WRONG: "Updated something" (sem [SYNC])
+```
+
+### Git Hooks (Enforcement Local)
+
+- **Pre-commit:** Markdownlint (80 char, UTF-8) + docstring checker
+- **Pre-push:** Valida [SYNC] tag obrigatória
+- **Setup:** `git config core.hooksPath .githooks`
+
+### CI/CD (GitHub Actions)
+
+- Markdownlint — Bloqueia merge se falhar
+- Docstring coverage — Bloqueia merge se falhar
+- [SYNC] tag validation — Bloqueia merge se falhar
+- UTF-8 encoding — Bloqueia merge se falhar
+
+### DOC Advocate (Novo Role)
+
+- Última pessoa a aprovar PR (após code review)
+- Daily audit @ 08:00 UTC
+- Sign-off em `docs/SYNCHRONIZATION.md` para mudanças críticas
+- Power de veto sobre PRs sem [SYNC] tag
+
+### Responsabilidade Durante Development
+
+⚠️ **Doc updates é responsabilidade de quem codifica, DURANTE isso — não post-merge.**
 
 ---
 

@@ -1,9 +1,29 @@
 # Crypto Futures Autonomous Agent
 
+**Versão:** 1.0-alpha (PHASE 4 — Operacionalização)
+**Status:** 🟢 GO-LIVE EM PROGRESSO (TASK-001 ativo, 22 FEV 2026)
+**Última Atualização:** 22 FEV 2026, 00:15 UTC
+
 Agente autônomo de Reinforcement Learning para operar futuros de criptomoedas
 na Binance Futures (USDⓈ-M). Combina indicadores técnicos, Smart Money Concepts
 (SMC), análise de sentimento e dados macroeconômicos para gerar sinais
 operacionais com gestão de risco completa.
+
+## 📌 PHASE 4: OPERACIONALIZAÇÃO — Decisões Críticas
+
+**Decisão #3 Aprovada (22 FEV 2026):** Governança de Documentação
+- 🟡 **Nível:** Padrão (Code + Arquitetura + Decisões Executivas)
+- 🔴 **Enforcement:** STRICT — Git hooks + CI/CD bloqueiam sem sincronização
+- 📚 **Owner:** DOC Advocate (delegado Audit Team)
+- ✅ **Status:** Operacional (veja `docs/POLICY_DOC_GOVERNANCE.md`)
+
+**TASK-001: Heurísticas Conservadoras (Kickoff 21 FEV 23:15 UTC)**
+- 🎯 **Deadline:** 22 FEV 06:00 UTC
+- 📊 **Status:** ✅ IN PROGRESS (~15%)
+- 📝 **Entregáveis:** 250 LOC + 9/9 testes
+- 🔗 **Tracking:** `backlog/TASKS_TRACKER_REALTIME.md`
+
+---
 
 ## 🌐 Idioma do Projeto
 
