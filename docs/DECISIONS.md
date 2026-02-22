@@ -6,6 +6,34 @@ Registo de decisões estratégicas tomadas em reuniões de Board.
 
 ---
 
+## 🔔 HISTÓRICO — Reunião com Investidor (20 FEV 2026)
+
+**Data:** 20 FEV 2026 14:00-23:30 UTC
+**Evento:** Reunião crítica de status financeiro + descoberta de inconsistências
+**Participantes:** Investidor (Decisor), 10 Especialistas
+**Resultado:** Descoberta crítica de sincronização de dados
+
+### Descoberta Crítica — 23:30 UTC
+
+**Inconsistência Identificada:**
+- Apresentado na reunião: 21 posições abertas, -$42k em perdas, risco de liquidação
+- Realidade verificada: Capital $424 USDT, 0 posições abertas, sem exposição
+
+**Questão do Investidor:**
+> "Estes valores levantados de perda não fazem sentido. O capital atual na conta de Futuros Binance é de U$ 424. -182 de perdas não realizadas. Estes valor que estão sendo informados não fazem nenhum sentido."
+
+**Impacto:**
+- Protocolo de sincronização de dados entre agent.log, API Binance, database local
+- Necessidade de validação em tempo real vs. dados em cache
+- Importância crítica de auditoria de posições abertas antes de decisões
+
+**Ação Resultante:**
+- ✅ Implementar check_open_orders.py para validação API
+- ✅ Sincronizar database com estado real Binance antes de operações
+- ✅ Daily audit de discrepâncias entre cliente e API
+
+---
+
 ## 🔔 DECISÃO #1 — GOVERNANÇA DE DOCUMENTAÇÃO
 
 **Data:** 22 FEV 2026 21:45 UTC
