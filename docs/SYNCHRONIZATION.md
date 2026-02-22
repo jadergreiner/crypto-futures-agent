@@ -2765,3 +2765,28 @@ Adicionados membros externos para reuniões de governança estratégica e audito
 **Mantido pelo:** GitHub Copilot + Agente Autônomo
 **Frequência de Revisão:** A cada mudança documentada
 **Próxima Revisão Esperada:** 24/02/2026 10:00 UTC (próxima expansão de persona)
+
+## 🛡️ ISSUE #57 — Risk Gate 1.0 (22/FEV 19:15 UTC)
+
+**Commit:** 4fb5fe6 [SYNC] Issue #57 - Risk Gate 1.0: Stop Loss (-3%) + Circuit Breaker (-3.1%)
+**Merge:** 3e280ee [MERGE] Sincronizar main com origin/main
+
+### Deliverables
+
+- ✅ risk/risk_gate.py (402 lines) - Orquestrador
+- ✅ risk/stop_loss_manager.py (195 lines) - Stop Loss -3%%
+- ✅ risk/circuit_breaker.py (289 lines) - CB -3.1%%
+- ✅ tests/test_protections.py (597 lines) - 46/46 PASS (100%%)
+- ✅ docs/ISSUE_57_DELIVERABLES.md - Evidence trail
+
+### Validação
+
+- ✅ S1-2 Acceptance Criteria: PASS
+- ✅ Completion Status: 60%% (Code + Tests + Docs)
+- ✅ Testes: Stop Loss, Circuit Breaker, RiskGate, Inviolable, Edge Cases
+
+### Próximos Passos
+
+- Issue #57.2 - Integração com execution/
+- Issue #54 - Módulo de Execução
+- Issue #56 - Telemetria Básica
