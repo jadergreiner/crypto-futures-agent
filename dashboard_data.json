@@ -3,7 +3,7 @@
     "name": "Crypto Futures Agent",
     "version": "v1.0-alpha",
     "status": "🔴 CRÍTICO — Phase 2 LIVE com Risco Alto (Circuit Breaker DISPARADO)",
-    "updated": "2026-02-22T02:05:00.000000",
+    "updated": "2026-02-22T21:38:16.320980",
     "description": "22 FEV 02:05 Brasil: GO-LIVE PHASE 2 em operação via iniciar_phase2_risco_alto.bat. Drawdown -46.61%, 20 posições abertas, Circuit Breaker DISPARADO. Requer dupla confirmação operador. CRÍTICO: Necessária ação imediata."
   },
   "status_cards": [
@@ -160,6 +160,144 @@
     {
       "category": "Backtest",
       "items": [
+        {
+          "name": "Arquivos Markdown",
+          "value": "169",
+          "required": "104",
+          "status": "bad"
+        },
+        {
+          "name": "Linhas Consolidadas",
+          "value": "~8K scattered",
+          "required": "~11K organized",
+          "status": "bad"
+        },
+        {
+          "name": "Documentação Ativa",
+          "value": "169 (duplicatas)",
+          "required": "104 (clean)",
+          "status": "bad"
+        },
+        {
+          "name": "[SYNC] Commits",
+          "value": "0",
+          "required": "6",
+          "status": "bad"
+        },
+        {
+          "name": "2A",
+          "value": "prompts/",
+          "required": "6 files",
+          "status": "bad"
+        },
+        {
+          "name": "2B",
+          "value": "scripts/",
+          "required": "1 file",
+          "status": "bad"
+        },
+        {
+          "name": "2C",
+          "value": "reports/",
+          "required": "3 files",
+          "status": "bad"
+        },
+        {
+          "name": "2D",
+          "value": "backlog/",
+          "required": "5 files",
+          "status": "bad"
+        },
+        {
+          "name": "2E",
+          "value": "checkpoints/",
+          "required": "1 file",
+          "status": "bad"
+        },
+        {
+          "name": "2F",
+          "value": "docs/",
+          "required": "—",
+          "status": "bad"
+        },
+        {
+          "name": "3",
+          "value": "Global Validation",
+          "required": "—",
+          "status": "bad"
+        },
+        {
+          "name": "RELEASES.md",
+          "value": "—",
+          "required": "✅ Manter",
+          "status": "bad"
+        },
+        {
+          "name": "FEATURES.md",
+          "value": "+ F-ML1 Reward Math (LaTeX)",
+          "required": "✅ Atualizado",
+          "status": "bad"
+        },
+        {
+          "name": "USER_STORIES.md",
+          "value": "—",
+          "required": "✅ Manter",
+          "status": "bad"
+        },
+        {
+          "name": "STATUS_ATUAL.md",
+          "value": "+ Histórico Reports Consolidados",
+          "required": "✅ Atualizado",
+          "status": "bad"
+        },
+        {
+          "name": "USER_MANUAL.md",
+          "value": "+ Section 11 (Reports) + Section 12 (Board Meetings) + Section 5.3 (PPO Training)",
+          "required": "✅ Atualizado",
+          "status": "bad"
+        },
+        {
+          "name": "prompts/",
+          "value": "19",
+          "required": "✅ [ver análise](../prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md)",
+          "status": "bad"
+        },
+        {
+          "name": "scripts/",
+          "value": "1",
+          "required": "✅ [ver análise](../scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md)",
+          "status": "bad"
+        },
+        {
+          "name": "reports/",
+          "value": "15",
+          "required": "✅ [ver análise](../reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md)",
+          "status": "bad"
+        },
+        {
+          "name": "backlog/",
+          "value": "15",
+          "required": "✅ [ver análise](../backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md)",
+          "status": "bad"
+        },
+        {
+          "name": "checkpoints/ppo_training/",
+          "value": "1",
+          "required": "✅ [ver análise](../checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md)",
+          "status": "bad"
+        },
+        {
+          "name": "docs/",
+          "value": "58",
+          "required": "✅ [ver análise](DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)",
+          "status": "bad"
+        },
+        {
+          "name": "raiz/",
+          "value": "60+",
+          "required": "✅ [ver análise](../DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md)",
+          "status": "bad"
+        },
         {
           "name": "Sharpe Ratio",
           "value": "0.06",
