@@ -208,7 +208,23 @@
 
 ---
 
-## 🗂️ ESTRUTURA DOCUMENTAL (SEE ALSO)
+## � Histórico de Relatórios Consolidados (Fase 2C)
+
+**Consolidação:** Relatórios operacionais de 17-21 FEV consolidados em core docs
+
+| Arquivo Origem | Seações Extraídas | Destino | Status |
+|---|---|---|---|
+| board_governance_docs_21fev.json | Decision #3 votação (12/16) + 10 core docs | DECISIONS.md | ✅ Consolidado |
+| phase4_readiness_validation.json | Gate #1 QA (21 FEV 08:00) + readiness checklist | TRACKER.md (Gate #1) | ✅ Consolidado |
+| relatorio_executivo_2026-02-17.md | Snapshot operacional 17 FEV + métricas histórico | STATUS_ATUAL.md | ✅ Referência |
+
+**Limpeza realizada:** 12 arquivos dated deletados (board meetings histórico, learning CSVs, revalidation JSONs)
+
+**Resultado:** reports/ reduzido de 15 → 1 arquivo (DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md somente)
+
+---
+
+## �🗂️ ESTRUTURA DOCUMENTAL (SEE ALSO)
 
 ```
 /docs/
