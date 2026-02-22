@@ -749,7 +749,7 @@
             <div class="card">
                 <h2><span class="icon">100%</span> Composição v0.4</h2>
                 <div class="chart-container">
-                    <canvas id="compositonChart"></canvas>
+                    <canvas id="compositionChart"></canvas>
                 </div>
             </div>
         </div>
@@ -1023,8 +1023,8 @@
         });
 
         // GRÁFICO 4: COMPOSIÇÃO V0.4
-        const compositonCtx = document.getElementById('compositonChart').getContext('2d');
-        new Chart(compositonCtx, {
+        const compositionCtx = document.getElementById('compositionChart').getContext('2d');
+        new Chart(compositionCtx, {
             type: 'pie',
             data: {
                 labels: ['Backtest', 'Risk', 'ML Train', 'Infra'],
