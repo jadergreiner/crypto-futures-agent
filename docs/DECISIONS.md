@@ -34,6 +34,46 @@ Registo de decisões estratégicas tomadas em reuniões de Board.
 
 ---
 
+## 🔔 DECISÃO #2 — BACKTESTING COMO BLOQUEADOR CRÍTICO
+
+**Data:** 22 FEV 2026 23:45 UTC
+**Reunião:** Squad Multidisciplinar (Arch + Brain + Data + Quality + Audit + Blueprint + DocAdvocate)
+**Investidor:** [PENDING BOARD APPROVAL]
+**Facilitador:** Doc Advocate (#17)
+
+### O Problema
+- Sprint 2 vai implementar SMC (Order Blocks + BoS) para detecção de sinais
+- Sem validação em dados históricos (backtest), não há confiança para go-live
+- Risco: colocar em produção estratégia não validada = capital em risco
+- Princípio ROADMAP: "Dados sobre Intuição" — todas as mudanças baseadas em backtest
+
+### A Decisão
+**Backtesting Engine (S2-3) é BLOQUEADOR CRÍTICO para SMC Implementation (S2-1/S2-2).**
+
+Sequência obrigatória:
+1. S2-0: Data Strategy (16h) — obter 1 ano dados históricos Binance
+2. S2-3: Backtesting (48h design já ✅, 96h impl) — validar padrões SMC
+3. S2-1/S2-2: SMC Implementation (após S2-3 ✅ GREEN) — confidente, backtest-validated
+
+Gates para S2-3:
+- Gate 1: Dados históricos 100% válidos, cache funcionando
+- Gate 2: Engine simula trades, respeita Risk Gate -3% hard stop
+- Gate 3: 8 testes PASS, 80% coverage, sem regressão Sprint 1
+- Gate 4: Documentação completa (docstrings PT + README + DECISIONS)
+
+### Justificativa
+- ✅ Alinha com princípio "Segurança sobre Lucro"
+- ✅ Reduce risco operacional: valida ANTES de live trading
+- ✅ Sprint 1 already completed connectivity + execution → ready for data/backtest
+- ✅ 50h design work já feito (Arch + Test Plan + Infra completed 22 FEV)
+
+### Próximos Passos
+1. Board aprovação de sequência (S2-0 → S2-3 → S2-1/S2-2)
+2. Issue #59 criada + Squad pronto para implementação 23 FEV
+3. Daily standups com [ISSUE_59_GATES_FLOWCHART.md](../docs/ISSUE_59_GATES_FLOWCHART.md)
+
+---
+
 ## 🔔 DECISÃO #1 — GOVERNANÇA DE DOCUMENTAÇÃO
 
 **Data:** 22 FEV 2026 21:45 UTC
@@ -80,7 +120,130 @@ Registo de decisões estratégicas tomadas em reuniões de Board.
 
 ---
 
-## 🟡 DECISÃO PENDENTE #2 — MACHINE LEARNING
+## 🟡 DECISÃO #2 — BACKTESTING S2-3 (QA GATES & DOCUMENTAÇÃO)
+
+**Data:** 22 FEV 2026 22:50 UTC  
+**Reunião:** Definição de QA Gates  
+**Investidor:** [Aguardando aprovação]  
+**Facilitador:** Audit (#8) — QA Lead
+
+### Contexto: O Problema
+Issue #59 (S2-3: Backtesting) pressiona por definição clara de gates de aceite.
+
+Sprint 1 teve sucesso com 4 gates estruturados (conectividade, risco, execução, 
+telemetria). Sprint 2-3 (Backtesting) exige framework similar mas adaptado para:
+- Validação de dados históricos (6+ meses × 60 símbolos)
+- Engine de backtesting (simulação realística)
+- Métricas (PnL, Drawdown, Sharpe, Calmar)
+- Test coverage ≥ 80%
+- Documentação completa em Português
+
+### A Decisão — 4 Gates Definidos
+
+**Gate 1: Dados Históricos**
+- Dados OHLCV carregados para 60 símbolos
+- Sem gaps, duplicatas, preços válidos
+- Parquet cache em < 100ms
+- Mínimo 6 meses por símbolo
+
+**Gate 2: Engine de Backtesting**
+- Engine executa trades sem erro
+- PnL realized + unrealized correto
+- Max Drawdown calculado
+- Risk Gate 1.0 aplicado (-3% hard stop inviolável)
+- Walk-Forward testing
+
+**Gate 3: Validação & Testes**
+- 8 testes PASS (backtest + metrics + trade_state)
+- Coverage ≥ 80% em `backtest/`
+- Zero regressão em Sprint 1 (70 testes PASS)
+- Performance: 6 meses × 60 símbolos < 30s
+
+**Gate 4: Documentação**
+- Docstrings em PT em classes/funções principais
+- `backtest/README.md` com guia completo
+- Seção S2-3 em `docs/CRITERIOS_DE_ACEITE_MVP.md`
+- Trade-offs críticos em `docs/DECISIONS.md`
+- Comentários inline em código complexo
+
+### Documentação Requerida (Checklist)
+
+1. ✅ Docstrings em 5 classes principais (Backtester, BacktestEnvironment,
+   BacktestMetrics, TradeStateMachine, WalkForwardBacktest)
+2. ✅ README backtesting (`backtest/README.md`) com:
+   - Instalação & setup
+   - Como usar (3+ exemplos)
+   - Interpretação de resultados
+   - Troubleshooting
+3. ✅ CRITERIOS_DE_ACEITE_MVP.md (seção S2-3 com 4 tables de validação)
+4. ✅ DECISIONS.md (este arquivo + trade-offs)
+5. ✅ Comentários inline em `trade_state_machine.py` e `walk_forward.py`
+6. ✅ SYNCHRONIZATION.md atualizado com [SYNC] entry
+
+### Matriz de Sign-Off
+
+| Gate | Responsável | Evidência | Timeout |
+|------|---|---|---|
+| Gate 1 (Dados) | Data Engineer | `test_backtest_data.py` ✅ | 48h |
+| Gate 2 (Engine) | Backend/RL Eng | `test_backtest_core.py` ✅ | 48h |
+| Gate 3 (Testes) | QA Lead | `pytest --cov` ≥ 80% | 24h |
+| Gate 4 (Docs) | Doc Officer | README + CRITERIOS + DECISIONS | 24h |
+| **Final Sign-Off** | **Audit (#8)** | 4 gates GREEN ✅ | 24h |
+
+### Trade-Offs Arquiteturais Considerados
+
+**Opção A — Parquet para Cache (ESCOLHIDO ✅)**
+- ✅ Performance: Read < 100ms
+- ✅ Compressão: 60 × 6 meses = ~200MB comprimido
+- ❌ Complexidade: Precisa pandas + pyarrow
+
+**Opção B — CSV Raw**
+- ✅ Simples, sem deps
+- ❌ Performance: Read > 500ms
+- ❌ Espaço: ~2GB não-comprimido
+
+**Decisão:** Parquet (A) escolhido por performance crítica em walk-forward.
+
+---
+
+**Opção C — Risk Gate Suave em Backtest (REJEITADO ❌)**
+- "Permitir backtest com Stop Loss -5% em simulação"
+- ❌ Viola princípio: Risk Gate 1.0 inviolável
+- ❌ Cria falsa impressão de performance
+
+**Decisão:** Risk Gate -3% mantido HARD em backtest (mesmo que RL falhe).
+
+### Ações Aprovadas
+
+1. ✅ Criar `docs/ISSUE_59_QA_GATES_S2_3_BACKTESTING.md` (template de gates)
+2. ✅ Criar `backtest/README.md` (manual operacional)
+3. ✅ Adicionar seção S2-3 a `docs/CRITERIOS_DE_ACEITE_MVP.md`
+4. ✅ Adicionar esta entrada a `docs/DECISIONS.md`
+5. ⏳ Backend Engineer implementar Gates 1 + 2 (48h)
+6. ⏳ QA Lead validar Gate 3 (24h pós-código)
+7. ⏳ Doc Officer validar Gate 4 (24h pós-código)
+
+### Timeline
+
+- **Agora (22 FEV 22:50):** Definição de gates + documentação base criada
+- **23 FEV 09:00:** Backend submete PR com Gates 1 + 2
+- **23 FEV 17:00:** QA valida Gate 3, Doc Officer completa Gate 4
+- **24 FEV 09:00:** Audit faz final sign-off
+- **24 FEV 12:00:** Merge para `main` (Issue #59 closed)
+
+### Responsável
+
+- **Owner:** Audit (#8) — QA Lead
+- **Executor:** Backend + QA + Doc Team
+- **Review:** Product Lead (final approval)
+
+### Status
+
+🟡 **DECISION MADE** — Aguardando implementação (PRs esperadas 23 FEV)
+
+---
+
+## 🟡 DECISÃO PENDENTE #3 — MACHINE LEARNING
 
 **Data:** Aguardando reunião domingo (23 FEV)
 
@@ -225,9 +388,9 @@ Capacidade potencial: 200+ pares com Parquet
 | # | Título | Data | Status | Owner |
 |---|--------|------|--------|-------|
 | 1 | Governança Docs | 22 FEV | 🟡 IN PROGRESS | Facilitador |
-| 2 | Machine Learning | 23 FEV | ⏳ AWAITING | Investidor |
-| 3 | Posições | 23 FEV | ⏳ AWAITING | Risk Mgr |
-| 4 | Escalabilidade | 23 FEV | ⏳ AWAITING | Investidor |
+| 2 | Backtesting S2-3 QA Gates | 22 FEV 22:50 | 🔵 DECISION MADE | Audit (#8) |
+| 3 | Machine Learning Strategy | 23 FEV | ⏳ AWAITING | Investidor |
+| 4 | Posições & Escalabilidade | 23 FEV | ⏳ AWAITING | Risk Mgr |
 
 ---
 

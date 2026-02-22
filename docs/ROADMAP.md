@@ -14,19 +14,20 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 ## 📅 Ciclo de Evolução (Now-Next-Later)
 
-### 🚀 AGORA (Now) - Fundação e Segurança
+### 🚀 AGORA (Now) - Fundação e Segurança ✅ COMPLETO
 *Foco: Estabilidade Operacional e MVP (Minimum Viable Product)*
-- [ ] **Integração de Conectividade:** Finalizar conectividade robusta com Binance Futures (REST + WebSockets).
-- [ ] **Risk Gate 1.0:** Implementação de Stop Loss Hardcoded e Circuit Breaker de -3% no nível do motor.
-- [ ] **Módulo de Execução:** Orquestrador de ordens com tratamento de erros de API e Rate Limits.
-- [ ] **Telemetria Básica:** Logs estruturados para auditoria de trades em tempo real.
+- [x] **Integração de Conectividade:** ✅ COMPLETO #55 (8/8 testes PASS)
+- [x] **Risk Gate 1.0:** ✅ COMPLETO #57 (10/10 testes PASS)
+- [x] **Módulo de Execução:** ✅ COMPLETO #58 (11/11 testes PASS)
+- [x] **Telemetria Básica:** ✅ COMPLETO #56 (41 testes PASS)
 
-### 📈 PRÓXIMO (Next) - Inteligência e Performance
-*Foco: Otimização de Ganhos e Análise Técnica*
-- [ ] **Motor de Estratégia SMC:** Implementação de detecção automática de Order Blocks e Break of Structure (BoS).
-- [ ] **Sistema de Backtesting:** Engine para testar estratégias contra dados históricos de 1 ano.
-- [ ] **Gestão Dinâmica de Risco:** Trailing Stop Loss e ajuste de alavancagem baseado na volatilidade (ATR).
-- [ ] **Alertas Externos:** Integração com Telegram para notificações de execução e status do agente.
+### 📈 PRÓXIMO (Next) - Inteligência e Performance 🔵 EM PLANEJAMENTO (Sprint 2)
+*Foco: Backtesting + SMC + Risco Dinâmico. Bloqueio: S2-3 valida SMC antes do Go-Live*
+- [ ] **Data Strategy (1Y):** [S2-0] Dados históricos Binance + cache inteligente (#TBD)
+- [ ] **Sistema de Backtesting:** [S2-3] Engine production-ready (#59 Design ✅ Pronto, Impl. Sprint 2-3)
+- [ ] **Motor de Estratégia SMC:** [S2-1/S2-2] Order Blocks + BoS (Depende: S2-3 ✅)
+- [ ] **Gestão Dinâmica de Risco:** [S2-4] Trailing Stop Loss + ATR-based leverage (#TBD)
+- [ ] **Alertas Externos:** [S2-5] Telegram notifications (#TBD)
 
 ### 🌌 DEPOIS (Later) - Escala e Autonomia
 *Foco: Machine Learning e Descentralização*
@@ -48,9 +49,10 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 > Bloco mantido pelo Copilot via `docs_sync_policy`. Não editar manualmente.
 
-**Sprint atual:** Sprint 1
-**Última atualização:** 2026-02-22 21:30 UTC
-**Progresso NOW:** 4 itens com código (60% - validação+integração em andamento)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 PLANEJANDO S2-0 + S2-3
+**Última atualização:** 2026-02-22 23:58 UTC
+**Progresso NOW:** 4/4 itens 100% completo ✅
+**Progresso NEXT:** S2-3 Design ✅ PRONTO (Issue #59 — Squad Multidisciplinar), implementação Sprint 2-3
 
 | Documento                | Link                                           |
 |--------------------------|------------------------------------------------|

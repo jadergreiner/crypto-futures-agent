@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 22:45 UTC (Sprint 1 Polish Complete: Issues #55, #57, #58, #56 ALL 🟢 GREEN)
-**Sprint atual:** Sprint 1 ✅ COMPLETA
+**Última atualização:** 2026-02-22 23:58 UTC (Issue #59 Criada: Squad Multidisciplinar — Arch + Brain + Data + Quality + Audit + Blueprint + DocAdvocate. Design + Testes + Infra 24/7 + Docs = COMPLETO)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 PLANEJANDO (S2-0 Data + S2-3 Backtesting)
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -22,7 +22,9 @@
 
 ---
 
-## 🚀 Progresso — AGORA (Now) — SPRINT 1 COMPLETA ✅
+## 🚀 Progresso — AGORA (Now) — SPRINT 1 COMPLETA ✅ + SPRINT 2 SETUP 🔵
+
+### Sprint 1: Finalizado ✅
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
@@ -33,13 +35,32 @@
 
 **Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 
-**Progresso NOW:** 4/4 itens 100% COMPLETO (Implementacao + Validacao + Testing)
+**Progresso Sprint 1:** 4/4 itens 100% COMPLETO (Implementacao + Validacao + Testing)
 
-**Total de Testes:** 70 testes PASS
+**Total de Testes Sprint 1:** 70 testes PASS
 - Issue #55: 8 testes
 - Issue #57: 10 testes  
 - Issue #58: 11 testes
 - Issue #56: 41 testes
+
+---
+
+### Sprint 2: Setup + Backtesting 🔵
+
+| Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Docs    | Notas          |
+|---------------------------------|--------|----------|--------|--------|---------|----------------|
+| Data Strategy (1Y + Cache)       | 🟡     | Sprint 2 | TBD    | TBD    | ✅ PRONTO | S2-0: 3 docs tech + klines_cache_manager.py + config/symbols.json |
+| Backtesting Architecture         | 🟢     | Sprint 2 | #59    | READY  | ✅ PRONTO | S2-3: Squad design COMPLETO — Arch + Test Plan + Infra 24/7 |
+| Data Strategy (1 Year Backtest)  | 🟡     | Sprint 2 | TBD    | TBD    | ✅ COMPLETO | S2-0: Proposta técnica + implementation ready. [3 docs + klines_cache_manager.py]. Setup: 15-20min  |
+
+---
+
+## 🎯 Próximas Entregas — SPRINT 2-3
+
+| Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
+|---------------------------------|--------|----------|--------|----------|-----------|----------------|
+| Backtesting Engine              | 🔴     | Sprint 2-3| #59    | PENDING  | PENDING   | Bloqueado por: Data Strategy (S2-0). Desbloqueado após validação dados 🟢 |
+| ML Training Pipeline (PPO v0)   | 🔴     | Sprint 3 | #60    | PENDING  | PENDING   | Parallel com backtesting |
 
 ---
 
@@ -55,7 +76,7 @@
 
 | Data       | Entrega                  | Sprint   | PR     | Notas   |
 |------------|--------------------------|----------|--------|---------|
-| TODO       | TODO                     | TODO     | TODO   | TODO    |
+| 2026-02-22 | Plano de Testes — Backtesting (S2-3) | Sprint 2 (Planejado) | - | 10 testes (5 Unit + 3 Integration + 1 Regression + 1 E2E), ~82% coverage, 45-60s runtime |
 
 ---
 
