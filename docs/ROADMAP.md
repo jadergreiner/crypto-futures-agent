@@ -49,8 +49,8 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 > Bloco mantido pelo Copilot via `docs_sync_policy`. Não editar manualmente.
 
 **Sprint atual:** Sprint 1
-**Última atualização:** 2026-02-22
-**Progresso NOW:** 0 concluídos de 4 itens
+**Última atualização:** 2026-02-22 21:30 UTC
+**Progresso NOW:** 4 itens com código (60% - validação+integração em andamento)
 
 | Documento                | Link                                           |
 |--------------------------|------------------------------------------------|

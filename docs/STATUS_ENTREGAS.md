@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 19:15 UTC (Issue #57 - Risk Gate 1.0: 46 testes PASS, 60% completado)
+**Última atualização:** 2026-02-22 21:30 UTC (Issue #56 - Telemetria: 41 testes PASS, entregue)
 **Sprint atual:** Sprint 1
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -23,14 +23,14 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Evidência | Notas          |
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
-| Integração de Conectividade     | 🟡     | Sprint 1 | #55    | WIP    | ✅ Impl   | REST/WS + rate limiting
-| Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | WIP    | ✅ Impl   | Stop Loss (-3%) + CB (-3.1%): 46 tests PASS
+| Integração de Conectividade     | 🟡     | Sprint 1 | #55    | WIP    | ✅ Impl   | REST/WS + rate limiting (40% validação faltando)
+| Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | WIP    | ✅ Impl   | Stop Loss + CB: 46 tests PASS (integração faltando)
 | Módulo de Execução              | 🟡     | Sprint 1 | #58    | WIP    | ✅ Impl   | OrderExecutor + Queue + ErrorHandler: 47 tests PASS
-| Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Bloqueado por #58   |
+| Telemetria Básica               | 🟡     | Sprint 1 | #56    | WIP    | ✅ Impl   | StructuredLogger + DB: 41 tests PASS ✅ ENTREGUE   |
 
 **Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 
-**Progresso NOW:** 0 concluídos de 4 itens (Issue #58: 60% - Impl + Testes completos)
+**Progresso NOW:** 4/4 itens com código completo (60% - Polimento+Validação faltando)
 
 ---
 
