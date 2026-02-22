@@ -49,10 +49,10 @@ jobs:
             git add dashboard_data.json
             git commit -m "[SYNC] Dashboard sincronizado automaticamente
 
-- Fonte: Mudanças em documentação (STATUS_ATUAL.md, DECISIONS.md)
-- Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-- Triggered by: ${{ github.event_name }}
-- Equipe: Doc Advocate ativo"
+            - Fonte: Mudanças em documentação (STATUS_ATUAL.md, DECISIONS.md)
+            - Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            - Triggered by: ${{ github.event_name }}
+            - Equipe: Doc Advocate ativo"
             echo "✅ Commit realizado com sucesso!"
           else
             echo "ℹ️  Nenhuma mudança detectada no dashboard"
