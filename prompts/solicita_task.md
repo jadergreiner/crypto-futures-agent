@@ -1,0 +1,1 @@
+Leia docs/STATUS_ENTREGAS.md, docs/PLANO_DE_SPRINTS_MVP_NOW.md e docs/ROADMAP.md. Com base no Sprint atual e nos bloqueios, recomende a proxima task a ser priorizada. Justifique por dependencia e risco operacional. Se houver TODO sem Issue, sugira criar a issue com titulo e criterios de aceite linkando docs/CRITERIOS_DE_ACEITE_MVP.md
