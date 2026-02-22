@@ -87,3 +87,113 @@ CRÍTICA |
 | Sprint 4 | v0.4 | Walk-forward + relatório | ~10h |
 | Sprint 5 | v0.5 | Paper trading E2E | ~15h |
 | Sprint 6 | v1.0 | Execução real + circuit breakers | ~20h |
+
+---
+
+## TASK-005: PPO Training — Phase 4 Operacionalização (Consolidado Fase 2A)
+
+**Responsável:** The Brain (ML Specialist) + Dev (SWE Senior)
+**Timeline:** 22 FEV 14:00 UTC → 25 FEV 10:00 UTC (96h wall-clock)
+**Status:** 🟢 **SPECIFICATION COMPLETE** — Ready SWE implementation
+
+---
+
+### Resumo Executivo
+
+| Aspecto | Valor |
+|---|---|
+| **O QUÊ** | Treinar agente PPO para 60 pares simultâneos |
+| **POR QUÊ** | Substituir heurísticas estáticas com política adaptativa (Sharpe >1.0) |
+| **COMO** | 500k environment steps, 4 parallel episodes, checkpoint every 50k |
+| **QUANTO TEMPO** | ≤96 horas de wall-clock (deadline 25 FEV 10:00 UTC) |
+| **SUCESSO** | Sharpe ≥1.0, DD <5%, WR ≥52%, latência <100ms |
+
+---
+
+### Arquitetura Overview
+
+```
+┌─────────────────────────────────────────────────┐
+│  PPO Policy Network (Shared across 60 pairs)    │
+│  Input:  State (1320,) = 60 × 22 normalized    │
+│  Hidden: [256, 256] ReLU                        │
+│  Output: Action logits (180,) = 60 × 3 actions │
+└─────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────┐
+│  Multi-Pair Gym Environment (DummyVecEnv×4)    │
+│  4 parallel episodes, 60 pairs per episode      │
+│  Runs 500k total steps over ≤96 hours          │
+│  Checkpoints every 50k steps (best 3 kept)    │
+└─────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────┐
+│  Backtest Validation (OOT on last 20% data)    │
+│  Verify Sharpe ≥0.9, DD <5.5%, no look-ahead  │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+### Plano SWE Coordenação (6 Fases)
+
+**Fase 0: Infraestrutura (90min)**
+- GPU server: 4-core CPU, 16GB RAM, 100GB disk
+- Install: stable-baselines3, torch, tensorboard
+
+**Fase 1: Environment & Reward (150min)**
+- Feature selection: 104 → 22 features via PCA
+- Multi-pair environment: obs (1320,), action MultiDiscrete([3×60])
+- Data pipeline: 80/20 walk-forward split (NO look-ahead)
+
+**Fase 2: Reward Function (90min)**
+- Implement 6 components: PnL, Hold, Drawdown, WinRate, Inactivity, Sharpe
+- Range validation: [-1.0, +10.0]
+
+**Fase 3: PPO Training Setup (180min)**
+- stable-baselines3 PPO: batch_size=64, learning_rate=3e-4→1e-5 decay
+- 500k steps target, converge Sharpe ≥1.0
+
+**Fase 4: Convergence Monitoring (28h)**
+- Realtime dashboard: Sharpe, WR, DD vs thresholds
+- Early stopping if Sharpe hits 1.0 (save checkpoint)
+
+**Fase 5: OOT Validation (20h)**
+- Backtest on validation set (last 20%)
+- Verify no look-ahead, metrics realistic
+
+---
+
+### Gates Diários (#0 → #4)
+
+| Gate | Data | Criério Sucesso | Owner |
+|---|---|---|---|
+| #0 | 22 FEV 16:00 | Infra ready, deps OK | Dev |
+| #1 QA | 22 FEV 08:00 | Gate #1 validation checkpoint | Audit |
+| #2 | 23 FEV 08:00 | Fase 1-2 complete, reward tested | The Brain |
+| #3 | 24 FEV 08:00 | Treinamento in progress, Sharpe trending up | Dev |
+| #4 (Final) | 25 FEV 10:00 | Sharpe ≥1.0, OOT validated, ready merge | Executor |
+
+---
+
+### Success Criteria (Gate #4 Final)
+
+- ✅ Sharpe Ratio ≥1.0
+- ✅ Max Drawdown <5%
+- ✅ Win Rate ≥52%
+- ✅ Inference latency <100ms
+- ✅ No look-ahead bias (OOT validation)
+- ✅ Best 3 checkpoints saved
+
+---
+
+### Referências Técnicas Completas
+
+- **Architecture:** [docs/FEATURES.md](FEATURES.md#f-ml1-ppo-training-pipeline)
+- **Reward Math:** [docs/FEATURES.md](FEATURES.md#teoria-ppo--aprendizagem-contextual)
+- **Especificação Completa:** [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md#task-005-especificação--sincronização)
+- **JSON Spec:** `prompts/TASK-005_ML_SPECIFICATION_PLAN.json`
+
+---
+
+**Última atualização:** 22 FEV 2026 17:40 UTC (TASK-005 consolidado Fase 2A)

@@ -17,6 +17,51 @@ operacionais com gestão de risco completa.
 - 📚 **Owner:** DOC Advocate (delegado Audit Team)
 - ✅ **Status:** Operacional (veja `docs/POLICY_DOC_GOVERNANCE.md`)
 
+### 📚 Fonte da Verdade Documentária — 10 Core Docs
+
+**Regra Crítica:** Todo membro que trabalha com docs **DEVE** utilizar APENAS os
+10 documentos oficiais abaixo. Conteúdo em outros arquivos é deprecado.
+
+| # | Documento | Propósito | Responsável |
+|---|-----------|----------|-------------|
+| 1 | [RELEASES.md](docs/RELEASES.md) | Versões e entregas | Planner |
+| 2 | [ROADMAP.md](docs/ROADMAP.md) | Planejamento futuro | Product |
+| 3 | [FEATURES.md](docs/FEATURES.md) | Funcionalidades | Dev |
+| 4 | [TRACKER.md](docs/TRACKER.md) | Sprints e backlog | Planner |
+| 5 | [USER_STORIES.md](docs/USER_STORIES.md) | Requisitos | Product |
+| 6 | [LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md) | Insights | The Brain |
+| 7 | [STATUS_ATUAL.md](docs/STATUS_ATUAL.md) | Dashboard go-live | Doc Advocate |
+| 8 | [DECISIONS.md](docs/DECISIONS.md) | Decisões estratégicas | Elo |
+| 9 | [USER_MANUAL.md](docs/USER_MANUAL.md) | Onboarding | Product |
+| 10 | [SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md) | Sincronização & audit | Doc Advocate |
+
+**Análise Completa:** [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)
+
+**Protocolo [SYNC]**: Todo commit que altera docs deve incluir tag `[SYNC]` na
+mensagem para rastreabilidade. Exemplo: `[SYNC] Atualizado FEATURES.md com F-H5`
+
+---
+
+## 🚀 CONSOLIDAÇÃO DOCUMENTÁRIA — Decision #3 em Execução
+
+**Status:** ✅ Análises 100% completas — ⏳ Pronto para execução fase-por-fase
+
+**Plano Maestro:** [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md)
+
+### Progresso por Pasta (Análise Completa)
+
+| Pasta | Arquivos | Análise | Próximo Passo |
+|---|---|---|---|
+| **docs/** | 58 | ✅ [classificação](docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md) | Fase 2F |
+| **backlog/** | 15 | ✅ [consolidação](backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md) | Fase 2D |
+| **checkpoints/ppo_training/** | 1 | ✅ [consolidação](checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md) | Fase 2E |
+| **prompts/** | 19 | ✅ [consolidação](prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md) | Fase 2A (1ª) |
+| **reports/** | 15 | ✅ [consolidação](reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md) | Fase 2C |
+| **scripts/** | 1 | ✅ [consolidação](scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md) | Fase 2B |
+| **raiz/** | 60+ | ✅ [análise + human review](DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md) | Fase 4 (post-validation) |
+
+**Timeline Execução:** 22-25 FEV 2026 (Fase 2A-3) + 25+ FEV (Fase 4 raiz)
+
 **TASK-001: Heurísticas Conservadoras (Concluído 22 FEV 10:00 UTC)**
 - 🎯 **Deadline:** 22 FEV 06:00 UTC ✅ Met
 - 📊 **Status:** ✅ COMPLETO (100% operacional)

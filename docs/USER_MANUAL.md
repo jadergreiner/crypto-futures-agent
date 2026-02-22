@@ -1310,6 +1310,247 @@ Este manual cobre as funcionalidades da **v0.2 (Pipeline Fix)**.
 
 ---
 
-**Última atualização:** 15/02/2026 (v0.2.0)
+## 11. Operações: Relatórios Executivos Diários (Consolidado Fase 2A)
+
+### Objetivo e Trigger
+
+O **Relatório Executivo Diário** é um documento gerado automaticamente cada 24
+horas (00:00 UTC) que consolida:
+
+- Performance financeira da conta
+- Evolução nas últimas 24 horas
+- Resultado das posições fechadas
+- Capital alocado vs capital disponível
+- Risco e exposição atual
+- Evolução do modelo de aprendizagem por ativo
+
+Consumidor: Head de Finanças (para avaliação de ROI e controle de risco)
+
+---
+
+### Dados Requeridos
+
+**ACCOUNT METRICS:**
+- wallet_balance, equity_total, equity_24h_ago
+- available_balance, margin_used
+- unrealized_pnl, realized_pnl_24h, funding_paid_24h
+
+**POSITIONS OPEN (por posição):**
+- symbol, side (LONG/SHORT), notional_value_usdt, margin
+- leverage, entry_price, mark_price, pnl_unrealized, liquidation_price
+
+**TRADES CLOSED (últimas 24h):**
+- symbol, pnl, duration_minutes, rr_ratio
+
+**MODEL LEARNING:**
+- learning_insights_per_symbol[], confidence_score_per_symbol[]
+- model_adjustments_24h[]
+
+**RISK DATA:**
+- max_drawdown_current, exposure_total_percent
+- leverage_avg, liquidation_risk_score
+
+---
+
+### Estrutura do Relatório
+
+**SEÇÃO 1 — Métricas Financeiras**
+
+Daily Return % = (equity_total - equity_24h_ago) / equity_24h_ago × 100
+
+**SEÇÃO 2 — Estatísticas de Trading (24h)**
+- Total trades fechados, Win Rate, PnL médio
+- Razão risco-retorno, Melhor/Pior trade
+
+**SEÇÃO 3 — Avaliação de Risco**
+- Distância até liquidação, Posições em risco crítico
+
+**SEÇÃO 4 — Evolução do Modelo**
+- Mudanças automáticas (últimas 24h)
+- Taxa de learning
+
+**SEÇÃO 5 — Ações Recomendadas**
+- Alertas segurança, Sugestões rebalanceamento
+
+---
+
+---
+
+## 12. Board Meetings: Operação & Orchestration
+
+### 12.1 Como Executar uma Reunião de Decisão
+
+**Localização:** `scripts/`
+
+```bash
+# Decision #2: ML Training Strategy
+python scripts/condutor_board_meeting.py --decisao ML_TRAINING_STRATEGY
+
+# Decision #3: Posições Underwater
+python scripts/condutor_board_meeting.py --decisao POSIOES_UNDERWATER
+
+# Decision #4: Escalabilidade v0.5
+python scripts/condutor_board_meeting.py --decisao ESCALABILIDADE
+```
+
+**Saída esperada:**
+```
+🎯 INICIANDO REUNIÃO DE BOARD COM 16 MEMBROS
+================================================================================
+[processamento completo]
+✅ REUNIÃO CONCLUÍDA
+📊 Relatório completo: reports/board_meeting_1_ML_TRAINING_STRATEGY.md
+```
+
+### 12.2 Fluxo de Reunião (6 Fases)
+
+```
+┌─────────────────────────────────────────┐
+│ 1. APRESENTAR DECISÃO (5 min)          │
+│    - Título, contexto, opções          │
+│    - Critério de sucesso               │
+└─────────────────────────────────────────┘
+                 ↓
+┌─────────────────────────────────────────┐
+│ 2. EXIBIR PAUTA ESTRUTURADA (5 min)    │
+│    - Perguntas por especialidade       │
+│    - 16 grupos mapeados                │
+└─────────────────────────────────────────┘
+                 ↓
+┌─────────────────────────────────────────┐
+│ 3. CICLO DE OPINIÕES (40 min)          │
+│    - 4 minutos por membro              │
+│    - 16 membros × 4 min = 64 min      │
+│    - Coleta estruturada                │
+└─────────────────────────────────────────┘
+                 ↓
+┌─────────────────────────────────────────┐
+│ 4. SÍNTESE DE POSIÇÕES (5 min)         │
+│    - Contagem: FAVORÁVEL vs CONTRÁRIO  │
+│    - Identificar consenso/dissenso     │
+└─────────────────────────────────────────┘
+                 ↓
+┌─────────────────────────────────────────┐
+│ 5. VOTAÇÃO FINAL (5 min)               │
+│    - Angel toma decisão                │
+│    - Registra em db/board_meetings.db  │
+└─────────────────────────────────────────┘
+                 ↓
+┌─────────────────────────────────────────┐
+│ 6. RELATÓRIO EXPORTADO                 │
+│    - reports/board_meeting_N_*.md      │
+│    - Pronto para auditoria [SYNC]      │
+└─────────────────────────────────────────┘
+```
+
+### 12.3 Componentes Principais
+
+**BoardMeetingOrchestrator** — Gerenciador de dados:
+- `criar_reuniao()` — Cria nova reunião
+- `registrar_opiniao()` — Coleta opinião de membro
+- `gerar_relatorio_opinoes()` — Exporta markdown
+
+**TemplateReuniaoBoardMembros** — Templates por especialidade:
+- `renderizar_pauta_reuniao()` — Pauta estruturada
+- `template_formulario_opiniao()` — Formulário customizado
+
+**ConductorBoardMeeting** — Orquestrador completo:
+- `executar_reuniao_completa()` — Fluxo end-to-end
+- `exibir_decisao()` — Apresenta decisão
+- `simular_ciclo_opiniones()` — Ciclo de 16 membros
+
+### 12.4 Exemplo: Decision #2 (ML Training Strategy)
+
+**Input:**
+```bash
+python scripts/condutor_board_meeting.py --decisao ML_TRAINING_STRATEGY
+```
+
+**Output (exemplo):**
+```
+FAVORÁVEL: 10/16 (62.5%)
+  ✓ Angel (Investidor)
+  ✓ Elo (Facilitador)
+  ✓ Dr. Risk (Head Finanças)
+  ✓ The Brain (ML)
+  ✓ Arch (AI Architect)
+  ✓ Flux (Data)
+  ✓ Blueprint (Tech Lead)
+  ✓ Planner (PM)
+  ✓ Audit (QA)
+  ✓ Guardian (Risk Specialist)
+
+CONDICIONAL: 4/16 (25%)
+NEUTRO: 2/16 (12.5%)
+```
+
+**Relatório gerado:** `reports/board_meeting_1_ML_TRAINING_STRATEGY.md`
+
+Arquivo contém:
+- Decisão apresentada
+- Opiniões detalhadas de cada um dos 16 membros
+- Posição final (FAVORÁVEL, CONTRÁRIO, NEUTRO, CONDICIONAL)
+- Argumentos técnicos por membro
+- Riscos identificados
+
+### 12.5 Customização
+
+**Adicionar nova decisão:**
+
+Editar `scripts/condutor_board_meeting.py`:
+
+```python
+DECISÕES_TEMPLATE = {
+    "NOVA_DECISAO": {
+        "titulo": "Decision #5 — Nova Decisão",
+        "descricao": "...",
+        "opcoes": ["A", "B", "C"],
+        "owner_final_decision": "Angel"
+    }
+}
+```
+
+**Adicionar perguntas por especialidade:**
+
+Editar `scripts/template_reuniao_board_membros.py`:
+
+```python
+PERGUNTAS_POR_ESPECIALIDADE = {
+    "NOVA_DECISAO": {
+        "nova_especialidade": PerguntaPorEspecialidade(
+            especialidade="Nome",
+            pergunta_principal="...",
+            sub_perguntas=[...],
+            criterios_avaliacao=[...],
+            impactos_esperados=[...]
+        )
+    }
+}
+```
+
+### 12.6 Troubleshooting
+
+**"Banco de dados não existe"**
+
+Automático! BoardMeetingOrchestrator cria em: `db/board_meetings.db`
+
+**"ImportError: No module named 'scripts.board_meeting_orchestrator'"**
+
+```bash
+cd /path/to/crypto-futures-agent
+python -c "import sys; sys.path.insert(0, '.'); from scripts.board_meeting_orchestrator import BoardMeetingOrchestrator"
+```
+
+**"Relatório não gerado"**
+
+```bash
+# Verificar permissões
+mkdir -p reports
+chmod 755 reports/
+```
+
+---
+
+**Última atualização:** 22 FEV 2026 17:35 UTC (Fase 2A consolidação)
 
 **Desenvolvido com ❤️ para a comunidade de trading algorítmico**

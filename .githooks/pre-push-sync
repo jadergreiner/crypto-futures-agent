@@ -28,10 +28,10 @@ VIOLATIONS=0
 while IFS= read -r commit; do
     # Skip empty lines
     [ -z "$commit" ] && continue
-    
+
     HASH=$(echo "$commit" | cut -d' ' -f1)
     MSG=$(echo "$commit" | cut -d' ' -f2-)
-    
+
     # Check if message starts with valid tag
     if ! echo "$MSG" | grep -qE "^\[(SYNC|FEAT|FIX|TEST|DOCS)\]"; then
         echo -e "${RED}❌ MISSING TAG: $HASH${RESET}"
@@ -39,7 +39,7 @@ while IFS= read -r commit; do
         echo "   Add tag: [SYNC] or [FEAT] or [FIX] or [TEST]"
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
-    
+
     # Check message length
     if [ ${#MSG} -gt 72 ]; then
         echo -e "${YELLOW}⚠️  LONG MESSAGE: $HASH (${#MSG} chars)${RESET}"
@@ -47,7 +47,7 @@ while IFS= read -r commit; do
         echo "   Max: 72 chars. Current: ${#MSG}"
         VIOLATIONS=$((VIOLATIONS + 1))
     fi
-    
+
     # Check for non-ASCII characters
     if echo "$MSG" | grep -qP '[^\x00-\x7F]'; then
         echo -e "${RED}❌ NON-ASCII: $HASH${RESET}"
@@ -83,27 +83,27 @@ if [ -n "$MARKDOWN_FILES" ]; then
         if [ ! -f "$file" ]; then
             continue
         fi
-        
+
         # Check line length
         LONG=$(awk 'length > 80' "$file" | wc -l)
         if [ "$LONG" -gt 0 ]; then
             echo -e "${YELLOW}⚠️  $file: $LONG line(s) exceed 80 chars${RESET}"
             LINT_FAILS=$((LINT_FAILS + 1))
         fi
-        
+
         # Check encoding
         if ! file -i "$file" 2>/dev/null | grep -q "UTF-8\|us-ascii"; then
             echo -e "${RED}❌ $file: NOT UTF-8 encoded${RESET}"
             LINT_FAILS=$((LINT_FAILS + 1))
         fi
-        
+
         # Check trailing whitespace
         if grep -q ' $' "$file"; then
             echo -e "${YELLOW}⚠️  $file: has trailing whitespace${RESET}"
             LINT_FAILS=$((LINT_FAILS + 1))
         fi
     done
-    
+
     if [ $LINT_FAILS -gt 0 ]; then
         echo ""
         echo -e "${YELLOW}⚠️  $LINT_FAILS markdown issue(s) found${RESET}"

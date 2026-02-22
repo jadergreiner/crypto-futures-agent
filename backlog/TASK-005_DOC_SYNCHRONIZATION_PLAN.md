@@ -1,9 +1,9 @@
 # 📚 DOC SYNCHRONIZATION MASTER PLAN — TASK-005 PPO Training
 
-**Owner:** Doc Advocate (Synchronization Manager)  
-**Co-owner:** SWE Senior + ML Specialist  
-**Date:** 22 FEV 2026  
-**Status:** 🟢 READY FOR IMPLEMENTATION  
+**Owner:** Doc Advocate (Synchronization Manager)
+**Co-owner:** SWE Senior + ML Specialist
+**Date:** 22 FEV 2026
+**Status:** 🟢 READY FOR IMPLEMENTATION
 **Deadline:** 25 FEV 20:00 UTC (parallel with training phases)
 
 ---
@@ -13,10 +13,10 @@
 Manter **TODAS as documentações do projeto sincronizadas com mudanças
 TASK-005** (PPO Training implementation) em tempo real, garantindo:
 
-✅ Audit trail completo de cada mudança  
-✅ Rastreabilidade código ↔ docs (cross-references)  
-✅ Markdown lint compliance (max 80 chars, UTF-8)  
-✅ Commit message policy (ASCII, max 72 chars, [SYNC] tags)  
+✅ Audit trail completo de cada mudança
+✅ Rastreabilidade código ↔ docs (cross-references)
+✅ Markdown lint compliance (max 80 chars, UTF-8)
+✅ Commit message policy (ASCII, max 72 chars, [SYNC] tags)
 ✅ Zero duplicação/inconsistência de informações
 
 ---
@@ -41,8 +41,8 @@ TASK-005** (PPO Training implementation) em tempo real, garantindo:
 
 ### **FASE 0: PRÉ-IMPLEMENTATION (22 FEV 15:00-22:00)**
 
-**Responsável:** Doc Advocate  
-**Duração:** 7h  
+**Responsável:** Doc Advocate
+**Duração:** 7h
 **Objetivo:** Preparar matriz de sincronização + git hooks
 
 ```plaintext
@@ -79,8 +79,8 @@ ERROR IF: Hook setup fails → rollback to manual enforcement Day 3
 
 ### **FASE 1: IMPLEMENTATION (23 FEV 00:00-18:00)**
 
-**Responsável:** Doc Advocate (monitoring) + SWE Sr + ML Specialist  
-**Duração:** 18h  
+**Responsável:** Doc Advocate (monitoring) + SWE Sr + ML Specialist
+**Duração:** 18h
 **Objective:** Keep docs in sync AS code is written
 
 ```plaintext
@@ -126,8 +126,8 @@ CONTINUOUS MONITORING (every 2h):
 
 ### **FASE 2: TRAINING RUN (23 FEV 14:00 - 25 FEV 10:00)**
 
-**Responsible:** Doc Advocate (passive monitoring)  
-**Duration:** 72h (parallel with training)  
+**Responsible:** Doc Advocate (passive monitoring)
+**Duration:** 72h (parallel with training)
 **Objective:** Log training milestones, no code changes
 
 ```plaintext
@@ -137,7 +137,7 @@ CONTINUOUS (every 12h):
     - Sharpe ratio estimate (daily backtest)
     - Max drawdown current value
     - Checkpoint saves (count + quality)
-    
+
     COMMIT: [SYNC] Training progress update — 72h checkpoint
 
 DAILY (08:00 UTC):
@@ -145,7 +145,7 @@ DAILY (08:00 UTC):
     - % completion vs deadline
     - Any blockers/rollbacks triggered?
     - New docs needed? (e.g., troubleshooting guide)
-    
+
     AUDIT CHECKLIST:
     [ ] TASK-005 docs in sync with code?
     [ ] Git log shows [SYNC] tags regularly?
@@ -159,8 +159,8 @@ TRAINING END (25 FEV 10:00):
 
 ### **FASE 3: FINALIZATION (25 FEV 10:00-20:00)**
 
-**Responsible:** Doc Advocate + SWE Sr (code review)  
-**Duration:** 10h  
+**Responsible:** Doc Advocate + SWE Sr (code review)
+**Duration:** 10h
 **Objective:** Final sync check before merge
 
 ```plaintext
@@ -175,17 +175,17 @@ TRAINING END (25 FEV 10:00):
                  ✅ Lists all 4 new modules
                  ✅ Brief description for each
                  ✅ Links to code + API docs
-             
+
              BEST_PRACTICES.md:
                  ✅ PPO training patterns documented
                  ✅ Examples for checkpoint_manager
                  ✅ Edge case handling documented
-             
+
              CHANGELOG.md:
                  ✅ TASK-005 entry added
                  ✅ PR description condensed
                  ✅ Metrics included (Sharpe, win rate)
-             
+
              docs/SYNCHRONIZATION.md:
                  ✅ All TASK-005 files logged
                  ✅ Timestamps for auditing
@@ -242,10 +242,10 @@ Tags Obrigatorias:
 # Pre-commit: Validate commit message in progress (before push)
 if message NOT contains "[SYNC]" or "[FEAT]" or "[FIX]":
     WARN: "Docs may not be synchronized"
-    
+
 if message length > 72 chars:
     ERROR: "Commit message exceeds 72 chars (max)"
-    
+
 if message contains non-ASCII char (ç, ã, ó, etc):
     ERROR: "Commit message must be ASCII only"
     └─ Use: ç → c, ã → a, ó → o
@@ -255,11 +255,11 @@ for each file in push:
     if file is .md:
         run: markdownlint --config .markdownlint.json
         if fails: ERROR "Markdown lint failed"
-    
+
     if file is .py:
         check: docstrings present for public functions
         if fails: WARN "Missing docstrings"
-    
+
     if file is SYNCHRONIZATION.md:
         check: UTF-8 encoding valid
         if fails: ERROR "UTF-8 encoding violation"
@@ -283,9 +283,9 @@ for each file in push:
 
 ## ✅ DOC ADVOCATE DAILY AUDIT CHECKLIST
 
-**Time:** 08:00 UTC (after standup)  
-**Owner:** Doc Advocate  
-**Duration:** 30 min  
+**Time:** 08:00 UTC (after standup)
+**Owner:** Doc Advocate
+**Duration:** 30 min
 **Slack Report:** #docs-governance
 
 ### Checklist (Copy-Paste)
@@ -293,8 +293,8 @@ for each file in push:
 ```markdown
 ## 📚 Daily Doc Sync Audit — TASK-005 (22-25 FEV)
 
-**Date:** 22 FEV 2026  
-**Status:** ✅ PASS / 🔴 FAIL  
+**Date:** 22 FEV 2026
+**Status:** ✅ PASS / 🔴 FAIL
 
 ### Code ↔ Docs Synchronization
 
@@ -493,6 +493,6 @@ Update every time Doc Advocate completes audit.
 
 ---
 
-**VERSION:** 1.0  
-**STATUS:** ✅ Ready for implementation  
+**VERSION:** 1.0
+**STATUS:** ✅ Ready for implementation
 **NEXT STEP:** Doc Advocate executes PHASE 0 (15:00 today)

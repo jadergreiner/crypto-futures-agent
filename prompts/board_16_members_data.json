@@ -132,7 +132,13 @@
       ],
       "perfil": "QA Lead | Documentation Officer | Audit Authority",
       "email": "audit@crypto-futures-agent.local",
-      "voto": null
+      "voto": null,
+      "doc_guidelines": {
+        "fonte_verdade": "Use APENAS 10 core docs. Ver docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md",
+        "protocolo_sync": "Tag [SYNC] obrigatória em commits que alteram docs",
+        "markdown_lint": "Max 80 chars/linha, UTF-8 válido",
+        "nao_fazer": "NÃO criar docs fora dos 10 core. NÃO duplicar conteúdo."
+      }
     },
     {
       "id": 9,
@@ -228,7 +234,13 @@
       ],
       "perfil": "Product Manager | UX Lead | User Advocate",
       "email": "product@crypto-futures-agent.local",
-      "voto": null
+      "voto": null,
+      "doc_guidelines": {
+        "fonte_verdade": "Manter USER_MANUAL.md, USER_STORIES.md, ROADMAP.md sincronizados",
+        "protocolo_sync": "[SYNC] em commits produto e docs. Ex: [SYNC] USER_STORIES atualizado com US-05",
+        "consolidar_em": "USER_MANUAL.md (não criar GUIA_*.md novos)",
+        "nao_fazer": "NÃO deixar USER_STORIES desatualizado. NÃO criar docs fora dos 10 core."
+      }
     },
     {
       "id": 15,
@@ -244,7 +256,13 @@
       ],
       "perfil": "Compliance Officer | Legal Liaison | Audit Trail Owner",
       "email": "compliance@crypto-futures-agent.local",
-      "voto": null
+      "voto": null,
+      "doc_guidelines": {
+        "fonte_verdade": "Manter SYNCHRONIZATION.md (audit trail completeness) e DECISIONS.md sincronizados",
+        "protocolo_sync": "[SYNC] obrigatória. Ex: [SYNC] Adicionado registro compliance em SYNCHRONIZATION.md",
+        "consolidar_em": "SYNCHRONIZATION.md (audit trail) e DECISIONS.md (histórico de decisões)",
+        "nao_fazer": "NÃO criar PROTOCOLO_* novos fora dos 10 core. NÃO deixar SYNCHRONIZATION desatualizado."
+      }
     },
     {
       "id": 16,
@@ -288,7 +306,32 @@
       ],
       "perfil": "Documentation Advocate | Synchronization Manager | Audit Trail Keeper | Standards Enforcer",
       "email": "doc.advocate@crypto-futures-agent.local",
-      "voto": null
+      "voto": null,
+      "doc_guidelines": {
+        "CRITICAL": "Decision #3 Aprovada: 10 CORE DOCS OFICIAIS APENAS",
+        "core_docs": [
+          "RELEASES.md (versões e entregas)",
+          "ROADMAP.md (planejamento futuro)",
+          "FEATURES.md (funcionalidades do sistema)",
+          "TRACKER.md (sprints e backlog)",
+          "USER_STORIES.md (requisitos de usuário)",
+          "LESSONS_LEARNED.md (insights e lições)",
+          "STATUS_ATUAL.md (dashboard go-live)",
+          "DECISIONS.md (decisões estratégicas)",
+          "USER_MANUAL.md (onboarding e operação)",
+          "SYNCHRONIZATION.md (audit trail e metadados)"
+        ],
+        "protocolo_SYNC": "[SYNC] OBRIGATÓRIA em TODO commit que altera docs. Ex: [SYNC] Consolidação Phase 1 Doc Advocate",
+        "tarefas_imediatas": [
+          "Deletar 17 arquivos duplicados (ver DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)",
+          "Unificar 24 arquivos nos 10 core docs",
+          "Validar markdown lint (max 80 chars, UTF-8)",
+          "Enforce [SYNC] em commits",
+          "Manter SYNCHRONIZATION.md com histórico completo"
+        ],
+        "analise_referencia": "docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md (58 arquivos analisados, plano de ação fase-por-fase)",
+        "nao_fazer": "NÃO criar novo doc sem revisar se conteúdo cabe em um dos 10 core. NÃO deixar duplicação. NÃO deixar docs desatualizados."
+      }
     }
   ],
   "blocos": [

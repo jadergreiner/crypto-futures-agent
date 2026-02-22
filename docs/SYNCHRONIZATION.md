@@ -11,6 +11,58 @@ e comportamento do sistema.
 
 ---
 
+## 📚 ANÁLISES DE CONSOLIDAÇÃO DOCUMENTÁRIA — Decision #3 Auditado (22/FEV 16:00 UTC)
+
+**Status:** ✅ COMPLETO — 7 análises consolidadas criadas + plano maestro
+
+**Objetivo Decision #3:** Implementar 10 core docs como fonte-da-verdade única
+
+**Análises Criadas por Pasta:**
+
+| Pasta | Arquivo Análise | Arquivos Analisados | Classificação |
+|---|---|---|---|
+| **docs/** | [DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md) | 58 (45 docs + 11 agente_autonomo + 2 misc) | [A]=17 DELETAR, [B]=10 MANTER, [C]=24 UNIFICAR, [D]=7 REVISAR |
+| **backlog/** | [DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md](../backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md) | 15 | [A]=6 DELETAR, [C]=6 UNIFICAR, [B]=3 MANTER |
+| **checkpoints/ppo_training/** | [DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md](../checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md) | 1 | [C]=1 UNIFICAR (→ USER_MANUAL.md) |
+| **prompts/** | [DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md](../prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md) | 19 | [A]=10 DELETAR, [C]=7 UNIFICAR, [B REPURPOSEAR]=2 MOVER |
+| **reports/** | [DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md](../reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md) | 15 | [A]=12 DELETAR, [C]=3 UNIFICAR |
+| **scripts/** | [DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md](../scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md) | 1 | [C]=1 UNIFICAR (→ BEST_PRACTICES + USER_MANUAL) |
+| **raiz/** | [DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md](../DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md) | 60+ | [PRE-ANALYSIS] REQUER HUMAN REVIEW |
+| **MAESTRO** | [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](../PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md) | TODOS | Timeline Fase 2A-2F + Fase 3-4 |
+
+**Consolidação Targets — 10 Core Docs:**
+
+| Core Doc | Destino Consolidação | Conteúdo Esperado |
+|---|---|---|
+| 1. RELEASES.md | — | Versões histórico (manter) |
+| 2. ROADMAP.md | — | Timeline futuro (manter) |
+| 3. FEATURES.md | backlog TASK-005 files, prompts ML theory | Features + ML arquitetura |
+| 4. TRACKER.md | backlog SPRINT_*, prompts TASK-005, reports board meetings | Sprints + TASK tracking |
+| 5. USER_STORIES.md | — | Requisitos (manter) |
+| 6. LESSONS_LEARNED.md | reports board meetings posições underwater | Insights operacionais |
+| 7. STATUS_ATUAL.md | reports phase4_readiness + relatorio_executivo | Dashboard go-live |
+| 8. DECISIONS.md | reports board_governance + reports meeting atas | Histórico decisões |
+| 9. USER_MANUAL.md | prompts relatorio_executivo, scripts README_BOARD, checkpoints ppo_training README | Onboarding + operação |
+| 10. SYNCHRONIZATION.md | backlog TASK-005 matrix, prompts TASK-005 spec | Audit trail (este doc) |
+
+**Impacto Estimado:**
+
+- 🎯 **Arquivos a consolidar:** 118 (de 169 total)
+- 🎯 **Arquivos a deletar:** 51 (duplicados/obsoletos)
+- 🎯 **Pasta raiz:** 60+ arquivos requerendo human review
+- 🎯 **Timeline:** 232h Fase 2A-3 + 90-180h Fase 4 (raiz)
+- 🎯 **Deadline:** Fase 2A-3 até 25 FEV; Fase 4 post-validation
+
+**Reference Master:**
+
+→ [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](../PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md) — Documento oficial consolidação
+
+→ [README.md](../README.md) — News section com links análises
+
+→ [STATUS_ATUAL.md](STATUS_ATUAL.md) — Dashboard consolidação status
+
+---
+
 ## ✅ SINCRONIZAÇÃO AGILE INFRASTRUCTURE — CHALLENGE RESOLVIDA (22/FEV 00:30 UTC)
 
 **Status:** 🟢 COMPLETA — 6 agile management docs sincronizadas com PHASE 4 operacionalização
@@ -994,6 +1046,56 @@ Expandido perfil genérico de Gerente de Projetos para especialista em Ágil com
 - Prioridade elevada high → critical (membro executivo)
 - KPIs table com 6 métricas de gestão
 ```
+
+---
+
+## 🆕 TASK-005 SPECIFICATION & SYNCHRONIZATION — Consolidation Summary (23/FEV)
+
+**Status:** ✅ CONSOLIDAÇÃO FASE 2A COMPLETA — Prompts Specification Package integrado
+
+### Ação Executada
+
+Consolidado `prompts/TASK-005_SPECIFICATION_PACKAGE_README.md` (263 linhas) em `docs/SYNCHRONIZATION.md` como referência técnica. 5-documento specification package mapeado:
+
+1. **TASK-005_EXECUTIVE_SUMMARY.md** (1 página)
+   - Architecture overview + design choices + reward summary (6 components)
+   - Convergência path (4 phases) + success criteria + timeline
+
+2. **TASK-005_ML_SPECIFICATION_PLAN.json** (1000+ linhas)
+   - Environment design (state 1320, action discrete(3)×60)
+   - PPO hyperparameters (tuned 96h deadline) + convergence criteria
+   - Implementation checklist (6 phases) + gates (#0-#4)
+
+3. **TASK-005_SWE_COORDINATION_PLAN.md** (~500 linhas)
+   - 6 implementation phases (infra, env, reward, training, monitoring, validation)
+   - Daily gates com sign-off criteria + risk mitigation
+
+4. **TASK-005_ML_THEORY_GUIDE.md** (~600 linhas)
+   - Complete reward mathematics (LaTeX) + convergence theory
+   - Look-ahead bias prevention + TensorBoard logging
+
+5. **TASK-005_DAILY_EXECUTION_CHECKLIST.md** (~400 linhas)
+   - Day-by-day checklist (22-25 FEV) + phase completion + troubleshooting
+
+### Consolidation Targets Achieved
+
+| File | Linhas | Destino | Seção | Status |
+|------|--------|---------|--------|--------|
+| prompt_master.md | 200+ | BEST_PRACTICES.md | Board Protocol | ✅ |
+| relatorio_executivo.md | 239 | USER_MANUAL.md | Section 11 | ✅ |
+| TASK-005_EXECUTIVE_SUMMARY.md | 230 | TRACKER.md | TASK-005 Table 1 | ✅ |
+| TASK-005_ML_THEORY_GUIDE.md | 507 | FEATURES.md | F-ML1 Reward Math | ✅ |
+| TASK-005_SWE_COORDINATION_PLAN.md | 380 | TRACKER.md | TASK-005 Table 2 | ✅ |
+| TASK-005_SPECIFICATION_PACKAGE_README.md | 263 | SYNCHRONIZATION.md | This entry | ✅ |
+
+**7 Prompts Files: 1,819 linhas → 600 linhas em core docs (67% redução)**
+
+### Próxima Ação Fase 2A
+
+1. ✅ Consolidar 6 files - DONE
+2. ⏳ Delete 10 obsolete prompts files (próxima)
+3. ⏳ Move 2 JSON files to archive
+4. ⏳ Commit Fase 2A com [SYNC] tag
 
 ---
 

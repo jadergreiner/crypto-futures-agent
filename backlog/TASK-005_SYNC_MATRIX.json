@@ -5,7 +5,7 @@
     "owner": "Doc Advocate",
     "status": "READY FOR IMPLEMENTATION",
     "purpose": "Master dependency map: code → docs → commit → audit trail",
-    
+
     "code_to_docs_mapping": [
       {
         "code_file": "agent/checkpoint_manager.py",

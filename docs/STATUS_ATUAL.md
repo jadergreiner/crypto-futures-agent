@@ -54,7 +54,40 @@
 
 ---
 
-## 📊 STATUS EM 30 SEGUNDOS
+## � CONSOLIDAÇÃO DOCUMENTÁRIA — Decision #3 Status
+
+**Status:** ✅ Análises 100% completas — ⏳ Pronto para execução Fase 2
+
+**Plano Maestro:** [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](../PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md)
+
+### Progresso Análise por Pasta
+
+| Pasta | Arquivos | Análise Completa | Timeline Execução |
+|---|---|---|---|
+| **prompts/** | 19 | ✅ [ver análise](../prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md) | Fase 2A: 22-23 FEV |
+| **scripts/** | 1 | ✅ [ver análise](../scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md) | Fase 2B: 23 FEV |
+| **reports/** | 15 | ✅ [ver análise](../reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md) | Fase 2C: 23 FEV |
+| **backlog/** | 15 | ✅ [ver análise](../backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md) | Fase 2D: 23-24 FEV |
+| **checkpoints/ppo_training/** | 1 | ✅ [ver análise](../checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md) | Fase 2E: 24 FEV |
+| **docs/** | 58 | ✅ [ver análise](DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md) | Fase 2F: 24-25 FEV |
+| **raiz/** | 60+ | ✅ [ver análise](../DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md) | Fase 4: post-validation |
+
+### Objetivo
+
+- 🎯 Consolidar 118 arquivos nos 10 core docs
+- 🎯 Deletar 51 arquivos obsoletos
+- 🎯 Aplicar [SYNC] protocol em todos commits
+- 🎯 Centralizar source-of-truth documentária
+
+### Timeline
+
+- **Fase 2A-F (consolidação):** 22-25 FEV (232h)
+- **Fase 3 (validação global):** 25 FEV (16h)
+- **Fase 4 (raiz human review):** 25+ FEV (90-180h, subject to approval)
+
+---
+
+## �📊 STATUS EM 30 SEGUNDOS
 
 ```
 ┌──────────────────────────────────────────────────────────┐

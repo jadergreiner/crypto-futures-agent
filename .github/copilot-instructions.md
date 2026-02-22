@@ -27,6 +27,25 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 
 ---
 
+## 📊 CONSOLIDAÇÃO DOCUMENTÁRIA — Decision #3 Status
+
+**IMPORTANTE:** Consolidação documentária está em execução (Decision #3 aprovada 22 FEV).
+
+**Plano Completo:** [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](../PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md)
+
+**Análises por Pasta:**
+- [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](../docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md) (58 arquivos)
+- [backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md](../backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md) (15 arquivos)
+- [checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md](../checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md) (1 arquivo)
+- [prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md](../prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md) (19 arquivos)
+- [reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md](../reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md) (15 arquivos)
+- [scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md](../scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md) (1 arquivo)
+- [DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md](../DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md) (60+ arquivos, human review pending)
+
+**Próxima Ação:** Kickoff Fase 2A (prompts/) após aprovação Elo
+
+---
+
 ## ⚡ BACKLOG INSTRUCTIONS REFERENCE
 
 **IMPORTANTE:** Quando usuário pedir qualquer coisa sobre backlog/prioridades:
@@ -90,9 +109,41 @@ Toda mudança em código → sincronizar documentação. Checklist mínimo:
 - Não alterar arquitetura para resolver problema local.
 - Não deixar documentação desatualizada.
 
+## 📚 Fonte da Verdade Documentária — 10 Core Docs (Decision #3)
+
+**CRÍTICO:** Não criar ou atualizar docs fora desta lista. Consolidar conteúdo
+nestasliterais em docs oficiais.
+
+### Core Docs (Manter & Sincronizar)
+
+1. **[docs/RELEASES.md](docs/RELEASES.md)** — Versões, deliverables, status
+2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — Timeline, milestones, v0.3→v1.0
+3. **[docs/FEATURES.md](docs/FEATURES.md)** — Feature list, F-01→F-ML3, prioridades
+4. **[docs/TRACKER.md](docs/TRACKER.md)** — Sprint tracker, backlog, velocidade
+5. **[docs/USER_STORIES.md](docs/USER_STORIES.md)** — US-01→US-05, critérios
+6. **[docs/LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Insights, decisões
+7. **[docs/STATUS_ATUAL.md](docs/STATUS_ATUAL.md)** — Dashboard, status real-time
+8. **[docs/DECISIONS.md](docs/DECISIONS.md)** — Histórico decisões board
+9. **[docs/USER_MANUAL.md](docs/USER_MANUAL.md)** — Onboarding, operação
+10. **[docs/SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Audit trail, metadados
+
+**Análise de Governança**: [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)
+
+### Protocolo [SYNC] — Obrigatório
+
+Todo commit que altera docs deve incluir:
+- Tag `[SYNC]` na mensagem
+- Referência aos 10 core docs impactados
+- Atualização em `docs/SYNCHRONIZATION.md`
+
+Exemplo:
+```
+[SYNC] Atualizado FEATURES.md F-H1-H5 + ROADMAP.md timeline v1.0-alpha
+```
+
 ## Detalhes: Referência em BEST_PRACTICES.md
 
 Para mais contexto:
 - **Padrões**: Log, estilo código, testes → `BEST_PRACTICES.md`
 - **Sincronização**: Matriz de dependências, histórico → `docs/SYNCHRONIZATION.md`
-- **Decisões**: Phase 3 gates, opções PPO → `PHASE_3_EXECUTIVE_DECISION_REPORT.md`
+- **Decisões**: Phase 3 gates, opções PPO → `docs/DECISIONS.md`
