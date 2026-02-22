@@ -68,9 +68,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar ast-parser
-        run: pip install -q ast-parser
-
       - name: Verificar docstrings (agent/, execution/, risk/, backtest/)
         run: |
           echo "🔍 Validando docstrings em Python..."
