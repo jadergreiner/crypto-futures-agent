@@ -1,6 +1,6 @@
 {
   "board_config": {
-    "total_members": 16,
+    "total_members": 17,
     "quorum_required": 12,
     "critical_members": 4,
     "voting_weight": "majority_simple"
@@ -261,6 +261,26 @@
       "perfil": "Strategic Advisor | Board Representative | Vision Keeper",
       "email": "board.member@crypto-futures-agent.local",
       "voto": null
+    },
+    {
+      "id": 17,
+      "nome": "Doc Advocate",
+      "especialidade": "Documentação & Sincronização",
+      "prioridade": "⭐⭐ ALTA",
+      "bloco": 3,
+      "responsabilidades": [
+        "Manter documentação organizada e atualizada",
+        "Sincronizar docs com código (tags [SYNC])",
+        "Eliminar duplicidades e inconsistências",
+        "Rastreabilidade de mudanças (audit trail)",
+        "Validação de completeness da documentação",
+        "Matriz de dependências entre docs",
+        "Protocol de sincronização vinculado a commits",
+        "Garantir confiabilidade das referências cruzadas"
+      ],
+      "perfil": "Documentation Advocate | Synchronization Manager | Audit Trail Keeper",
+      "email": "doc.advocate@crypto-futures-agent.local",
+      "voto": null
     }
   ],
   "blocos": [
@@ -293,13 +313,14 @@
       "id": 3,
       "nome": "Infraestrutura & QA",
       "duracao_min": 10,
-      "membros": ["Arch", "The Blueprint", "Audit", "Quality"],
+      "membros": ["Arch", "The Blueprint", "Audit", "Quality", "Doc Advocate"],
       "topicos": [
         "Arquitetura pronta para produção?",
         "Performance OK?",
         "Infra 24/7 ready?",
         "Testes cobertura OK?",
-        "Regression risk baixo?"
+        "Regression risk baixo?",
+        "Documentação sincronizada com código?"
       ]
     },
     {
