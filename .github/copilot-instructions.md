@@ -7,7 +7,7 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 - **Segurança operacional**: Nunca remover controles de risco existentes.
 - **Previsibilidade**: Mudanças pequenas, focadas, compatíveis com estilo.
 - **Rastreabilidade**: Todas as decisões críticas devem ser auditáveis.
-- **Português**: Código, docs, logs em português (termos técnicos propriedade excetuados).
+- **Português**: Código, docs, logs em português (termos técnicos excetuados).
 
 ## Stack
 
@@ -16,33 +16,17 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
   `risk/` (controles), `backtest/` (F-12), `tests/`
 - **Modo compatibilidade**: `paper` e `live` preservados
 
-## Status: F-12 PHASE 3 → PHASE 4 (21/02/2026)
-
-**Backtest Engine**: ✅ 100% funcional (9/9 testes passando)
-**Decision #2**: ✅ APROVADA — Opção C (Híbrido, 3-4 dias)
-**Operacionalização**: 🔄 INICIADA 21 FEV (Heurísticas + PPO training paralelo)
-
-**Sprint atual**: Sprint 1 MUST items (21-25 FEV)
-**Próximo checkpoint**: Gate #1 QA (22 FEV 08:00 UTC)
-
 ---
 
-## 📊 CONSOLIDAÇÃO DOCUMENTÁRIA — Decision #3 Status
+## Como identificar a próxima tarefa
 
-**IMPORTANTE:** Consolidação documentária está em execução (Decision #3 aprovada 22 FEV).
+Ao receber qualquer pedido sobre próxima task, prioridade ou o que fazer a
+seguir, siga esta ordem de leitura:
 
-**Plano Completo:** [PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md](../PLANO_MAESTRO_CONSOLIDACAO_DOCUMENTARIA.md)
-
-**Análises por Pasta:**
-- [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](../docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md) (58 arquivos)
-- [backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md](../backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md) (15 arquivos)
-- [checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md](../checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md) (1 arquivo)
-- [prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md](../prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md) (19 arquivos)
-- [reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md](../reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md) (15 arquivos)
-- [scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md](../scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md) (1 arquivo)
-- [DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md](../DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md) (60+ arquivos, human review pending)
-
-**Próxima Ação:** Kickoff Fase 2A (prompts/) após aprovação Elo
+1. `docs/STATUS_ENTREGAS.md` — status atual de cada entrega do ROADMAP
+2. `docs/PLANO_DE_SPRINTS_MVP_NOW.md` — sprint corrente e itens NOW
+3. `docs/ROADMAP.md` — visão estratégica e milestones
+4. Issues abertas e milestones no GitHub
 
 ---
 
@@ -54,9 +38,12 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 → Use arquivo maestro: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
 
 **Trigger keywords que acionam backlog response:**
-- "backlog", "prioridades", "sprint", "tarefas", "próximos itens", "o que é prioritário"
+
+- "backlog", "prioridades", "sprint", "tarefas", "próximos itens",
+  "o que é prioritário"
 
 **Referência rápida:**
+
 - **Detalhes técnicos:** `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
 - **Status real-time:** `backlog/TASKS_TRACKER_REALTIME.md`
 - **Quick reference:** `backlog/BACKLOG_QUICK_START.md`
@@ -72,7 +59,7 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 
 ### 2. Commits ASCII, Max 72 Chars
 
-- Padrão: `[TAG] Descrição breve em português`
+- Padrão: `[TAG] Descricao breve em portugues`
 - Tags: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`
 - Apenas ASCII (0-127), sem caracteres corrompidos
 
@@ -85,10 +72,11 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 ## Regras de Domínio (Trading/Risk)
 
 **Invioláveis:**
+
 - Nunca desabilitar validações de risco (sizing, alavancagem, stop, liquidação).
 - Alterações em reward/risk devem: manter segurança por padrão + fallback
   conservador + auditoria.
-- Em dúvida: bloquear operação, não asumir risco.
+- Em dúvida: bloquear operação, não assumir risco.
 
 ## Sincronização Obrigatória
 
@@ -99,9 +87,11 @@ Toda mudança em código → sincronizar documentação. Checklist mínimo:
 - [ ] Commit message com tag (`[SYNC]`, `[FEAT]`, etc.)
 
 **Dependências principais:**
-- `config/symbols.py` → `README.md`, `playbooks/__init__.py`, `docs/SYNCHRONIZATION.md`
+
+- `config/symbols.py` → `README.md`, `playbooks/__init__.py`,
+  `docs/SYNCHRONIZATION.md`
 - `docs/*` → sempre registrar em `docs/SYNCHRONIZATION.md`
-- `README.md` versão → `CHANGELOG.md`, `docs/ROADMAP.md`
+- `README.md` versão → `docs/CHANGELOG.md`, `docs/ROADMAP.md`
 
 ## O Que Evitar
 
@@ -109,41 +99,95 @@ Toda mudança em código → sincronizar documentação. Checklist mínimo:
 - Não alterar arquitetura para resolver problema local.
 - Não deixar documentação desatualizada.
 
-## 📚 Fonte da Verdade Documentária — 10 Core Docs (Decision #3)
+---
 
-**CRÍTICO:** Não criar ou atualizar docs fora desta lista. Consolidar conteúdo
-nestasliterais em docs oficiais.
+## Hierarquia de Documentação
 
-### Core Docs (Manter & Sincronizar)
+O repositório possui **duas camadas** de documentação que convivem sem
+conflito:
 
-1. **[docs/RELEASES.md](docs/RELEASES.md)** — Versões, deliverables, status
-2. **[docs/ROADMAP.md](docs/ROADMAP.md)** — Timeline, milestones, v0.3→v1.0
-3. **[docs/FEATURES.md](docs/FEATURES.md)** — Feature list, F-01→F-ML3, prioridades
-4. **[docs/TRACKER.md](docs/TRACKER.md)** — Sprint tracker, backlog, velocidade
-5. **[docs/USER_STORIES.md](docs/USER_STORIES.md)** — US-01→US-05, critérios
-6. **[docs/LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Insights, decisões
-7. **[docs/STATUS_ATUAL.md](docs/STATUS_ATUAL.md)** — Dashboard, status real-time
-8. **[docs/DECISIONS.md](docs/DECISIONS.md)** — Histórico decisões board
-9. **[docs/USER_MANUAL.md](docs/USER_MANUAL.md)** — Onboarding, operação
-10. **[docs/SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Audit trail, metadados
+### Camada 1 — Core Docs Estratégicos (Decision #3, 22 FEV)
 
-**Análise de Governança**: [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)
+Documentos de governança, histórico e arquitetura. São a fonte de verdade
+para decisões passadas, requisitos e lições aprendidas.
 
-### Protocolo [SYNC] — Obrigatório
+1. **[docs/RELEASES.md](../docs/RELEASES.md)** — Versões, deliverables, status
+2. **[docs/ROADMAP.md](../docs/ROADMAP.md)** — Timeline, milestones, v0.3→v1.0
+3. **[docs/FEATURES.md](../docs/FEATURES.md)** — Feature list, F-01→F-ML3
+4. **[docs/TRACKER.md](../docs/TRACKER.md)** — Sprint tracker, backlog
+5. **[docs/USER_STORIES.md](../docs/USER_STORIES.md)** — US-01→US-05, critérios
+6. **[docs/LESSONS_LEARNED.md](../docs/LESSONS_LEARNED.md)** — Insights
+7. **[docs/STATUS_ATUAL.md](../docs/STATUS_ATUAL.md)** — Dashboard go-live
+8. **[docs/DECISIONS.md](../docs/DECISIONS.md)** — Histórico decisões board
+9. **[docs/USER_MANUAL.md](../docs/USER_MANUAL.md)** — Onboarding, operação
+10. **[docs/SYNCHRONIZATION.md](../docs/SYNCHRONIZATION.md)** — Audit trail
+
+### Camada 2 — Docs de Execução/Visibilidade (MVP NOW)
+
+Documentos operacionais para acompanhamento diário do MVP. São atualizados
+com mais frequência e servem como visibilidade para o usuário único.
+
+Futura consolidação planejada: STATUS_ENTREGAS → STATUS_ATUAL,
+PLANO_DE_SPRINTS → TRACKER, CRITERIOS → USER_STORIES/USER_MANUAL,
+RUNBOOK → USER_MANUAL, CHANGELOG → RELEASES.
+
+| Documento | Propósito |
+| --------- | --------- |
+| [docs/STATUS_ENTREGAS.md](../docs/STATUS_ENTREGAS.md) | **Fonte da verdade** para status das entregas do ROADMAP |
+| [docs/PLANO_DE_SPRINTS_MVP_NOW.md](../docs/PLANO_DE_SPRINTS_MVP_NOW.md) | Sprint corrente e itens NOW |
+| [docs/CRITERIOS_DE_ACEITE_MVP.md](../docs/CRITERIOS_DE_ACEITE_MVP.md) | Critérios de aceite MVP |
+| [docs/RUNBOOK_OPERACIONAL.md](../docs/RUNBOOK_OPERACIONAL.md) | Runbook operacional |
+| [docs/CHANGELOG.md](../docs/CHANGELOG.md) | Registro de mudanças |
+
+**Regra de convivência:** Ao atualizar qualquer doc da Camada 2, verifique se
+há informação relevante que deve ser propagada para a Camada 1 (ex.: decisão
+nova → DECISIONS.md, feature concluída → FEATURES.md).
+
+---
+
+## Sincronização Manual via Copilot (Gatilho)
+
+O processo de sincronização de docs é manual e acionado pelo usuário via
+Copilot no VS Code. A política completa está em:
+
+`prompts/board_16_members_data.json` → campo `docs_sync_policy`
+
+**Prompt de gatilho** (campo `sync_trigger_prompt`):
+
+> Sincronize os docs oficiais do projeto. Para cada arquivo em official_docs:
+> (1) verifique se a seção Links Rápidos existe e está completa conforme a
+> matriz cross_links; (2) atualize docs/STATUS_ENTREGAS.md com o status atual
+> dos itens NOW do ROADMAP (Sprint, Issue, PR, Evidência, Status); (3) atualize
+> o bloco Execução / Visibilidade em docs/ROADMAP.md com sprint atual, data de
+> hoje e progresso NOW contando itens concluídos/total; (4) registre o sync em
+> docs/SYNCHRONIZATION.md com tag [SYNC] e timestamp. Mantenha todo o
+> conteúdo em Português.
+
+**Não usar GitHub Actions como gatilho.** O gatilho é exclusivamente manual
+via Copilot.
+
+---
+
+## Protocolo [SYNC] — Obrigatório
 
 Todo commit que altera docs deve incluir:
+
 - Tag `[SYNC]` na mensagem
-- Referência aos 10 core docs impactados
+- Referência aos docs impactados (Camada 1 e/ou Camada 2)
 - Atualização em `docs/SYNCHRONIZATION.md`
 
 Exemplo:
+
+```text
+[SYNC] Atualizado STATUS_ENTREGAS.md sprint 2 + ROADMAP.md progresso NOW
 ```
-[SYNC] Atualizado FEATURES.md F-H1-H5 + ROADMAP.md timeline v1.0-alpha
-```
+
+---
 
 ## Detalhes: Referência em BEST_PRACTICES.md
 
 Para mais contexto:
+
 - **Padrões**: Log, estilo código, testes → `BEST_PRACTICES.md`
 - **Sincronização**: Matriz de dependências, histórico → `docs/SYNCHRONIZATION.md`
 - **Decisões**: Phase 3 gates, opções PPO → `docs/DECISIONS.md`
