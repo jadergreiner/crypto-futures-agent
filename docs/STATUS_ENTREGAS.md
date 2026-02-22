@@ -25,12 +25,12 @@
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
 | Integração de Conectividade     | 🟡     | Sprint 1 | #55    | WIP    | ✅ Impl   | REST/WS + rate limiting
 | Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | WIP    | ✅ Impl   | Stop Loss (-3%) + CB (-3.1%): 46 tests PASS
-| Módulo de Execução              | 🟡     | Sprint 1 | #58    | TODO   | ✅ Impl   | error_handler + order_queue: 48 tests PASS
-| Telemetria Básica               | ⭕     | Sprint 1 | #56    | TODO   | TODO      | Bloqueado por #58   |
+| Módulo de Execução              | 🟡     | Sprint 1 | #58    | WIP    | ✅ Impl   | OrderExecutor + Queue + ErrorHandler: 47 tests PASS
+| Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Bloqueado por #58   |
 
-**Legenda:** ✅ Concluído · 🟡 Em andamento · ⭕ Aguardando · 🔴 Bloqueado
+**Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 
-**Progresso NOW:** 0 concluídos de 4 itens (Issue #58 código completo: 48 testes PASS)
+**Progresso NOW:** 0 concluídos de 4 itens (Issue #58: 60% - Impl + Testes completos)
 
 ---
 

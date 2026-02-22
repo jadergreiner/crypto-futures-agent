@@ -38,9 +38,8 @@
 | Conectividade Binance REST/WS    | TODO        | 🟡     | #55    | TODO   |
 | Stop Loss Hardcoded (-3%)        | TODO        | 🟡     | #57    | TODO   |
 | Circuit Breaker engine           | TODO        | 🟡     | #57    | TODO   |
-| OrderExecutor + error handling   | TODO        | ✅     | #58    | TODO   |
-| OrderQueue com status tracking   | TODO        | ✅     | #58    | TODO   |
-| 48 testes parametrizados         | TODO        | ✅     | #58    | TODO   |
+| Orquestrador de ordens           | TODO        | 🟡     | #54    | TODO   |
+| Tratamento de erros API          | TODO        | 🟡     | #54    | TODO   |
 | Logs estruturados de trades      | TODO        | 🟡     | #56    | TODO   |
 
 ---
