@@ -27,6 +27,18 @@ Você não precisa mexer em nada.
 
 ---
 
+## 🚨 SITUAÇÕES CRÍTICAS (Leia ANTES de iniciar)
+
+**CRÍTICO:** Leia em situação de crise:
+- [EMERGENCY_STOP_PROCEDURE.md](EMERGENCY_STOP_PROCEDURE.md)
+  — Como pausar seguramente se algo der errado
+- [CIRCUIT_BREAKER_RESPONSE.md](CIRCUIT_BREAKER_RESPONSE.md)
+  — O que fazer quando sistema bloquear
+- [DASHBOARD_OPERATOR_ALERTS.md](DASHBOARD_OPERATOR_ALERTS.md)
+  — Como interpretar alertas do dashboard
+
+---
+
 ## Se Algo der Errado
 
 ### Sistema não inicia
@@ -37,6 +49,12 @@ Você não precisa mexer em nada.
 
 ### Recebe erro
 → Procurar em `logs/agent.log`
+
+### Circuit breaker disparou?
+→ Leia: [CIRCUIT_BREAKER_RESPONSE.md](CIRCUIT_BREAKER_RESPONSE.md)
+
+### Preciso parar emergencialmente?
+→ Leia: [EMERGENCY_STOP_PROCEDURE.md](EMERGENCY_STOP_PROCEDURE.md)
 
 ---
 
