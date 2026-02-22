@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22
+**Última atualização:** 2026-02-22 14:30 UTC
 **Sprint atual:** Sprint 1
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -23,10 +23,10 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Evidência | Notas          |
 |---------------------------------|--------|----------|--------|--------|-----------|----------------|
-| Integração de Conectividade     | 🟡     | Sprint 1 | TODO   | TODO   | TODO      | Em andamento   |
-| Risk Gate 1.0                   | 🟡     | Sprint 1 | TODO   | TODO   | TODO      | Em andamento   |
-| Módulo de Execução              | 🟡     | Sprint 1 | TODO   | TODO   | TODO      | Em andamento   |
-| Telemetria Básica               | 🟡     | Sprint 1 | TODO   | TODO   | TODO      | Em andamento   |
+| Integração de Conectividade     | 🟡     | Sprint 1 | #55    | TODO   | TODO      | Em andamento   |
+| Risk Gate 1.0                   | 🟡     | Sprint 1 | #57    | TODO   | TODO      | Em andamento   |
+| Módulo de Execução              | 🟡     | Sprint 1 | #54    | TODO   | TODO      | Em andamento   |
+| Telemetria Básica               | 🟡     | Sprint 1 | #56    | TODO   | TODO      | Em andamento   |
 
 **Legenda:** ✅ Concluído · 🟡 Em andamento · 🔴 Bloqueado
 

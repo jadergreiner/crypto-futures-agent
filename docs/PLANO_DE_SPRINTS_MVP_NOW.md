@@ -2,7 +2,7 @@
 
 **Versão:** 1.0.0
 **Sprint atual:** Sprint 1
-**Última atualização:** 2026-02-22
+**Última atualização:** 2026-02-22 14:30 UTC
 
 ---
 
@@ -19,10 +19,10 @@
 
 | Now (ROADMAP)                   | Sprint   | Issue  | Arquivos-chave                        | Critério de Pronto                               |
 |---------------------------------|----------|--------|---------------------------------------|--------------------------------------------------|
-| Integração de Conectividade     | Sprint 1 | TODO   | `data/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-1) |
-| Risk Gate 1.0                   | Sprint 1 | TODO   | `risk/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-2) |
-| Módulo de Execução              | Sprint 1 | TODO   | `execution/`                          | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-3) |
-| Telemetria Básica               | Sprint 1 | TODO   | `logs/`, `main.py`                   | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-4) |
+| Integração de Conectividade     | Sprint 1 | #55    | `data/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-1) |
+| Risk Gate 1.0                   | Sprint 1 | #57    | `risk/`, `config/settings.py`        | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-2) |
+| Módulo de Execução              | Sprint 1 | #54    | `execution/`                          | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-3) |
+| Telemetria Básica               | Sprint 1 | #56    | `logs/`, `main.py`                   | [Ver critérios](CRITERIOS_DE_ACEITE_MVP.md#s1-4) |
 
 ---
 
@@ -35,12 +35,12 @@
 
 | Entregável                       | Responsável | Status | Issue  | PR     |
 |----------------------------------|-------------|--------|--------|--------|
-| Conectividade Binance REST/WS    | TODO        | 🟡     | TODO   | TODO   |
-| Stop Loss Hardcoded (-3%)        | TODO        | 🟡     | TODO   | TODO   |
-| Circuit Breaker engine           | TODO        | 🟡     | TODO   | TODO   |
-| Orquestrador de ordens           | TODO        | 🟡     | TODO   | TODO   |
-| Tratamento de erros API          | TODO        | 🟡     | TODO   | TODO   |
-| Logs estruturados de trades      | TODO        | 🟡     | TODO   | TODO   |
+| Conectividade Binance REST/WS    | TODO        | 🟡     | #55    | TODO   |
+| Stop Loss Hardcoded (-3%)        | TODO        | 🟡     | #57    | TODO   |
+| Circuit Breaker engine           | TODO        | 🟡     | #57    | TODO   |
+| Orquestrador de ordens           | TODO        | 🟡     | #54    | TODO   |
+| Tratamento de erros API          | TODO        | 🟡     | #54    | TODO   |
+| Logs estruturados de trades      | TODO        | 🟡     | #56    | TODO   |
 
 ---
 
