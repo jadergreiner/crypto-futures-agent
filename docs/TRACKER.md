@@ -1,5 +1,29 @@
 # 📊 Sprint Tracker — Crypto Futures Agent
 
+## 🎯 Sprint 1: MUST Items (21-25 FEV 2026) — OPERACIONALIZAÇÃO (Fase 2D Consolidação)
+
+**Duração:** 5 dias (21-25 FEV 2026)
+**Priorização:** MoSCoW + Cost of Delay + Risk Impact
+**Referência:** Consolidado de `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
+
+| ID | Task | Owner | Status | Entrega | Prioridade |
+|----|------|-------|--------|---------|----------|
+| **1.1** | Implementar Heurísticas Conservadoras | Dev | ✅ DONE (22 FEV 06:00) | execution/heuristic_signals.py | 🔴 CRÍTICA |
+| **1.2** | QA Validação Completa (Heurísticas) | Audit | ✅ DONE (22 FEV 08:00) | 9/9 tests, edge cases | 🔴 CRÍTICA |
+| **1.3** | Go-Live Phase 1 (10% volume) | Executor | ✅ DONE (22 FEV 10:00) | Live operação iniciada | 🔴 CRÍTICA |
+| **1.4** | Go-Live Phase 2 (50% volume) | Executor | ✅ DONE (22 FEV 11:00) | Escalação sucesso | 🔴 CRÍTICA |
+| **1.5** | Go-Live Phase 3 (100% volume) | Executor | ✅ DONE (22 FEV 12:00) | Full deployment | 🔴 CRÍTICA |
+| **1.6** | TASK-005 PPO Training (96h) | The Brain | 🔄 IN PROGRESS (22-25 FEV) | Model convergência | 🔴 CRÍTICA |
+| **1.7** | TASK-006 PPO QA Validation | Audit | ⏳ PENDING (25 FEV 10:00) | OOT backtest validation | 🔴 CRÍTICA |
+| **1.8** | TASK-007 PPO Merge Live | Dev | ⏳ PENDING (25 FEV 14:00) | v0.5 alpha deployment | 🔴 CRÍTICA |
+
+**Documentação Referência:** 
+- Detalhes completos: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
+- Status real-time: `backlog/TASKS_TRACKER_REALTIME.md`
+- Quick start: `backlog/BACKLOG_QUICK_START.md`
+
+---
+
 ## Sprint Concluído: v0.2 — Pipeline Fix ✅
 
 **Duração:** 2 semanas
