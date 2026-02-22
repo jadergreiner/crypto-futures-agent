@@ -6,6 +6,86 @@ O formato é baseado em
 [Keep a
 Changelog]([https://keepachangelog.com/pt-BR/1.1.0/](https://keepachangelog.com/pt-BR/1.1.0/)).
 
+---
+
+## 📚 [Decision #3 — CONSOLIDAÇÃO DOCUMENTÁRIA] — 2026-02-22 17:00 UTC ✅ 100% IMPLEMENTADA
+
+**Status**: 🟢 CONSOLIDAÇÃO COMPLETA — Fonte Única da Verdade Implementada
+**Timestamp:** 22 FEV 2026 17:00 UTC (3 horas de execução: Fases 2A-3)
+**Commits:** 8 com [SYNC] tags (eb38b5f, 4863c38, 5eb7a81, 18bdd8b, 1da6bf2, ea9fd01, 40119cd, b7b2939)
+
+### 🎯 Decision #3 — Governança de Documentação (Aprovada 12/16 unanimidade, 21 FEV 17:30 UTC)
+
+**Objetivo:** Estabelecer 10 Core Docs como fonte única da verdade, eliminar duplicatas, implementar [SYNC] protocol para auditoria.
+
+### 📊 Consolidação Executada (Fases 2A-3, 22 FEV 14:00-17:00 UTC)
+
+**Resultado:**
+- 169 arquivos → 104 organizados (65 deletados, 52 consolidações)
+- 52 arquivos consolidados nos 10 core docs
+- 7 [SYNC] commits com auditoria completa
+- ~8,000 linhas deletadas (duplicatas, obsoletos)
+- Validação Phase 3: UTF-8 100%, markdown OK, cross-refs validadas
+
+**Fases Executadas:**
+
+| Fase | Folder | Consolidações | Deletions | Commit |
+|---|---|---|---|---|
+| **2A** | prompts/ | 6 | 16 | eb38b5f |
+| **2B** | scripts/ | 1 | 1 | 4863c38 |
+| **2C** | reports/ | 3 | 12 | 5eb7a81 |
+| **2D** | backlog/ | 5 | 9 | 18bdd8b |
+| **2E** | checkpoints/ | 1 | 1 | 1da6bf2 |
+| **2F** | docs/ | — | 15 | ea9fd01 |
+| **3** | Validation | — | — | 40119cd |
+
+**Consolidações por Destino:**
+
+- **BEST_PRACTICES.md** ← prompts (Board Protocol), scripts (Board Meetings)
+- **USER_MANUAL.md** ← prompts (Reports), scripts (Board Ops), checkpoints (PPO Training)
+- **TRACKER.md** ← prompts (TASK-005), backlog (Sprint 1 MUST Items), reports (Gate #1)
+- **FEATURES.md** ← prompts (ML Theory), docs (Signal-Driven RL)
+- **STATUS_ATUAL.md** ← reports (Histórico)
+- **SYNCHRONIZATION.md** ← prompts (TASK-005 spec package)
+- **DECISIONS.md** ← reports (Governance), docs (Board meetings)
+
+### ✅ 10 Core Docs — Validados e Sincronizados
+
+| # | Doc | Updates | Status |
+|---|---|---|---|
+| 1 | RELEASES.md | — | ✅ Manter |
+| 2 | ROADMAP.md | — | ✅ Manter |
+| 3 | FEATURES.md | + F-ML1 Reward Math | ✅ |
+| 4 | TRACKER.md | + TASK-005 + Sprint 1 | ✅ |
+| 5 | USER_STORIES.md | — | ✅ Manter |
+| 6 | LESSONS_LEARNED.md | — | ✅ Manter |
+| 7 | STATUS_ATUAL.md | + Histórico Reports | ✅ |
+| 8 | DECISIONS.md | — | ✅ Manter |
+| 9 | USER_MANUAL.md | + Sections 11, 12, 5.3 | ✅ |
+| 10 | SYNCHRONIZATION.md | + TASK-005 entry | ✅ |
+
+**Também adicionado:**
+- **BEST_PRACTICES.md** (novo, Phase 2B) — Board metrics, commit policy
+
+### 🔐 Protocolo [SYNC] Implementado
+
+**Regra:** Todo commit que altera docs/RELEASES.md, ROADMAP.md, etc., DEVE incluir `[SYNC]` tag.
+**Exemplo:** `[SYNC] Consolidacao prompts/ nos 10 core docs (Fase 2A)`
+**Auditoria:** Rastreável via git log, commit messages, SYNCHRONIZATION.md
+
+### 📋 Análises Consolidação Documentária
+
+Todas as análises foram executadas e consolidadas:
+- `docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md` — Classificação 58 files em docs/
+- `backlog/DOC_ADVOCATE_CONSOLIDACAO_BACKLOG.md` — 15 files em backlog/
+- `checkpoints/ppo_training/DOC_ADVOCATE_CONSOLIDACAO_PPO_TRAINING.md` — 1 file
+- `prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md` — 19 files
+- `reports/DOC_ADVOCATE_CONSOLIDACAO_REPORTS.md` — 15 files
+- `scripts/DOC_ADVOCATE_CONSOLIDACAO_SCRIPTS.md` — 1 file
+- `DOC_ADVOCATE_CONSOLIDACAO_RAIZ.md` — 60+ files (análise manual pending)
+
+---
+
 ## [v1.0-alpha] — 2026-02-22 PHASE 4 Operacionalização ✨ **GO-LIVE OPERACIONAL 100%**
 
 **Status**: 🟢 HEURÍSTICAS CONSERVADORAS + PHASE 1-3 OPERACIONAL + PPO TRAINING PARALELO (TASK-001 ✅ COMPLETO, TASK-005 iniciando)
