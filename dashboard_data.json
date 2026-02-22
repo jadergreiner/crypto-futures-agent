@@ -1,30 +1,30 @@
 {
   "project": {
     "name": "Crypto Futures Agent",
-    "version": "v0.4",
-    "status": "BLOQUEADO",
-    "updated": "2026-02-21T14:22:53.240453",
-    "description": "F-12 Backtest Engine — Equipe 12 membros: Angel (Investidor) + Elo (Facilitador) + Audit (Doc Advocate) + Planner (Gerente Projetos) + Flux (Time-Series) + The Blueprint (Tech Lead) + The Brain (ML) + Guardian (Risk Mgr) + Head Finanças + Product Owner + Product Manager com RACI matrix + Governance Completa"
+    "version": "v1.0-alpha",
+    "status": "🔴 CRÍTICO — Phase 2 LIVE com Risco Alto (Circuit Breaker DISPARADO)",
+    "updated": "2026-02-22T02:05:00.000000",
+    "description": "22 FEV 02:05 Brasil: GO-LIVE PHASE 2 em operação via iniciar_phase2_risco_alto.bat. Drawdown -46.61%, 20 posições abertas, Circuit Breaker DISPARADO. Requer dupla confirmação operador. CRÍTICO: Necessária ação imediata."
   },
   "status_cards": [
     {
-      "label": "Versão Ativa",
-      "value": "v0.4",
-      "type": "warning"
-    },
-    {
-      "label": "Status Geral",
-      "value": "🔴 BLOQUEADO",
+      "label": "Status Crítico",
+      "value": "🔴 DRAWDOWN -46.61%",
       "type": "critical"
     },
     {
-      "label": "Próxima Versão",
-      "value": "v0.5",
-      "type": "info"
+      "label": "Circuit Breaker",
+      "value": "🔴 DISPARADO",
+      "type": "critical"
     },
     {
-      "label": "Risco Cronograma",
-      "value": "ALTO",
+      "label": "Posições Abertas",
+      "value": "20 (Risco Alto)",
+      "type": "critical"
+    },
+    {
+      "label": "Modo Operacional",
+      "value": "LIVE + Integrated",
       "type": "warning"
     }
   ],
@@ -48,26 +48,26 @@
       "type": "version"
     },
     {
-      "name": "v0.3 Training Ready",
-      "date": "20-23 FEV",
+      "name": "✅ v1.0-alpha PHASE 4 Go-Live (20 FEV)",
+      "date": "20 FEV 07:00-14:00 BR",
       "status": "complete",
       "type": "version"
     },
     {
-      "name": "v0.4 Backtest Engine",
-      "date": "21-23 FEV",
-      "status": "blocked",
-      "type": "version"
+      "name": "✅ Phase 3 Operacional Contínuo",
+      "date": "20-22 FEV (>48h)",
+      "status": "complete",
+      "type": "milestone"
     },
     {
-      "name": "v0.5 Paper Trading",
-      "date": "27 FEV-01 MAR",
-      "status": "planned",
-      "type": "version"
+      "name": "🔄 TASK-005 PPO Training",
+      "date": "22-25 FEV",
+      "status": "in_progress",
+      "type": "task"
     },
     {
       "name": "v1.0 Live MVP",
-      "date": "MAI 2026",
+      "date": "26+ FEV",
       "status": "planned",
       "type": "version"
     }
@@ -75,96 +75,85 @@
   "decisions": [
     {
       "id": 1,
-      "title": "Governança Documentação",
-      "status": "approval",
-      "description": "Hierarquia única de docs implementada. 94 arquivos deletados. Portal centralizado criado.",
-      "date": "22 FEV 2026"
+      "title": "🔴 CRÍTICO: Phase 2 Risk Authorization",
+      "status": "active",
+      "description": "AUTORIZAÇÃO CRÍTICA ATIVA: Phase 2 executando com risco alto via iniciar_phase2_risco_alto.bat. Requer PHASE2_AUTORIZADO_RISCO_ALTO_*.json + dupla confirmação operador.",
+      "date": "22 FEV 02:05 2026"
     },
     {
       "id": 2,
-      "title": "Machine Learning Strategy",
-      "status": "pending",
-      "description": "Option A (Heurísticas 1-2d) / B (PPO 5-7d) / C (Híbrido 3-4d) ← Recomendado",
-      "date": "23 FEV 2026"
+      "title": "Drawdown Extremo: -46.61%",
+      "status": "critical",
+      "description": "CRÍTICO: Drawdown 43.61% acima do limite de segurança (-5%). Circuit Breaker DISPARADO automaticamente.",
+      "date": "22 FEV 2026"
     },
     {
       "id": 3,
-      "title": "Posições Abertas",
-      "status": "pending",
-      "description": "Liquidar / Hedge / Monitorar 21 posições underwater",
-      "date": "23 FEV 2026"
+      "title": "20 Posições Abertas em Risco",
+      "status": "critical",
+      "description": "20 posições abertas em trading live com drawdown crítico. Risco de liquidação imediata. Ação Risk Manager requerida.",
+      "date": "22 FEV 2026"
     }
   ],
   "blockers": [
     {
       "id": 1,
-      "title": "Métricas de Risco Falhando",
+      "title": "🔴 CRÍTICO: Drawdown Extremo",
       "severity": "critical",
-      "problem": "Backtest com ações aleatórias falhou em 4 de 6 risk gates",
+      "problem": "Drawdown em -46.61% — ACIMA do limite de segurança de -5%. Circuit Breaker DISPARADO automaticamente.",
       "metrics": [
         {
-          "name": "Sharpe Ratio",
-          "current": "0.06",
-          "required": "1.0",
+          "name": "Max Drawdown Atual",
+          "current": "-46.61%",
+          "required": "≤-5%",
           "status": "fail"
         },
         {
-          "name": "Max Drawdown",
-          "current": "17.24%",
-          "required": "≤15%",
+          "name": "Circuit Breaker",
+          "current": "DISPARADO",
+          "required": "Desativado",
           "status": "fail"
         },
         {
-          "name": "Profit Factor",
-          "current": "0.75",
-          "required": "1.5",
+          "name": "Posições em Risco",
+          "current": "20",
+          "required": "0 em Phase 2",
           "status": "fail"
         },
         {
-          "name": "Calmar Ratio",
-          "current": "0.10",
-          "required": "2.0",
+          "name": "Status Operacional",
+          "current": "LIVE (Risco Alto)",
+          "required": "Paper ou Pausado",
           "status": "fail"
-        },
-        {
-          "name": "Win Rate",
-          "current": "48.51%",
-          "required": "≥45%",
-          "status": "pass"
-        },
-        {
-          "name": "Consecutive Losses",
-          "current": "5",
-          "required": "≤5",
-          "status": "pass"
         }
       ],
-      "action": "Decision Board aprovando Option A/B/C (ML mitigation)"
+      "action": "AÇÃO IMEDIATA NECESSÁRIA: Avaliar phase2_registrar_autorizacao.py. Operador dupla confirmação obrigatória antes iniciar_phase2_risco_alto.bat"
     },
     {
       "id": 2,
-      "title": "21 Posições Underwater",
+      "title": "⚠️ Posições Abertas 20",
       "severity": "critical",
-      "problem": "Capital imobilizado, agente congelado em modo defensivo",
+      "problem": "20 posições abertas em Phase 2 live trading. Risco de liquidação imediata com drawdown -46.61%.",
       "impacts": [
-        "Quantidade: 21 posições abertas",
-        "Perda média: -42% a -511%",
-        "Oportunidade perdida: -$2.670/dia",
-        "Modo: Profit Guardian (congelado)"
+        "Capital em risco: Total alocado",
+        "Modo: LIVE com Integrated training",
+        "Requerimento: Dupla confirmação operador",
+        "Fallback: Revert para Phase 1 ou Paper"
       ],
-      "action": "Decision Board: Liquidar vs Hedge vs Monitorar"
+      "action": "Avaliar posições abertas, status de each position, liquidation risk immediate"
     },
     {
       "id": 3,
-      "title": "Escalabilidade (F-12b)",
-      "severity": "warning",
-      "problem": "Parquet Cache a 60% de implementação",
+      "title": "Phase 2 Script Control",
+      "severity": "in_progress",
+      "problem": "🔄 iniciar_phase2_risco_alto.bat: Controla GO-LIVE Phase 2 com verificações de segurança (dupla confirmação operador)",
       "impacts": [
-        "Implementação: 60%→100% em 3 dias",
-        "Universo: 60 pares (atual) → 200+ (proposta)",
-        "Owner: Arquiteto de Dados (paralelo)"
+        "Arquivo: iniciar_phase2_risco_alto.bat",
+        "Autorização: PHASE2_AUTORIZADO_RISCO_ALTO_*.json requerido",
+        "Confirmações: [1/2] 'SIM', [2/2] 'INICIO'",
+        "Execução: python main.py --mode live --integrated"
       ],
-      "action": "Completar F-12b até 26 FEV (antes v0.5 start)"
+      "action": "Monitorar script execution, operador confirmations, system status continuously"
     }
   ],
   "metrics": [
@@ -254,34 +243,29 @@
   ],
   "timeline": [
     {
-      "date": "23 FEV (2 HORAS)",
-      "title": "Decision Board Crítica",
-      "description": "Votação ML + Risco. Impacto direto em cronograma v0.5/v1.0."
+      "date": "22 FEV 02:05 BR (AGORA)",
+      "title": "🔴 PHASE 2 LIVE COM RISCO ALTO",
+      "description": "CRÍTICO: iniciar_phase2_risco_alto.bat executando. Drawdown -46.61%, Circuit Breaker DISPARADO, 20 posições abertas. Requer dupla confirmação operador (SIM + INICIO)."
     },
     {
-      "date": "24-25 FEV (48h)",
-      "title": "Estágio de Execução",
-      "description": "ML codificação + F-12b escalabilidade + Liquidação posições em paralelo."
+      "date": "⏳ Imediato",
+      "title": "🚨 AÇÃO REQUERIDA",
+      "description": "Verificar status de posições abertas. Avaliar phase2_registrar_autorizacao.py. Operador confirmação dupla. Monitorar circuit breaker."
     },
     {
-      "date": "25 FEV 18:00 (Checkpoint)",
-      "title": "Risk Clearance Gate",
-      "description": "Validar Sharpe≥1.0, MaxDD≤15%, PF≥1.5, Calmar≥2.0. Gating v0.5."
+      "date": "22 FEV 02:05+ BR",
+      "title": "📊 Monitoramento Contínuo",
+      "description": "Python main.py --mode live --integrated em execução. Drawdown tracking crítico, cada candle monitorado."
     },
     {
-      "date": "26 FEV",
-      "title": "F-12b Completion",
-      "description": "Parquet Cache 100%. Buffer antes v0.5 launch."
+      "date": "PRÓXIMAS HORAS CRÍTICAS",
+      "title": "⚙️ Decision Gates",
+      "description": "Continuar Phase 2? Voltar Phase 1? Pausar operação? Revert para Paper? Depende evolução drawdown."
     },
     {
-      "date": "27 FEV - 01 MAR",
-      "title": "v0.5 Paper Trading Launch",
-      "description": "60+ pares em modo paper. Validação de sinais reais."
-    },
-    {
-      "date": "MAI 2026 (+7 dias risco)",
-      "title": "v1.0 Live MVP",
-      "description": "Operação ao vivo com 200+ pares. Risco: cascata de atrasos anteriores."
+      "date": "Checkpoint 08:00 BR",
+      "title": "📊 Standup de Crise",
+      "description": "Daily: status Phase 2, drawdown evolution, posições status, Risk Manager analysis."
     }
   ],
   "team": [
