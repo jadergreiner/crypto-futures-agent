@@ -50,18 +50,22 @@
 
 ---
 
-## 🚦 Checklist Go/No-Go — Sprint 1
+## 🚦 Checklist Go/No-Go — Sprint 1 ✅ COMPLETA
 
 | Gate                              | Critério                          | Status |
 |-----------------------------------|-----------------------------------|--------|
-| Conectividade                     | Todos S1-1 ✅                     | 🟡     |
-| Risco                             | Todos S1-2 ✅                     | 🟡     |
-| Execução                          | Todos S1-3 ✅                     | 🟡     |
-| Telemetria                        | Todos S1-4 ✅                     | 🟡     |
-| **GO/NO-GO**                      | **Todos os gates ✅**             | 🟡     |
+| Conectividade                     | S1-1: WebSocket + Rate Limits ✅   | 🟢     |
+| Risco                             | S1-2: Stop Loss + CB ✅            | 🟢     |
+| Execução                          | S1-3: Paper Mode + Telemetry ✅    | 🟢     |
+| Telemetria                        | S1-4: StructuredLogger + DB ✅     | 🟢     |
+| **GO/NO-GO**                      | **TODOS os gates 🟢 GREEN**        | 🟢 GO  |
 
-> **Regra:** Se qualquer gate com status 🔴, bloquear go-live. Ver
-> [Runbook Operacional](RUNBOOK_OPERACIONAL.md) para procedimento de rollback.
+> **Decisao:** Todos os gates ✅ GREEN. **GO-LIVE LIBERADO PARA SPRINT 2**.
+> Evidencia: [Connectivity Results](../logs/connectivity_validation_results.md),
+> [RiskGate Results](../logs/riskgate_validation_results.md),
+> [Execution Results](../logs/execution_validation_results.md).
+> 
+> Ver [Runbook Operacional](RUNBOOK_OPERACIONAL.md) para procedimento de go-live.
 
 ---
 
