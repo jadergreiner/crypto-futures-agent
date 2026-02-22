@@ -44,6 +44,24 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 ---
 
+## 🔗 Execução / Visibilidade
+
+> Bloco mantido pelo Copilot via `docs_sync_policy`. Não editar manualmente.
+
+**Sprint atual:** Sprint 1
+**Última atualização:** 2026-02-22
+**Progresso NOW:** 0 concluídos de 4 itens
+
+| Documento                | Link                                           |
+|--------------------------|------------------------------------------------|
+| Status de Entregas       | [STATUS_ENTREGAS.md](STATUS_ENTREGAS.md)       |
+| Plano de Sprints         | [PLANO_DE_SPRINTS_MVP_NOW.md](PLANO_DE_SPRINTS_MVP_NOW.md) |
+| Critérios de Aceite      | [CRITERIOS_DE_ACEITE_MVP.md](CRITERIOS_DE_ACEITE_MVP.md)   |
+| Runbook Operacional      | [RUNBOOK_OPERACIONAL.md](RUNBOOK_OPERACIONAL.md)           |
+| Changelog                | [CHANGELOG.md](CHANGELOG.md)                  |
+
+---
+
 ## 📑 Sincronização (Doc Advocate)
 - Este documento deve ser atualizado ao final de cada Sprint.
 - Alterações críticas exigem quórum de 12 membros conforme `board_16_members_data.json`.
