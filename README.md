@@ -12,33 +12,43 @@ operacionais com gestão de risco completa.
 ## 📌 PHASE 4: OPERACIONALIZAÇÃO — Decisões Críticas
 
 **Decisão #3 Aprovada (22 FEV 2026):** Governança de Documentação
+
 - 🟡 **Nível:** Padrão (Code + Arquitetura + Decisões Executivas)
-- 🔴 **Enforcement:** STRICT — Git hooks + CI/CD bloqueiam sem sincronização
+- 🔴 **Enforcement:** STRICT — CI/CD bloqueia sem tag `[SYNC]` em commits de docs
 - 📚 **Owner:** DOC Advocate (delegado Audit Team)
-- ✅ **Status:** Operacional (veja `docs/POLICY_DOC_GOVERNANCE.md`)
+- ✅ **Status:** Operacional
 
-### 📚 Fonte da Verdade Documentária — 10 Core Docs
+### 📚 Organização da Documentação
 
-**Regra Crítica:** Todo membro que trabalha com docs **DEVE** utilizar APENAS os
-10 documentos oficiais abaixo. Conteúdo em outros arquivos é deprecado.
+O projeto usa **duas camadas** de documentação que convivem sem conflito:
 
-| # | Documento | Propósito | Responsável |
-|---|-----------|----------|-------------|
-| 1 | [RELEASES.md](docs/RELEASES.md) | Versões e entregas | Planner |
-| 2 | [ROADMAP.md](docs/ROADMAP.md) | Planejamento futuro | Product |
-| 3 | [FEATURES.md](docs/FEATURES.md) | Funcionalidades | Dev |
-| 4 | [TRACKER.md](docs/TRACKER.md) | Sprints e backlog | Planner |
-| 5 | [USER_STORIES.md](docs/USER_STORIES.md) | Requisitos | Product |
-| 6 | [LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md) | Insights | The Brain |
-| 7 | [STATUS_ATUAL.md](docs/STATUS_ATUAL.md) | Dashboard go-live | Doc Advocate |
-| 8 | [DECISIONS.md](docs/DECISIONS.md) | Decisões estratégicas | Elo |
-| 9 | [USER_MANUAL.md](docs/USER_MANUAL.md) | Onboarding | Product |
-| 10 | [SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md) | Sincronização & audit | Doc Advocate |
+**Camada Estratégica** — governança, histórico e arquitetura (Decision #3):
 
-**Análise Completa:** [docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md](docs/DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md)
+| # | Documento | Propósito |
+| --- | --------- | --------- |
+| 1 | [RELEASES.md](docs/RELEASES.md) | Versões e entregas |
+| 2 | [ROADMAP.md](docs/ROADMAP.md) | Planejamento futuro |
+| 3 | [FEATURES.md](docs/FEATURES.md) | Funcionalidades |
+| 4 | [TRACKER.md](docs/TRACKER.md) | Sprints e backlog |
+| 5 | [USER_STORIES.md](docs/USER_STORIES.md) | Requisitos |
+| 6 | [LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md) | Insights |
+| 7 | [STATUS_ATUAL.md](docs/STATUS_ATUAL.md) | Dashboard go-live |
+| 8 | [DECISIONS.md](docs/DECISIONS.md) | Decisões estratégicas |
+| 9 | [USER_MANUAL.md](docs/USER_MANUAL.md) | Onboarding |
+| 10 | [SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md) | Audit trail |
+
+**Camada de Execução/Visibilidade** — acompanhamento diário do MVP:
+
+| Documento | Propósito |
+| --------- | --------- |
+| [STATUS_ENTREGAS.md](docs/STATUS_ENTREGAS.md) | **Fonte da verdade** do status de cada entrega |
+| [PLANO_DE_SPRINTS_MVP_NOW.md](docs/PLANO_DE_SPRINTS_MVP_NOW.md) | Sprint corrente e itens NOW |
+| [CRITERIOS_DE_ACEITE_MVP.md](docs/CRITERIOS_DE_ACEITE_MVP.md) | Critérios de aceite do MVP |
+| [RUNBOOK_OPERACIONAL.md](docs/RUNBOOK_OPERACIONAL.md) | Runbook operacional |
+| [CHANGELOG.md](docs/CHANGELOG.md) | Registro de mudanças |
 
 **Protocolo [SYNC]**: Todo commit que altera docs deve incluir tag `[SYNC]` na
-mensagem para rastreabilidade. Exemplo: `[SYNC] Atualizado FEATURES.md com F-H5`
+mensagem. Exemplo: `[SYNC] Atualizado STATUS_ENTREGAS.md sprint 2`
 
 ---
 
@@ -698,55 +708,72 @@ pytest tests/test_indicators.py -v
 - O autor NÃO se responsabiliza por perdas financeiras
 - SEMPRE teste em paper trading antes de usar capital real
 
-## 📚 Documentação
+## 📚 Documentação Oficial
 
-Este projeto possui documentação extensiva organizada em `docs/`:
+Toda a documentação está em `docs/`. A estrutura segue três níveis:
 
-### Documentação do Projeto
+- **Estratégico**: roadmap, decisões, governança (10 core docs — Decision #3)
+- **Tático**: sprint corrente, critérios de aceite, planejamento MVP
+- **Operacional**: runbook, changelog, status de entregas
 
-- **[ROADMAP.md](docs/ROADMAP.md)** — Roadmap do projeto, releases planejadas e
-  status atual
-- **[RELEASES.md](docs/RELEASES.md)** — Detalhes de cada release (v0.1 a v1.1+)
-- **[FEATURES.md](docs/FEATURES.md)** — Listagem de todas as features por
-  release
-- **[USER_STORIES.md](docs/USER_STORIES.md)** — User stories e critérios de
-  aceite
-- **[TRACKER.md](docs/TRACKER.md)** — Sprint tracker com tasks e progresso
-- **[LESSONS_LEARNED.md](docs/LESSONS_LEARNED.md)** — Lições aprendidas durante
-  o desenvolvimento
-- **[CHANGELOG.md](CHANGELOG.md)** — Registro de mudanças seguindo Keep a
-  Changelog
+### Docs de Referência Rápida
 
-### Documentação Técnica
+**Estratégico** (10 core docs — Decision #3):
 
-- **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** — Integração
-  com Binance SDK
-- **[CROSS_MARGIN_FIXES.md](docs/CROSS_MARGIN_FIXES.md)** — Correções de cross
-  margin
-- **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** — Implementação
-  das camadas de decisão
-- **[SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** — Rastreamento de
-  sincronização de docs
+- [ROADMAP.md](docs/ROADMAP.md) — Planejamento e milestones
+- [RELEASES.md](docs/RELEASES.md) — Versões e entregas
+- [STATUS_ATUAL.md](docs/STATUS_ATUAL.md) — Dashboard go-live
+- [DECISIONS.md](docs/DECISIONS.md) — Decisões estratégicas
+- [SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md) — Audit trail de docs
 
-### 🔄 Validação Automática de Sincronização
+**Tático/Operacional** (execução e visibilidade do MVP):
 
-O projeto implementa mecanismo obrigatório de sincronização:
+- [STATUS_ENTREGAS.md](docs/STATUS_ENTREGAS.md) — **Fonte da verdade** do
+  status MVP
+- [PLANO_DE_SPRINTS_MVP_NOW.md](docs/PLANO_DE_SPRINTS_MVP_NOW.md) —
+  Sprint corrente e itens NOW
+- [CRITERIOS_DE_ACEITE_MVP.md](docs/CRITERIOS_DE_ACEITE_MVP.md) —
+  Critérios de aceite
+- [RUNBOOK_OPERACIONAL.md](docs/RUNBOOK_OPERACIONAL.md) — Runbook operacional
+- [CHANGELOG.md](docs/CHANGELOG.md) — Registro de mudanças
+
+### 🔄 Como Atualizar Docs (Gatilho via Copilot)
+
+A sincronização de documentação é **manual** e acionada pelo usuário via
+Copilot no VS Code. Não há automação via GitHub Actions.
+
+**Como usar:** Abra o Copilot Chat no VS Code e envie o prompt abaixo.
+
+O prompt completo está em
+`prompts/board_16_members_data.json` → `docs_sync_policy.sync_trigger_prompt`.
+
+**Resumo do que o gatilho executa:**
+
+1. Verifica se cada doc oficial tem a seção `Links Rápidos` completa
+2. Atualiza `docs/STATUS_ENTREGAS.md` com status dos itens NOW do ROADMAP
+3. Atualiza o bloco `Execucao / Visibilidade` em `docs/ROADMAP.md`
+4. Registra o sync em `docs/SYNCHRONIZATION.md` com tag `[SYNC]` e timestamp
 
 **Validar antes de cada commit:**
 
 ```bash
 python scripts/validate_sync.py
-```bash
+```
 
-O script verifica:
-
-- ✅ Markdown lint (máximo 80 caracteres)
-- ✅ Sincronização README ↔ FEATURES ↔ ROADMAP
-- ✅ Registro em SYNCHRONIZATION.md
-- ✅ Entrada em CHANGELOG.md
+O script verifica markdown lint, sincronização e registro em
+`SYNCHRONIZATION.md`.
 
 **Instruções completas:** Ver
 [.github/copilot-instructions.md](.github/copilot-instructions.md)
+
+### Documentação Técnica
+
+- **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** —
+  Integração com Binance SDK
+- **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** —
+  Implementação das camadas de decisão
+- **[SYNCHRONIZATION.md](docs/SYNCHRONIZATION.md)** —
+  Rastreamento de sincronização de docs
 
 ### Status do Projeto
 
