@@ -1,79 +1,50 @@
-# 🗺️ Roadmap — Crypto Futures Agent
+# 🗺️ Product Roadmap - Crypto Futures Agent
 
-**Última Atualização:** 22 FEV 2026, 14:00 UTC (TASK-001-004 Completo, Phase 3 Operacional, TASK-005 Kickoff)
-**Status:** ✅ v1.0-alpha GO-LIVE OPERACIONAL 100% (Phase 1-3 sucesso)
-
----
-
-## Visão Geral (Atualizado PHASE 4)
-
-```
-v0.1 (Foundation)         ✅ CONCLUÍDO (12/02/2026)
-v0.2 (Pipeline Fix)       ✅ CONCLUÍDO (15/02/2026)
-v0.2.1 (Admin. Posições)  ✅ CONCLUÍDO (20/02/2026)
-v0.3 (Training Ready)     ✅ CONCLUÍDO (20/02/2026 paralelo)
-
-v1.0-alpha (PHASE 4)      ✅ **OPERACIONALIZAÇÃO COMPLETA** — TASK-001-004 completo 22 FEV 10:00-14:00
-├─ TASK-001: Heurísticas Conservadoras (✅ COMPLETO 22 FEV 06:00)
-├─ TASK-002 até TASK-004: Go-Live canary phases (✅ COMPLETO 22 FEV 14:00)
-└─ TASK-005 até TASK-007: PPO training paralelo (🔄 INICIADO 22 FEV 14:00, até 25 FEV)
-
-v1.0 (Live MVP)           📅 Planejado (pós-PPO integration, ~26 FEV)
-v1.1+ (Evolução)          📅 Roadmap Continuo
-```
-
-## Timeline — PHASE 4 Crítica (v1.0-alpha Operacionalização)
-
-```
-21 FEV 22:40 UTC - 22 FEV 14:00 UTC (20 horas críticas)
-├── 21 FEV 22:40 UTC │ Decision #3 aprovada (Governança de Docs)
-├── 21 FEV 23:15 UTC │ TASK-001 kickoff (Heurísticas Dev)
-├── 22 FEV 06:00 UTC │ TASK-001 delivery → TASK-002 QA
-├── 22 FEV 08:00 UTC │ Daily standup #1 + DOC Advocate audit
-├── 22 FEV 10:00 UTC │ TASK-003 Alpha validation → TASK-004 go-live
-├── 22 FEV 14:00 UTC │ Heurísticas LIVE canary phase 1 (3 símbolos)
-│
-└── 22 FEV 14:00-25 FEV 10:00 │ TASK-005 PPO training (96h paralelo)
-    └── 25 FEV 20:00 UTC │ PPO integration live
-```
-
-## v1.0-alpha Status em Detalhe
-
-| Componente | Responsabilidade | Timeline | Status |
-|-----------|---|---|---|
-| **Heurísticas SM C+EMA+RSI** | TASK-001 | 21-22 FEV | ✅ COMPLETO |
-| **QA Testing Full** | TASK-002 | 22 FEV 06-08 | ✅ COMPLETO |
-| **Alpha Trader Validation** | TASK-003 | 22 FEV 08-10 | ✅ COMPLETO |
-| **Go-Live Canary Phase 1-3** | TASK-004 | 22 FEV 10-14 | ✅ COMPLETO |
-| **PPO Training Pipeline** | TASK-005 | 22-25 FEV paralelo | 🔄 IN PROGRESS |
-| **PPO Quality Gate** | TASK-006 | 25 FEV | ⏳ WAITING |
-| **PPO Merge Live** | TASK-007 | 25 FEV | ⏳ WAITING |
+**Status:** Rascunho Estratégico  
+**Versão:** 1.0.0  
+**Owner:** [Product](#)  
+**Guardião:** [Board Member](#)
 
 ---
 
-## Histórico (Versões Anteriores)
+## 🎯 Visão do Produto
+Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando em preservação de capital e execução precisa de estratégias baseadas em Smart Money Concepts (SMC).
 
-### v0.3 — Training Ready (✅ 20/02/2026)
+---
 
-Ambiente de treinamento funcional, reward refinado.
+## 📅 Ciclo de Evolução (Now-Next-Later)
 
-### v0.2.1 — Administração (✅ 20/02/2026)
-|
-| **SMC** (Swings, BOS, CHoCH, OBs, FVGs, Liquidity) | ✅ Implementado | 85% |
-| **Multi-Timeframe** (D1 Bias, Market Regime, Correlação) | ✅ Implementado |
-80% |
-| **Feature Engineering** (104 features) | ✅ Implementado | 90% |
-| **Configuração de Pares** (16 USDT com playbooks) | ✅ Implementado | 100% |
-| **RL Environment** (Gymnasium, PPO) | ✅ Estruturado | 50% |
-| **Risk Manager** (Position sizing, SL/TP) | ✅ Implementado | 70% |
-| **Reward Calculator** | ✅ Implementado | 70% |
-| **Trainer** (PPO multi-fase) | ✅ Estruturado | 40% |
-| **Backtester** (v0.4 F-12) | 🟡 **PRONTO PARA IMPLEMENTAÇÃO** | **5%** → **SERÁ
-90% após F-12** |
-| **Risk Clearance** (Metrics + Checklist) | 🟡 **PRONTO PARA IMPLEMENTAÇÃO** |
-**0%** → **SERÁ 100% após F-12** |
-| **Walk-Forward** (v0.4.1 F-13) | 🟡 Placeholder | 10% |
-| **Execution** (Ordens reais) | 🟡 Parcial | 30% |
-| **Monitoring** (Position Monitor) | ✅ Implementado | 70% |
-| **Dry-Run Pipeline** | ✅ Funcional | 90% |
-| **Sincronização Documentação** | ✅ Implementado | 100% |
+### 🚀 AGORA (Now) - Fundação e Segurança
+*Foco: Estabilidade Operacional e MVP (Minimum Viable Product)*
+- [ ] **Integração de Conectividade:** Finalizar conectividade robusta com Binance Futures (REST + WebSockets).
+- [ ] **Risk Gate 1.0:** Implementação de Stop Loss Hardcoded e Circuit Breaker de -3% no nível do motor.
+- [ ] **Módulo de Execução:** Orquestrador de ordens com tratamento de erros de API e Rate Limits.
+- [ ] **Telemetria Básica:** Logs estruturados para auditoria de trades em tempo real.
+
+### 📈 PRÓXIMO (Next) - Inteligência e Performance
+*Foco: Otimização de Ganhos e Análise Técnica*
+- [ ] **Motor de Estratégia SMC:** Implementação de detecção automática de Order Blocks e Break of Structure (BoS).
+- [ ] **Sistema de Backtesting:** Engine para testar estratégias contra dados históricos de 1 ano.
+- [ ] **Gestão Dinâmica de Risco:** Trailing Stop Loss e ajuste de alavancagem baseado na volatilidade (ATR).
+- [ ] **Alertas Externos:** Integração com Telegram para notificações de execução e status do agente.
+
+### 🌌 DEPOIS (Later) - Escala e Autonomia
+*Foco: Machine Learning e Descentralização*
+- [ ] **Otimização via ML:** Uso de modelos PPO (Proximal Policy Optimization) para ajuste fino de entradas.
+- [ ] **Multi-Exchange:** Suporte para Bybit e OKX para arbitragem de taxas de funding.
+- [ ] **Dashboard Web:** Interface visual para monitoramento de múltiplos agentes simultâneos.
+- [ ] **Auto-Hedge:** Módulo de proteção automática em mercados spot para neutralizar riscos de cauda.
+
+---
+
+## 🛡️ Princípios Guia
+1. **Segurança sobre Lucro:** Nunca comprometer o Risk Gate por performance.
+2. **Dados sobre Intuição:** Todas as mudanças no Roadmap devem ser baseadas em resultados de Backtesting.
+3. **Simplicidade de Código:** O código de execução deve ser "boring" (simples e previsível).
+
+---
+
+## 📑 Sincronização (Doc Advocate)
+- Este documento deve ser atualizado ao final de cada Sprint.
+- Alterações críticas exigem quórum de 12 membros conforme `board_16_members_data.json`.
+- Tag obrigatória de commit: `[SYNC] ROADMAP atualizado`.
