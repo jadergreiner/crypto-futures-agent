@@ -276,9 +276,17 @@
         "Validação de completeness da documentação",
         "Matriz de dependências entre docs",
         "Protocol de sincronização vinculado a commits",
-        "Garantir confiabilidade das referências cruzadas"
+        "Garantir confiabilidade das referências cruzadas",
+        "Estabelecer padrões de documentação (style guide)",
+        "Markdown lint obrigatório (max 80 chars, UTF-8 válido)",
+        "Validar nomenclatura de arquivos (CamelCase vs snake_case)",
+        "Enforcer commit message policy (ASCII, max 72 chars, tags)",
+        "Revisão de boas práticas (estrutura, clareza, exemplos)",
+        "Checklist de qualidade antes de merge",
+        "Treinamento de equipe em padrões doc",
+        "Manutenção de documento central de referência (BEST_PRACTICES.md)"
       ],
-      "perfil": "Documentation Advocate | Synchronization Manager | Audit Trail Keeper",
+      "perfil": "Documentation Advocate | Synchronization Manager | Audit Trail Keeper | Standards Enforcer",
       "email": "doc.advocate@crypto-futures-agent.local",
       "voto": null
     }
