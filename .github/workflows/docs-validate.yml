@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload markdown report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: markdown-lint-report
           path: markdown-report.txt
