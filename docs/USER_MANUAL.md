@@ -268,31 +268,172 @@ python main.py --setup --mode paper
 
 **Pré-requisito:** API keys configuradas no `.env`
 
-### 5.3. Treinamento do Modelo
+### 5.3. Treinamento do Modelo PPO (Phase 4)
+
+#### 5.3.1. Visão Geral
+
+O treinamento PPO em Phase 4 segue uma arquitetura conservadora após Phase 3.
+Os checkpoints são salvos em `checkpoints/ppo_training/` com metadados completos:
+
+**Estrutura de Diretório:**
+
+```
+checkpoints/ppo_training/
+├── model_*.pkl        # Checkpoints do modelo PPO (binários)
+├── vecnorm_*.pkl      # Normalizadores de vetores (feature scaling)
+└── *.json             # Metadados de treinamento (timestamps, rewards, config)
+```
+
+#### 5.3.2. Como Iniciar Treinamento
+
+**Opção 1: Dry-Run (Validação sem Treino)**
 
 ```bash
-python main.py --train
+# Valida infraestrutura sem treinar (recomendado antes de início real)
+python scripts/start_ppo_training.py --dry-run
+```
+
+Verifica:
+- ✅ Configuração PPO (11 hiperparâmetros)
+- ✅ Símbolo válido
+- ✅ Dados disponíveis (cache parquet)
+- ✅ BacktestEnvironment funcional
+- ✅ ParquetCache funcional
+- ✅ Imports de PPOStrategy OK
+
+**Opção 2: Treinamento Real (Símbolo Padrão)**
+
 ```bash
+# Treina com símbolo padrão (OGNUSDT, 500k timesteps)
+python scripts/start_ppo_training.py
+```
 
-**O que faz:**
+**Opção 3: Treinamento com Símbolo Customizado**
 
-- Treina modelo PPO em 3 fases:
-  1. **Fase 1 - Exploração** (500k steps): Alta exploração, aprende básico
-  2. **Fase 2 - Refinamento** (1M steps): Explora menos, refina estratégia
-  3. **Fase 3 - Validação**: Valida em dados não vistos
+```bash
+# Treina símbolo específico
+python scripts/start_ppo_training.py --symbol 1000PEPEUSDT
 
-**Duração:**
+# Treina com número de timesteps customizado
+python scripts/start_ppo_training.py --timesteps 750000
+```
 
-- CPU: 6-12 horas
-- GPU: 2-4 horas
+#### 5.3.3. Configuração PPO (Padrão Phase 4)
 
-**Modelos salvos em:** `models/`
+Carregada automaticamente de `config/ppo_config.py`:
 
-- `phase1_exploration.zip`
-- `phase2_refinement.zip`
-- `crypto_agent_ppo_final.zip`
+| Hiperparâmetro | Valor | Descrição |
+|---|---|---|
+| Learning Rate | 3e-4 | Conservador, evita overshooting |
+| Batch Size | 64 | Estável, sem overfitting |
+| N-Steps | 2048 | Coleta de experiência |
+| Total Timesteps | 500,000 | Default (customizável via CLI) |
+| Phase | Phase 4 | Pós-Phase 3, conservador |
 
-**Status:** ⚠️ Em desenvolvimento (v0.3)
+**Per-Symbol Customization:**
+
+Editar `config/ppo_config.py` para ajustar por símbolo:
+```python
+PPO_CONFIG = {
+    'learning_rate': 3e-4,      # Reduzir para convergência mais lenta
+    'batch_size': 64,           # Aumentar para mais estabilidade
+    'n_steps': 2048,            # Reduzir para episódios menores
+    'total_timesteps': 500_000  # Aumentar para melhor generalização
+}
+```
+
+#### 5.3.4. Monitorar Progresso
+
+**Checklist de Treinamento (Snapshot Atual):**
+
+```bash
+# Status em terminal
+python scripts/check_training_progress.py
+```
+
+**Dashboard em Tempo Real:**
+
+```bash
+# Visualização contínua (refresca a cada 10s)
+python scripts/ppo_training_dashboard.py
+```
+
+**Logs Detalhados:**
+
+Todos os logs salvos em `logs/ppo_training/training_YYYYMMDD_HHMMSS.log`:
+
+```bash
+# Ver últimas 50 linhas
+tail -50 logs/ppo_training/training_*.log
+
+# Grep por erros
+grep ERROR logs/ppo_training/training_*.log
+
+# Grep por warnings
+grep WARNING logs/ppo_training/training_*.log
+```
+
+#### 5.3.5. Safety Checks (Pré-Início Obrigatório)
+
+Antes de iniciar, o trainer valida 9 pontos críticos:
+
+1. ✅ Configuração PPO (11 hiperparâmetros carregados)
+2. ✅ Símbolo válido (contra config/symbols.py)
+3. ✅ Dados disponíveis (parquet em backtest/cache/)
+4. ✅ BacktestEnvironment funcional
+5. ✅ ParquetCache funcional (acesso a histórico)
+6. ✅ PPOStrategy imports OK
+7. ✅ Diretórios de saída existem (checkpoints/, logs/)
+8. ✅ Estrutura do agent completa
+9. ✅ Extensões carregadas
+
+**Se qualquer validação falhar, treinamento é bloqueado com mensagem clara.**
+
+#### 5.3.6. Troubleshooting PPO Training
+
+**Erro: "No module named 'config'"**
+
+```bash
+# Certificar que está no diretório correto
+cd c:\repo\crypto-futures-agent
+python scripts/start_ppo_training.py --dry-run
+```
+
+**Erro: "Parquet file not found"**
+
+Garantir que dados foram baixados via `--setup`:
+
+```bash
+# Verificar dados disponíveis
+python -c "
+from pathlib import Path
+for p in Path('backtest/cache').glob('*_4h.parquet'):
+    size = p.stat().st_size / (1024*1024)
+    print(f'{p.name}: {size:.2f}MB')
+"
+
+# Se vazio, executar setup
+python main.py --setup
+```
+
+**Verificar Integridade da Infraestrutura:**
+
+```bash
+python scripts/preflight_validation.py
+```
+
+**Duração Expected:**
+
+- **CPU**: 6-12 horas (500k timesteps)
+- **GPU**: 2-4 horas (com CUDA)
+
+**Modelos Salvos:**
+
+- `checkpoints/ppo_training/model_*.pkl` (weights)
+- `checkpoints/ppo_training/vecnorm_*.pkl` (normalizadores)
+- `checkpoints/ppo_training/*.json` (metadados)
+
+**Status Phase 4:** ✅ READY FOR TRAINING (22 FEV 14:00 UTC)
 
 ### 5.4. Backtest
 
