@@ -50,7 +50,46 @@
 
 ---
 
-## � Matriz de Critérios — Sprint 2-3 (Backtesting)
+## 📊 Matriz de Critérios — Sprint 2-3 (Data + Backtesting)
+
+### S2-0 — Data Strategy (1Y × 60 Symbols) {#s2-0}
+
+**Supervisor:** Audit (#8) — QA Lead & Documentation Officer  
+**Referência completa:** [DATA_STRATEGY_QA_GATES_S2_0.md](DATA_STRATEGY_QA_GATES_S2_0.md)
+
+#### Gate 1: Dados & Integridade
+
+| Critério                                | Como validar                          | Evidência       | Automatizado? | Status |
+|-----------------------------------------|---------------------------------------|-----------------|---------------|--------|
+| 60 símbolos carregados                  | `klines_cache_manager.py fetch-all` + count | `SELECT COUNT(DISTINCT symbol)` = 60 | ✅ Sim | 🟡 |
+| Sem gaps (integridade)                  | `klines_cache_manager.py validate-gaps` | Log: "0 gaps detected" | ✅ Sim | 🟡 |
+| Sem duplicatas                          | `klines_cache_manager.py validate-duplicates` | Log: "0 duplicates" | ✅ Sim | 🟡 |
+| Preços válidos                          | `klines_cache_manager.py validate-prices` | Log: "All prices ≥ 0.00001" | ✅ Sim | 🟡 |
+| Cache read < 100ms                      | `time klines_cache_manager.py query-symbol BTCUSDT` | Tempo: 42-98 ms | ✅ Sim | 🟡 |
+| 1 ano de dados                          | `SELECT MAX(timestamp) - MIN(timestamp)` | Diferença ≥ 360 dias | ✅ Sim | 🟡 |
+| Tamanho SQLite ~650 KB                  | `ls -lh db/klines_cache.db` | ~650 KB (±100 KB) | ✅ Sim | 🟡 |
+
+#### Gate 2: Qualidade & Testes
+
+| Critério                                  | Como validar                          | Evidência       | Automatizado? | Status |
+|-------------------------------------------|---------------------------------------|-----------------|---------------|--------|
+| 5 testes PASS (unit + integration)        | `pytest tests/data/test_klines_*.py -v` | `5 passed`      | ✅ Sim        | 🟡 |
+| Cobertura ≥ 80% (`data/`)                 | `pytest --cov=data --cov-report=html` | Relatório: 80%+ | ✅ Sim        | 🟡 |
+| Sem regressions Sprint 1 (70 testes)      | `pytest tests/ -v`                    | 70 PASS         | ✅ Sim        | 🟡 |
+| Docstrings (100% classes/funções PT)      | Code review `data/scripts/*.py`       | ✓ Revisado      | ❌ Manual     | 🟡 |
+| README.md (`data/`)                       | Arquivo exists, ≥ 300 palavras        | ✓ Arquivo OK    | ❌ Manual     | 🟡 |
+| Sem warnings pylint                       | `pylint data/scripts/klines_cache_manager.py` | Score ≥ 8.0 | ✅ Sim | 🟡 |
+
+**Matriz de Responsabilidades (S2-0):**
+
+| Gate | Validador | Owner | Sign-Off |
+|------|-----------|-------|----------|
+| Gate 1 (Dados) | Data Engineer (#11) | Data Engineer (#11) | Angel (#1) |
+| Gate 2 (Qualidade) | QA Lead (#8) | QA Lead (#8) | Angel (#1) |
+
+**Critério de Pronto:** Ambos Gates ✅ + 6 itens doc ✅ → 🟢 GO → Desbloqueia S2-3
+
+---
 
 ### S2-3 — Backtesting Engine {#s2-3}
 

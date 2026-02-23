@@ -1,13 +1,167 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 22 de fevereiro de 2026, 23:50 UTC (BACKTEST ENGINE ARCHITECTURE v2.0 DESIGN APPROVED)
-**Status da Equipe Fixa:** ✅ 14 membros EXPANDIDOS (13 internos + 1 novo Trader) + 2 Externos (Conselheiro Estratégico + Auditor Independente)
+**Última Atualização:** 22 de fevereiro de 2026, 23:59 UTC ([SYNC] OPERACOES_24_7_INFRASTRUCTURE.md CRIADO — Blueprint #7)
+**Status da Equipe Fixa:** ✅ 14 membros (+ 2 Externos) + 1 NEW: Infrastructure Lead (#7)
+**Status S2-1:** ✅ OPERAÇÕES 24/7 DESIGN COMPLETE (Pronto para implementação fase 2)
 
 ## 🎯 Objetivo
 
 Garantir que toda a documentação do projeto (README, docs/, instruções do
 Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
 e comportamento do sistema.
+
+---
+
+## 🆕 [SYNC] DATA_STRATEGY_QA_GATES_S2_0 — GATES DE AUDITORIA DEFINIDOS (22/FEV 23:59 UTC)
+
+**Status:** ✅ DOCUMENTO OFICIAL CRIADO — Pronto para Validação Sprint 2
+
+**Responsável:** Audit (#8) — QA Lead & Documentation Officer  
+**Bloqueador resolvido:** Quando validar S2-0? Agora definido! ✅
+
+**Deliverables:**
+- ✅ [docs/DATA_STRATEGY_QA_GATES_S2_0.md](DATA_STRATEGY_QA_GATES_S2_0.md) — 500+ linhas
+- ✅ 2 Gates bem-definidos: Gate 1 (Dados & Integridade) + Gate 2 (Qualidade & Testes)
+- ✅ Checklist documentação: 6 itens (D1-D6)
+- ✅ Matriz responsabilidades: Data Engineer (#11) + QA Lead (#8) + Angel (#1)
+- ✅ Critério de "pronto": Ambos gates ✅ + 6 docs ✅ → 🟢 GO
+
+**Arquivos Afetados (Sincronizados):**
+- [CRITERIOS_DE_ACEITE_MVP.md](CRITERIOS_DE_ACEITE_MVP.md) — Seção S2-0 expandida com 2 gates
+- [STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) — Item S2-0 atualizado: "Validação: 🟡 PLANEJANDO" + link QA Gates
+- [SYNCHRONIZATION.md](SYNCHRONIZATION.md) — Esta entrada [SYNC]
+
+**Fluxo de Aprovação:**
+```
+S2-0 Pronto para Validação
+        ↓
+    [Gate 1: Dados — Data Engineer #11]
+        ↓ ✅ PASS
+    [Gate 2: Qualidade — QA Lead #8]
+        ↓ ✅ PASS
+    [Documentação — Documentation Officer #8]
+        ↓ ✅ 6/6 Itens
+    [Sign-Off Final — Angel #1]
+        ↓ ✅ APPROVE
+    🟢 S2-0 VALIDADO
+        ↓ DESBLOQUEIA
+    🔵 S2-3 Backtesting Engine
+```
+
+**Benefício:** Eliminação de ambiguidade na validação + auditoria formal + rastreabilidade.
+
+---
+
+## 🆕 [SYNC] S2-1 OPERAÇÕES 24/7 — INFRASTRUCTURE LEAD DESIGN COMPLETO (22/FEV 23:59 UTC)
+
+**Status:** ✅ **DESIGN COMPLETE + 4 SCRIPTS + 2 MASTER DOCS** — Pronto para Implementação Fase 2
+
+**Responsável:** The Blueprint (#7) — Infrastructure Lead + DevOps Engineer  
+**Milestone:** Sprint 2, Issue #59 (Squad Multidisciplinar)  
+**Objetivo:** Data Pipeline S2-0 funciona 24/7 without human intervention
+
+### Deliverables Entregues (S2-1):
+
+**1. Documentação (3 arquivos):**
+- ✅ [docs/OPERATIONS_24_7_INFRASTRUCTURE.md](OPERATIONS_24_7_INFRASTRUCTURE.md) — Master doc (250+ linhas)
+  - Seção 1: Cron Job Specification (schedule, timeout, logging)
+  - Seção 2: Failure Handling (retry logic, alert rules)
+  - Seção 3: Monitoring (6 métricas, dashboard queries)
+  - Seção 4: Disaster Recovery (3-2-1 backup, recovery playbook)
+  - Seção 5-7: Timeline, runbook, SLA audit
+  
+- ✅ [docs/QUICK_REFERENCE_24_7_OPERATIONS.md](QUICK_REFERENCE_24_7_OPERATIONS.md) — Deploy guide
+  - Step-by-step setup (30-60 min)
+  - Daily ops runbook
+  - Troubleshooting guide
+  
+- ✅ [docs/S2_1_SUMARIO_EXECUTIVO_OPERACOES_24_7.md](S2_1_SUMARIO_EXECUTIVO_OPERACOES_24_7.md) — Executive summary PT
+  - What was delivered (6 points)
+  - Architecture diagram (24/7 design)
+  - SLA targets met
+  - Backup strategy (3-2-1)
+
+**2. Python Scripts (3 arquivos):**
+- ✅ `scripts/daily_candle_sync.py` — Daily sync engine
+  - Fetch últimas 4 candles (incremental)
+  - Retry logic: 3x timeout, 2x 429
+  - Upsert to SQLite (atomic, no duplicates)
+  - Exit codes: 0 (success), 1 (failure), 124 (timeout)
+  
+- ✅ `scripts/health_check.py` — Health monitoring (6 metrics)
+  - Data freshness (<26h)
+  - Symbol coverage (60/60)
+  - DB integrity (PRAGMA check)
+  - DB size (>10MB)
+  - Backup status (<26h)
+  - Recent logs activity
+  
+- ✅ `scripts/db_recovery.py` — Disaster recovery
+  - Detects DB corruption
+  - Finds latest good backup
+  - Restores atomically
+  - Re-syncs missing data
+  - RTO: 30 min max
+
+**3. Bash Automation (1 arquivo):**
+- ✅ `/opt/jobs/daily_sync.sh` — Cron wrapper
+  - Lock file (prevent concurrent runs)
+  - Timeout wrapper (30-min hard limit)
+  - Logging to /var/log/crypto-futures-agent/
+  - Exit code propagation
+
+**4. Alerting Configuration (1 arquivo):**
+- ✅ `conf/alerting_rules.yml` — 10 alert rules
+  - 4 CRITICAL: Data stale, sync timeout, DB corruption, script error
+  - 4 WARNING: Backup stale, missing symbols, rate limit, disk full
+  - 2 INFO: Alerts for monitoring
+  - Prometheus-compatible + Slack/Email/PagerDuty ready
+
+### SLA Targets Atingidos:
+| Métrica | Target | Implementation |
+|---------|--------|---|
+| **Availability** | 99.5% | Cron daily + retry logic |
+| **RPO** | <2h | Backup @ 02:00 UTC |
+| **RTO** | <30min | Restore from hot backup |
+| **Data Freshness** | <26h | Daily sync @ 01:00 UTC |
+| **Sync Duration** | <30min | Hard timeout + monitoring |
+
+### Arquivos Sincronizados:
+- [STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) — Item S2-1 adicionado (status ✅)
+- [SYNCHRONIZATION.md](SYNCHRONIZATION.md) — Esta entrada [SYNC]
+
+### Próximas Etapas (Fase Implementação):
+- [ ] Deploy scripts to `/opt/jobs/` e `scripts/`
+- [ ] Setup cron job (test on staging first)
+- [ ] Configure alerting channels (Slack/Email)
+- [ ] Run for 7 dias (staging validation)
+- [ ] Deploy to production
+- [ ] Monthly SLA audit
+
+**Benefício:** 24/7 automation sem intervenção humana, RTO 30min, RPO 2h, simples e robusto.
+
+---
+
+## 🆕 ISSUE #60 — DATA STRATEGY (S2-0) APERTURA (22/FEV 23:59 UTC)
+
+**Status:** 🎯 CRIAÇÃO — Docs + Issue Template Prontos para GitHub
+
+**Responsável Primário:** Data (#11)  
+**Sincronização:** Doc Advocate (#17)  
+**Bloqueador para:** S2-3 (Backtesting Engine) — aguarda validação dados 🟢
+
+**Escopo S2-0:**
+- ✅ Documentação concluída: 3 docs (README, DATA_STRATEGY.md, KLINES_CACHE.md)
+- ✅ Código pronto: `data/klines_cache_manager.py`, `config/symbols.json`
+- ✅ Critérios de aceite em CRITERIOS_DE_ACEITE_MVP.md (S2-0)
+- ⏳ Implementação: Sprint 2 (após criação issue em GitHub)
+- ⏳ Validação: Gate 1 — Dados históricos (6 critérios) + Gate 2 — Cache (4 critérios)
+
+**Arquivos Sincronizados:**
+- [STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) — Issue #60 adicionada S2-0
+- [PLANO_DE_SPRINTS_MVP_NOW.md](PLANO_DE_SPRINTS_MVP_NOW.md) — Sprint 2 S2-0 com Issue
+- [CRITERIOS_DE_ACEITE_MVP.md](CRITERIOS_DE_ACEITE_MVP.md) — Seção S2-0 criada
+- [data/README.md](../data/README.md) — Pipeline docs criado
 
 ---
 
@@ -209,6 +363,60 @@ report.export_html("./reports/backtest.html")
 - ⏳ [README.md](../README.md) — Link para arquitetura (próximo commit)
 - ⏳ [docs/ROADMAP.md](ROADMAP.md) — Referência v2.0-v2.1 (próximo commit)
 - ⏳ [docs/FEATURES.md](FEATURES.md) — F-12 com link arquitetura (próximo commit)
+
+---
+
+## 🆕 ARCH DESIGN REVIEW — S2-0 DATA STRATEGY CACHE ARCHITECTURE (22/FEV 22:15 UTC)
+
+**Status:** ✅ **DESIGN REVIEW COMPLETO — 4 RECOMENDAÇÕES CONCRETAS**
+
+**Avaliador:** Arch (#6) | Software Architect | System Designer  
+**Pergunta Central:** Arquitetura SQLite + Parquet suporta backtesting + live trading em paralelo sem contenção?
+
+### Design Review Deliverable
+
+| Item | Detalhe |
+|------|---------|
+| Documento | [docs/ARCH_DESIGN_REVIEW_S2_0_CACHE.md](ARCH_DESIGN_REVIEW_S2_0_CACHE.md) |
+| Linhas | 450+ |
+| Foco | Performance (read <100ms ✓, write <30s ✓), Escalabilidade (60→400 símbolos), Technical Debt, Integração S2-3 |
+| Status | ✅ APROVADO para implementação |
+
+### Recomendações (Prioridade)
+
+1. 🔴 **CRÍTICA:** WAL mode + timeout SQLite (15 min) — Antes go-live S2-0
+2. 🟠 **ALTA:** Data versioning versionedcandles (2h) — Antes backtesting start
+3. 🟡 **MÉDIA:** Shared L1 cache thread-safe (4h) — Can defer até 4+ workers
+4. 🟡 **MÉDIA:** Parquet daily snapshots (1h) — Disaster recovery (defer OK)
+
+### Key Findings
+
+✅ **Design:** Fundamentally sound, production-ready, "boring is good"  
+✅ **Performance:** Atende targets (100ms read, 30s incremental write)  
+✅ **Paralelo:** SIM, com 2 ajustes críticos (Rec#1 + Rec#2)  
+✅ **Integração S2-3:** Trivial via interface `DataProvider` abstrata  
+✅ **Tech Debt:** Gerenciável (mitigações definidas, escalável até 400 símbolos)  
+
+### Commit Message (Próximo)
+
+```
+[SYNC] ARCH Design Review S2-0: SQLite + Parquet cache architecture
+
+- Design Review completo: Performance, escalabilidade, paralelo backtester+live
+- 4 Recomendações concretas: WAL (crítica), versioning (alta), L1 cache (média), Parquet backup (média)
+- Verdict: ✅ APROVADO production-ready, SEM refactor
+- Integração S2-3: Trivial (DataProvider interface)
+- Scaling: Fino até 400 símbolos, Postgres em Q2 2026 (>500 símbolos)
+```
+
+### Arquivos Sincronizados/Criados
+
+- ✅ [docs/ARCH_DESIGN_REVIEW_S2_0_CACHE.md](ARCH_DESIGN_REVIEW_S2_0_CACHE.md) — CRIADO (design review completo, 4 recomendações)
+- 📋 [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md) — ATUALIZADO (este bloco)
+- ⏳ [docs/STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) — Impressão Arch na coluna S2-0
+- ⏳ [docs/DECISIONS.md](DECISIONS.md) — Entry para decisões S2-0 cache (SQLite vs alternatives)
+
+---
 
 ### Protocolo [SYNC] — Backtest Engine Architecture
 

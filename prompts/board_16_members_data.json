@@ -558,5 +558,177 @@
       "campo_progresso_now": "Progresso NOW: <X concluidos de Y itens>"
     },
     "sync_trigger_prompt": "Sincronize os docs oficiais do projeto. Para cada arquivo em official_docs: (1) verifique se a seção Links Rápidos existe e está completa conforme a matriz cross_links; (2) atualize docs/STATUS_ENTREGAS.md com o status atual dos itens NOW do ROADMAP (Sprint, Issue, PR, Evidência, Status); (3) atualize o bloco Execução / Visibilidade em docs/ROADMAP.md com sprint atual, data de hoje e progresso NOW contando itens concluídos/total; (4) registre o sync em docs/SYNCHRONIZATION.md com tag [SYNC] e timestamp. Mantenha todo o conteúdo em Português."
+  },
+  "gates_s2_0": {
+    "version": "1.0.0",
+    "descricao": "QA Gates oficiais para S2-0 (Data Strategy 1Y × 60 Symbols)",
+    "referencia_documento": "docs/DATA_STRATEGY_QA_GATES_S2_0.md",
+    "status": "🟡 PLANEJANDO → 🟢 VALIDAÇÃO pronta",
+    "gates": {
+      "gate_1": {
+        "nome": "Dados & Integridade",
+        "complexidade": "🟢 Simples",
+        "duracao_min": 5,
+        "duracao_setup_min": 15,
+        "validador_principal": {
+          "id": 11,
+          "nome": "Data",
+          "papel": "Data Engineer — Binance Integration Lead"
+        },
+        "validador_secundario": {
+          "id": 6,
+          "nome": "Arch",
+          "papel": "Arquiteto (spot-check performance + design)"
+        },
+        "escalation": {
+          "id": 4,
+          "nome": "Dr. Risk",
+          "condicao": "Se > 2 rejeições"
+        },
+        "sign_off": {
+          "id": 1,
+          "nome": "Angel",
+          "condicao": "Aprovação final de Gate 1"
+        },
+        "criterios": [
+          "60 símbolos carregados",
+          "Sem gaps (integridade)",
+          "Sem duplicatas",
+          "Preços válidos",
+          "Cache read < 100ms",
+          "1 ano de dados",
+          "Tamanho SQLite ~650 KB"
+        ],
+        "automacao": "✅ 100% (CLI + validadores)"
+      },
+      "gate_2": {
+        "nome": "Qualidade & Testes",
+        "complexidade": "🟠 Moderado",
+        "duracao_min": 10,
+        "duracao_review_min": 15,
+        "validador_principal": {
+          "id": 8,
+          "nome": "Audit",
+          "papel": "QA Lead & Documentation Officer"
+        },
+        "validador_secundario": {
+          "id": 6,
+          "nome": "Arch",
+          "papel": "Arquiteto (validação qualidade code)"
+        },
+        "escalation": {
+          "id": 5,
+          "nome": "Guardian",
+          "condicao": "Se > 1 rejeição (cobertura crítica)"
+        },
+        "sign_off": {
+          "id": 1,
+          "nome": "Angel",
+          "condicao": "Aprovação final de Gate 2"
+        },
+        "criterios": [
+          "5 testes PASS (unit + integration)",
+          "Cobertura ≥ 80% (data/)",
+          "Sem regressions Sprint 1 (70 testes)",
+          "Docstrings 100% (PT)",
+          "README.md (data/)",
+          "Sem warnings pylint"
+        ],
+        "automacao": "✅ 80% (pytest + coverage); ❌ 20% (manual review)"
+      },
+      "documentacao": {
+        "nome": "Checklist Documentação",
+        "duração": "10 min",
+        "owner": {
+          "id": 8,
+          "nome": "Audit",
+          "papel": "Documentation Officer"
+        },
+        "items": [
+          {
+            "id": "D1",
+            "descricao": "Docstrings em classes/funções",
+            "arquivo": "data/scripts/klines_cache_manager.py",
+            "criterio": "100% cobertura em PT"
+          },
+          {
+            "id": "D2",
+            "descricao": "README.md (data/)",
+            "arquivo": "data/README.md",
+            "criterio": "≥ 300 palavras, setup + troubleshooting"
+          },
+          {
+            "id": "D3",
+            "descricao": "CRITERIOS atualizado",
+            "arquivo": "docs/CRITERIOS_DE_ACEITE_MVP.md",
+            "criterio": "Seção S2-0 com Gates 1-2"
+          },
+          {
+            "id": "D4",
+            "descricao": "Trade-offs documentados",
+            "arquivo": "docs/DECISIONS.md",
+            "criterio": "Seção S2-0: Cache Strategy"
+          },
+          {
+            "id": "D5",
+            "descricao": "Sync registry",
+            "arquivo": "docs/SYNCHRONIZATION.md",
+            "criterio": "Entry [SYNC] S2-0 criada"
+          },
+          {
+            "id": "D6",
+            "descricao": "Status atualizado",
+            "arquivo": "docs/STATUS_ENTREGAS.md",
+            "criterio": "Item S2-0 marcado 🟢 VALIDADO"
+          }
+        ]
+      },
+      "aprovacao_final": {
+        "nome": "Sign-Off Final",
+        "owner": {
+          "id": 1,
+          "nome": "Angel",
+          "papel": "Executive Leader | Final Authority"
+        },
+        "condicoes": [
+          "Gate 1 ✅ assinado por Data Engineer (#11)",
+          "Gate 2 ✅ assinado por QA Lead (#8)",
+          "Documentação ✅ 6/6 itens completos",
+          "Sem riscos abertos (escalations resolvidas)"
+        ],
+        "resultado": "🟢 GO → Desbloqueia S2-3 (Backtesting)"
+      }
+    },
+    "fluxo_aprovacao": {
+      "passo_1": "S2-0 Pronto para Validação",
+      "passo_2": "[Gate 1: Dados — Data Engineer #11]",
+      "passo_3": "[Gate 2: Qualidade — QA Lead #8]",
+      "passo_4": "[Documentação — Documentation Officer #8]",
+      "passo_5": "[Sign-Off Final — Angel #1]",
+      "resultado": "🟢 S2-0 VALIDADO → 🔵 S2-3 DESBLOQUEADO"
+    },
+    "timeline_esperada": {
+      "setup_inicial": {
+        "duracao_min": 20,
+        "owner": 11
+      },
+      "gate_1_validacao": {
+        "duracao_min": 10,
+        "owner": 11
+      },
+      "gate_2_testes": {
+        "duracao_min": 15,
+        "owner": 8
+      },
+      "documentacao_review": {
+        "duracao_min": 15,
+        "owner": 8
+      },
+      "sign_off_final": {
+        "duracao_min": 5,
+        "owner": 1
+      },
+      "total_min": 65
+    }
   }
 }

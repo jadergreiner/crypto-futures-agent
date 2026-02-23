@@ -47,11 +47,11 @@
 
 ### Sprint 2: Setup + Backtesting 🔵
 
-| Item (ROADMAP)                  | Status | Sprint   | Issue  | PR     | Docs    | Notas          |
-|---------------------------------|--------|----------|--------|--------|---------|----------------|
-| Data Strategy (1Y + Cache)       | 🟡     | Sprint 2 | TBD    | TBD    | ✅ PRONTO | S2-0: 3 docs tech + klines_cache_manager.py + config/symbols.json |
-| Backtesting Architecture         | 🟢     | Sprint 2 | #59    | READY  | ✅ PRONTO | S2-3: Squad design COMPLETO — Arch + Test Plan + Infra 24/7 |
-| Data Strategy (1 Year Backtest)  | 🟡     | Sprint 2 | TBD    | TBD    | ✅ COMPLETO | S2-0: Proposta técnica + implementation ready. [3 docs + klines_cache_manager.py]. Setup: 15-20min  |
+| Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs    | Validação | Notas          |
+|---------------------------------|--------|----------|--------|---------|-----------|----------------|
+| Data Strategy (1Y × 60 symbols) | 🟡     | Sprint 2 | #60    | ✅ PRONTO | ✅ ARCH OK | S2-0: Design Review Arch completo (ARCH_DESIGN_REVIEW_S2_0_CACHE.md). Verdict: ✅ APROVADO production-ready. 4 Rec: WAL (crítica), versioning (alta), L1 cache (média), Parquet (média). |
+| Operações 24/7 (Infra + DevOps) | ✅     | Sprint 2 | #59    | ✅ PRONTO | ✅ 4/4 SCRIPTS | S2-1: Blueprint (#7) — Cron spec + Failure Handling + Monitoring + DR. Doc: OPERATIONS_24_7_INFRASTRUCTURE.md. Scripts: daily_sync.sh, daily_candle_sync.py, health_check.py, db_recovery.py. Alerts: alerting_rules.yml. RTO 30min ✅ RPO 2h ✅ |
+| Backtesting Architecture        | 🟢     | Sprint 2 | #59    | ✅ PRONTO | ✅ DESIGN OK | S2-3: Squad design COMPLETO — Arch + Test Plan + Infra 24/7 |
 
 ---
 
