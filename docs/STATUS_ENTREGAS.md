@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 23:58 UTC (Issue #59 Criada: Squad Multidisciplinar — Arch + Brain + Data + Quality + Audit + Blueprint + DocAdvocate. Design + Testes + Infra 24/7 + Docs = COMPLETO)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 PLANEJANDO (S2-0 Data + S2-3 Backtesting)
+**Última atualização:** 2026-02-22 23:59 UTC (Issue #60 S2-0 Data Strategy COMPLETO: Pipeline 1Y + 60 símbolos + Arch Review ✅ + 26 testes + Operações 24/7 Spec.)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 EM EXECUÇÃO (S2-0 Data ✅ DESIGN + S2-3 Backtesting Pronto)
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em

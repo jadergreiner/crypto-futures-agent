@@ -23,11 +23,11 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 ### 📈 PRÓXIMO (Next) - Inteligência e Performance 🔵 EM PLANEJAMENTO (Sprint 2)
 *Foco: Backtesting + SMC + Risco Dinâmico. Bloqueio: S2-3 valida SMC antes do Go-Live*
-- [ ] **Data Strategy (1Y):** [S2-0] Dados históricos Binance + cache inteligente (#TBD)
-- [ ] **Sistema de Backtesting:** [S2-3] Engine production-ready (#59 Design ✅ Pronto, Impl. Sprint 2-3)
-- [ ] **Motor de Estratégia SMC:** [S2-1/S2-2] Order Blocks + BoS (Depende: S2-3 ✅)
-- [ ] **Gestão Dinâmica de Risco:** [S2-4] Trailing Stop Loss + ATR-based leverage (#TBD)
-- [ ] **Alertas Externos:** [S2-5] Telegram notifications (#TBD)
+- [x] **Data Strategy (1Y):** [S2-0] #60 Design ✅ COMPLETO — Pipeline 1Y validado
+- [ ] **Sistema de Backtesting:** [S2-3] #59 Design ✅ PRONTO, implementação Sprint 2-3
+- [ ] **Motor de Estratégia SMC:** [S2-1/S2-2] Order Blocks + BoS (Bloqueador: S2-3)
+- [ ] **Gestão Dinâmica de Risco:** [S2-4] Trailing Stop Loss (Independente)
+- [ ] **Alertas Externos:** [S2-5] Telegram (Bloqueador: SMC)
 
 ### 🌌 DEPOIS (Later) - Escala e Autonomia
 *Foco: Machine Learning e Descentralização*
@@ -49,10 +49,10 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 > Bloco mantido pelo Copilot via `docs_sync_policy`. Não editar manualmente.
 
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 PLANEJANDO S2-0 + S2-3
-**Última atualização:** 2026-02-22 23:58 UTC
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 EM EXECUÇÃO (S2-0 Design ✅ + S2-3 Pronto)
+**Última atualização:** 2026-02-22 23:59 UTC
 **Progresso NOW:** 4/4 itens 100% completo ✅
-**Progresso NEXT:** S2-3 Design ✅ PRONTO (Issue #59 — Squad Multidisciplinar), implementação Sprint 2-3
+**Progresso NEXT:** S2-0 Design ✅ COMPLETO (#60), S2-3 Design ✅ PRONTO (#59). Implementação Squad Sprint 2-3.
 
 | Documento                | Link                                           |
 |--------------------------|------------------------------------------------|
