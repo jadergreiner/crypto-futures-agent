@@ -3,7 +3,7 @@
     "name": "Crypto Futures Agent",
     "version": "v1.0-alpha",
     "status": "🔴 CRÍTICO — Phase 2 LIVE com Risco Alto (Circuit Breaker DISPARADO)",
-    "updated": "2026-02-23T02:31:18.586316",
+    "updated": "2026-02-23T02:37:31.214664",
     "description": "22 FEV 02:05 Brasil: GO-LIVE PHASE 2 em operação via iniciar_phase2_risco_alto.bat. Drawdown -46.61%, 20 posições abertas, Circuit Breaker DISPARADO. Requer dupla confirmação operador. CRÍTICO: Necessária ação imediata."
   },
   "status_cards": [
@@ -83,9 +83,9 @@
     {
       "id": 2,
       "title": "Drawdown Extremo: -46.61%",
-      "status": "critical",
+      "status": "pending",
       "description": "CRÍTICO: Drawdown 43.61% acima do limite de segurança (-5%). Circuit Breaker DISPARADO automaticamente.",
-      "date": "22 FEV 2026"
+      "date": "22 FEV 2026 23:45 UTC"
     },
     {
       "id": 3,
