@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-23 20:30 UTC ([SYNC] S2-4 Integração TSL com OrderExecutor COMPLETO ✅ — 50+/50+ testes PASS)
+**Última atualização:** 2026-02-23 20:35 UTC ([SYNC] Issue #65 Kickoff CRÍTICA + Timeline Paralela #64 + TASK-005 Mitigação)
 **Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ **ISSUE #63 DELIVERED 23 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -60,11 +60,11 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | SMC Strategy (F-12)              | ✅     | Sprint 2 | #63    | SPEC ✅ | ✅ 28/28 PASS | S2-1/S2-2: Issue #63 COMPLETO 23 FEV. Bloqueadores resolvidos: (1) Volume threshold com SMA(20) ✅ (2) Order blocks integrado em _validate_smc() ✅ (3) Edge cases (gaps, ranging, low-liq) ✅. Tests: 28 unitários + integração 100% PASS. Coverage: 85%+. ETA original 24 FEV 20:00, ENTREGUE 23 FEV 16:00. **🟢 DESBLOQUEIA Issue #65 + TASK-005 PPO agora**. |
-| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #65    | SPEC ✅ | ⏳ READY (await #63) | S2-1/S2-2 QA: Issue #65 pronto. Depende: Issue #63 ✅ COMPLETO. Start ETA: 24 FEV 10:00 UTC. E2E testes com SMC + heuristic_signals. |
-| Trailing Stop Loss (S2-4)        | �     | Sprint 2 | #61    | ✅ SPEC+ARCH | 50+/50+ PASS | [S2-4] 23 FEV — INTEGRAÇÃO ✅. TrailingStopManager integrado em order_executor.py. Code duplicado removido de position_monitor.py. evaluate_trailing_stop() adicionado ao executor. Tests: 34 + 16 novos = 50+ PASS. Pronto para testnet + Issue #65. |
+| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #65    | SPEC ✅ | 🔴 **KICKOFF AGORA** | [S2-1/S2-2 QA CRÍTICA] 23 FEV 20:30 KICKOFF. Squad: Arch (#6) + Audit (#8). E2E: signal gen → exec → gates. Duração: 14h. Deadline: 24 FEV 10:00. Desbloqueia TASK-005 + Issue #64. |
+| Trailing Stop Loss (S2-4)        | ✅     | Sprint 2 | #61    | ✅ SPEC+ARCH | 50+/50+ PASS | [S2-4] 23 FEV — INTEGRAÇÃO ✅. TrailingStopManager integrado em order_executor.py. Code duplicado removido de position_monitor.py. evaluate_trailing_stop() adicionado ao executor. Tests: 34 + 16 novos = 50+ PASS. Pronto para testnet + Issue #65. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
-| Telegram Alerts (S2-5)          | 🔴     | Sprint 2-3 | #64    | SPEC ✅ | ⏳ PENDING | S2-5 Notificações: Issue #64 criada (PENDING). Depende: Issue #63 ✅ completo. TelegramNotifier + signal_alert(). ETA: 25-26 FEV (pós-SMC live). |
-| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 ✅ SMC signals para treino — DESBLOQUEADO 23 FEV. |
+| Telegram Alerts (S2-5)          | �     | Sprint 2-3 | #64    | SPEC ✅ | 🟡 KICK-OFF ~24 FEV | [S2-5 Parallelizable] Setup pode iniciar pós #65 spec (~1h). Squad: Dev + Doc Advocate. Depende: Issue #65 arquitetura ✅. Timeline: 24-25 FEV (overlap TASK-005). |
+| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63+#65 ✅ SMC signals OK — DESBLOQUEADO. Mitigação: #65 deve fechar 24 FEV 10:00 ⚡. |
 
 ---
 
@@ -72,7 +72,7 @@
 
 | Risco / Bloqueio | Impacto | Mitigação | Responsável |
 |------------------|---------|-----------|-------------|
-| TASK-005 convergência Sharpe | 🔴 CRÍTICA | Daily standups, early stopping se Sharpe ≥1.0, deadline 25 FEV 10:00 | The Brain (#3) |
+| TASK-005 convergência Sharpe | 🔴 CRÍTICA | **#65 DEVE FECHAR 24 FEV 10:00 ⚡** Daily standups, early stopping Sharpe ≥1.0, deadline 25 FEV 10:00 | The Brain (#3) — Mitigação: #65 E2E + #64 parallelize |
 | Operações 24/7 monitoring | 🟡 MÉDIA | Alerting rules + health_check.py daily | The Blueprint (#7) |
 | ✅ **Issue #63 RESOLVIDO** | ✅ | Volume threshold + Order blocks integrado + 28 testes ✅ | Arch (#6) + Squad |
 | ✅ **S2-4 Integração RESOLVIDO** | ✅ | TrailingStopManager integrado + 50+ testes ✅ | Arch (#6) 23 FEV |

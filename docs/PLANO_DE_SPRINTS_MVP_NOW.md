@@ -1,8 +1,8 @@
 # 📅 Plano de Sprints — MVP (Now)
 
-**Versão:** 1.0.0
-**Sprint atual:** Sprint 2 — S2-1/S2-2 **KICKOFF SQUAD 22 FEV 14:30 UTC** 🚀
-**Última atualização:** 2026-02-22 14:30 UTC
+**Versão:** 1.0.1
+**Sprint atual:** Sprint 2 — S2-1/S2-2 ✅ + **S2-5 PARALLELIZABLE: #65 KICKOFF 23 FEV 20:30 + #64 SETUP 24 FEV**
+**Última atualização:** 2026-02-23 20:35 UTC — [SYNC] Issue #65 QA Timeline + Issue #64 Parallelização
 
 ---
 
@@ -54,10 +54,11 @@
 |----------------------------------|-------------|--------|--------|--------|
 | Data Strategy (1Y Binance)       | Data (#11)  | 🟡     | #60    | READY  |
 | Detecção de Order Blocks (SMC)   | Arch (#6)   | 🟢     | #63    | IN PP  |
-| Detecção de BoS (SMC)            | Arch (#6)   | 🟢     | #63    | IN PP  |
-| Engine de Backtesting (1 ano)    | Data (#11)  | 🟢     | #62    | MERGED |
-| Trailing Stop Loss               | Arch (#6)   | 🟡     | #61    | IN PP  |
-| Alertas Telegram                 | Dev         | 🔴     | #64    | PENDING|
+| Detecção de BoS (SMC)            | Arch (#6)   | ✅     | #63    | MERGED |
+| Engine de Backtesting (1 ano)    | Data (#11)  | ✅     | #62    | MERGED |
+| **Testes Integração SMC (E2E)**  | **Arch (#6) + Audit (#8)** | **🔴 KICKOFF AGORA** | **#65** | **23 FEV 20:30** |
+| Trailing Stop Loss (Integração)  | Arch (#6)   | ✅     | #61    | MERGED |
+| Alertas Telegram (Setup)         | Dev + Doc   | 🟡     | #64    | **24 FEV** |
 
 ---
 
