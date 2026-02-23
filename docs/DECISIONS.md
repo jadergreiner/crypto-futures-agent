@@ -391,6 +391,7 @@ Capacidade potencial: 200+ pares com Parquet
 | 2 | Backtesting S2-3 QA Gates | 22 FEV 22:50 | 🔵 DECISION MADE | Audit (#8) |
 | 3 | Machine Learning Strategy | 23 FEV | ⏳ AWAITING | Investidor |
 | 4 | Posições & Escalabilidade | 23 FEV | ⏳ AWAITING | Risk Mgr |
+| **9** | **Arquitetura SMC (F-12)** | **22 FEV 22:15** | **🔵 DECIDED** | **The Brain (#3)** |
 
 ---
 
@@ -441,4 +442,84 @@ Execution: 24 FEV 06:00-12:00 UTC
 - G4.4: SYNCHRONIZATION.md [SYNC] final — 0.5h
 
 Total: 2-3h parallelized
+
+---
+
+## 🔵 DECISÃO D-09 — ARQUITETURA SMC (F-12: ORDEM BLOCKS + BOS)
+
+**Data:** 22 FEV 22:15 UTC | **Owner:** The Brain (#3) | **Status:** 🔵 DECIDIDO
+
+**Contexto:** Issue #63 criada. Squad precisa arquitetura SMC clara antes implementação.
+
+### O Problema
+- Smart Money Concepts requer 2 componentes: **Order Blocks (OB)** + **Breakstruktur of Structure (BoS)**
+- OB difícil: Como detectar confluência de volume? Threshold-based? ML-based? Window size?
+- BoS difícil: Estrutura mínima válida? Quantos swings para confirmar tendência?
+- Impacto: Detecção ruim → false signals → TASK-005 PPO não converge
+
+### Opções Avaliadas
+
+#### **Opção A — Threshold-Based OB Detection (CHOSEN ✅)**
+- Procura por **spike de volume** > 1.5× média móvel (20 períodos), acima de resistência prévia
+- Identifica "blocos" onde smart money acumulou
+- **Prós:** Rápido, determinístico, testável, sem ML
+- **Contras:** Sensível a parâmetros
+- **Trade-off:** Implementar 3 presets (Conservative / Standard / Aggressive)
+- **Implementação:** `strategy/smc_strategy.py → detect_order_blocks(lookback=20, volume_threshold=1.5)`
+
+#### **Opção B — ML-Based OB Clustering (REJECTED ❌)**
+- Usar K-means clustering em (price, volume) space
+- **Prós:** Mais preciso
+- **Contras:** Lento, requer training, adds ML dependency (overkill para SMC simples)
+
+**Decisão:** **Opção A** — threshold-based, determinístico, maintível
+
+---
+
+#### **Opção C — Swing-Based BoS Detection (CHOSEN ✅)**
+- **Tendência ALTA:** Procura Higher Highs (HH) → quando rompido = BoS
+- **Tendência BAIXA:** Procura Lower Lows (LL) → quando rompido = BoS
+- Mínimo 2 swings para estrutura válida
+- Uma vez rompida, gera sinal **LONG** (HH rompido) ou **SHORT** (LL rompido)
+- **Implementação:** `strategy/smc_strategy.py → detect_bos(min_swings=2)`
+
+#### **Opção D — Fractal-Based BoS (REJECTED ❌)**
+- Usar fractals (Williams) para detectar turning points
+- Mais complexo, menos testado em SMC context
+
+**Decisão:** **Opção C** — swing-based, simples, robusto
+
+---
+
+### Trade-offs Implementação
+
+| Aspecto | Decisão | Impacto | Fallback |
+|---------|---------|---------|----------|
+| **OB Lookback** | 20 períodos | Menor lag, menos ruído | Ajustável em config |
+| **OB Volume Threshold** | 1.5× SMA | Balance acurácia/recall | 3 presets em config |
+| **BoS Min Swings** | 2 swings | Estrutura mínima válida | Pode aumentar para 3 |
+| **Parquet Cache para OB/BoS** | Não — calcular live | Low latency (<100ms) | Cache se performance crítica |
+| **Edge Case: Gaps** | Ignorar gaps noturnos | Simplificação | Treat como continuação |
+| **Edge Case: Ranging** | BoS invalid se range > 50% | Evita false signals | Disable BoS detection |
+
+### Documentação Requerida
+
+1. ✅ **Issue #63** — especificação completa (gates + test criteria)
+2. ✅ **Issue #65** — testes integração SMC ↔ Backtesting
+3. ✅ **DECISIONS.md (D-09)** — este documento
+4. ⏳ **backtest/README.md** — seção "SMC Signal Interpretation"
+5. ⏳ **`docs/CRITERIOS_DE_ACEITE_MVP.md`** — atualizar S2-1/S2-2
+
+### Sign-Off Required
+
+| Papel | Validação | Timeline |
+|-------|-----------|----------|
+| **The Brain (#3)** | SMC signal quality, BoS sensitivity | 23 FEV |
+| **Audit (#8)** | Gates 1-3 + test coverage | 23-24 FEV |
+| **Arch (#6)** | Performance impact (< 100ms detection) | 23 FEV |
+| **Doc Advocate (#17)** | Documentation completeness (Gate 4) | 24 FEV |
+
+### Status
+
+🔵 **DECISION MADE** — Aguardando PRs Issue #63
 
