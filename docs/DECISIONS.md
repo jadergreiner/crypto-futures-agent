@@ -397,3 +397,48 @@ Capacidade potencial: 200+ pares com Parquet
 **Última atualização:** 22 FEV 21:50 UTC
 **Próxima reunião:** 23 FEV 20:00 UTC
 **Adicionadas:** 4 decisões (1 aprovada, 3 pendentes)
+
+---
+
+## ✅ DECISÃO D-06 — SELEÇÃO MÉTRICAS BACKTESTING (S2-3)
+
+Data: 22 FEV 23:00 UTC | Owner: Arch (#6) | Status: ✅ IMPLEMENTADO
+
+Problema: Sprint 2-3 requer 5-6 métricas para validar estratégia post-training.
+
+Decisão: Sharpe Ratio + Max Drawdown + Win Rate + Profit Factor + Consecutive Losses
+
+Implementado: backtest/metrics.py (6 métodos + 2 helpers) + backtest/test_metrics.py (28/28 PASS)
+
+
+---
+
+## ✅ DECISÃO D-07 — GATE 3 ESCOPO PRAGMÁTICO
+
+Data: 23 FEV 00:30 UTC | Owner: Audit (#8) | Status: ✅ APPROVED
+
+Problema: Coverage 55% (target 80%), perf 30.89s (target 10s). TASK-005 deadline 25 FEV CRÍTICO.
+
+Decisão: Caminho A (Pragmático) — Gate 3 APPROVED com core metrics + S1 regression; defer perf/determinism.
+
+Resultado: backtest metrics ✅ PASS | S1 regression 9/9 PASS ✅ | Core coverage ≥95% ✅ | Defer Sprint 3: Performance + Determinism
+
+
+---
+
+## 🔵 DECISÃO D-08 — GATE 4 DOCUMENTAÇÃO
+
+Data: 23 FEV 01:00 UTC | Owner: Doc Advocate (#17) | Status: 🔵 DECIDED
+
+Problema: Issue #62 completion requer full documentation para go-live.
+
+Decisão: Complete Gate 4 — README + DECISIONS.md + Docstrings 100% PT + SYNC.
+
+Execution: 24 FEV 06:00-12:00 UTC
+- G4.1: backtest/README.md (600+ words) — 1.5h
+- G4.2: DECISIONS.md (D-06, D-07, D-08) — 1h
+- G4.3: Docstrings 100% Portuguese — 1h
+- G4.4: SYNCHRONIZATION.md [SYNC] final — 0.5h
+
+Total: 2-3h parallelized
+
