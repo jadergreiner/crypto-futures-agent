@@ -32,13 +32,13 @@ e comportamento do sistema.
    - Atual: Nenhum parâmetro volume_threshold
    - Impacto: Order Blocks detectados sem validação → false signals alto
    - Fix: Adicionar SMA(volume,20) calc + threshold validation
-   
+
 2. ORDER BLOCKS NÃO INTEGRADO:
    - Spec: heuristic_signals._validate_smc() deve chamar detect_order_blocks()
    - Atual: Apenas chamada BOS, sem order blocks
    - Impacto: Sinal SMC sem confluência ordem blocks
    - Fix: Chamar detect_order_blocks() em _validate_smc()
-   
+
 3. EDGE CASES NÃO TRATADOS:
    - Gaps noturnos: NÃO há validação
    - Ranging markets: NÃO valida se range > 50%
@@ -61,7 +61,7 @@ e comportamento do sistema.
    - Bloqueador: Nenhum arquivo em execution/ importa TrailingStopManager
    - Impacto: TSL calcula corretamente mas ordem não executa
    - Fix: Adicionar handler em order_executor.py
-   
+
 2. CODE DUPLICADO em position_monitor.py:
    - position_monitor.py linhas 1323-1330: TSL ATR-based próprio
    - risk/trailing_stop.py: TSL price-based novo

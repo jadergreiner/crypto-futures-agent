@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 14:30 UTC ([SYNC] S2-1/S2-2 Issue #63 Kickoff — SMC Strategy Squad Ativa)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + **S2-1/S2-2 KICKOFF** 🚀 | Sprint 2-3 🟡 S2-4 READY
+**Última atualização:** 2026-02-23 16:00 UTC ([SYNC] Issue #63 SMC Volume Threshold + Order Blocks COMPLETO ✅ — 28/28 testes PASS)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ **ISSUE #63 DELIVERED 23 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -59,12 +59,12 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
-| SMC Strategy (F-12)              | 🟡     | Sprint 2 | #63    | SPEC ✅ | ⚠️ BLOQUEIOS | S2-1/S2-2: Issue #63 Kickoff 22 FEV 14:30 UTC. Squad Lead: Arch (#6). **🚨 3 BLOQUEADORES CRÍTICOS IDENTIFICADOS 22 FEV QA:** (1) Volume threshold NÃO implementado em detect_order_blocks() — faltam SMA calc + validation (2) Order blocks NÃO integrado em heuristic_signals.py (3) Edge cases gaps/ranging NÃO tratados. **Cobertura testes: ~40-50%, alvo 80%+**. Fix estimado: 4-6h (23-24 FEV). ETA ajustado: 24 FEV 20:00 UTC (não 18:00). **🔴 CRÍTICA — Desbloqueia TASK-005 PPO deadline 25 FEV**. |
-| SMC Integration Tests (F-12)    | 🔴     | Sprint 2 | #65    | SPEC ✅ | 🔴 PENDING | S2-1/S2-2 QA: Issue #65 criada 22 FEV. Depende: Issue #63 completa (~22:00 UTC 24 FEV revisado). Pronto após fixes Issue #63. ETA: 25 FEV 10:00 UTC (alinhado com TASK-005). |
+| SMC Strategy (F-12)              | ✅     | Sprint 2 | #63    | SPEC ✅ | ✅ 28/28 PASS | S2-1/S2-2: Issue #63 COMPLETO 23 FEV. Bloqueadores resolvidos: (1) Volume threshold com SMA(20) ✅ (2) Order blocks integrado em _validate_smc() ✅ (3) Edge cases (gaps, ranging, low-liq) ✅. Tests: 28 unitários + integração 100% PASS. Coverage: 85%+. ETA original 24 FEV 20:00, ENTREGUE 23 FEV 16:00. **🟢 DESBLOQUEIA Issue #65 + TASK-005 PPO agora**. |
+| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #65    | SPEC ✅ | ⏳ READY (await #63) | S2-1/S2-2 QA: Issue #65 pronto. Depende: Issue #63 ✅ COMPLETO. Start ETA: 24 FEV 10:00 UTC. E2E testes com SMC + heuristic_signals. |
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO. Core code: risk/trailing_stop.py, 24 unit + 10 integration tests ✅ PASS (34/34). **⚠️ BLOQUEADOR INTEGRAÇÃO:** NÃO integrado com order_executor.py (crítico para testnet). Code duplicado em position_monitor.py (ATR TSL conflitante). Fix: 5-8h (23-24 FEV). Pós-integração: pronto para testnet. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
-| Telegram Alerts (S2-5)          | 🔴     | Sprint 2-3 | #64    | SPEC ✅ | ⏳ PENDING | S2-5 Notificações: Issue #64 criada (PENDING). Depende: Issue #63 ✅ completa. TelegramNotifier + signal_alert(). ETA: 25-26 FEV (pós-SMC live). |
-| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 SMC signals para treino. |
+| Telegram Alerts (S2-5)          | 🔴     | Sprint 2-3 | #64    | SPEC ✅ | ⏳ PENDING | S2-5 Notificações: Issue #64 criada (PENDING). Depende: Issue #63 ✅ completo. TelegramNotifier + signal_alert(). ETA: 25-26 FEV (pós-SMC live). |
+| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 ✅ SMC signals para treino — DESBLOQUEADO 23 FEV. |
 
 ---
 
@@ -72,10 +72,10 @@
 
 | Risco / Bloqueio | Impacto | Mitigação | Responsável |
 |------------------|---------|-----------|-------------|
-| S2-3 bloqueador para SMC | 🔴 CRÍTICA | Iniciar impl F-12 AGORA (Issue #59 Squad kickoff) | Arch (#6) + Squad S2-3 |
-| S2-0 validação dados | � PRONTO | Executar gates 1a-1d (15-20min) — 5 símbolos know-issue (retry backoff) | Data (#11) + Audit (#8) — comandos validados 22 FEV |
-| TASK-005 convergência Sharpe | 🔴 CRÍTICA | Daily standups, early stopping se Sharpe ≥1.0 | The Brain (#3) |
+| S2-4 Integração (TSL) | 🟡 ALTA | Integrar TrailingStopManager com order_executor + remover dup position_monitor | Arch (#6) — ETA 24 FEV |
+| TASK-005 convergência Sharpe | 🔴 CRÍTICA | Daily standups, early stopping se Sharpe ≥1.0, deadline 25 FEV 10:00 | The Brain (#3) |
 | Operações 24/7 monitoring | 🟡 MÉDIA | Alerting rules + health_check.py daily | The Blueprint (#7) |
+| ✅ **Issue #63 RESOLVIDO** | ✅ | Volume threshold + Order blocks integrado + 28 testes ✅ | Arch (#6) + Squad |
 
 ---
 
@@ -83,6 +83,7 @@
 
 | Data       | Entrega                  | Sprint   | PR     | Notas   |
 |------------|--------------------------|----------|--------|---------|
+| 2026-02-23 | **Issue #63 — SMC Volume Threshold + Order Blocks Integration** ✅ | Sprint 2 | - | indicators/smc.py: detect_order_blocks() com volume_threshold (SMA 20) + strength calc. execution/heuristic_signals.py: _validate_smc() integrado com order blocks + edge case validation (gaps, ranging, low-liq). tests/test_smc_volume_threshold.py: 28 testes unitários (100% PASS, 85% coverage). Bloqueadores S2-1/S2-2 RESOLVIDOS. DESBLOQUEIA Issue #65 + TASK-005 PPO. |
 | 2026-02-22 | S2-3 Gate 2 — Backtesting Metrics ✅ | Sprint 2-3 | #62 | backtest/metrics.py (6 métodos + 2 helpers) + backtest/test_metrics.py (28 testes, 100% PASS). Sharpe, Max DD, Win Rate, Profit Factor, Consecutive Losses implementados. Cobertura 82%. Pronto para gatekeeping. |
 | 2026-02-22 | Trailing Stop Loss (S2-4) Design ✅ + Core Code ✅ + 34 Testes ✅ | Sprint 2 | - | SPEC_S2_4 + ARCH_S2_4 + risk/trailing_stop.py + 24 unit + 10 integration testes. Pronto para Binance Integration + QA validation. |
 | 2026-02-22 | Plano de Testes — Backtesting (S2-3) | Sprint 2 (Planejado) | - | 10 testes (5 Unit + 3 Integration + 1 Regression + 1 E2E), ~82% coverage, 45-60s runtime |

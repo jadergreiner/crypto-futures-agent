@@ -250,7 +250,11 @@ class HeuristicSignalGenerator:
 
     def _validate_smc(self, symbol: str, h1_ohlcv: pd.DataFrame, audit: Dict) -> Tuple[str, float]:
         """
-        Valida SMC: Estrutura de swings, trends, presença de impulsos.
+        Valida SMC: Estrutura de swings, trends, Order Blocks, e BOS.
+
+        Validações:
+        - Volume threshold: 1.5× SMA(20) para Order Blocks válidos
+        - Edge cases: gaps noturnos, ranging markets, liquidação sweeps
         
         Returns: ("BUY" | "SELL" | "NEUTRAL", confidence 0-1)
         """
@@ -259,10 +263,55 @@ class HeuristicSignalGenerator:
                 audit["smc"] = {"status": "INSUFFICIENT_DATA", "confidence": 0.0}
                 return "NEUTRAL", 0.0
 
-            # Adicionar timestamp se não existir
+            # Adicionar timestamp e volume se não existirem
             df = h1_ohlcv.copy()
             if 'timestamp' not in df.columns:
                 df['timestamp'] = [int(i * 3600 * 1000) for i in range(len(df))]
+            if 'volume' not in df.columns:
+                df['volume'] = 0.0  # Fallback se volume não disponível
+                has_volume = False
+            else:
+                has_volume = True
+
+            # === EDGE CASE VALIDATIONS ===
+            edge_case_flags = {
+                "gaps_detected": False,
+                "ranging_market": False,
+                "low_liquidity": False
+            }
+
+            # Detectar gaps noturnos (gap > 1% entre velas)
+            if len(df) > 2:
+                for i in range(1, len(df)):
+                    price_prev_close = df['close'].iloc[i-1]
+                    price_curr_open = df['open'].iloc[i]
+                    if price_prev_close > 0:
+                        gap_pct = abs((price_curr_open - price_prev_close) / price_prev_close) * 100
+                        if gap_pct > 1.0:
+                            edge_case_flags["gaps_detected"] = True
+                            break
+
+            # Validar ranging market (ATR < 0.5%)
+            if 'high' in df.columns and 'low' in df.columns:
+                atr_range = (df['high'].iloc[-20:].max() - df['low'].iloc[-20:].min()) / df['close'].iloc[-1] * 100
+                if atr_range < 0.5:
+                    edge_case_flags["ranging_market"] = True
+
+            # Validar low liquidity (volume médio < threshold)
+            if has_volume and 'volume' in df.columns:
+                vol_mean = df['volume'].tail(20).mean()
+                if vol_mean < 100:  # Volume mínimo absoluto
+                    edge_case_flags["low_liquidity"] = True
+
+            # Rejeitar sinal se edge case crítico
+            if edge_case_flags["gaps_detected"] and edge_case_flags["ranging_market"]:
+                audit["smc"] = {
+                    "status": "EDGE_CASE_REJECTION",
+                    "reason": "Gaps + ranging market detected",
+                    "edge_cases": edge_case_flags,
+                    "confidence": 0.0
+                }
+                return "NEUTRAL", 0.0
 
             # Detectar swing points
             swings = SmartMoneyConcepts.detect_swing_points(df, lookback=5)
@@ -282,31 +331,60 @@ class HeuristicSignalGenerator:
             if market_structure.type.value == "bullish":
                 signal = "BUY"
                 smc_score = 0.6
-                confidence = 0.7
+                confidence = 0.65  # Reduzido pois precisa confirmação
             elif market_structure.type.value == "bearish":
                 signal = "SELL"
                 smc_score = -0.6
-                confidence = 0.7
+                confidence = 0.65
             else:  # RANGE
                 confidence = 0.3
 
             # Detectar BOS para aumentar confiança
             bos_list = SmartMoneyConcepts.detect_bos(df, swings)
+            bos_count_initial = len(bos_list)
+            
             if bos_list:
                 if bos_list[-1].direction == "bullish" and signal == "BUY":
-                    confidence = min(confidence + 0.2, 1.0)
+                    confidence = min(confidence + 0.15, 1.0)
                 elif bos_list[-1].direction == "bearish" and signal == "SELL":
-                    confidence = min(confidence + 0.2, 1.0)
+                    confidence = min(confidence + 0.15, 1.0)
+
+            # === INTEGRAÇÃO ORDER BLOCKS COM VOLUME THRESHOLD ===
+            order_blocks = SmartMoneyConcepts.detect_order_blocks(
+                df, swings, bos_list,
+                max_obs=10,
+                lookback=20,
+                volume_threshold=1.5  # 1.5× SMA(20) para validar OB
+            )
+            
+            # Aumentar confiança se order blocks confirmado BOS
+            ob_confluence = 0.0
+            if order_blocks and bos_list:
+                # Validar que OB está "alinhado" com BOS (mesmo timeframe)
+                last_ob = order_blocks[-1]
+                last_bos = bos_list[-1]
+                
+                if last_ob.type == last_bos.direction:
+                    ob_confluence = 0.1  # +10% confiança se OB aligned
+                    confidence = min(confidence + ob_confluence, 1.0)
+                    logger.debug(
+                        f"{symbol} OB confluence: {last_ob.type} aligned "
+                        f"with BOS {last_bos.direction}"
+                    )
 
             audit["smc"] = {
                 "status": "VALID",
                 "signal": signal,
                 "structure": market_structure.type.value,
                 "swing_count": len(swings),
-                "bos_count": len(bos_list),
+                "bos_count": bos_count_initial,
+                "order_block_count": len(order_blocks),
+                "edge_cases": edge_case_flags,
+                "ob_confluence": ob_confluence,
                 "confidence": float(confidence)
             }
 
+            logger.debug(f"{symbol} SMC validated: {signal} (conf={confidence:.2f})")
             return signal, confidence
 
         except Exception as e:

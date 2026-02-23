@@ -356,39 +356,67 @@ class SmartMoneyConcepts:
 
     @staticmethod
     def detect_order_blocks(df: pd.DataFrame, swings: List[SwingPoint],
-                           bos_list: List[BOS], max_obs: int = 10) -> List[OrderBlock]:
+                           bos_list: List[BOS], max_obs: int = 10,
+                           lookback: int = 20, volume_threshold: float = 1.5) -> List[OrderBlock]:
         """
-        Detecta Order Blocks.
+        Detecta Order Blocks com validação de volume (volume_threshold).
 
         Args:
-            df: DataFrame com OHLCV
+            df: DataFrame com OHLCV (deve conter coluna 'volume')
             swings: Lista de swing points
             bos_list: Lista de BOS
             max_obs: Máximo de OBs ativos por vez
+            lookback: Período para SMA de volume (padrão 20 períodos)
+            volume_threshold: Multiplicador de volume SMA para validar OB (padrão 1.5×)
 
         Returns:
-            Lista de OrderBlocks
+            Lista de OrderBlocks validados por volume
         """
         order_blocks = []
+
+        # Calcular SMA de volume se disponível
+        volume_sma = None
+        if 'volume' in df.columns and len(df) >= lookback:
+            volume_sma = df['volume'].rolling(window=lookback).mean()
 
         for bos in bos_list:
             # Encontrar a vela que causou o BOS
             bos_idx = bos.index
 
-            if bos_idx < 10:
+            if bos_idx < lookback:
                 continue
 
             # Bullish OB: última vela bearish antes do impulso bullish
             if bos.direction == "bullish":
                 for i in range(bos_idx - 1, max(0, bos_idx - 20), -1):
                     if df['close'].iloc[i] < df['open'].iloc[i]:  # Vela bearish
+
+                        # Validar volume threshold
+                        if volume_sma is not None:
+                            vol_current = df['volume'].iloc[i]
+                            vol_mean = volume_sma.iloc[i]
+
+                            # Skip se volume insuficiente (< 1.5× SMA)
+                            if vol_mean > 0 and vol_current < (vol_mean * volume_threshold):
+                                logger.debug(
+                                    f"OB bullish rejeitado (i={i}): volume {vol_current} "
+                                    f"< threshold {vol_mean * volume_threshold}"
+                                )
+                                continue
+
+                        # Calcular força do OB baseado em volume
+                        strength = 1.0
+                        if volume_sma is not None and vol_mean > 0:
+                            # Força: 0.5-2.0 (1.0 é normal)
+                            strength = min(2.0, vol_current / (vol_mean * volume_threshold))
+
                         ob = OrderBlock(
                             timestamp=int(df['timestamp'].iloc[i]),
                             zone_high=float(df['high'].iloc[i]),
                             zone_low=float(df['low'].iloc[i]),
                             type="bullish",
                             status=ZoneStatus.FRESH,
-                            strength=1.0,
+                            strength=strength,
                             index=i
                         )
                         order_blocks.append(ob)
@@ -398,13 +426,33 @@ class SmartMoneyConcepts:
             elif bos.direction == "bearish":
                 for i in range(bos_idx - 1, max(0, bos_idx - 20), -1):
                     if df['close'].iloc[i] > df['open'].iloc[i]:  # Vela bullish
+
+                        # Validar volume threshold
+                        if volume_sma is not None:
+                            vol_current = df['volume'].iloc[i]
+                            vol_mean = volume_sma.iloc[i]
+
+                            # Skip se volume insuficiente (< 1.5× SMA)
+                            if vol_mean > 0 and vol_current < (vol_mean * volume_threshold):
+                                logger.debug(
+                                    f"OB bearish rejeitado (i={i}): volume {vol_current} "
+                                    f"< threshold {vol_mean * volume_threshold}"
+                                )
+                                continue
+
+                        # Calcular força do OB baseado em volume
+                        strength = 1.0
+                        if volume_sma is not None and vol_mean > 0:
+                            # Força: 0.5-2.0 (1.0 é normal)
+                            strength = min(2.0, vol_current / (vol_mean * volume_threshold))
+
                         ob = OrderBlock(
                             timestamp=int(df['timestamp'].iloc[i]),
                             zone_high=float(df['high'].iloc[i]),
                             zone_low=float(df['low'].iloc[i]),
                             type="bearish",
                             status=ZoneStatus.FRESH,
-                            strength=1.0,
+                            strength=strength,
                             index=i
                         )
                         order_blocks.append(ob)
@@ -414,7 +462,9 @@ class SmartMoneyConcepts:
         if len(order_blocks) > max_obs:
             order_blocks = order_blocks[-max_obs:]
 
-        logger.debug(f"Detected {len(order_blocks)} Order Blocks")
+        logger.debug(
+            f"Detected {len(order_blocks)} Order Blocks (volume_threshold={volume_threshold})"
+        )
         return order_blocks
 
     @staticmethod
