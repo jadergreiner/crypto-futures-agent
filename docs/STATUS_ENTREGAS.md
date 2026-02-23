@@ -60,7 +60,7 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
-| Backtesting Engine              | �     | Sprint 2-3| #59    | 📋 DESIGN ✅ | ⏳ SQUAD KICKOFF | S2-3: Issue #59 CRIADA. Squad: Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17). 4 Gates definidos. Paralelo TASK-005. Desbloqueia S2-1/S2-2. |
+| Backtesting Engine              | 🟡     | Sprint 2-3| #59    | ✅ DESIGN+SPECS | ⏳ SQUAD KICKOFF | S2-3: Squad Kickoff 22 FEV 14:00 UTC 🔵. Docs: ARCH_S2_3_BACKTESTING.md ✅ + S2_3_DELIVERABLE_SPEC.md ✅ + TEST_PLAN_S2_3.md ✅. Dirs: backtest/{core,data,strategies,validation,tests} criados. 4 Gates (Data, Engine, Tests, Docs). Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17). Desbloqueia S2-1/S2-2 + TASK-005. |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC |
 
 ---

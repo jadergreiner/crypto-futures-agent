@@ -1,19 +1,21 @@
-# 📊 Backtesting Engine — Manual Operacional
+# 📊 Backtesting Engine — Manual Operacional & S2-3 Squad Kickoff
 
-**Versão:** 1.0  
-**Última atualização:** 2026-02-22  
-**Autor:** Backend/RL Team
+**Versão:** 0.1.0 RC1 (S2-3 Sprint 2-3)  
+**Última atualização:** 2026-02-22 14:30 UTC ([SYNC] Squad Kickoff completo)  
+**Autor:** Backend/RL Team + Squad S2-3 (Arch #6, Audit #8, Data #11, Quality #12, Doc Advocate #17)  
+**Status:** 🔵 Squad Kickoff em progresso — Design + Docs + Dirs entregues
 
 ---
 
 ## 📖 Índice
 
 1. [Visão Geral](#visão-geral)
-2. [Instalação & Setup](#instalação--setup)
-3. [Como Usar](#como-usar)
-4. [Interpretando Resultados](#interpretando-resultados)
-5. [Troubleshooting](#troubleshooting)
-6. [Referência de API](#referência-de-api)
+2. [🚀 S2-3 Squad Kickoff Status](#-s2-3-squad-kickoff-status)
+3. [Instalação & Setup](#instalação--setup)
+4. [Como Usar](#como-usar)
+5. [Interpretando Resultados](#interpretando-resultados)
+6. [Troubleshooting](#troubleshooting)
+7. [Referência de API](#referência-de-api)
 
 ---
 
@@ -29,6 +31,52 @@ de 60 símbolos crypto (BTC, ETH, ALT coins) da Binance Futures.
 - ✅ Walk-Forward Testing (train/validation split)
 - ✅ Cache em Parquet (6+ meses histórico)
 - ✅ Suporte a múltiplas estratégias
+
+---
+
+## 🚀 S2-3 Squad Kickoff Status
+
+**Data:** 22 FEV 2026 14:30 UTC  
+**Squad:** Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17), The Brain (#3)  
+**Escopo:** 4 Gates de validação, 9h wall-time, deadline 24 FEV 18:00 UTC
+
+### ✅ Deliverables Kickoff (22 FEV 14:30 UTC)
+
+- ✅ [ARCH_S2_3_BACKTESTING.md](../docs/ARCH_S2_3_BACKTESTING.md) — Design + 4 Gates
+- ✅ [S2_3_DELIVERABLE_SPEC.md](../docs/S2_3_DELIVERABLE_SPEC.md) — 13-item checklist
+- ✅ [TEST_PLAN_S2_3.md](../docs/TEST_PLAN_S2_3.md) — 8 testes + fixtures
+- ✅ Diretórios criados: `backtest/{core,data,strategies,validation,tests,logs}/`
+- ✅ `__init__.py` + skeleton exports
+- ✅ STATUS_ENTREGAS.md § S2-3 atualizado
+- ✅ ROADMAP.md § Execução/Visibilidade atualizado
+- ✅ SYNCHRONIZATION.md § [SYNC] kickoff registrado
+
+### 🔄 Próximos Passos (23-24 FEV)
+
+| Data | Squad | Task | Status |
+|------|-------|------|--------|
+| **23 FEV** | Arch (#6) | Implementar `core/backtest_engine.py` | ⏳ |
+| **23 FEV** | Data (#11) | Implementar `data/data_provider.py` | ⏳ |
+| **23 FEV** | Quality (#12) | Criar fixtures + test stubs | ⏳ |
+| **23 FEV** | The Brain (#3) | Validar SMC strategy spec | ⏳ |
+| **24 FEV** | All | Submeter PRs + Gates validation | ⏳ |
+| **24 FEV 18:00 UTC** | Angel (#1) | Sign-off final GO/NO-GO | ⏳ |
+
+### 📊 4 Gates de Aceite
+
+| Gate | Owner | Critério | Docs |
+|------|-------|----------|------|
+| 1. Dados Históricos | Data (#11) | 60 símbolos, 6-12M, sem gaps ✅ | [Link](../docs/S2_3_DELIVERABLE_SPEC.md#gate-1-dados-históricos-) |
+| 2. Engine Core | Arch (#6) | Exec, PnL, RiskGate -3% ✅ | [Link](../docs/S2_3_DELIVERABLE_SPEC.md#gate-2-engine-de-backtesting-) |
+| 3. Testes | Quality (#12) | 8 PASS, coverage ≥80% ✅ | [Link](../docs/S2_3_DELIVERABLE_SPEC.md#gate-3-validação--testes-) |
+| 4. Documentação | Audit (#8) | Docstrings, README, DECISIONS ✅ | [Link](../docs/S2_3_DELIVERABLE_SPEC.md#gate-4-documentação-) |
+
+**Desbloqueios após GO:**
+- 🔴 S2-1/S2-2 (SMC Strategy Implementation)
+- 🔴 TASK-005 (PPO Training final validation)
+- 🔴 Go-Live Operacional (Production Release)
+
+Ref completa: [ARCH_S2_3_BACKTESTING.md](../docs/ARCH_S2_3_BACKTESTING.md)
 
 ---
 
