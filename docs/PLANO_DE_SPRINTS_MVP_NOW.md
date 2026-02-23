@@ -52,13 +52,13 @@
 
 | Entregável                       | Responsável | Status | Issue  | PR     |
 |----------------------------------|-------------|--------|--------|--------|
-| Data Strategy (1Y Binance)       | Data (#11)  | 🟡     | #60    | READY  |
+| Data Strategy (1Y Binance)       | Data (#11)  | 🟡     | #60/#67| READY  |
 | Detecção de Order Blocks (SMC)   | Arch (#6)   | 🟢     | #63    | IN PP  |
 | Detecção de BoS (SMC)            | Arch (#6)   | ✅     | #63    | MERGED |
 | Engine de Backtesting (1 ano)    | Data (#11)  | ✅     | #62    | MERGED |
-| Testes Integração SMC (E2E)      | Arch (#6) + Audit (#8) | � **SQUAD AGORA** | #66 | **23 FEV 20:40 ATIVADO** |
+| Testes Integração SMC (E2E)      | Arch (#6) + Audit (#8) | 🟡 **SQUAD AGORA** | **#65** | **23 FEV 20:40 ATIVADO** |
 | Trailing Stop Loss (Integração)  | Arch (#6)   | ✅     | #61    | MERGED |
-| Alertas Telegram (Setup)         | Dev + Doc   | 🟡     | #64    | **24 FEV** |
+| Alertas Telegram (Setup)         | The Blueprint (#7) + Quality (#12) | 🟡 | **#64** | **24 FEV ~14:00** |
 
 ---
 

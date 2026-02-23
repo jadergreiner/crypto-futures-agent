@@ -1,33 +1,47 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 23 de fevereiro de 2026, 20:35 UTC ([SYNC] Issue #65 Kickoff CRÍTICA — Squad Multidisciplinar Arch+Audit KICKOFF AGORA)
+**Última Atualização:** 23 de fevereiro de 2026, 21:00 UTC ([SYNC] Squad Priorização: Issue #65 QA (CRÍTICA 24h), Issue #64 Telegram (Paralelo), Issue #67 Data Strategy Dev)
 **Status da Equipe Fixa:** ✅ 15 membros + Squad Multidisciplinar: Arch (#6), The Brain (#3), Data (#11), Audit (#8), Quality (#12), Doc Advocate (#17)
-**Status Sprint 2:** 🔵 **EM EXECUÇÃO — CRÍTICA: Issue #65 QA KICKOFF AGORA** — Issue #63 ✅ + S2-4 ✅ DESBLOQUEIAM #65 AGORA (23 FEV 20:30). Deadline: 24 FEV 10:00. Desbloqueia TASK-005 PPO (deadline crítica 25 FEV 10:00). Issue #64 parallelizable.
+**Status Sprint 2:** 🔴 **CRÍTICA — Issue #65 QA DEADLINE 24 FEV 10:00 ⚡** — Issue #63 ✅ + S2-4 ✅ DESBLOQUEIAM #65 AGORA (23 FEV 20:40). Desbloqueia TASK-005 PPO (deadline duríssima 25 FEV 10:00). Issue #64 + #67 parallelizable.
 
-## ⚠️ [SYNC] ISSUE #66 PHASE EXECUTION DOCS CRIADOS — 23 FEV 20:50 UTC 🚀 **READY FOR EXECUTION**
+## 🚀 [SYNC] SQUAD MULTIDISCIPLINAR — PRIORIZAÇÃO 3 ISSUES CRÍTICAS (23 FEV 21:00 UTC)
 
-**Status:** 🟢 **ALL PHASE EXECUTION DOCS READY** — 4 Phase playbooks criados, Squad pronto
+**Status:** 🟢 **ROADMAP ATUALIZADO PARA 3 TRACKS PARALELAS** — Squad roles distribuídos, docs sincronizados, git ready
 
-### Phase Execution Documents Created
+### 📌 3 Issues Prioritárias — Squad Execution Map
 
-| Phase | Doc | Status | Detalhes |
-|-------|-----|--------|----------|
-| **Phase 1** | docs/PHASE_1_SPEC_REVIEW_23FEV_2135.md | ✅ READY | 30min (21:35-22:05): Architecture consensus + Test scenarios approval |
-| **Phase 2** | docs/PHASE_2_CORE_E2E_TESTS_23FEV_2205.md | ✅ READY | 4h (22:05-01:35): 8/8 E2E tests execution (unit+integration+edge+regression) |
-| **Phase 3** | Planned | 📋 TEMPLATE | 4h (01:35-05:35): Edge cases + latency optimization (60 symbols) |
-| **Phase 4** | Planned | 📋 TEMPLATE | 4.5h (05:35-10:00): QA polish + sign-off |
+| Issue | Lead | Squad | Timing | Status | Bloqueia |
+|-------|------|-------|--------|--------|----------|
+| **#65 QA** 🔴 | Arch (#6) | Arch + Audit (#8) + Quality (#12) + The Brain (#3) + Doc Advocate (#17) | 23 FEV 20:40 → **24 FEV 10:00 ⚡** | 🟡 **KICKOFF AGORA** | TASK-005 PPO |
+| **#64 Telegram** 🟢 | The Blueprint (#7) | Blueprint (#7) + Quality (#12) + Doc Advocate (#17) | 24 FEV ~14:00 → 25 FEV | 🟡 **KICK-OFF POST #65** | — |
+| **#67 Data Strategy** 📊 | Data (#11) | Data (#11) + Arch (#6) + Doc Advocate (#17) | 24 FEV → 26 FEV (~3d) | 🟡 **KICK-OFF POST #65** | Backtesting Full |
 
-### Squad Execution Readiness
+### 📄 Docs Updated (Doc Advocate #17 Sync Trail)
 
-All 5 Personas ready for Phase 1 → Phase 2 → Phase 3 → Phase 4 execution:
+| Arquivo | Mudança | Timestamp | [SYNC] Tag |
+|---------|---------|-----------|-----------|
+| STATUS_ENTREGAS.md | (1) Issue #66→#65 corrected (2) Data Strategy Issue #67 NEW added (3) Squad leads clarificados (4) Riscos atualizados | 21:00 UTC | ✅ |
+| PLANO_DE_SPRINTS_MVP_NOW.md | (1) Data Strategy split: #60 + #67 (2) Telegram Squad: Blueprint (#7) + Quality (#12) (3) Timeline clarificada | 21:00 UTC | ✅ |
+| ROADMAP.md | (1) Execução/Visibilidade block atualizado (2) 3 tracks paralelas highlighted (3) Issue #65 deadline ⚡ flag | 21:00 UTC | ✅ |
+| SYNCHRONIZATION.md | THIS ENTRY (priorização + sync trail) | 21:00 UTC | ✅ |
 
-- ✅ **Arch (#6):** Phase 1 SPEC lead + Phase 2-4 architecture oversight
-- ✅ **Audit (#8):** Phase 1 + Phase 4 QA sign-off lead
-- ✅ **Quality (#12):** Phase 2 test execution lead + Phase 3 profiling
-- ✅ **The Brain (#3):** Phase 2-3 signal quality monitoring
-- ✅ **Doc Advocate (#17):** [SYNC] checkpoints after each phase
+### ⚡ Critical Path — TASK-005 PPO (Bloqueador #65)
 
-### Timeline Locked (14h SLA)
+```
+Issue #65 QA Kickoff (23 FEV 20:40)
+  ↓ Phase 1: Spec (21:35-22:05)
+  ↓ Phase 2-4: E2E Tests + Edge Cases (22:05-05:35)
+  ↓ [MUST CLOSE 24 FEV 10:00 ⚡]
+  ↓
+TASK-005 PPO Unblocked (24 FEV 10:00)
+  ↓ 96h wall-time (24 FEV 10:00 → 25 FEV 10:00)
+  ↓ Gates: Daily Sharpe ≥1.0, early stopping
+  ↓ [DEADLINE 25 FEV 10:00 — NO BUFFER]
+  ↓
+ML Pipeline GO-LIVE (25 FEV 10:00)
+```
+
+### 🔐 Sign-Off Checklist
 
 ```
 23 FEV 20:40 — Squad Kickoff Playbook Executed ✅

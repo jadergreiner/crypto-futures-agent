@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-23 20:50 UTC ([SYNC] Issue #66 Phase Execution Docs + Squad Kickoff Playbook Complete)
+**Última atualização:** 2026-02-23 21:00 UTC ([SYNC] Squad Kickoff: Issue #65 QA, Issue #64 Telegram, Issue #67 Data Strategy + Priorização TASK-005 Critical Path)
 **Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ **ISSUE #63 DELIVERED 23 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -60,11 +60,12 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | SMC Strategy (F-12)              | ✅     | Sprint 2 | #63    | SPEC ✅ | ✅ 28/28 PASS | S2-1/S2-2: Issue #63 COMPLETO 23 FEV. Bloqueadores resolvidos: (1) Volume threshold com SMA(20) ✅ (2) Order blocks integrado em _validate_smc() ✅ (3) Edge cases (gaps, ranging, low-liq) ✅. Tests: 28 unitários + integração 100% PASS. Coverage: 85%+. ETA original 24 FEV 20:00, ENTREGUE 23 FEV 16:00. **🟢 DESBLOQUEIA Issue #65 + TASK-005 PPO agora**. |
-| SMC Integration Tests (F-12)    | �     | Sprint 2 | #66    | SPEC ✅ | 🚀 **SQUAD KICKOFF** | [S2-1/S2-2 QA CRÍTICA] Issue #66 Squad Multidisciplinar ATIVADO 23 FEV 20:40. Personas: Arch (#6), Audit (#8), Quality (#12), The Brain (#3), Doc Advocate (#17). Phase Docs: 1 (21:35), 2 (22:05), 3 (01:35), 4 (05:35). SLA 14h. Desbloqueia TASK-005 + Issue #64. |
+| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #65    | SPEC ✅ | 🚀 **SQUAD KICKOFF** | [S2-1/S2-2 QA CRÍTICA] Issue #65 Squad Multidisciplinar ATIVADO 23 FEV 20:40. Personas: Arch (#6), Audit (#8), Quality (#12), The Brain (#3), Doc Advocate (#17). **DEADLINE 24 FEV 10:00 ⚡** (SLA 14h). Phase 1-4 (21:35→05:35). Desbloqueia TASK-005 + Issue #64. |
 | Trailing Stop Loss (S2-4)        | ✅     | Sprint 2 | #61    | ✅ SPEC+ARCH | 50+/50+ PASS | [S2-4] 23 FEV — INTEGRAÇÃO ✅. TrailingStopManager integrado em order_executor.py. Code duplicado removido de position_monitor.py. evaluate_trailing_stop() adicionado ao executor. Tests: 34 + 16 novos = 50+ PASS. Pronto para testnet + Issue #65. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
-| Telegram Alerts (S2-5)          | �     | Sprint 2-3 | #64    | SPEC ✅ | 🟡 KICK-OFF ~24 FEV | [S2-5 Parallelizable] Setup pode iniciar pós #65 spec (~1h). Squad: Dev + Doc Advocate. Depende: Issue #65 arquitetura ✅. Timeline: 24-25 FEV (overlap TASK-005). |
-| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63+#65 ✅ SMC signals OK — DESBLOQUEADO. Mitigação: #65 deve fechar 24 FEV 10:00 ⚡. |
+| Telegram Alerts (S2-5)          | 🟡     | Sprint 2-3 | #64    | SPEC ✅ | 🟡 KICK-OFF 24 FEV | [S2-5 Parallelizable] Setup 24 FEV ~14:00 (pós #65 spec). Squad: The Blueprint (#7) + Quality (#12). Depende: Issue #65 ✅. Timeline: 24-25 FEV (overlap TASK-005). ETA: 1-2h. |
+| Data Strategy Dev (S2-0 Phase 2) | 🟡     | Sprint 2-3 | #67 NEW | SPEC ✅ | 🟡 KICK-OFF 24 FEV | [S2-0 Implementação] Pipeline 1Y × 60 symbols OHLCV. Squad: Data (#11) + Arch (#6). Depende: Issue #65 ✅. Timeline: 24-26 FEV (~3 dias). Lead: Data (#11). Critérios: [CRITERIOS_DE_ACEITE_MVP.md#s2-0](CRITERIOS_DE_ACEITE_MVP.md#s2-0). |
+| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | TASK-005 | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 ✅ + Issue #65 SMC QA (fecha 24 FEV 10:00 ⚡). Lead: The Brain (#3). Mitigação: Early stopping Sharpe ≥1.0, standup diário. |
 
 ---
 
@@ -73,6 +74,7 @@
 | Risco / Bloqueio | Impacto | Mitigação | Responsável |
 |------------------|---------|-----------|-------------|
 | TASK-005 convergência Sharpe | 🔴 CRÍTICA | **#65 DEVE FECHAR 24 FEV 10:00 ⚡** Daily standups, early stopping Sharpe ≥1.0, deadline 25 FEV 10:00 | The Brain (#3) — Mitigação: #65 E2E + #64 parallelize |
+| Issue #65 QA Timeline (14h SLA) | 🔴 CRÍTICA | **Squad 4 fases (21:35→05:35)** Arch + Audit + Quality + Doc Advocate. Escalation: Angel (#1) se atraso. | Arch (#6) — Lead. Review diário. |
 | Operações 24/7 monitoring | 🟡 MÉDIA | Alerting rules + health_check.py daily | The Blueprint (#7) |
 | ✅ **Issue #63 RESOLVIDO** | ✅ | Volume threshold + Order blocks integrado + 28 testes ✅ | Arch (#6) + Squad |
 | ✅ **S2-4 Integração RESOLVIDO** | ✅ | TrailingStopManager integrado + 50+ testes ✅ | Arch (#6) 23 FEV |
