@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-23 01:30 UTC ([SYNC] S2-3 Gate 4 Documentação Completa — README + Docstrings + DECISIONS trade-offs)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2-3 🟢 GATES 1-4 ✅ (S2-0 + S2-3 BacktestingGATE 4)
+**Última atualização:** 2026-02-22 14:30 UTC ([SYNC] S2-1/S2-2 Issue #63 Kickoff — SMC Strategy Squad Ativa)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + **S2-1/S2-2 KICKOFF** 🚀 | Sprint 2-3 🟡 S2-4 READY
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -59,7 +59,7 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
-| SMC Strategy (F-12)              | 🔴     | Sprint 2 | #63    | SPEC ✅ | 🔴 BLOCKED | S2-1/S2-2: Issue #63 criada 22 FEV. Bloqueador: S2-3 Backtesting ✅. Design: detect_order_blocks() + detect_bos(). Gates: 4x validation (logic, backtest, QA, docs). ETA: 23-24 FEV. **🔴 CRÍTICA — Desbloqueia TASK-005 PPO**. |
+| SMC Strategy (F-12)              | �     | Sprint 2 | #63    | SPEC ✅ | 🟢 IN PROG | S2-1/S2-2: Issue #63 Kickoff 22 FEV 14:30 UTC. Squad Lead: Arch (#6). Bloqueador desbloqueado: S2-3 ✅. Design: detect_order_blocks() + detect_bos(). Gates: 4x validation (logic, backtest, QA, docs). ETA: 24 FEV 18:00 UTC. **🔴 CRÍTICA — Desbloqueia TASK-005 PPO deadline 25 FEV**. |
 | SMC Integration Tests (F-12)    | 🔴     | Sprint 2 | #65    | SPEC ✅ | 🔴 PENDING | S2-1/S2-2 QA: Issue #65 criada 22 FEV. Depende: Issue #63 completa. 4+ integration tests (6M × 60 symbols < 30s). Validation coverage ≥80%. ETA: 24 FEV. |
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |

@@ -1,8 +1,8 @@
 # 📅 Plano de Sprints — MVP (Now)
 
 **Versão:** 1.0.0
-**Sprint atual:** Sprint 1
-**Última atualização:** 2026-02-22 21:30 UTC
+**Sprint atual:** Sprint 2 — S2-1/S2-2 **KICKOFF SQUAD 22 FEV 14:30 UTC** 🚀
+**Última atualização:** 2026-02-22 14:30 UTC
 
 ---
 
@@ -52,12 +52,12 @@
 
 | Entregável                       | Responsável | Status | Issue  | PR     |
 |----------------------------------|-------------|--------|--------|--------|
-| Data Strategy (1Y Binance)       | TODO        | 🟡     | #60    | TODO   |
-| Detecção de Order Blocks (SMC)   | TODO        | 🔴     | TODO   | TODO   |
-| Detecção de BoS (SMC)            | TODO        | 🔴     | TODO   | TODO   |
-| Engine de Backtesting (1 ano)    | TODO        | 🔴     | TODO   | TODO   |
-| Trailing Stop Loss               | TODO        | 🔴     | TODO   | TODO   |
-| Alertas Telegram                 | TODO        | 🔴     | TODO   | TODO   |
+| Data Strategy (1Y Binance)       | Data (#11)  | 🟡     | #60    | READY  |
+| Detecção de Order Blocks (SMC)   | Arch (#6)   | 🟢     | #63    | IN PP  |
+| Detecção de BoS (SMC)            | Arch (#6)   | 🟢     | #63    | IN PP  |
+| Engine de Backtesting (1 ano)    | Data (#11)  | 🟢     | #62    | MERGED |
+| Trailing Stop Loss               | Arch (#6)   | 🟡     | #61    | IN PP  |
+| Alertas Telegram                 | Dev         | 🔴     | #64    | PENDING|
 
 ---
 
