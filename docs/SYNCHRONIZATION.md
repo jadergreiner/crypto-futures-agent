@@ -1,14 +1,98 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 23 de fevereiro de 2026, 01:30 UTC ([SYNC] S2-3 Gate 4 Documentação — README + Docstrings PT + DECISIONS trade-offs. 🟢 **GATES 1-4 COMPLETOS**)
-**Status da Equipe Fixa:** ✅ 15 membros + Squad S2-3: Arch (#6), Audit (#8), Quality (#12), Doc Advocate (#17)
-**Status S2-3:** 🟢 **GATES 1-4 COMPLETOS** — Backtesting Engine production-ready. Desbloqueia S2-1/S2-2 (SMC) + TASK-005 (PPO) kickoff 25 FEV.
+**Última Atualização:** 22 de fevereiro de 2026, 23:00 UTC ([SYNC] Sprint 2 Critical Path Validation — Issue #63 SMC ⚠️ bloqueadores, S2-0 data gates ✅, S2-4 TSL integração ⚠️)
+**Status da Equipe Fixa:** ✅ 15 membros + Squad Multidisciplinar: Arch (#6), The Brain (#3), Data (#11), Audit (#8), Quality (#12), Doc Advocate (#17)
+**Status Sprint 2:** 🔵 **EM EXECUÇÃO** — S2-1/S2-2 Issue #63 com bloqueadores críticos (22 FEV 22:45 QA report). S2-0 gates prontos para execução. S2-4 TSL core ✅ mas integração pendente.
 
 ## 🎯 Objetivo
 
 Garantir que toda a documentação do projeto (README, docs/, instruções do
 Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
 e comportamento do sistema.
+
+---
+
+## ⚠️ [SYNC] SPRINT 2 CRITICAL PATH VALIDATION — 22 FEV 22:45 UTC
+
+**Status:** 🟡 **BLOQUEADORES IDENTIFICADOS** — Squad multidisciplinar QA
+
+**Relatório Executivo (4 Personas):**
+
+| Issue | Status | Bloqueadores | Ação Necessária | Deadline |
+|-------|--------|--------------|-----------------|----------|
+| #63 (SMC) | 🟡 BLOQUEADO | (1) Volume threshold NÃO impl (2) Order blocks NÃO integrado em heuristic_signals (3) Edge cases gaps/ranging | Implementar + integrar + testes unit (4-6h) | 23-24 FEV |
+| S2-0 (Data) | 🟢 PRONTO | 5 símbolos know-issue (retry com backoff) | Rodar gates 1a-1d (15-20min) | HOJE 23 FEV |
+| #61 (TSL) | 🟡 INTEGRAÇÃO | NÃO integrado com order_executor + duplicação code em position_monitor | Integrar + unificar (5-8h) | 23-24 FEV |
+
+**Detalhes Issue #63 Bloqueadores:**
+
+```
+1. VOLUME THRESHOLD FALTANDO:
+   - Spec DECISIONS.md: detect_order_blocks(lookback=20, volume_threshold=1.5)
+   - Atual: Nenhum parâmetro volume_threshold
+   - Impacto: Order Blocks detectados sem validação → false signals alto
+   - Fix: Adicionar SMA(volume,20) calc + threshold validation
+   
+2. ORDER BLOCKS NÃO INTEGRADO:
+   - Spec: heuristic_signals._validate_smc() deve chamar detect_order_blocks()
+   - Atual: Apenas chamada BOS, sem order blocks
+   - Impacto: Sinal SMC sem confluência ordem blocks
+   - Fix: Chamar detect_order_blocks() em _validate_smc()
+   
+3. EDGE CASES NÃO TRATADOS:
+   - Gaps noturnos: NÃO há validação
+   - Ranging markets: NÃO valida se range > 50%
+   - Impacto: False positives em condições especiais
+   - Fix: Adicionar validações per DECISIONS.md D-09
+```
+
+**Testes Cobertura Issue #63:**
+- ✅ detect_order_blocks() implementada
+- ✅ detect_bos() implementada
+- ❌ Cobertura ~40-50% (alvo 80%+)
+- ❌ SEM teste isolado para volume_threshold
+- ❌ SEM teste para edge cases gaps/ranging
+
+**Detalhes S2-4 Bloqueadores:**
+
+```
+1. NÃO INTEGRADO COM order_executor:
+   - Código: 100% funcional, 34 testes PASS
+   - Bloqueador: Nenhum arquivo em execution/ importa TrailingStopManager
+   - Impacto: TSL calcula corretamente mas ordem não executa
+   - Fix: Adicionar handler em order_executor.py
+   
+2. CODE DUPLICADO em position_monitor.py:
+   - position_monitor.py linhas 1323-1330: TSL ATR-based próprio
+   - risk/trailing_stop.py: TSL price-based novo
+   - Impacto: 2 implementações conflitantes
+   - Fix: Remover ATR TSL, usar TrailingStopManager única fonte
+```
+
+**Próximas Ações Coordenadas:**
+
+| Task | Owner | Duração | Pré-req | Pós-deliverable |
+|------|-------|---------|---------|-----------------|
+| Issue #63: Add volume threshold | Arch (#6) | 1.5h | Code review DECISIONS.md | Testable |
+| Issue #63: Integrate heuristic_signals | Arch (#6) | 1.5h | Volume threshold ✅ | Unit tested |
+| Issue #63: Add unit tests | Quality (#12) | 2-3h | Volume + integration ✅ | 80%+ coverage |
+| S2-0: Execute data gates | Data (#11) | 0.5h | nenhum | logs/data_strategy_gates.log |
+| #61: Integrate with order_executor | Executore (#10) | 2-3h | nenhum | E2E testable |
+| #61: Remove dup code position_monitor | Arch (#6) | 1-2h | executor integration ✅ | Unified TSL |
+
+**Impacto no Roadmap:**
+- Issue #63 ETA ajustado: **24 FEV 20:00 UTC** (não 18:00)
+- TASK-005 (PPO): Pode iniciar quando Issue #63 ✅ (~22:00 UTC 24 FEV)
+- Issue #65 (SMC tests): Pode iniciar quando Issue #63 ✅ (~25 FEV 10:00 UTC pós-PPO kickoff)
+
+**Assinatura QA (Squad 22 FEV 22:45 UTC):**
+- ✅ Arch (#6) — Validação técnica Issue #63
+- ✅ The Brain (#3) — ML quality check SMC
+- ✅ Data (#11) — Gates validação S2-0
+- ✅ Audit (#8) — QA sign-off S2-4 QA readiness
+- ✅ Quality (#12) — Testes automation readiness
+- ✅ Executor (#10) — Integração viabilidade S2-4
+- ✅ Doc Advocate (#17) — Sync [SYNC] protocol
 
 ---
 

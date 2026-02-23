@@ -59,9 +59,9 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
-| SMC Strategy (F-12)              | �     | Sprint 2 | #63    | SPEC ✅ | 🟢 IN PROG | S2-1/S2-2: Issue #63 Kickoff 22 FEV 14:30 UTC. Squad Lead: Arch (#6). Bloqueador desbloqueado: S2-3 ✅. Design: detect_order_blocks() + detect_bos(). Gates: 4x validation (logic, backtest, QA, docs). ETA: 24 FEV 18:00 UTC. **🔴 CRÍTICA — Desbloqueia TASK-005 PPO deadline 25 FEV**. |
-| SMC Integration Tests (F-12)    | 🔴     | Sprint 2 | #65    | SPEC ✅ | 🔴 PENDING | S2-1/S2-2 QA: Issue #65 criada 22 FEV. Depende: Issue #63 completa. 4+ integration tests (6M × 60 symbols < 30s). Validation coverage ≥80%. ETA: 24 FEV. |
-| Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
+| SMC Strategy (F-12)              | 🟡     | Sprint 2 | #63    | SPEC ✅ | ⚠️ BLOQUEIOS | S2-1/S2-2: Issue #63 Kickoff 22 FEV 14:30 UTC. Squad Lead: Arch (#6). **🚨 3 BLOQUEADORES CRÍTICOS IDENTIFICADOS 22 FEV QA:** (1) Volume threshold NÃO implementado em detect_order_blocks() — faltam SMA calc + validation (2) Order blocks NÃO integrado em heuristic_signals.py (3) Edge cases gaps/ranging NÃO tratados. **Cobertura testes: ~40-50%, alvo 80%+**. Fix estimado: 4-6h (23-24 FEV). ETA ajustado: 24 FEV 20:00 UTC (não 18:00). **🔴 CRÍTICA — Desbloqueia TASK-005 PPO deadline 25 FEV**. |
+| SMC Integration Tests (F-12)    | 🔴     | Sprint 2 | #65    | SPEC ✅ | 🔴 PENDING | S2-1/S2-2 QA: Issue #65 criada 22 FEV. Depende: Issue #63 completa (~22:00 UTC 24 FEV revisado). Pronto após fixes Issue #63. ETA: 25 FEV 10:00 UTC (alinhado com TASK-005). |
+| Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO. Core code: risk/trailing_stop.py, 24 unit + 10 integration tests ✅ PASS (34/34). **⚠️ BLOQUEADOR INTEGRAÇÃO:** NÃO integrado com order_executor.py (crítico para testnet). Code duplicado em position_monitor.py (ATR TSL conflitante). Fix: 5-8h (23-24 FEV). Pós-integração: pronto para testnet. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
 | Telegram Alerts (S2-5)          | 🔴     | Sprint 2-3 | #64    | SPEC ✅ | ⏳ PENDING | S2-5 Notificações: Issue #64 criada (PENDING). Depende: Issue #63 ✅ completa. TelegramNotifier + signal_alert(). ETA: 25-26 FEV (pós-SMC live). |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 SMC signals para treino. |
@@ -73,7 +73,7 @@
 | Risco / Bloqueio | Impacto | Mitigação | Responsável |
 |------------------|---------|-----------|-------------|
 | S2-3 bloqueador para SMC | 🔴 CRÍTICA | Iniciar impl F-12 AGORA (Issue #59 Squad kickoff) | Arch (#6) + Squad S2-3 |
-| S2-0 validação dados | 🟡 ALTA | Rodar gates 100% antes backtest | Data (#11) + Audit (#8) |
+| S2-0 validação dados | � PRONTO | Executar gates 1a-1d (15-20min) — 5 símbolos know-issue (retry backoff) | Data (#11) + Audit (#8) — comandos validados 22 FEV |
 | TASK-005 convergência Sharpe | 🔴 CRÍTICA | Daily standups, early stopping se Sharpe ≥1.0 | The Brain (#3) |
 | Operações 24/7 monitoring | 🟡 MÉDIA | Alerting rules + health_check.py daily | The Blueprint (#7) |
 
