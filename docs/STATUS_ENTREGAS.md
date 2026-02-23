@@ -39,7 +39,7 @@
 
 **Total de Testes Sprint 1:** 70 testes PASS
 - Issue #55: 8 testes
-- Issue #57: 10 testes  
+- Issue #57: 10 testes
 - Issue #58: 11 testes
 - Issue #56: 41 testes
 
@@ -60,8 +60,8 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
-| Backtesting Engine              | 🔴     | Sprint 2-3| #59    | PENDING  | PENDING   | Bloqueado por: Data Strategy (S2-0). Desbloqueado após validação dados 🟢 |
-| ML Training Pipeline (PPO v0)   | 🔴     | Sprint 3 | #60    | PENDING  | PENDING   | Parallel com backtesting |
+| Backtesting Engine              | �     | Sprint 2-3| #59    | 📋 DESIGN ✅ | ⏳ SQUAD KICKOFF | S2-3: Issue #59 CRIADA. Squad: Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17). 4 Gates definidos. Paralelo TASK-005. Desbloqueia S2-1/S2-2. |
+| ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC |
 
 ---
 
@@ -69,7 +69,10 @@
 
 | Risco / Bloqueio | Impacto | Mitigação | Responsável |
 |------------------|---------|-----------|-------------|
-| TODO             | TODO    | TODO      | TODO        |
+| S2-3 bloqueador para SMC | 🔴 CRÍTICA | Iniciar impl F-12 AGORA (Issue #59 Squad kickoff) | Arch (#6) + Squad S2-3 |
+| S2-0 validação dados | 🟡 ALTA | Rodar gates 100% antes backtest | Data (#11) + Audit (#8) |
+| TASK-005 convergência Sharpe | 🔴 CRÍTICA | Daily standups, early stopping se Sharpe ≥1.0 | The Brain (#3) |
+| Operações 24/7 monitoring | 🟡 MÉDIA | Alerting rules + health_check.py daily | The Blueprint (#7) |
 
 ---
 

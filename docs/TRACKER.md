@@ -17,7 +17,7 @@
 | **1.7** | TASK-006 PPO QA Validation | Audit | ⏳ PENDING (25 FEV 10:00) | OOT backtest validation | 🔴 CRÍTICA |
 | **1.8** | TASK-007 PPO Merge Live | Dev | ⏳ PENDING (25 FEV 14:00) | v0.5 alpha deployment | 🔴 CRÍTICA |
 
-**Documentação Referência:** 
+**Documentação Referência:**
 - Detalhes completos: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
 - Status real-time: `backlog/TASKS_TRACKER_REALTIME.md`
 - Quick start: `backlog/BACKLOG_QUICK_START.md`
@@ -80,19 +80,19 @@
 |------|---------|--------|---------|----------|
 | Refinar história F-12 com 3 personas (PO + Finance + Tech) | F-12 | ✅ DONE |
 0h | 🔴 CRÍTICA |
-| Implementar BacktestEnvironment (subclasse CryptoFuturesEnv) | F-12a | ⏳ TODO
+| Implementar BacktestEnvironment (subclasse CryptoFuturesEnv) | F-12a | ⏳ TODO (Issue #59)
 | 1h | 🔴 CRÍTICA |
-| Implementar BacktestDataLoader (3-camadas Parquet) | F-12b | ⏳ TODO | 1.5h | 🔴
+| Implementar BacktestDataLoader (3-camadas Parquet) | F-12b | ⏳ TODO (Issue #59) | 1.5h | 🔴
 CRÍTICA |
-| Implementar TradeStateMachine (IDLE/LONG/SHORT) | F-12c | ⏳ TODO | 1.5h | 🔴
+| Implementar TradeStateMachine (IDLE/LONG/SHORT) | F-12c | ⏳ TODO (Issue #59) | 1.5h | 🔴
 CRÍTICA |
-| Implementar BacktestReporter (Text + JSON) | F-12d | ⏳ TODO | 0.5h | 🟡 ALTA |
-| Escrever 8 unit tests (determinismo, SM, métricas) | F-12e | ⏳ TODO | 1h | 🔴
+| Implementar BacktestReporter (Text + JSON) | F-12d | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
+| Escrever 8 unit tests (determinismo, SM, métricas) | F-12e | ⏳ TODO (Issue #59) | 1h | 🔴
 CRÍTICA |
-| Integração `--train-and-backtest` em main.py | F-12 | ⏳ TODO | 0.5h | 🟡 ALTA |
-| Sincronizar documentação (FEATURES, ROADMAP, SYNC) | F-12 | ⏳ TODO | 0.5h | 🔴
+| Integração `--train-and-backtest` em main.py | F-12f | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
+| Sincronizar documentação (FEATURES, ROADMAP, SYNC) | F-12h | ⏳ TODO (Issue #59) | 0.5h | 🔴
 CRÍTICA |
-| Teste manual end-to-end (BTCUSDT, 90 dias) | F-12 | ⏳ TODO | 0.5h | 🟡 ALTA |
+| Teste manual end-to-end (BTCUSDT, 90 dias) | F-12g | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
 
 **Risk Clearance Checklist** (antes expansão v0.5):
 
