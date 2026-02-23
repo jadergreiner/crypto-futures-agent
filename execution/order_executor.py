@@ -12,6 +12,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
+from risk.trailing_stop import TrailingStopManager, TrailingStopConfig, TrailingStopState
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,23 @@ class OrderExecutor:
         # Cache de precision por símbolo (dict: symbol -> quantity_precision)
         self._symbol_precision_cache: Dict[str, int] = {}
 
+        # [S2-4 INTEGRAÇÃO] Trailing Stop Loss Manager
+        tsl_config = TrailingStopConfig(
+            activation_threshold_r=1.5,
+            stop_distance_pct=0.10,
+            update_interval_ms=100,
+            enabled=True,
+            dry_run=False
+        )
+        self.tsl_manager = TrailingStopManager(tsl_config)
+        self._tsl_states: Dict[str, TrailingStopState] = {}
+
         logger.info(f"OrderExecutor inicializado em modo {mode}")
         logger.info(f"Símbolos autorizados: {sorted(self.authorized_symbols)}")
         logger.info(f"Confiança mínima: {self.config['min_confidence_to_execute']}")
         logger.info(f"Limite diário: {self.config['max_daily_executions']} execuções")
         logger.info(f"Cooldown por símbolo: {self.config['cooldown_per_symbol_seconds']}s")
+        logger.info(f"[S2-4] TrailingStopManager integrado - activation_threshold_r=1.5")
 
     def execute_decision(self, position: Dict[str, Any], decision: Dict[str, Any],
                         snapshot_id: Optional[int] = None) -> Dict[str, Any]:
@@ -676,6 +689,63 @@ class OrderExecutor:
         remaining = cooldown_seconds - elapsed
 
         return max(0.0, remaining)
+
+    def evaluate_trailing_stop(self, symbol: str, current_price: float,
+                              entry_price: float, direction: str,
+                              risk_r: float = 0.03) -> Dict[str, Any]:
+        """
+        Avalia Trailing Stop Loss para uma posição.
+
+        [S2-4 INTEGRAÇÃO] Este método centraliza a lógica de TSL que estava
+        duplicada em position_monitor.py.
+
+        Args:
+            symbol: Símbolo da posição
+            current_price: Preço atual de mercado
+            entry_price: Preço de entrada da posição
+            direction: 'LONG' ou 'SHORT'
+            risk_r: Risk por operação em % para normalizar threshold
+
+        Returns:
+            Dict com:
+            {
+                'active': bool,
+                'high_price': float,
+                'stop_price': float or None,
+                'triggered': bool,
+                'status_msg': str
+            }
+        """
+        # Obter ou criar estado para este símbolo
+        if symbol not in self._tsl_states:
+            self._tsl_states[symbol] = TrailingStopState()
+
+        state = self._tsl_states[symbol]
+
+        # Avaliar o TSL
+        state = self.tsl_manager.evaluate(
+            current_price=current_price,
+            entry_price=entry_price,
+            state=state,
+            risk_r=risk_r
+        )
+
+        # Atualizar cache
+        self._tsl_states[symbol] = state
+
+        # Verificar se foi acionado
+        triggered = self.tsl_manager.has_triggered(current_price, state)
+
+        return {
+            'symbol': symbol,
+            'active': state.active,
+            'high_price': state.high_price,
+            'stop_price': state.stop_price,
+            'triggered': triggered,
+            'activation_timestamp': state.activated_at,
+            'trigger_timestamp': state.triggered_at,
+            'status_msg': self.tsl_manager.get_status_string(state)
+        }
 
     def _update_cooldown(self, symbol: str):
         """Atualiza o rastreador de cooldown para o símbolo."""

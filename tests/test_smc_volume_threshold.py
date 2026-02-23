@@ -495,7 +495,7 @@ class TestHeuristicSignalsIntegration(unittest.TestCase):
         d1, h4, h1 = self._create_sample_timeframes()
         # Garantir dados suficientes
         h1 = pd.concat([h1] * 2, ignore_index=True)
-        
+
         audit = {}
 
         signal, confidence = self.gen._validate_smc("BTCUSDT", h1, audit)
@@ -508,7 +508,7 @@ class TestHeuristicSignalsIntegration(unittest.TestCase):
         _, _, h1 = self._create_sample_timeframes()
         # Garantir dados suficientes
         h1 = pd.concat([h1] * 2, ignore_index=True)
-        
+
         audit = {}
 
         signal, confidence = self.gen._validate_smc("BTCUSDT", h1, audit)
@@ -538,7 +538,7 @@ class TestHeuristicSignalsIntegration(unittest.TestCase):
         d1, h4, h1 = self._create_sample_timeframes()
         # Garantir dados suficientes
         h1 = pd.concat([h1] * 2, ignore_index=True)
-        
+
         audit = {}
 
         signal, confidence = self.gen._validate_smc("BTCUSDT", h1, audit)

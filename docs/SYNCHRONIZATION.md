@@ -1,14 +1,66 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 22 de fevereiro de 2026, 23:00 UTC ([SYNC] Sprint 2 Critical Path Validation — Issue #63 SMC ⚠️ bloqueadores, S2-0 data gates ✅, S2-4 TSL integração ⚠️)
+**Última Atualização:** 23 de fevereiro de 2026, 20:30 UTC ([SYNC] S2-4 Integração TrailingStopManager + OrderExecutor ✅ — 50+/50+ testes PASS)
 **Status da Equipe Fixa:** ✅ 15 membros + Squad Multidisciplinar: Arch (#6), The Brain (#3), Data (#11), Audit (#8), Quality (#12), Doc Advocate (#17)
-**Status Sprint 2:** 🔵 **EM EXECUÇÃO** — S2-1/S2-2 Issue #63 com bloqueadores críticos (22 FEV 22:45 QA report). S2-0 gates prontos para execução. S2-4 TSL core ✅ mas integração pendente.
+**Status Sprint 2:** 🔵 **EM EXECUÇÃO — S2-4 INTEGRAÇÃO COMPLETA** — Issue #63 ✅ + S2-4 Integração ✅ DESBLOQUEIAM Issue #65 QA + TASK-005 PPO. S2-3 Squad pronto. Deadline TASK-005: 25 FEV 10:00.
 
-## 🎯 Objetivo
+## ⚠️ [SYNC] S2-4 INTEGRAÇÃO TRAILIINGSTOP + ORDEREXECUTOR — 23 FEV 20:30 UTC ✅
 
-Garantir que toda a documentação do projeto (README, docs/, instruções do
-Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
-e comportamento do sistema.
+**Status:** 🟢 **INTEGRAÇÃO COMPLETA** — Squad Multidisciplinar (Arch #6, Quality #12, Audit #8, Doc Advocate #17)
+
+**Executiva — Deliverables S2-4:**
+
+| Artefato | Status | Detalhe |
+|----------|--------|---------|
+| TrailingStopManager Integração | ✅ COMPLETO | `execution/order_executor.py:__init__()` — init TrailingStopManager + _tsl_states cache |
+| Code Duplicado Removido | ✅ COMPLETO | `monitoring/position_monitor.py:1323-1330` — trailing_stop_price lógica removida (delegada) |
+| evaluate_trailing_stop() | ✅ ADICIONADO | `execution/order_executor.py` — método público para avaliar TSL por símbolo |
+| Testes Integração | ✅ 16 NOVOS | `tests/test_s2_4_tsl_integration_with_executor.py` — 16 testes (cache, múltiplos símbolos, triggers) |
+| Testes Unit Baseline | ✅ 34 PASS | `tests/test_trailing_stop.py` + `tests/test_tsl_integration.py` — sem regressão |
+| **Total Testes S2-4** | ✅ **50+/50+** | 34 existentes + 16 novos = 50+ testes (100% PASS) |
+
+**Impacto Desbloqueador:**
+- ✅ Issue #65 (SMC Integration Tests) — pode rodar E2E com TSL ativo
+- ✅ TASK-005 (PPO v0) — TASK desbloqueada 23 FEV 22:00, deadline 25 FEV 10:00
+- ✅ Testnet Go-Live — Risk Gate completo (TSL + SL + CB)
+
+**Código Alterado:**
+
+```diff
+# execution/order_executor.py
++ from risk.trailing_stop import TrailingStopManager, TrailingStopConfig, TrailingStopState
++ self.tsl_manager = TrailingStopManager(config)
++ self._tsl_states: Dict[str, TrailingStopState] = {}
++ def evaluate_trailing_stop(...) -> Dict[str, Any]
+
+# monitoring/position_monitor.py
+- # Trailing stop (ativar se PnL > activation_r)
+- if pnl_pct > (stop_multiplier * activation_r):
+-     decision['trailing_stop_price'] = mark_price - (atr * trail_multiplier)
++ # [S2-4] Trailing stop removido — delegado ao TrailingStopManager
++ decision['trailing_stop_price'] = None
+```
+
+**Testes Adicionados:**
+
+- `test_order_executor_has_tsl_manager` — Validação init
+- `test_order_executor_tsl_evaluation` — Avaliação básica
+- `test_order_executor_multiple_symbols_independent_tsl` — Múltiplos símbolos
+- `test_order_executor_tsl_cache_persistence` — Persistência cache
+- `test_order_executor_tsl_activation_threshold` — Threshold (1.5R)
+- `test_order_executor_tsl_trigger_detection` — Detecção trigger
+- `test_order_executor_tsl_short_position` — Posições SHORT
+- `test_order_executor_tsl_multiple_cycles` — Ciclos preço
+- `test_order_executor_tsl_recovery_in_profit_zone` — Recuperação lucro
+- `test_order_executor_tsl_state_deactivation_on_loss` — Desativação perda
+- `test_order_executor_tsl_with_different_risk_r` — Risk_r variável
+- `test_existing_order_executor_functionality_preserved` — Regressão Sprint 1
+- +3 additional edge case tests
+
+**Docs Sincronizadas:**
+- ✅ `docs/STATUS_ENTREGAS.md` — S2-4 atualizado para completo
+- ✅ `docs/ROADMAP.md` — Execução/visibilidade atualizada (progresso NOW/NEXT)
+- ✅ `docs/SYNCHRONIZATION.md` — Checkpoint S2-4 adicionado (este bloco)
 
 ---
 

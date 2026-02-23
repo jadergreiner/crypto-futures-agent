@@ -63,7 +63,7 @@ class HeuristicSignal:
 class RiskGate:
     """
     Gates de risco inline — Protege contra drawdown excessivo e circuit breaker.
-    
+
     - CLEARED: 0-3% drawdown (aceita trades)
     - RISKY: 3-5% drawdown (reduz volume)
     - BLOCKED: > 5% drawdown (bloqueia tudo)
@@ -72,7 +72,7 @@ class RiskGate:
     def __init__(self, max_drawdown_pct: float = 3.0, circuit_breaker_pct: float = 5.0):
         """
         Inicializa risk gates.
-        
+
         Args:
             max_drawdown_pct: Máximo drawdown CLEARED (padrão -3%, valor 3.0)
             circuit_breaker_pct: Nível BLOCKED (padrão -5%, valor 5.0)
@@ -85,11 +85,11 @@ class RiskGate:
     def evaluate(self, current_balance: float, session_peak: float) -> Tuple[str, str]:
         """
         Avalia risk gates.
-        
+
         Args:
             current_balance: Saldo atual
             session_peak: Pico da sessão
-            
+
         Returns:
             (status: "CLEARED" | "RISKY" | "BLOCKED", message: str)
         """
@@ -120,14 +120,14 @@ class HeuristicSignalGenerator:
     def __init__(self, risk_gate: Optional[RiskGate] = None):
         """
         Inicializa o gerador de sinais.
-        
+
         Args:
             risk_gate: Instância de RiskGate (cria uma nova se não fornecida)
         """
         self.risk_gate = risk_gate or RiskGate()
         self.tech_ind = TechnicalIndicators()
         self.mtf = MultiTimeframeAnalysis()
-        
+
         logger.info("HeuristicSignalGenerator inicializado")
 
     def generate_signal(
@@ -255,7 +255,7 @@ class HeuristicSignalGenerator:
         Validações:
         - Volume threshold: 1.5× SMA(20) para Order Blocks válidos
         - Edge cases: gaps noturnos, ranging markets, liquidação sweeps
-        
+
         Returns: ("BUY" | "SELL" | "NEUTRAL", confidence 0-1)
         """
         try:
@@ -315,14 +315,14 @@ class HeuristicSignalGenerator:
 
             # Detectar swing points
             swings = SmartMoneyConcepts.detect_swing_points(df, lookback=5)
-            
+
             if len(swings) < 4:
                 audit["smc"] = {"status": "INSUFFICIENT_SWINGS", "confidence": 0.0}
                 return "NEUTRAL", 0.0
 
             # Detectar market structure
             market_structure = SmartMoneyConcepts.detect_market_structure(swings)
-            
+
             # Score baseado em estrutura
             smc_score = 0.0
             confidence = 0.0
@@ -342,7 +342,7 @@ class HeuristicSignalGenerator:
             # Detectar BOS para aumentar confiança
             bos_list = SmartMoneyConcepts.detect_bos(df, swings)
             bos_count_initial = len(bos_list)
-            
+
             if bos_list:
                 if bos_list[-1].direction == "bullish" and signal == "BUY":
                     confidence = min(confidence + 0.15, 1.0)
@@ -356,14 +356,14 @@ class HeuristicSignalGenerator:
                 lookback=20,
                 volume_threshold=1.5  # 1.5× SMA(20) para validar OB
             )
-            
+
             # Aumentar confiança se order blocks confirmado BOS
             ob_confluence = 0.0
             if order_blocks and bos_list:
                 # Validar que OB está "alinhado" com BOS (mesmo timeframe)
                 last_ob = order_blocks[-1]
                 last_bos = bos_list[-1]
-                
+
                 if last_ob.type == last_bos.direction:
                     ob_confluence = 0.1  # +10% confiança se OB aligned
                     confidence = min(confidence + ob_confluence, 1.0)
@@ -397,7 +397,7 @@ class HeuristicSignalGenerator:
     ) -> Tuple[str, float]:
         """
         Valida alinhamento EMA: D1 → H4 → H1.
-        
+
         Returns: ("BUY" | "SELL" | "NEUTRAL", confidence 0-1)
         """
         try:
@@ -464,7 +464,7 @@ class HeuristicSignalGenerator:
     def _validate_rsi(self, symbol: str, h1: pd.DataFrame, audit: Dict) -> Tuple[str, float]:
         """
         Valida RSI: Oversold/Overbought.
-        
+
         Returns: ("BUY" | "SELL" | "NEUTRAL", confidence 0-1)
         """
         try:
@@ -508,7 +508,7 @@ class HeuristicSignalGenerator:
     def _validate_adx(self, symbol: str, h1: pd.DataFrame, audit: Dict) -> Tuple[bool, float]:
         """
         Valida ADX: Confirma se há tendência.
-        
+
         Returns: (is_trending: bool, confidence 0-1)
         """
         try:

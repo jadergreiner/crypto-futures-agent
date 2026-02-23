@@ -49,10 +49,10 @@ Ser o agente de trading de futuros mais resiliente e seguro do mercado, focando 
 
 > Bloco mantido pelo Copilot via `docs_sync_policy`. Não editar manualmente.
 
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 EM EXECUÇÃO (S2-0 Design ✅ + S2-3 Squad Kickoff ✅ + S2-1/S2-2 Issue #63 com bloqueadores críticos QA 🟡)
-**Última atualização:** 2026-02-22 23:00 UTC
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 EM EXECUÇÃO — S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + S2-4 ✅ | Sprint 2-3 🟡 S2-5 Pendente
+**Última atualização:** 2026-02-23 20:30 UTC
 **Progresso NOW:** 4/4 itens 100% completo ✅ (Sprint 1 finalizado)
-**Progresso NEXT:** S2-0 gates prontos (cmd exec). S2-1/S2-2 Issue #63: volume threshold + heuristic_signals integração + testes unit (22 FEV QA report). ETA ajustado: 24 FEV 20:00. S2-4 TSL core ✅ integração pendente (5-8h). **TASK-005 PPO espera Issue #63 ~22:00 UTC 24 FEV**.
+**Progresso NEXT:** S2-0 gates prontos. S2-1/S2-2 Issue #63 + S2-4 Integração DESBLOQUEADAS 23 FEV 20:00 ✅. S2-3 Squad pronto. **TASK-005 PPO: 2 dias até deadline (25 FEV 10:00)** — aguardando Issue #63 SMC signals. ETA Issue #65 QA: 24 FEV 10:00.
 
 | Documento                | Link                                           |
 |--------------------------|------------------------------------------------|

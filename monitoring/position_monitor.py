@@ -1320,14 +1320,8 @@ class PositionMonitor:
             )
             decision['decision_reasoning'] = json.dumps(reasoning)
 
-            # Trailing stop (ativar se PnL > activation_r)
-            activation_r = RISK_PARAMS.get('trailing_stop_activation_r_multiple', 1.5)
-            if pnl_pct > (stop_multiplier * activation_r):
-                trail_multiplier = RISK_PARAMS['trailing_stop_atr_multiplier']
-                if direction == 'LONG':
-                    decision['trailing_stop_price'] = mark_price - (atr * trail_multiplier)
-                else:
-                    decision['trailing_stop_price'] = mark_price + (atr * trail_multiplier)
+            # [S2-4] Trailing stop removido daqui - delegado ao TrailingStopManager
+            decision['trailing_stop_price'] = None
 
         # 9. AJUSTAR CONFIANÇA
         if decision['agent_action'] == 'HOLD':
