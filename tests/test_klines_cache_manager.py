@@ -99,7 +99,7 @@ def mock_symbol_list():
     return [
         "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT",
         "XRPUSDT", "MATICUSDT", "LINKUSDT", "DOTUSDT", "UNIUSDT",
-        "LTCUSDT", "BCUSDT", "SOLUSDT", "AVAXUSDT", "TRXUSDT",
+        "LTCUSDT", "BCHUSDT", "SOLUSDT", "AVAXUSDT", "TRXUSDT",
         "FTMUSDT", "XLMUSDT", "XTZUSDT", "ATOMUSDT", "NEOUSDT",
         "VETUSDT", "EGLDUSDT", "THETAUSDT", "ALGOUSDT", "ZILUSDT",
         "ONTUSDT", "CRVUSDT", "KSMAUSDT", "COTIUSDT", "MIDUSDT",
@@ -591,10 +591,11 @@ class TestKlinesFetchValidSymbols:
         """
         assert len(mock_symbol_list) == 60
         
-        # Validar que são símbolos Binance válidos (XXXUSDT)
+        # Validar que são símbolos Binance válidos (ends with USDT)
         for symbol in mock_symbol_list:
-            assert symbol.endswith("USDT")
-            assert len(symbol) >= 7  # Mínimo "XUSDT"
+            assert symbol.endswith("USDT"), f"Symbol {symbol} must end with USDT"
+            assert len(symbol) >= 6, f"Symbol {symbol} too short (min 6 chars)"
+            assert len(symbol) <= 10, f"Symbol {symbol} too long (max 10 chars)"
     
     @patch('klines_cache_manager.BinanceKlinesFetcher.fetch_klines')
     def test_fetch_returns_valid_array_format(self, mock_fetch, mock_symbol_list):
