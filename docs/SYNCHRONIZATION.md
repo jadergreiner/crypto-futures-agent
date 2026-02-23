@@ -1,12 +1,36 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 23 de fevereiro de 2026, 21:00 UTC ([SYNC] Squad Priorização: Issue #65 QA (CRÍTICA 24h), Issue #64 Telegram (Paralelo), Issue #67 Data Strategy Dev)
+**Última Atualização:** 23 de fevereiro de 2026, 21:15 UTC ([SYNC] 3 Specs Executáveis Criadas: Issue #65 QA, #64 Telegram, #67 Data Strategy)
 **Status da Equipe Fixa:** ✅ 15 membros + Squad Multidisciplinar: Arch (#6), The Brain (#3), Data (#11), Audit (#8), Quality (#12), Doc Advocate (#17)
 **Status Sprint 2:** 🔴 **CRÍTICA — Issue #65 QA DEADLINE 24 FEV 10:00 ⚡** — Issue #63 ✅ + S2-4 ✅ DESBLOQUEIAM #65 AGORA (23 FEV 20:40). Desbloqueia TASK-005 PPO (deadline duríssima 25 FEV 10:00). Issue #64 + #67 parallelizable.
 
-## 🚀 [SYNC] SQUAD MULTIDISCIPLINAR — PRIORIZAÇÃO 3 ISSUES CRÍTICAS (23 FEV 21:00 UTC)
+## 🚀 [SYNC] SQUAD MULTIDISCIPLINAR — EXECUTÁVEL SPECS CRIADAS (23 FEV 21:15 UTC)
 
-**Status:** 🟢 **ROADMAP ATUALIZADO PARA 3 TRACKS PARALELAS** — Squad roles distribuídos, docs sincronizados, git ready
+**Status:** 🟢 **3 SPECIFICATION DOCS CRIADOS** — Squad pronta para execução paralela imediata
+
+### 📋 Specs Executáveis Criados (PHASE 0)
+
+| Issue | Spec Doc | Fases | Timeline | Lead | Status |
+|-------|----------|-------|----------|------|--------|
+| **#65 QA** 🔴 | [ISSUE_65_SMC_QA_SPEC.md](ISSUE_65_SMC_QA_SPEC.md) | 1-4 | 23 FEV 20:40 → 24 FEV 10:00 | Arch (#6) | 🟢 READY |
+| **#64 Telegram** 🟢 | [ISSUE_64_TELEGRAM_SETUP_SPEC.md](ISSUE_64_TELEGRAM_SETUP_SPEC.md) | 1-2 | 24 FEV 14:00 → 25 FEV 18:00 | Blueprint (#7) | 🟢 READY |
+| **#67 Data Strat** 📊 | [ISSUE_67_DATA_STRATEGY_SPEC.md](ISSUE_67_DATA_STRATEGY_SPEC.md) | 1-3 | 24 FEV 15:00 → 26 FEV 18:00 | Data (#11) | 🟢 READY |
+
+### 🎯 Spec Highlights (Executável Format)
+
+**Cada spec contém:**
+- ✅ Objective claro + Critério Aceite linkado
+- ✅ Timeline com fases + leads
+- ✅ Checklist executável por fase
+- ✅ Output files + deliverables
+- ✅ Success metrics quantificáveis
+- ✅ Escalation paths (> SLA → Angel #1)
+
+---
+
+## 🚀 [SYNC] SQUAD MULTIDISCIPLINAR — PRIORIZAÇÃO 3 ISSUES CRÍTICAS (23 FEV 21:15 UTC)
+
+**Status:** 🟢 **ROADMAP + SPECS EXECUTÁVEIS** — Squad roles distribuídos, docs sincronizados, git ready, **AGORA em execução**
 
 ### 📌 3 Issues Prioritárias — Squad Execution Map
 
