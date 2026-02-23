@@ -1,0 +1,482 @@
+{
+  "execution_summary": {
+    "execution_id": "2026-02-23T00:01:35.556411",
+    "phase": "S2-0 Data Strategy",
+    "start_time": "2026-02-23T00:01:35.556411",
+    "end_time": null,
+    "duration_minutes": 0,
+    "symbols_total": 60,
+    "symbols_success": 54,
+    "symbols_failed": 5,
+    "total_candles": 102272,
+    "storage_mb": 18.26,
+    "rate_limit_usage_pct": 5.71,
+    "metrics": {
+      "candles_avg_by_symbol": 1894.0,
+      "validation_invalid_total": 0,
+      "validation_gaps_total": 0,
+      "db_size_mb": 18.2578125
+    },
+    "status": "EXECUTING"
+  },
+  "fetch_results": {
+    "BTCUSDT": 2190,
+    "ETHUSDT": 2190,
+    "BNBUSDT": 2190,
+    "XRPUSDT": 2190,
+    "ADAUSDT": 2190,
+    "SOLUSDT": 2190,
+    "LPUSDT": "ERROR: 400 Client Error: Bad Request for url: https://fapi.binance.com/fapi/v1/klines?symbol=LPUSDT&interval=4h&limit=1500&startTime=1740279697442",
+    "ICPUSDT": 2190,
+    "JTOÐ£Ð¡DT": "ERROR: 400 Client Error: Bad Request for url: https://fapi.binance.com/fapi/v1/klines?symbol=JTO%C3%90%C2%A3%C3%90%C2%A1DT&interval=4h&limit=1500&startTime=1740279697442",
+    "DOGEUSDT": 2190,
+    "AVAXUSDT": 2190,
+    "MATICUSDT": 0,
+    "LINKUSDT": 2190,
+    "LTCUSDT": 2190,
+    "BCHUSDT": 2190,
+    "UNIUSDT": 2190,
+    "XLMUSDT": 2190,
+    "DAFUSDT": "ERROR: 400 Client Error: Bad Request for url: https://fapi.binance.com/fapi/v1/klines?symbol=DAFUSDT&interval=4h&limit=1500&startTime=1740279697442",
+    "THETAUSDT": 2190,
+    "VETUSDT": 2190,
+    "FILUSDT": 2190,
+    "EOSUSDT": 524,
+    "TRXUSDT": 2190,
+    "ZECUSDT": 2190,
+    "ATOMUSDT": 2190,
+    "HBARUSDT": 2190,
+    "NEOUSDT": 2190,
+    "MINAUSDT": 2190,
+    "ZKUSDT": 2190,
+    "CRVUSDT": 2190,
+    "SANDUSDT": 2190,
+    "MANAUSDT": 2190,
+    "APEUSDT": 2190,
+    "ARBUSDT": 2190,
+    "KASUSDT": 2190,
+    "LRCUSDT": 2190,
+    "ENSUSDT": 2190,
+    "AXSUSDT": 2190,
+    "HNTUSDT": 0,
+    "BALUSDT": 302,
+    "RNDERUSDT": "ERROR: 400 Client Error: Bad Request for url: https://fapi.binance.com/fapi/v1/klines?symbol=RNDERUSDT&interval=4h&limit=1500&startTime=1740279697442",
+    "MKRUSDT": 1184,
+    "SNXUSDT": 2190,
+    "COMPUSDT": 2190,
+    "YFIUSDT": 2190,
+    "BANDUSDT": 2190,
+    "RENUSDT": 0,
+    "ONOUSDT": "ERROR: 400 Client Error: Bad Request for url: https://fapi.binance.com/fapi/v1/klines?symbol=ONOUSDT&interval=4h&limit=1500&startTime=1740279697442",
+    "ALTUSDT": 2190,
+    "CHZUSDT": 2190,
+    "KLAYUSDT": 0,
+    "SXPUSDT": 1712,
+    "GTCUSDT": 2190,
+    "ANKRUSDT": 2190,
+    "LUNAUSDT": 0,
+    "ACHUSDT": 2190,
+    "MASKUSDT": 2190,
+    "ROSEUSDT": 2190,
+    "SUIUSDT": 2190
+  },
+  "validation_results": {
+    "BTCUSDT": {
+      "symbol": "BTCUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ETHUSDT": {
+      "symbol": "ETHUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "BNBUSDT": {
+      "symbol": "BNBUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "XRPUSDT": {
+      "symbol": "XRPUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ADAUSDT": {
+      "symbol": "ADAUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "SOLUSDT": {
+      "symbol": "SOLUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ICPUSDT": {
+      "symbol": "ICPUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "DOGEUSDT": {
+      "symbol": "DOGEUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "AVAXUSDT": {
+      "symbol": "AVAXUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "LINKUSDT": {
+      "symbol": "LINKUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "LTCUSDT": {
+      "symbol": "LTCUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "BCHUSDT": {
+      "symbol": "BCHUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "UNIUSDT": {
+      "symbol": "UNIUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "XLMUSDT": {
+      "symbol": "XLMUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "THETAUSDT": {
+      "symbol": "THETAUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "VETUSDT": {
+      "symbol": "VETUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "FILUSDT": {
+      "symbol": "FILUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "EOSUSDT": {
+      "symbol": "EOSUSDT",
+      "total": 524,
+      "valid": 524,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "TRXUSDT": {
+      "symbol": "TRXUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ZECUSDT": {
+      "symbol": "ZECUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ATOMUSDT": {
+      "symbol": "ATOMUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "HBARUSDT": {
+      "symbol": "HBARUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "NEOUSDT": {
+      "symbol": "NEOUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "MINAUSDT": {
+      "symbol": "MINAUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ZKUSDT": {
+      "symbol": "ZKUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "CRVUSDT": {
+      "symbol": "CRVUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "SANDUSDT": {
+      "symbol": "SANDUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "MANAUSDT": {
+      "symbol": "MANAUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "APEUSDT": {
+      "symbol": "APEUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ARBUSDT": {
+      "symbol": "ARBUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "KASUSDT": {
+      "symbol": "KASUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "LRCUSDT": {
+      "symbol": "LRCUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ENSUSDT": {
+      "symbol": "ENSUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "AXSUSDT": {
+      "symbol": "AXSUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "BALUSDT": {
+      "symbol": "BALUSDT",
+      "total": 302,
+      "valid": 302,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "MKRUSDT": {
+      "symbol": "MKRUSDT",
+      "total": 1184,
+      "valid": 1184,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "SNXUSDT": {
+      "symbol": "SNXUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "COMPUSDT": {
+      "symbol": "COMPUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "YFIUSDT": {
+      "symbol": "YFIUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "BANDUSDT": {
+      "symbol": "BANDUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ALTUSDT": {
+      "symbol": "ALTUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "CHZUSDT": {
+      "symbol": "CHZUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "SXPUSDT": {
+      "symbol": "SXPUSDT",
+      "total": 1712,
+      "valid": 1712,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "GTCUSDT": {
+      "symbol": "GTCUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ANKRUSDT": {
+      "symbol": "ANKRUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ACHUSDT": {
+      "symbol": "ACHUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "MASKUSDT": {
+      "symbol": "MASKUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "ROSEUSDT": {
+      "symbol": "ROSEUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    },
+    "SUIUSDT": {
+      "symbol": "SUIUSDT",
+      "total": 2190,
+      "valid": 2190,
+      "invalid": 0,
+      "gaps": [],
+      "status": "PASS"
+    }
+  },
+  "orchestrator_metadata": {
+    "last_full_sync": "2026-02-23T00:02:21.511805",
+    "symbols_count": 60,
+    "last_update": null
+  }
+}

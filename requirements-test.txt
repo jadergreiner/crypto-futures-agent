@@ -1,0 +1,43 @@
+# Test & QA Dependencies
+# Role: QA Automation Engineer (#12)
+# Purpose: S2-0 Data Pipeline Testing
+# Installation: pip install -r requirements-test.txt
+
+# Core Testing Framework
+pytest>=7.0.0,<8.0.0                # Test runner
+pytest-cov>=4.0.0,<5.0.0             # Coverage reporting
+pytest-asyncio>=0.20.0,<1.0.0        # Async test support
+pytest-timeout>=2.1.0,<3.0.0         # Timeout handler
+pytest-xdist>=3.0.0,<4.0.0           # Parallel execution
+
+# Mock & Test Utilities
+unittest-mock>=1.5.0                  # Mock support
+faker>=15.0.0,<20.0.0                 # Fake data generation
+
+# Code Quality
+coverage>=6.5.0,<8.0.0                # Coverage analysis
+coverage-badge>=1.1.0,<2.0.0          # Coverage badges
+
+# Database Testing
+sqlite3-python>=1.0.0                 # SQLite (usually included)
+
+# Cryptography (for API key fixtures)
+cryptography>=38.0.0,<45.0.0          # Encryption utilities
+
+# Optional: Watch mode for development
+pytest-watch>=4.2.0,<5.0.0            # Auto-rerun on file changes
+
+# Optional: Reporting
+pytest-html>=3.1.0,<4.0.0             # HTML test reports
+pytest-json-report>=1.5.0,<2.0.0      # JSON test reports
+
+# Optional: Performance profiling
+pytest-benchmark>=3.4.0,<4.0.0        # Benchmark tests
+memory-profiler>=0.60.0,<1.0.0        # Memory profiling
+
+# Optional: Better assertion messages
+pytest-clarity>=1.0.1,<2.0.0          # Clearer assertion diffs
+
+# Data dependencies (shared with main)
+numpy>=1.23.0,<2.0.0                  # Numerical computations
+pandas>=1.5.0,<2.0.0                  # Data manipulation (if needed for tests)

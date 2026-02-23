@@ -1,0 +1,24 @@
+{
+  "symbols": [
+    "BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT",
+    "SOLUSDT", "LPUSDT", "ICPUSDT", "JTOУСDT", "DOGEUSDT",
+    "AVAXUSDT", "MATICUSDT", "LINKUSDT", "LTCUSDT", "BCHUSDT",
+    "UNIUSDT", "XLMUSDT", "DAFUSDT", "THETAUSDT", "VETUSDT",
+    "FILUSDT", "EOSUSDT", "TRXUSDT", "ZECUSDT", "ATOMUSDT",
+    "HBARUSDT", "NEOUSDT", "MINAUSDT", "ZKUSDT", "CRVUSDT",
+    "SANDUSDT", "MANAUSDT", "APEUSDT", "ARBUSDT", "KASUSDT",
+    "LRCUSDT", "ENSUSDT", "AXSUSDT", "HNTUSDT", "BALUSDT",
+    "UNIUSDT", "RNDERUSDT", "MKRUSDT", "SNXUSDT", "COMPUSDT",
+    "YFIUSDT", "BANDUSDT", "RENUSDT", "ONOUSDT", "ALTUSDT",
+    "CHZUSDT", "KLAYUSDT", "SXPUSDT", "GTCUSDT", "ANKRUSDT",
+    "LUNAUSDT", "ACHUSDT", "MASKUSDT", "ROSEUSDT", "SUIUSDT"
+  ],
+  "metadata": {
+    "last_updated": "2026-02-22T10:30:00Z",
+    "total_symbols": 60,
+    "data_source": "Binance Futures API",
+    "interval": "4h",
+    "period_days": 365,
+    "estimated_candles_total": 131400
+  }
+}

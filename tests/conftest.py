@@ -155,3 +155,144 @@ class MockMetricsBuffer:
 def mock_metrics_buffer() -> MockMetricsBuffer:
     """Fixture: Buffer de métricas mock."""
     return MockMetricsBuffer()
+
+
+# ============================================================================
+# FIXTURES: Klines Cache Manager (S2-0 Data Pipeline)
+# ============================================================================
+# Adicionadas para testes de data/scripts/klines_cache_manager.py
+
+import sqlite3
+from datetime import datetime, timedelta
+
+
+@pytest.fixture
+def temp_db_klines():
+    """Cria database temporário para testes de klines (SQLite em memória)."""
+    try:
+        from data.scripts.klines_cache_manager import DB_SCHEMA_SQL
+    except ImportError:
+        # Fallback se import falhar
+        DB_SCHEMA_SQL = """
+        CREATE TABLE IF NOT EXISTS klines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            open_time INTEGER NOT NULL,
+            open REAL NOT NULL,
+            high REAL NOT NULL,
+            low REAL NOT NULL,
+            close REAL NOT NULL,
+            volume REAL NOT NULL,
+            close_time INTEGER NOT NULL,
+            quote_volume REAL NOT NULL,
+            trades INTEGER,
+            taker_buy_volume REAL,
+            taker_buy_quote_volume REAL,
+            is_validated BOOLEAN DEFAULT 0,
+            sync_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(symbol, open_time),
+            CHECK (low <= open AND low <= close AND high >= open AND high >= close)
+        );
+        CREATE INDEX IF NOT EXISTS idx_symbol_time ON klines(symbol, open_time);
+        CREATE INDEX IF NOT EXISTS idx_validated ON klines(is_validated);
+        CREATE TABLE IF NOT EXISTS sync_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            sync_type TEXT NOT NULL,
+            rows_inserted INTEGER,
+            rows_updated INTEGER,
+            start_time INTEGER,
+            end_time INTEGER,
+            duration_seconds REAL,
+            status TEXT,
+            error_message TEXT,
+            sync_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_sync_symbol ON sync_log(symbol);
+        """
+    
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(DB_SCHEMA_SQL)
+    conn.commit()
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def valid_kline_array_klines():
+    """Um candle Binance válido [array format] para testes de klines."""
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    return [
+        now_ms,                    # open_time
+        50000.0,                   # open
+        51000.0,                   # high
+        49000.0,                   # low
+        50500.0,                   # close
+        123.45,                    # volume
+        now_ms + 4 * 3600 * 1000,  # close_time (4h depois)
+        6234567.89,                # quote_volume
+        1234,                      # trades
+        61.725,                    # taker_buy_volume
+        3117283.945                # taker_buy_quote_volume
+    ]
+
+
+@pytest.fixture
+def valid_kline_dict_klines():
+    """Um candle em formato dicionário para validação de klines."""
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    return {
+        "open_time": now_ms,
+        "open": 50000.0,
+        "high": 51000.0,
+        "low": 49000.0,
+        "close": 50500.0,
+        "volume": 123.45,
+        "close_time": now_ms + 4 * 3600 * 1000,
+        "quote_volume": 6234567.89,
+        "trades": 1234
+    }
+
+
+@pytest.fixture
+def mock_symbol_list_klines():
+    """60 símbolos Binance válidos para testes."""
+    return [
+        "BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT",
+        "XRPUSDT", "MATICUSDT", "LINKUSDT", "DOTUSDT", "UNIUSDT",
+        "LTCUSDT", "BCUSDT", "SOLUSDT", "AVAXUSDT", "TRXUSDT",
+        "FTMUSDT", "XLMUSDT", "XTZUSDT", "ATOMUSDT", "NEOUSDT",
+        "VETUSDT", "EGLDUSDT", "THETAUSDT", "ALGOUSDT", "ZILUSDT",
+        "ONTUSDT", "CRVUSDT", "KSMAUSDT", "COTIUSDT", "MIDUSDT",
+        "SKLUSDT", "AAVAUSDT", "SNXUSDT", "YFIUSDT", "ZECUSDT",
+        "DCRUSDT", "OMGUSDT", "ANKRUSDT", "BALANCERUSDT", "1INCHUSDT",
+        "CHZUSDT", "BANDUSDT", "MITHUSDT", "YFIIUSDT", "CAKEUSDT",
+        "NKNUSDT", "SCUSDT", "AUDIOUSDT", "OCEANUSDT", "SUNUSDT",
+        "ROSEUSDT", "DYDXUSDT", "RAYUSDT", "GUSHUSDT", "XVALUSDT",
+        "GMTUSDT", "OPSUSDT", "APUSDT", "GALUSDT", "LDOUSDT"
+    ]
+
+
+@pytest.fixture
+def sample_klines_batch_klines(valid_kline_array_klines):
+    """Cria 100 candles sequenciais para teste de batch insert."""
+    batch = []
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    
+    for i in range(100):
+        kline = [
+            now_ms - (100 - i) * 4 * 3600 * 1000,  # open_time
+            50000.0 + i,                             # open
+            51000.0 + i,                             # high
+            49000.0 + i,                             # low
+            50500.0 + i,                             # close
+            100 + i * 0.5,                           # volume
+            now_ms - (99 - i) * 4 * 3600 * 1000,   # close_time
+            5000000 + i * 50000,                     # quote_volume
+            1000 + i,                                # trades
+            50 + i * 0.25,                           # taker_buy_volume
+            2500000 + i * 25000                      # taker_buy_quote_volume
+        ]
+        batch.append(kline)
+    
+    return batch

@@ -1,0 +1,357 @@
+# Alerting Rules para Data Pipeline (S2-0/S2-1)
+# Formato: Prometheus-compatible
+# Deployment: Prometheus + AlertManager ou ELK + Watcher
+# Owner: The Blueprint (#7) — Infrastructure Lead
+
+groups:
+  - name: data_pipeline_24_7
+    interval: 5m
+    rules:
+      
+      # ===== ALERT 1: Daily Sync Failure =====
+      - alert: DailySyncFailed
+        expr: increase(daily_sync_failures_total[1d]) > 0
+        for: 5m
+        annotations:
+          summary: "🔴 Daily candle sync FAILED"
+          description: |
+            Daily sync job encountered errors on {{ $labels.date }}.
+            
+            📍 Impact: New candles NOT updated (data stale)
+            📍 Action: Check /var/log/crypto-futures-agent/daily_sync_*.log
+            📍 Root cause: Binance API? Rate limits? DB locked?
+            
+            Manual recovery:
+            $ python3 -m scripts.daily_candle_sync --workspace . --symbols all --lookback 4
+          dashboard: "grafana/dashboard/data-pipeline"
+      
+      # ===== ALERT 2: Sync Timeout =====
+      - alert: DailySyncTimeout
+        expr: increase(daily_sync_timeout_total[1d]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: data_pipeline
+        annotations:
+          summary: "⏱️  Daily sync TIMEOUT (exceeded 30min)"
+          description: |
+            Sync job exceeded SLA (30 minutes hard limit).
+            
+            📍 Impact: Sync was killed, data NOT updated
+            📍 Cause: Too slow (network? DB writes? rate limit backoff?)
+            📍 Action: 
+              - Check cron log: tail /var/log/cron
+              - Check sync log: tail /var/log/crypto-futures-agent/daily_sync_*.log
+              - Diagnose: Is Binance API slow?
+              - DB perf: PRAGMA slow_query_log
+      
+      # ===== ALERT 3: Data Staleness =====
+      - alert: DataStalenessWarning
+        expr: (time() - last_candle_timestamp) / 3600 > 24
+        for: 30m
+        labels:
+          severity: warning
+          component: data_pipeline
+        annotations:
+          summary: "⚠️  Data is >24h old"
+          description: |
+            Last candle update was {{ humanize (time() - last_candle_timestamp) }} ago.
+            
+            📍 Impact: RL model may use stale data
+            📍 Action: Check if daily sync has run
+              $ python3 scripts/health_check.py
+            📍 If sync didn't run: Manual trigger
+              $ /opt/jobs/daily_sync.sh
+      
+      # ===== ALERT 4: Data Staleness Critical =====
+      - alert: DataStalenesCritical
+        expr: (time() - last_candle_timestamp) / 3600 > 26
+        for: 10m
+        labels:
+          severity: critical
+          component: data_pipeline
+        annotations:
+          summary: "🔴 CRITICAL: Data is >26h old (SLA breach)"
+          description: |
+            Last candle update was {{ humanize (time() - last_candle_timestamp) }} ago.
+            
+            📍 Impact: RPO (Recovery Point Objective) BREACHED
+            📍 Action: IMMEDIATE
+              1. Check cron: cat /var/log/cron | grep daily_sync
+              2. Check sync: tail -50 /var/log/crypto-futures-agent/daily_sync_*.log
+              3. Manual sync: /opt/jobs/daily_sync.sh
+              4. If still failing: python3 scripts/db_recovery.sh
+      
+      # ===== ALERT 5: Rate Limit Abuse =====
+      - alert: BinanceRateLimitAbuse
+        expr: rate(binance_rate_limit_hits_total[5m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: data_pipeline
+        annotations:
+          summary: "⚠️  Binance rate limit hit {{ $value }} times/min"
+          description: |
+            Too many 429 (Too Many Requests) errors to Binance API.
+            
+            📍 Impact: Sync slow, may timeout
+            📍 Cause: Network burst? Concurrent requests? Other clients?
+            📍 Action: 
+              - Check: ps aux | grep daily_candle_sync (should be 1)
+              - Check: nettop (any other bots?)
+              - RateLimit grace: Job auto-retries with 60s backoff
+      
+      # ===== ALERT 6: Database Corruption =====
+      - alert: DatabasCorruption
+        expr: increase(db_integrity_check_failures[1h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "🔴 DATABASE CORRUPTION DETECTED"
+          description: |
+            Database integrity check (PRAGMA integrity_check) failed.
+            
+            📍 Impact: Cannot write/read data, sync will fail
+            📍 Action: RUN RECOVERY NOW
+              $ python3 scripts/db_recovery.py --workspace . --backup-dir backups
+            
+            📍 Recovery steps automated:
+              1. Backs up corrupted DB
+              2. Finds latest good backup
+              3. Restores from backup
+              4. Syncs missing data
+            
+            📍 If recovery fails: escalate to manual intervention
+      
+      # ===== ALERT 7: Backup Stale =====
+      - alert: BackupStale
+        expr: (time() - backup_last_timestamp) / 3600 > 26
+        for: 10m
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "⚠️  Latest backup is >26h old"
+          description: |
+            Backup last taken {{ humanize (time() - backup_last_timestamp) }} ago.
+            
+            📍 Impact: If DB corrupts, can't recover > 26h of data
+            📍 Action: Check backup cron job
+              $ tail /var/log/cron | grep backup
+            📍 Backup trigger: Usually 02:00 UTC (after 01:00 sync)
+            📍 Fallback: Manual trigger
+              $ python3 scripts/backup_engine.py
+      
+      # ===== ALERT 8: DB Record Gap =====
+      - alert: MissingSymbols
+        expr: ohlcv_h4_distinct_symbols < 59
+        for: 30m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "⚠️  {{ 60 - $value }} symbols missing from DB"
+          description: |
+            Only {{ $value }}/60 symbols in database (expected 60).
+            
+            📍 Impact: RL model has incomplete market data
+            📍 Possible cause:
+              - Sync partial failure (< 50/60 threshold)
+              - Symbol delisted from Binance
+              - Data corruption/deletion
+            📍 Action: 
+              $ python3 scripts/health_check.py
+              $ python3 -m scripts.daily_candle_sync --lookback 10
+      
+      # ===== ALERT 9: Disk Space =====
+      - alert: DiskSpaceRunningOut
+        expr: disk_free_bytes / disk_total_bytes < 0.15
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "⚠️  Disk <15% free"
+          description: |
+            Disk space running out on {{ $labels.mount_point }}.
+            
+            📍 Impact: Cannot write new backups or candles
+            📍 Action:
+              - Check: df -h
+              - Cleanup: rm -rf /var/log/crypto-futures-agent/daily_sync_*.log (keep 7d)
+              - Cleanup: rm -rf backups/* (keep hot 14d, warm 30d)
+      
+      # ===== ALERT 10: Sync Script Error =====
+      - alert: SyncScriptError
+        expr: increase(sync_script_errors_total[1h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: data_pipeline
+        annotations:
+          summary: "🔴 Daily sync Python script exited with error"
+          description: |
+            daily_candle_sync.py failed (non-zero exit code).
+            
+            📍 Impact: Candles NOT fetched/updated
+            📍 Action:
+              1. Review logs: /var/log/crypto-futures-agent/daily_sync_*.log
+              2. Check stderr for exception trace
+              3. Possible causes:
+                 - Missing Python module (import error)
+                 - DB connection error
+                 - Invalid symbol in config
+              4. Run locally: python3 -m scripts.daily_candle_sync ...
+
+---
+
+## Dashboard Queries (Prometheus)
+
+### Query 1: Sync Success Rate (last 7 days)
+```promql
+avg(rate(daily_sync_success_total[1d])) over 7d
+```
+
+### Query 2: Sync Duration (last 30 runs)
+```promql
+histogram_quantile(0.99, rate(daily_sync_duration_seconds_bucket[7d]))
+```
+
+### Query 3: Data Freshness (hours ago)
+```promql
+(time() - max(ohlcv_h4_timestamp)) / 3600
+```
+
+### Query 4: Backup Age (hours)
+```promql
+(time() - max(backup_last_timestamp)) / 3600
+```
+
+### Query 5: Symbol Coverage
+```promql
+ohlcv_h4_distinct_symbols / 60 * 100
+```
+
+### Query 6: Rate Limit Hits
+```promql
+rate(binance_rate_limit_hits_total[5m])
+```
+
+---
+
+## Alert Delivery Channels
+
+### Option A: Email (Simple, requires sendmail)
+```bash
+# In bash wrapper after failure:
+echo "❌ Daily sync failed on $(date)" | \
+  mail -s "ALERT: Daily Sync Failure" \
+       ops@company.com
+```
+
+### Option B: Slack Webhook (Recommended)
+```python
+# In Python script after error:
+import requests
+
+def send_slack_alert(message: str, severity: str = "warning"):
+    """Send alert to Slack #alerts channel."""
+    color = "danger" if severity == "critical" else "warning"
+    payload = {
+        "attachments": [
+            {
+                "color": color,
+                "title": f"🚨 {severity.upper()}: Data Pipeline",
+                "text": message,
+                "footer": "Crypto Futures Agent",
+                "ts": int(datetime.utcnow().timestamp())
+            }
+        ]
+    }
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    requests.post(webhook_url, json=payload, timeout=5)
+
+# Usage:
+if sync_failed:
+    send_slack_alert("Daily sync failed. Check logs.", severity="critical")
+```
+
+### Option C: PagerDuty (For critical 24/7)
+```python
+import pdpyras
+
+def trigger_pagerduty_incident(summary: str, details: str):
+    """Escalate critical alert to on-call engineer."""
+    
+    session = pdpyras.APISession(
+        token=os.getenv("PAGERDUTY_TOKEN")
+    )
+    
+    incident = session.post(
+        "/incidents",
+        json={
+            "incident": {
+                "type": "incident",
+                "title": summary,
+                "service": {
+                    "id": "P123ABC",  # Service ID for crypto agent
+                    "type": "service_reference"
+                },
+                "urgency": "high",
+                "body": {
+                    "type": "incident_body",
+                    "details": details
+                }
+            }
+        }
+    )
+    
+    return incident["incident"]["id"]
+
+# Usage:
+if db_corrupted:
+    trigger_pagerduty_incident(
+        "Database Corruption Detected",
+        "PRAGMA integrity_check failed. Recovery in progress..."
+    )
+```
+
+---
+
+## Monitoring SLA
+
+| Metric | Target | AlertThreshold |
+|--------|--------|---|
+| Sync Success Rate | ≥95% | <95% for 1h |
+| Data Freshness | <26h | >26h for 10m |
+| Sync Duration (p99) | <30m | >30m (hard limit) |
+| Backup Age | <26h | >26h for 10m |
+| Symbol Coverage | 60/60 | <59/60 for 30m |
+| Rate Limit Hits | <1/hour | >10/5m |
+| DB Integrity | Pass | Any failure |
+| Disk Free | >15% | <15% |
+
+---
+
+## Testing Alerts (Manual)
+
+To test alert delivery without waiting for failure:
+
+```bash
+# Simulate data staleness
+sqlite3 data/agent.db "UPDATE ohlcv_h4 SET timestamp = timestamp - 100*3600000;"
+
+# This will make all timestamps 100 hours old
+# health_check.py will immediately alert
+
+# After testing, restore:
+git checkout data/agent.db
+```
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** 2026-02-22  
+**Owner:** The Blueprint (#7) — Infrastructure Lead + DevOps

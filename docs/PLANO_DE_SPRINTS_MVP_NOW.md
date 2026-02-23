@@ -46,12 +46,13 @@
 
 ## 🔜 Sprint 2 — Inteligência Básica (Planejamento)
 
-**Objetivo:** Motor SMC e backtesting inicial.
+**Objetivo:** Data Strategy + Motor SMC e backtesting inicial.
 **Período:** TODO
 **Depende de:** Sprint 1 concluída e Gate #1 aprovado.
 
 | Entregável                       | Responsável | Status | Issue  | PR     |
 |----------------------------------|-------------|--------|--------|--------|
+| Data Strategy (1Y Binance)       | TODO        | 🟡     | #60    | TODO   |
 | Detecção de Order Blocks (SMC)   | TODO        | 🔴     | TODO   | TODO   |
 | Detecção de BoS (SMC)            | TODO        | 🔴     | TODO   | TODO   |
 | Engine de Backtesting (1 ano)    | TODO        | 🔴     | TODO   | TODO   |

@@ -1,0 +1,394 @@
+{
+  "BTCUSDT": {
+    "symbol": "BTCUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ETHUSDT": {
+    "symbol": "ETHUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "BNBUSDT": {
+    "symbol": "BNBUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "XRPUSDT": {
+    "symbol": "XRPUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ADAUSDT": {
+    "symbol": "ADAUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "SOLUSDT": {
+    "symbol": "SOLUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ICPUSDT": {
+    "symbol": "ICPUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "DOGEUSDT": {
+    "symbol": "DOGEUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "AVAXUSDT": {
+    "symbol": "AVAXUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "LINKUSDT": {
+    "symbol": "LINKUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "LTCUSDT": {
+    "symbol": "LTCUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "BCHUSDT": {
+    "symbol": "BCHUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "UNIUSDT": {
+    "symbol": "UNIUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "XLMUSDT": {
+    "symbol": "XLMUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "THETAUSDT": {
+    "symbol": "THETAUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "VETUSDT": {
+    "symbol": "VETUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "FILUSDT": {
+    "symbol": "FILUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "EOSUSDT": {
+    "symbol": "EOSUSDT",
+    "total": 524,
+    "valid": 524,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "TRXUSDT": {
+    "symbol": "TRXUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ZECUSDT": {
+    "symbol": "ZECUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ATOMUSDT": {
+    "symbol": "ATOMUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "HBARUSDT": {
+    "symbol": "HBARUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "NEOUSDT": {
+    "symbol": "NEOUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "MINAUSDT": {
+    "symbol": "MINAUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ZKUSDT": {
+    "symbol": "ZKUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "CRVUSDT": {
+    "symbol": "CRVUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "SANDUSDT": {
+    "symbol": "SANDUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "MANAUSDT": {
+    "symbol": "MANAUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "APEUSDT": {
+    "symbol": "APEUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ARBUSDT": {
+    "symbol": "ARBUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "KASUSDT": {
+    "symbol": "KASUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "LRCUSDT": {
+    "symbol": "LRCUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ENSUSDT": {
+    "symbol": "ENSUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "AXSUSDT": {
+    "symbol": "AXSUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "BALUSDT": {
+    "symbol": "BALUSDT",
+    "total": 302,
+    "valid": 302,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "MKRUSDT": {
+    "symbol": "MKRUSDT",
+    "total": 1184,
+    "valid": 1184,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "SNXUSDT": {
+    "symbol": "SNXUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "COMPUSDT": {
+    "symbol": "COMPUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "YFIUSDT": {
+    "symbol": "YFIUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "BANDUSDT": {
+    "symbol": "BANDUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ALTUSDT": {
+    "symbol": "ALTUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "CHZUSDT": {
+    "symbol": "CHZUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "SXPUSDT": {
+    "symbol": "SXPUSDT",
+    "total": 1712,
+    "valid": 1712,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "GTCUSDT": {
+    "symbol": "GTCUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ANKRUSDT": {
+    "symbol": "ANKRUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ACHUSDT": {
+    "symbol": "ACHUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "MASKUSDT": {
+    "symbol": "MASKUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "ROSEUSDT": {
+    "symbol": "ROSEUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  },
+  "SUIUSDT": {
+    "symbol": "SUIUSDT",
+    "total": 2190,
+    "valid": 2190,
+    "invalid": 0,
+    "gaps": [],
+    "status": "PASS"
+  }
+}

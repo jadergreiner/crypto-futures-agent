@@ -1,0 +1,340 @@
+{
+  "s2_1_operations_24_7": {
+    "metadata": {
+      "title": "S2-1 Operações 24/7 — Cheat Sheet Configurações",
+      "role": "The Blueprint (#7) — Infrastructure Lead",
+      "date": "2026-02-22",
+      "status": "✅ READY FOR DEPLOYMENT",
+      "version": "1.0"
+    },
+    
+    "cron_job": {
+      "expression": "0 1 * * *",
+      "frequency": "Daily at 01:00 UTC (8 PM São Paulo)",
+      "command": "/opt/jobs/daily_sync.sh",
+      "timeout_minutes": 30,
+      "log_directory": "/var/log/crypto-futures-agent",
+      "log_pattern": "daily_sync_YYYY-MM-DD_HH-MM-SS.log"
+    },
+    
+    "daily_sync_job": {
+      "location": "scripts/daily_candle_sync.py",
+      "language": "Python 3.8+",
+      "command": "python3 -m scripts.daily_candle_sync --workspace . --symbols all --lookback 4",
+      "typical_duration_seconds": 180,
+      "max_duration_seconds": 1800,
+      "fetch_mode": "incremental",
+      "candles_per_symbol": 4,
+      "total_symbols": 60,
+      "retry_logic": {
+        "timeout_max_attempts": 3,
+        "timeout_backoff": "exponential (1s, 2s, 4s)",
+        "rate_limit_max_attempts": 2,
+        "rate_limit_wait": "60s + jitter(0-30s)"
+      },
+      "exit_codes": {
+        "0": "success",
+        "1": "general failure",
+        "124": "timeout exceeded"
+      }
+    },
+    
+    "health_check": {
+      "location": "scripts/health_check.py",
+      "language": "Python 3.8+",
+      "command": "python3 scripts/health_check.py",
+      "frequency": "manual or cron every 6h",
+      "typical_duration_seconds": 20,
+      "metrics": [
+        {
+          "id": 1,
+          "name": "Data Freshness",
+          "target": "< 26 hours old",
+          "query": "SELECT MAX(timestamp) FROM ohlcv_h4"
+        },
+        {
+          "id": 2,
+          "name": "Symbol Coverage",
+          "target": "60/60 symbols",
+          "query": "SELECT COUNT(DISTINCT symbol) FROM ohlcv_h4"
+        },
+        {
+          "id": 3,
+          "name": "Database Integrity",
+          "target": "PRAGMA integrity_check = OK",
+          "query": "PRAGMA integrity_check"
+        },
+        {
+          "id": 4,
+          "name": "Database Size",
+          "target": "> 10 MB",
+          "query": "os.path.getsize(db_path)"
+        },
+        {
+          "id": 5,
+          "name": "Backup Status",
+          "target": "Latest < 26h old",
+          "query": "max(os.path.getctime(backup_files))"
+        },
+        {
+          "id": 6,
+          "name": "Recent Sync Logs",
+          "target": "Activity in last 26h",
+          "query": "tail /var/log/crypto-futures-agent/daily_sync_*.log"
+        }
+      ]
+    },
+    
+    "db_recovery": {
+      "location": "scripts/db_recovery.py",
+      "language": "Python 3.8+",
+      "command": "python3 scripts/db_recovery.py --workspace . --backup-dir backups",
+      "trigger": "When health_check detects DB corruption OR manual escalation",
+      "rto_minutes": 30,
+      "steps": [
+        "Detect corruption (PRAGMA integrity_check)",
+        "Backup corrupted state (safe history)",
+        "Find latest good backup (validation)",
+        "Restore atomically (temp file + move)",
+        "Sync missing data (last 10 candles)"
+      ]
+    },
+    
+    "backup_strategy": {
+      "type": "3-2-1 (3 copies, 2 media, 1 offsite)",
+      "schedule": "Daily at 02:00 UTC (after 01:00 sync)",
+      "copies": [
+        {
+          "copy": 1,
+          "name": "Hot Backup",
+          "location": "backups/hot/ (Local NVMe)",
+          "retention_days": 14,
+          "recovery_time_minutes": 5,
+          "access": "Fast (SSD)"
+        },
+        {
+          "copy": 2,
+          "name": "Warm Backup",
+          "location": "/mnt/slow_hdd/backups/warm/ (Local HDD)",
+          "retention_days": 30,
+          "recovery_time_minutes": 20,
+          "access": "Slower (Mechanical)"
+        },
+        {
+          "copy": 3,
+          "name": "Cold Backup",
+          "location": "s3://company-backup-bucket/backups/ (AWS Glacier)",
+          "retention_days": 90,
+          "recovery_time_minutes": 120,
+          "access": "Slowest (Cloud Archive)"
+        }
+      ]
+    },
+    
+    "monitoring_metrics": {
+      "frequency_minutes": 5,
+      "common_queries": [
+        {
+          "name": "Data Freshness",
+          "query": "(time() - last_candle_timestamp) / 3600",
+          "unit": "hours",
+          "target": "< 26"
+        },
+        {
+          "name": "Sync Duration",
+          "query": "histogram_quantile(0.99, rate(daily_sync_duration_seconds_bucket[7d]))",
+          "unit": "seconds",
+          "target": "< 1800 (30 min)"
+        },
+        {
+          "name": "Symbol Coverage",
+          "query": "ohlcv_h4_distinct_symbols / 60 * 100",
+          "unit": "percent",
+          "target": ">= 98"
+        },
+        {
+          "name": "DB Record Count",
+          "query": "SELECT COUNT(*) FROM ohlcv_h4",
+          "unit": "records",
+          "target": ">= 240 (60 × 4)"
+        },
+        {
+          "name": "Rate Limit Hits",
+          "query": "rate(binance_rate_limit_hits_total[5m])",
+          "unit": "hits/min",
+          "target": "< 1"
+        },
+        {
+          "name": "Backup Age",
+          "query": "(time() - backup_last_timestamp) / 3600",
+          "unit": "hours",
+          "target": "< 26"
+        }
+      ]
+    },
+    
+    "alerting_rules": {
+      "format": "Prometheus AlertManager YAML",
+      "file": "conf/alerting_rules.yml",
+      "total_rules": 10,
+      "critical_alerts": [
+        "DailySyncFailed",
+        "DailySyncTimeout",
+        "DataStalenesCritical",
+        "DatabaseCorruption"
+      ],
+      "warning_alerts": [
+        "DataStalenessWarning",
+        "BinanceRateLimitAbuse",
+        "BackupStale",
+        "MissingSymbols"
+      ],
+      "info_alerts": [
+        "DiskSpaceRunningOut",
+        "SyncScriptError"
+      ],
+      "delivery_channels": {
+        "slack": {
+          "webhook_url_env": "SLACK_WEBHOOK_URL",
+          "channel": "#alerts",
+          "recommended": true
+        },
+        "email": {
+          "recipient": "ops@company.com",
+          "requires": "sendmail",
+          "simple": true
+        },
+        "pagerduty": {
+          "token_env": "PAGERDUTY_TOKEN",
+          "for_critical_only": true
+        }
+      }
+    },
+    
+    "sla_targets": {
+      "availability_percent": 99.5,
+      "availability_days": "29/30",
+      "rpo_hours": 2,
+      "rpo_trigger": "Backup job @ 02:00 UTC",
+      "rto_minutes": 30,
+      "rto_method": "Restore from hot backup",
+      "data_freshness_hours": 26,
+      "freshness_trigger": "Daily sync @ 01:00 UTC",
+      "sync_duration_max_minutes": 30,
+      "sync_duration_check": "Hard timeout in shell wrapper"
+    },
+    
+    "daily_operations": {
+      "morning_standup": {
+        "time_utc": "08:00 (5 AM São Paulo)",
+        "checklist": [
+          "Check if daily sync ran (logs: /var/log/crypto-futures-agent/daily_sync_*.log)",
+          "Metric: is last_sync_timestamp < 26h?",
+          "Metric: are all 60 symbols present?",
+          "Metric: DB size >= 50MB?",
+          "Logs: any ERRORs or WARNINGs?"
+        ]
+      },
+      "hourly_automated_check": {
+        "frequency": "every 4-6h minimum",
+        "command": "python3 scripts/health_check.py",
+        "expected": "0 issues reported"
+      },
+      "if_sync_fails": {
+        "step_1": "Check logs: tail -50 /var/log/crypto-futures-agent/daily_sync_*.log",
+        "step_2": "Manual retry: /opt/jobs/daily_sync.sh",
+        "step_3": "If still fails, check common issues:",
+        "step_3a": "Binance API timeout? Wait 5min + retry",
+        "step_3b": "Rate limit hit? Job auto-retries with 60s backoff",
+        "step_3c": "DB locked? Kill process: pkill -f daily_candle_sync",
+        "step_3d": "Disk full? df -h, cleanup old logs",
+        "step_4": "Last resort: python3 scripts/db_recovery.py"
+      }
+    },
+    
+    "troubleshooting": [
+      {
+        "issue": "Sync failed (1-2 times)",
+        "severity": "low",
+        "action": "Run health_check.py, manual retry"
+      },
+      {
+        "issue": "Sync timeout (>30 min)",
+        "severity": "medium",
+        "action": "Check server perf (top, du), investigate Binance API"
+      },
+      {
+        "issue": "DB corruption detected",
+        "severity": "critical",
+        "action": "Run db_recovery.py immediately"
+      },
+      {
+        "issue": "Data stale >26h",
+        "severity": "critical",
+        "action": "Manual sync + escalate"
+      },
+      {
+        "issue": "Missing symbols (<60)",
+        "severity": "medium",
+        "action": "Rerun sync with lookback 10"
+      },
+      {
+        "issue": "Disk full",
+        "severity": "high",
+        "action": "Clean old logs, resize disk, retry"
+      }
+    ],
+    
+    "command_reference": {
+      "test_health_check": "python3 scripts/health_check.py",
+      "manual_sync": "python3 -m scripts.daily_candle_sync --workspace . --symbols all --lookback 4",
+      "test_recovery": "python3 scripts/db_recovery.py --workspace . --backup-dir backups",
+      "view_latest_log": "tail -50 /var/log/crypto-futures-agent/daily_sync_*.log",
+      "check_if_running": "ps aux | grep daily_candle_sync",
+      "kill_stuck_sync": "pkill -f daily_candle_sync",
+      "view_cron_schedule": "crontab -l",
+      "view_cron_logs": "grep daily_sync /var/log/cron | tail -10",
+      "list_backups": "ls -lrt backups/hot/*.db",
+      "restore_specific_backup": "cp backups/hot/agent_backup_2026-02-22_02-00-00.db data/agent.db"
+    },
+    
+    "implementation_phases": {
+      "phase_1_setup": {
+        "duration_hours": 0.5,
+        "tasks": [
+          "Create /opt/jobs/ directory",
+          "Copy daily_sync.sh to /opt/jobs/",
+          "Copy Python scripts to scripts/",
+          "Setup /var/log/crypto-futures-agent/"
+        ]
+      },
+      "phase_2_staging": {
+        "duration_hours": 4,
+        "tasks": [
+          "Configure cron job (test 7 days)",
+          "Run health_check every 6h",
+          "Setup Slack integration",
+          "Monitor for anomalies"
+        ]
+      },
+      "phase_3_production": {
+        "duration_hours": 2,
+        "tasks": [
+          "Deploy to production",
+          "Monitor daily sync @ 01:00 UTC",
+          "Monitor backup @ 02:00 UTC",
+          "Test alert channels"
+        ]
+      },
+      "phase_4_validation": {
+        "duration_hours": 4,
+        "tasks": [
+          "Run SLA audit (30-day check)",
+          "Test DB recovery (production scenario)",
+          "Optimize if needed",
+          "Document findings"
+        ]
+      }
+    }
+  }
+}
