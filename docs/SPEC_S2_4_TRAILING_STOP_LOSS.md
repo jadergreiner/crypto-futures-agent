@@ -1,10 +1,10 @@
 # 📋 Especificação S2-4 — Trailing Stop Loss (Dinâmico)
 
-**Issue:** #61  
-**Sprint:** Sprint 2-3  
-**Status:** DESIGN ✅ EM EXECUÇÃO  
-**Owner Técnico:** Arch (#6) + The Brain (#3)  
-**Owner Documentação:** Doc Advocate (#17)  
+**Issue:** #61
+**Sprint:** Sprint 2-3
+**Status:** DESIGN ✅ EM EXECUÇÃO
+**Owner Técnico:** Arch (#6) + The Brain (#3)
+**Owner Documentação:** Doc Advocate (#17)
 **Último Update:** 2026-02-22 23:50 UTC
 
 ---

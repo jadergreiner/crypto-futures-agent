@@ -1,9 +1,9 @@
 # 📦 S2-3 Deliverable Specification — Backtesting Engine
 
-**Versão:** 1.0.0  
-**Sprint:** Sprint 2-3  
-**Owner:** Audit (#8) + Doc Advocate (#17)  
-**Data:** 2026-02-22  
+**Versão:** 1.0.0
+**Sprint:** Sprint 2-3
+**Owner:** Audit (#8) + Doc Advocate (#17)
+**Data:** 2026-02-22
 **Ref:** [ARCH_S2_3_BACKTESTING.md](ARCH_S2_3_BACKTESTING.md) | [CRITERIOS_DE_ACEITE_MVP.md](CRITERIOS_DE_ACEITE_MVP.md#s2-3)
 
 ---
@@ -12,7 +12,7 @@
 
 ### Gate 1: Dados Históricos ✅
 
-Responsável: **Data (#11)**  
+Responsável: **Data (#11)**
 Validador: **Audit (#8)**
 
 - [ ] **1.1** Dados OHLCV carregados para 60 símbolos via `DataProvider.fetch_ohlcv()`
@@ -25,7 +25,7 @@ Validador: **Audit (#8)**
 
 ### Gate 2: Engine de Backtesting ✅
 
-Responsável: **Arch (#6)**  
+Responsável: **Arch (#6)**
 Validador: **Quality (#12)**
 
 - [ ] **2.1** `BacktestEngine` executa trade sem erro
@@ -58,7 +58,7 @@ Validador: **Quality (#12)**
 
 ### Gate 3: Validação & Testes ✅
 
-Responsável: **Quality (#12)**  
+Responsável: **Quality (#12)**
 Validador: **Audit (#8)**
 
 - [ ] **3.1** 8 testes PASS (unit + integration + e2e)
@@ -87,7 +87,7 @@ Validador: **Audit (#8)**
 
 ### Gate 4: Documentação ✅
 
-Responsável: **Audit (#8) + Doc Advocate (#17)**  
+Responsável: **Audit (#8) + Doc Advocate (#17)**
 Validador: **Angel (#1)**
 
 - [ ] **4.1** Docstrings em classes/funções (100%, PT)
@@ -177,17 +177,17 @@ backtest/
 
 ### Validação
 
-✅ **Testes:** 8/8 PASS  
-✅ **Cobertura:** ≥80%  
-✅ **Regressão:** 70 Sprint 1 tests PASS  
+✅ **Testes:** 8/8 PASS
+✅ **Cobertura:** ≥80%
+✅ **Regressão:** 70 Sprint 1 tests PASS
 ✅ **Performance:** < 30s para 6M × 60 símbolos
 
 ### Documentação
 
-✅ **Docstrings:** 100% classes e funções (PT)  
-✅ **README.md:** 500+ palavras, guia completo  
-✅ **CRITERIOS_DE_ACEITE_MVP.md § S2-3:** Atualizado  
-✅ **DECISIONS.md § S2-3:** Trade-offs justificados  
+✅ **Docstrings:** 100% classes e funções (PT)
+✅ **README.md:** 500+ palavras, guia completo
+✅ **CRITERIOS_DE_ACEITE_MVP.md § S2-3:** Atualizado
+✅ **DECISIONS.md § S2-3:** Trade-offs justificados
 ✅ **ARCH_S2_3_BACKTESTING.md:** Design + 4 Gates
 
 ---
@@ -214,7 +214,7 @@ backtest/
 - [ ] Gate 3 (Testes): 4/4 ✅
 - [ ] Gate 4 (Docs): 5/5 ✅
 
-**Quando GO:** 
+**Quando GO:**
 - → Desbloqueia **S2-1/S2-2** (SMC Strategy live)
 - → Libera **TASK-005** (ML PPO training)
 
@@ -224,6 +224,6 @@ backtest/
 
 ---
 
-**Owner:** Audit (#8) + Doc Advocate (#17)  
-**Revisor:** Angel (#1)  
-**Próximo:** Merge em main + tag v0.1.0 RC1  
+**Owner:** Audit (#8) + Doc Advocate (#17)
+**Revisor:** Angel (#1)
+**Próximo:** Merge em main + tag v0.1.0 RC1

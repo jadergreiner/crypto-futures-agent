@@ -1,9 +1,9 @@
 # 📋 Test Plan S2-3 — Backtesting Engine
 
-**Versão:** 1.0.0  
-**Sprint:** Sprint 2-3  
-**Owner:** Audit (#8) + Quality (#12)  
-**Data:** 2026-02-22  
+**Versão:** 1.0.0
+**Sprint:** Sprint 2-3
+**Owner:** Audit (#8) + Quality (#12)
+**Data:** 2026-02-22
 **Total Testes:** 8 (5 unit + 2 integration + 1 E2E)
 
 ---
@@ -51,25 +51,25 @@ def test_engine_init():
 def test_market_trade_execution():
     """Engine executa market trade LONG com comissão."""
     engine = BacktestEngine(initial_balance=10000.0)
-    
+
     # Simular candle
     candle = Kline(
         symbol='BTCUSDT', close=45000.0, high=45500.0, low=44500.0,
         volume=1.0, timestamp=1708000000
     )
-    
+
     # Executar order LONG
     trade = engine.execute_trade(
         signal=Signal(type='LONG', entry_price=45000.0, qty=0.1),
         candle=candle
     )
-    
+
     assert trade.entry_price == 45000.0
     assert trade.quantity == 0.1
     assert trade.commission_paid == 45000.0 * 0.1 * 0.0004
 ```
 
-**Critério:** ✅ PASS  
+**Critério:** ✅ PASS
 **Coverage:** `backtest/core/backtest_engine.py::execute_trade`
 
 ---
@@ -82,26 +82,26 @@ def test_market_trade_execution():
 def test_risk_gate_circuit_breaker():
     """RiskGate fecha posição em -3% de loss."""
     engine = BacktestEngine(initial_balance=10000.0)
-    
+
     # Trade aberto a 45000
     trade = Trade(
         entry_price=45000.0, quantity=0.1, direction='LONG',
         timestamp=1708000000
     )
     engine.state.add_trade(trade)
-    
+
     # Preço cai para -3.1% (43605)
     current_price = 45000.0 * (1 - 0.031)
     assert engine._check_risk_gate(trade, current_price) == True
-    
+
     # Engine fecha automaticamente
     result = engine._apply_risk_gate(trade, current_price)
     assert result.status == 'STOPPED_BY_RISKGATE'
     assert result.exit_price == 43605.0  # Hard stop exato
 ```
 
-**Critério:** ✅ PASS  
-**Coverage:** `backtest/core/backtest_engine.py::_apply_risk_gate`  
+**Critério:** ✅ PASS
+**Coverage:** `backtest/core/backtest_engine.py::_apply_risk_gate`
 **Criticidade:** 🔴 INVIOLÁVEL (veto no produto)
 
 ---
@@ -114,18 +114,18 @@ def test_risk_gate_circuit_breaker():
 def test_pnl_calculation():
     """Cálculo correto de PnL realized + unrealized."""
     metrics = BacktestMetrics()
-    
+
     # Trade fechado: entrada 45000, saída 46000 (0.1 BTC)
     realized_trade = Trade(
         entry_price=45000.0, exit_price=46000.0, quantity=0.1,
         direction='LONG', status='CLOSED'
     )
     metrics.add_trade(realized_trade)
-    
+
     pnl_realized = metrics.compute_pnl_realized()
     expected = (46000.0 - 45000.0) * 0.1  # $100
     assert abs(pnl_realized - expected) < 0.01
-    
+
     # Trade aberto: entrada 46000, preço atual 47000
     open_trade = Trade(
         entry_price=46000.0, quantity=0.1, direction='LONG',
@@ -135,7 +135,7 @@ def test_pnl_calculation():
     assert abs(pnl_unrealized - 100.0) < 0.01
 ```
 
-**Critério:** ✅ PASS  
+**Critério:** ✅ PASS
 **Coverage:** `backtest/core/metrics.py::compute_pnl_*`
 
 ---
@@ -148,16 +148,16 @@ def test_pnl_calculation():
 def test_max_drawdown():
     """Cálculo correto de Max Drawdown da equity curve."""
     metrics = BacktestMetrics()
-    
+
     # Equity timeline: 10000 → 12000 → 10500 → 11500 (drawdown: -12.5%)
     equity_curve = [10000, 12000, 10500, 11500]
     max_dd = metrics.compute_max_drawdown(equity_curve)
-    
+
     # (10500 - 12000) / 12000 = -0.125 = -12.5%
     assert abs(max_dd - (-0.125)) < 0.001
 ```
 
-**Critério:** ✅ PASS  
+**Critério:** ✅ PASS
 **Coverage:** `backtest/core/metrics.py::compute_max_drawdown`
 
 ---
@@ -172,22 +172,22 @@ def test_max_drawdown():
 def test_s2_0_cache_integration():
     """DataProvider lê dados S2-0 (parquet cache) corretamente."""
     provider = CacheReader(cache_path='db/klines_cache.parquet')
-    
+
     # Buscar 100 candles BTCUSDT
     candles = provider.fetch_ohlcv(
         symbol='BTCUSDT',
         start_time=1672531200,  # 2023-01-01
         end_time=1708000000     # 2026-02-22
     )
-    
+
     assert len(candles) > 0
     assert all(isinstance(c, Kline) for c in candles)
     assert candles[0].open > 0 and candles[0].close > 0
     assert candles[0].timestamp < candles[-1].timestamp  # Ascending
 ```
 
-**Critério:** ✅ PASS  
-**Coverage:** `backtest/data/data_provider.py`, `backtest/data/cache_reader.py`  
+**Critério:** ✅ PASS
+**Coverage:** `backtest/data/data_provider.py`, `backtest/data/cache_reader.py`
 **Dependência:** S2-0 Gates 1-2 ✅
 
 ---
@@ -202,18 +202,18 @@ def test_s2_0_cache_integration():
 def test_full_backtest_execution():
     """Full backtest: 6M dados, 60 símbolos, < 30s execution."""
     import time
-    
+
     engine = BacktestEngine(initial_balance=10000.0)
     strategy = SMCStrategy()  # BoS + Order Block detection
     provider = CacheReader()
-    
+
     symbols = ['BTCUSDT', 'ETHUSDT', ...]  # 60 symbols
     start_time = time.time()
-    
+
     results = []
     for symbol in symbols:
         candles = provider.fetch_ohlcv(
-            symbol, 
+            symbol,
             start_time=1708000000-15778800,  # 6M ago
             end_time=1708000000
         )
@@ -223,10 +223,10 @@ def test_full_backtest_execution():
             strategy=strategy
         )
         results.append(backtest_result)
-    
+
     elapsed = time.time() - start_time
     assert elapsed < 30.0, f"Backtest took {elapsed}s, expected < 30s"
-    
+
     # Validar métricas
     for result in results:
         assert result.pnl_realized is not None
@@ -234,8 +234,8 @@ def test_full_backtest_execution():
         assert result.sharpe_ratio is not None
 ```
 
-**Critério:** ✅ PASS  
-**Métrica:** < 30s execution time  
+**Critério:** ✅ PASS
+**Métrica:** < 30s execution time
 **Coverage:** Ende-to-end flow
 
 ---
@@ -250,30 +250,30 @@ def test_walk_forward_validation():
     wf = WalkForwardValidator()
     provider = CacheReader()
     strategy = SMCStrategy()
-    
+
     candles = provider.fetch_ohlcv('BTCUSDT', start_time=..., end_time=...)
-    
+
     wf_results = wf.run(
         candles=candles,
         window_train=180,
         window_test=30,
         step=30
     )
-    
+
     # 15 windows: (360 days / 30 step) = 12 ← 1 ano
     assert len(wf_results) == 12
-    
+
     # Validar que modelo generaliza (não overfits train)
     avg_sharpe_train = np.mean([r['train_sharpe'] for r in wf_results])
     avg_sharpe_test = np.mean([r['test_sharpe'] for r in wf_results])
-    
+
     # Test Sharpe não muito menor que train (< 20% deterioration)
     deterioration = (avg_sharpe_train - avg_sharpe_test) / avg_sharpe_train
     assert deterioration < 0.2, f"Over-fitting detected: {deterioration}"
 ```
 
-**Critério:** ✅ PASS  
-**Objetivo:** Garantir generalização da estratégia SMC  
+**Critério:** ✅ PASS
+**Objetivo:** Garantir generalização da estratégia SMC
 **Coverage:** `backtest/validation/walk_forward.py`
 
 ---
@@ -402,6 +402,6 @@ TOTAL: 84%
 
 ---
 
-**Owner:** Audit (#8) + Quality (#12)  
-**Revisor:** Angel (#1)  
-**Status:** Ready for Sprint 2-3 Kickoff  
+**Owner:** Audit (#8) + Quality (#12)
+**Revisor:** Angel (#1)
+**Status:** Ready for Sprint 2-3 Kickoff

@@ -1,8 +1,8 @@
 # 📊 Backtesting Engine — Manual Operacional & S2-3 Squad Kickoff
 
-**Versão:** 0.1.0 RC1 (S2-3 Sprint 2-3)  
-**Última atualização:** 2026-02-22 14:30 UTC ([SYNC] Squad Kickoff completo)  
-**Autor:** Backend/RL Team + Squad S2-3 (Arch #6, Audit #8, Data #11, Quality #12, Doc Advocate #17)  
+**Versão:** 0.1.0 RC1 (S2-3 Sprint 2-3)
+**Última atualização:** 2026-02-22 14:30 UTC ([SYNC] Squad Kickoff completo)
+**Autor:** Backend/RL Team + Squad S2-3 (Arch #6, Audit #8, Data #11, Quality #12, Doc Advocate #17)
 **Status:** 🔵 Squad Kickoff em progresso — Design + Docs + Dirs entregues
 
 ---
@@ -21,7 +21,7 @@
 
 ## 🎯 Visão Geral
 
-O **Backtesting Engine** simula operações de trading usando dados históricos reais 
+O **Backtesting Engine** simula operações de trading usando dados históricos reais
 de 60 símbolos crypto (BTC, ETH, ALT coins) da Binance Futures.
 
 **Características principais:**
@@ -36,8 +36,8 @@ de 60 símbolos crypto (BTC, ETH, ALT coins) da Binance Futures.
 
 ## 🚀 S2-3 Squad Kickoff Status
 
-**Data:** 22 FEV 2026 14:30 UTC  
-**Squad:** Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17), The Brain (#3)  
+**Data:** 22 FEV 2026 14:30 UTC
+**Squad:** Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17), The Brain (#3)
 **Escopo:** 4 Gates de validação, 9h wall-time, deadline 24 FEV 18:00 UTC
 
 ### ✅ Deliverables Kickoff (22 FEV 14:30 UTC)
@@ -354,20 +354,20 @@ class Backtester:
     def __init__(self, environment, model=None):
         """
         Inicializa backtester.
-        
+
         Args:
             environment: BacktestEnvironment instance
             model: Modelo RL (opcional, default: random actions)
         """
-    
+
     def run_backtest(self, verbose=True):
         """
         Executa backtest completo.
-        
+
         Returns:
             dict: Métricas (total_return, max_drawdown, sharpe_ratio, etc)
         """
-    
+
     def get_equity_curve(self):
         """Retorna array de equity por timestamp"""
 ```
@@ -378,18 +378,18 @@ class Backtester:
 class BacktestEnvironment:
     def __init__(self, start_date, end_date, initial_capital):
         """Inicializa environment"""
-    
+
     def step(self, action):
         """
         Executa um step de trading.
-        
+
         Args:
             action: 0=hold, 1=buy, 2=sell
-        
+
         Returns:
             (observation, reward, done, info)
         """
-    
+
     def reset(self):
         """Reseta environment para início do período"""
 ```
@@ -401,11 +401,11 @@ class BacktestMetrics:
     @staticmethod
     def calculate_sharpe(returns, risk_free_rate=0.02):
         """Calcula Sharpe Ratio"""
-    
+
     @staticmethod
     def calculate_drawdown(equity_curve):
         """Calcula Max Drawdown e Drawdown Duration"""
-    
+
     @staticmethod
     def calculate_profit_factor(trades):
         """Calcula Profit Factor (Ganhos/Perdas)"""
@@ -451,7 +451,7 @@ for name, model_path in strategies.items():
     bt = Backtester(env, model=model_path)
     results = bt.run_backtest()
     results_all[name] = results
-    
+
     print(f"{name}: Sharpe={results['sharpe_ratio']:.2f}, "
           f"Return={results['total_return']:.2f}%")
 ```

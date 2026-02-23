@@ -7,7 +7,7 @@
       "status": "✅ READY FOR DEPLOYMENT",
       "version": "1.0"
     },
-    
+
     "cron_job": {
       "expression": "0 1 * * *",
       "frequency": "Daily at 01:00 UTC (8 PM São Paulo)",
@@ -16,7 +16,7 @@
       "log_directory": "/var/log/crypto-futures-agent",
       "log_pattern": "daily_sync_YYYY-MM-DD_HH-MM-SS.log"
     },
-    
+
     "daily_sync_job": {
       "location": "scripts/daily_candle_sync.py",
       "language": "Python 3.8+",
@@ -38,7 +38,7 @@
         "124": "timeout exceeded"
       }
     },
-    
+
     "health_check": {
       "location": "scripts/health_check.py",
       "language": "Python 3.8+",
@@ -84,7 +84,7 @@
         }
       ]
     },
-    
+
     "db_recovery": {
       "location": "scripts/db_recovery.py",
       "language": "Python 3.8+",
@@ -99,7 +99,7 @@
         "Sync missing data (last 10 candles)"
       ]
     },
-    
+
     "backup_strategy": {
       "type": "3-2-1 (3 copies, 2 media, 1 offsite)",
       "schedule": "Daily at 02:00 UTC (after 01:00 sync)",
@@ -130,7 +130,7 @@
         }
       ]
     },
-    
+
     "monitoring_metrics": {
       "frequency_minutes": 5,
       "common_queries": [
@@ -172,7 +172,7 @@
         }
       ]
     },
-    
+
     "alerting_rules": {
       "format": "Prometheus AlertManager YAML",
       "file": "conf/alerting_rules.yml",
@@ -210,7 +210,7 @@
         }
       }
     },
-    
+
     "sla_targets": {
       "availability_percent": 99.5,
       "availability_days": "29/30",
@@ -223,7 +223,7 @@
       "sync_duration_max_minutes": 30,
       "sync_duration_check": "Hard timeout in shell wrapper"
     },
-    
+
     "daily_operations": {
       "morning_standup": {
         "time_utc": "08:00 (5 AM São Paulo)",
@@ -251,7 +251,7 @@
         "step_4": "Last resort: python3 scripts/db_recovery.py"
       }
     },
-    
+
     "troubleshooting": [
       {
         "issue": "Sync failed (1-2 times)",
@@ -284,7 +284,7 @@
         "action": "Clean old logs, resize disk, retry"
       }
     ],
-    
+
     "command_reference": {
       "test_health_check": "python3 scripts/health_check.py",
       "manual_sync": "python3 -m scripts.daily_candle_sync --workspace . --symbols all --lookback 4",
@@ -297,7 +297,7 @@
       "list_backups": "ls -lrt backups/hot/*.db",
       "restore_specific_backup": "cp backups/hot/agent_backup_2026-02-22_02-00-00.db data/agent.db"
     },
-    
+
     "implementation_phases": {
       "phase_1_setup": {
         "duration_hours": 0.5,

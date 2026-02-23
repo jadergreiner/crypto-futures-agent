@@ -122,15 +122,15 @@ Gates para S2-3:
 
 ## 🟡 DECISÃO #2 — BACKTESTING S2-3 (QA GATES & DOCUMENTAÇÃO)
 
-**Data:** 22 FEV 2026 22:50 UTC  
-**Reunião:** Definição de QA Gates  
-**Investidor:** [Aguardando aprovação]  
+**Data:** 22 FEV 2026 22:50 UTC
+**Reunião:** Definição de QA Gates
+**Investidor:** [Aguardando aprovação]
 **Facilitador:** Audit (#8) — QA Lead
 
 ### Contexto: O Problema
 Issue #59 (S2-3: Backtesting) pressiona por definição clara de gates de aceite.
 
-Sprint 1 teve sucesso com 4 gates estruturados (conectividade, risco, execução, 
+Sprint 1 teve sucesso com 4 gates estruturados (conectividade, risco, execução,
 telemetria). Sprint 2-3 (Backtesting) exige framework similar mas adaptado para:
 - Validação de dados históricos (6+ meses × 60 símbolos)
 - Engine de backtesting (simulação realística)

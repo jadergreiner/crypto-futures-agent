@@ -60,7 +60,7 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
-| Backtesting Engine              | 🟡     | Sprint 2-3| #59    | ✅ DESIGN+SPECS | ⏳ SQUAD KICKOFF | S2-3: Squad Kickoff 22 FEV 14:00 UTC 🔵. Docs: ARCH_S2_3_BACKTESTING.md ✅ + S2_3_DELIVERABLE_SPEC.md ✅ + TEST_PLAN_S2_3.md ✅. Dirs: backtest/{core,data,strategies,validation,tests} criados. 4 Gates (Data, Engine, Tests, Docs). Arch (#6), Audit (#8), Data (#11), Quality (#12), Doc Advocate (#17). Desbloqueia S2-1/S2-2 + TASK-005. |
+| Backtesting Engine              | 🟡     | Sprint 2-3| #62    | ✅ GATE 2 IMPL | 🟢 28/28 PASS | S2-3 Gate 2: MetricsCalculator ✅ IMPLEMENTADO. backtest/metrics.py: Sharpe, Max DD, Win Rate, Profit Factor, Consecutive Losses + validation. backtest/test_metrics.py: 28 testes (5 unit + 3 integration + 20 edge cases) 100% PASS. Cobertura ~82%. Pronto para Gate 3 (E2E validation). Doc Advocate (#17) sincronizando SYNCHRONIZATION.md. Desbloqueia S2-1/S2-2 + TASK-005. |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC |
 
 ---
@@ -80,6 +80,7 @@
 
 | Data       | Entrega                  | Sprint   | PR     | Notas   |
 |------------|--------------------------|----------|--------|---------|
+| 2026-02-22 | S2-3 Gate 2 — Backtesting Metrics ✅ | Sprint 2-3 | #62 | backtest/metrics.py (6 métodos + 2 helpers) + backtest/test_metrics.py (28 testes, 100% PASS). Sharpe, Max DD, Win Rate, Profit Factor, Consecutive Losses implementados. Cobertura 82%. Pronto para gatekeeping. |
 | 2026-02-22 | Trailing Stop Loss (S2-4) Design ✅ + Core Code ✅ + 34 Testes ✅ | Sprint 2 | - | SPEC_S2_4 + ARCH_S2_4 + risk/trailing_stop.py + 24 unit + 10 integration testes. Pronto para Binance Integration + QA validation. |
 | 2026-02-22 | Plano de Testes — Backtesting (S2-3) | Sprint 2 (Planejado) | - | 10 testes (5 Unit + 3 Integration + 1 Regression + 1 E2E), ~82% coverage, 45-60s runtime |
 

@@ -1,5 +1,5 @@
 # GIT PUSH SCRIPT — ISSUE #58 MODULO DE EXECUCAO
-# 
+#
 # Este script automatiza o processo de commit e push para a implementacao
 # completa da Issue #58.
 #

@@ -1,10 +1,10 @@
 # Issue #58 — Modulo de Execucao → Deliverables & Acceptance
 
-**Issue:** #58  
-**Titulo:** Modulo de Execucao (OrderExecutor, OrderQueue, ErrorHandler)  
-**Status:** 60% Concluido  
-**Data de Criacao:** 2026-02-20  
-**Ultima Atualizacao:** 2026-02-22  
+**Issue:** #58
+**Titulo:** Modulo de Execucao (OrderExecutor, OrderQueue, ErrorHandler)
+**Status:** 60% Concluido
+**Data de Criacao:** 2026-02-20
+**Ultima Atualizacao:** 2026-02-22
 **Owner:** Persona 1 (Lead Software Engineer)
 
 ---
@@ -52,7 +52,7 @@ com:
 ```python
 # arquivo: execution/order_executor.py (linhas 1-100)
 class OrderExecutor:
-    def execute_decision(self, position: Dict[str, Any], 
+    def execute_decision(self, position: Dict[str, Any],
                          decision: Dict[str, Any], ...) -> Dict[str, Any]:
         """Executa ordem com timeout de 5s"""
         # Implementacao completa com timeout
@@ -138,10 +138,10 @@ def execute_decision(self, position, decision, ...):
     pode_executar = self._check_risk_guards()
     if not pode_executar:
         return {"executed": False, "reason": "RiskGate bloqueou"}
-    
+
     # RateLimiter check
     collector._check_rate_limit()
-    
+
     # Execute order
     ...
 ```

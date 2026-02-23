@@ -1,16 +1,16 @@
 # 🏗️ Arquitetura S2-3 — Backtesting Engine
 
-**Versão:** 1.0.0  
-**Sprint:** Sprint 2-3  
-**Owner:** Arch (#6)  
-**Data:** 2026-02-22  
+**Versão:** 1.0.0
+**Sprint:** Sprint 2-3
+**Owner:** Arch (#6)
+**Data:** 2026-02-22
 **Status:** 🔵 DESIGN KICKOFF
 
 ---
 
 ## 📋 Sumário Executivo
 
-O **Backtesting Engine (S2-3)** valida estratégias SMC em dados históricos 1 ano 
+O **Backtesting Engine (S2-3)** valida estratégias SMC em dados históricos 1 ano
 antes do go-live. 4 Gates garantem ZERO capital em risco antes da ativação live.
 
 | Gate | Validador | Type | Critério |
@@ -65,7 +65,7 @@ backtest/
 ```python
 class DataProvider(ABC):
     """Interface para fontes de dados históricos."""
-    
+
     @abstractmethod
     def fetch_ohlcv(
         self,
@@ -89,11 +89,11 @@ class DataProvider(ABC):
 ```python
 class SMCStrategy:
     """Gerador de sinais Smart Money Concepts."""
-    
+
     def detect_break_of_structure(self, candles: List[Kline]) -> Signal:
         """Identifica BoS (Higher Highs/Higher Lows)."""
         pass
-    
+
     def detect_order_block(self, candles: List[Kline]) -> Signal:
         """Identifica suporte/resistência (OB)."""
         pass
@@ -108,7 +108,7 @@ class SMCStrategy:
 ```python
 class BacktestEngine:
     """Motor de backtesting orquestrando trade execution."""
-    
+
     def backtest(
         self,
         symbol: str,
@@ -117,13 +117,13 @@ class BacktestEngine:
         initial_balance: float = 10000.0
     ) -> BacktestResult:
         """Simula trades em período histórico."""
-        
+
         for candle in candles:
             signal = strategy.evaluate(candle)
             if signal:
                 trade = self.execute_trade(signal, candle)
                 state.add_trade(trade)
-        
+
         return BacktestResult(metrics=state.compute_metrics())
 ```
 
@@ -172,7 +172,7 @@ class BacktestEngine:
 ```python
 class WalkForwardValidator:
     """Valida generalização SMC strategy."""
-    
+
     def run(self, data: DataFrame, window=180, step=30):
         """
         Split: Train 180d → Test 30d (rolling)
@@ -234,6 +234,6 @@ if position_loss < -0.03:  # -3% drawdown
 
 ---
 
-**Owner:** Arch (#6)  
-**Revisor:** Angel (#1)  
-**Próximo:** Kickoff da squad (22 FEV 14:00 UTC)  
+**Owner:** Arch (#6)
+**Revisor:** Angel (#1)
+**Próximo:** Kickoff da squad (22 FEV 14:00 UTC)

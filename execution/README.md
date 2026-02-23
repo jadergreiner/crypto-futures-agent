@@ -1,7 +1,7 @@
 # Modulo de Execucao — Documentacao Tecnica
 
-**Status:** Issue #58 — 60% Concluido  
-**Ultima Atualizacao:** 2026-02-22  
+**Status:** Issue #58 — 60% Concluido
+**Ultima Atualizacao:** 2026-02-22
 **Owner:** Persona 1 (Lead Software Engineer)
 
 ---
@@ -284,8 +284,8 @@ collector.record_rate_limit_error()
 
 ### Cobertura de Testes
 
-**Arquivo:** `tests/test_execution.py`  
-**Total:** 47+ casos de teste (excede 38+ requerido)  
+**Arquivo:** `tests/test_execution.py`
+**Total:** 47+ casos de teste (excede 38+ requerido)
 **Tipos:** Unitario, Integracao, Parametrizado
 
 ### Rodando Testes

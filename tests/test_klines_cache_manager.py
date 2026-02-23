@@ -129,7 +129,7 @@ def sample_klines_batch(valid_kline_array):
     """Cria 100 candles para teste de batch insert."""
     batch = []
     now_ms = int(datetime.utcnow().timestamp() * 1000)
-    
+
     for i in range(100):
         kline = [
             now_ms - (100 - i) * 4 * 3600 * 1000,  # open_time
@@ -145,7 +145,7 @@ def sample_klines_batch(valid_kline_array):
             2500000 + i * 25000                      # taker_buy_quote_volume
         ]
         batch.append(kline)
-    
+
     return batch
 
 
@@ -160,9 +160,9 @@ def temp_symbols_file(mock_symbol_list):
     ) as f:
         json.dump({"symbols": mock_symbol_list}, f)
         temp_path = f.name
-    
+
     yield temp_path
-    
+
     # Cleanup
     Path(temp_path).unlink(missing_ok=True)
 
@@ -173,21 +173,21 @@ def temp_symbols_file(mock_symbol_list):
 
 class TestRateLimitCompliance:
     """Testa conformidade com rate limits da Binance (< 1200 req/min)."""
-    
+
     def test_rate_limit_basic_respect(self, rate_limiter):
         """
         ✅ Rate limiter respeita limite básico
         Cenário: 10 requests sequenciais, cada um com 1 peso
         """
         weights_consumed = []
-        
+
         for i in range(10):
             elapsed = rate_limiter.respect_limit(weights=1)
             weights_consumed.append(rate_limiter.state.weights_used)
-        
+
         assert weights_consumed[-1] <= rate_limiter.state.max_weights_per_minute
         assert len(weights_consumed) == 10
-    
+
     def test_rate_limit_88_requests_under_1200(self, rate_limiter):
         """
         ✅ 88 requisições de 4h (weights) ficam abaixo de 1200 limite
@@ -196,27 +196,27 @@ class TestRateLimitCompliance:
         """
         for i in range(88):
             rate_limiter.respect_limit(weights=1)
-        
+
         # Após 88 requests, deve estar bem abaixo do limite
         assert rate_limiter.state.weights_used <= 88
         assert rate_limiter.state.weights_used < 1200
-    
+
     def test_rate_limit_backoff_on_capacity_exceeded(self, rate_limiter):
         """
         ✅ Rate limiter aguarda quando limite é atingido
         Cenário: Tentar consumir 1300 weights em um minuto
         """
         rate_limiter.state.max_weights_per_minute = 100  # Limite baixo para teste
-        
+
         start_time = time.time()
-        
+
         # Simular consumo até perto do limite
         for i in range(99):
             rate_limiter.respect_limit(weights=1)
-        
+
         # Próximo request deve disparar backoff
         rate_limiter.respect_limit(weights=2)
-        
+
         elapsed = time.time() - start_time
         # Backoff deve ter causado alguma espera
         # (A duração depende da implementação, tipicamente 60ms mínimo)
@@ -225,32 +225,32 @@ class TestRateLimitCompliance:
 
 class TestApiRetryOn429:
     """Testa retry com backoff exponencial em 429 (Rate Limited)."""
-    
+
     def test_429_backoff_exponential_incrementing(self, rate_limiter):
         """
         ✅ Backoff exponencial funciona: 2^0=1s, 2^1=2s, 2^2=4s, etc
         """
         backoff_times = []
-        
+
         # Simular 5 tentativas de 429
         for attempt in range(5):
             rate_limiter.state.backoff_count = attempt
             # Capturar backoff calculado (2^min(5, backoff_count))
             expected_backoff = 2 ** min(5, attempt)
             backoff_times.append(expected_backoff)
-        
+
         # Validar que backoff aumenta exponencialmente (com cap em 2^5=32)
         assert backoff_times == [1, 2, 4, 8, 16]
-    
+
     def test_429_backoff_with_retry_after_header(self, rate_limiter):
         """
         ✅ Rate limiter respeita Retry-After header se fornecido
         """
         retry_after = 60
-        
+
         # Chamar handle_429_backoff com custom retry_after
         start_time = time.time()
-        
+
         # Não queremos esperar realmente 60s no teste, só validar lógica
         # Em teste real usaríamos mock de time.sleep
         with patch('time.sleep') as mock_sleep:
@@ -266,17 +266,17 @@ class TestApiRetryOn429:
 
 class TestDataQualityValidation:
     """Valida integridade de dados: preço, volume, gaps, duplicatas, CRC32, timestamp."""
-    
+
     def test_single_kline_validation_pass(self, valid_kline_dict):
         """
         ✅ CHECK #1: Kline válido passa em todas as validações
         Validações: OHLC lógica, volume >= 0, timestamp válido
         """
         is_valid, errors = KlineValidator.validate_single(valid_kline_dict)
-        
+
         assert is_valid is True
         assert len(errors) == 0
-    
+
     def test_price_logic_validation_low_too_high(self):
         """
         ✅ CHECK #2: Detecta LOW > OPEN/CLOSE (preço inválido)
@@ -292,12 +292,12 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 100
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("LOW" in err for err in errors)
-    
+
     def test_price_logic_validation_high_too_low(self):
         """
         ✅ CHECK #2b: Detecta HIGH < OPEN/CLOSE (preço inválido)
@@ -313,12 +313,12 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 100
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("HIGH" in err for err in errors)
-    
+
     def test_volume_validation_negative_volume(self):
         """
         ✅ CHECK #3: Detecta volume negativo (dado corrupto)
@@ -334,12 +334,12 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 100
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("Volume" in err for err in errors)
-    
+
     def test_timestamp_validation_open_time_gte_close_time(self):
         """
         ✅ CHECK #4: Detecta open_time >= close_time (timestamp inválido)
@@ -355,21 +355,21 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 100
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("open_time >= close_time" in err for err in errors)
-    
+
     def test_duration_validation_4h_candle(self, valid_kline_dict):
         """
         ✅ CHECK #5: Valida duração de candle (4h = 14400000ms)
         """
         is_valid, errors = KlineValidator.validate_single(valid_kline_dict)
-        
+
         # Kline válido deve passar
         assert is_valid is True
-    
+
     def test_duration_validation_wrong_interval(self):
         """
         ✅ CHECK #5b: Detecta duração incorreta (não 4h)
@@ -386,12 +386,12 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 100
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("Duração" in err for err in errors)
-    
+
     def test_trades_count_validation_zero_trades(self):
         """
         ✅ CHECK #6: Detecta candle sem trades (trades <= 0)
@@ -407,12 +407,12 @@ class TestDataQualityValidation:
             "quote_volume": 5000000.0,
             "trades": 0  # ❌ Zero trades
         }
-        
+
         is_valid, errors = KlineValidator.validate_single(invalid_kline)
-        
+
         assert is_valid is False
         assert any("Trades" in err for err in errors)
-    
+
     def test_series_validation_detects_gaps(self, sample_klines_batch):
         """
         ✅ CHECK #5b+: Série validation detecta gaps entre candles
@@ -421,7 +421,7 @@ class TestDataQualityValidation:
         # Converter batch para dicionários
         now_ms = int(datetime.utcnow().timestamp() * 1000)
         klines_dicts = []
-        
+
         for i, kline in enumerate(sample_klines_batch):
             klines_dicts.append({
                 "open_time": kline[0],
@@ -434,9 +434,9 @@ class TestDataQualityValidation:
                 "quote_volume": kline[7],
                 "trades": kline[8]
             })
-        
+
         result = KlineValidator.validate_series(klines_dicts, "BTCUSDT")
-        
+
         assert result["status"] in ["PASS", "WARN"]
         assert result["total"] == 100
         assert result["valid"] <= result["total"]
@@ -448,26 +448,26 @@ class TestDataQualityValidation:
 
 class TestCachePerformance:
     """Testa performance de persistência em SQLite + I/O."""
-    
+
     def test_batch_insert_performance_100_candles(self, cache_manager, sample_klines_batch):
         """
         ✅ Insert de 100 candles completa em < 500ms
         Métrica: tempo de insert + commit
         """
         start_time = time.time()
-        
+
         stats = cache_manager.insert_klines_batch(
             symbol="BTCUSDT",
             klines=sample_klines_batch,
             validate=False  # Desativa validação para medir apenas I/O
         )
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         assert elapsed_ms < 500, f"Insert levou {elapsed_ms}ms (limite: 500ms)"
         assert stats["inserted"] == 100
         assert stats["errors"] == 0
-    
+
     def test_parquet_style_read_performance(self, cache_manager, sample_klines_batch):
         """
         ✅ Leitura de 1000+ candles em < 100ms
@@ -475,10 +475,10 @@ class TestCachePerformance:
         """
         # Primeiro, inserir batch
         cache_manager.insert_klines_batch("BTCUSDT", sample_klines_batch, validate=False)
-        
+
         # Medir tempo de leitura
         start_time = time.time()
-        
+
         cursor = cache_manager.conn.cursor()
         cursor.execute("""
             SELECT open_time, open, high, low, close, volume, close_time, quote_volume, trades
@@ -487,24 +487,24 @@ class TestCachePerformance:
             ORDER BY open_time ASC
         """)
         results = cursor.fetchall()
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         assert elapsed_ms < 100, f"Read levou {elapsed_ms}ms (limite: 100ms)"
         assert len(results) == 100
-    
+
     def test_get_latest_timestamp_performance(self, cache_manager, sample_klines_batch):
         """
         ✅ Query para MAX(open_time) retorna em < 10ms
         """
         cache_manager.insert_klines_batch("BTCUSDT", sample_klines_batch, validate=False)
-        
+
         start_time = time.time()
-        
+
         latest_ts = cache_manager.get_latest_timestamp("BTCUSDT")
-        
+
         elapsed_ms = (time.time() - start_time) * 1000
-        
+
         assert elapsed_ms < 10, f"MAX query levou {elapsed_ms}ms"
         assert latest_ts is not None
 
@@ -515,7 +515,7 @@ class TestCachePerformance:
 
 class TestIncrementalUpdate:
     """Testa sincronização incremental (daily sync < 30s)."""
-    
+
     def test_incremental_sync_respects_time_budget(self, cache_manager, sample_klines_batch):
         """
         ✅ Daily sync (incremental) completa em < 30s
@@ -523,11 +523,11 @@ class TestIncrementalUpdate:
         """
         # Simular primeira inserção (full sync)
         cache_manager.insert_klines_batch("BTCUSDT", sample_klines_batch, validate=False)
-        
+
         # Simular incremental: apenas últimos 6 candles (24h em 4h)
         now_ms = int(datetime.utcnow().timestamp() * 1000)
         incremental_batch = []
-        
+
         for i in range(6):
             new_kline = [
                 now_ms - (6 - i) * 4 * 3600 * 1000,
@@ -543,21 +543,21 @@ class TestIncrementalUpdate:
                 2500000 + i * 25000
             ]
             incremental_batch.append(new_kline)
-        
+
         start_time = time.time()
-        
+
         stats = cache_manager.insert_klines_batch("BTCUSDT", incremental_batch, validate=False)
-        
+
         elapsed_seconds = time.time() - start_time
-        
+
         assert elapsed_seconds < 30, f"Sync levou {elapsed_seconds}s"
-    
+
     def test_sync_log_records_correctly(self, cache_manager, sample_klines_batch):
         """
         ✅ Log de sync registra eventos com metadata completa
         """
         cache_manager.insert_klines_batch("BTCUSDT", sample_klines_batch, validate=False)
-        
+
         now_ms = int(datetime.utcnow().timestamp() * 1000)
         cache_manager.log_sync(
             symbol="BTCUSDT",
@@ -569,12 +569,12 @@ class TestIncrementalUpdate:
             duration_sec=5.2,
             status="SUCCESS"
         )
-        
+
         # Verify log was written
         cursor = cache_manager.conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM sync_log WHERE symbol = 'BTCUSDT'")
         log_count = cursor.fetchone()[0]
-        
+
         assert log_count >= 1
 
 
@@ -584,19 +584,19 @@ class TestIncrementalUpdate:
 
 class TestKlinesFetchValidSymbols:
     """Testa fetch de 60 símbolos válidos com sucesso."""
-    
+
     def test_60_symbols_load_correctly(self, mock_symbol_list):
         """
         ✅ 60 símbolos Binance carregam sem erro
         """
         assert len(mock_symbol_list) == 60
-        
+
         # Validar que são símbolos Binance válidos (ends with USDT)
         for symbol in mock_symbol_list:
             assert symbol.endswith("USDT"), f"Symbol {symbol} must end with USDT"
             assert len(symbol) >= 6, f"Symbol {symbol} too short (min 6 chars)"
             assert len(symbol) <= 10, f"Symbol {symbol} too long (max 10 chars)"
-    
+
     @patch('klines_cache_manager.BinanceKlinesFetcher.fetch_klines')
     def test_fetch_returns_valid_array_format(self, mock_fetch, mock_symbol_list):
         """
@@ -608,19 +608,19 @@ class TestKlinesFetchValidSymbols:
              "123.45", 1645014400000, "6234567.89", 1234, "61.725", "3117283.945"]
         ]
         mock_fetch.return_value = mock_kline_response
-        
+
         fetcher = BinanceKlinesFetcher()
         result = fetcher.fetch_klines("BTCUSDT")
-        
+
         assert len(result) > 0
         assert len(result[0]) == 11  # 11 campos Binance padrão
-    
+
     def test_symbol_list_has_all_major_pairs(self, mock_symbol_list):
         """
         ✅ Lista contém pares principais: BTC, ETH, BNB, ADA, DOGE
         """
         major_pairs = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "DOGEUSDT"]
-        
+
         for pair in major_pairs:
             assert pair in mock_symbol_list, f"{pair} não encontrado na lista"
 
@@ -631,7 +631,7 @@ class TestKlinesFetchValidSymbols:
 
 class TestKlinesOrchestratorIntegration:
     """Testes de integração da orquestração completa."""
-    
+
     @patch('klines_cache_manager.BinanceKlinesFetcher.fetch_klines')
     @patch('klines_cache_manager.KlinesOrchestrator._load_symbols')
     def test_orchestrator_full_workflow(self, mock_load_symbols, mock_fetch, temp_db):
@@ -639,18 +639,18 @@ class TestKlinesOrchestratorIntegration:
         ✅ Fluxo completo: load symbols → fetch → validate → cache
         """
         mock_load_symbols.return_value = ["BTCUSDT", "ETHUSDT"]
-        
+
         # Mock klines response
         now_ms = int(datetime.utcnow().timestamp() * 1000)
         mock_fetch.return_value = [
             [now_ms, "50000", "51000", "49000", "50500", "100", now_ms + 14400000, "5000000", "1000", "50", "2500000"],
             [now_ms + 14400000, "50500", "51500", "49500", "51000", "110", now_ms + 28800000, "5500000", "1100", "55", "2750000"],
         ]
-        
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, dir='.') as f:
             json.dump({"symbols": ["BTCUSDT", "ETHUSDT"]}, f)
             symbol_file = f.name
-        
+
         try:
             # Orchestrator
             orch = KlinesOrchestrator(
@@ -659,16 +659,16 @@ class TestKlinesOrchestratorIntegration:
             )
             orch.db_conn = temp_db
             orch.cache_mgr = KlinesCacheManager(temp_db)
-            
+
             # Teste validação
             cursor = temp_db.cursor()
             cursor.execute("SELECT COUNT(*) FROM klines")
             count = cursor.fetchone()[0]
-            
+
             # Mesmo sem dados reais, a estrutura deve estar ok
             assert orch is not None
             assert orch.metadata is not None
-        
+
         finally:
             Path(symbol_file).unlink(missing_ok=True)
 

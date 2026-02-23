@@ -1,7 +1,7 @@
 # 🏗️ Arquitetura — Trailing Stop Loss (S2-4)
 
-**Owner:** Arch (#6)  
-**Relação:** SPEC_S2_4_TRAILING_STOP_LOSS.md  
+**Owner:** Arch (#6)
+**Relação:** SPEC_S2_4_TRAILING_STOP_LOSS.md
 **Última Atualização:** 2026-02-22 23:55 UTC
 
 ---
@@ -52,35 +52,35 @@ class RiskGate:
         Executa checks em ordem de PRECEDÊNCIA.
         Primeira proteção ativa que trigger = executa.
         """
-        
+
         # 1️⃣  HARDCODED CIRCUIT BREAKER (inviolável)
         if self._check_liquidation_risk(position):
             return ProtectionSignal.LIQUIDATION_BRAKE
-        
+
         # 2️⃣  TRAILING STOP (ativo se lucro >= threshold)
         if position.trailing_active and self._check_trailing_stop(position):
             return ProtectionSignal.TRAILING_STOP_HIT
-        
+
         # 3️⃣  STATIC STOP LOSS (por padrão sempre ativo)
         if self._check_static_stop_loss(position):
             return ProtectionSignal.STATIC_SL_HIT
-        
+
         # 4️⃣  TAKE PROFIT (ativo)
         if self._check_take_profit(position):
             return ProtectionSignal.TAKE_PROFIT_HIT
-        
+
         # 5️⃣  TIMEOUT (2 horas)
         if self._check_timeout(position):
             return ProtectionSignal.TIMEOUT_HIT
-        
+
         # Nenhuma proteção ativada
         return ProtectionSignal.CONTINUE
-    
+
     def _check_trailing_stop(self, position: Position) -> bool:
         """TSL activation logic."""
         if not position.trailing_active:
             return False  # TSL não está ativo
-        
+
         # Verificar se preço caiu abaixo do trailing stop
         return position.current_price <= position.trailing_stop_price
 ```
@@ -107,46 +107,46 @@ class TrailingStopConfig:
 
 class TrailingStopManager:
     """Gerencia lógica de trailing stop."""
-    
+
     def __init__(self, config: TrailingStopConfig):
         self.config = config
-    
+
     def evaluate(self, position: Position) -> Position:
         """Avalia e atualiza estado TSL da posição."""
-        
+
         if not self.config.enabled:
             return position
-        
+
         # Calcular lucro atual
         profit_pct = (position.current_price - position.entry_price) / position.entry_price
         profit_r = profit_pct / (position.risk_r or 0.03)  # Normalizar para R
-        
+
         # 1. Verificar ativação
         if not position.trailing_active and profit_r >= self.config.activation_threshold:
             position.trailing_active = True
             position.trailing_high = position.current_price
             position.trailing_activated_at = datetime.now()
-        
+
         # 2. Se ativo, atualizar high e calcular stop
         if position.trailing_active:
             # Manter registro do maior preço
             if position.current_price > (position.trailing_high or 0):
                 position.trailing_high = position.current_price
-            
+
             # Calcular nível de stop (mantém distância %)
             position.trailing_stop_price = position.trailing_high * (1 - self.config.stop_distance_pct)
-        
+
         # 3. Se lucro volta negativo, desativar TSL
         if position.trailing_active and profit_pct < 0:
             position.trailing_active = False
-        
+
         return position
-    
+
     def has_triggered(self, position: Position) -> bool:
         """Verifica se TSL foi acionada."""
         if not position.trailing_active:
             return False
-        
+
         return position.current_price <= position.trailing_stop_price
 ```
 
@@ -168,10 +168,10 @@ def open_position(self, order_params: OrderParams) -> Position:
         trailing_stop_price=0.0,
         trailing_activation_threshold=settings.TRAILING_ACTIVATION_THRESHOLD,
     )
-    
+
     # Salvar no DB
     self.db.add_position(position)
-    
+
     return position
 ```
 
@@ -181,17 +181,17 @@ def open_position(self, order_params: OrderParams) -> Position:
 # execution/monitor_positions.py
 def scan_all_positions(self):
     """Chamado a cada 100ms."""
-    
+
     for position in self.db.get_open_positions():
         # 1. Atualizar preço atual (WebSocket)
         position.current_price = self.data_client.get_current_price(position.symbol)
-        
+
         # 2. Avaliar TSL
         position = self.tsl_manager.evaluate(position)
-        
+
         # 3. Passar para RiskGate
         signal = self.risk_gate.check_position(position)
-        
+
         # 4. Executar se needed
         if signal != ProtectionSignal.CONTINUE:
             self._execute_close(position, reason=signal)
@@ -256,17 +256,17 @@ def test_tsl_activation():
     config = TrailingStopConfig(activation_threshold=1.5)
     tsl = TrailingStopManager(config)
     position = Position(entry_price=100, current_price=115)
-    
+
     # Execute
     position = tsl.evaluate(position)
-    
+
     # Assert
     assert position.trailing_active is True
 
 def test_tsl_high_tracking():
     """Rastreia o maior preço."""
     # ... teste lógica de update do high
-    
+
 def test_tsl_stop_calculation():
     """Calcula stop com distância %."""
     # ... teste cálculo do stop_price
@@ -286,7 +286,7 @@ def test_tsl_with_execution():
     # Verificar TSL ativa
     # Simular preço caindo → close
     # Validar PnL e logs
-    
+
 def test_tsl_coexistence_with_sl():
     """TSL + SL (-3%) não conflitam."""
     # ... teste precedência de proteções

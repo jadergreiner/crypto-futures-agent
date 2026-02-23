@@ -210,7 +210,7 @@ def temp_db_klines():
         );
         CREATE INDEX IF NOT EXISTS idx_sync_symbol ON sync_log(symbol);
         """
-    
+
     conn = sqlite3.connect(":memory:")
     conn.executescript(DB_SCHEMA_SQL)
     conn.commit()
@@ -278,7 +278,7 @@ def sample_klines_batch_klines(valid_kline_array_klines):
     """Cria 100 candles sequenciais para teste de batch insert."""
     batch = []
     now_ms = int(datetime.utcnow().timestamp() * 1000)
-    
+
     for i in range(100):
         kline = [
             now_ms - (100 - i) * 4 * 3600 * 1000,  # open_time
@@ -294,5 +294,5 @@ def sample_klines_batch_klines(valid_kline_array_klines):
             2500000 + i * 25000                      # taker_buy_quote_volume
         ]
         batch.append(kline)
-    
+
     return batch

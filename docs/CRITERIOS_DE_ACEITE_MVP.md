@@ -54,7 +54,7 @@
 
 ### S2-0 — Data Strategy (1Y × 60 Symbols) {#s2-0}
 
-**Supervisor:** Audit (#8) — QA Lead & Documentation Officer  
+**Supervisor:** Audit (#8) — QA Lead & Documentation Officer
 **Referência completa:** [DATA_STRATEGY_QA_GATES_S2_0.md](DATA_STRATEGY_QA_GATES_S2_0.md)
 
 #### Gate 1: Dados & Integridade
@@ -147,7 +147,7 @@
 > Evidencia: [Connectivity Results](../logs/connectivity_validation_results.md),
 > [RiskGate Results](../logs/riskgate_validation_results.md),
 > [Execution Results](../logs/execution_validation_results.md).
-> 
+>
 > Ver [Runbook Operacional](RUNBOOK_OPERACIONAL.md) para procedimento de go-live.
 
 ---
