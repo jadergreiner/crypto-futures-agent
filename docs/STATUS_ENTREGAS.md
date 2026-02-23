@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-22 23:59 UTC (Issue #60 S2-0 Data Strategy COMPLETO: Pipeline 1Y + 60 símbolos + Arch Review ✅ + 26 testes + Operações 24/7 Spec.)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 EM EXECUÇÃO (S2-0 Data ✅ DESIGN + S2-3 Backtesting Pronto)
+**Última atualização:** 2026-02-23 01:30 UTC ([SYNC] S2-3 Gate 4 Documentação Completa — README + Docstrings + DECISIONS trade-offs)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2-3 🟢 GATES 1-4 ✅ (S2-0 + S2-3 BacktestingGATE 4)
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -60,7 +60,7 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
-| Backtesting Engine              | �     | Sprint 2-3 | #62    | ✅ GATE 2+3 IMPL | 🟢 9/9 REG | S2-3 Gates 2+3: ✅ VALIDADO. backtest/metrics.py (6 métodos + 2 helpers, 100% impl). backtest/test_metrics.py (28 testes, 100% PASS). Sprint 1 Regression Validation: 9/9 PASS (zero breaking changes). Core coverage ≥95% (metrics, backtest_metrics, test_Suite). Risk Gate contract maintained. **GATE 3 APPROVED** — Pronto para Gate 4 (Docstring + README). Desbloqueia S2-1/S2-2 + TASK-005 kickoff (25 FEV). Ver [GATE_3_FINAL_STATUS.md](GATE_3_FINAL_STATUS.md) |
+| Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC |
 
 ---
