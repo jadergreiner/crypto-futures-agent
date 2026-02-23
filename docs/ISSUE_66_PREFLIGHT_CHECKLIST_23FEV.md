@@ -1,8 +1,8 @@
 # ✅ ISSUE #66 — PRE-FLIGHT CHECKLIST (23 FEV 20:50 UTC)
 
-**Status:** 🟢 **ALL SYSTEMS GO FOR PHASE 1 (21:35 UTC)**  
-**Remaining Time:** ~45 minutos até Phase 1 START  
-**SLA:** 14h (23 FEV 20:40 → 24 FEV 10:00 UTC)  
+**Status:** 🟢 **ALL SYSTEMS GO FOR PHASE 1 (21:35 UTC)**
+**Remaining Time:** ~45 minutos até Phase 1 START
+**SLA:** 14h (23 FEV 20:40 → 24 FEV 10:00 UTC)
 
 ---
 
@@ -222,6 +222,6 @@
 
 ---
 
-*Pre-Flight Checklist — Issue #66 Squad Multidisciplinar*  
-*Generated: 23 FEV 20:50 UTC*  
+*Pre-Flight Checklist — Issue #66 Squad Multidisciplinar*
+*Generated: 23 FEV 20:50 UTC*
 *[SYNC] Protocol Compliant — Ready for Push*
