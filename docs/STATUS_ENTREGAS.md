@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-23 20:35 UTC ([SYNC] Issue #65 Kickoff CRÍTICA + Timeline Paralela #64 + TASK-005 Mitigação)
+**Última atualização:** 2026-02-23 20:40 UTC ([SYNC] Issue #66 SMC QA E2E CRIADA GitHub + Squad Kickoff Marcado)
 **Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ **ISSUE #63 DELIVERED 23 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
@@ -60,7 +60,7 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | SMC Strategy (F-12)              | ✅     | Sprint 2 | #63    | SPEC ✅ | ✅ 28/28 PASS | S2-1/S2-2: Issue #63 COMPLETO 23 FEV. Bloqueadores resolvidos: (1) Volume threshold com SMA(20) ✅ (2) Order blocks integrado em _validate_smc() ✅ (3) Edge cases (gaps, ranging, low-liq) ✅. Tests: 28 unitários + integração 100% PASS. Coverage: 85%+. ETA original 24 FEV 20:00, ENTREGUE 23 FEV 16:00. **🟢 DESBLOQUEIA Issue #65 + TASK-005 PPO agora**. |
-| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #65    | SPEC ✅ | 🔴 **KICKOFF AGORA** | [S2-1/S2-2 QA CRÍTICA] 23 FEV 20:30 KICKOFF. Squad: Arch (#6) + Audit (#8). E2E: signal gen → exec → gates. Duração: 14h. Deadline: 24 FEV 10:00. Desbloqueia TASK-005 + Issue #64. |
+| SMC Integration Tests (F-12)    | 🟡     | Sprint 2 | #66    | SPEC ✅ | 🔴 **KICKOFF AGORA** | [S2-1/S2-2 QA CRÍTICA] Issue #66 CRIADA no GitHub 23 FEV 20:40. Squad: Arch (#6) + Audit (#8). E2E: signal gen → exec → gates. Duração: 14h. Deadline: 24 FEV 10:00. Desbloqueia TASK-005 + Issue #64. |
 | Trailing Stop Loss (S2-4)        | ✅     | Sprint 2 | #61    | ✅ SPEC+ARCH | 50+/50+ PASS | [S2-4] 23 FEV — INTEGRAÇÃO ✅. TrailingStopManager integrado em order_executor.py. Code duplicado removido de position_monitor.py. evaluate_trailing_stop() adicionado ao executor. Tests: 34 + 16 novos = 50+ PASS. Pronto para testnet + Issue #65. |
 | Backtesting Engine              | 🟢     | Sprint 2-3 | #62    | ✅ GATE 4 ✅ | 🟢 ALL | S2-3 Gates 1-4: ✅ CONCLUÍDO & APROVADO. backtest/metrics.py (6 métodos). README.md (702 linhas). Docstrings PT completas. DECISIONS.md trade-offs. 28 testes PASS. **🟢 DESBLOQUEIA S2-1/S2-2 + TASK-005 PPO AGORA**. |
 | Telegram Alerts (S2-5)          | �     | Sprint 2-3 | #64    | SPEC ✅ | 🟡 KICK-OFF ~24 FEV | [S2-5 Parallelizable] Setup pode iniciar pós #65 spec (~1h). Squad: Dev + Doc Advocate. Depende: Issue #65 arquitetura ✅. Timeline: 24-25 FEV (overlap TASK-005). |

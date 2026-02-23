@@ -56,7 +56,7 @@
 | Detecção de Order Blocks (SMC)   | Arch (#6)   | 🟢     | #63    | IN PP  |
 | Detecção de BoS (SMC)            | Arch (#6)   | ✅     | #63    | MERGED |
 | Engine de Backtesting (1 ano)    | Data (#11)  | ✅     | #62    | MERGED |
-| **Testes Integração SMC (E2E)**  | **Arch (#6) + Audit (#8)** | **🔴 KICKOFF AGORA** | **#65** | **23 FEV 20:30** |
+| Testes Integração SMC (E2E)      | Arch (#6) + Audit (#8) | 🔴 **#66 KICKOFF** | #66 | **23 FEV 20:40 CRIADA** |
 | Trailing Stop Loss (Integração)  | Arch (#6)   | ✅     | #61    | MERGED |
 | Alertas Telegram (Setup)         | Dev + Doc   | 🟡     | #64    | **24 FEV** |
 

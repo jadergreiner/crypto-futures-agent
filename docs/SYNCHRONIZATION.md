@@ -4,9 +4,9 @@
 **Status da Equipe Fixa:** ✅ 15 membros + Squad Multidisciplinar: Arch (#6), The Brain (#3), Data (#11), Audit (#8), Quality (#12), Doc Advocate (#17)
 **Status Sprint 2:** 🔵 **EM EXECUÇÃO — CRÍTICA: Issue #65 QA KICKOFF AGORA** — Issue #63 ✅ + S2-4 ✅ DESBLOQUEIAM #65 AGORA (23 FEV 20:30). Deadline: 24 FEV 10:00. Desbloqueia TASK-005 PPO (deadline crítica 25 FEV 10:00). Issue #64 parallelizable.
 
-## ⚠️ [SYNC] ISSUE #65 KICKOFF CRÍTICA — 23 FEV 20:35 UTC 🔴 **AGORA**
+## ⚠️ [SYNC] ISSUE #66 SMC QA E2E CRIADA — 23 FEV 20:40 UTC 🔴 **KICKOFF SQUAD AGORA**
 
-**Status:** 🔴 **KICKOFF MULTIDISCIPLINAR** — Squad Lead: Arch (#6) + Audit (#8)
+**Status:** 🔴 **ISSUE #66 FORMALLY CREATED** — GitHub URL: [crypto-futures-agent/issues/66](https://github.com/jadergreiner/crypto-futures-agent/issues/66)
 
 **Contexto Crítico:**
 
@@ -65,7 +65,7 @@ Issue #64 (Telegram) 🟡 SETUP 24 FEV 12:00 (não bloqueia, parallelizable)
   - Volume threshold com SMA(20) ✅
   - Order blocks integrado ✅
   - 28/28 testes PASS, 85%+ coverage ✅
-  
+
 - ✅ S2-4 (Trailing Stop Loss) — INTEGRAÇÃO COMPLETA 23 FEV 20:30
   - TrailingStopManager inicializado em order_executor ✅
   - 50+/50+ testes PASS ✅
@@ -85,7 +85,7 @@ Issue #64 (Telegram) 🟡 SETUP 24 FEV 12:00 (não bloqueia, parallelizable)
 - ✅ `docs/PLANO_DE_SPRINTS_MVP_NOW.md` — Versão 1.0.1 + Squad assignment
 - ✅ `docs/SYNCHRONIZATION.md` — [SYNC] Checkpoint (este bloco)
 
-**Próximo Checkpoint:** 
+**Próximo Checkpoint:**
 
 24 FEV 04:00 UTC — Phase 3 Go/No-go via Arch (#6) + Audit (#8)
 
