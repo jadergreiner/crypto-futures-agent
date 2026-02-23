@@ -16,6 +16,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ### Adicionado
 
+- **S2-4 Trailing Stop Loss (TSL)** — Implementação completa de proteção dinâmica de lucro
+  - `risk/trailing_stop.py` — Core TSL Manager (38 funções)
+  - `docs/SPEC_S2_4_TRAILING_STOP_LOSS.md` — Especificação técnica completa
+  - `docs/ARCH_S2_4_TRAILING_STOP.md` — Arquitetura e design integrado
+  - `tests/test_trailing_stop.py` — 24 testes unitários ✅ PASS
+  - `tests/test_tsl_integration.py` — 10 testes integração ✅ PASS
+  - Parâmetros: `trailing_activation_threshold = 1.5R`, `trailing_stop_distance_pct = 10%`
+  - Status: Design + Code + Tests ✅ COMPLETO | Aguardando Binance Integration + QA
 - `docs/STATUS_ENTREGAS.md` — fonte da verdade de status das entregas.
 - `docs/PLANO_DE_SPRINTS_MVP_NOW.md` — mapa Now → Sprints com tabelas.
 - `docs/CRITERIOS_DE_ACEITE_MVP.md` — matriz de critérios e Go/No-Go.

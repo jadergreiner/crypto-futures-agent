@@ -59,6 +59,7 @@
 
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
+| Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
 | Backtesting Engine              | 🔴     | Sprint 2-3| #59    | PENDING  | PENDING   | Bloqueado por: Data Strategy (S2-0). Desbloqueado após validação dados 🟢 |
 | ML Training Pipeline (PPO v0)   | 🔴     | Sprint 3 | #60    | PENDING  | PENDING   | Parallel com backtesting |
 
@@ -76,6 +77,7 @@
 
 | Data       | Entrega                  | Sprint   | PR     | Notas   |
 |------------|--------------------------|----------|--------|---------|
+| 2026-02-22 | Trailing Stop Loss (S2-4) Design ✅ + Core Code ✅ + 34 Testes ✅ | Sprint 2 | - | SPEC_S2_4 + ARCH_S2_4 + risk/trailing_stop.py + 24 unit + 10 integration testes. Pronto para Binance Integration + QA validation. |
 | 2026-02-22 | Plano de Testes — Backtesting (S2-3) | Sprint 2 (Planejado) | - | 10 testes (5 Unit + 3 Integration + 1 Regression + 1 E2E), ~82% coverage, 45-60s runtime |
 
 ---

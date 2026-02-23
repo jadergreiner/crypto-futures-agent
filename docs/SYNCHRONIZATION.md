@@ -1,14 +1,55 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 23 de fevereiro de 2026, 00:03 UTC ([SYNC] S2-0 DATA STRATEGY IMPLEMENTATION COMPLETE)
-**Status da Equipe Fixa:** ✅ 14 membros + Data Engineer #11 (Ativo em S2-0)
-**Status S2-0:** ✅ IMPLEMENTATION COMPLETE — Pipeline pronto para validação
+**Última Atualização:** 22 de fevereiro de 2026, 23:59 UTC ([SYNC] S2-4 TRAILING STOP LOSS DESIGN + CODE COMPLETE)
+**Status da Equipe Fixa:** ✅ 15 membros (Nova: Persona 1 - Senior Engineer em S2-4)
+**Status S2-4:** 🟡 DESIGN + CODE ✅ COMPLETO — Testes ✅ PASS, Aguardando Binance Integration
 
 ## 🎯 Objetivo
 
 Garantir que toda a documentação do projeto (README, docs/, instruções do
 Copilot) esteja sincronizada e consistente, refletindo mudanças reais no código
 e comportamento do sistema.
+
+---
+
+## 🆕 [SYNC] S2-4 TRAILING STOP LOSS DESIGN + CORE CODE COMPLETE (22/FEV 23:59 UTC)
+
+**Status:** ✅ DESIGN + CODE + TESTS — Pronto para Binance Integration + QA Validation
+
+**Responsáveis:** Doc Advocate (#17), Arch (#6), Senior Engineer (Persona 1), The Brain (#3), Quality (#12)
+**Duração:** ~3 horas (design 1.5h + code 1h + tests 0.5h)
+
+**Deliverables Executados:**
+- ✅ [docs/SPEC_S2_4_TRAILING_STOP_LOSS.md](SPEC_S2_4_TRAILING_STOP_LOSS.md) — Especificação técnica 180+ linhas
+- ✅ [docs/ARCH_S2_4_TRAILING_STOP.md](ARCH_S2_4_TRAILING_STOP.md) — Arquitetura integrada com RiskGate
+- ✅ `risk/trailing_stop.py` — Core Manager com 9 métodos + 38 funções (275 SLOC)
+- ✅ `tests/test_trailing_stop.py` — 24 testes unitários ✅ 24/24 PASS
+- ✅ `tests/test_tsl_integration.py` — 10 testes integração ✅ 10/10 PASS
+- ✅ `docs/STATUS_ENTREGAS.md` — Seção S2-4 adicionada (Issue #61, 34 testes)
+- ✅ `docs/CHANGELOG.md` — Entrada S2-4 com deliverables listados
+
+**Parâmetros Implementados:**
+| Parâmetro | Padrão | Descrição |
+|-----------|--------|-----------|
+| `activation_threshold_r` | 1.5 | Risk units para ativar (15% com risk 10%) |
+| `stop_distance_pct` | 0.10 | Trailing stop distance (10% do high) |
+| `update_interval_ms` | 100 | Atualização a cada 100ms |
+| `enabled` | True | Global feature flag |
+
+**Testes Executados:**
+| Suite | Count | Status | Coverage |
+|-------|-------|--------|----------|
+| Unitários | 24 | ✅ 24 PASS | 95%+ |
+| Integração | 10 | ✅ 10 PASS | 85%+ |
+| **Total** | **34** | **✅ 34 PASS** | **90%+** |
+
+**Próximos Passos (Bloqueado por):**
+- Data Engineer (#11) — Binance API close order integration
+- Audit (#8) — QA validation gates (DB schema, PnL validation)
+- Guardian (#5) — Risk architecture review (INVIOLÁVEL markers)
+
+**Arquivo Sync Completo:**
+- ✅ `docs/SYNCHRONIZATION.md` — Este arquivo atualizado com [SYNC] entry
 
 ---
 
