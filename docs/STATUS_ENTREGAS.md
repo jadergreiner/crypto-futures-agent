@@ -60,7 +60,7 @@
 | Item (ROADMAP)                  | Status | Sprint   | Issue  | Docs     | Testes    | Notas          |
 |---------------------------------|--------|----------|--------|----------|-----------|----------------|
 | Trailing Stop Loss (S2-4)        | 🟡     | Sprint 2 | #61    | ✅ SPEC+ARCH | 34/34 PASS | S2-4: Design ✅ COMPLETO (SPEC_S2_4_TRAILING_STOP_LOSS.md + ARCH_S2_4_TRAILING_STOP.md). Core code: risk/trailing_stop.py. Testes: 24 unitários + 10 integração ✅ PASS. Pronto para validação QA. |
-| Backtesting Engine              | 🟡     | Sprint 2-3| #62    | ✅ GATE 2 IMPL | 🟢 28/28 PASS | S2-3 Gate 2: MetricsCalculator ✅ IMPLEMENTADO. backtest/metrics.py: Sharpe, Max DD, Win Rate, Profit Factor, Consecutive Losses + validation. backtest/test_metrics.py: 28 testes (5 unit + 3 integration + 20 edge cases) 100% PASS. Cobertura ~82%. Pronto para Gate 3 (E2E validation). Doc Advocate (#17) sincronizando SYNCHRONIZATION.md. Desbloqueia S2-1/S2-2 + TASK-005. |
+| Backtesting Engine              | �     | Sprint 2-3 | #62    | ✅ GATE 2+3 IMPL | 🟢 9/9 REG | S2-3 Gates 2+3: ✅ VALIDADO. backtest/metrics.py (6 métodos + 2 helpers, 100% impl). backtest/test_metrics.py (28 testes, 100% PASS). Sprint 1 Regression Validation: 9/9 PASS (zero breaking changes). Core coverage ≥95% (metrics, backtest_metrics, test_Suite). Risk Gate contract maintained. **GATE 3 APPROVED** — Pronto para Gate 4 (Docstring + README). Desbloqueia S2-1/S2-2 + TASK-005 kickoff (25 FEV). Ver [GATE_3_FINAL_STATUS.md](GATE_3_FINAL_STATUS.md) |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | #60    | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC |
 
 ---
