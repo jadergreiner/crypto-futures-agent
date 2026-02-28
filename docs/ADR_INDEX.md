@@ -231,7 +231,7 @@ mode: "paper"  # ou "live"
 
 ### ADR-008: Telegram Bot para Observabilidade Operacional (Issue #64)
 
-**Status:** ✅ APROVADA | **Date:** 28 FEV 2026  
+**Status:** ✅ APROVADA | **Date:** 28 FEV 2026
 **Champion:** The Blueprint (#7)
 
 **Contexto:**

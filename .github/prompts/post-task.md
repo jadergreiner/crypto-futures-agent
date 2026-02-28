@@ -1,20 +1,18 @@
-Prompt: Atualização de Contexto e Governança Post-Task
-Contexto: Acabei de finalizar a task [NOME_DA_TASK] do meu BACKLOG.md.
+2. Prompt Otimizado para Copilot (Foco em Python)
+Copie e use este prompt para garantir que o Copilot respeite as boas práticas de engenharia Python ao finalizar uma task:
 
-Objetivo: Você deve atuar como um Arquiteto de Software Sênior e revisar as alterações que fiz no código para atualizar nossa documentação técnica e manter a governança.
+Contexto: Finalizei a task [NOME_DA_TASK] em Python.
 
-Ações Requeridas:
+Ações de Arquiteto:
 
-Data Models: Verifique se houve alteração em entidades, tabelas ou schemas. Se sim, atualize o data_models.md mantendo o padrão de dicionário de dados.
+Code Review Interno: Verifique se segui a PEP 8 e se usei Type Hints em todas as novas funções/classes.
 
-Arquitetura: Analise se a implementação introduziu novos componentes, serviços ou mudou o fluxo de dados. Atualize o architecture.md refletindo o estado atual.
+Data Models: Se alterei modelos SQLAlchemy, Django ORM ou classes Pydantic, atualize o data_models.md com os novos campos e tipos.
 
-ADR (Architecture Decision Record): Se houve uma decisão técnica importante (ex: nova lib, mudança de padrão de design, novo endpoint crítico), sugira um novo registro para o log de decisões.
+Arquitetura (Imports): Verifique se não criei importações circulares ou violei camadas (ex: lógica de negócio dentro de uma rota FastAPI/Flask). Atualize o architecture.md.
 
-Backlog & Roadmap: Marque a task como concluída no BACKLOG.md e verifique se o progresso reflete corretamente no ROADMAP.md.
+Testes: Garanta que a task incluiu testes em pytest. Se não, sugira os casos de teste básicos.
 
-Changelog: Gere um resumo técnico (bullet points) para o CHANGELOG.md descrevendo o impacto técnico desta entrega.
+Backlog & Docs: Marque a task no BACKLOG.md e atualize o ROADMAP.md. Gere o registro no CHANGELOG.md focando no impacto técnico.
 
-Restrição: Não apague informações anteriores, apenas incremente. Use uma linguagem técnica precisa e mantenha os diagramas (se houver Mermaid/PlantUML) consistentes.
-
-Saída esperada: Liste quais arquivos você alterou e apresente o diff ou o conteúdo atualizado para revisão.
+Saída: Apresente o resumo das alterações nos arquivos de documentação e valide se a estrutura do código está "Pythonic".
