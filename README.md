@@ -768,6 +768,14 @@ O script verifica markdown lint, sincronização e registro em
 
 ### Documentação Técnica
 
+- **[C4_MODEL.md](docs/C4_MODEL.md)** — Diagrama arquitetural (4 níveis:
+  Contexto → Containers → Componentes → Código)
+- **[ADR_INDEX.md](docs/ADR_INDEX.md)** — 7 Architecture Decision Records
+  com rationale de design
+- **[OPENAPI_SPEC.md](docs/OPENAPI_SPEC.md)** — Especificação REST API
+  OpenAPI 3.0.0 (12 endpoints planejados)
+- **[IMPACT_README.md](docs/IMPACT_README.md)** — Setup local, testes,
+  deploy em produção (PT-BR)
 - **[BINANCE_SDK_INTEGRATION.md](docs/BINANCE_SDK_INTEGRATION.md)** —
   Integração com Binance SDK
 - **[LAYER_IMPLEMENTATION.md](docs/LAYER_IMPLEMENTATION.md)** —

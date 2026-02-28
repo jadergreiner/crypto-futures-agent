@@ -1,0 +1,282 @@
+# 📋 ADR Index — Crypto Futures Agent
+
+**Versão:** 0.3.0
+**Data:** 28 FEV 2026
+**Proprietário:** Arquiteto (#6)
+
+---
+
+## Propósito
+
+ADRs (Architecture Decision Records) documentam as **decisões críticas** de
+arquitetura, os **contextos** que levaram a elas e as **consequências** esperadas.
+
+Evita revisões futuras desnecessárias e garante rastreabilidade.
+
+---
+
+## 📚 Index de ADRs
+
+### ADR-001: Seleção de Intervalo de Candlestick (4h)
+
+**Status:** ✅ APROVADA | **Date:** 15 FEV 2026
+**Champion:** Data (#11)
+
+**Contexto:**
+- Objetivo: 1 ano de dados históricos para backtesting
+- Restrição: Latência <100ms de leitura em produção
+- Questão: Qual intervalo (1h, 4h, 1d)?
+
+**Decisão:**
+**4h candles** (6 por dia = 2.190 candles/ano/símbolo)
+
+**Consequências:**
+- ✅ 1Y de dados = 131.400 candles (60 símbolos) = 650 KB SQLite
+- ✅ Granularidade suficiente para validação diária
+- ❌ Frequency menor que intraday (trade-off aceitável)
+
+**Alternativas Consideradas:**
+- 1h: 8.760 candles/ano = 2 MB (descartado: muito grande)
+- 1d: 365 candles/ano (descartado: falta granularidade)
+
+**Referência:** [Issue #67](ISSUE_67_DATA_STRATEGY_SPEC.md)
+
+---
+
+### ADR-002: Dual Cache Strategy (SQLite + Parquet)
+
+**Status:** ✅ APROVADA | **Date:** 20 FEV 2026
+**Champion:** Architect (#6)
+
+**Contexto:**
+- Problema: Dados históricos precisam ser rápidos (READ) + duráveis (WRITE)
+- Restrição: Produção + backup em local finito
+- Questão: SQLite, Parquet, Redis, ou Hybrid?
+
+**Decisão:**
+**SQLite (hot cache) + Parquet (snapshots)**
+
+**Consequências:**
+- ✅ SQLite: ACID transactions, queries estruturadas, <100ms reads
+- ✅ Parquet: Compressão columnar, snapshots diários, backup S3-ready
+- ❌ Dois sistemas = manutenção dupla
+- ❌ Sincronização eventual (não realtime)
+
+**Alternativas Consideradas:**
+- Redis Only: Rápido mas sem persistência
+- PostgreSQL: Maior overhead, overkill para 650 KB
+- CSV: Sem índices, lento para 131K registros
+
+**Referência:** [ISSUE_67_DATA_STRATEGY_SPEC.md](ISSUE_67_DATA_STRATEGY_SPEC.md)
+
+---
+
+### ADR-003: LIFO Position Management
+
+**Status:** ✅ APROVADA | **Date:** 18 FEV 2026
+**Champion:** Executor (#9)
+
+**Contexto:**
+- Problema: 5 posições abertas simultâneas precisam ser fechadas
+- Questão: LIFO (Last-In-First-Out), FIFO, ou por P&L?
+
+**Decisão:**
+**LIFO Determinístico** — Última aberta fecha primeira.
+
+**Consequências:**
+- ✅ Simplicidade: Orden determinística, sem ambiguidade
+- ✅ Fairness: Sem viés para posições antigas
+- ❌ Possível priorização não-ótima de P&L
+- ⚠️ Requer logging preciso de timestamps
+
+**Alternativas Consideradas:**
+- FIFO: Favorece posições antigas (favorecimento)
+- By P&L: Complexo, pode induzir over-trading
+- By Duration: Close de 48h+ (pode gerar debt manual)
+
+**Referência:** [PositionManager](../execution/position_manager.py#L1)
+
+---
+
+### ADR-004: Maximum 3× Leverage (Margin Ratio ≥ 300%)
+
+**Status:** ✅ APROVADA | **Date:** 22 FEV 2026 (Decision #3)
+**Champion:** Risk (#13)
+
+**Contexto:**
+- Problema: Bloquear de risco de liquidação
+- Questão: 2×, 3×, 5×, ou 10× leverage?
+
+**Decisão:**
+**Máximo 3× leverage** (margin ratio ≥ 300%)
+
+**Justificativa:**
+- Capital inicial: $10,000
+- Margin usado máximo: ~$3,000 (3 posições × $500 × 2)
+- Buffer: >60% (liquidação típica Binance: 100%)
+
+**Consequências:**
+- ✅ Margem de segurança 60%+ contra liquidação
+- ✅ Upside limitado mas dowside protegido
+- ❌ ROI menor (max 3× retorno)
+
+**Alternativas Consideradas:**
+- 2×: Muito conservador, ROI ~66%
+- 5×: Perigoso (buffer < 20%, risco crescente)
+- 10×: Liquidação quase certa em volatilidade normal
+
+**Referência:** [DECISIONS.md#Decision_3](DECISIONS.md#decision-3-hedge-or-liquidation-strategy)
+
+---
+
+### ADR-005: Deterministic Backtesting (Bar-by-Bar OHLC)
+
+**Status:** ✅ APROVADA | **Date:** 24 FEV 2026
+**Champion:** Architect (#6)
+
+**Contexto:**
+- Problema: Validar estratégia em histórico sem lookahead bias
+- Questão: Event-driven, bar-by-bar, ou stochastic?
+
+**Decisão:**
+**Bar-by-bar OHLC replay determinístico**
+
+**Fluxo:**
+```
+Para cada barra no histórico:
+  1. Open price → Strategy execute
+  2. High/Low → Check stop loss/take profit
+  3. Close price → Fill ordem se acionada
+  4. Next barra
+```
+
+**Consequências:**
+- ✅ Sem lookahead bias (aberto não vê futuro)
+- ✅ Determinístico (mesmos dados = mesmos resultados)
+- ✅ Reproduzível (não há aleatoriedade)
+- ❌ Fills no abrio/fechamento (real world: más)
+
+**Alternativas Consideradas:**
+- Event-driven: Complexo com dados comprimidos
+- Stochastic: Realista mas não reproduzível
+
+**Reference:** [backtester.py](../backtest/backtester.py#L1)
+
+---
+
+### ADR-006: Paper Trading Mode for Risk Practice
+
+**Status:** ✅ APROVADA | **Date:** 25 FEV 2026
+**Champion:** Operações (#15)
+
+**Contexto:**
+- Problema: Treinar disciplina de risco sem perder capital real
+- Questão: Paper mode opcional vs. obrigatório antes de live?
+
+**Decisão:**
+**Paper mode obrigatório** — Simulação 100%, sem ordens reais.
+
+**Ativação:**
+```python
+# config/params.yaml
+mode: "paper"  # ou "live"
+```
+
+**Consequências:**
+- ✅ Simula fluxo completo (real cache, real gates)
+- ✅ Zero risco de capital
+- ✅ Logs idênticos (facilita debug)
+- ❌ Fills menos realistas (sem slippage real)
+
+**Alternativas Consideradas:**
+- Pequeno volume live: 10% capital (ainda risco)
+- Sandbox Binance: Possível, mas desatualizado
+
+**Referência:** [execution/order_executor.py](../execution/order_executor.py#L1)
+
+---
+
+### ADR-007: [SYNC] Protocol for Documentation
+
+**Status:** ✅ APROVADA | **Date:** 22 FEV 2026 (Decision #1)
+**Champion:** Doc Advocate (#17)
+
+**Contexto:**
+- Problema: Documentação fica desatualizada vs. código
+- Questão: Como manter síncrono?
+
+**Decisão:**
+**[SYNC] tag em commits** + audit trail em `SYNCHRONIZATION.md`
+
+**Padrão:**
+```
+[SYNC] Descrição breve
+- Arquivo1.md: mudança X
+- Arquivo2.py: mudança Y
+```
+
+**Consequências:**
+- ✅ Commit message sinaliza intenção de sync
+- ✅ Auditoria em `SYNCHRONIZATION.md`
+- ✅ Git history rastreável
+- ❌ Manual (não automatizado)
+
+**Alternativas Consideradas:**
+- Splinx auto-generation: Adiciona overhead (ignorado)
+- GitHub Actions pre-commit: Complexo (rejeitado)
+
+**Referência:** [SYNCHRONIZATION.md](SYNCHRONIZATION.md)
+
+---
+
+## 📊 Matriz de Decisões
+
+| ADR | Área | Status | Impact | Revisão |
+|-----|------|--------|--------|---------|
+| ADR-001 | Data | Aprovada | 🟢 Alto | Anual |
+| ADR-002 | Data | Aprovada | 🟢 Alto | Semestral |
+| ADR-003 | Execution | Aprovada | 🟡 Média | Trimestral |
+| ADR-004 | Risk | Aprovada | 🔴 Crítica | Mensal |
+| ADR-005 | Backtesting | Aprovada | 🟢 Alto | Trimestral |
+| ADR-006 | Operations | Aprovada | 🟡 Média | Ad-hoc |
+| ADR-007 | Documentation | Aprovada | 🟡 Média | Semestral |
+
+---
+
+## 🔄 Processo de Mudança
+
+### Propor Nova ADR
+
+1. **Criar issue** com título `[ADR] <Tópico>`
+2. **Discussão:** Contextoー→ Opções → Decisão
+3. **Review:** Arquiteto + especialista da área
+4. **Merge:** Tag `[SYNC]` + adicionar ao index
+5. **Arquivo:** Issue → `docs/ADR_<número>_<título>.md` (opcional)
+
+### Revisão Periódica
+
+- **Mensal:** ADR-004 (Risk/Leverage) — impacto crítico
+- **Trimestral:** ADR-003, ADR-005 — possível evolução
+- **Anual:** ADR-001, ADR-002 — mudanças externas
+
+---
+
+## 🔗 Referências Cruzadas
+
+| ADR | Relacionados | Docs |
+|-----|-------------|------|
+| ADR-001/002 | Issue #67 | [C4_MODEL.md](C4_MODEL.md#nível-4-código-class-diagrams--data-flows) |
+| ADR-003/004 | TASK-009 | [PositionManager](../execution/position_manager.py) |
+| ADR-005 | S2-3 Backtesting | [backtest/](../backtest/) |
+| ADR-006 | Paper Mode | [execution/order_executor.py](../execution/order_executor.py) |
+| ADR-007 | Documentation | [SYNCHRONIZATION.md](SYNCHRONIZATION.md) |
+
+---
+
+## 📚 Como Usar Este Índice
+
+1. **Novo membro?** → Leia ADRs na ordem de importância (004 → 001 → 002)
+2. **Quer mudar algo?** → Verifique se já existe ADR relacionada
+3. **Revisão técnica?** → Use matriz de decisões (filtrar por área)
+4. **Auditoria?** → SYNCHRONIZATION.md tem histórico de mudanças
+

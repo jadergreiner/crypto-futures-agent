@@ -143,6 +143,27 @@ RUNBOOK → USER_MANUAL, CHANGELOG → RELEASES.
 há informação relevante que deve ser propagada para a Camada 1 (ex.: decisão
 nova → DECISIONS.md, feature concluída → FEATURES.md).
 
+### Camada 3 — Documentação Técnica (28 FEV 2026)
+
+Documentação de referência técnica para arquitetura, decisões de design e
+implementação. Estrutura C4 Model + ADR + OpenAPI.
+
+1. **[docs/C4_MODEL.md](../docs/C4_MODEL.md)** — 4 níveis de arquitetura:
+   Context (usuários) → Containers (tech stack) → Components (módulos) →
+   Code (classes). Inclui diagramas ASCII e decision matrix.
+
+2. **[docs/ADR_INDEX.md](../docs/ADR_INDEX.md)** — 7 Architecture Decision
+   Records (ADR-001 a ADR-007) com Status, Champion, Contexto, Decisão,
+   Consequências e Alternativas consideradas.
+
+3. **[docs/OPENAPI_SPEC.md](../docs/OPENAPI_SPEC.md)** — Especificação
+   OpenAPI 3.0.0 para REST API futura (12 endpoints, autenticação API key,
+   rate limiting 1000 req/min).
+
+4. **[docs/IMPACT_README.md](../docs/IMPACT_README.md)** — Guia prático de
+   setup (venv, deps), testes (unit/integration/backtest), modos paper/live,
+   monitoramento e deployment (Linux systemd + Docker futuro).
+
 ---
 
 ## Sincronização Manual via Copilot (Gatilho)

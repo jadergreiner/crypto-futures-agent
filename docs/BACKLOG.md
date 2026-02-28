@@ -18,8 +18,10 @@
 | [DECISIONS.md](DECISIONS.md) | Decision history + board approvals |
 | [FEATURES.md](FEATURES.md) | Feature list (F-H1→F-ML3) |
 | [RELEASES.md](RELEASES.md) | Version history (v0.1→v1.0-alpha) |
-| [TRACKER.md](TRACKER.md) | Sprint tracker detalhado |
-
+| [TRACKER.md](TRACKER.md) | Sprint tracker detalhado || [C4_MODEL.md](C4_MODEL.md) | Diagrama arquitetural (4 níveis) |
+| [ADR_INDEX.md](ADR_INDEX.md) | Architecture Decision Records (7 ADRs) |
+| [OPENAPI_SPEC.md](OPENAPI_SPEC.md) | Especificação REST API (OpenAPI 3.0.0) |
+| [IMPACT_README.md](IMPACT_README.md) | Setup, testes, deploy em produção |
 ---
 
 ## 🚀 QUICK WINS — TAREFAS PRIORITÁRIAS
