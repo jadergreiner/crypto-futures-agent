@@ -1,12 +1,12 @@
 # 📋 ATA — DECISION #4 Votação — 27 FEV 2026
 ## Expansão 60 → 200 Pares via F-12b Parquet Cache
 
-**Data:** 27 FEV 2026  
-**Horário:** 09:00-11:00 UTC  
-**Local:** Board Meeting (Síncrono)  
-**Facilitador:** Elo (#2 - Governança)  
-**Apurador:** Audit (#8 - QA)  
-**Autoridade Final:** Angel (#1 - Executiva)  
+**Data:** 27 FEV 2026
+**Horário:** 09:00-11:00 UTC
+**Local:** Board Meeting (Síncrono)
+**Facilitador:** Elo (#2 - Governança)
+**Apurador:** Audit (#8 - QA)
+**Autoridade Final:** Angel (#1 - Executiva)
 **Status:** ✅ **DECISÃO APROVADA**
 
 ---
@@ -55,7 +55,7 @@
 
 #### ✅ Apresentação 1: F-12b Parquet Architecture
 **Apresentador:** Flux (#5 - Data Engineer)
-**Duração:** 15 min  
+**Duração:** 15 min
 **Pontos-chave:**
 - Parquet format reduz I/O de 200ms → 50ms por carregamento
 - Compression zstd reduz footprint to 4GB (confirmado)
@@ -68,7 +68,7 @@
 
 #### ✅ Apresentação 2: Infrastructure Readiness
 **Apresentador:** The Blueprint (#7 - Infraestrutura)
-**Duração:** 15 min  
+**Duração:** 15 min
 **Pontos-chave:**
 - Server capacity: 4 cores suficientes com load balancing
 - Cache hierarchy já implementada (L1 mem, L2 disk, L3 S3)
@@ -82,7 +82,7 @@
 
 #### ✅ Apresentação 3: Financial & Risk Analysis
 **Apresentador:** Dr. Risk (#4 - Risk Analysis)
-**Duração:** 10 min  
+**Duração:** 10 min
 **Pontos-chave:**
 - Capital requirement: marginal (liquidação TASK-009 liberou $105k)
 - Margin impact: melhora estimada 1-2% (margin ratio 300% → 305%)
@@ -174,8 +174,8 @@ Autorizo:
 - ✅ Desvio de timeline TASK-011 (+2h buffer para QA — 27 FEV 11:00 → 28 FEV 08:00)
 - ✅ Deployment canary 28 FEV 08:00 UTC (condicional a QA gates)
 
-**Assinado:** Angel (#1)  
-**Data:** 27 FEV 2026 - 11:00 UTC  
+**Assinado:** Angel (#1)
+**Data:** 27 FEV 2026 - 11:00 UTC
 **Validação:** ✅ Consenso 15/16 votantes (93.75%)
 
 ---
@@ -198,6 +198,6 @@ Autorizo:
 
 ---
 
-**ATA Finalizada:** 27 FEV 2026 - 11:00 UTC  
-**Arquivo:** docs/ATA_DECISION_4_27FEV_FINAL.md  
+**ATA Finalizada:** 27 FEV 2026 - 11:00 UTC
+**Arquivo:** docs/ATA_DECISION_4_27FEV_FINAL.md
 **Responsável:** Elo (#2 - Facilitador), Audit (#8 - Apurador), Angel (#1 - Assinante)

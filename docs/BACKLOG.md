@@ -28,9 +28,9 @@
 
 ### #✅ TASK-010: Decision #4 Votação (27 FEV 09:00-11:00 UTC) — ✅ COMPLETA
 
-**Status:** ✅ VOTAÇÃO CONCLUÍDA — 27 FEV 11:00 UTC  
-**Owner:** Angel (#1), Elo (#2) moderador  
-**Score:** 0.95 — Critical path for TASK-011  
+**Status:** ✅ VOTAÇÃO CONCLUÍDA — 27 FEV 11:00 UTC
+**Owner:** Angel (#1), Elo (#2) moderador
+**Score:** 0.95 — Critical path for TASK-011
 **Effort:** 2h (meeting + ATA) ✅ COMPLETO
 
 **Resultado:**
@@ -57,12 +57,12 @@
 
 ### #🚀 TASK-011 Phase 1-4: F-12b Symbols + Parquet Optimization (27 FEV 11:00 → 28 FEV 08:00 UTC) — 🔴 CRÍTICA IN PROGRESS
 
-**Status:** 🟢 **DESBLOQUEADA** (TASK-010 ✅ aprovada 11:00 UTC)  
-**Owner:** Flux (#5), Squad B (Blueprint, Data, Quality, Arch, Executor)  
-**Score:** 0.92 — Enables 200-pair expansion  
+**Status:** 🟢 **DESBLOQUEADA** (TASK-010 ✅ aprovada 11:00 UTC)
+**Owner:** Flux (#5), Squad B (Blueprint, Data, Quality, Arch, Executor)
+**Score:** 0.92 — Enables 200-pair expansion
 **Effort:** 11h (27 FEV 11:00 → 28 FEV 08:00 UTC, incl. QA buffer +2h)
 
-**Descrição:**  
+**Descrição:**
 TASK-010 aprovada com consenso 15/16 (93.75%). Squad B executa 4 phases sequenciais para expandir 60 → 200 pares com F-12b Parquet optimization e QA buffer.
 
 **Timeline Ajustado (QA Condition Aceita):**
@@ -94,12 +94,12 @@ TASK-010 aprovada com consenso 15/16 (93.75%). Squad B executa 4 phases sequenci
 
 ### #3️⃣ Issue #64: Telegram Alerts Setup (24 FEV ~14:00 → 25 FEV) — 🟡 ALTA (POST #65)
 
-**Status:** 🟡 KICK-OFF POST Issue #65  
-**Owner:** The Blueprint (#7), Quality (#12)  
-**Score:** 0.75 — Operational monitoring  
+**Status:** 🟡 KICK-OFF POST Issue #65
+**Owner:** The Blueprint (#7), Quality (#12)
+**Score:** 0.75 — Operational monitoring
 **Effort:** 1.5h
 
-**Descrição:**  
+**Descrição:**
 Setup Telegram bot integration para alertas operacionais (P&L, drawdown, trades). Simples integração de webhook + msg formatter.
 
 **O Quê Fazer:**
@@ -125,12 +125,12 @@ Setup Telegram bot integration para alertas operacionais (P&L, drawdown, trades)
 
 ### TASK-005: PPO Training (22-25 FEV) — 🔴 CRÍTICA (IN PROGRESS)
 
-**Status:** 🔄 IN PROGRESS (~50% estimated)  
-**Owner:** The Brain (#3)  
-**Score:** 1.0 — Critical blocker for ML pipeline  
+**Status:** 🔄 IN PROGRESS (~50% estimated)
+**Owner:** The Brain (#3)
+**Score:** 1.0 — Critical blocker for ML pipeline
 **Effort:** 96h wall-time (deadline 25 FEV 10:00 UTC)
 
-**Descrição:**  
+**Descrição:**
 Train PPO agent on 60 pairs simultantly. 500k environment steps, 4 parallel episodes, checkpoint every 50k. Success metric: Sharpe ≥1.0.
 
 **Timeline:**
@@ -156,12 +156,12 @@ Train PPO agent on 60 pairs simultantly. 500k environment steps, 4 parallel epis
 
 ### Issue #65: SMC Integration QA (23 FEV 20:40 → 24 FEV 10:00 UTC) — 🔴 CRÍTICA (KICKOFF AGORA)
 
-**Status:** 🟡 SQUAD KICKOFF 23 FEV 20:40 (AGORA)  
-**Owner:** Arch (#6), Squad (Audit, Quality, The Brain, Doc Advocate)  
-**Score:** 0.99 — Unblocks TASK-005  
+**Status:** 🟡 SQUAD KICKOFF 23 FEV 20:40 (AGORA)
+**Owner:** Arch (#6), Squad (Audit, Quality, The Brain, Doc Advocate)
+**Score:** 0.99 — Unblocks TASK-005
 **Effort:** 13.5h (4 phases)
 
-**Descrição:**  
+**Descrição:**
 Comprehensive QA of SMC strategy (Order Blocks + BoS). 4 phases: (1) Spec review 30min, (2) E2E tests 4h, (3) Edge cases 4h, (4) Polish 4.5h. Deadline: 24 FEV 10:00 UTC ⚡ (SLA Critical).
 
 **O Quê Fazer:**
@@ -192,12 +192,12 @@ Comprehensive QA of SMC strategy (Order Blocks + BoS). 4 phases: (1) Spec review
 
 ### Issue #67: Data Strategy Dev (24-26 FEV ~3 days) — 🟡 ALTA
 
-**Status:** 🟡 KICK-OFF POST Issue #65  
-**Owner:** Data (#11), Arch (#6)  
-**Score:** 0.80 — Enables backtesting  
+**Status:** 🟡 KICK-OFF POST Issue #65
+**Owner:** Data (#11), Arch (#6)
+**Score:** 0.80 — Enables backtesting
 **Effort:** ~3 days
 
-**Descrição:**  
+**Descrição:**
 Implement 1-year historical data pipeline for 60 symbols from Binance using Parquet 3-tier cache. Prerequisite for S2-3 backtesting engine.
 
 **O Quê Fazer:**
@@ -221,11 +221,11 @@ Implement 1-year historical data pipeline for 60 symbols from Binance using Parq
 
 ### S2-4: Trailing Stop Loss Integração — 🟡 MÉDIA
 
-**Status:** ✅ COMPLETA (23 FEV)  
-**Owner:** Arch (#6)  
+**Status:** ✅ COMPLETA (23 FEV)
+**Owner:** Arch (#6)
 **Effort:** Merged
 
-**Descrição:**  
+**Descrição:**
 Integration of TrailingStopManager with OrderExecutor. Already 50+ tests PASS. Ready for live testing.
 
 **Referência:**
@@ -235,12 +235,12 @@ Integration of TrailingStopManager with OrderExecutor. Already 50+ tests PASS. R
 
 ### S2-3: Backtesting Engine — 🔴 CRÍTICA
 
-**Status:** ✅ DESIGN COMPLETE (68 pages)  
-**Owner:** Arch (#6), Data (#11)  
-**Score:** 0.95 — Critical gate for SMC validation  
+**Status:** ✅ DESIGN COMPLETE (68 pages)
+**Owner:** Arch (#6), Data (#11)
+**Score:** 0.95 — Critical gate for SMC validation
 **Effort:** ~15-20h implementation
 
-**Descrição:**  
+**Descrição:**
 Deterministic backtester with 6 metrics (Sharpe, MaxDD, Win Rate, Profit Factor, Calmar, Consecutive Losses). Gates for each metric.
 
 **O Quê Fazer:**
@@ -267,8 +267,8 @@ Deterministic backtester with 6 metrics (Sharpe, MaxDD, Win Rate, Profit Factor,
 
 ### S2-0: Data Strategy Design — ✅ COMPLETE
 
-**Status:** ✅ APPROVED (21 FEV)  
-**Owner:** Data (#11)  
+**Status:** ✅ APPROVED (21 FEV)
+**Owner:** Data (#11)
 **Deliverable:** Arch review approved (ARCH_DESIGN_REVIEW_S2_0_CACHE.md)
 
 ---
@@ -428,7 +428,7 @@ This file is the single source of truth. All other docs (ROADMAP.md, STATUS_ENTR
 - Timeline changes
 - Priority shifts
 
-**Last Sync:** 27 FEV 15:00 UTC  
-**Next Sync:** Daily @ 20:00 UTC  
+**Last Sync:** 27 FEV 15:00 UTC
+**Next Sync:** Daily @ 20:00 UTC
 **Owner:** Planner + Doc Advocate
 

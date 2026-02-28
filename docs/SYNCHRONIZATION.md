@@ -23,7 +23,7 @@
 
 **15 SIM:** Angel (#1), Elo (#2), The Brain (#3), Dr.Risk (#4), Flux (#5), Architect (#6), The Blueprint (#7), Audit (#8), Guardian (#9), Executor (#10), Data (#11), Developer (#13), DevOps (#14), Integration (#15), Doc Advocate (#16)
 
-**1 NÃO (com condição):** Quality (#12) — Condição: "QA buffer +48h antes de canary deploy"  
+**1 NÃO (com condição):** Quality (#12) — Condição: "QA buffer +48h antes de canary deploy"
 **Status Condição:** ✅ ACEITA por Angel — integrada ao TASK-011 timeline
 
 ### 📄 Docs Criados/Atualizados
@@ -45,7 +45,7 @@
 
 **Timeline Total:** 27 FEV 11:00 → 28 FEV 08:00 (11h incl. QA buffer)
 
-**Próximas Ativações:** 
+**Próximas Ativações:**
 - 📅 Issue #65 QA — continues in parallel (24 FEV 10:00 ⚡ deadline)
 - 📅 Issue #64 Telegram — kick-off post #65 (24 FEV)
 - 📅 Issue #67 Data Strategy — kick-off post #65 (24 FEV)
