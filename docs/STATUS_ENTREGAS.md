@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-27 13:00 UTC ([SYNC] TASK-008 ✅ VOTAÇÃO 27 FEV + TASK-009 ✅ IMPLEMENTAÇÃO 27 FEV 09:30-13:00 — REGISTRATION_TASK_009.md)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + **TASK-008 ✅** + **TASK-009 ✅ COMPLETA** | Sprint 2-3 🟡 TASK-010 Decision #4, S2-5 Pendente
+**Última atualização:** 2026-02-27 15:00 UTC ([SYNC] TASK-010 📅 AGENDADA 09:00-11:00 UTC + TASK-011 📅 STAND-BY 11:00-20:00 UTC + CONTINGENCY_PLAN_TASK_010_REJECTION.md)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + **TASK-008 ✅** + **TASK-009 ✅ COMPLETA** | Sprint 2-3 🟡 **TASK-010 VOTAÇÃO AGORA (09:00 UTC)**, TASK-011 STAND-BY, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -68,6 +68,8 @@
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | TASK-005 | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 ✅ + Issue #65 SMC QA (fecha 24 FEV 10:00 ⚡). Lead: The Brain (#3). Mitigação: Early stopping Sharpe ≥1.0, standup diário. |
 | Decision #3 Votação (TASK-008)  | ✅     | Sprint 2 | TASK-008 | ATA ✅ | 17/17 ✅ | 27 FEV 09:00-11:00 UTC — VOTAÇÃO CONCLUSA. Consenso 100% (17/17 membros). Opção C (Liq 11 + Hedge 10) APROVADA por Angel. ATA em ATA_DECISION_3_VOTACAO_27FEV.md. ✅ CONCLUÍDA. |
 | Decision #3 Implementação (TASK-009) | ✅ | Sprint 2 | TASK-009 | REG ✅ | ✅ COMPLETA | 27 FEV 09:30-13:00 UTC — IMPLEMENTAÇÃO CONCLUSA. Liquidadas 11/11 posições (slippage 0.55%). Hedeadas 10/10 posições em 3 phases. Margin liberado: $105k. Margin ratio: 180% → 300%. Registrado em REGISTRATION_TASK_009.md. Scripts: close_underwater_positions.py + deploy_hedge_strategy.py. ✅ ACEITE CRITERIA 100% PASS. |
+| Decision #4 Votação (TASK-010) | 🔵 | Sprint 2-3 | TASK-010 | CONV ✅ | 📅 AGORA | 27 FEV 09:00-11:00 UTC — **VOTAÇÃO AGENDADA**. Decisão: Expandir de 60 para 200 pares via F-12b Parquet. Quorum: 16/16 esperados, 12/16 mínimo. Consenso: ≥75% (≥12 votos). Presentadores: Flux (F-12b tech), The Blueprint (infra), Dr. Risk (financeiro). Convocação: CONVOCACAO_TASK_010_27FEV.md. Contingência: CONTINGENCY_PLAN_TASK_010_REJECTION.md. Aprovação desbloquearia TASK-011 Phase 1-4. |
+| Decision #4 Implementação (TASK-011) | 📅 | Sprint 2-3 | TASK-011 | BRIEF ✅ | 📅 STAND-BY | 27 FEV 11:00-20:00 UTC — **STAND-BY (contingente em TASK-010 ✅)**. Expandir pares de 60 → 200 com F-12b Parquet cache. Phase 1 (11:00-12:00): Criar symbols_extended.py (200 pares) + validar com Binance API. Phase 2-4: Otimização Parquet, LoadTest, Canary deploy. Briefing: BRIEFING_SQUAD_B_TASK_011_PHASE1.md. Status: Squad B em standby pronto. Sucesso: <5s load, <4GB mem, <500ms latency. |
 
 ---
 
