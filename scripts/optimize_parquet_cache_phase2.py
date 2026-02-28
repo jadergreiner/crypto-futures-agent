@@ -78,7 +78,7 @@ class Phase2ParquetOptimizer:
     def phase2_step_3_compression_config(self):
         """Step 3: Configurar compression."""
         logger.info("[CONFIG] PARQUET COMPRESSION CONFIGURATION:")
-        
+
         compression_config = {
             "format": "Parquet with zstd compression",
             "compression_ratio_target": 0.75,  # 75% = 4x compression
@@ -117,18 +117,18 @@ class Phase2ParquetOptimizer:
     def phase2_step_4_footprint_calc(self):
         """Step 4: Calcular footprint para 200 pares."""
         logger.info("[METRICS] FOOTPRINT CALCULATION FOR 200 SYMBOLS:")
-        
+
         # Cálculos
         symbols_count = 200
         per_symbol_compressed_kb = 100  # 100 KB per symbol (compressed)
-        
+
         total_size_kb = symbols_count * per_symbol_compressed_kb
         total_size_mb = total_size_kb / 1024
         total_size_gb = total_size_mb / 1024
-        
+
         target_gb = 4.0
         headroom_pct = (target_gb - total_size_gb) / target_gb * 100
-        
+
         footprint = {
             "symbols": symbols_count,
             "per_symbol_mb": per_symbol_compressed_kb / 1024,
@@ -139,7 +139,7 @@ class Phase2ParquetOptimizer:
             "headroom_percentage": headroom_pct,
             "status": "✅ PASS" if total_size_gb < target_gb else "❌ FAIL"
         }
-        
+
         logger.info("   Symbols: {}".format(footprint['symbols']))
         logger.info("   Per-symbol (compressed): {:.2f} MB".format(footprint['per_symbol_mb']))
         logger.info("   Total footprint: {:.2f} MB = {:.2f} GB".format(footprint['total_mb'], footprint['total_gb']))
@@ -147,14 +147,14 @@ class Phase2ParquetOptimizer:
         logger.info("   Headroom: {:.2f} GB ({:.1f}%)".format(footprint['headroom_gb'], footprint['headroom_percentage']))
         logger.info("   Status: {}".format(footprint['status']))
         logger.info("")
-        
+
         self.results["metrics"]["footprint"] = footprint
         return footprint
 
     def phase2_step_5_latency_simulation(self):
         """Step 5: Simular latência de load."""
         logger.info("[PERF] LOAD TIME SIMULATION (200 symbols):")
-        
+
         # Simulação conservadora
         latencies = {
             "memory_hit_ms": 0.5,      # L1 hit: 0.5ms per symbol
@@ -164,19 +164,19 @@ class Phase2ParquetOptimizer:
             "total_batch_100_symbols_ms": None,
             "total_batch_200_symbols_ms": None
         }
-        
+
         # Cálculos
         # Batch load: 200 symbols sequencial ~= 50ms * 200 / 8 threads = 1.25s (parallelized)
         sequential_ms = latencies["total_single_symbol_ms"] * 200
         parallel_8threads = sequential_ms / 8
         parallel_16threads = sequential_ms / 16
-        
+
         latencies["total_batch_100_symbols_ms"] = (latencies["total_single_symbol_ms"] * 100) / 8
         latencies["total_batch_200_symbols_ms"] = (latencies["total_single_symbol_ms"] * 200) / 8
-        
+
         target_ms = 2500
         status_batch = "✅ PASS" if latencies["total_batch_200_symbols_ms"] < target_ms else "❌ FAIL"
-        
+
         logger.info("   L1 cache hit (memory): {}ms".format(latencies['memory_hit_ms']))
         logger.info("   L2 read + decompress (disk): {}ms".format(latencies['disk_read_ms']))
         logger.info("   Single symbol latency: {}ms".format(latencies['total_single_symbol_ms']))
@@ -185,14 +185,14 @@ class Phase2ParquetOptimizer:
         logger.info("   Target: {}ms".format(target_ms))
         logger.info("   Status: {}".format(status_batch))
         logger.info("")
-        
+
         self.results["metrics"]["latency"] = latencies
         return latencies
 
     def phase2_step_6_implementation_checklist(self):
         """Step 6: Checklist de implementação."""
         logger.info("[CHECKLIST] PHASE 2 IMPLEMENTATION CHECKLIST:")
-        
+
         checklist = {
             "compression_setup": {
                 "task": "Configure zstd compression in ParquetCache",
@@ -225,22 +225,22 @@ class Phase2ParquetOptimizer:
                 "details": "Track L1/L2/L3 hit ratios and storage utilization"
             }
         }
-        
+
         for step, info in checklist.items():
             logger.info(f"   [{info['status']}] {info['task']}")
             logger.info(f"       File: {info['file']}")
             logger.info(f"       Status: {info['status']}")
             logger.info(f"       Details: {info['details']}")
-        
+
         logger.info("")
-        
+
         self.results["metrics"]["checklist"] = checklist
         return checklist
 
     def phase2_step_7_acceptance_criteria(self):
         """Step 7: Critérios de aceitação."""
         logger.info("[CRITERIA] PHASE 2 ACCEPTANCE CRITERIA:")
-        
+
         criteria = {
             "parquet_compression": {
                 "expected": "zstd format with 75%+ compression",
@@ -268,20 +268,20 @@ class Phase2ParquetOptimizer:
                 "status": "✅ PASS"
             }
         }
-        
+
         all_pass = all(c["status"] == "[OK] PASS" for c in criteria.values())
-        
+
         for name, info in criteria.items():
             logger.info("   {} {}".format(info['status'], name))
             logger.info("       Expected: {}".format(info['expected']))
             logger.info("       Actual: {}".format(info['actual']))
-        
+
         logger.info("")
-        
+
         phase_status = "[OK] COMPLETA" if all_pass else "[FAIL] INCOMPLETA"
         logger.info("   PHASE 2 OVERALL: {}".format(phase_status))
         logger.info("")
-        
+
         self.results["metrics"]["acceptance_criteria"] = criteria
         self.results["phase_2_status"] = phase_status
         return criteria
@@ -306,7 +306,7 @@ class Phase2ParquetOptimizer:
         logger.info("")
         logger.info("[EXEC] EXECUTANDO PHASE 2 AGORA...")
         logger.info("")
-        
+
         self.phase2_step_1_info()
         self.phase2_step_2_architecture()
         self.phase2_step_3_compression_config()
@@ -315,25 +315,25 @@ class Phase2ParquetOptimizer:
         self.phase2_step_6_implementation_checklist()
         self.phase2_step_7_acceptance_criteria()
         self.phase2_step_8_next_steps()
-        
+
         # Finalizar
         logger.info("=" * 80)
         logger.info("[SUCCESS] PHASE 2 OPTIMIZATION COMPLETE")
         logger.info("=" * 80)
-        
+
         self.results["status"] = "COMPLETA"
         self.results["completed_at"] = datetime.now().isoformat()
-        
+
         return self.results
 
     def save_results(self):
         """Salvar resultados em JSON."""
         output_file = Path("logs/phase2_parquet_optimization_results.json")
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, "w") as f:
             json.dump(self.results, f, indent=2)
-        
+
         logger.info("[SAVED] Results saved: {}".format(output_file))
 
 
@@ -342,7 +342,7 @@ def main():
     optimizer = Phase2ParquetOptimizer()
     results = optimizer.phase2_run_complete()
     optimizer.save_results()
-    
+
     # Return status code
     if results.get("phase_2_status") == "✅ COMPLETA":
         return 0
