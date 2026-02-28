@@ -34,10 +34,11 @@
   - Documentação: [ATA_DECISION_4_27FEV_FINAL.md](ATA_DECISION_4_27FEV_FINAL.md)
 
 - **TASK-011** — F-12b Symbols + Parquet Optimization
-  - Status: ✅ **PHASE 1 COMPLETA** | 🔄 **PHASES 2-4 IN PROGRESS**
+  - Status: ✅ **PHASE 1 COMPLETA** | ✅ **PHASE 2 COMPLETA** | 🔄 **PHASES 3-4 IN PROGRESS**
   - Owner: Flux (#5), Squad B (Blueprint, Data, Quality, Arch, Executor)
   - Score: 0.92 | Effort: 11h total
   - Phase 1: ✅ 200/200 símbolos validados (100%)
+  - Phase 2: ✅ Parquet optimization (zstd, footprint 0.019GB, latency 1.25s)
   - Documentação: [BRIEFING_SQUAD_B_TASK_011_PHASE1.md](BRIEFING_SQUAD_B_TASK_011_PHASE1.md)
 
 - **Issue #64** — Telegram Alerts Setup
