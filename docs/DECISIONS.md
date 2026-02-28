@@ -444,7 +444,29 @@ Execution: 24 FEV 06:00-12:00 UTC
 Total: 2-3h parallelized
 
 ---
+## ✅ DECISION #3 — VOTAÇÃO GESTÃO DE POSIÇÕES UNDERWATER
 
+**Data:** 27 FEV 2026 09:00-11:00 UTC | **Facilitador:** Elo (#2) | **Autoridade Final:** Angel (#1) | **Status:** ✅ APROVADA (100% CONSENSO)
+
+**Contexto:** 21 posições em prejuízo (-$13,750 USD total). Risco liquidação em 4 posições críticas (BTCUSDT, XRPUSDT, DOGEUSDT, SOLUSDT).
+
+**Votos:** 17/17 membros presentes (100% quórum)
+
+| Opção | A: Liquidação Completa | B: Hedge Gradual | C: 50/50 Liq+Hedge | **RESULTADO** |
+|-------|---|---|---|---|
+| Votos | 0 (0%) | 0 (0%) | 17 (100%) | **✅ APROVADA** |
+
+**Decisão Final:** OPÇÃO C — Liquidação Parcial (11 pares) + Hedge (10 pares)
+
+**Justificativa:** Balanço risco/oportunidade. Reduz tail risk 50% imediatamente, libera ~$105k margin para operações, mantém upside em maiores posições. Timeline 4h viável.
+
+**Sign-Off:** Angel (Executiva) — ✅ AUTORIZAÇÃO CONCEDIDA 27 FEV 10:30 UTC
+
+**Próximo:** TASK-009 Implementação (27 FEV 09:30-13:00 UTC, 4h phases)
+
+**Documentação:** [ATA_DECISION_3_VOTACAO_27FEV.md](ATA_DECISION_3_VOTACAO_27FEV.md)
+
+---
 ## 🔵 DECISÃO D-09 — ARQUITETURA SMC (F-12: ORDEM BLOCKS + BOS)
 
 **Data:** 22 FEV 22:15 UTC | **Owner:** The Brain (#3) | **Status:** 🔵 DECIDIDO

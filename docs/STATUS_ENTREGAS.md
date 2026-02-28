@@ -1,7 +1,7 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-23 21:00 UTC ([SYNC] Squad Kickoff: Issue #65 QA, Issue #64 Telegram, Issue #67 Data Strategy + Priorização TASK-005 Critical Path)
-**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ **ISSUE #63 DELIVERED 23 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
+**Última atualização:** 2026-02-27 10:40 UTC ([SYNC] TASK-008 Decision #3 Votação COMPLETA — ATA_DECISION_3_VOTACAO_27FEV.md + DECISIONS.md registro)
+**Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + **TASK-008 ✅ VOTAÇÃO 27 FEV** | Sprint 2-3 🟡 S2-4 Integração, S2-5 Pendente
 **Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
 
 > Para sincronizar este documento, use o prompt definido em
@@ -66,6 +66,7 @@
 | Telegram Alerts (S2-5)          | 🟡     | Sprint 2-3 | #64    | SPEC ✅ | 🟡 KICK-OFF 24 FEV | [S2-5 Parallelizable] Setup 24 FEV ~14:00 (pós #65 spec). Squad: The Blueprint (#7) + Quality (#12). Depende: Issue #65 ✅. Timeline: 24-25 FEV (overlap TASK-005). ETA: 1-2h. |
 | Data Strategy Dev (S2-0 Phase 2) | 🟡     | Sprint 2-3 | #67 NEW | SPEC ✅ | 🟡 KICK-OFF 24 FEV | [S2-0 Implementação] Pipeline 1Y × 60 symbols OHLCV. Squad: Data (#11) + Arch (#6). Depende: Issue #65 ✅. Timeline: 24-26 FEV (~3 dias). Lead: Data (#11). Critérios: [CRITERIOS_DE_ACEITE_MVP.md#s2-0](CRITERIOS_DE_ACEITE_MVP.md#s2-0). |
 | ML Training Pipeline (PPO v0)   | 🔄     | Sprint 2-3 | TASK-005 | SPEC ✅ | IN PROGRESS | TASK-005: 22-25 FEV, 96h wall-time, gates diários, deadline 25 FEV 10:00 UTC. Depende: Issue #63 ✅ + Issue #65 SMC QA (fecha 24 FEV 10:00 ⚡). Lead: The Brain (#3). Mitigação: Early stopping Sharpe ≥1.0, standup diário. |
+| Decision #3 Votação (TASK-008)  | ✅     | Sprint 2 | TASK-008 | ATA ✅ | 17/17 ✅ | 27 FEV 09:00-11:00 UTC — VOTAÇÃO CONCLUSA. Consenso 100% (17/17 membros). Opção C (Liq 11 + Hedge 10) APROVADA por Angel. ATA em ATA_DECISION_3_VOTACAO_27FEV.md. Próximo: TASK-009 Implementação (27 FEV 09:30-13:00 UTC). |
 
 ---
 

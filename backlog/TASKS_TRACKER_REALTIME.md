@@ -1,7 +1,7 @@
 # 📊 BACKLOG TRACKER — STATUS REAL-TIME
 
-**Data:** 21-22 FEV 2026
-**Atualizado:** 22 FEV 14:00 UTC (Phase 3 operacional, TASK-001 ✅ Completo, TASK-002-004 EM PROGRESSO)
+**Data:** 21-27 FEV 2026
+**Atualizado:** 27 FEV 10:40 UTC (TASK-008 ✍ VOTAÇÃO CONCLUSA, TASK-009 ⏳ SCHEDULED para 09:30 UTC)
 **Status Geral:** 🟢 TASK-001 SUCESSO — 6 Docs entregues, go-live 3 fases concluído, auditoria 100% OK
 
 ---
@@ -18,9 +18,9 @@
 | **#1.2** | QA Testing | Audit(QA) | 22 06:00 → 22 08:00 | ✅ COMPLETO | 100% | #1.1 ✅ | 22 FEV 08:00 |
 | **#1.3** | Alpha SMC Valid | Alpha | 22 08:00 → 22 10:00 | ✅ COMPLETO | 100% | #1.2 ✅ | 22 FEV 10:00 |
 | **#1.4** | Go-Live Canary | Dev | 22 10:00 → 22 14:00 | ✅ COMPLETO | 100% | #1.3 ✅ | 22 FEV 14:00 |
-| **#1.5** | PPO Training | Brain | 22 14:00 → 25 10:00 | 🔄 IN PROGRESS | ~5% | #1.4 ✅ | 22 FEV 14:00 |
-| **#1.6** | PPO QA Gate | Audit(QA) | 25 10:00 → 25 14:00 | ⏳ WAITING | 0% | #1.5 | — |
-| **#1.7** | PPO Merge | Dev | 25 14:00 → 25 20:00 | ⏳ WAITING | 0% | #1.6 | —
+| **#1.5** | PPO Training | Brain | 22 14:00 → 25 10:00 | 🔄 IN PROGRESS | ~50% | #1.4 ✅ | 25 FEV 10:00 |
+| **#2.1** | Decision #3 Votação | Angel | 27 09:00 → 27 11:00 | ✅ COMPLETO | 100% | None | 27 FEV 10:30 |
+| **#2.2** | Decision #3 Implantção | Dr.Risk | 27 09:30 → 27 13:00 | ⏳ WAITING | 0% | #2.1 ✅ | — |
 - Planner: não estava atualizando % de progresso
 
 **Ação Executada (22 FEV 08:00-14:00 UTC) — TODAS ✅ COMPLETAS:**
