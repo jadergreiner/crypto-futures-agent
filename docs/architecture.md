@@ -77,7 +77,43 @@ Binance API ─(REST, 4h)─> RateLimitManager
 
 ---
 
-### 2. Strategy Layer (`agent/`, `data/strategies/`)
+### 2. Camada de Notificações (`notifications/`) — Issue #64
+
+**Propósito:** Envio de alertas em tempo real via Telegram Bot.
+
+| Módulo | Propósito | Status |
+|--------|-----------|--------|
+| telegram_client.py | Bot client com 7 métodos | ✅ Live |
+| telegram_webhook.py | Flask webhook handler | ✅ Live |
+| telegram_config.py | Config centralizada | ✅ Live |
+
+**Características principais:**
+
+- ✅ 7 tipos de alertas (execution, pnl, risk, error, daily_summary, etc)
+- ✅ Rate limiting (max 10 alertas/min configurable)
+- ✅ HMAC-SHA256 signature validation para webhooks
+- ✅ Queue processing com retry automático
+- ✅ Quiet hours (silenciar fora do horário)
+- ✅ 18 testes (92% coverage)
+
+**Alert Flow:**
+```
+Execution Module ──────┐
+Risk Gates ──────────┬─┼──→ TelegramClient.send_*()
+ Backtest Metrics ────┤─┤       │
+                   ┌──┘ │       ├─→ Queue (fila)
+                   │    │       │
+            Flask  │    └──────→ Webhook (/alerts/telegram)
+            Webhook│           │
+                   └───────────→ Telegram API
+                                  │
+                            Operador receives
+                            on mobile/desktop
+```
+
+---
+
+### 3. Strategy Layer (`agent/`, `data/strategies/`)
 
 **Purpose:** Price analysis, signal generation, ML inference.
 

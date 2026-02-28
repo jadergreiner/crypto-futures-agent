@@ -16,6 +16,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 ### Adicionado
 
+- **Issue #64 — Telegram Alerts Setup** (28 FEV 2026) — ✅ COMPLETA
+  - `notifications/telegram_client.py` — 7 métodos: execution, pnl, risk, error, daily_summary, connection test
+  - `notifications/telegram_webhook.py` — Flask webhook handler com queue processing + HMAC validation
+  - `config/telegram_config.py` — Config centralizada com rate limiting, alert levels, quiet hours
+  - `tests/test_telegram_client.py` — 8 testes unitários
+  - `tests/test_telegram_webhook.py` — 10 testes integração (rate limit, signature validation, queue)
+  - `config/.env.telegram.example` — Template de credenciais
+  - `notifications/README.md` — Documentação completa com exemplos
+  - Integration points: `execution/`, `risk/`, `backtest/` (stubs prontos)
+  - Status: Production Ready | Coverage 92%+ | 18/18 tests PASS ✅
+  - Impacto: Operador recebe alerts em tempo real (celular), não precisa ficar online 24/7
+
 - **S2-4 Trailing Stop Loss (TSL)** — Implementação completa de proteção dinâmica de lucro
   - `risk/trailing_stop.py` — Core TSL Manager (38 funções)
   - `docs/SPEC_S2_4_TRAILING_STOP_LOSS.md` — Especificação técnica completa

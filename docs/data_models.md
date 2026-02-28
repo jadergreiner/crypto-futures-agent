@@ -421,6 +421,90 @@ class PortfolioState:
 
 ---
 
+## 5️⃣ Telegram Alert Models (Issue #64)
+
+### TelegramAlert Dataclass
+
+```python
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional, Dict, Any
+from datetime import datetime
+
+class AlertType(Enum):
+    """Tipos de alertas suportados."""
+    EXECUTION = "execution"
+    PNL = "pnl"
+    RISK = "risk"
+    ERROR = "error"
+    DAILY_SUMMARY = "daily_summary"
+
+class AlertLevel(Enum):
+    """Níveis de severidade de alertas."""
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
+
+@dataclass
+class TelegramAlert:
+    """Representação de um alerta para Telegram."""
+    alert_type: AlertType
+    level: AlertLevel
+    timestamp: datetime
+    payload: Dict[str, Any]
+    order_id: Optional[str] = None
+    symbol: Optional[str] = None
+    sent: bool = False
+    message_id: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serializa para dicionário."""
+        return {
+            "type": self.alert_type.value,
+            "level": self.level.value,
+            "timestamp": self.timestamp.isoformat(),
+            "payload": self.payload,
+            "order_id": self.order_id,
+            "symbol": self.symbol
+        }
+```
+
+**Propósito:** Estrutura representada de alertas a serem enfileirados e enviados via Telegram.
+
+**Exemplo de Uso:**
+
+```python
+from notifications.telegram_client import telegram_client
+from datetime import datetime
+
+# Criar alerta de execução
+alert = TelegramAlert(
+    alert_type=AlertType.EXECUTION,
+    level=AlertLevel.INFO,
+    timestamp=datetime.utcnow(),
+    payload={
+        "symbol": "BTCUSDT",
+        "qty": 0.5,
+        "price": 67500.00,
+        "status": "filled"
+    },
+    order_id="order_123"
+)
+
+# Enviar via Telegram
+telegram_client.send_execution_alert(
+    order_id=alert.order_id,
+    symbol=alert.payload["symbol"],
+    side="LONG",
+    qty=alert.payload["qty"],
+    price=alert.payload["price"],
+    status=alert.payload["status"]
+)
+```
+
+---
+
 ## 5️⃣ JSON Configuration Files
 
 ### symbols.json (Issue #67)

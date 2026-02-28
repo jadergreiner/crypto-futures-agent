@@ -9,14 +9,14 @@
 ### Antes (sem Telegram)
 
 ```
-[iniciar.bat] 
+[iniciar.bat]
 ├─ Menu de opções
 ├─ Executa main.py
 ├─ Operador monitora console manualmente
 └─ ❌ Sem notificações em tempo real
 ```
 
-**Problema:** Operador precisa estar sempre com terminal aberto. Se sair e voltar 2h 
+**Problema:** Operador precisa estar sempre com terminal aberto. Se sair e voltar 2h
 depois, perdeu:
 - Ordens que foram preenchidas
 - Stop losses que foram acionados
@@ -38,7 +38,7 @@ depois, perdeu:
    └─ Daily summary (relatório consolidado)
 ```
 
-**Ganho:** Operador recebe notificações no Telegram, pode estar offline, e está sempre 
+**Ganho:** Operador recebe notificações no Telegram, pode estar offline, e está sempre
 informado.
 
 ---
@@ -283,7 +283,7 @@ Quando operador iniciar `iniciar.bat` com Telegram ativado:
 
 ## 🎯 Conclusão
 
-**Issue #64** transforma `iniciar.bat` de uma ferramenta "rodante" para uma ferramenta 
+**Issue #64** transforma `iniciar.bat` de uma ferramenta "rodante" para uma ferramenta
 **operacional e observável**. O operador pode agora:
 
 - ✅ Deixar o terminal rodando sem supervisão contínua
@@ -300,6 +300,6 @@ Quando operador iniciar `iniciar.bat` com Telegram ativado:
 
 ---
 
-**Data Conclusão:** 28 FEV 2026, 16:45 UTC  
-**Tempo Total:** 2h (1.5h estimado + 0.5h buffer)  
+**Data Conclusão:** 28 FEV 2026, 16:45 UTC
+**Tempo Total:** 2h (1.5h estimado + 0.5h buffer)
 **Próxima Revisão:** 28 MAR 2026

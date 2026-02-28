@@ -50,7 +50,7 @@
   - Owner: The Blueprint (#7), Quality (#12)
   - Score: 0.75 | Effort: 1.5h (actual: 2h)
   - Descrição: Webhook integration + msg formatter (P&L, drawdown, trades alerts)
-  - Deliverables: 
+  - Deliverables:
     - ✅ `notifications/telegram_client.py` — Client com 7 métodos
     - ✅ `notifications/telegram_webhook.py` — Webhook Flask handler
     - ✅ `config/telegram_config.py` — Config centralizada

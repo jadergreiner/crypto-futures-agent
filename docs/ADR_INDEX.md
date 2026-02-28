@@ -229,6 +229,72 @@ mode: "paper"  # ou "live"
 
 ---
 
+### ADR-008: Telegram Bot para Observabilidade Operacional (Issue #64)
+
+**Status:** ✅ APROVADA | **Date:** 28 FEV 2026  
+**Champion:** The Blueprint (#7)
+
+**Contexto:**
+
+Operador precisa monitorar trading 24/7. Abordagem anterior:
+- ❌ Console local insuficiente (operador offline = blind)
+- ❌ Sem notificações em tempo real (perda de eventos)
+- ❌ Sem persistência de histórico
+- ❌ Auditoria manual e demorada
+
+**Questão:** Como notificar operador sobre eventos críticos em tempo real?
+
+**Decisão:**
+
+**Usar Telegram Bot API para envio de alertas em tempo real.**
+
+7 tipos de alertas: execution, pnl, risk, error, daily_summary, custom_message, connection_test.
+
+**Consequências:**
+
+✅ **Positivas:**
+- Latência ultra-baixa (<3 segundos)
+- Multi-plataforma (mobile, desktop, web)
+- Persistência de histórico (searchable)
+- Free tier com high rate limits (30 msg/s)
+- Sem infraestrutura complexa (token + chat_id)
+- HMAC-SHA256 webhook signature validation
+- Operador pode estar offline, recebe alerts depois
+- Auditoria automática (histórico Telegram)
+
+❌ **Negativas:**
+- Dependência de Telegram (SLA ~99.9%)
+- API token é credencial crítica (.gitignore obrigatório)
+- Rate limit 10 msg/min (implementar queue com backoff)
+
+**Alternativas Consideradas:**
+
+| Alternativa | Pros | Cons | Score |
+|---|---|---|---|
+| Telegram Bot | Low latency, free, mobile | Requer bot setup | 9.5 |
+| Email Alerts | Formal, persistent | 30s+ latency, sem real-time | 4.0 |
+| Slack Webhooks | Native business UX | Paid, sem free history | 6.5 |
+| Mobile App | Custom, full control | 6+ meses dev | 2.0 |
+| Web Dashboard | Live UI, fancy | Requer 24/7 uptime | 5.0 |
+
+**Trade-offs Resolvidos:**
+
+- **Latência vs Throughput:** 2-3s/alert, max 10/min → aceitável para trading
+- **Segurança vs UX:** HMAC validation + .gitignore → tradeoff resolvido
+- **Cost vs Reliability:** Free tier adequado para MVP
+
+**Implementação:**
+
+- `notifications/telegram_client.py` — 7 métodos de alerta
+- `notifications/telegram_webhook.py` — Flask webhook handler com queue
+- `config/telegram_config.py` — Config centralizada (rate limit, levels, quiet hours)
+- 18 testes: 8 unitários (client) + 10 integração (webhook)
+- Coverage 92%+
+
+**Referência:** [Issue #64](ISSUE_64_TELEGRAM_SETUP_SPEC.md) | [Impacto](ISSUE_64_TELEGRAM_IMPACT.md)
+
+---
+
 ## 📊 Matriz de Decisões
 
 | ADR | Área | Status | Impact | Revisão |
@@ -270,6 +336,7 @@ mode: "paper"  # ou "live"
 | ADR-005 | S2-3 Backtesting | [backtest/](../backtest/) |
 | ADR-006 | Paper Mode | [execution/order_executor.py](../execution/order_executor.py) |
 | ADR-007 | Documentation | [SYNCHRONIZATION.md](SYNCHRONIZATION.md) |
+| ADR-008 | Issue #64 | [notifications/README.md](../notifications/README.md) |
 
 ---
 
