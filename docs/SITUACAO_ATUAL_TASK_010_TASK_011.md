@@ -1,6 +1,6 @@
 # 🎯 SITUAÇÃO ATUAL — TASK-010 & TASK-011
 
-**Timestamp:** 27 FEV 2026 — 15:00 UTC  
+**Timestamp:** 27 FEV 2026 — 15:00 UTC
 **Status:** TASK-010 📅 VOTAÇÃO AGORA (09:00-11:00 UTC) | TASK-011 📅 STAND-BY (11:00-20:00 UTC)
 
 ---
@@ -53,7 +53,7 @@
 
 ### **Documents Distributed**
 
-✅ **[CONVOCACAO_TASK_010_27FEV.md](../docs/CONVOCACAO_TASK_010_27FEV.md)** (Official meeting summons)  
+✅ **[CONVOCACAO_TASK_010_27FEV.md](../docs/CONVOCACAO_TASK_010_27FEV.md)** (Official meeting summons)
 ✅ **[CONTINGENCY_PLAN_TASK_010_REJECTION.md](../docs/CONTINGENCY_PLAN_TASK_010_REJECTION.md)** (If votação fails)
 
 ---
