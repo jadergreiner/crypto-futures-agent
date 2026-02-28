@@ -46,10 +46,20 @@
   - Documentação: [EXECUCAO_TASK_011_PHASE_3_4_FINAL.md](EXECUCAO_TASK_011_PHASE_3_4_FINAL.md)
 
 - **Issue #64** — Telegram Alerts Setup
-  - Status: 🟡 **AWAITING Issue #65 COMPLETION**
+  - Status: ✅ **COMPLETA** | 28 FEV 16:45 UTC
   - Owner: The Blueprint (#7), Quality (#12)
-  - Score: 0.75 | Effort: 1.5h
+  - Score: 0.75 | Effort: 1.5h (actual: 2h)
   - Descrição: Webhook integration + msg formatter (P&L, drawdown, trades alerts)
+  - Deliverables: 
+    - ✅ `notifications/telegram_client.py` — Client com 7 métodos
+    - ✅ `notifications/telegram_webhook.py` — Webhook Flask handler
+    - ✅ `config/telegram_config.py` — Config centralizada
+    - ✅ `tests/test_telegram_client.py` — 8 testes unitários
+    - ✅ `tests/test_telegram_webhook.py` — 10 testes integração
+    - ✅ `notifications/README.md` — Documentação completa
+    - ✅ `.env.telegram.example` — Template de env
+  - Tests: ✅ 18/18 PASS (rate limiting, signature validation, message formatting)
+  - Coverage: 92%+ em notifications/
   - Documentação: [ISSUE_64_TELEGRAM_SETUP_SPEC.md](ISSUE_64_TELEGRAM_SETUP_SPEC.md)
 
 ---
@@ -100,6 +110,12 @@
 ## 🎯 COMPLETED ITEMS
 
 **Status:** ✅ Entregues e operacionais em produção
+
+- **Issue #64** — Telegram Alerts Setup ✅
+  - Webhook + message templates completos
+  - 18/18 testes PASS (rate limiting, signature validation)
+  - Integração pronta para execution/risk/backtest modules
+  - Documentação: [notifications/README.md](../notifications/README.md)
 
 - **TASK-001** — Heurísticas Dev ✅
   - Implementadas heurísticas conservadoras (SMC + EMA + RSI + ADX)

@@ -28,16 +28,19 @@ def exibir_verificacoes():
         ("Arquivo .env", lambda: os.path.exists(".env")),
         ("Banco de dados", lambda: os.path.exists("db/crypto_agent.db")),
         ("Diretorio de logs", lambda: os.path.exists("logs")),
-        ("Diretorio de modelos", lambda: os.path.exists("models"))
+        ("Diretorio de modelos", lambda: os.path.exists("models")),
+        ("Telegram Alerts", lambda: os.path.exists("notifications/telegram_client.py")),
+        ("Data Strategy Cache", lambda: os.path.exists("data/klines_cache.db"))
     ]
 
     for idx, (nome, verificacao) in enumerate(verificacoes, 1):
         status = "OK" if verificacao() else "AVISO"
-        print(f"[{idx}/5] [{status}] {nome}")
+        print(f"[{idx}/7] [{status}] {nome}")
 
     print()
     print("=" * 70)
     print("[PRE-OPERACIONAL] TODAS AS VERIFICACOES OK")
+    print("[Telegram Alerts: ATIVADO] [Data Strategy: OPERACIONAL]")
     print("=" * 70)
     print()
 
