@@ -1,8 +1,8 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-27 15:00 UTC ([SYNC] TASK-010 📅 AGENDADA 09:00-11:00 UTC + TASK-011 📅 STAND-BY 11:00-20:00 UTC + CONTINGENCY_PLAN_TASK_010_REJECTION.md)
+**Última atualização:** 2026-02-27 15:30 UTC ([SYNC] BACKLOG.md CRIADO — Consolidação de 12 docs em 1 Fonte Única)
 **Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + **TASK-008 ✅** + **TASK-009 ✅ COMPLETA** | Sprint 2-3 🟡 **TASK-010 VOTAÇÃO AGORA (09:00 UTC)**, TASK-011 STAND-BY, S2-5 Pendente
-**Fonte da verdade:** Este arquivo é a fonte oficial de status das entregas.
+**Fonte da verdade:** [BACKLOG.md](BACKLOG.md) ← Consolidação de STATUS_ENTREGAS + TRACKER + ROADMAP + FEATURES + DECISIONS + RELEASES + USER_STORIES + PLANO_DE_SPRINTS + SYNCHRONIZATION + STATUS_ATUAL + SITUACAO_ATUAL_TASK_010 + BACKLOG_README
 
 > Para sincronizar este documento, use o prompt definido em
 > `prompts/board_16_members_data.json` → `docs_sync_policy.sync_trigger_prompt`.
@@ -11,14 +11,12 @@
 
 ## 🔗 Links Rápidos
 
+- [**BACKLOG.md**](BACKLOG.md) ← **FONTE ÚNICA VERDADE** (Quick Wins, In Progress, Completeds, Risks)
 - [ROADMAP](ROADMAP.md)
 - [Plano de Sprints](PLANO_DE_SPRINTS_MVP_NOW.md)
 - [Critérios de Aceite](CRITERIOS_DE_ACEITE_MVP.md)
 - [Runbook Operacional](RUNBOOK_OPERACIONAL.md)
 - [Changelog](CHANGELOG.md)
-- [Connectivity Validation Results](../logs/connectivity_validation_results.md)
-- [RiskGate Validation Results](../logs/riskgate_validation_results.md)
-- [Execution Validation Results](../logs/execution_validation_results.md)
 
 ---
 
