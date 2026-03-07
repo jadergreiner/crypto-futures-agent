@@ -208,9 +208,9 @@ class Task005TrainingLoop:
                 # Salva training log intermediário
                 self._save_training_log()
 
-                # Early stop apenas se Sharpe ≥ 5.0 (anomalia detectada, possível overfitting)
-                if sharpe >= 5.0:
-                    logger.info("🎉 Target Sharpe ≥ 5.0 alcançado! Encerrando treinamento.")
+                # Early stop apenas se Sharpe ≥ 10.0 (detecta evidente anomalia/overfitting)
+                if sharpe >= 10.0:
+                    logger.info("🎉 Target Sharpe ≥ 10.0 alcançado! Encerrando treinamento.")
                     break
 
                 # Timeout safety: se > 120h, para mesmo que não tenha atingido target
@@ -236,7 +236,7 @@ class Task005TrainingLoop:
         Returns:
             dict: Dicionário com métricas (sharpe, win_rate, max_dd, etc)
         """
-        n_episodes = 5
+        n_episodes = 50  # Aumentado de 5 para mais variabilidade estatística
         returns = []
         all_pnls = []
 
@@ -261,12 +261,12 @@ class Task005TrainingLoop:
 
         mean_return = np.mean(returns)
         std_return = np.std(returns)
-        
+
         # SHARPE RATIO - CORRIGIDO COM PROTEÇÃO DE VOLATILIDADE
         # Aplicar piso de volatilidade para evitar divisão por zero
         std_return_floored = max(std_return, 0.01)
         sharpe = mean_return / std_return_floored
-        
+
         # VALIDAÇÃO SANIDADE: Sharpe não deve ultrapassar 10
         if sharpe > 10.0:
             logger.warning(
