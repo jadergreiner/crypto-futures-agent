@@ -86,35 +86,60 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: ✅ **PHASE 3 READY FOR EXECUTION** (Validation infrastructure complete: 07 MAR 21:30 UTC)
+  - Status: 🟡 **PHASE 2/3 ITERATION 1 COMPLETE — NO-GO DECISION** (v2 Refinement in progress: 07 MAR 20:00 UTC)
   - Owner: The Brain (#3)
-  - Score: 1.0 | Effort: 96h wall-time (Phase 2) + 4-5h (Phase 3)
-  - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
+  - Score: 0.6 (iteration 1) | Effort: 22 min exec (early stop) + 4h5m validation cycle
+  - Descrição: Train PPO agent on 60 pairs. Target: 500k steps, Sharpe ≥1.0
   - Blocker: ✅ Issue #65 COMPLETE (SMC validation finished)
   - **Phases:**
-    - **Phase 1: Setup** — Environment, dependencies, config — ✅ COMPLETE
-    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ READY FOR LAUNCH
-    - **Phase 3: Validation** — Model save, metrics compilation, success gates, 4-persona approvals — ✅ READY FOR EXECUTION
+    - **Phase 1: Setup** — Environment, dependencies, config — ✅ COMPLETE (19:30 UTC)
+    - **Phase 2: Training** — 96h wall-time target, early stop at 22min — ✅ EXECUTED (19:50-19:52 UTC | early stop)
+    - **Phase 3: Validation** — Model validation, 4-persona approvals — ✅ EXECUTED (20:00-20:05 UTC | ❌ NO-GO)
+  - **Iteration 1 Results (07 MAR 19:52-20:05 UTC):**
+    - Training Time: 22 minutes (early stop @ Sharpe trigger)
+    - Model Saved: models/ppo_v0_final.pkl ✅
+    - Validation Decision: ❌ **NO-GO** (3/5 criteria pass, 1/4 personas approve)
+    - Criteria Failed: Sharpe 0.48 (vs 0.80 meta) ❌, Win Rate 18.6% (vs 45% meta) ❌
+    - Criteria Passed: Max Drawdown 0% ✅, Profit Factor 25875 ✅, Consecutive Losses 1 ✅
+    - Reports: [TASK_005_PHASE2_EXECUTION_REPORT.md](TASK_005_PHASE2_EXECUTION_REPORT.md) | [TASK_005_LESSONS_LEARNED.md](TASK_005_LESSONS_LEARNED.md)
+  - **Iteration 1 Key Issues:**
+    1. Sharpe calculation unreliable (5.4B training vs 0.48 validation)
+    2. Win Rate critically low (18.6% vs 45% target)
+    3. Early stop too aggressive (50k / 500k steps)
+    4. Training dataset too small (70 trades only)
+    5. Profit Factor unrealistic (25,875)
+  - **Iteration 2 Plan (Next):**
+    - Fix Sharpe volatility calculation (add floor, more data points)
+    - Expand training data 70 → 500+ trades (multi-timeframe, balanced outcomes)
+    - Adjust reward shaping to improve win rate (balance loss penalty)
+    - Remove/increase early stop threshold (allow full training)
+    - Full 500k step cycle with daily gates
+    - Estimated effort: 2-4 hours fixes + 96 hours training + 4.5 hours validation
   - **Phase 2 Components (7/7 complete):**
-    - ✅ CryptoTradingEnv (agent/rl/training_env.py)
+    - ✅ CryptoTradingEnv (agent/rl/training_env.py) — refinement needed (reward shaping)
     - ✅ TradeHistoryLoader (agent/rl/data_loader.py)
-    - ✅ PPOTrainer (agent/rl/ppo_trainer.py)
+    - ✅ PPOTrainer (agent/rl/ppo_trainer.py) — refinement needed (early stop threshold)
     - ✅ TrainingLoop w/daily gates (agent/rl/training_loop.py)
-    - ✅ FinalValidator (agent/rl/final_validation.py)
-    - ✅ TradesGenerator (data/trades_history_generator.py)
+    - ✅ FinalValidator (agent/rl/final_validation.py) — refinement needed (Sharpe calc)
+    - ✅ TradesGenerator (data/trades_history_generator.py) — refinement needed (expand data)
     - ✅ Integration Tests (4/4 PASS)
-  - **Phase 3 Components (3/3 complete):**
-    - ✅ Phase3Executor (agent/rl/phase3_executor.py) — 505 LOC: Backtest, 5-criteria validation, 4-persona approvals
-    - ✅ DeploymentChecker (agent/rl/deployment_checker.py) — 385 LOC: Deployment readiness (5-point checklist), manifest generation
-    - ✅ Phase 3 Integration Tests (tests/test_task005_phase3_integration.py) — 75 LOC: Component validation
-  - **Success Criteria (all 5 must pass for GO):**
-    - Sharpe Ratio ≥ 0.80
-    - Max Drawdown ≤ 12%
-    - Win Rate ≥ 45%
-    - Profit Factor ≥ 1.5
-    - Consecutive Losses ≤ 5
-  - **4-Persona Approvals:** Arch (#6), Audit (#8), Quality (#12), Brain (#3)
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md) | [TASK_005_PHASE3_SUMMARY.md](TASK_005_PHASE3_SUMMARY.md)
+  - **Phase 3 Components (3/3 complete & tested):**
+    - ✅ Phase3Executor (agent/rl/phase3_executor.py) — 505 LOC: Executed, NO-GO result registered
+    - ✅ DeploymentChecker (agent/rl/deployment_checker.py) — 385 LOC: Ready (not executed for NO-GO)
+    - ✅ Phase 3 Integration Tests (tests/test_task005_phase3_integration.py) — 75 LOC: Tested
+  - **Success Criteria (for GO — 5/5 must pass):**
+    - Sharpe Ratio ≥ 0.80 — v1: ❌ 0.48 | v2: Target 1.0+
+    - Max Drawdown ≤ 12% — v1: ✅ 0.0% | v2: Expect similar
+    - Win Rate ≥ 45% — v1: ❌ 18.6% | v2: Target 45%+
+    - Profit Factor ≥ 1.5 — v1: ✅ 25875 | v2: Expect 5-50
+    - Consecutive Losses ≤ 5 — v1: ✅ 1 | v2: Expect similar
+  - **4-Persona Approvals (v1 Results):**
+    - Arch (#6): ⚠️ CONDITIONAL (review metrics)
+    - Audit (#8): ✅ APPROVED (risk gates pass)
+    - Quality (#12): ⚠️ CONDITIONAL (review quality gates)
+    - Brain (#3): ⚠️ CONDITIONAL (review learning metrics)
+    - v2 Target: 4/4 approved (or 3/4 with 1 conditional)
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md) | [TASK_005_PHASE3_SUMMARY.md](TASK_005_PHASE3_SUMMARY.md) | [TASK_005_PHASE2_EXECUTION_REPORT.md](TASK_005_PHASE2_EXECUTION_REPORT.md) | [TASK_005_LESSONS_LEARNED.md](TASK_005_LESSONS_LEARNED.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC
