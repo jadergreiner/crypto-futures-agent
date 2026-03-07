@@ -1,8 +1,45 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 06 de março de 2026, 00:00 UTC ([SYNC] Consolidar BACKLOG.md como fonte única de verdade - deletar redundâncias)
+**Última Atualização:** 06 de março de 2026, 14:45 UTC ([SYNC] Deletar BACKLOG_QUICK_START.md e BACKLOG_README.md - limpeza redundâncias)
 **Status da Equipe Fixa:** ✅ 16 membros (Angel + Elo + The Brain + Dr.Risk + Guardian + Arch + The Blueprint + Audit + Planner + Executor + Data + Quality + Trader + Product + Compliance + Board Member + Doc Advocate)
-**Status Consolidação:** ✅ **BACKLOG.md AGORA É ÚNICA FONTE DE VERDADE** — Deletados STATUS_ENTREGAS.md, PLANO_DE_SPRINTS_MVP_NOW.md, SPRINT_BACKLOG_21FEV, TASKS_TRACKER_REALTIME.md. Criado TRACKER.md tabular consolidado. Atualizado copilot-instructions.md para apontar BACKLOG.md.
+**Status Consolidação:** ✅ **BACKLOG.md AGORA É ÚNICA FONTE DE VERDADE** — Deletados STATUS_ENTREGAS.md, PLANO_DE_SPRINTS_MVP_NOW.md, SPRINT_BACKLOG_21FEV, TASKS_TRACKER_REALTIME.md, BACKLOG_QUICK_START.md, BACKLOG_README.md. Criado TRACKER.md tabular consolidado. Atualizado copilot-instructions.md para apontar BACKLOG.md.
+
+## 🚀 [SYNC] Limpeza Redundâncias — BACKLOG_QUICK_START.md + BACKLOG_README.md Deletados (06 MAR 2026)
+
+**Status:** ✅ **LIMPEZA CONCLUÍDA** — 2 arquivos redundantes deletados, nenhuma tarefa perdida.
+
+### 📊 Mudanças Realizadas
+
+| Arquivo | Ação | Motivo | Timestamp |
+|---------|------|--------|----------|
+| [docs/BACKLOG_QUICK_START.md](BACKLOG_QUICK_START.md) | 🗑️ **DELETADO** | Conteúdo redundante com BACKLOG.md, referências a arquivos deprecated | 06 MAR 14:45 UTC |
+| [docs/BACKLOG_README.md](BACKLOG_README.md) | 🗑️ **DELETADO** | Idem, obsoleto com sistema de backlog atual | 06 MAR 14:45 UTC |
+
+### ✅ Verificação Pós-Limpeza
+
+- ✅ **Análise de 24 arquivos** — nenhuma tarefa de dev perdida
+- ✅ **Todas 14 TASKS** (TASK-001 a TASK-014) catalogadas em BACKLOG.md
+- ✅ **Todas 3 Issues** (#64 Telegram, #65 SMC QA, #67 Data Strategy) em BACKLOG.md
+- ✅ **28 arquivos referencial mantidos** — design, arquitetura, testes, procedimentos (suportam tasks no BACKLOG)
+- ✅ **2 arquivos deletados** — redundante com BACKLOG.md, referências obsoletas removidas
+- ✅ **Commit [SYNC]** registrado: `7734e97 [SYNC] Deletar BACKLOG_QUICK_START.md e BACKLOG_README.md`
+
+### 🔐 Arquivos Mantidos (Não são redundâncias)
+
+**Design/Implementação (Suportam S2-3 Backtesting + Issue #67):**
+- BACKTEST_ENGINE_*.md (5) — arquitetura, implementação, performance, quickstart, testes
+- BACKTEST_TEST_*.md (3) — plano, delivery, quickstart
+- DATA_STRATEGY_*.md (3) — strategy, delivery, backtesting 1Y
+- DATA_PIPELINE_QUICK_START.md — passos implementação
+
+**Referencial (Governança, Arquitetura, Ops):**
+- BEST_PRACTICES.md, C4_MODEL.md, CHANGELOG.md, DATA_ARCHITECTURE_DIAGRAM.md
+- CRITERIOS_DE_ACEITE_MVP.md, data_models.md
+- CANARY_ROLLBACK_PROCEDURE.md, DAILY_SYNC_PROTOCOL.md
+- CONVOCACAO_*.md, BRIEFING_SQUAD_*.md (histórico, auditoria)
+- CONTINGENCY_PLAN_TASK_010_REJECTION.md (plano B aprovado)
+
+---
 
 ## 🚀 [SYNC] Consolidação BACKLOG.md — FONTE ÚNICA DE VERDADE (06 MAR 2026)
 
