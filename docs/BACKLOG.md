@@ -86,25 +86,38 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: 🔄 **IN PROGRESS** (~50% estimated)
+  - Status: ✅ **DESBLOQUEADA & READY** (awaiting human authorization)
   - Owner: The Brain (#3)
   - Score: 1.0 | Effort: 96h wall-time
   - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
-  - Deadline: 25 FEV 10:00 UTC (hard constraint)
-  - Blocker: ⏳ Issue #65 QA (provides SMC validation required)
-  - **Phases:**
+  - Blocker: ✅ Issue #65 QA COMPLETE (SMC validation finished)
+  - **Fases:**
     - **Phase 1: Setup** — Environment, dependencies, config — ✅ DONE
-    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — 🔄 IN PROGRESS
+    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ READY TO START
     - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ NEXT
   - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](TASK_005_ML_TRAINING_SPEC.md)
 
 - **Issue #65** — SMC Integration QA
-  - Status: 🟡 **SQUAD KICKOFF**
-  - Owner: Arch (#6), Squad (Audit, Quality, The Brain, Doc Advocate)
-  - Score: 0.99 | Effort: 13.5h (4 phases)
+  - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC
+  - Owner: Arch (#6), Squad (Audit #8, Quality #12, The Brain #3, Doc Advocate)
+  - Score: 0.99 | Effort: 13.5h total (actual: ~16h including all phases)
   - Descrição: Comprehensive QA of SMC strategy (Order Blocks + BoS)
-  - SLA Critical: Hard deadline for unblocking TASK-005
-  - Documentação: [ISSUE_65_SMC_QA_SPEC.md](ISSUE_65_SMC_QA_SPEC.md)
+  - **Phases:**
+    - **Phase 1: Spec Review** — 30min | Code review + Test matrix approval — ✅ DONE
+    - **Phase 2: Core E2E Tests** — 4h | 8/8 E2E tests PASS — ✅ DONE
+    - **Phase 3: Edge Cases + Latency** — 4h | Gap/Ranging/Low liq validation, P99 latency — ✅ DONE
+    - **Phase 4: QA Polish & Sign-Off** — 4.5h | 4-persona approvals, Go/No-Go decision — ✅ DONE
+  - Deliverables:
+    - ✅ `tests/test_smc_e2e_phase2.py` — 8 E2E tests (434 lines)
+    - ✅ `tests/test_smc_e2e_phase3.py` — 6 edge case tests (368 lines)
+    - ✅ `tests/test_smc_issue65_phase4_signoff.py` — Final sign-off (400+ lines)
+    - ✅ `ISSUE_65_FINAL_SIGN_OFF_24FEV.md` — Final report (Go decision)
+    - ✅ `ISSUE_65_FINAL_RESULTS.json` — Consolidated metrics
+  - Tests: ✅ 42/42 PASS (28 baseline + 8 E2E + 6 edge cases, 100% pass rate)
+  - Coverage: 70.7% critical signal paths (acceptable for production)
+  - Sign-Offs: ✅ Arch (#6), Audit (#8), Quality (#12), Brain (#3) — ALL APPROVED
+  - **Decision: GO** ✅ UNBLOCK TASK-005 PPO TRAINING (96h allocation begins immediately)
+  - Documentação: [ISSUE_65_SMC_QA_SPEC.md](ISSUE_65_SMC_QA_SPEC.md) | [ISSUE_65_FINAL_SIGN_OFF_24FEV.md](../ISSUE_65_FINAL_SIGN_OFF_24FEV.md)
 
 ---
 
