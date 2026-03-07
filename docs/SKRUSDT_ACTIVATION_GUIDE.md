@@ -165,19 +165,19 @@ python main.py --mode paper --symbols SKRUSDT --interval 300
     3. CONFLUÊNCIA >= 8
        └─ Bonus: +0.8 (BTC align), +1.0 (RISK_ON), +0.7 (SMC clear)
        └─ TOTAL: 2.5+ → TRADE ✅
-       
+
     ▼
     4. RISCO CALCULADO
        ├─ Position size: 45% (conservador beta 2.8)
        ├─ SL: 1.5x ATR (stop mais largo)
        ├─ TP: 10-30% alvo swing
        └─ R:R >= 2.0: ✅
-    
+
     ▼
     5. EXECUÇÃO
        ├─ Modo PAPER: Simula preço/SL/TP
        └─ Modo LIVE: Binance API (10x leverage)
-       
+
     ▼
     6. GERENCIAMENTO
        ├─ Trailing Stop Loss: ativa após +1.5R

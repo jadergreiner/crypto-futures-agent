@@ -1,0 +1,12 @@
+{
+  "symbol": "SKRUSDT",
+  "candles": 263,
+  "trades": 9,
+  "wins": 2,
+  "losses": 7,
+  "win_rate": 22.22,
+  "profit_factor": 0.29,
+  "final_capital": 995.97,
+  "total_pnl": -4.03,
+  "return_pct": -0.4
+}

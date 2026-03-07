@@ -1,0 +1,13 @@
+{
+  "symbols": [
+    "SKRUSDT"
+  ],
+  "metadata": {
+    "created": "2026-03-06",
+    "purpose": "Backtest validation for SKRUSDT Swing Trade model",
+    "data_source": "Binance Futures API",
+    "interval": "4h",
+    "period_days": 90,
+    "estimated_candles": 360
+  }
+}
