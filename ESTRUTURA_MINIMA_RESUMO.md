@@ -1,7 +1,7 @@
 # 🎯 Sumário Executivo — Estrutura Mínima de Documentação (07 MAR 2026)
 
-**Status:** ✅ **IMPLEMENTADA** (5 novos documentos + BACKLOG.md atualizado)  
-**Commit:** `0e1ebd6` — `[SYNC] Estrutura minima documentacao...`  
+**Status:** ✅ **IMPLEMENTADA** (5 novos documentos + BACKLOG.md atualizado)
+**Commit:** `0e1ebd6` — `[SYNC] Estrutura minima documentacao...`
 **Responsável:** Doc Advocate + Arquiteto
 
 ---
@@ -160,7 +160,7 @@ Relacionamentos + indices + fluxos
 **Checklist 6 Passos:**
 ```
 1. Impacto Arquitetura? → Atualizar C4_MODEL
-2. Decisão Nova? → Criar ADR  
+2. Decisão Nova? → Criar ADR
 3. Regel Alterada? → Atualizar REGRAS_DE_NEGOCIO
 4. Entidade Mudou? → Atualizar MODELAGEM_DE_DADOS
 5. Classes/Diagrama? → Atualizar DIAGRAMAS
@@ -310,7 +310,7 @@ C4_MODEL ←→ ADR_INDEX ←→ REGRAS_DE_NEGOCIO
 
 ---
 
-**Autor:** Doc Advocate + Arquiteto  
-**Data:** 07 MAR 2026 @ 15:30 UTC  
-**Commit:** `0e1ebd6`  
+**Autor:** Doc Advocate + Arquiteto
+**Data:** 07 MAR 2026 @ 15:30 UTC
+**Commit:** `0e1ebd6`
 **Status:** 🟢 OPERACIONAL

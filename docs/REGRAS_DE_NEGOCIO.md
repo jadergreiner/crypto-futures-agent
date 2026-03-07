@@ -1,8 +1,8 @@
 # 📋 Regras de Negócio — Crypto Futures Agent
 
-**Versão:** 0.1.0  
-**Data:** 07 MAR 2026  
-**Linguagem:** Português (não-técnico)  
+**Versão:** 0.1.0
+**Data:** 07 MAR 2026
+**Linguagem:** Português (não-técnico)
 **Responsável:** Business Analyst, Gestor de Risco
 
 ---

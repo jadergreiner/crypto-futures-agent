@@ -11,6 +11,23 @@
 
 ## 🔗 Links Rápidos
 
+### 📚 ESTRUTURA MÍNIMA OBRIGATÓRIA (Integridade Referencial)
+
+| Pilar | Documento | Propósito |
+|-------|-----------|-----------|
+| **ARQUITETURA** | [C4_MODEL.md](C4_MODEL.md) | Diagrama completo do projeto (4 níveis: Context, Containers, Components, Code) |
+| **DECISÕES TÉCNICAS** | [ADR_INDEX.md](ADR_INDEX.md) | Registro de principais decisões técnicas com contexto, decisão e consequências |
+| **REGRAS DE NEGÓCIO** | [REGRAS_DE_NEGOCIO.md](REGRAS_DE_NEGOCIO.md) | Regras operacionais em linguagem não-técnica (risk, trading, capital) |
+| **MODELAGEM DE DADOS** | [MODELAGEM_DE_DADOS.md](MODELAGEM_DE_DADOS.md) | Entidades, relacionamentos, fluxos de dados, schemas (SQLite + Parquet) |
+| **DIAGRAMA DE CLASSES** | [DIAGRAMAS.md](DIAGRAMAS.md) — Parte 1 | Estrutura OOP dos módulos críticos (Agent, Environment, Executor, Risk Manager) |
+| **DIAGRAMA DE DADOS** | [DIAGRAMAS.md](DIAGRAMAS.md) — Parte 2 | ERD (Entity Relationship Diagram) para SQLite + Parquet snapshots |
+
+**Referência de Integridade:** [DOCS_INDEX.md](DOCS_INDEX.md) — Como cada task entregue impacta a estrutura
+
+---
+
+### 📊 DOCUMENTAÇÃO ESTRATÉGICA
+
 | Documento | Propósito |
 |-----------|-----------|
 | [TRACKER.md](TRACKER.md) | Tabela consolidada de todas as tasks (Master view) |
@@ -20,8 +37,6 @@
 | [FEATURES.md](FEATURES.md) | Feature list (F-H1→F-ML3) |
 | [RELEASES.md](RELEASES.md) | Version history (v0.1→v1.0-alpha) |
 | [SYNCHRONIZATION.md](SYNCHRONIZATION.md) | Audit trail [SYNC] + histórico completo |
-| [C4_MODEL.md](C4_MODEL.md) | Diagrama arquitetural (4 níveis) |
-| [ADR_INDEX.md](ADR_INDEX.md) | Architecture Decision Records (7 ADRs) |
 | [OPENAPI_SPEC.md](OPENAPI_SPEC.md) | Especificação REST API (OpenAPI 3.0.0) |
 | [IMPACT_README.md](IMPACT_README.md) | Setup, testes, deploy em produção |
 ---

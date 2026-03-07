@@ -55,7 +55,7 @@ class TestBinanceClientFactory:
         mock_path_instance = MagicMock()
         mock_path_instance.exists.return_value = True
         mock_path.return_value = mock_path_instance
-        
+
         factory = BinanceClientFactory(mode="paper")
         assert factory._use_ed25519_auth() is True
 
@@ -66,7 +66,7 @@ class TestBinanceClientFactory:
         mock_path_instance = MagicMock()
         mock_path_instance.exists.return_value = False
         mock_path.return_value = mock_path_instance
-        
+
         factory = BinanceClientFactory(mode="paper")
         assert factory._use_ed25519_auth() is False
 
@@ -108,11 +108,11 @@ class TestBinanceCollector:
         """Test parsing klines from raw array format."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         raw_data = [
             [1609459200000, '29000.0', '29500.0', '28800.0', '29200.0', '1000.0', 0, '29200000.0', 5000]
         ]
-        
+
         df = collector._parse_klines(raw_data, "BTCUSDT")
         assert len(df) == 1
         assert df.iloc[0]['symbol'] == "BTCUSDT"
@@ -123,10 +123,10 @@ class TestBinanceCollector:
         """Test validation of empty DataFrame."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         import pandas as pd
         df = pd.DataFrame()
-        
+
         is_valid, issues = collector.validate_data(df, "1h")
         assert is_valid is False
         assert "empty" in issues[0].lower()
@@ -135,7 +135,7 @@ class TestBinanceCollector:
         """Test validation detects null values."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         import pandas as pd
         df = pd.DataFrame({
             'timestamp': [1609459200000],
@@ -148,7 +148,7 @@ class TestBinanceCollector:
             'quote_volume': [29200000.0],
             'trades_count': [5000],
         })
-        
+
         is_valid, issues = collector.validate_data(df, "1h")
         assert is_valid is False
         assert any('null' in issue.lower() for issue in issues)
@@ -157,7 +157,7 @@ class TestBinanceCollector:
         """Test validation detects negative values."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         import pandas as pd
         df = pd.DataFrame({
             'timestamp': [1609459200000],
@@ -170,46 +170,46 @@ class TestBinanceCollector:
             'quote_volume': [29200000.0],
             'trades_count': [5000],
         })
-        
+
         is_valid, issues = collector.validate_data(df, "1h")
         assert is_valid is False
         assert any('negative' in issue.lower() for issue in issues)
-    
+
     def test_extract_data_with_api_response(self):
         """Testa extração de dados de um objeto ApiResponse mockado."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         # Mock de ApiResponse com atributo .data
         mock_response = Mock()
         mock_response.data = [1, 2, 3]
-        
+
         result = collector._extract_data(mock_response)
         assert result == [1, 2, 3]
-    
+
     def test_extract_data_with_raw_list(self):
         """Testa extração quando já é uma lista (sem ApiResponse)."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         raw_data = [1, 2, 3]
         result = collector._extract_data(raw_data)
         assert result == [1, 2, 3]
-    
+
     def test_extract_data_with_raw_dict(self):
         """Testa extração quando já é um dict (sem ApiResponse)."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         raw_data = {'key': 'value'}
         result = collector._extract_data(raw_data)
         assert result == {'key': 'value'}
-    
+
     def test_extract_data_with_none(self):
         """Testa extração quando resposta é None."""
         mock_client = Mock()
         collector = BinanceCollector(mock_client)
-        
+
         result = collector._extract_data(None)
         assert result is None
 
@@ -234,33 +234,33 @@ class TestSentimentCollector:
         mock_client = Mock()
         collector = SentimentCollector(mock_client)
         assert collector._client == mock_client
-    
+
     def test_extract_data_with_api_response(self):
         """Testa extração de dados de um objeto ApiResponse mockado."""
         mock_client = Mock()
         collector = SentimentCollector(mock_client)
-        
+
         # Mock de ApiResponse com atributo .data
         mock_response = Mock()
         mock_response.data = [{'long_short_ratio': 1.5}]
-        
+
         result = collector._extract_data(mock_response)
         assert result == [{'long_short_ratio': 1.5}]
-    
+
     def test_extract_data_with_raw_list(self):
         """Testa extração quando já é uma lista (sem ApiResponse)."""
         mock_client = Mock()
         collector = SentimentCollector(mock_client)
-        
+
         raw_data = [{'open_interest': 1000}]
         result = collector._extract_data(raw_data)
         assert result == [{'open_interest': 1000}]
-    
+
     def test_extract_data_with_none(self):
         """Testa extração quando resposta é None."""
         mock_client = Mock()
         collector = SentimentCollector(mock_client)
-        
+
         result = collector._extract_data(None)
         assert result is None
 
@@ -272,16 +272,83 @@ class TestSentimentCollector:
         mock_client.rest_api.open_interest = Mock(return_value=None)
         mock_client.rest_api.get_funding_rate_history = Mock(return_value=[])
         mock_client.rest_api.taker_buy_sell_volume = Mock(return_value=[])
-        
+
         collector = SentimentCollector(mock_client)
         result = collector.fetch_all_sentiment("BTCUSDT")
-        
+
         assert 'timestamp' in result
         assert 'symbol' in result
         assert result['symbol'] == "BTCUSDT"
         assert 'long_short_ratio' in result
         assert 'open_interest' in result
         assert 'funding_rate' in result
+
+    def test_extract_data_with_empty_string(self):
+        """Test extraction when API returns empty string (204 No Content)."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+
+        result = collector._extract_data("")
+        assert result is None
+
+    def test_extract_data_with_empty_whitespace(self):
+        """Test extraction when API returns whitespace only."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+
+        result = collector._extract_data("   ")
+        assert result is None
+
+    def test_safe_getattr_with_dict(self):
+        """Test _safe_getattr with dictionary."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+
+        data = {'funding_rate': 0.0005, 'symbol': 'BTCUSDT'}
+        assert collector._safe_getattr(data, 'funding_rate', 0) == 0.0005
+        assert collector._safe_getattr(data, 'missing_key', 99) == 99
+
+    def test_safe_getattr_with_object(self):
+        """Test _safe_getattr with object having attributes."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+
+        # Create a real object, not a Mock, to test proper attribute access
+        class RealObj:
+            def __init__(self):
+                self.funding_rate = 0.0008
+
+        real_obj = RealObj()
+
+        assert collector._safe_getattr(real_obj, 'funding_rate', 0) == 0.0008
+        assert collector._safe_getattr(real_obj, 'missing_key', 99) == 99
+
+    def test_retry_request_returns_none_on_failure(self):
+        """Test that _retry_request returns None on persistent failure."""
+        mock_client = Mock()
+        collector = SentimentCollector(mock_client)
+
+        # Function that always fails
+        failing_func = Mock(side_effect=Exception("JSON parse error"))
+
+        result = collector._retry_request(failing_func)
+        assert result is None
+
+        # Should have retried 3 times (API_MAX_RETRIES)
+        assert failing_func.call_count == 3
+
+    def test_fetch_long_short_ratio_graceful_failure(self):
+        """Test fetch_long_short_ratio returns empty dict on API failure."""
+        mock_client = Mock()
+        mock_client.rest_api.long_short_ratio = Mock(
+            side_effect=Exception("Expecting value: line 1 column 1")
+        )
+
+        collector = SentimentCollector(mock_client)
+        result = collector.fetch_long_short_ratio("BTCUSDT")
+
+        # Should return empty dict instead of raising
+        assert result == {}
 
 
 def test_create_binance_client_helper():
@@ -291,9 +358,50 @@ def test_create_binance_client_helper():
         mock_client = Mock()
         mock_factory.create_client.return_value = mock_client
         mock_factory_class.return_value = mock_factory
-        
+
         result = create_binance_client("paper")
-        
+
         mock_factory_class.assert_called_once_with(mode="paper")
         mock_factory.create_client.assert_called_once()
         assert result == mock_client
+
+
+class TestBinanceClientAuthentication:
+    """Tests for Binance client authentication setup."""
+
+    def test_client_factory_hmac_auth_validation(self):
+        """Test that HMAC auth requires both API key and secret."""
+        with patch('data.binance_client.BINANCE_API_KEY', ''):
+            with patch('data.binance_client.BINANCE_API_SECRET', 'secret'):
+                factory = BinanceClientFactory(mode="paper")
+
+                # Should not use Ed25519 auth when key is empty
+                assert not factory._use_ed25519_auth()
+
+                # Should raise ValueError when trying to create client
+                with patch.object(factory, '_get_rest_url', return_value='http://test'):
+                    with patch.object(factory, '_get_ws_api_url', return_value='ws://test'):
+                        with patch.object(factory, '_get_ws_streams_url', return_value='ws://test'):
+                            try:
+                                factory.create_client()
+                                assert False, "Should have raised ValueError"
+                            except ValueError as e:
+                                assert "HMAC auth" in str(e) or "Ed25519 auth" in str(e)
+
+    def test_sentiment_collector_with_valid_client(self):
+        """Test sentiment collector initialization with mock valid client."""
+        mock_client = Mock()
+
+        # Mock all REST API methods needed by sentiment collector
+        mock_client.rest_api = Mock()
+        mock_client.rest_api.long_short_ratio = Mock()
+        mock_client.rest_api.top_trader_long_short_ratio_positions = Mock()
+        mock_client.rest_api.open_interest = Mock()
+        mock_client.rest_api.get_funding_rate_history = Mock()
+        mock_client.rest_api.taker_buy_sell_volume = Mock()
+
+        collector = SentimentCollector(mock_client)
+
+        # Sentiment collector should be properly initialized
+        assert collector._client == mock_client
+        assert collector._client.rest_api is not None

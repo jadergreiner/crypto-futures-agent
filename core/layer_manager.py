@@ -68,6 +68,10 @@ class LayerManager:
         self._symbol_precision_cache = {}  # Cache de precision por símbolo
         self.authorized_symbols = set(AUTHORIZED_SYMBOLS)
 
+        # Circuit breaker for sentiment collection failures
+        self.sentiment_failure_count = {}  # Dict[symbol, int]
+        self.SENTIMENT_FAILURE_THRESHOLD = 3  # Skip sentiment after 3 consecutive failures
+
         # Initialize collectors if client is provided
         if client:
             self.binance_collector = BinanceCollector(client)
@@ -87,6 +91,51 @@ class LayerManager:
     def has_open_positions(self) -> bool:
         """Verifica se há posições abertas."""
         return len(self.open_positions) > 0
+
+    def _record_sentiment_failure(self, symbol: str) -> None:
+        """
+        Incrementa contador de falhas de sentiment para symbol.
+        Parte do circuit breaker para evitar hammering API quebrada.
+
+        Args:
+            symbol: Trading pair symbol
+        """
+        self.sentiment_failure_count[symbol] = self.sentiment_failure_count.get(symbol, 0) + 1
+        logger.warning(
+            f"[SENTIMENT CIRCUIT] Failure count for {symbol}: "
+            f"{self.sentiment_failure_count[symbol]}/{self.SENTIMENT_FAILURE_THRESHOLD}"
+        )
+
+    def _reset_sentiment_failure(self, symbol: str) -> None:
+        """
+        Reseta contador de falhas de sentiment após sucesso.
+
+        Args:
+            symbol: Trading pair symbol
+        """
+        if symbol in self.sentiment_failure_count:
+            self.sentiment_failure_count[symbol] = 0
+
+    def _is_sentiment_circuit_open(self, symbol: str) -> bool:
+        """
+        Verifica se circuit breaker de sentiment está aberto (skipping).
+
+        Args:
+            symbol: Trading pair symbol
+
+        Returns:
+            True if should skip sentiment collection for this symbol
+        """
+        failures = self.sentiment_failure_count.get(symbol, 0)
+        is_open = failures >= self.SENTIMENT_FAILURE_THRESHOLD
+
+        if is_open:
+            logger.debug(
+                f"[SENTIMENT CIRCUIT] Skipping sentiment for {symbol} - "
+                f"circuit open ({failures} consecutive failures)"
+            )
+
+        return is_open
 
     def should_execute_h1(self) -> bool:
         """Verifica se deve executar Layer 3 (H1)."""
@@ -1470,18 +1519,31 @@ class LayerManager:
 
                 # Collect sentiment data
                 sentiment_dict = {}
-                try:
-                    sentiment_dict = self.sentiment_collector.fetch_all_sentiment(symbol)
-                    logger.debug(f"D1: Collected sentiment for {symbol}")
+                if self._is_sentiment_circuit_open(symbol):
+                    # Circuit breaker is open - skip sentiment collection
+                    logger.info(f"D1: Sentiment circuit breaker OPEN for {symbol}, skipping collection")
+                else:
+                    try:
+                        sentiment_dict = self.sentiment_collector.fetch_all_sentiment(symbol)
 
-                    # Persist sentiment to database
-                    if self.db and sentiment_dict:
-                        try:
-                            self.db.insert_sentiment([sentiment_dict])
-                        except Exception as e:
-                            logger.warning(f"D1: Failed to persist sentiment for {symbol}: {e}")
-                except Exception as e:
-                    logger.warning(f"D1: Failed to collect sentiment for {symbol}: {e}")
+                        if sentiment_dict and sentiment_dict.get('long_short_ratio') is not None:
+                            # Success - reset failure counter
+                            self._reset_sentiment_failure(symbol)
+                            logger.debug(f"D1: Collected sentiment for {symbol}")
+                        else:
+                            # Empty or partial sentiment data
+                            logger.warning(f"D1: Sentiment data is empty or incomplete for {symbol}")
+                            self._record_sentiment_failure(symbol)
+
+                        # Persist sentiment to database
+                        if self.db and sentiment_dict:
+                            try:
+                                self.db.insert_sentiment([sentiment_dict])
+                            except Exception as e:
+                                logger.warning(f"D1: Failed to persist sentiment for {symbol}: {e}")
+                    except Exception as e:
+                        logger.warning(f"D1: Failed to collect sentiment for {symbol}: {e}")
+                        self._record_sentiment_failure(symbol)
 
                 # Run multi-timeframe analysis
                 mtf_result = MultiTimeframeAnalysis.aggregate(

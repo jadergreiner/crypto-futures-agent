@@ -1,7 +1,7 @@
 # 🗂️ Modelagem de Dados — Crypto Futures Agent
 
-**Versão:** 0.2.0  
-**Data:** 07 MAR 2026  
+**Versão:** 0.2.0
+**Data:** 07 MAR 2026
 **Responsável:** Arquiteto (#6), Data (#11)
 
 ---
@@ -290,9 +290,9 @@ Memory cache (últimas 500 velas por timeframe)
 Signal table (registro)
 ```
 
-**Frequência:** A cada 4h (ao fechar candle 4h)  
-**SLA:** < 2s da API até signal generation  
-**Fallback:** Parquet snapshots se API indisponível > 10h  
+**Frequência:** A cada 4h (ao fechar candle 4h)
+**SLA:** < 2s da API até signal generation
+**Fallback:** Parquet snapshots se API indisponível > 10h
 
 ---
 
@@ -320,8 +320,8 @@ IF hit SL/TP: Close position + create Trade + Update Account
 Trade table (completa com resultado)
 ```
 
-**Latência:** <100ms (local validation + Binance API)  
-**Crítico:** Impossível voltar atrás após sendOrder()  
+**Latência:** <100ms (local validation + Binance API)
+**Crítico:** Impossível voltar atrás após sendOrder()
 
 ---
 
@@ -339,8 +339,8 @@ IF drawdown ≥ -15%: CIRCUIT BREAKER — parar trades
 [notifications/telegram_client.py] — Send alert
 ```
 
-**Frequência:** A cada candle fechado (4h)  
-**Sensibilidade:** % do capital  
+**Frequência:** A cada candle fechado (4h)
+**Sensibilidade:** % do capital
 
 ---
 
@@ -384,8 +384,8 @@ IF drawdown ≥ -15%: CIRCUIT BREAKER — parar trades
 
 ```sql
 -- Queries frequentes (production)
-CREATE INDEX idx_position_account_open 
-  ON position(account_id, is_closed) 
+CREATE INDEX idx_position_account_open
+  ON position(account_id, is_closed)
   WHERE is_closed = FALSE;
 
 CREATE INDEX idx_trade_account_closed

@@ -1,8 +1,8 @@
 # ✅ Protocol de Avaliação de Tasks — Integridade Estrutural
 
-**Versão:** 0.1.0  
-**Data:** 07 MAR 2026  
-**Responsável:** Doc Advocate, Arquiteto, Planner  
+**Versão:** 0.1.0
+**Data:** 07 MAR 2026
+**Responsável:** Doc Advocate, Arquiteto, Planner
 **Aplicabilidade:** Todas as tasks, issues, PRs (desde Sprint 3 em diante)
 
 ---
@@ -185,7 +185,7 @@ Toda **task/issue/PR** deve passar por este checklist antes de marcar como ✅ *
 3. ❌ **Regras de Negócio** — Lógica de reward = implementação, não mudança de regra
 4. ❌ **Modelagem de Dados** — Nenhum schema adiciona
 5. ❌ **Diagramas** — Sem mudança visual
-6. ✅ **Commit** — Padrão normal (sem [SYNC]): `[FIX] Corrigir cálculo reward` 
+6. ✅ **Commit** — Padrão normal (sem [SYNC]): `[FIX] Corrigir cálculo reward`
 
 **Status:** ✅ **COMPLETA** — sem exigência [SYNC]
 

@@ -1,8 +1,119 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 07 de março de 2026 ([SYNC] Limpeza agressiva: 20 docs deletados, 9 core mantidos, TASK-005 reforçado com phases)
+**Última Atualização:** 07 de março de 2026 ([SYNC] Limpeza completa: 54 docs históricos deletados, 24 core mantidos, BACKLOG consolidado)
 **Status da Equipe Fixa:** ✅ 16 membros (Angel + Elo + The Brain + Dr.Risk + Guardian + Arch + The Blueprint + Audit + Planner + Executor + Data + Quality + Trader + Product + Compliance + Board Member + Doc Advocate)
-**Status Consolidação:** ✅ **BACKLOG.md AGORA É ÚNICA FONTE DE VERDADE** — Deletados STATUS_ENTREGAS.md, PLANO_DE_SPRINTS_MVP_NOW.md, SPRINT_BACKLOG_21FEV, TASKS_TRACKER_REALTIME.md, BACKLOG_QUICK_START.md, BACKLOG_README.md, DATA_STRATEGY_LINKS.md, DOC_ADVOCATE_CLASSIFICATION_ANALYSIS.md, DATA_STRATEGY_QA_GATES_S2_0.md. Criado TRACKER.md tabular consolidado. Atualizado copilot-instructions.md para apontar BACKLOG.md.
+**Status Consolidação:** ✅ **BACKLOG.md + TRACKER.md FONTES ÚNICAS DE VERDADE** — Deletados 54 arquivos de gates/phases/tasks/issues/audit/dados/operações. Mantidos 24 core docs (18 official hierarchy + 6 referenced specs). Redução: 104 → 50 arquivos.
+
+---
+
+## 🚀 [SYNC] Limpeza Completa Documentária — 54 Arquivos Históricos Deletados, 24 Core Mantidos (07 MAR 2026 14:30 UTC)
+
+**Status:** ✅ **LIMPEZA CONCLUÍDA** — Repositório reduzido 48% (104→50 docs), carga cognitiva minimizada, BACKLOG.md + TRACKER.md consolidados como fontes únicas.
+
+### 📊 Decisão & Rationale
+
+**Motivo:** Consolidar BACKLOG.md como fonte única de verdade. Eliminar ruído histórico (gates passados, tasks executadas, relatórios de issues, specs desatualizadas). Reduzir carga cognitiva para navegação.
+
+**Estratégia:** **Limpeza Completa** (conforme copilot-instructions.md — Hierarquia de Documentação, 3 Camadas)
+- ❌ Deletar: 54 arquivos de GATE*,PHASE*,EXECUCAO*,ISSUE_*,DATA_STRATEGY*,ARCH_DESIGN*,BACKTEST_ENGINE*,AUDIT,PROTOCOL,OPERATIONS,CONVOCACAO,PRODUCT,SQUAD (históricos, completados ou consolidados)
+- ✅ Manter: 18 official hierarchy (Camada 1-3) + 6 referenced active specs (Issue #64-67, TASK-005, S2-3)
+
+### 📋 Arquivos Deletados (54 arquivos)
+
+**Batch 1: GATE & PHASE Reports (10 arquivos)**
+- GATE_3_DECISION.md, GATE_3_EXECUTION_PLAN.md, GATE_3_EXECUTIVE_SUMMARY.md, GATE_3_FINAL_STATUS.md, GATE_3_STATUS_23FEV.md, GATE_4_PLAN.md
+- PHASE_1_SPEC_REVIEW_23FEV_2135.md, PHASE_2_CORE_E2E_TESTS_23FEV_2205.md, PHASE_3_EDGE_CASES_23FEV_0135.md, PHASE_4_QA_POLISH_23FEV_0535.md
+
+**Batch 2: TASK Execution & ISSUE Deliverables (19 arquivos)**
+- ENTREGA_TASK_008_DECISION_3.md, EXECUCAO_TASK_010_RESUMO.md, EXECUCAO_TASK_011_PHASE_1_SUMMARY.md, EXECUCAO_TASK_011_PHASE_2_SUMMARY.md, EXECUCAO_TASK_011_PHASE_3_4_FINAL.md
+- ISSUE_55-58_DELIVERABLES.md (4 files), ISSUE_59_DELIVERABLES_SUMMARY.md, ISSUE_59_EXECUTIVE_SUMMARY.json, ISSUE_59_GATES_FLOWCHART.md, ISSUE_59_MASTER_INDEX.md, ISSUE_59_PR_TEMPLATE.md, ISSUE_59_QA_GATES_S2_3_BACKTESTING.md, ISSUE_59_QUICK_REFERENCE_AUDIT.md, ISSUE_64_TELEGRAM_IMPACT.md, ISSUE_66_PREFLIGHT_CHECKLIST_23FEV.md, ISSUE_66_SQUAD_KICKOFF_AGORA.md
+
+**Batch 3: Architecture & Backtest Specs (13 arquivos)**
+- architecture.md, ARCH_DESIGN_REVIEW_S2_0_CACHE.md, data_models.md, DATA_ARCHITECTURE_DIAGRAM.md, AUDIT_S2_0_DELIVERABLE_FINAL.md
+- BACKTEST_ENGINE_ARCHITECTURE.md, BACKTEST_ENGINE_IMPLEMENTATION.md, BACKTEST_ENGINE_PERFORMANCE.md, BACKTEST_ENGINE_QUICKSTART.md, BACKTEST_ENGINE_TEST_PLAN.md, BACKTEST_TEST_DELIVERY.md, BACKTEST_TEST_PLAN_EXECUTIVE.md, BACKTEST_TEST_QUICK_START.md
+
+**Batch 4: Data Strategy, Audit, Operations, Admin (12 arquivos)**
+- DATA_STRATEGY_BACKTESTING_1YEAR.md, DATA_STRATEGY_DELIVERY.json, DATA_STRATEGY_ENTREGA.md, DATA_STRATEGY_S2_0_AUDIT_SUMMARY.md, DATA_STRATEGY_S2_0_QUICK_REFERENCE.md
+- PROTOCOLO_AUDITORIA_DATA_INTEGRITY_20FEV.md, DAILY_SYNC_PROTOCOL.md
+- CANARY_ROLLBACK_PROCEDURE.md, CONTINGENCY_PLAN_TASK_010_REJECTION.md, OPERATIONS_24_7_INFRASTRUCTURE.md, QUICK_REFERENCE_24_7_OPERATIONS.md
+- CONVOCACAO_BOARD_23FEV_ROADMAP.md, CONVOCACAO_TASK_010_27FEV.md
+- PRODUCT_PREF_GOLIVE_CHECKLIST_22FEV.md, PRODUCT_SINTESE_EXECUTIVA_GOLIVE.md
+- BRIEFING_SQUAD_B_TASK_011_PHASE1.md, REGISTRATION_TASK_009.md
+
+**Total Deletado:** 54 arquivos | **Redução:** 104 → 50 (48%)
+
+### ✅ 24 Core Docs Mantidos
+
+**Camada 1 (10 — Estratégias):**
+1. RELEASES.md — Versões e histórico deliverables
+2. ROADMAP.md — Visão Now-Next-Later, milestones
+3. FEATURES.md — Feature list F-H1→F-ML3
+4. TRACKER.md — Tabela consolidada tasks
+5. USER_STORIES.md — User stories v0.2→v1.0
+6. LESSONS_LEARNED.md — Insights e decisões
+7. STATUS_ATUAL.md — Dashboard go-live
+8. DECISIONS.md — Histórico decisões board
+9. USER_MANUAL.md — Onboarding e operação
+10. SYNCHRONIZATION.md — Audit trail [SYNC]
+
+**Camada 2 (4 — Execução):**
+11. CRITERIOS_DE_ACEITE_MVP.md — MVP acceptance criteria
+12. RUNBOOK_OPERACIONAL.md — Procedimentos operacionais
+13. CHANGELOG.md — Histórico mudanças
+14. BACKLOG.md — Fonte única de verdade para tasks
+
+**Camada 3 (4 — Técnica):**
+15. C4_MODEL.md — 4 níveis arquitetura
+16. ADR_INDEX.md — 7 Architecture Decision Records
+17. OPENAPI_SPEC.md — Spec REST API 3.0.0
+18. IMPACT_README.md — Setup, testes, deploy
+
+**Complementares (6 — Referências Ativas em BACKLOG):**
+19. BEST_PRACTICES.md — Padrões código, logs, commits
+20. ISSUE_64_TELEGRAM_SETUP_SPEC.md — Telegram alerts (✅ complete, referenced)
+21. ISSUE_65_SMC_QA_SPEC.md — SMC QA (🟡 in progress, blocker TASK-005)
+22. ISSUE_67_DATA_STRATEGY_SPEC.md — Data strategy (✅ complete, referenced)
+23. ARCH_S2_3_BACKTESTING.md — Backtesting design (Gate 4 pending, referenced)
+24. TASK_005_ML_TRAINING_SPEC.md — PPO training phases (🔄 in progress, referenced)
+
+### ⚠️ Verificação Pós-Limpeza
+
+- ✅ **0 tarefas perdidas** — Todas já em BACKLOG.md com phases/gates detalhados
+- ✅ **0 deadlinks** — Nenhuma referência nos 24 docs mantidos para os 54 deletados
+- ✅ **Carga cognitiva reduzida:** 104 → 50 docs (48% menos navegação)
+- ✅ **Fontes únicas consolidadas:** BACKLOG.md (tasks) + TRACKER.md (tabular view) + SYNCHRONIZATION.md (audit)
+- ✅ **Audit trail completo:** Este [SYNC] entry documenta tudo
+- ✅ **Recuperabilidade:** git log pode restaurar qualquer arquivo se necessário
+
+### 🔐 Estrutura Pós-Limpeza
+
+```
+docs/ (50 arquivos mantidos)
+├── 🔴 Fonte Única de Verdade:
+│   ├── BACKLOG.md (tasks, phases, gates, status)
+│   ├── TRACKER.md (tabela consolidada)
+│   └── SYNCHRONIZATION.md (audit trail [SYNC])
+├── 🟠 Camada 1 (Estratégia):
+│   ├── RELEASES.md, ROADMAP.md, FEATURES.md
+│   ├── USER_STORIES.md, DECISIONS.md, LESSONS_LEARNED.md
+│   ├── STATUS_ATUAL.md, USER_MANUAL.md
+├── 🟡 Camada 2 (Execução):
+│   ├── CRITERIOS_DE_ACEITE_MVP.md, RUNBOOK_OPERACIONAL.md
+│   └── CHANGELOG.md
+├── 🔵 Camada 3 (Técnica):
+│   ├── C4_MODEL.md, ADR_INDEX.md, OPENAPI_SPEC.md
+│   └── IMPACT_README.md
+├── 🟢 Complementares (Referências Ativas):
+│   ├── ISSUE_64_TELEGRAM_SETUP_SPEC.md
+│   ├── ISSUE_65_SMC_QA_SPEC.md
+│   ├── ISSUE_67_DATA_STRATEGY_SPEC.md
+│   ├── ARCH_S2_3_BACKTESTING.md
+│   ├── TASK_005_ML_TRAINING_SPEC.md
+│   └── BEST_PRACTICES.md
+└── 📋 Suporte:
+    ├── CONTRIBUTING.md, COMMIT_MESSAGE_POLICY.md
+    └── outros configs...
+```
 
 ---
 

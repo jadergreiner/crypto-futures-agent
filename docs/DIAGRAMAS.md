@@ -1,7 +1,7 @@
 # 📐 Diagramas — Arquitetura do Sistema
 
-**Versão:** 0.2.0  
-**Data:** 07 MAR 2026  
+**Versão:** 0.2.0
+**Data:** 07 MAR 2026
 **Responsável:** Arquiteto (#6), Data (#11)
 
 ---
@@ -459,7 +459,7 @@ Memory (Trading Env)
                    └─→ SQLite: INSERT performance (daily aggregates)
                        └─→ JSON: performance report
 
-            
+
 READ PATH (Query)
 
 Dashboard / Backtester
@@ -496,7 +496,7 @@ Operação: Deletar Account
   ├─Orders cascade → cancel pending
   ├─Trades cascade → mark deleted
   └─Signals cascade → mark orphaned
-  
+
 Operação: Deletar Position
   ├─Cascade → Signals (signal.trade_id = NULL)
   └─SET NULL → Orders (order.position_id)

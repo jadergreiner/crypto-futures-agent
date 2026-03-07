@@ -185,3 +185,23 @@ def create_binance_client(mode: Optional[str] = None) -> DerivativesTradingUsdsF
     """
     factory = BinanceClientFactory(mode=mode)
     return factory.create_client()
+
+
+def create_data_client() -> DerivativesTradingUsdsFutures:
+    """
+    Create a client specifically for reading market data from production.
+    
+    Always connects to production (fapi.binance.com) regardless of trading mode.
+    This ensures Paper Trading (opção 1) reads real market data from production
+    while executing trades only on testnet (no risk).
+    
+    Returns:
+        Configured DerivativesTradingUsdsFutures client for production data only
+    
+    Example:
+        >>> data_client = create_data_client()
+        >>> sentiment_collector = SentimentCollector(data_client)
+    """
+    factory = BinanceClientFactory(mode="live")  # Always production for data
+    logger.info("Created data client - always reads from production (fapi.binance.com)")
+    return factory.create_client()

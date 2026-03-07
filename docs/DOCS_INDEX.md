@@ -1,7 +1,7 @@
 # 📚 Índice de Documentação — Estrutura Mínima
 
-**Versão:** 0.1.0  
-**Data:** 07 MAR 2026  
+**Versão:** 0.1.0
+**Data:** 07 MAR 2026
 **Responsável:** Doc Advocate, Arquiteto
 
 ---
