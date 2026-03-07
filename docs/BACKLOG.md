@@ -86,16 +86,24 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: 🔄 **PHASE 1 IN PROGRESS** (Environment Setup kickoff: 07 MAR 19:30 UTC)
+  - Status: ✅ **PHASE 2 READY FOR EXECUTION** (Components complete: 07 MAR 20:15 UTC)
   - Owner: The Brain (#3)
   - Score: 1.0 | Effort: 96h wall-time
   - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
   - Blocker: ✅ Issue #65 COMPLETE (SMC validation finished)
   - **Phases:**
-    - **Phase 1: Setup** — Environment, dependencies, config — 🔄 IN PROGRESS (trainer env ready)
-    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ NEXT
-    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ LATER
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_EXECUTION_LOG.md](../TASK_005_EXECUTION_LOG.md)
+    - **Phase 1: Setup** — Environment, dependencies, config — ✅ COMPLETE
+    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ✅ READY
+    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ NEXT
+  - **Phase 2 Components (7/7 complete):**
+    - ✅ CryptoTradingEnv (agent/rl/training_env.py)
+    - ✅ TradeHistoryLoader (agent/rl/data_loader.py)
+    - ✅ PPOTrainer (agent/rl/ppo_trainer.py)
+    - ✅ TrainingLoop w/daily gates (agent/rl/training_loop.py)
+    - ✅ FinalValidator (agent/rl/final_validation.py)
+    - ✅ TradesGenerator (data/trades_history_generator.py)
+    - ✅ Integration Tests (4/4 PASS)
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC
