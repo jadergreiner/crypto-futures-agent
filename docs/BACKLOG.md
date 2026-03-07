@@ -98,7 +98,30 @@
   - Score: 0.75 | Effort: Merged
   - Descrição: TrailingStopManager integration com OrderExecutor
   - Ready para: Live testing
-  - Documentação: [ARCH_S2_4_TRAILING_STOP.md](ARCH_S2_4_TRAILING_STOP.md)
+  - Documentação: Merged em main
+
+- **TASK-012** — S2-0 REC-1: WAL Mode + Timeout Adaptativo
+  - Status: ⏳ **PLANEJADO**
+  - Owner: Data (#11)
+  - Score: 0.90 | Effort: 15 min
+  - Prioridade: 🔴 CRÍTICA
+  - Desbloqueador: S2-0, Backtesting cache
+
+- **TASK-013** — S2-0 REC-2: Data Versioning for Cache Consistency
+  - Status: ⏳ **PLANEJADO**
+  - Owner: Data (#11)
+  - Score: 0.88 | Effort: 2h
+  - Blocker: TASK-012
+  - Prioridade: 🟠 ALTA
+  - Desbloqueador: S2-0 cache, S2-3 Backtesting
+
+- **TASK-014** — S2-0 QA Gates Completion
+  - Status: ⏳ **SQUAD KICKOFF**
+  - Owner: Data (#11) + QA Lead (#8)
+  - Score: 0.85 | Effort: 3-4h
+  - Blocker: TASK-012, TASK-013
+  - Desbloqueador: S2-3 Backtesting
+  - Prioridade: 🟠 ALTA
 
 - **S2-3** — Backtesting Engine
   - Status: 🟡 **DESIGN COMPLETE**
