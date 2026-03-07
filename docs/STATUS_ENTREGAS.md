@@ -1,6 +1,6 @@
 # 📊 Status de Entregas — Crypto Futures Agent
 
-**Última atualização:** 2026-02-28 00:51 UTC ([SYNC] TASK-011 Phases 3-4 Completas - Production Approved)
+**Última atualização:** 2026-03-06 23:30 UTC ([SYNC] SKRUSDT Modelo Swing Trade Ativado - Production Ready)
 **Sprint atual:** Sprint 1 ✅ COMPLETA | Sprint 2 🔵 S2-0 ✅ + S2-3 ✅ + S2-1/S2-2 ✅ + **TASK-008 ✅** + **TASK-009 ✅** + **TASK-010 ✅** + **TASK-011 ✅ COMPLETA** | Sprint 2-3 🟡 Issue #65 QA, Issue #64 + #67 (Paralelo)
 **Fonte da verdade:** [BACKLOG.md](BACKLOG.md) ← Consolidação de STATUS_ENTREGAS + TRACKER + ROADMAP + FEATURES + DECISIONS + RELEASES + USER_STORIES + PLANO_DE_SPRINTS + SYNCHRONIZATION + STATUS_ATUAL + SITUACAO_ATUAL_TASK_010 + BACKLOG_README
 
@@ -87,6 +87,7 @@
 
 | Data       | Entrega                  | Sprint   | PR     | Notas   |
 |------------|--------------------------|----------|--------|---------|
+| 2026-03-06 | **[NOVO] SKRUSDT Modelo Swing Trade Autônomo** ✅ | Sprint 2-3 | - | Model Release: SKRPlaybook (playbooks/skr_playbook.py) + Configuration (config/symbols.py beta 2.8) + Tests (41/41 PASS). Integration: Validação completa via test_skrusdt_integration.py (8/8 tests). Docs: SKRUSDT_ACTIVATION_GUIDE.md. Status: **PRODUCTION READY**. Próx: Paper trading (24h validação) → LIVE ($10 capital). |
 | 2026-02-23 | **[S2-4] Integração TrailingStopManager com OrderExecutor** ✅ | Sprint 2 | - | execution/order_executor.py: TrailingStopManager inicializado + evaluate_trailing_stop(). monitoring/position_monitor.py: código duplicado removido. tests/test_s2_4_tsl_integration_with_executor.py: 16 novos testes (cache, múltiplos símbolos, trigger detection). Total: 50+ testes PASS. Desbloqueia testnet + Issue #65 QA. |
 | 2026-02-23 | **Issue #63 — SMC Volume Threshold + Order Blocks Integration** ✅ | Sprint 2 | - | indicators/smc.py: detect_order_blocks() com volume_threshold (SMA 20) + strength calc. execution/heuristic_signals.py: _validate_smc() integrado com order blocks + edge case validation (gaps, ranging, low-liq). tests/test_smc_volume_threshold.py: 28 testes unitários (100% PASS, 85% coverage). Bloqueadores S2-1/S2-2 RESOLVIDOS. DESBLOQUEIA Issue #65 + TASK-005 PPO. |
 | 2026-02-22 | S2-3 Gate 2 — Backtesting Metrics ✅ | Sprint 2-3 | #62 | backtest/metrics.py (6 métodos + 2 helpers) + backtest/test_metrics.py (28 testes, 100% PASS). Sharpe, Max DD, Win Rate, Profit Factor, Consecutive Losses implementados. Cobertura 82%. Pronto para gatekeeping. |
