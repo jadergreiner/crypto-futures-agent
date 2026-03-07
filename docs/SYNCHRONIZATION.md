@@ -75,6 +75,26 @@
 
 **Conclusão:** ✅ Todas as tarefas ativas estão catalogadas. Nada foi perdido. Repositório mais limpo.
 
+---
+
+## ⚠️ NOTA: Commit 0ad3827 com tag [FEAT] (histórico)
+
+**Situação:** Commit `0ad3827 [FEAT] SKRUSDT real data backtest - 263 candles from Binance API` toca em `docs/SKRUSDT_ACTIVATION_GUIDE.md` mas usando tag `[FEAT]` em vez de `[SYNC]`.
+
+**Política:** Mudanças em `docs/` **requerem** tag `[SYNC]` para auditoria + sincronização.
+
+**Causa:** Commit foi criado antes da aplicação consistente da política.
+
+**Status:** ✅ **DOCUMENTADO** — Historicamente rastreado em SYNCHRONIZATION.md para auditoria futura.
+
+**Ação Recomendada (Futuro Sprint):**
+- Opção A: Rebase histórico para corrigir tag (⚠️ reescreve história)
+- Opção B: Aceitar como anomalia documentada (mantém histórico intacto)
+
+**Decisão:** Opção B—mantém histórico íntegro. [SYNC] policy aplicada consistentemente em commits posteriores.
+
+---
+
 ### 🔐 Governança Pós-Limpeza
 
 **Repositório agora tem:**
