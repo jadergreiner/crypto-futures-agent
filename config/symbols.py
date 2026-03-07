@@ -872,8 +872,30 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "ethereumscaling",
             "high_beta"
         ]
+    },
+    "SKRUSDT": {
+        "papel": (
+            "Sker (SKR). Token de baixa capitalização com movimentos amplos. "
+            "Ideal para swing trade pela alta volatilidade e estrutura técnica clara."
+        ),
+        "ciclo_proprio": (
+            "Ciclos de acumulação → impulso → distribuição bem definidos no D1/H4. "
+            "Reage fortemente a risk-on/risk-off. Swings de 10-30% frequentes. "
+            "Autônomo: agente aprende e evolui padrões sem parâmetros fixos."
+        ),
+        "correlacao_btc": [0.55, 0.80],
+        "beta_estimado": 2.8,
+        "classificacao": "low_cap_swing",
+        "caracteristicas": [
+            "swing_trade",
+            "high_beta",
+            "volatile",
+            "d1_structure",
+            "risk_on_dependent",
+            "autonomous_learning"
+        ]
     }
 }
 
-# List of all symbols for easy iteration
+# Lista de todos os símbolos para iteração
 ALL_SYMBOLS: List[str] = list(SYMBOLS.keys())
