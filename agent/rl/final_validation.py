@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class Task005FinalValidator:
     """
     Valida modelo treinado contra success criteria de TASK-005.
-    
+
     Success Criteria:
     1. Sharpe Ratio ≥ 0.80
     2. Max Drawdown ≤ 12%
@@ -44,7 +44,7 @@ class Task005FinalValidator:
     5. Consecutive Losses ≤ 5
     6. Model serialized
     """
-    
+
     # Gates de sucesso
     SUCCESS_CRITERIA = {
         'sharpe_ratio': 0.80,
@@ -53,7 +53,7 @@ class Task005FinalValidator:
         'profit_factor': 1.5,
         'consecutive_losses': 5,
     }
-    
+
     def __init__(
         self,
         model_path: str,
@@ -62,7 +62,7 @@ class Task005FinalValidator:
     ):
         """
         Inicializa o validador.
-        
+
         Args:
             model_path: Caminho do modelo treinado
             trades_filepath: Caminho do histórico de trades
@@ -72,74 +72,74 @@ class Task005FinalValidator:
         self.trades_filepath = trades_filepath
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.model = None
         self.env = None
         self.validation_results = {}
-    
+
     def validate(self) -> Tuple[bool, Dict]:
         """
         Executa validação completa.
-        
+
         Returns:
             tuple: (is_valid, results_dict)
         """
         logger.info("🔍 Iniciando validação final de TASK-005...")
-        
+
         try:
             # Carrega model e environment
             if not self._load_model_and_env():
                 return False, {}
-            
+
             # Executa modelo em backtest completo
             if not self._run_backtest():
                 return False, {}
-            
+
             # Calcula métricas
             if not self._calculate_metrics():
                 return False, {}
-            
+
             # Verifica success criteria
             is_valid = self._check_success_criteria()
-            
+
             # Salva resultados
             self._save_results(is_valid)
-            
+
             return is_valid, self.validation_results
-        
+
         except Exception as e:
             logger.error(f"❌ Erro na validação: {e}")
             return False, {}
-    
+
     def _load_model_and_env(self) -> bool:
         """Carrega modelo e ambiente."""
         try:
             # Carrega dados de trades
             loader = TradeHistoryLoader(self.trades_filepath)
             trades = loader.load()
-            
+
             # Cria environment
             self.env = CryptoTradingEnv(trade_data=trades)
-            
+
             # Carrega modelo PPO
             self.model = PPO.load(self.model_path)
-            
+
             logger.info("✅ Modelo e ambiente carregados")
             return True
-        
+
         except Exception as e:
             logger.error(f"❌ Erro ao carregar modelo: {e}")
             return False
-    
+
     def _run_backtest(self) -> bool:
         """Executa modelo em backtest completo."""
         try:
             logger.info("📊 Executando backtest...")
-            
+
             obs, _ = self.env.reset()
             trades = []
             terminated = False
-            
+
             while not terminated:
                 action, _states = self.model.predict(obs, deterministic=True)
                 obs, reward, terminated, truncated, info = self.env.step(action)
@@ -147,49 +147,96 @@ class Task005FinalValidator:
                     'reward': float(reward),
                     'equity': float(info.get('equity', 0)),
                 })
-            
+
             # Salva trades do backtest
             self.validation_results['trades'] = trades
             self.validation_results['backtest_trades_count'] = len(trades)
-            
+
             logger.info(f"✅ Backtest completo ({len(trades)} trades)")
             return True
-        
+
         except Exception as e:
             logger.error(f"❌ Erro no backtest: {e}")
             return False
-    
+
     def _calculate_metrics(self) -> bool:
-        """Calcula métricas finais."""
+        """Calcula métricas finais com validação de sanidade."""
         try:
             trades = self.validation_results.get('trades', [])
             rewards = np.array([t['reward'] for t in trades])
-            
+
             if len(rewards) == 0:
                 logger.error("❌ Nenhum trade no backtest")
                 return False
-            
-            # Sharpe Ratio
+
+            # ============================================================
+            # SHARPE RATIO - CORRIGIDO COM PROTEÇÃO DE VOLATILIDADE
+            # ============================================================
             mean_reward = np.mean(rewards)
-            std_reward = np.std(rewards) + 1e-8
-            sharpe = mean_reward / std_reward
+            std_reward = np.std(rewards)
             
-            # Win Rate
+            # Floor de volatilidade mínima para evitar divisões por zero/valores artificiais
+            # Usa máximo de: 1% do retorno médio absoluto ou 0.01 como piso absoluto
+            min_vol = max(abs(mean_reward) * 0.01, 0.01)
+            std_reward_floored = max(std_reward, min_vol)
+            
+            # Sharpe Ratio com proteção contra valores anormais
+            sharpe = mean_reward / std_reward_floored
+            
+            # VALIDAÇÃO SANIDADE: Sharpe não deve ultrapassar 10
+            # (valores realistas de trading até ~5, acima disso é suspeito)
+            if sharpe > 10.0:
+                logger.warning(
+                    f"⚠️ Sharpe anormalmente alto: {sharpe:.4f} "
+                    f"(std: {std_reward:.6f}, mean: {mean_reward:.6f}). "
+                    f"Usando floor de 10.0 para sanidade."
+                )
+                sharpe = 10.0
+
+            # ============================================================
+            # WIN RATE
+            # ============================================================
             winning_trades = np.sum(rewards > 0)
             win_rate = winning_trades / len(rewards)
-            
-            # Drawdown (simulado)
+
+            # VALIDAÇÃO SANIDADE: Win Rate deve estar entre 0% e 100%
+            assert 0 <= win_rate <= 1.0, f"Invalid win_rate: {win_rate}"
+
+            # ============================================================
+            # MAXIMUM DRAWDOWN
+            # ============================================================
             cumulative_returns = np.cumsum(rewards)
             running_max = np.maximum.accumulate(cumulative_returns)
             drawdown = cumulative_returns - running_max
             max_drawdown = -np.min(drawdown) / (np.max(running_max) + 1e-8)
-            
-            # Profit Factor
+
+            # VALIDAÇÃO SANIDADE: Drawdown deve estar entre 0% e 100%
+            max_drawdown = max(0, min(max_drawdown, 1.0))
+
+            # ============================================================
+            # PROFIT FACTOR
+            # ============================================================
             gains = np.sum(rewards[rewards > 0])
             losses = -np.sum(rewards[rewards < 0])
-            profit_factor = gains / (losses + 1e-8) if losses > 0 else 0
             
-            # Consecutive Losses
+            # Evita divisão por zero e valores impossíveis
+            if losses > 0:
+                profit_factor = gains / losses
+            elif gains > 0:
+                profit_factor = float('inf')  # Todos ganhos, zero perdas
+            else:
+                profit_factor = 1.0  # Nenhum trade lucrativo
+
+            # VALIDAÇÃO SANIDADE: Profit Factor acima de 100 é suspeito
+            if profit_factor > 100:
+                logger.warning(
+                    f"⚠️ Profit Factor anormalmente alto: {profit_factor:.2f}. "
+                    f"Gains: {gains:.6f}, Losses: {losses:.6f}"
+                )
+
+            # ============================================================
+            # CONSECUTIVE LOSSES
+            # ============================================================
             losing_trades = [1 if r < 0 else 0 for r in rewards]
             max_consecutive_losses = 0
             current_consecutive = 0
@@ -199,8 +246,13 @@ class Task005FinalValidator:
                     max_consecutive_losses = max(max_consecutive_losses, current_consecutive)
                 else:
                     current_consecutive = 0
-            
-            # Armazena métricas
+
+            # VALIDAÇÃO SANIDADE: Consecutive losses não deve ultrapassar total trades
+            assert 0 <= max_consecutive_losses <= len(rewards)
+
+            # ============================================================
+            # ARMAZENAR MÉTRICAS CALCULADAS
+            # ============================================================
             self.validation_results['metrics'] = {
                 'sharpe_ratio': float(sharpe),
                 'win_rate': float(win_rate),
@@ -209,64 +261,68 @@ class Task005FinalValidator:
                 'consecutive_losses': int(max_consecutive_losses),
                 'total_trades': len(rewards),
                 'total_return': float(np.sum(rewards)),
+                # Info adicional para debug
+                '_debug_std': float(std_reward),
+                '_debug_std_floored': float(std_reward_floored),
+                '_debug_mean': float(mean_reward),
             }
-            
-            logger.info("✅ Métricas calculadas")
+
+            logger.info("✅ Métricas calculadas com validação de sanidade")
             return True
-        
+
         except Exception as e:
             logger.error(f"❌ Erro no cálculo de métricas: {e}")
             return False
-    
+
     def _check_success_criteria(self) -> bool:
         """Verifica se atende aos success criteria."""
         metrics = self.validation_results.get('metrics', {})
-        
+
         criteria_results = {}
         all_passed = True
-        
+
         for criterion, threshold in self.SUCCESS_CRITERIA.items():
             actual = metrics.get(criterion, 0)
-            
+
             # Compara com threshold (maior é melhor para sharpe/win_rate/pf,
             # menor é melhor para drawdown/consecutive_losses)
             if criterion in ['max_drawdown', 'consecutive_losses']:
                 passed = actual <= threshold
             else:
                 passed = actual >= threshold
-            
+
             criteria_results[criterion] = {
                 'threshold': threshold,
                 'actual': actual,
                 'passed': passed,
             }
-            
+
             all_passed = all_passed and passed
-        
+
         self.validation_results['criteria_check'] = criteria_results
         self.validation_results['is_valid'] = all_passed
-        
+
         return all_passed
-    
+
     def _save_results(self, is_valid: bool) -> None:
         """Salva resultados de validação."""
         # Salva JSON
         results_file = self.output_dir / "task005_validation_results.json"
         with open(results_file, 'w') as f:
             json.dump(self.validation_results, f, indent=2)
-        
+
         # Imprime relatório
         self._print_validation_report(is_valid)
-    
+
     def _print_validation_report(self, is_valid: bool) -> None:
         """Imprime relatório de validação."""
         metrics = self.validation_results.get('metrics', {})
         criteria = self.validation_results.get('criteria_check', {})
-        
+
         print("\n" + "="*70)
         print("📋 TASK-005 FINAL VALIDATION REPORT")
         print("="*70)
-        
+
         print("\n🎯 Success Criteria Check:")
         for criterion, check in criteria.items():
             status = "✅ PASS" if check['passed'] else "❌ FAIL"
@@ -274,7 +330,7 @@ class Task005FinalValidator:
                 f"  {status} {criterion}: {check['actual']:.4f} "
                 f"(gate: {check['threshold']:.4f})"
             )
-        
+
         print(f"\n📊 Backtest Results:")
         print(f"  Total Trades:    {metrics.get('total_trades', 0)}")
         print(f"  Total Return:    {metrics.get('total_return', 0):.4f}")
@@ -282,7 +338,7 @@ class Task005FinalValidator:
         print(f"  Win Rate:        {metrics.get('win_rate', 0)*100:.1f}%")
         print(f"  Max Drawdown:    {metrics.get('max_drawdown', 0)*100:.1f}%")
         print(f"  Profit Factor:   {metrics.get('profit_factor', 0):.2f}")
-        
+
         print(f"\n{'='*70}")
         if is_valid:
             print("✅ VALIDATION: GO — All criteria passed!")
@@ -294,10 +350,10 @@ class Task005FinalValidator:
 def validate_task005_model(model_path: str) -> bool:
     """
     Função convenience para validar modelo.
-    
+
     Args:
         model_path: Caminho do modelo
-        
+
     Returns:
         bool: True se validação passou
     """
@@ -309,7 +365,7 @@ def validate_task005_model(model_path: str) -> bool:
 if __name__ == "__main__":
     # Teste: espera modelo em models/ppo_v0_final.pkl
     from pathlib import Path
-    
+
     model_path = "models/ppo_v0_final.pkl"
     if Path(model_path).exists():
         validate_task005_model(model_path)
