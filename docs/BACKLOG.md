@@ -86,15 +86,15 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: ✅ **PHASE 2 READY FOR EXECUTION** (Components complete: 07 MAR 20:15 UTC)
+  - Status: ✅ **PHASE 3 READY FOR EXECUTION** (Validation infrastructure complete: 07 MAR 21:30 UTC)
   - Owner: The Brain (#3)
-  - Score: 1.0 | Effort: 96h wall-time
+  - Score: 1.0 | Effort: 96h wall-time (Phase 2) + 4-5h (Phase 3)
   - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
   - Blocker: ✅ Issue #65 COMPLETE (SMC validation finished)
   - **Phases:**
     - **Phase 1: Setup** — Environment, dependencies, config — ✅ COMPLETE
-    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ✅ READY
-    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ NEXT
+    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ READY FOR LAUNCH
+    - **Phase 3: Validation** — Model save, metrics compilation, success gates, 4-persona approvals — ✅ READY FOR EXECUTION
   - **Phase 2 Components (7/7 complete):**
     - ✅ CryptoTradingEnv (agent/rl/training_env.py)
     - ✅ TradeHistoryLoader (agent/rl/data_loader.py)
@@ -103,7 +103,18 @@
     - ✅ FinalValidator (agent/rl/final_validation.py)
     - ✅ TradesGenerator (data/trades_history_generator.py)
     - ✅ Integration Tests (4/4 PASS)
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md)
+  - **Phase 3 Components (3/3 complete):**
+    - ✅ Phase3Executor (agent/rl/phase3_executor.py) — 505 LOC: Backtest, 5-criteria validation, 4-persona approvals
+    - ✅ DeploymentChecker (agent/rl/deployment_checker.py) — 385 LOC: Deployment readiness (5-point checklist), manifest generation
+    - ✅ Phase 3 Integration Tests (tests/test_task005_phase3_integration.py) — 75 LOC: Component validation
+  - **Success Criteria (all 5 must pass for GO):**
+    - Sharpe Ratio ≥ 0.80
+    - Max Drawdown ≤ 12%
+    - Win Rate ≥ 45%
+    - Profit Factor ≥ 1.5
+    - Consecutive Losses ≤ 5
+  - **4-Persona Approvals:** Arch (#6), Audit (#8), Quality (#12), Brain (#3)
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md) | [TASK_005_PHASE3_SUMMARY.md](TASK_005_PHASE3_SUMMARY.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC
