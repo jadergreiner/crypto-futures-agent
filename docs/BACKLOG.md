@@ -86,16 +86,16 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: ✅ **DESBLOQUEADA & READY** (awaiting human authorization)
+  - Status: 🔄 **PHASE 1 IN PROGRESS** (Environment Setup kickoff: 07 MAR 19:30 UTC)
   - Owner: The Brain (#3)
   - Score: 1.0 | Effort: 96h wall-time
   - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
-  - Blocker: ✅ Issue #65 QA COMPLETE (SMC validation finished)
-  - **Fases:**
-    - **Phase 1: Setup** — Environment, dependencies, config — ✅ DONE
-    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ READY TO START
-    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ NEXT
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](TASK_005_ML_TRAINING_SPEC.md)
+  - Blocker: ✅ Issue #65 COMPLETE (SMC validation finished)
+  - **Phases:**
+    - **Phase 1: Setup** — Environment, dependencies, config — 🔄 IN PROGRESS (trainer env ready)
+    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — ⏳ NEXT
+    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ LATER
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_EXECUTION_LOG.md](../TASK_005_EXECUTION_LOG.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC
