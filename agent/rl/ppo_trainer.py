@@ -100,11 +100,12 @@ class SharpeGateCallback(BaseCallback):
             # EARLY STOP V2: MUITO MENOS AGRESSIVO
             # ============================================================
             # v1: Sharpe >= 1.0 → early stop (muito agressivo, abortava em 22min)
-            # v2: Sharpe >= 10.0 (evidente anomalia/overfitting)
+            # v2: Sharpe >= 20.0 (very high, only stops on obvious anomaly)
             #     OU timesteps >= 500k (deixa completar 96h / 500k steps)
+            # v2.4: Increased from 10.0 to 20.0 to allow full training
             # Resultado: Deixa treinamento rodar completo por padrão
             # ============================================================
-            if avg_sharpe >= 10.0:
+            if avg_sharpe >= 20.0:
                 logger.warning(
                     f"⚠️  Sharpe anormalmente alto: {avg_sharpe:.4f}. "
                     f"Possível overfitting. Parando treinamento."

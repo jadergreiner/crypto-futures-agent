@@ -58,6 +58,8 @@ class CryptoTradingEnv(gym.Env):
         self.entry_qty = 0.0
         self.trades_history = []
         self.step_rewards = []
+        self.consecutive_losses = 0  # Counter for consecutive losing trades (v2.4 safeguard)
+        self.max_consecutive_losses = 5  # Max allowed consecutive losses hard limit
 
         # Espaço de observação: [close, volume, rsi, position, pnl]
         # Shape: (5,) de floats
@@ -141,6 +143,7 @@ class CryptoTradingEnv(gym.Env):
         self.entry_qty = 0.0
         self.trades_history = []
         self.step_rewards = []
+        self.consecutive_losses = 0  # Reset counter on new episode
 
         obs = self._get_observation()
         info = {}
@@ -241,12 +244,25 @@ class CryptoTradingEnv(gym.Env):
                 win_bonus = 0.2  # Bônus fixo por descobrir padrão positivo
                 magnitude_bonus = min(pnl / self.initial_capital * 0.5, 0.1)  # Até +0.1 extras
                 reward = base_reward + win_bonus + magnitude_bonus
+                # Reset consecutive losses on win
+                self.consecutive_losses = 0
             else:
                 # LOSS: Penalidade moderada (não severa)
                 # Evita que o modelo fique paralisado de medo
                 loss_penalty = -0.05  # Penalidade fixa pequena
                 magnitude_loss = max(pnl / self.initial_capital * 0.1, -0.05)  # Até -0.05 extras
                 reward = base_reward + loss_penalty + magnitude_loss
+                
+                # ============================================================
+                # CONSECUTIVE LOSSES SAFEGUARD (v2.4)
+                # ============================================================
+                # Track consecutive losses; penalize heavily if limit reached
+                self.consecutive_losses += 1
+                
+                if self.consecutive_losses >= self.max_consecutive_losses:
+                    # Severe penalty when hitting max consecutive losses
+                    penalty = -1.0  # Heavy penalty to discourage this pattern
+                    reward += penalty
 
             # ============================================================
             # BÔNUS DE SHARPE (Consistência de Wins)

@@ -208,9 +208,10 @@ class Task005TrainingLoop:
                 # Salva training log intermediário
                 self._save_training_log()
 
-                # Early stop apenas se Sharpe ≥ 10.0 (detecta evidente anomalia/overfitting)
-                if sharpe >= 10.0:
-                    logger.info("🎉 Target Sharpe ≥ 10.0 alcançado! Encerrando treinamento.")
+                # Early stop apenas se Sharpe ≥ 20.0 (very high threshold, allows full training by default)
+                # v2.4: Increased from 10.0 to 20.0 to avoid premature stopping
+                if sharpe >= 20.0:
+                    logger.info("🎉 Target Sharpe ≥ 20.0 alcançado! Encerrando treinamento.")
                     break
 
                 # Timeout safety: se > 120h, para mesmo que não tenha atingido target
@@ -236,7 +237,7 @@ class Task005TrainingLoop:
         Returns:
             dict: Dicionário com métricas (sharpe, win_rate, max_dd, etc)
         """
-        n_episodes = 50  # Aumentado de 5 para mais variabilidade estatística
+        n_episodes = 150  # Aumentado de 50 para 150 (v2.4) → captura variância real
         returns = []
         all_pnls = []
 
