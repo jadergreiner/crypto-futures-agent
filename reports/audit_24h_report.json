@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-03-07T12:39:53.664098Z",
+  "periodo_inicio": "2026-03-06T15:39:53.539000Z",
+  "periodo_fim": "2026-03-07T15:39:53.539000Z",
+  "metricas": {
+    "financial_summary": {
+      "total_pnl_usdt": 0.0,
+      "total_pnl_pct": 0.0,
+      "trade_count": 0,
+      "trades_abertas": 0,
+      "trades_fechadas": 0,
+      "win_rate_pct": 0.0,
+      "avg_win": 0.0,
+      "avg_loss": 0.0,
+      "maior_ganho": 0.0,
+      "maior_perda": 0.0,
+      "r_multiple_medio": 0.0,
+      "expectativa_positiva": false
+    },
+    "execution_statistics": {
+      "total_executions": 121,
+      "executions_success": 121,
+      "executions_blocked": 0,
+      "success_rate_pct": 100.0,
+      "by_mode": {
+        "paper": 0,
+        "live": 121
+      },
+      "blocked_reasons": {},
+      "symbols_count": 11
+    },
+    "risk_metrics": {
+      "circuit_breaker_activations": 0,
+      "stop_loss_triggered": 0,
+      "max_leverage": 0,
+      "avg_leverage": 0.0,
+      "liquidation_risk_count": 0
+    },
+    "performance_by_symbol": {}
+  },
+  "anomalias": [],
+  "recomendacoes": [
+    {
+      "prioridade": "HIGH",
+      "topico": "Taxa de Acerto",
+      "descricao": "Taxa de acerto < 40%. Investigar confiança de sinais e ajustar filtros de entrada."
+    },
+    {
+      "prioridade": "CRITICAL",
+      "topico": "Expectativa Matemática",
+      "descricao": "Expectativa negativa detectada. Pausar operações e revisar lógica do agente."
+    }
+  ],
+  "dados_brutos": {
+    "total_trades": 0,
+    "total_executions": 121,
+    "total_signals": 0,
+    "total_snapshots": 100
+  }
+}

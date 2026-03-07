@@ -44,8 +44,8 @@ git config core.hooksPath
 
 ## 🔧 Pre-Commit Hook
 
-**Localização:** `.githooks/pre-commit`  
-**Linguagem:** Bash  
+**Localização:** `.githooks/pre-commit`
+**Linguagem:** Bash
 **Dispara:** Antes de `git commit`
 
 ### Validações:
@@ -86,8 +86,8 @@ $ git commit -m "[SYNC] Atualizacao"
 
 ## 🔐 Pre-Push Hook
 
-**Localização:** `.githooks/pre-push`  
-**Linguagem:** Bash  
+**Localização:** `.githooks/pre-push`
+**Linguagem:** Bash
 **Dispara:** Antes de `git push`
 
 ### Validações:
@@ -223,9 +223,9 @@ bash .githooks/pre-commit
 
 ## 📊 Status dos Hooks
 
-**Versão:** 1.0  
-**Última atualização:** 2026-03-07  
-**Estado:** ✅ Operacional  
+**Versão:** 1.0
+**Última atualização:** 2026-03-07
+**Estado:** ✅ Operacional
 
 Hooks foram testados e validados em:
 - Commits com mudanças em docs/
@@ -253,5 +253,5 @@ Hooks foram testados e validados em:
 
 ---
 
-**Última revisão:** 2026-03-07  
+**Última revisão:** 2026-03-07
 **Responsável:** Database Architecture + Docs Sync Team

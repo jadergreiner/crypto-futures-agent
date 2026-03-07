@@ -91,7 +91,7 @@ class RateLimitManager:
         
         if current_requests >= self.max_requests_per_minute:
             logger.warning(
-                f"⚠️  Rate limit atingido: {current_requests}/{self.max_requests_per_minute} req/min"
+                f"[RATE_LIMIT] Rate limit atingido: {current_requests}/{self.max_requests_per_minute} req/min"
             )
             return True
         

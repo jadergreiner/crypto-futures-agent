@@ -77,7 +77,7 @@ def init_database(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.executescript(DB_SCHEMA_SQL)
     conn.commit()
-    logger.info(f"✅ Database initialized: {db_path}")
+    logger.info(f"[OK] Database initialized: {db_path}")
     return conn
 
 

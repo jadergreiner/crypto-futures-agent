@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-03-07T12:48:51.430836Z",
+  "banco": "db/crypto_futures.db",
+  "summary": {
+    "open_positions": 7,
+    "closed_positions": 0,
+    "orphaned_executions": 0,
+    "sync_gaps": 0,
+    "diagnostico": "Sincronização aparentemente consistente."
+  },
+  "open_positions": [
+    {
+      "trade_id": 7,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645791595,
+      "entrada_utc": "2026-02-21T03:49:51.595000Z",
+      "entry_price": 0.00459815,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 6,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645759306,
+      "entrada_utc": "2026-02-21T03:49:19.306000Z",
+      "entry_price": 0.004598,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 5,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645665342,
+      "entrada_utc": "2026-02-21T03:47:45.342000Z",
+      "entry_price": 0.00459445,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 4,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645641063,
+      "entrada_utc": "2026-02-21T03:47:21.063000Z",
+      "entry_price": 0.004595,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 3,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645593750,
+      "entrada_utc": "2026-02-21T03:46:33.750000Z",
+      "entry_price": 0.00459293,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 2,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771645201769,
+      "entrada_utc": "2026-02-21T03:40:01.769000Z",
+      "entry_price": 0.00460247,
+      "position_size": 10.0,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    },
+    {
+      "trade_id": 1,
+      "symbol": "ANKRUSDT",
+      "direcao": "LONG",
+      "entrada_ms": 1771644290000,
+      "entrada_utc": "2026-02-21T03:24:50Z",
+      "entry_price": 0.004609,
+      "position_size": 9.996921,
+      "status": "ABERTA",
+      "close_execution": null,
+      "sync_status": "❓ Nenhuma tentativa CLOSE/REDUCE encontrada"
+    }
+  ],
+  "closed_positions": [],
+  "orphaned_executions": [],
+  "sync_gaps": []
+}

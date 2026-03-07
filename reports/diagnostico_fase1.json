@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-03-07T12:48:45.564585Z",
+  "banco": "db/crypto_futures.db",
+  "resultados": {
+    "q1_execution_breakdown": {
+      "descricao": "Breakdowm de execuções por action e executed status",
+      "query": "SELECT \n            action,\n            executed,\n            COUNT(*) as count,\n            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM execution_log), 1) as pct\n        FROM execution_log\n        GROUP BY action, executed\n        ORDER BY count DESC",
+      "dados": []
+    },
+    "q2_open_positions": {
+      "descricao": "Posições abertas vs fechadas",
+      "query": "SELECT \n            SUM(CASE WHEN timestamp_saida IS NOT NULL THEN 1 ELSE 0 END) as fechadas,\n            SUM(CASE WHEN timestamp_saida IS NULL THEN 1 ELSE 0 END) as abertas\n        FROM trade_log",
+      "fechadas": 0,
+      "abertas": 7,
+      "total": 7,
+      "summary": "7 abertas + 0 fechadas = 7 total"
+    },
+    "q3_total_trades": {
+      "descricao": "Total de trades no banco",
+      "query": "SELECT COUNT(*) as total FROM trade_log",
+      "total": 7,
+      "status": "✅ Banco tem dados"
+    },
+    "q4_close_reduce_status": {
+      "descricao": "Status de execuções CLOSE/REDUCE_50",
+      "query": "SELECT \n            action,\n            executed,\n            COUNT(*) as count\n        FROM execution_log\n        WHERE action IN ('CLOSE', 'REDUCE_50')\n        GROUP BY action, executed\n        ORDER BY action, executed DESC",
+      "dados": [],
+      "alerta": "⚠️ CRÍTICO: Nenhuma CLOSE/REDUCE detectada!"
+    },
+    "q5_blocked_reasons": {
+      "descricao": "Motivos de bloqueio de execuções",
+      "query": "SELECT \n            reason,\n            COUNT(*) as count,\n            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM execution_log WHERE executed=0), 1) as pct_of_blocked\n        FROM execution_log\n        WHERE executed = 0\n        GROUP BY reason\n        ORDER BY count DESC",
+      "dados": [],
+      "total_bloqueadas": 0,
+      "status": "✅ Nenhuma execução bloqueada"
+    },
+    "q6_last_execution": {
+      "descricao": "Última execução registrada",
+      "query": "SELECT \n            MAX(timestamp) as last_ts_ms,\n            datetime(MAX(timestamp)/1000, 'unixepoch') as last_ts_utc\n        FROM execution_log",
+      "last_timestamp_ms": null,
+      "last_timestamp_utc": null,
+      "nota": "Indica atividade recente se < 24h"
+    },
+    "q7_last_trade_update": {
+      "descricao": "Última atualização de trade_log",
+      "query": "SELECT \n            MAX(timestamp_entrada) as last_entrada_ms,\n            datetime(MAX(timestamp_entrada)/1000, 'unixepoch') as last_entrada_utc,\n            MAX(COALESCE(timestamp_saida, 0)) as last_saida_ms,\n            datetime(MAX(COALESCE(timestamp_saida, 0))/1000, 'unixepoch') as last_saida_utc\n        FROM trade_log",
+      "ultima_entrada_ms": 1771645791595,
+      "ultima_entrada_utc": "2026-02-21 03:49:51",
+      "ultima_saida_ms": null,
+      "ultima_saida_utc": null,
+      "nota": "Gap entre entrada e saída revela se posições estão se sincronizando"
+    },
+    "q8_protection_orders": {
+      "descricao": "Percentual de execuções que são proteção (SET_SL/SET_TP)",
+      "query": "SELECT \n            COUNT(*) as total,\n            SUM(CASE WHEN action IN ('SET_SL', 'SET_TP') THEN 1 ELSE 0 END) as protection_orders,\n            SUM(CASE WHEN action IN ('OPEN', 'CLOSE', 'REDUCE_50') THEN 1 ELSE 0 END) as position_orders,\n            ROUND(\n                SUM(CASE WHEN action IN ('SET_SL', 'SET_TP') THEN 1 ELSE 0 END) * 100.0 /\n                COUNT(*),\n                1\n            ) as protection_pct\n        FROM execution_log",
+      "total_executions": 0,
+      "protection_orders": 0,
+      "position_management_orders": 0,
+      "protection_pct": 0.0,
+      "interpretation": "Se protection_pct > 80%, então #0 das 121 execuções são apenas ordens de proteção (SET_SL/SET_TP), NÃO closures de posições."
+    }
+  }
+}

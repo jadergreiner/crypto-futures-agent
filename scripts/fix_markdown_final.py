@@ -14,7 +14,7 @@ from pathlib import Path
 def fix_blanks_around_lists(content):
     """
     Adiciona linhas em branco ao redor de listas.
-    
+
     Regra: Uma lista deve ter linha em branco antes e depois.
     """
     lines = content.split('\n')
@@ -77,7 +77,7 @@ def fix_blanks_around_lists(content):
 
             if not is_next_list and not is_next_empty and \
                     next_line.strip() and not next_line.startswith('#'):
-                if not (i + 2 < len(fixed_lines) and 
+                if not (i + 2 < len(fixed_lines) and
                         not fixed_lines[i + 2].strip()):
                     final_lines.append('')
 
@@ -87,7 +87,7 @@ def fix_blanks_around_lists(content):
 def fix_emphasis_as_heading(content):
     """
     Detecta ênfase usada como heading (MD036) e converte para heading real.
-    
+
     Exemplo: **## Exemplo** → ### Exemplo
     """
     lines = content.split('\n')

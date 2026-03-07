@@ -7,7 +7,7 @@ Estratégia:
    - Ignora URLs (exceto permitido por markdownlint)
    - Ignora linhas dentro de código
    - Quebra descrições em pontos lógicos
-   
+
 2. MD060: Reformata tabelas com espaçamento correto
 
 Uso:
@@ -36,7 +36,7 @@ def is_url_or_exception(line):
 def break_long_line(line, max_len=80):
     """
     Quebra linha longa mantendo semântica.
-    
+
     Estratégia:
     1. Se tem parênteses em listas, quebra antes deles
     2. Se tem "e", "ou", quebra antes

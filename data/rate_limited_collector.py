@@ -78,7 +78,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
         if isinstance(self.rate_limiter, AdaptiveRateLimiter):
             self.rate_limiter.record_rate_limit_hit()
             logger.warning(
-                f"⚠️  Rate limit hit (429). Nova taxa: {self.rate_limiter.current_max} req/min"
+                f"[RATE_LIMIT] Rate limit hit (429). Nova taxa: {self.rate_limiter.current_max} req/min"
             )
 
     def get_rate_limit_status(self) -> Dict[str, Any]:
@@ -116,7 +116,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
             Lista de klines ou None se falha
         """
         logger.info(
-            f"📊 Coleta com rate limiting: {symbol} {interval} ({lookback_days}d)"
+            f"[COLETA] Coleta com rate limiting: {symbol} {interval} ({lookback_days}d)"
         )
         
         try:
@@ -134,7 +134,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
             if klines and len(klines) > 0:
                 self.record_successful_request()
                 logger.info(
-                    f"✅ Coleta bem-sucedida: {symbol} = {len(klines)} klines "
+                    f"[OK] Coleta bem-sucedida: {symbol} = {len(klines)} klines "
                     f"({self.rate_limiter.base_manager.get_current_minute_requests()}/min)"
                 )
             
@@ -143,10 +143,10 @@ class RateLimitedBinanceCollector(BinanceCollector):
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 self.record_rate_limit_error()
-                logger.error(f"❌ Rate limit atingido (429): {e}")
+                logger.error(f"[ERRO_RL] Rate limit atingido (429): {e}")
                 return None
             else:
-                logger.error(f"❌ Erro na coleta: {e}")
+                logger.error(f"[ERRO] Erro na coleta: {e}")
                 raise
 
 
@@ -192,7 +192,7 @@ class BatchCollectorWithRateLimit:
         Returns:
             Dict { symbol: klines }
         """
-        logger.info(f"📊 Iniciando coleta em lote de {len(symbols)} símbolos")
+        logger.info(f"[COLETA] Iniciando coleta em lote de {len(symbols)} símbolos")
         
         results = {}
         successful = 0
@@ -218,18 +218,18 @@ class BatchCollectorWithRateLimit:
                     results[symbol] = klines
                     successful += 1
                 else:
-                    logger.warning(f"⚠️  Falha na coleta de {symbol}")
+                    logger.warning(f"[FALHA] Falha na coleta de {symbol}")
                     failed += 1
             
             except Exception as e:
-                logger.error(f"❌ Erro ao coletar {symbol}: {e}")
+                logger.error(f"[ERRO] Erro ao coletar {symbol}: {e}")
                 failed += 1
             
             # Mostrar status a cada 5 símbolos
             if i % 5 == 0:
                 rate_status = self.collector.get_rate_limit_status()
                 logger.info(
-                    f"📈 Progresso: {successful} sucesso, {failed} falhas. "
+                    f"[PROGRESSO] {successful} sucesso, {failed} falhas. "
                     f"Rate: {rate_status['current_requests_per_minute']}/{rate_status['max_requests_per_minute']} req/min"
                 )
         
@@ -243,7 +243,7 @@ class BatchCollectorWithRateLimit:
         }
         
         logger.info(
-            f"✅ Coleta em lote concluída: "
+            f"[OK] Coleta em lote concluída: "
             f"{successful}/{len(symbols)} sucesso "
             f"({self.stats['success_rate']:.1f}%)"
         )
@@ -256,6 +256,6 @@ class BatchCollectorWithRateLimit:
 
 
 if __name__ == "__main__":
-    logger.info("✅ rate_limited_collector.py colocada em produção")
+    logger.info("[OK] rate_limited_collector.py colocada em producao")
     logger.info("   Uso: RateLimitedBinanceCollector wraps BinanceCollector")
     logger.info("   Garantia: <1200 req/min com adaptação automática")

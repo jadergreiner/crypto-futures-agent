@@ -66,7 +66,7 @@ class BackgroundDataCollector:
         self._running = True
         self._thread = threading.Thread(target=self._run_collection_loop, daemon=True)
         self._thread.start()
-        logger.info("✅ BackgroundDataCollector iniciado")
+        logger.info("[INICIADO] BackgroundDataCollector iniciado")
 
     def stop(self) -> None:
         """Para coleta em background."""
@@ -77,7 +77,7 @@ class BackgroundDataCollector:
         self._running = False
         if self._thread:
             self._thread.join(timeout=5)
-        logger.info("✅ BackgroundDataCollector parado")
+        logger.info("[PARADO] BackgroundDataCollector parado")
 
     def _run_collection_loop(self) -> None:
         """
@@ -146,10 +146,10 @@ class BackgroundDataCollector:
         self._stats['last_cycle_timestamp'] = datetime.now().isoformat()
 
         logger.info(
-            f"\n✅ Ciclo #{self._stats['cycles']} completo\n"
-            f"   - Símbolos processados: {self._stats['symbols_succeeded']}/{self._stats['symbols_processed']}\n"
+            f"\n[CICLO] #{self._stats['cycles']} completo\n"
+            f"   - Simbolos processados: {self._stats['symbols_succeeded']}/{self._stats['symbols_processed']}\n"
             f"   - Falhas: {self._stats['symbols_failed']}\n"
-            f"   - Duração: {cycle_duration:.1f}s\n"
+            f"   - Duracao: {cycle_duration:.1f}s\n"
             f"{'='*70}\n"
         )
 
@@ -179,7 +179,7 @@ class BackgroundDataCollector:
 
             # Inserir no banco (INSERT OR REPLACE evita duplicatas)
             self.db.insert_ohlcv(timeframe_db, df)
-            logger.debug(f"✅ {symbol} {timeframe}: {len(df)} candles inseridos")
+            logger.debug(f"[OK] {symbol} {timeframe}: {len(df)} candles inseridos")
 
         except Exception as e:
             logger.warning(f"Erro coletando {symbol} {timeframe}: {e}")

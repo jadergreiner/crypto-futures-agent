@@ -55,8 +55,8 @@ def daily_sync():
         success_count = sum(1 for c in sync_stats.values() if isinstance(c, int) and c > 0)
         total_new = sum(c for c in sync_stats.values() if isinstance(c, int))
         
-        logger.info(f"\n✅ SYNC COMPLETADO")
-        logger.info(f"   Símbolos processados: {success_count}")
+        logger.info(f"\n[OK] SYNC COMPLETADO")
+        logger.info(f"   Simbolos processados: {success_count}")
         logger.info(f"   Candles inseridos: {total_new}")
         logger.info(f"   Timestamp: {datetime.utcnow().isoformat()}")
         
@@ -77,7 +77,7 @@ def daily_sync():
         return 0
     
     except Exception as e:
-        logger.error(f"\n❌ SYNC FAILED: {e}", exc_info=True)
+        logger.error(f"\n[ERRO] SYNC FAILED: {e}", exc_info=True)
         return 1
 
 

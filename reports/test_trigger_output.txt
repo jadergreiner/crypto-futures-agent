@@ -1,0 +1,12 @@
+[INFO] 2026-03-07 10:20:02,542: Validando docs para tarefa TEST...
+[INFO] 2026-03-07 10:20:02,542: Docs afetados: {'DATABASE_ARCHITECTURE.md', 'DATA_FLOW_DIAGRAM.md', 'DIAGRAMAS.md', 'REFERENTIAL_INTEGRITY.md'}
+[INFO] 2026-03-07 10:20:02,542: ======================================================================
+[INFO] 2026-03-07 10:20:02,542: SINCRONIZAÃ├O DE DOCS - TEST
+[INFO] 2026-03-07 10:20:02,542: ======================================================================
+[INFO] 2026-03-07 10:20:02,542: Status: FAIL
+[INFO] 2026-03-07 10:20:02,542: Docs afetados: 4
+[INFO] 2026-03-07 10:20:02,542:   Lint: FAIL
+[INFO] 2026-03-07 10:20:02,542:   Links: FAIL
+[INFO] 2026-03-07 10:20:02,542:   Code: PASS
+[INFO] 2026-03-07 10:20:02,542: ======================================================================
+[INFO] 2026-03-07 10:20:02,542: Relat¾rio salvo em: reports\test_output.json

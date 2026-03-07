@@ -1,0 +1,78 @@
+{
+  "timestamp": "2026-03-07T10:20:02.542584",
+  "task_id": "TEST",
+  "affected_docs": [
+    "DATABASE_ARCHITECTURE.md",
+    "DATA_FLOW_DIAGRAM.md",
+    "DIAGRAMAS.md",
+    "REFERENTIAL_INTEGRITY.md"
+  ],
+  "validation": {
+    "lint": {
+      "status": "FAIL",
+      "violations": {
+        "DIAGRAMAS.md": [
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "line": 11,
+            "length": 139,
+            "content": "Fornecer representa\u00e7\u00f5es visuais (ASCII + UML) da a..."
+          },
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "line": 524,
+            "length": 84,
+            "content": "- [MODELAGEM_DE_DADOS.md](MODELAGEM_DE_DADOS.md) \u2014..."
+          }
+        ]
+      }
+    },
+    "links": {
+      "status": "FAIL",
+      "broken": {
+        "DIAGRAMAS.md": [
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "link": "C4_MODEL.md",
+            "text": "C4_MODEL.md n\u00edvel 3 \u2014 Components",
+            "status": "BROKEN"
+          },
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "link": "MODELAGEM_DE_DADOS.md",
+            "text": "MODELAGEM_DE_DADOS.md",
+            "status": "BROKEN"
+          },
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "link": "C4_MODEL.md",
+            "text": "C4_MODEL.md n\u00edvel 2",
+            "status": "BROKEN"
+          },
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "link": "REGRAS_DE_NEGOCIO.md",
+            "text": "REGRAS_DE_NEGOCIO.md",
+            "status": "BROKEN"
+          },
+          {
+            "file": "docs\\DIAGRAMAS.md",
+            "link": "BACKLOG.md",
+            "text": "BACKLOG.md",
+            "status": "BROKEN"
+          }
+        ]
+      }
+    },
+    "code_sync": {
+      "status": "PASS",
+      "issues": {}
+    }
+  },
+  "synchronization": {
+    "status": "RECORDED",
+    "file": "docs\\SYNCHRONIZATION.md",
+    "entry": "## [TEST] 2026-03-07T10:20:02.542584\n\n**Arquivos modificados:**\n- monitoring/position_monitor.py\n\n**Status:** ENTREGUE \u2713\n\n**Docs impactadas:** DATABASE_ARCHITECTURE.md, DATA_FLOW_DIAGRAM.md, DIAGRAMAS.md, REFERENTIAL_INTEGRITY.md\n\n**Valida\u00e7\u00e3o:** Lint OK, Links validados, Sync procedido"
+  },
+  "overall_status": "FAIL"
+}

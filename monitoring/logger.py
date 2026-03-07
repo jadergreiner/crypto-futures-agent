@@ -63,6 +63,8 @@ class AgentLogger:
             maxBytes=LOG_MAX_BYTES,
             backupCount=LOG_BACKUP_COUNT,
             delay=True,
+            encoding='utf-8',
+            errors='replace',
         )
         file_formatter = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
