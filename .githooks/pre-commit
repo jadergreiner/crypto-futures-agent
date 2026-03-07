@@ -14,13 +14,26 @@ if command -v markdownlint &> /dev/null; then
     STAGED_MDS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
 
     if [ -n "$STAGED_MDS" ]; then
-        if ! markdownlint $STAGED_MDS 2>&1 | grep -q "passed"; then
-            echo "  ❌ Markdownlint falhou!"
-            echo "     Corrija os erros de markdown antes de commitar."
-            .markdownlintrc.json para regras (80 chars, UTF-8, code blocks)."
+        # Usar .markdownlint.json se existir (config customizada)
+        if [ -f ".markdownlint.json" ]; then
+            LINT_CONFIG="--config .markdownlint.json"
+        else
+            LINT_CONFIG=""
+        fi
+
+        # Contar erros
+        ERROR_COUNT=$(markdownlint $LINT_CONFIG $STAGED_MDS 2>&1 | grep -c "error" || true)
+
+        if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "  ❌ Markdownlint falhou! ($ERROR_COUNT erros)"
+            echo "     Arquivos: $STAGED_MDS"
+            echo "     Opções:"
+            echo "       1. Corrigir manualmente"
+            echo "       2. Usar script: python scripts/fix_markdown_lint.py <arquivo>"
+            echo "       3. Skip: git commit --no-verify"
             exit 1
         fi
-        echo "  ✅ Markdownlint: OK ($STAGED_MDS)"
+        echo "  ✅ Markdownlint: OK (${STAGED_MDS// /, })"
     fi
 else
     echo "  ⚠️  markdownlint não encontrado. Install: npm install -g markdownlint-cli"
