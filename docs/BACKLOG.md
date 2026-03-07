@@ -124,12 +124,18 @@
   - Prioridade: 🟠 ALTA
 
 - **S2-3** — Backtesting Engine
-  - Status: 🟡 **DESIGN COMPLETE**
+  - Status: 🟡 **GATES 1-3 COMPLETE, GATE 4 PENDING**
   - Owner: Arch (#6), Data (#11)
-  - Score: 0.95 | Effort: ~15-20h
+  - Score: 0.95 | Effort: ~15-20h | Gate 4 Effort: 2-3h
   - Descrição: Deterministic backtester (6 metrics: Sharpe, MaxDD, Win Rate, Profit Factor, Calmar, Consecutive Losses)
-  - Prerequisite: Issue #67 Data Strategy
-  - Documentação: [ARCH_S2_3_BACKTESTING.md](ARCH_S2_3_BACKTESTING.md)
+  - Gates 1-3: ✅ COMPLETE (23 FEV 00:45 UTC)
+  - Gate 4 (Documentation): 🟡 PENDING (Est. 24 FEV 06:00-12:00 UTC)
+    - **G4.1:** Create backtest/README.md (500+ words, usage guide) — Owner: Doc Advocate (#17) + Quality (#12) — Est. 1.5h
+    - **G4.2:** Python docstrings (all classes/functions, Portuguese) — Owner: Code Review (#6) — Est. 30min
+    - **G4.3:** Update [CRITERIOS_DE_ACEITE_MVP.md](CRITERIOS_DE_ACEITE_MVP.md) § S2-3 — Owner: Doc Advocate (#17) — Est. 15min
+    - **G4.4:** Register in [DECISIONS.md](DECISIONS.md) § S2-3 (trade-offs, deferred perf optimization) — Owner: Audit (#8) — Est. 15min
+  - Prerequisite: Issue #67 Data Strategy (✅ Complete)
+  - Documentação: [ARCH_S2_3_BACKTESTING.md](ARCH_S2_3_BACKTESTING.md) | [GATE_4_PLAN.md](GATE_4_PLAN.md) | [S2_3_DELIVERABLE_SPEC.md](S2_3_DELIVERABLE_SPEC.md)
 ---
 
 ## 🎯 COMPLETED ITEMS

@@ -22,7 +22,7 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 
 **FONTE ÚNICA DE VERDADE: [docs/BACKLOG.md](../docs/BACKLOG.md)**
 
-Quando você receber qualquer pedido sobre próxima task, prioridade ou o que 
+Quando você receber qualquer pedido sobre próxima task, prioridade ou o que
 fazer a seguir, leia **imediatamente**:
 
 1. **[docs/BACKLOG.md](../docs/BACKLOG.md)** — Todas as tarefas, sprints, status
