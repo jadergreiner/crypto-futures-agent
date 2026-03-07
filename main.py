@@ -22,6 +22,7 @@ from data.binance_client import create_binance_client
 from data.collector import BinanceCollector
 from data.sentiment_collector import SentimentCollector
 from data.macro_collector import MacroCollector
+from data.background_data_collector import start_background_collector
 from monitoring.logger import AgentLogger
 
 # Setup logger
@@ -478,6 +479,8 @@ def start_operation(
     integrated_interval_seconds: int = 300,
     enable_concurrent_training: bool = False,
     training_interval_seconds: int = 14400,
+    enable_background_collector: bool = True,
+    background_collector_interval_seconds: int = 300,
 ) -> None:
     """
     Inicia operação do agente.
@@ -490,6 +493,8 @@ def start_operation(
         integrated_interval_seconds: Intervalo de monitoramento em segundos
         enable_concurrent_training: Se deve treinar modelos em paralelo durante operação
         training_interval_seconds: Intervalo de treinamento em segundos (default 4 horas)
+        enable_background_collector: Se deve coletar dados de ALL_SYMBOLS em background
+        background_collector_interval_seconds: Intervalo de coleta em background (default 300s = 5min)
     """
     logger.info("="*60)
     logger.info(f"STARTING OPERATION - MODE: {mode.upper()}")
@@ -538,6 +543,17 @@ def start_operation(
             f"(intervalo={integrated_interval_seconds}s)"
         )
 
+    # Iniciar background data collector
+    background_collector = None
+    if enable_background_collector:
+        background_collector = start_background_collector(
+            db=db, interval_seconds=background_collector_interval_seconds
+        )
+        logger.info(
+            f"BACKGROUND COLLECTOR ENABLED: coleta contínua de {len(ALL_SYMBOLS)} símbolos "
+            f"(intervalo={background_collector_interval_seconds}s)"
+        )
+
     # Iniciar WebSocket (assíncrono)
     # from data.websocket_manager import WebSocketManager
     # ws_manager = WebSocketManager(client)
@@ -556,6 +572,8 @@ def start_operation(
             monitor.stop()
         if monitor_thread and monitor_thread.is_alive():
             monitor_thread.join(timeout=5)
+        if background_collector:
+            background_collector.stop()
 
 
 def run_backtest(start_date: str, end_date: str) -> None:
