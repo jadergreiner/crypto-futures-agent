@@ -1,8 +1,65 @@
 # 📋 Rastreamento de Sincronização de Documentação
 
-**Última Atualização:** 28 de fevereiro de 2026, 00:51 UTC ([SYNC] TASK-011 Phases 3-4 Completas - Production Approved)
+**Última Atualização:** 06 de março de 2026, 00:00 UTC ([SYNC] Consolidar BACKLOG.md como fonte única de verdade - deletar redundâncias)
 **Status da Equipe Fixa:** ✅ 16 membros (Angel + Elo + The Brain + Dr.Risk + Guardian + Arch + The Blueprint + Audit + Planner + Executor + Data + Quality + Trader + Product + Compliance + Board Member + Doc Advocate)
-**Status Sprint 2:** ✅ **TASK-011 COMPLETA (28 FEV 00:51 UTC)** — Todas 4 fases ✅. 200 pares em produção, iniciar.bat v0.2.0 integrado, canary + full rollout 100% success. **READY FOR LIVE TRADING**.
+**Status Consolidação:** ✅ **BACKLOG.md AGORA É ÚNICA FONTE DE VERDADE** — Deletados STATUS_ENTREGAS.md, PLANO_DE_SPRINTS_MVP_NOW.md, SPRINT_BACKLOG_21FEV, TASKS_TRACKER_REALTIME.md. Criado TRACKER.md tabular consolidado. Atualizado copilot-instructions.md para apontar BACKLOG.md.
+
+## 🚀 [SYNC] Consolidação BACKLOG.md — FONTE ÚNICA DE VERDADE (06 MAR 2026)
+
+**Status:** ✅ **CONSOLIDAÇÃO COMPLETA** — BACKLOG.md agora é o único master de todas as tarefas.
+
+### 📊 Mudanças Realizadas
+
+| Arquivo | Ação | Motivo | Timestamp |
+|---------|------|--------|----------|
+| [docs/BACKLOG.md](BACKLOG.md) | ✅ ATUALIZADO | Data 28 FEV → 06 MAR; removidas refs a STATUS_ENTREGAS/PLANO_DE_SPRINTS | 06 MAR 00:00 UTC |
+| [docs/TRACKER.md](TRACKER.md) | ✅ **RECRIADO** | Nova tabela consolidada (source of truth: BACKLOG.md) | 06 MAR 00:00 UTC |
+| [docs/STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) | 🗑️ **DELETADO** | Redundante com BACKLOG.md (consolidado dentro) | 06 MAR 00:00 UTC |
+| [docs/PLANO_DE_SPRINTS_MVP_NOW.md](PLANO_DE_SPRINTS_MVP_NOW.md) | 🗑️ **DELETADO** | Desatualizado (23 FEV) + coberto por BACKLOG.md | 06 MAR 00:00 UTC |
+| [backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md](../backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md) | 🗑️ **DELETADO** | Redundante com BACKLOG.md (tarefas consolidadas) | 06 MAR 00:00 UTC |
+| [backlog/TASKS_TRACKER_REALTIME.md](../backlog/TASKS_TRACKER_REALTIME.md) | 🗑️ **DELETADO** | Status em tempo real agora em BACKLOG.md | 06 MAR 00:00 UTC |
+| [.github/copilot-instructions.md](../.github/copilot-instructions.md) | ✅ ATUALIZADO | Secção "Como identificar próxima tarefa" → apontar BACKLOG.md único | 06 MAR 00:00 UTC |
+
+### 🎯 Impacto: Hirarquia de Documentação Simplificada
+
+**ANTES (Redundância):**
+```
+BACKLOG.md ←→ STATUS_ENTREGAS.md ←→ PLANO_DE_SPRINTS_MVP_NOW.md
+    ↑                ↑                         ↑
+   Master    (Duplica)         (Desatualiza + duplica)
+```
+
+**DEPOIS (Fonte Única):**
+```
+BACKLOG.md (Master) ← TRACKER.md (tabular compacta)
+     ↓
+[SYNCHRONIZATION.md] ← [ROADMAP.md, DECISIONS.md, FEATURES.md] (complementares, não duplicam)
+```
+
+### ✅ Verificação Pós-Consolidação
+
+- ✅ **BACKLOG.md** data atualizada para 06 MAR 2026
+- ✅ **BACKLOG.md** contém: Quick Wins + In Progress + Future Items + Completed + Risks + Priorities
+- ✅ **TRACKER.md** criado com tabela master (16 tasks, status, owners, scores, esforços)
+- ✅ **5 arquivos deletados** (STATUS_ENTREGAS, PLANO_DE_SPRINTS, 2x backlog/)
+- ✅ **copilot-instructions.md** aponta para BACKLOG.md como ÚNICA source de truth
+- ✅ **Sem deadlinks** em BACKLOG.md (removidos STATUS_ENTREGAS, PLANO_DE_SPRINTS)
+- ✅ **Referências cruzadas validas**: BACKLOG → TRACKER (tabular), ROADMAP (estratégia), DECISIONS (board)
+
+### 🔐 Governança Futura
+
+**Quando task mudar de status:**
+1. ✏️ Editar [BACKLOG.md](BACKLOG.md) (master)
+2. ✏️ Editar [TRACKER.md](TRACKER.md) (tabular) — via `[SYNC]` commit
+3. 📝 Registrar em [SYNCHRONIZATION.md](SYNCHRONIZATION.md) — audit trail
+4. 💬 Atualizar GitHub Issue (se existir)
+
+**Commit Pattern:**
+```
+[SYNC] TASK-XXX status mudança (detalhes) — impacta BACKLOG.md + TRACKER.md
+```
+
+---
 
 ## 🚀 [SYNC] TASK-011 PHASES 3-4 — EXECUÇÃO COMPLETA (28 FEV 00:51 UTC)
 

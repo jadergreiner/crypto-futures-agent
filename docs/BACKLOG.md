@@ -1,9 +1,11 @@
 # 📦 BACKLOG — Crypto Futures Agent
 
-**Status:** 🟢 OPERACIONAL | Fonte Única da Verdade para Itens Desenvolvidos + A Desenvolver
-**Atualizado:** 28 FEV 2026 20:00 UTC (Issue #67 + Docs conformes Lint (PT-BR))
-**Mantém:** Sprint 1-2-3 items + TASK pipeline + Issue tracking
+**Status:** 🟢 OPERACIONAL | **FONTE ÚNICA DA VERDADE** para Itens Desenvolvidos + A Desenvolver
+**Atualizado:** 06 MAR 2026 (consolidação: STATUS_ENTREGAS, PLANO_DE_SPRINTS, TRACKER deletados → tudo aqui)
+**Mantém:** Sprint 1-2-3 items + TASK pipeline + Issue tracking + Tabela de visão rápida
 **Responsável:** Planner, Board, Doc Advocate
+
+**Nota Importante:** Este documento é a **única fonte de verdade** para todas as tarefas, sprints e status do projeto. Docs como STATUS_ENTREGAS.md, PLANO_DE_SPRINTS_MVP_NOW.md foram consolidadas aqui. Para visão **tabular compacta**, use [TRACKER.md](TRACKER.md).
 
 ---
 
@@ -11,14 +13,14 @@
 
 | Documento | Propósito |
 |-----------|-----------|
+| [TRACKER.md](TRACKER.md) | Tabela consolidada de todas as tasks (Master view) |
 | [ROADMAP.md](ROADMAP.md) | Visão estratégica (Now-Next-Later) |
-| [STATUS_ENTREGAS.md](STATUS_ENTREGAS.md) | Status das entregas do ROADMAP |
-| [PLANO_DE_SPRINTS_MVP_NOW.md](PLANO_DE_SPRINTS_MVP_NOW.md) | Sprints e NOW items detalhes |
 | [USER_STORIES.md](USER_STORIES.md) | User stories (v0.2→v1.0) |
 | [DECISIONS.md](DECISIONS.md) | Decision history + board approvals |
 | [FEATURES.md](FEATURES.md) | Feature list (F-H1→F-ML3) |
 | [RELEASES.md](RELEASES.md) | Version history (v0.1→v1.0-alpha) |
-| [TRACKER.md](TRACKER.md) | Sprint tracker detalhado || [C4_MODEL.md](C4_MODEL.md) | Diagrama arquitetural (4 níveis) |
+| [SYNCHRONIZATION.md](SYNCHRONIZATION.md) | Audit trail [SYNC] + histórico completo |
+| [C4_MODEL.md](C4_MODEL.md) | Diagrama arquitetural (4 níveis) |
 | [ADR_INDEX.md](ADR_INDEX.md) | Architecture Decision Records (7 ADRs) |
 | [OPENAPI_SPEC.md](OPENAPI_SPEC.md) | Especificação REST API (OpenAPI 3.0.0) |
 | [IMPACT_README.md](IMPACT_README.md) | Setup, testes, deploy em produção |

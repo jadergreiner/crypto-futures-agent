@@ -20,33 +20,21 @@ Orientações para mudanças no repositório `crypto-futures-agent`.
 
 ## Como identificar a próxima tarefa
 
-Ao receber qualquer pedido sobre próxima task, prioridade ou o que fazer a
-seguir, siga esta ordem de leitura:
+**FONTE ÚNICA DE VERDADE: [docs/BACKLOG.md](../docs/BACKLOG.md)**
 
-1. `docs/STATUS_ENTREGAS.md` — status atual de cada entrega do ROADMAP
-2. `docs/PLANO_DE_SPRINTS_MVP_NOW.md` — sprint corrente e itens NOW
-3. `docs/ROADMAP.md` — visão estratégica e milestones
-4. Issues abertas e milestones no GitHub
+Quando você receber qualquer pedido sobre próxima task, prioridade ou o que 
+fazer a seguir, leia **imediatamente**:
 
----
+1. **[docs/BACKLOG.md](../docs/BACKLOG.md)** — Todas as tarefas, sprints, status
+2. **[docs/TRACKER.md](../docs/TRACKER.md)** — Tabela compacta (visual rápida)
+3. **[docs/ROADMAP.md](../docs/ROADMAP.md)** — Visão estratégica (contexto)
+4. **GitHub Issues** — Detalhes executáveis de tarefas abertas
 
-## ⚡ BACKLOG INSTRUCTIONS REFERENCE
-
-**IMPORTANTE:** Quando usuário pedir qualquer coisa sobre backlog/prioridades:
-→ Leia: `.github/copilot-backlog-instructions.md` PRIMEIRO
-→ Responda com tabela de status MUST items atual
-→ Use arquivo maestro: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
-
-**Trigger keywords que acionam backlog response:**
-
-- "backlog", "prioridades", "sprint", "tarefas", "próximos itens",
-  "o que é prioritário"
-
-**Referência rápida:**
-
-- **Detalhes técnicos:** `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
-- **Status real-time:** `backlog/TASKS_TRACKER_REALTIME.md`
-- **Quick reference:** `backlog/BACKLOG_QUICK_START.md`
+Documentos **deletados** (consolidados em BACKLOG.md):
+- ❌ `docs/STATUS_ENTREGAS.md` (redundante)
+- ❌ `docs/PLANO_DE_SPRINTS_MVP_NOW.md` (obsoleto)
+- ❌ `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md` (histórico)
+- ❌ `backlog/TASKS_TRACKER_REALTIME.md` (histórico)
 
 ---
 

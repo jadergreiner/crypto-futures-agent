@@ -1,223 +1,83 @@
-# 📊 Sprint Tracker — Crypto Futures Agent
+# 📊 TRACKER — Consolidated Task Overview
 
-## 🎯 Sprint 1: MUST Items (21-25 FEV 2026) — OPERACIONALIZAÇÃO (Fase 2D Consolidação)
-
-**Duração:** 5 dias (21-25 FEV 2026)
-**Priorização:** MoSCoW + Cost of Delay + Risk Impact
-**Referência:** Consolidado de `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
-
-| ID | Task | Owner | Status | Entrega | Prioridade |
-|----|------|-------|--------|---------|----------|
-| **1.1** | Implementar Heurísticas Conservadoras | Dev | ✅ DONE (22 FEV 06:00) | execution/heuristic_signals.py | 🔴 CRÍTICA |
-| **1.2** | QA Validação Completa (Heurísticas) | Audit | ✅ DONE (22 FEV 08:00) | 9/9 tests, edge cases | 🔴 CRÍTICA |
-| **1.3** | Go-Live Phase 1 (10% volume) | Executor | ✅ DONE (22 FEV 10:00) | Live operação iniciada | 🔴 CRÍTICA |
-| **1.4** | Go-Live Phase 2 (50% volume) | Executor | ✅ DONE (22 FEV 11:00) | Escalação sucesso | 🔴 CRÍTICA |
-| **1.5** | Go-Live Phase 3 (100% volume) | Executor | ✅ DONE (22 FEV 12:00) | Full deployment | 🔴 CRÍTICA |
-| **1.6** | TASK-005 PPO Training (96h) | The Brain | 🔄 IN PROGRESS (22-25 FEV) | Model convergência | 🔴 CRÍTICA |
-| **1.7** | TASK-006 PPO QA Validation | Audit | ⏳ PENDING (25 FEV 10:00) | OOT backtest validation | 🔴 CRÍTICA |
-| **1.8** | TASK-007 PPO Merge Live | Dev | ⏳ PENDING (25 FEV 14:00) | v0.5 alpha deployment | 🔴 CRÍTICA |
-
-**Documentação Referência:**
-- Detalhes completos: `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md`
-- Status real-time: `backlog/TASKS_TRACKER_REALTIME.md`
-- Quick start: `backlog/BACKLOG_QUICK_START.md`
+**Propósito:** Visão tabular consolidada de **TODAS** as tasks do projeto (status, owner, sprint, evidência).
+**Fonte Única de Verdade:** [BACKLOG.md](BACKLOG.md) (detalhes completos)
+**Atualizado:** 06 MAR 2026 (consolidado de BACKLOG.md)
+**Mantém:** TASK-001 até TASK-011 + Issues + Sprint items
 
 ---
 
-## Sprint Concluído: v0.2 — Pipeline Fix ✅
+## 📋 Task Tracker Master
 
-**Duração:** 2 semanas
-**Esforço total estimado:** ~10h
-
-| Task | Story | Status | Esforço |
-|------|-------|--------|---------|
-| Atualizar `build_observation` para receber `multi_tf_result` | US-01 | ✅ DONE
-| 2h |
-| Preencher Bloco 7 com `correlation_btc`, `beta_btc` | US-01 | ✅ DONE | 1h |
-| Preencher Bloco 8 com `d1_bias` e `market_regime` scores | US-01 | ✅ DONE | 1h
-|
-| Fix R-multiple ordering no `RewardCalculator` | US-02 | ✅ DONE | 30min |
-| Sincronizar `get_feature_names()` | US-03 | ✅ DONE | 1h |
-| Teste unitário `FeatureEngineer.build_observation` | US-01 | ✅ DONE | 2h |
-| Teste unitário `MultiTimeframeAnalysis.aggregate` | US-01 | ✅ DONE | 1h |
-| Teste unitário `RewardCalculator.calculate` | US-02 | ✅ DONE | 1h |
-| Validar dry-run com valores reais nos blocos 7/8 | US-01 | ✅ DONE | 30min |
-
-## Sprint Atual: v0.3 — Training Ready � OPERAÇÃO PARALELA C (20/02/2026)
-
-**Duração:** 20/02 (1 dia - Sprint expedito)
-**Esforço total estimado:** ~8h
-**Status:** ✅ AUTORIZADO — Operação Paralela C (LIVE + v0.3) desde 20:30 BRT
-
-| Task | Story | Status | Esforço | Prioridade |
-|------|-------|--------|---------|----------|
-| ✅ Implementar `step()` completo no `CryptoFuturesEnv` | US-04 | ✅ DONE | - | |
-| ✅ Implementar `_get_observation()` usando `FeatureEngineer` | US-04 | ✅ DONE |
-- | |
-| ✅ Pipeline de dados para treinamento | US-04 | ✅ DONE | - | |
-| ✅ Script de treinamento funcional (`python main.py --train`) | US-04 | ✅ DONE
-| - | |
-| ✅ Criar orchestrator paralelo (LIVE + v0.3) | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
-| ✅ Criar monitor crítico com safeagues | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
-| ✅ Obter autorização formal (Operação C) | US-04 | ✅ DONE | - | 🔴 CRÍTICA |
-| 🔄 Criar teste E2E completo (3 símbolos, 10k steps) | US-04 | 🔄 IN PROGRESS |
-2h | 🔴 CRÍTICA |
-| 🔄 Validar treinamento (CV < 1.5 + WinRate > 45%) | US-04 | 🔄 IN PROGRESS |
-1.5h | 🔴 CRÍTICA |
-| 🔄 Debug signal generation (0 sinais) | US-04 | 🔄 IN PROGRESS | 1h | 🔴 CRÍTICA
-|
-| 🔄 Sincronização de documentação | US-04 | 🔄 IN PROGRESS | 1h | 🔴 CRÍTICA |
-| ⏳ Salvar/carregar modelo treinado (nice-to-have) | US-05 | ⏳ DEFER v0.4 | - |
-🟢 MÉDIA |
-
-## Sprint Planejado: v0.4 — Backtest Engine (21-23/02/2026)
-
-**Duração:** 3 dias (21, 22, 23 fev)
-**Esforço total estimado:** ~4.5h (core F-12) + ~2h (documentação + testes)
-**Status:** ⏳ PLANEJADO — Aguarda validação v0.3 (até 23:59 BRT hoje)
-
-| Task | Feature | Status | Esforço | Prioridade |
-|------|---------|--------|---------|----------|
-| Refinar história F-12 com 3 personas (PO + Finance + Tech) | F-12 | ✅ DONE |
-0h | 🔴 CRÍTICA |
-| Implementar BacktestEnvironment (subclasse CryptoFuturesEnv) | F-12a | ⏳ TODO (Issue #59)
-| 1h | 🔴 CRÍTICA |
-| Implementar BacktestDataLoader (3-camadas Parquet) | F-12b | ⏳ TODO (Issue #59) | 1.5h | 🔴
-CRÍTICA |
-| Implementar TradeStateMachine (IDLE/LONG/SHORT) | F-12c | ⏳ TODO (Issue #59) | 1.5h | 🔴
-CRÍTICA |
-| Implementar BacktestReporter (Text + JSON) | F-12d | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
-| Escrever 8 unit tests (determinismo, SM, métricas) | F-12e | ⏳ TODO (Issue #59) | 1h | 🔴
-CRÍTICA |
-| Integração `--train-and-backtest` em main.py | F-12f | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
-| Sincronizar documentação (FEATURES, ROADMAP, SYNC) | F-12h | ⏳ TODO (Issue #59) | 0.5h | 🔴
-CRÍTICA |
-| Teste manual end-to-end (BTCUSDT, 90 dias) | F-12g | ⏳ TODO (Issue #59) | 0.5h | 🟡 ALTA |
-
-**Risk Clearance Checklist** (antes expansão v0.5):
-
-- [ ] Sharpe ≥ 1.0
-- [ ] MaxDD ≤ 15%
-- [ ] Win Rate ≥ 45%
-- [ ] Profit Factor ≥ 1.5
-- [ ] Recovery Factor ≥ 2.0
-- [ ] Consecutive Losses ≤ 5
-
-## Backlog Priorizado
-
-| Sprint | Release | Foco | Esforço Est. |
-|--------|---------|------|-------------|
-| Sprint 3 | v0.4 | Backtester real com métricas | ~15h |
-| Sprint 4 | v0.4 | Walk-forward + relatório | ~10h |
-| Sprint 5 | v0.5 | Paper trading E2E | ~15h |
-| Sprint 6 | v1.0 | Execução real + circuit breakers | ~20h |
+| Task ID | Título | Owner | Status | Sprint | Score | Effort | Issue/PR | Documentação |
+|---------|--------|-------|--------|--------|-------|--------|----------|-------------|
+| **TASK-001** | Heurísticas Dev | Vision | ✅ COMPLETA | S1 | 0.90 | 8h | #55 | [FEATURES.md](FEATURES.md#F-H1) |
+| **TASK-002** | Go-Live Phase 1 (10%) | Executor | ✅ COMPLETA | S1 | 0.95 | 2h | #56 | [RELEASES.md](RELEASES.md) |
+| **TASK-003** | Go-Live Phase 2 (50%) | Executor | ✅ COMPLETA | S1 | 0.95 | 3h | #57 | [RELEASES.md](RELEASES.md) |
+| **TASK-004** | Go-Live Phase 3 (100%) | Executor | ✅ COMPLETA | S1 | 0.95 | 4h | #58 | [RELEASES.md](RELEASES.md) |
+| **TASK-005** | PPO Training | The Brain (#3) | 🔄 IN PROGRESS | S2 | 1.0 | 96h | #63 | [FEATURES.md#F-ML1](FEATURES.md) |
+| **TASK-008** | Decision #3 Votação | Angel, Board | ✅ COMPLETA | S1 | — | 1h | — | [ATA_DECISION_3_FINAL.md](ATA_DECISION_3_FINAL.md) |
+| **TASK-009** | Decision #3 Implementação | Arch, Executor | ✅ COMPLETA | S2 | — | 6h | #61 | [DECISIONS.md](DECISIONS.md) |
+| **TASK-010** | Decision #4 Votação | Angel, Board | ✅ COMPLETA | S2 | 0.95 | 2h | — | [ATA_DECISION_4_27FEV_FINAL.md](ATA_DECISION_4_27FEV_FINAL.md) |
+| **TASK-011** | F-12b Symbols + Parquet | Flux, Squad B | ✅ COMPLETA | S2 | 0.92 | 11h | #62 | [EXECUCAO_TASK_011_PHASE_3_4_FINAL.md](EXECUCAO_TASK_011_PHASE_3_4_FINAL.md) |
+| **Issue #64** | Telegram Alerts Setup | Blueprint, Quality | ✅ COMPLETA | S2 | 0.75 | 1.5h | #64 | [ISSUE_64_TELEGRAM_SETUP_SPEC.md](ISSUE_64_TELEGRAM_SETUP_SPEC.md) |
+| **Issue #65** | SMC Integration QA | Arch, Squad | 🟡 KICKOFF | S2 | 0.99 | 13.5h | #65 | [ISSUE_65_SMC_QA_SPEC.md](ISSUE_65_SMC_QA_SPEC.md) |
+| **Issue #67** | Data Strategy Dev | Data, Arch | ✅ COMPLETA | S2 | 0.80 | 6h | #67 | [ISSUE_67_DATA_STRATEGY_SPEC.md](ISSUE_67_DATA_STRATEGY_SPEC.md) |
+| **S2-1** | SMC Volume Threshold | Arch | ✅ COMPLETA | S2 | — | — | — | [ARCH_S2_1_SMC.md](ARCH_S2_1_SMC.md) |
+| **S2-2** | Order Blocks Detection | Arch | ✅ COMPLETA | S2 | — | — | — | [ARCH_S2_2_ORDER_BLOCKS.md](ARCH_S2_2_ORDER_BLOCKS.md) |
+| **S2-3** | Backtesting Engine | Arch, Data | 🟡 DESIGN READY | S2-3 | 0.95 | 15-20h | — | [ARCH_S2_3_BACKTESTING.md](ARCH_S2_3_BACKTESTING.md) |
+| **S2-4** | Trailing Stop Loss | Arch | ✅ COMPLETA | S2 | 0.75 | merged | — | [ARCH_S2_4_TRAILING_STOP.md](ARCH_S2_4_TRAILING_STOP.md) |
 
 ---
 
-## TASK-005: PPO Training — Phase 4 Operacionalização (Consolidado Fase 2A)
+## 📊 Status Summary
 
-**Responsável:** The Brain (ML Specialist) + Dev (SWE Senior)
-**Timeline:** 22 FEV 14:00 UTC → 25 FEV 10:00 UTC (96h wall-clock)
-**Status:** 🟢 **SPECIFICATION COMPLETE** — Ready SWE implementation
-
----
-
-### Resumo Executivo
-
-| Aspecto | Valor |
-|---|---|
-| **O QUÊ** | Treinar agente PPO para 60 pares simultâneos |
-| **POR QUÊ** | Substituir heurísticas estáticas com política adaptativa (Sharpe >1.0) |
-| **COMO** | 500k environment steps, 4 parallel episodes, checkpoint every 50k |
-| **QUANTO TEMPO** | ≤96 horas de wall-clock (deadline 25 FEV 10:00 UTC) |
-| **SUCESSO** | Sharpe ≥1.0, DD <5%, WR ≥52%, latência <100ms |
+| Status | Contagem | Tarefas |
+|--------|----------|---------|
+| ✅ COMPLETA | 12 | TASK-001-004, TASK-008-011, Issue #64, Issue #67, S2-1, S2-2, S2-4 |
+| 🔄 IN PROGRESS | 1 | TASK-005 (PPO Training) |
+| 🟡 DESIGN/KICKOFF | 2 | S2-3 (Backtesting), Issue #65 (SMC QA) |
+| **TOTAL** | **15** | — |
 
 ---
 
-### Arquitetura Overview
+## 🚀 Current Blockers & SLA
 
+| Item | Blocker | Impacto | SLA | Owner Escalation |
+|------|---------|---------|-----|-------------------|
+| **TASK-005** PPO Training | Issue #65 QA (SMC validation) | 🔴 CRÍTICA | Hard deadline | Angel (#1) |
+| **S2-3** Backtesting | Issue #67 Data (completed ✅) | 🟢 DESBLOQUEADA | Sprint S2-3 start | Product (#13) |
+
+---
+
+## 🎯 Recent Completions (28 FEV - 06 MAR)
+
+| Item | Data Conclusão | Owner | Evidência | Status |
+|------|---|---|---|
+| TASK-011 Phase 3-4 (All) | 28 FEV 00:51 UTC | Flux | [EXECUCAO_TASK_011_PHASE_3_4_FINAL.md](EXECUCAO_TASK_011_PHASE_3_4_FINAL.md) | ✅ Production |
+| Issue #64 Telegram | 28 FEV 16:45 UTC | Blueprint | [notifications/](../notifications/) (18/18 tests PASS) | ✅ Ready |
+| TASK-010 Decision #4 | 27 FEV 11:00 UTC | Angel | [ATA_DECISION_4_27FEV_FINAL.md](ATA_DECISION_4_27FEV_FINAL.md) (15/16 votes) | ✅ Approved |
+| Issue #67 Data Strategy | 28 FEV 18:30 UTC | Data | [ISSUE_67_DATA_STRATEGY_SPEC.md](ISSUE_67_DATA_STRATEGY_SPEC.md) | ✅ Complete |
+
+---
+
+## 📖 Como Usar
+
+1. **Para detalhes completos de qualquer task**: vá para [BACKLOG.md](BACKLOG.md)
+2. **Para histórico completo com [SYNC] logs**: vá para [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md)
+3. **Para visão estratégica**: vá para [ROADMAP.md](ROADMAP.md)
+4. **Para decisões board**: vá para [DECISIONS.md](DECISIONS.md)
+
+---
+
+## 🔄 Update Protocol
+
+Quando um task muda de status:
+1. Atualize [BACKLOG.md](BACKLOG.md) (fonte de verdade)
+2. Este arquivo [TRACKER.md](TRACKER.md) é atualizado via `[SYNC]` commits automaticamente
+3. Registre em [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md)
+
+**Exemplo commit:**
 ```
-┌─────────────────────────────────────────────────┐
-│  PPO Policy Network (Shared across 60 pairs)    │
-│  Input:  State (1320,) = 60 × 22 normalized    │
-│  Hidden: [256, 256] ReLU                        │
-│  Output: Action logits (180,) = 60 × 3 actions │
-└─────────────────────────────────────────────────┘
-           ↓
-┌─────────────────────────────────────────────────┐
-│  Multi-Pair Gym Environment (DummyVecEnv×4)    │
-│  4 parallel episodes, 60 pairs per episode      │
-│  Runs 500k total steps over ≤96 hours          │
-│  Checkpoints every 50k steps (best 3 kept)    │
-└─────────────────────────────────────────────────┘
-           ↓
-┌─────────────────────────────────────────────────┐
-│  Backtest Validation (OOT on last 20% data)    │
-│  Verify Sharpe ≥0.9, DD <5.5%, no look-ahead  │
-└─────────────────────────────────────────────────┘
+[SYNC] TASK-005 PPO training 80% completa, Issue #65 QA iniciada
 ```
-
----
-
-### Plano SWE Coordenação (6 Fases)
-
-**Fase 0: Infraestrutura (90min)**
-- GPU server: 4-core CPU, 16GB RAM, 100GB disk
-- Install: stable-baselines3, torch, tensorboard
-
-**Fase 1: Environment & Reward (150min)**
-- Feature selection: 104 → 22 features via PCA
-- Multi-pair environment: obs (1320,), action MultiDiscrete([3×60])
-- Data pipeline: 80/20 walk-forward split (NO look-ahead)
-
-**Fase 2: Reward Function (90min)**
-- Implement 6 components: PnL, Hold, Drawdown, WinRate, Inactivity, Sharpe
-- Range validation: [-1.0, +10.0]
-
-**Fase 3: PPO Training Setup (180min)**
-- stable-baselines3 PPO: batch_size=64, learning_rate=3e-4→1e-5 decay
-- 500k steps target, converge Sharpe ≥1.0
-
-**Fase 4: Convergence Monitoring (28h)**
-- Realtime dashboard: Sharpe, WR, DD vs thresholds
-- Early stopping if Sharpe hits 1.0 (save checkpoint)
-
-**Fase 5: OOT Validation (20h)**
-- Backtest on validation set (last 20%)
-- Verify no look-ahead, metrics realistic
-
----
-
-### Gates Diários (#0 → #4)
-
-| Gate | Data | Criério Sucesso | Owner |
-|---|---|---|---|
-| #0 | 22 FEV 16:00 | Infra ready, deps OK | Dev |
-| #1 QA | 22 FEV 08:00 | Gate #1 validation checkpoint | Audit |
-| #2 | 23 FEV 08:00 | Fase 1-2 complete, reward tested | The Brain |
-| #3 | 24 FEV 08:00 | Treinamento in progress, Sharpe trending up | Dev |
-| #4 (Final) | 25 FEV 10:00 | Sharpe ≥1.0, OOT validated, ready merge | Executor |
-
----
-
-### Success Criteria (Gate #4 Final)
-
-- ✅ Sharpe Ratio ≥1.0
-- ✅ Max Drawdown <5%
-- ✅ Win Rate ≥52%
-- ✅ Inference latency <100ms
-- ✅ No look-ahead bias (OOT validation)
-- ✅ Best 3 checkpoints saved
-
----
-
-### Referências Técnicas Completas
-
-- **Architecture:** [docs/FEATURES.md](FEATURES.md#f-ml1-ppo-training-pipeline)
-- **Reward Math:** [docs/FEATURES.md](FEATURES.md#teoria-ppo--aprendizagem-contextual)
-- **Especificação Completa:** [docs/SYNCHRONIZATION.md](SYNCHRONIZATION.md#task-005-especificação--sincronização)
-- **JSON Spec:** `prompts/TASK-005_ML_SPECIFICATION_PLAN.json`
-
----
-
-**Última atualização:** 22 FEV 2026 17:40 UTC (TASK-005 consolidado Fase 2A)
