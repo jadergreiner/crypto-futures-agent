@@ -75,8 +75,13 @@
   - Owner: The Brain (#3)
   - Score: 1.0 | Effort: 96h wall-time
   - Descrição: Train PPO agent on 60 pairs. 500k steps, Sharpe ≥1.0 target
+  - Deadline: 25 FEV 10:00 UTC (hard constraint)
   - Blocker: ⏳ Issue #65 QA (provides SMC validation required)
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md)
+  - **Phases:**
+    - **Phase 1: Setup** — Environment, dependencies, config — ✅ DONE
+    - **Phase 2: Training** — 96h wall-time, daily gates (Sharpe D1≥0.40, D2≥0.70, D3≥1.0) — 🔄 IN PROGRESS
+    - **Phase 3: Validation** — Model save, metrics compilation, success gates — ⏳ NEXT
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](TASK_005_ML_TRAINING_SPEC.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: 🟡 **SQUAD KICKOFF**
