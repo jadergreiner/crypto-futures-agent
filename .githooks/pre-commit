@@ -1,105 +1,148 @@
-#!/bin/bash
-# PRE-COMMIT HOOK — DOC GOVERNANCE (21 FEV 2026)
-# Valida markdown + docstrings ANTES de permitir commit
-# Run: chmod +x .githooks/pre-commit && git config core.hooksPath .githooks
+#!/usr/bin/python
+"""PRE-COMMIT HOOK - DOC GOVERNANCE.
 
-set -e
+Valida markdown + docstrings antes de permitir commit.
+Run: git config core.hooksPath .githooks
+"""
 
-echo "🔍 PRE-COMMIT: Validando documentação..."
+from __future__ import annotations
 
-# 1. MARKDOWNLINT — Verifica .md files
-echo "  ├─ Executando markdownlint..."
-if command -v markdownlint &> /dev/null; then
-    # Verifica apenas arquivos staged
-    STAGED_MDS=$(
-        git diff --cached --name-only --diff-filter=ACM \
-        | grep -E '(^docs/.*\.md$|^README\.md$)' \
-        || true
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DOCS_PATH_PREFIXES = ("docs/", "README.md")
+DOCSTRING_DIR_PREFIXES = ("agent/", "execution/", "risk/", "backtest/")
+DOCSTRING_SKIP_TOKENS = ("test", "check", "diagnostico")
+
+
+def run(command: list[str], *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+    full_command = list(command)
+    if full_command and full_command[0] == "git":
+        full_command = [
+            "git",
+            "-c",
+            f"safe.directory={REPO_ROOT.as_posix()}",
+            "-C",
+            str(REPO_ROOT),
+            *full_command[1:],
+        ]
+    return subprocess.run(
+        full_command,
+        cwd=REPO_ROOT,
+        check=False,
+        text=True,
+        capture_output=capture,
     )
 
-    if [ -n "$STAGED_MDS" ]; then
-        # Usar .markdownlint.json se existir (config customizada)
-        if [ -f ".markdownlint.json" ]; then
-            LINT_CONFIG="--config .markdownlint.json"
-        else
-            LINT_CONFIG=""
-        fi
 
-        # Auto-fix dos arquivos staged e re-stage para o commit atual.
-        echo "  ├─ Aplicando auto-fix do markdownlint..."
-        markdownlint $LINT_CONFIG --fix $STAGED_MDS >/dev/null 2>&1 || true
-        git add $STAGED_MDS
+def staged_files() -> list[str]:
+    result = run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"], capture=True)
+    if result.returncode != 0:
+        print("  [ERRO] Falha ao listar arquivos staged.")
+        print(result.stderr.strip())
+        sys.exit(1)
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-        # Validação final: se ainda houver erro, bloqueia commit.
-        if ! LINT_OUTPUT=$(markdownlint $LINT_CONFIG $STAGED_MDS 2>&1); then
-            ERROR_COUNT=$(echo "$LINT_OUTPUT" | grep -c "error" || true)
-            echo "  ❌ Markdownlint falhou apos auto-fix! ($ERROR_COUNT erros)"
-            echo "     Arquivos: $STAGED_MDS"
-            echo "$LINT_OUTPUT"
-            echo "     Opções:"
-            echo "       1. Corrigir manualmente"
-            echo "       2. Usar script: python scripts/fix_markdown_lint.py <arquivo>"
-            echo "       3. Skip: git commit --no-verify"
-            exit 1
-        fi
-        echo "  ✅ Markdownlint: OK (${STAGED_MDS// /, })"
-    fi
-else
-    echo "  ⚠️  markdownlint não encontrado. Install: npm install -g markdownlint-cli"
-fi
 
-# 2. PYTHON DOCSTRING CHECKER — Verifica docstrings em Python
-echo "  ├─ Executando docstring checker..."
-STAGED_PYS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+def validate_markdown(files: list[str]) -> None:
+    print("  - Executando markdownlint...")
+    markdown_files = [f for f in files if f.startswith("docs/") and f.endswith(".md")]
+    if "README.md" in files:
+        markdown_files.append("README.md")
 
-if [ -n "$STAGED_PYS" ]; then
-    for pyfile in $STAGED_PYS; do
-        # Skip test files e scripts auxiliares
-        if [[ $pyfile == *"test"* ]] || [[ $pyfile == *"check"* ]] || [[ $pyfile == *"diagnostico"* ]]; then
+    if not markdown_files:
+        return
+
+    if shutil.which("markdownlint") is None:
+        print("  [AVISO] markdownlint nao encontrado. Install: npm install -g markdownlint-cli")
+        return
+
+    config_path = ".markdownlint.json" if (REPO_ROOT / ".markdownlint.json").exists() else ""
+    autofix_cmd = ["markdownlint"]
+    if config_path:
+        autofix_cmd.extend(["--config", config_path])
+    autofix_cmd.append("--fix")
+    autofix_cmd.extend(markdown_files)
+    run(autofix_cmd, capture=False)
+    run(["git", "add", *markdown_files], capture=False)
+
+    check_cmd = ["markdownlint"]
+    if config_path:
+        check_cmd.extend(["--config", config_path])
+    check_cmd.extend(markdown_files)
+    check = run(check_cmd, capture=True)
+    if check.returncode != 0:
+        print("  [ERRO] Markdownlint falhou apos auto-fix.")
+        print(check.stdout.strip())
+        print(check.stderr.strip())
+        print("  Opcoes:")
+        print("    1. Corrigir manualmente")
+        print("    2. Usar script: python scripts/fix_markdown_lint.py <arquivo>")
+        print("    3. Skip: git commit --no-verify")
+        sys.exit(1)
+    print(f"  [OK] Markdownlint: {', '.join(markdown_files)}")
+
+
+def validate_docstrings(files: list[str]) -> None:
+    print("  - Executando docstring checker...")
+    python_files = [f for f in files if f.endswith(".py")]
+    for rel_path in python_files:
+        normalized = rel_path.replace("\\", "/")
+        if any(token in normalized for token in DOCSTRING_SKIP_TOKENS):
             continue
-        fi
+        if not normalized.startswith(DOCSTRING_DIR_PREFIXES):
+            continue
+        file_path = REPO_ROOT / normalized
+        if not file_path.exists():
+            continue
+        lines = file_path.read_text(encoding="utf-8").splitlines()
+        if len(lines) <= 10:
+            continue
+        head = "\n".join(lines[:5])
+        if '"""' not in head:
+            print(f"  [ERRO] Docstring faltando: {normalized}")
+            print("  Adicione docstring no inicio do arquivo.")
+            sys.exit(1)
+    if python_files:
+        print("  [OK] Docstring checker.")
 
-        # Se é arquivo em agent/, execution/, risk/, backtest/ — requer docstring
-        if [[ $pyfile == agent/* ]] || [[ $pyfile == execution/* ]] || [[ $pyfile == risk/* ]] || [[ $pyfile == backtest/* ]]; then
-            # Simples check: arquivo tem pelo menos 10 linhas? Se sim, primeira linha deve ter docstring
-            lines=$(wc -l < "$pyfile")
-            if [ "$lines" -gt 10 ]; then
-                head -n 5 "$pyfile" | grep -q '"""' || {
-                    echo "  ❌ Docstring faltando: $pyfile"
-                    echo "     Adicione docstring no início do arquivo (ex: \"\"\"Descrição do módulo.\"\"\")"
-                    exit 1
-                }
-            fi
-        fi
-    done
-    echo "  ✅ Docstring checker: OK ($STAGED_PYS)"
-fi
 
-# 3. ENCODING CHECK — Valida UTF-8 válido
-echo "  ├─ Verificando encoding UTF-8..."
-for file in $(git diff --cached --name-only --diff-filter=ACM); do
-    if file "$file" | grep -q "text"; then
-        if ! iconv -f UTF-8 -t UTF-8 "$file" > /dev/null 2>&1; then
-            echo "  ❌ Encoding inválido: $file (não é UTF-8 válido)"
-            exit 1
-        fi
-    fi
-done
-echo "  ✅ Encoding: OK (UTF-8 válido)"
+def validate_utf8(files: list[str]) -> None:
+    print("  - Verificando encoding UTF-8...")
+    for rel_path in files:
+        file_path = REPO_ROOT / rel_path
+        if not file_path.exists() or file_path.is_dir():
+            continue
+        try:
+            file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            print(f"  [ERRO] Encoding invalido (nao UTF-8): {rel_path}")
+            sys.exit(1)
+    print("  [OK] Encoding UTF-8.")
 
-# 4. SYNC TAG CHECK (WARN) — Alerta se código crítico muda sem [SYNC]
-echo "  ├─ Verificando [SYNC] tag para mudanças críticas..."
-COMMIT_MSG=$(
-    git diff --cached --diff-filter=ACM --name-only \
-    | grep -E '(^docs/|^README\.md$)' \
-    || true
-)
 
-if [ -n "$COMMIT_MSG" ]; then
-    echo "  ⚠️  Detectado mudança em docs críticas."
-    echo "     Certifique-se de usar [SYNC] tag no commit message."
-    echo "     Exemplo: [SYNC] Atualizado docs/ARCHITECTURE.md — heurística v2"
-fi
+def warn_sync(files: list[str]) -> None:
+    print("  - Verificando [SYNC] para mudancas criticas...")
+    touches_docs = any(path.startswith("docs/") or path == "README.md" for path in files)
+    if touches_docs:
+        print("  [AVISO] Mudanca em docs detectada.")
+        print("  Use [SYNC] na mensagem de commit.")
 
-echo "✅ PRE-COMMIT VALIDAÇÃO COMPLETA"
-exit 0
+
+def main() -> int:
+    print("PRE-COMMIT: Validando documentacao...")
+    files = staged_files()
+    validate_markdown(files)
+    validate_docstrings(files)
+    validate_utf8(files)
+    warn_sync(files)
+    print("PRE-COMMIT: validacao completa.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
