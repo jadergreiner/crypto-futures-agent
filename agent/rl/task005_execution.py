@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class Task005ExecutionLog:
     """Central log for TASK-005 PPO training execution."""
-    
+
     def __init__(self):
         self.start_time = datetime.utcnow()
         self.log_file = Path("TASK_005_EXECUTION_LOG.md")
@@ -33,7 +33,7 @@ class Task005ExecutionLog:
             "phase2": {"name": "Training Cycle (96h)", "status": "PENDING"},
             "phase3": {"name": "Validation & Sign-Off", "status": "PENDING"}
         }
-    
+
     def log_phase_start(self, phase_id):
         """Log phase kickoff."""
         phase = self.phases.get(phase_id)
@@ -43,7 +43,7 @@ class Task005ExecutionLog:
             logger.info(f"🚀 {phase_id}: {phase['name']} — INICIADA")
             return True
         return False
-    
+
     def log_component(self, component_name, status, notes=""):
         """Log component completion."""
         timestamp = datetime.utcnow().isoformat()
@@ -51,7 +51,7 @@ class Task005ExecutionLog:
         if notes:
             message += f" ({notes})"
         logger.info(message)
-    
+
     def write_execution_report(self):
         """Write execution log to file."""
         report = f"""# TASK-005 PPO Training — Execution Report
@@ -79,7 +79,7 @@ class Task005ExecutionLog:
 
 - [ ] Reward Shaping
   - [ ] Realized PnL reward: r_pnl = pnl_realized / capital × 10.0
-  - [ ] Win/loss bonus: ±0.5 
+  - [ ] Win/loss bonus: ±0.5
   - [ ] Sharpe ratio bonus (end-of-episode)
 
 - [ ] Callbacks & Monitoring
@@ -122,10 +122,10 @@ class Task005ExecutionLog:
 
 **Log Atualizado:** {datetime.utcnow().isoformat()}
 """
-        
+
         with open(self.log_file, "w", encoding="utf-8") as f:
             f.write(report)
-        
+
         logger.info(f"📝 Execution report: {self.log_file}")
         return str(self.log_file)
 
@@ -135,58 +135,58 @@ def main():
     logger.info("=" * 70)
     logger.info("TASK-005 PPO TRAINING PIPELINE — PHASE 1 KICKOFF")
     logger.info("=" * 70)
-    
+
     executor = Task005ExecutionLog()
-    
+
     # Log Phase 1 start
     executor.log_phase_start("phase1")
-    
+
     logger.info("\n📋 Phase 1: Environment Setup")
     logger.info("-" * 70)
-    
+
     # Log component status (simulated)
     executor.log_component(
         "CryptoTradingEnv (gymnasium.Env)",
         "READY",
         "specs: obs(5), acts(3), reset/step/reward"
     )
-    
+
     executor.log_component(
         "Trade History Loader",
         "READY",
         "70 Sprint 1 trades loaded from data/trades_history.json"
     )
-    
+
     executor.log_component(
         "Feature Engineering",
         "READY",
         "RSI, EMA-20, volume normalization configured"
     )
-    
+
     executor.log_component(
         "Reward Shaping",
         "READY",
         "r_pnl + r_bonus + r_sharpe (daily gates: D1≥0.4, D2≥0.7, D3≥1.0)"
     )
-    
+
     executor.log_component(
         "Callbacks & Risk Gates",
         "READY",
         "Drawdown -5% check, checkpoint every 50k steps"
     )
-    
+
     logger.info("\n" + "=" * 70)
     logger.info("✅ PHASE 1 COMPONENTS: READY FOR EXECUTION")
     logger.info("=" * 70)
-    
+
     # Write report
     report_file = executor.write_execution_report()
-    
+
     logger.info(f"\n📌 PRÓXIMA AÇÃO: Autorização de The Brain (#3) para Phase 2")
     logger.info(f"   Timeline: 96h wall-time allocation")
     logger.info(f"   Target: 500k steps, Sharpe ≥ 1.0")
     logger.info(f"   Daily Gates: Monitor during training")
-    
+
     logger.info("=" * 70)
 
 

@@ -304,171 +304,190 @@ def run_dry_run() -> None:
     logger.info("="*60)
 
 
-def train_model() -> None:
-    """Treina o modelo RL."""
-    logger.info("="*60)
-    logger.info("TRAINING RL MODEL")
-    logger.info("="*60)
+def _train_single_symbol(
+    symbol: str,
+    data_loader,
+    trainer,
+    symbol_index: int,
+    total_symbols: int,
+    train_logger=None
+) -> bool:
+    """
+    Treina um símbolo único.
+
+    Args:
+        symbol: Símbolo a treinar
+        data_loader: DataLoader instance
+        trainer: Trainer instance
+        symbol_index: Índice do símbolo (1-based para exibição)
+        total_symbols: Total de símbolos
+        train_logger: Logger para treinamento (opcional)
+
+    Returns:
+        True se modelo passou na validação, False caso contrário
+    """
+    if train_logger is None:
+        train_logger = logger
+
+    train_logger.info("")
+    train_logger.info("="*60)
+    train_logger.info(f"[{symbol_index}/{total_symbols}] TREINANDO: {symbol}")
+    train_logger.info("="*60)
+
+    # Diagnóstico de dados
+    diagnosis = data_loader.diagnose_data_readiness(
+        symbol=symbol,
+        min_length_train=1000,
+        min_length_val=200,
+        train_ratio=0.8
+    )
+
+    if not diagnosis['ready']:
+        train_logger.error(f"[FALHA] Dados insuficientes para {symbol}")
+        train_logger.error(diagnosis['summary'])
+        return False
+
+    # Carregar dados
+    train_logger.info(f"Carregando dados de treinamento para {symbol}...")
+    train_data = data_loader.load_training_data(symbol=symbol, min_length=1000)
+    summary = data_loader.get_data_summary(train_data)
+    train_logger.info(f"  - H4: {summary['h4']['length']} candles")
+    train_logger.info(f"  - H1: {summary['h1']['length']} candles")
+    train_logger.info(f"  - D1: {summary['d1']['length']} candles")
+
+    train_logger.info(f"Carregando dados de validação para {symbol}...")
+    val_data = data_loader.load_validation_data(symbol=symbol, min_length=200)
+
+    # Fase 1: Exploração
+    train_logger.info(f"Fase 1: Exploração para {symbol}...")
+    trainer.train_phase1_exploration(
+        train_data=train_data,
+        total_timesteps=500000,
+        episode_length=500
+    )
+
+    # Fase 2: Refinamento
+    train_logger.info(f"Fase 2: Refinamento para {symbol}...")
+    trainer.train_phase2_refinement(
+        train_data=train_data,
+        total_timesteps=1000000,
+        load_phase1=True,
+        episode_length=500
+    )
+
+    # Fase 3: Validação
+    train_logger.info(f"Fase 3: Validação para {symbol}...")
+    metrics = trainer.train_phase3_validation(
+        test_data=val_data,
+        n_episodes=100,
+        episode_length=500
+    )
+
+    # Verificar se passou
+    passed = metrics['sharpe_ratio'] > 1.0 and metrics['max_drawdown'] < 0.15
+
+    if passed:
+        train_logger.info(f"[OK] {symbol} passou na validação")
+        train_logger.info(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
+        train_logger.info(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}%")
+        train_logger.info(f"  - Win Rate: {metrics['win_rate']*100:.2f}%")
+        train_logger.info(f"  - Avg R-Multiple: {metrics['avg_r_multiple']:.2f}")
+
+        # Salvar modelo final específico do símbolo
+        final_path = f"models/crypto_agent_ppo_{symbol}_final.zip"
+        trainer.save_model(final_path)
+        train_logger.info(f"[OK] Modelo salvo: {final_path}")
+    else:
+        train_logger.warning(f"[FALHA] {symbol} não passou na validação")
+        train_logger.warning(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f} (requer > 1.0)")
+        train_logger.warning(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}% (requer < 15%)")
+
+    return passed
+
+
+def train_model(symbols: list = None) -> None:
+    """
+    Treina o modelo RL para múltiplos símbolos.
+
+    Args:
+        symbols: Lista de símbolos a treinar. Default = 4 high-caps
+    """
+    # Default: treinar os 4 high-caps
+    if symbols is None:
+        symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"]
+
+    # Configurar logger separado para treinamento (evita conflito com agent.log)
+    from monitoring.logger import AgentLogger
+    train_logger = AgentLogger.setup_context_logger(context="training", name="crypto_agent_training")
+
+    train_logger.info("="*60)
+    train_logger.info("TRAINING RL MODELS - MÚLTIPLOS SÍMBOLOS")
+    train_logger.info("="*60)
+    train_logger.info(f"Símbolos a treinar: {', '.join(symbols)}")
+    train_logger.info("")
 
     from agent.data_loader import DataLoader
     from agent.trainer import Trainer
 
     try:
-        # Inicializar database
+        # Inicializar database e data loader
         db = setup_database()
-
-        # Inicializar data loader
-        logger.info("Inicializando Data Loader...")
+        train_logger.info("Inicializando Data Loader...")
         data_loader = DataLoader(db=db)
 
-        # NOVO: Diagnóstico pré-treinamento
-        logger.info("="*60)
-        logger.info("DIAGNÓSTICO DE DISPONIBILIDADE DE DADOS")
-        logger.info("="*60)
-        diagnosis = data_loader.diagnose_data_readiness(
-            symbol="BTCUSDT",
-            min_length_train=1000,
-            min_length_val=200,
-            train_ratio=0.8
-        )
+        # Diagnóstico pré-treinamento para todos
+        train_logger.info("="*60)
+        train_logger.info("DIAGNÓSTICO DE DISPONIBILIDADE DE DADOS")
+        train_logger.info("="*60)
+        diagnoses = data_loader.diagnose_multi_symbols(symbols=symbols)
 
-        # Exibir diagnóstico detalhado
-        logger.info(f"Símbolo: {diagnosis['symbol']}")
-        logger.info("")
-        logger.info("Status dos Timeframes:")
-        for tf, info in diagnosis['timeframes'].items():
-            logger.info(f"  {tf.upper()}:")
-            logger.info(f"    Disponível: {info.get('available', 0)} candles")
-            if 'needed_total' in info:
-                logger.info(f"    Necessário (total): {info['needed_total']} candles")
-                logger.info(f"    Necessário (treino): {info['needed_train']} candles")
-                logger.info(f"    Após split 80/20: {info['after_split']} candles")
-            logger.info(f"    Status: {info['status']}")
-            if info.get('recommendation'):
-                logger.info(f"    -> {info['recommendation']}")
+        # Exibir resumo diagnóstico
+        ready_symbols = [s for s in symbols if diagnoses[s]['ready']]
+        failed_symbols = [s for s in symbols if not diagnoses[s]['ready']]
 
-        # Exibir status de indicadores
-        if diagnosis.get('indicators'):
-            logger.info("")
-            logger.info("Requisitos de Indicadores:")
-            for ind, info in diagnosis['indicators'].items():
-                logger.info(f"  {ind}:")
-                logger.info(f"    Necessário: {info['required_candles']} candles")
-                logger.info(f"    Disponível: {info['available']} candles")
-                logger.info(f"    Status: {info['status']}")
-                if '[FALHA]' in info.get('status', ''):
-                    logger.info(f"    -> {info['recommendation']}")
+        if failed_symbols:
+            train_logger.warning(f"Símbolos com dados insuficientes: {', '.join(failed_symbols)}")
+            train_logger.warning("Estes símbolos serão pulados. Execute: python main.py --setup")
 
-        # Exibir atualização dos dados
-        if diagnosis.get('data_freshness'):
-            logger.info("")
-            logger.info("Atualização dos Dados:")
-            freshness = diagnosis['data_freshness']
-            logger.info(f"  Último candle H4: {freshness['last_h4_timestamp']}")
-            logger.info(f"  Horas desde última atualização: {freshness['hours_since_last']}")
-            if freshness['is_stale']:
-                logger.warning("  [AVISO] DADOS DESATUALIZADOS (>24h)")
-
-        logger.info("")
-        logger.info("="*60)
-        logger.info(diagnosis['summary'])
-        logger.info("="*60)
-
-        # Se dados insuficientes, parar sem fallback silencioso
-        if not diagnosis['ready']:
-            logger.error("")
-            logger.error("="*60)
-            logger.error("TREINAMENTO ABORTADO - DADOS INSUFICIENTES")
-            logger.error("="*60)
-            logger.error("")
-            logger.error("AÇÕES RECOMENDADAS:")
-            logger.error("1. Execute: python main.py --setup")
-            logger.error("   Para coletar dados históricos completos")
-            logger.error("")
-            logger.error("2. Ou aumente os períodos em config/settings.py:")
-            logger.error("   HISTORICAL_PERIODS = {")
-            logger.error("       'D1': 730,   # Para EMA_610 com margem")
-            logger.error("       'H4': 250,   # Para 1000+ candles após split")
-            logger.error("       'H1': 120")
-            logger.error("   }")
-            logger.error("")
-            logger.error("="*60)
+        if not ready_symbols:
+            train_logger.error("Nenhum símbolo pronto para treinamento. Abortando.")
             return
 
-        # Continuar com o treino normal se dados OK
-        logger.info("[OK] Dados suficientes, iniciando carregamento...")
-        logger.info("")
+        train_logger.info(f"Símbolos prontos para treinamento: {', '.join(ready_symbols)}")
+        train_logger.info("")
 
-        # Carregar dados de treino
-        logger.info("Carregando dados de treinamento...")
-        train_data = data_loader.load_training_data(symbol="BTCUSDT", min_length=1000)
-
-        # Mostrar resumo dos dados
-        summary = data_loader.get_data_summary(train_data)
-        logger.info(f"Dados de treino carregados:")
-        logger.info(f"  - H4: {summary['h4']['length']} candles")
-        logger.info(f"  - H1: {summary['h1']['length']} candles")
-        logger.info(f"  - D1: {summary['d1']['length']} candles")
-
-        # Carregar dados de validação
-        logger.info("Carregando dados de validação...")
-        val_data = data_loader.load_validation_data(symbol="BTCUSDT", min_length=200)
-        val_summary = data_loader.get_data_summary(val_data)
-        logger.info(f"Dados de validação carregados:")
-        logger.info(f"  - H4: {val_summary['h4']['length']} candles")
-
-        # Inicializar trainer
-        logger.info("Inicializando Trainer...")
+        # Inicializar trainer uma vez
+        train_logger.info("Inicializando Trainer...")
         trainer = Trainer(save_dir="models")
 
-        # Fase 1: Exploração (500k steps)
-        logger.info("Iniciando Fase 1: Exploração...")
-        trainer.train_phase1_exploration(
-            train_data=train_data,
-            total_timesteps=500000,
-            episode_length=500
-        )
+        # Treinar cada símbolo pronto
+        results = {}
+        for idx, symbol in enumerate(ready_symbols, 1):
+            passed = _train_single_symbol(
+                symbol=symbol,
+                data_loader=data_loader,
+                trainer=trainer,
+                symbol_index=idx,
+                total_symbols=len(ready_symbols),
+                train_logger=train_logger
+            )
+            results[symbol] = passed
 
-        # Fase 2: Refinamento (1M steps)
-        logger.info("Iniciando Fase 2: Refinamento...")
-        trainer.train_phase2_refinement(
-            train_data=train_data,
-            total_timesteps=1000000,
-            load_phase1=True,
-            episode_length=500
-        )
-
-        # Fase 3: Validação
-        logger.info("Iniciando Fase 3: Validação...")
-        metrics = trainer.train_phase3_validation(
-            test_data=val_data,
-            n_episodes=100,
-            episode_length=500
-        )
-
-        # Verificar se modelo passou nos critérios
-        if metrics['sharpe_ratio'] > 1.0 and metrics['max_drawdown'] < 0.15:
-            logger.info("[OK] Modelo passou nos critérios de validação")
-            logger.info(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
-            logger.info(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}%")
-            logger.info(f"  - Win Rate: {metrics['win_rate']*100:.2f}%")
-            logger.info(f"  - Avg R-Multiple: {metrics['avg_r_multiple']:.2f}")
-
-            # Salvar modelo final
-            final_path = "models/crypto_agent_ppo_final.zip"
-            trainer.save_model(final_path)
-            logger.info(f"[OK] Modelo final salvo: {final_path}")
-        else:
-            logger.warning("[FALHA] Modelo não passou nos critérios de validação")
-            logger.warning(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.2f} (requer > 1.0)")
-            logger.warning(f"  - Max Drawdown: {metrics['max_drawdown']*100:.2f}% (requer < 15%)")
-
-        logger.info("="*60)
-        logger.info("TREINAMENTO CONCLUÍDO")
-        logger.info("="*60)
+        # Resumo final
+        train_logger.info("")
+        train_logger.info("="*60)
+        train_logger.info("RESUMO FINAL DO TREINAMENTO")
+        train_logger.info("="*60)
+        passed = sum(1 for v in results.values() if v)
+        total = len(results)
+        train_logger.info(f"Modelos bem-sucedidos: {passed}/{total}")
+        for symbol, passed_val in results.items():
+            status = "[OK]" if passed_val else "[FALHA]"
+            train_logger.info(f"  {status} {symbol}")
+        train_logger.info("="*60)
 
     except Exception as e:
-        logger.error(f"Erro durante treinamento: {e}", exc_info=True)
+        train_logger.error(f"Erro durante treinamento: {e}", exc_info=True)
 
 
 def start_operation(
@@ -685,6 +704,13 @@ def main():
     )
 
     parser.add_argument(
+        '--symbols',
+        type=str,
+        default=None,
+        help='Comma-separated symbols to train (default: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT). Example: --symbols "BTCUSDT,ETHUSDT"'
+    )
+
+    parser.add_argument(
         '--backtest',
         action='store_true',
         help='Run backtest mode'
@@ -789,7 +815,11 @@ def main():
         sys.exit(0)
 
     if args.train:
-        train_model()
+        # Parse símbolos a treinar
+        symbols = None
+        if args.symbols:
+            symbols = [s.strip().upper() for s in args.symbols.split(',')]
+        train_model(symbols=symbols)
         sys.exit(0)
 
     if args.backtest:

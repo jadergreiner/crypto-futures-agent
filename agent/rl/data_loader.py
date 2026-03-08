@@ -15,66 +15,68 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 import numpy as np
 
+from data.trades_history_generator import validate_trade_baseline
+
 
 class TradeHistoryLoader:
     """
     Carregador de histórico de trades para treinamento PPO.
-    
+
     Responsabilidades:
     - Carregar trades de data/trades_history.json
     - Validar schema de cada trade
     - Converter para formato OHLCV se necessário
     """
-    
+
     REQUIRED_FIELDS = ['entry_price', 'exit_price', 'qty', 'direction']
     DEFAULT_FILEPATH = "data/trades_history.json"
-    
+
     def __init__(self, filepath: str = DEFAULT_FILEPATH):
         """
         Inicializa o carregador.
-        
+
         Args:
             filepath (str): Caminho do arquivo de trades
         """
         self.filepath = filepath
         self.trades = []
         self.is_loaded = False
-    
+
     def load(self) -> List[Dict]:
         """
         Carrega trades do arquivo JSON.
-        
+
         Returns:
             list: Lista de trades validados
-            
+
         Raises:
             FileNotFoundError: Se o arquivo não existir
             json.JSONDecodeError: Se o JSON é inválido
             ValueError: Se algum trade tem campos faltosos
         """
         fpath = Path(self.filepath)
-        
+
         if not fpath.exists():
             raise FileNotFoundError(f"Arquivo não encontrado: {self.filepath}")
-        
+
         with open(fpath, 'r') as f:
             self.trades = json.load(f)
-        
+
         # Valida cada trade
         for i, trade in enumerate(self.trades):
             self._validate_trade(trade, index=i)
-        
+
         self.is_loaded = True
         return self.trades
-    
+
     def _validate_trade(self, trade: Dict, index: int = 0) -> None:
         """
         Valida um trade individual.
-        
+
         Args:
             trade (dict): Dados do trade
             index (int): Índice do trade (para mensagens de erro)
-            
+
         Raises:
             ValueError: Se algum campo obrigatório está faltando ou inválido
         """
@@ -84,14 +86,14 @@ class TradeHistoryLoader:
             raise ValueError(
                 f"Trade #{index}: campos faltosos: {missing_fields}"
             )
-        
+
         # Valida tipos e valores
         try:
             entry_price = float(trade['entry_price'])
             exit_price = float(trade['exit_price'])
             qty = float(trade['qty'])
             direction = str(trade['direction']).upper()
-            
+
             # Validações de negócio
             if entry_price <= 0:
                 raise ValueError(f"entry_price deve ser > 0")
@@ -101,46 +103,46 @@ class TradeHistoryLoader:
                 raise ValueError(f"qty deve ser > 0")
             if direction not in ['LONG', 'SHORT']:
                 raise ValueError(f"direction deve ser LONG ou SHORT")
-        
+
         except (TypeError, ValueError) as e:
             raise ValueError(f"Trade #{index}: {str(e)}")
-    
+
     def get_trades(self) -> List[Dict]:
         """
         Retorna os trades carregados.
-        
+
         Returns:
             list: Lista de trades
         """
         if not self.is_loaded:
             self.load()
-        
+
         return self.trades
-    
+
     def get_statistics(self) -> Dict:
         """
         Calcula estatísticas dos trades carregados.
-        
+
         Returns:
             dict: Dicionário com estatísticas
         """
         if not self.is_loaded:
             self.load()
-        
+
         if not self.trades:
             return {}
-        
+
         pnls = []
         rewards = []
         long_count = 0
         short_count = 0
-        
+
         for trade in self.trades:
             entry = float(trade['entry_price'])
             exit_val = float(trade['exit_price'])
             qty = float(trade['qty'])
             direction = str(trade['direction']).upper()
-            
+
             # Calcula PnL
             if direction == 'LONG':
                 pnl = (exit_val - entry) * qty
@@ -148,16 +150,26 @@ class TradeHistoryLoader:
             else:  # SHORT
                 pnl = (entry - exit_val) * qty
                 short_count += 1
-            
+
             pnls.append(pnl)
-            
+
             # Reward normalizado
             reward = pnl / (entry * qty) if (entry * qty) != 0 else 0
             rewards.append(reward)
-        
+
         pnls_arr = np.array(pnls)
         rewards_arr = np.array(rewards)
-        
+
+        if np.sum(pnls_arr[pnls_arr < 0]) != 0:
+            profit_factor = float(
+                np.sum(pnls_arr[pnls_arr > 0]) /
+                abs(np.sum(pnls_arr[pnls_arr < 0]))
+            )
+        elif np.sum(pnls_arr[pnls_arr > 0]) > 0:
+            profit_factor = 100.0
+        else:
+            profit_factor = 0.0
+
         stats = {
             'total_trades': len(self.trades),
             'long_trades': long_count,
@@ -170,18 +182,21 @@ class TradeHistoryLoader:
             'winning_trades': int(np.sum(pnls_arr > 0)),
             'losing_trades': int(np.sum(pnls_arr < 0)),
             'win_rate': float(np.sum(pnls_arr > 0) / len(pnls_arr)) if pnls else 0,
-            'profit_factor': float(
-                np.sum(pnls_arr[pnls_arr > 0]) / 
-                abs(np.sum(pnls_arr[pnls_arr < 0]))
-            ) if np.sum(pnls_arr[pnls_arr < 0]) != 0 else 0,
+            'profit_factor': profit_factor,
         }
-        
+
         return stats
-    
+
+    def validate_baseline(self) -> Dict:
+        """Valida o baseline do dataset sintético antes do treinamento."""
+        if not self.is_loaded:
+            self.load()
+        return validate_trade_baseline(self.trades)
+
     def print_statistics(self) -> None:
         """Imprime estatísticas de forma amigável."""
         stats = self.get_statistics()
-        
+
         print("\n" + "="*60)
         print("📊 TRADE HISTORY STATISTICS")
         print("="*60)
@@ -205,10 +220,10 @@ def load_trade_history(
 ) -> List[Dict]:
     """
     Função convenience para carregar histórico de trades.
-    
+
     Args:
         filepath (str): Caminho do arquivo de trades
-        
+
     Returns:
         list: Lista de trades carregados
     """
@@ -219,27 +234,27 @@ def load_trade_history(
 def convert_trades_to_ohlcv(trades: List[Dict]) -> List[Dict]:
     """
     Converte histórico de trades para sequência OHLCV.
-    
+
     Cada trade é representado como um candle onde:
     - open = entry_price
     - close = exit_price
     - high = max(entry, exit)
     - low = min(entry, exit)
     - volume = qty (simulado)
-    
+
     Args:
         trades (list): Lista de trades
-        
+
     Returns:
         list: Lista de dicts OHLCV
     """
     ohlcv_list = []
-    
+
     for trade in trades:
         entry = float(trade['entry_price'])
         exit_val = float(trade['exit_price'])
         qty = float(trade.get('qty', 1.0))
-        
+
         candle = {
             'open': entry,
             'high': max(entry, exit_val),
@@ -247,9 +262,9 @@ def convert_trades_to_ohlcv(trades: List[Dict]) -> List[Dict]:
             'close': exit_val,
             'volume': qty * 10,  # Simulação: qty * multiplicador
         }
-        
+
         ohlcv_list.append(candle)
-    
+
     return ohlcv_list
 
 

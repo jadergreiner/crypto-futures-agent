@@ -42,15 +42,15 @@ def test_environment():
     try:
         loader = TradeHistoryLoader("data/trades_history.json")
         trades = loader.load()
-        
+
         # Cria environment
         env = CryptoTradingEnv(trade_data=trades)
         print("  ✅ Ambiente criado")
-        
+
         # Reset
         obs, info = env.reset()
         print(f"  ✅ Reset: obs shape {obs.shape}, inicial equity ${env.equity:.2f}")
-        
+
         # Alguns passos
         for i in range(5):
             action = env.action_space.sample()  # Ação aleatória
@@ -58,7 +58,7 @@ def test_environment():
             print(f"    Step {i+1}: action={action}, reward={reward:.6f}, equity=${info['equity']:.2f}")
             if terminated:
                 break
-        
+
         env.close()
         print("  ✅ Environment funcionando")
         return True
@@ -75,9 +75,9 @@ def test_trainer_initialization():
     try:
         loader = TradeHistoryLoader("data/trades_history.json")
         trades = loader.load()
-        
+
         env = CryptoTradingEnv(trade_data=trades[:20])  # Usa subset menor
-        
+
         # Cria trainer (sem TensorBoard para evitar conflitos)
         trainer = PPOTrainer(
             env=env,
@@ -86,16 +86,16 @@ def test_trainer_initialization():
             use_tensorboard=False,  # Desabilita TensorBoard em testes
         )
         print("  ✅ Trainer criado")
-        
+
         # Cria modelo
         model = trainer.create_model()
         print(f"  ✅ Modelo PPO criado: {model}")
-        
+
         # Teste rápido de learn (1000 steps)
         print("  Running quick 1000-step training...")
         model.learn(total_timesteps=1000)
         print("  ✅ Quick training succeeded")
-        
+
         env.close()
         return True
     except Exception as e:
@@ -111,7 +111,7 @@ def test_training_loop_initialization():
     try:
         loop = Task005TrainingLoop()
         print("  ✅ Training loop criado")
-        
+
         # Inicializa
         if loop.initialize():
             print("  ✅ Training loop inicializado")
@@ -122,7 +122,7 @@ def test_training_loop_initialization():
         else:
             print("  ❌ Falha na inicialização")
             return False
-    
+
     except Exception as e:
         print(f"  ❌ Erro: {e}")
         import traceback
@@ -135,36 +135,36 @@ def run_all_tests():
     print("\n" + "="*70)
     print("🧪 TASK-005 PHASE 2 INTEGRATION TESTS")
     print("="*70)
-    
+
     results = []
-    
+
     # Test 1
     results.append(("Data Loader", test_data_loader()))
-    
+
     # Test 2
     results.append(("Environment", test_environment()))
-    
+
     # Test 3
     results.append(("Trainer Init", test_trainer_initialization()))
-    
+
     # Test 4
     results.append(("Training Loop Init", test_training_loop_initialization()))
-    
+
     # Summary
     print("\n" + "="*70)
     print("📊 TEST SUMMARY")
     print("="*70)
-    
+
     passed = 0
     for name, result in results:
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"{status} {name}")
         if result:
             passed += 1
-    
+
     total = len(results)
     print(f"\nResult: {passed}/{total} tests passed")
-    
+
     if passed == total:
         print("✅ ALL TESTS PASSED — Phase 2 Ready!\n")
         return True

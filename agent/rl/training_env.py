@@ -58,6 +58,7 @@ class CryptoTradingEnv(gym.Env):
         self.entry_qty = 0.0
         self.trades_history = []
         self.step_rewards = []
+        self.raw_pnl_history = []
         self.consecutive_losses = 0  # Counter for consecutive losing trades (v2.4 safeguard)
         self.max_consecutive_losses = 5  # Max allowed consecutive losses hard limit
 
@@ -143,6 +144,7 @@ class CryptoTradingEnv(gym.Env):
         self.entry_qty = 0.0
         self.trades_history = []
         self.step_rewards = []
+        self.raw_pnl_history = []
         self.consecutive_losses = 0  # Reset counter on new episode
 
         obs = self._get_observation()
@@ -171,8 +173,9 @@ class CryptoTradingEnv(gym.Env):
         trade = self.trade_data[self.current_step]
 
         # Executa lógica de trading baseada na ação
-        reward = self._execute_action(action, trade)
+        reward, raw_pnl, closed_trade = self._execute_action(action, trade)
         self.step_rewards.append(reward)
+        self.raw_pnl_history.append(raw_pnl)
 
         # Próximo passo
         self.current_step += 1
@@ -188,6 +191,10 @@ class CryptoTradingEnv(gym.Env):
             'equity': self.equity,
             'position': self.position,
             'trades_executed': len(self.trades_history),
+            'raw_pnl': float(raw_pnl),
+            'shaped_reward': float(reward),
+            'trade_closed': closed_trade is not None,
+            'closed_trade': closed_trade,
         }
 
         return obs, float(reward), terminated, truncated, info
@@ -208,13 +215,15 @@ class CryptoTradingEnv(gym.Env):
             trade (dict): Dados do trade atual
 
         Returns:
-            float: Reward do passo com shaping otimizado
+            tuple: (shaped_reward, raw_pnl, closed_trade)
         """
         entry_price = trade['entry_price']
         exit_price = trade['exit_price']
         qty = trade.get('qty', 1.0)
 
         reward = 0.0
+        raw_pnl = 0.0
+        closed_trade = None
 
         # ============================================================
         # POSIÇÃO ABERTA: FECHA E CALCULA REWARD
@@ -225,6 +234,8 @@ class CryptoTradingEnv(gym.Env):
                 pnl = (exit_price - self.entry_price) * self.entry_qty
             else:  # SHORT (-1)
                 pnl = (self.entry_price - exit_price) * self.entry_qty
+
+            raw_pnl = pnl
 
             # Atualiza equity
             self.equity += pnl
@@ -252,13 +263,13 @@ class CryptoTradingEnv(gym.Env):
                 loss_penalty = -0.05  # Penalidade fixa pequena
                 magnitude_loss = max(pnl / self.initial_capital * 0.1, -0.05)  # Até -0.05 extras
                 reward = base_reward + loss_penalty + magnitude_loss
-                
+
                 # ============================================================
                 # CONSECUTIVE LOSSES SAFEGUARD (v2.4)
                 # ============================================================
                 # Track consecutive losses; penalize heavily if limit reached
                 self.consecutive_losses += 1
-                
+
                 if self.consecutive_losses >= self.max_consecutive_losses:
                     # Severe penalty when hitting max consecutive losses
                     penalty = -1.0  # Heavy penalty to discourage this pattern
@@ -280,15 +291,20 @@ class CryptoTradingEnv(gym.Env):
                     reward += 0.10  # Bônus superior
 
             # Registra trade fechado
-            self.trades_history.append({
+            closed_trade = {
                 'entry_price': self.entry_price,
                 'exit_price': exit_price,
                 'qty': self.entry_qty,
                 'position': 'LONG' if self.position == 1 else 'SHORT',
-                'pnl': pnl,
+                'pnl': raw_pnl,
+                'raw_pnl': raw_pnl,
                 'reward': reward,
+                'shaped_reward': reward,
                 'is_win': is_win,
-            })
+                'equity': self.equity,
+                'step': self.current_step,
+            }
+            self.trades_history.append(closed_trade)
 
             self.position = 0
             self.entry_price = 0.0
@@ -311,7 +327,7 @@ class CryptoTradingEnv(gym.Env):
             reward += 0.01
         # action == 0: HOLD, não abre posição (sem bônus, encoraja decisão)
 
-        return reward
+        return reward, raw_pnl, closed_trade
 
     def _get_observation(self):
         """

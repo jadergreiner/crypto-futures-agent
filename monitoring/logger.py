@@ -35,22 +35,41 @@ class AgentLogger:
     """Logger estruturado com rotação de arquivos."""
 
     @staticmethod
-    def setup_logger(name: str = "crypto_agent") -> logging.Logger:
+    def setup_context_logger(context: str = "operation", name: str = "crypto_agent") -> logging.Logger:
         """
-        Configura logger com handlers.
-        Também configura o root logger para capturar logs de todos os módulos.
+        Configura logger com arquivo específico por contexto.
+
+        Args:
+            context: Contexto ('operation', 'training', 'backtest', 'collection')
+            name: Nome do logger
+
+        Returns:
+            Logger configurado com arquivo de contexto
+        """
+        from config.settings import LOG_FILES
+
+        log_file = LOG_FILES.get(context, LOG_FILES['operation'])
+        return AgentLogger._setup_logger_internal(name=name, log_file=log_file)
+
+    @staticmethod
+    def _setup_logger_internal(name: str = "crypto_agent", log_file: str = None) -> logging.Logger:
+        """
+        Implementação interna comum para setup de loggers.
 
         Args:
             name: Nome do logger
+            log_file: Caminho do arquivo de log (usa LOG_FILE se None)
 
         Returns:
             Logger configurado
         """
+        if log_file is None:
+            log_file = LOG_FILE
+
         logger = logging.getLogger(name)
         logger.setLevel(getattr(logging, LOG_LEVEL))
 
         # Desabilitar propagação para evitar mensagens duplicadas
-        # (tanto o logger nomeado quanto o root logger teriam handlers)
         logger.propagate = False
 
         # Evitar duplicação
@@ -59,7 +78,7 @@ class AgentLogger:
 
         # File handler com rotação
         file_handler = SafeRotatingFileHandler(
-            LOG_FILE,
+            log_file,
             maxBytes=LOG_MAX_BYTES,
             backupCount=LOG_BACKUP_COUNT,
             delay=True,
@@ -73,17 +92,11 @@ class AgentLogger:
         logger.addHandler(file_handler)
 
         # Console handler com suporte a Unicode
-        # No Windows, o sys.stdout pode usar cp1252 por padrão.
-        # Usar errors='replace' garante que caracteres não suportados sejam substituídos
-        # em vez de causar UnicodeEncodeError.
         console_handler = logging.StreamHandler(sys.stdout)
-        # Configurar o stream para lidar com erros de codificação graciosamente
         if hasattr(console_handler.stream, 'reconfigure'):
-            # Python 3.7+ permite reconfigurar a codificação do stream
             try:
                 console_handler.stream.reconfigure(encoding='utf-8', errors='replace')
             except Exception:
-                # Se falhar, continuamos com o comportamento padrão mas com errors='replace'
                 pass
         console_formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s'
@@ -92,7 +105,6 @@ class AgentLogger:
         logger.addHandler(console_handler)
 
         # Configurar root logger para capturar logs de todos os módulos
-        # (monitoring.position_monitor, data.collector, etc.)
         root_logger = logging.getLogger()
         root_logger.setLevel(getattr(logging, LOG_LEVEL))
 
@@ -102,6 +114,20 @@ class AgentLogger:
             root_logger.addHandler(console_handler)
 
         return logger
+
+    @staticmethod
+    def setup_logger(name: str = "crypto_agent") -> logging.Logger:
+        """
+        Configura logger com handlers (usa LOG_FILE padrão).
+        Também configura o root logger para capturar logs de todos os módulos.
+
+        Args:
+            name: Nome do logger
+
+        Returns:
+            Logger configurado
+        """
+        return AgentLogger._setup_logger_internal(name=name)
 
     @staticmethod
     def log_decision(logger: logging.Logger, decision: Dict[str, Any]) -> None:

@@ -23,6 +23,7 @@ from stable_baselines3 import PPO
 
 from agent.rl.training_env import CryptoTradingEnv
 from agent.rl.data_loader import TradeHistoryLoader
+from agent.rl.metrics_utils import compute_performance_metrics
 
 # Configurar logging
 logging.basicConfig(
@@ -143,10 +144,8 @@ class Task005FinalValidator:
             while not terminated:
                 action, _states = self.model.predict(obs, deterministic=True)
                 obs, reward, terminated, truncated, info = self.env.step(action)
-                trades.append({
-                    'reward': float(reward),
-                    'equity': float(info.get('equity', 0)),
-                })
+                if info.get('trade_closed') and info.get('closed_trade'):
+                    trades.append(info['closed_trade'])
 
             # Salva trades do backtest
             self.validation_results['trades'] = trades
@@ -160,112 +159,19 @@ class Task005FinalValidator:
             return False
 
     def _calculate_metrics(self) -> bool:
-        """Calcula métricas finais com validação de sanidade."""
+        """Calcula métricas finais com a mesma fonte de verdade do treino."""
         try:
             trades = self.validation_results.get('trades', [])
-            rewards = np.array([t['reward'] for t in trades])
-
-            if len(rewards) == 0:
+            if len(trades) == 0:
                 logger.error("❌ Nenhum trade no backtest")
                 return False
 
-            # ============================================================
-            # SHARPE RATIO - CORRIGIDO COM PROTEÇÃO DE VOLATILIDADE
-            # ============================================================
-            mean_reward = np.mean(rewards)
-            std_reward = np.std(rewards)
-            
-            # Floor de volatilidade mínima para evitar divisões por zero/valores artificiais
-            # Usa máximo de: 1% do retorno médio absoluto ou 0.01 como piso absoluto
-            min_vol = max(abs(mean_reward) * 0.01, 0.01)
-            std_reward_floored = max(std_reward, min_vol)
-            
-            # Sharpe Ratio com proteção contra valores anormais
-            sharpe = mean_reward / std_reward_floored
-            
-            # VALIDAÇÃO SANIDADE: Sharpe não deve ultrapassar 10
-            # (valores realistas de trading até ~5, acima disso é suspeito)
-            if sharpe > 10.0:
-                logger.warning(
-                    f"⚠️ Sharpe anormalmente alto: {sharpe:.4f} "
-                    f"(std: {std_reward:.6f}, mean: {mean_reward:.6f}). "
-                    f"Usando floor de 10.0 para sanidade."
-                )
-                sharpe = 10.0
-
-            # ============================================================
-            # WIN RATE
-            # ============================================================
-            winning_trades = np.sum(rewards > 0)
-            win_rate = winning_trades / len(rewards)
-
-            # VALIDAÇÃO SANIDADE: Win Rate deve estar entre 0% e 100%
-            assert 0 <= win_rate <= 1.0, f"Invalid win_rate: {win_rate}"
-
-            # ============================================================
-            # MAXIMUM DRAWDOWN
-            # ============================================================
-            cumulative_returns = np.cumsum(rewards)
-            running_max = np.maximum.accumulate(cumulative_returns)
-            drawdown = cumulative_returns - running_max
-            max_drawdown = -np.min(drawdown) / (np.max(running_max) + 1e-8)
-
-            # VALIDAÇÃO SANIDADE: Drawdown deve estar entre 0% e 100%
-            max_drawdown = max(0, min(max_drawdown, 1.0))
-
-            # ============================================================
-            # PROFIT FACTOR
-            # ============================================================
-            gains = np.sum(rewards[rewards > 0])
-            losses = -np.sum(rewards[rewards < 0])
-            
-            # Evita divisão por zero e valores impossíveis
-            if losses > 0:
-                profit_factor = gains / losses
-            elif gains > 0:
-                profit_factor = float('inf')  # Todos ganhos, zero perdas
-            else:
-                profit_factor = 1.0  # Nenhum trade lucrativo
-
-            # VALIDAÇÃO SANIDADE: Profit Factor acima de 100 é suspeito
-            if profit_factor > 100:
-                logger.warning(
-                    f"⚠️ Profit Factor anormalmente alto: {profit_factor:.2f}. "
-                    f"Gains: {gains:.6f}, Losses: {losses:.6f}"
-                )
-
-            # ============================================================
-            # CONSECUTIVE LOSSES
-            # ============================================================
-            losing_trades = [1 if r < 0 else 0 for r in rewards]
-            max_consecutive_losses = 0
-            current_consecutive = 0
-            for is_lose in losing_trades:
-                if is_lose:
-                    current_consecutive += 1
-                    max_consecutive_losses = max(max_consecutive_losses, current_consecutive)
-                else:
-                    current_consecutive = 0
-
-            # VALIDAÇÃO SANIDADE: Consecutive losses não deve ultrapassar total trades
-            assert 0 <= max_consecutive_losses <= len(rewards)
-
-            # ============================================================
-            # ARMAZENAR MÉTRICAS CALCULADAS
-            # ============================================================
-            self.validation_results['metrics'] = {
-                'sharpe_ratio': float(sharpe),
-                'win_rate': float(win_rate),
-                'max_drawdown': float(max_drawdown),
-                'profit_factor': float(profit_factor),
-                'consecutive_losses': int(max_consecutive_losses),
-                'total_trades': len(rewards),
-                'total_return': float(np.sum(rewards)),
-                # Info adicional para debug
-                '_debug_std': float(std_reward),
-                '_debug_std_floored': float(std_reward_floored),
-                '_debug_mean': float(mean_reward),
-            }
+            metrics = compute_performance_metrics(
+                trade_results=trades,
+                initial_capital=self.env.initial_capital,
+            )
+            metrics['total_return'] = metrics['total_pnl']
+            self.validation_results['metrics'] = metrics
 
             logger.info("✅ Métricas calculadas com validação de sanidade")
             return True
@@ -300,9 +206,9 @@ class Task005FinalValidator:
             all_passed = all_passed and passed
 
         self.validation_results['criteria_check'] = criteria_results
-        self.validation_results['is_valid'] = all_passed
+        self.validation_results['is_valid'] = all_passed and metrics.get('metric_sanity_passed', False)
 
-        return all_passed
+        return self.validation_results['is_valid']
 
     def _save_results(self, is_valid: bool) -> None:
         """Salva resultados de validação."""
@@ -333,11 +239,15 @@ class Task005FinalValidator:
 
         print(f"\n📊 Backtest Results:")
         print(f"  Total Trades:    {metrics.get('total_trades', 0)}")
-        print(f"  Total Return:    {metrics.get('total_return', 0):.4f}")
+        print(f"  Total PnL:       {metrics.get('total_pnl', 0):.4f}")
         print(f"  Sharpe Ratio:    {metrics.get('sharpe_ratio', 0):.4f}")
         print(f"  Win Rate:        {metrics.get('win_rate', 0)*100:.1f}%")
         print(f"  Max Drawdown:    {metrics.get('max_drawdown', 0)*100:.1f}%")
         print(f"  Profit Factor:   {metrics.get('profit_factor', 0):.2f}")
+        print(f"  Vol Floor:       {metrics.get('vol_floor', 0):.4f}")
+        print(f"  Metric Sanity:   {'PASS' if metrics.get('metric_sanity_passed') else 'FAIL'}")
+        if metrics.get('sanity_issues'):
+            print(f"  Sanity Issues:   {', '.join(metrics.get('sanity_issues', []))}")
 
         print(f"\n{'='*70}")
         if is_valid:

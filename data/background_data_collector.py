@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class BackgroundDataCollector:
     """
     Coleta dados OHLCV continuamente em background.
-    
+
     Roda em thread separada para não bloquear operações principais.
     Atualiza banco de dados com dados frescos de todos os símbolos.
     """
@@ -82,7 +82,7 @@ class BackgroundDataCollector:
     def _run_collection_loop(self) -> None:
         """
         Main collection loop - roda em thread separada.
-        
+
         Ciclo:
         1. Coleta H4 e H1 para todos os símbolos
         2. Persiste no banco
@@ -109,7 +109,7 @@ class BackgroundDataCollector:
     def _run_collection_cycle(self) -> None:
         """
         Execute uma coleta completa de todos os símbolos.
-        
+
         Processa H4 e H1 para cada símbolo, inserindo no banco.
         """
         cycle_start = time.time()

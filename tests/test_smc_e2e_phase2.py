@@ -134,7 +134,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
         self.latency_measurements.append(("test_01", elapsed))
 
         # Assert: Pelo menos 50/60 símbolos processados com sucesso
-        self.assertGreaterEqual(passed_symbols, 50, 
+        self.assertGreaterEqual(passed_symbols, 50,
                                f"Expected ≥50/60 symbols processed, got {passed_symbols}")
         self.assertGreater(total_obs, 0, "Expected at least 1 OB detected across symbols")
 
@@ -182,7 +182,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
                     sma_vol = volume_sma.iloc[ob_idx]
                     if sma_vol > 0:
                         # OB deve estar em uma vela com volume decente
-                        self.assertGreater(actual_vol, 50, 
+                        self.assertGreater(actual_vol, 50,
                                          f"OB at index {ob_idx} has volume {actual_vol} < threshold")
 
         self.test_results["tests"][test_name] = {
@@ -222,7 +222,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
             # Validar timestamp e direção
             for bos in bos_list:
                 self.assertIsNotNone(bos.timestamp, "BOS timestamp should not be None")
-                self.assertIn(bos.direction, ["bullish", "bearish"], 
+                self.assertIn(bos.direction, ["bullish", "bearish"],
                             f"Invalid BOS direction: {bos.direction}")
 
         self.test_results["tests"][test_name] = {
@@ -255,11 +255,11 @@ class TestSMCE2EPhase2(unittest.TestCase):
         status_blocked, msg_blocked = self.risk_gate.evaluate(current_balance_blocked, session_peak)
 
         # Validar que gates funcionam
-        self.assertEqual(status_cleared, "CLEARED", 
+        self.assertEqual(status_cleared, "CLEARED",
                         f"Expected CLEARED at -2.5%, got {status_cleared}")
-        self.assertEqual(status_risky, "RISKY", 
+        self.assertEqual(status_risky, "RISKY",
                      f"Expected RISKY at -3.0% (threshold), got {status_risky}")
-        self.assertEqual(status_blocked, "BLOCKED", 
+        self.assertEqual(status_blocked, "BLOCKED",
                         f"Expected BLOCKED at -6%, got {status_blocked}")
 
         self.test_results["tests"][test_name] = {
@@ -295,7 +295,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
 
         # Com gap > 1%, confiança deve ser baixa
         if signal == "NEUTRAL":
-            self.assertLess(confidence, 0.5, 
+            self.assertLess(confidence, 0.5,
                            "Gap detection should result in low confidence signal")
 
         self.test_results["tests"][test_name] = {
@@ -311,7 +311,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
         Teste 06: Edge Case — Ranging Market.
 
         Objetivo: Validar que ranging markets (ATR < 0.5%) suprimem sinais
-        Input: Low volatility (ranging) 
+        Input: Low volatility (ranging)
         Expected: Signal suppressed ou confidence baixa
         Coverage: edge-case
         Priority: P1
@@ -409,7 +409,7 @@ class TestSMCE2EPhase2(unittest.TestCase):
         avg_latency = np.mean(latencies)
 
         # Relaxed threshold for CI environments (target: <100ms prod, <400ms CI)
-        self.assertLess(p99_latency, 400,  
+        self.assertLess(p99_latency, 400,
                        f"P99 latency {p99_latency:.2f}ms exceeds 400ms threshold")
 
         self.test_results["tests"][test_name] = {

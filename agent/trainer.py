@@ -15,6 +15,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from agent.environment import CryptoFuturesEnv
 from agent.data_loader import DataLoader
+from agent.sb3_utils import attach_safe_logger_to_model
 from config.ppo_config import get_ppo_config, PPOConfig
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,8 @@ class Trainer:
         self.vec_env = vec_env
 
         # Determinar tensorboard_log baseado na disponibilidade
-        tb_log = f"{self.save_dir}/tensorboard/phase1" if TENSORBOARD_AVAILABLE else None
+        # Nota: Desabilitar TensorBoard na fase 1 para evitar OSError windows file locking
+        tb_log = None  # f"{self.save_dir}/tensorboard/phase1" if TENSORBOARD_AVAILABLE else None
 
         # Criar modelo PPO com hiperparâmetros de config
         self.model = PPO(
@@ -164,7 +166,8 @@ class Trainer:
             verbose=self.config.verbose,
             tensorboard_log=tb_log
         )
-
+        # Anexar logger seguro ao modelo (evita OSError [Errno 22] no Windows)
+        attach_safe_logger_to_model(self.model, use_stdout=False)
         # Callback
         callback = TrainingCallback(log_interval=1000)
 

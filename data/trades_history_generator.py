@@ -24,6 +24,52 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
+def summarize_trade_baseline(trades):
+    """Calcula baseline resumido para validação do dataset sintético."""
+    pnls = np.array([float(t.get('pnl', 0.0)) for t in trades], dtype=float)
+    directions = [str(t.get('direction', '')).upper() for t in trades]
+
+    gains = float(np.sum(pnls[pnls > 0]))
+    losses = float(-np.sum(pnls[pnls < 0]))
+    if losses > 0:
+        profit_factor = gains / losses
+    elif gains > 0:
+        profit_factor = 100.0
+    else:
+        profit_factor = 0.0
+
+    return {
+        'total_trades': int(len(trades)),
+        'win_rate': float(np.sum(pnls > 0) / len(pnls)) if len(pnls) else 0.0,
+        'profit_factor': float(min(profit_factor, 100.0)),
+        'mean_pnl': float(np.mean(pnls)) if len(pnls) else 0.0,
+        'std_pnl': float(np.std(pnls)) if len(pnls) else 0.0,
+        'long_ratio': float(sum(1 for d in directions if d == 'LONG') / len(directions)) if directions else 0.0,
+        'short_ratio': float(sum(1 for d in directions if d == 'SHORT') / len(directions)) if directions else 0.0,
+    }
+
+
+def validate_trade_baseline(trades):
+    """Valida se o dataset sintético atende a um baseline plausível."""
+    summary = summarize_trade_baseline(trades)
+    issues = []
+
+    if summary['total_trades'] < 500:
+        issues.append('insufficient_trade_count')
+    if not 0.35 <= summary['win_rate'] <= 0.65:
+        issues.append('win_rate_out_of_expected_range')
+    if summary['profit_factor'] <= 0 or summary['profit_factor'] > 20:
+        issues.append('profit_factor_out_of_expected_range')
+    if summary['long_ratio'] < 0.3 or summary['short_ratio'] < 0.3:
+        issues.append('direction_balance_too_skewed')
+    if summary['std_pnl'] <= 0:
+        issues.append('pnl_variance_too_low')
+
+    summary['baseline_valid'] = len(issues) == 0
+    summary['baseline_issues'] = issues
+    return summary
+
+
 def generate_sprint1_trades(num_trades=500, filepath="data/trades_history.json"):
     """
     Gera histórico de 500+ trades Sprint 1 com características realistas e diversificadas.
@@ -116,7 +162,7 @@ def generate_sprint1_trades(num_trades=500, filepath="data/trades_history.json")
     with open(filepath, 'w') as f:
         json.dump(trades, f, indent=2)
 
-    # Estatísticas
+    baseline = validate_trade_baseline(trades)
     pnls = [t['pnl'] for t in trades]
     rewards = [t['reward'] for t in trades]
 
@@ -127,6 +173,10 @@ def generate_sprint1_trades(num_trades=500, filepath="data/trades_history.json")
     print(f"   Trades Lucrativos: {sum(1 for p in pnls if p > 0)}/{num_trades}")
     print(f"   Win Rate: {sum(1 for p in pnls if p > 0) / num_trades * 100:.1f}%")
     print(f"   Reward Médio: {np.mean(rewards):.6f}")
+    print(f"   Profit Factor: {baseline['profit_factor']:.2f}")
+    print(f"   Baseline válido: {'SIM' if baseline['baseline_valid'] else 'NÃO'}")
+    if baseline['baseline_issues']:
+        print(f"   Issues: {', '.join(baseline['baseline_issues'])}")
 
     return trades
 

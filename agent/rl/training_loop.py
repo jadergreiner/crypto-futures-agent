@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from agent.rl.training_env import CryptoTradingEnv
 from agent.rl.data_loader import TradeHistoryLoader
+from agent.rl.metrics_utils import compute_performance_metrics
 from agent.rl.ppo_trainer import PPOTrainer
 
 # Configurar logging
@@ -96,6 +97,8 @@ class Task005TrainingLoop:
             'daily_gates': {},
             'final_metrics': {},
             'status': 'PENDING',
+            'stop_reason': 'not_started',
+            'dataset_baseline': {},
         }
 
         self.env = None
@@ -116,6 +119,17 @@ class Task005TrainingLoop:
             loader = TradeHistoryLoader(self.trades_filepath)
             trades = loader.load()
             logger.info(f"💾 {len(trades)} trades carregados")
+            baseline = loader.validate_baseline()
+            self.training_log['dataset_baseline'] = baseline
+            if not baseline.get('baseline_valid', False):
+                raise ValueError(
+                    f"Dataset baseline inválido: {baseline.get('baseline_issues', [])}"
+                )
+            logger.info(
+                "📈 Baseline válido | "
+                f"win_rate={baseline['win_rate']:.2%} "
+                f"profit_factor={baseline['profit_factor']:.2f}"
+            )
 
             # Cria ambiente
             self.env = CryptoTradingEnv(
@@ -196,6 +210,7 @@ class Task005TrainingLoop:
                     'metrics': metrics,
                     'path': str(checkpoint_path),
                     'timestamp': datetime.utcnow().isoformat(),
+                    'metric_sanity_passed': metrics.get('metric_sanity_passed', False),
                 }
                 self.training_log['checkpoints'].append(checkpoint_log)
 
@@ -210,16 +225,25 @@ class Task005TrainingLoop:
 
                 # Early stop apenas se Sharpe ≥ 20.0 (very high threshold, allows full training by default)
                 # v2.4: Increased from 10.0 to 20.0 to avoid premature stopping
+                if not metrics.get('metric_sanity_passed', False):
+                    self.training_log['stop_reason'] = 'metric_sanity_failed'
+                    logger.warning("⚠️ Sanity check falhou. Encerrando antes do treino longo.")
+                    break
+
                 if sharpe >= 20.0:
+                    self.training_log['stop_reason'] = 'anomalous_sharpe_guard'
                     logger.info("🎉 Target Sharpe ≥ 20.0 alcançado! Encerrando treinamento.")
                     break
 
                 # Timeout safety: se > 120h, para mesmo que não tenha atingido target
                 if elapsed_hours > 120:
+                    self.training_log['stop_reason'] = 'wall_time_timeout'
                     logger.warning("⚠️ Limite de 120h atingido. Encerrando.")
                     break
 
             # Treinamento completo
+            if self.training_log['stop_reason'] == 'not_started':
+                self.training_log['stop_reason'] = 'completed_full_cycle'
             self.training_log['status'] = 'TRAINING_COMPLETE'
             logger.info("✅ Ciclo de treinamento completo!")
 
@@ -237,57 +261,25 @@ class Task005TrainingLoop:
         Returns:
             dict: Dicionário com métricas (sharpe, win_rate, max_dd, etc)
         """
-        n_episodes = 150  # Aumentado de 50 para 150 (v2.4) → captura variância real
-        returns = []
-        all_pnls = []
+        n_episodes = 20
+        all_trade_results = []
 
         for _ in range(n_episodes):
             obs, _ = self.env.reset()
-            episode_return = 0.0
-            episode_pnls = []
             terminated = False
 
             while not terminated:
                 action, _states = self.model.predict(obs, deterministic=True)
                 obs, reward, terminated, truncated, info = self.env.step(action)
-                episode_return += reward
-                episode_pnls.append(reward)
+                if info.get('trade_closed') and info.get('closed_trade'):
+                    all_trade_results.append(info['closed_trade'])
 
-            returns.append(episode_return)
-            all_pnls.extend(episode_pnls)
-
-        # Calcula métricas
-        returns = np.array(returns)
-        all_pnls = np.array(all_pnls)
-
-        mean_return = np.mean(returns)
-        std_return = np.std(returns)
-
-        # SHARPE RATIO - CORRIGIDO COM PROTEÇÃO DE VOLATILIDADE
-        # Aplicar piso de volatilidade para evitar divisão por zero
-        std_return_floored = max(std_return, 0.01)
-        sharpe = mean_return / std_return_floored
-
-        # VALIDAÇÃO SANIDADE: Sharpe não deve ultrapassar 10
-        if sharpe > 10.0:
-            logger.warning(
-                f"⚠️ Sharpe anormalmente alto: {sharpe:.4f} "
-                f"(mean={mean_return:.4f}, std={std_return:.4f}). Limitando a 10.0"
-            )
-            sharpe = 10.0
-
-        win_rate = np.sum(all_pnls > 0) / len(all_pnls) if len(all_pnls) > 0 else 0
-
-        metrics = {
-            'sharpe_ratio': float(sharpe),
-            'mean_return': float(mean_return),
-            'std_return': float(std_return),
-            'std_return_floored': float(std_return_floored),
-            'win_rate': float(win_rate),
-            'max_drawdown': 0.05,  # Placeholder
-            'num_episodes': n_episodes,
-        }
-
+        metrics = compute_performance_metrics(
+            trade_results=all_trade_results,
+            initial_capital=self.initial_capital,
+        )
+        metrics['num_episodes'] = n_episodes
+        metrics['stop_reason'] = self.training_log.get('stop_reason', 'not_started')
         return metrics
 
     def _check_daily_gate(self, day: int, sharpe: float) -> bool:
@@ -320,7 +312,8 @@ class Task005TrainingLoop:
         logger.info(
             f"{status} Day {day} | Sharpe: {sharpe:.4f} | "
             f"Win Rate: {metrics['win_rate']*100:.1f}% | "
-            f"Return: {metrics['mean_return']:.4f}"
+            f"PnL: {metrics['total_pnl']:.4f} | "
+            f"Trades: {metrics['num_trades_evaluated']}"
         )
 
     def _save_training_log(self) -> None:
@@ -367,19 +360,21 @@ class Task005TrainingLoop:
         elapsed = (datetime.utcnow() - self.start_time).total_seconds() / 3600
 
         print("\n" + "="*70)
-        print("🎊 TASK-005 TRAINING COMPLETE")
+        print("TASK-005 TRAINING COMPLETE")
         print("="*70)
         print(f"Model Saved:      {model_path}")
         print(f"Elapsed Time:     {elapsed:.1f} hours")
         print(f"\nFinal Metrics:")
-        print(f"  ├─ Sharpe Ratio: {metrics['sharpe_ratio']:.4f} (target: ≥1.0)")
-        print(f"  ├─ Win Rate:     {metrics['win_rate']*100:.1f}% (target: ≥45%)")
-        print(f"  ├─ Mean Return:  {metrics['mean_return']:.4f}")
-        print(f"  └─ Checkpoints:  {len(self.training_log['checkpoints'])}")
+        print(f"  - Sharpe Ratio: {metrics['sharpe_ratio']:.4f} (target: >=1.0)")
+        print(f"  - Win Rate:     {metrics['win_rate']*100:.1f}% (target: >=45%)")
+        print(f"  - Total PnL:    {metrics['total_pnl']:.4f}")
+        print(f"  - Trades Eval:  {metrics['num_trades_evaluated']}")
+        print(f"  - Checkpoints:  {len(self.training_log['checkpoints'])}")
         print(f"\nDaily Gates:")
         for day, gate_info in self.training_log['daily_gates'].items():
-            status = "✅ PASS" if gate_info['passed'] else "⚠️ WARN"
+            status = "PASS" if gate_info['passed'] else "WARN"
             print(f"  Day {day}: {status} (Sharpe: {gate_info['sharpe_actual']:.4f})")
+        print(f"Stop Reason:      {self.training_log.get('stop_reason', 'unknown')}")
         print("="*70 + "\n")
 
 

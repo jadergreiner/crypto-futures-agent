@@ -34,32 +34,32 @@ def daily_sync():
     logger.info("=" * 80)
     logger.info("📅 DAILY SYNC S2-0 START")
     logger.info("=" * 80)
-    
+
     try:
         # Initialize
         orch = KlinesOrchestrator(
             db_path="data/klines_cache.db",
             symbols_file="config/symbols.json"
         )
-        
+
         logger.info(f"\n📊 Iniciando sync para {len(orch.symbols)} símbolos...")
-        
+
         # Fetch apenas últimos 4h (+ 30min de margem para segurança)
         sync_stats = orch.fetch_full_year(
             symbols=orch.symbols,
             interval="4h",
             from_days_ago=1  # Apenas últimas 24h
         )
-        
+
         # Analyze results
         success_count = sum(1 for c in sync_stats.values() if isinstance(c, int) and c > 0)
         total_new = sum(c for c in sync_stats.values() if isinstance(c, int))
-        
+
         logger.info(f"\n[OK] SYNC COMPLETADO")
         logger.info(f"   Simbolos processados: {success_count}")
         logger.info(f"   Candles inseridos: {total_new}")
         logger.info(f"   Timestamp: {datetime.utcnow().isoformat()}")
-        
+
         # Save report
         report = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -67,15 +67,15 @@ def daily_sync():
             "candles_inserted": total_new,
             "status": "SUCCESS"
         }
-        
+
         report_path = Path("data/daily_sync_reports.jsonl")
         with open(report_path, 'a') as f:
             f.write(json.dumps(report) + "\n")
-        
+
         logger.info(f"   Report: {report_path}")
-        
+
         return 0
-    
+
     except Exception as e:
         logger.error(f"\n[ERRO] SYNC FAILED: {e}", exc_info=True)
         return 1

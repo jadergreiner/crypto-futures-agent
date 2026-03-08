@@ -68,9 +68,17 @@ FORCE_ORDERS_LIMIT = 100
 
 # Logging Configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FILE = "logs/agent.log"
+LOG_FILE = "logs/agent.log"        # Default: operação live/paper
 LOG_MAX_BYTES = 10 * 1024 * 1024  # 10MB
 LOG_BACKUP_COUNT = 5
+
+# Contexto específico de logging (segregação por propósito)
+LOG_FILES = {
+    "operation": "logs/agent.log",      # Live/paper trading
+    "training": "logs/training.log",    # RL model training
+    "backtest": "logs/backtest.log",    # Backtesting
+    "collection": "logs/collection.log" # Data collection
+}
 
 # Model Configuration
 MODEL_SAVE_PATH = "models/crypto_agent_ppo.zip"

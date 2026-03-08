@@ -22,7 +22,9 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
+
+from agent.rl.metrics_utils import compute_performance_metrics
 
 
 # Configurar logging
@@ -74,8 +76,8 @@ class SharpeGateCallback(BaseCallback):
         if self.num_timesteps - self.last_eval_step >= self.eval_freq:
             self.last_eval_step = self.num_timesteps
 
-            # Calcula Sharpe
-            sharpe = self._evaluate_sharpe()
+            metrics = self._evaluate_metrics()
+            sharpe = metrics['sharpe_ratio']
 
             # Determina qual dia (0, 1, 2, 3+)
             day = self.num_timesteps // self.day_threshold
@@ -105,6 +107,10 @@ class SharpeGateCallback(BaseCallback):
             # v2.4: Increased from 10.0 to 20.0 to allow full training
             # Resultado: Deixa treinamento rodar completo por padrão
             # ============================================================
+            if not metrics.get('metric_sanity_passed', False):
+                logger.warning("⚠️ Sanity check de métricas falhou. Parando treinamento.")
+                return False
+
             if avg_sharpe >= 20.0:
                 logger.warning(
                     f"⚠️  Sharpe anormalmente alto: {avg_sharpe:.4f}. "
@@ -117,40 +123,35 @@ class SharpeGateCallback(BaseCallback):
 
         return True  # Continua treinamento
 
-    def _evaluate_sharpe(self, n_episodes: Optional[int] = None) -> float:
+    def _evaluate_metrics(self, n_episodes: Optional[int] = None) -> Dict:
         """
-        Avalia o modelo atual e calcula Sharpe ratio.
+        Avalia o modelo atual e calcula métricas de performance.
 
         Args:
             n_episodes: Número de episódios (usa padrão se None)
 
         Returns:
-            float: Sharpe ratio médio
+            dict: métricas calculadas
         """
         if n_episodes is None:
             n_episodes = self.n_eval_episodes
 
-        returns = []
+        all_trade_results = []
 
         for _ in range(n_episodes):
             obs, _ = self.eval_env.reset()
-            episode_return = 0.0
             terminated = False
 
             while not terminated:
                 action, _states = self.model.predict(obs, deterministic=True)
                 obs, reward, terminated, truncated, info = self.eval_env.step(action)
-                episode_return += reward
+                if info.get('trade_closed') and info.get('closed_trade'):
+                    all_trade_results.append(info['closed_trade'])
 
-            returns.append(episode_return)
-
-        # Calcula Sharpe
-        returns = np.array(returns)
-        mean_return = np.mean(returns)
-        std_return = np.std(returns) + 1e-8
-        sharpe = mean_return / std_return
-
-        return float(sharpe)
+        return compute_performance_metrics(
+            trade_results=all_trade_results,
+            initial_capital=getattr(self.eval_env, 'initial_capital', 10000.0),
+        )
 
     def _check_daily_gate(self, day: int, sharpe: float) -> bool:
         """

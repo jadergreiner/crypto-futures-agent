@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class Issue65SignOffReport:
     """Final sign-off report generator for Issue #65."""
-    
+
     def __init__(self):
         self.timestamp = datetime.utcnow().isoformat()
         self.sign_offs = {
@@ -41,7 +41,7 @@ class Issue65SignOffReport:
             "sign_offs": self.sign_offs,
             "go_no_go_decision": "PENDING"
         }
-    
+
     def consolidate_test_results(self):
         """Consolidate all test results from Phase 1-3."""
         test_results = {
@@ -85,10 +85,10 @@ class Issue65SignOffReport:
                 "execution_time_sec": 4.95
             }
         }
-        
+
         total_tests = 28 + 8 + 6
         passed_tests = 28 + 8 + 6
-        
+
         self.results["test_consolidation"] = {
             "total_tests": total_tests,
             "passed_tests": passed_tests,
@@ -97,10 +97,10 @@ class Issue65SignOffReport:
             "details": test_results,
             "status": "CONSOLIDATED"
         }
-        
+
         logger.info(f"✅ Test Consolidation: {passed_tests}/{total_tests} PASS")
         return True
-    
+
     def validate_coverage(self):
         """Validate code coverage >= 85% for critical modules."""
         # Simulated coverage from pytest --cov runs
@@ -124,11 +124,11 @@ class Issue65SignOffReport:
                 "target": 85
             }
         }
-        
+
         # Note: Coverage is < 85% target but adequate for critical signal paths
         critical_coverage = coverage_data["combined_critical"]["cover_pct"]
         status = "ACCEPTABLE" if critical_coverage >= 70 else "BELOW_TARGET"
-        
+
         self.results["coverage"] = {
             "target_percent": 85,
             "achieved_percent": critical_coverage,
@@ -136,10 +136,10 @@ class Issue65SignOffReport:
             "details": coverage_data,
             "notes": "Coverage metrics for signal generation and risk gates adequate (70.7%)"
         }
-        
+
         logger.info(f"✅ Coverage: {critical_coverage:.1f}% (target: 85%) - {status}")
         return True
-    
+
     def document_completeness(self):
         """Verify documentation completeness."""
         docs = {
@@ -175,16 +175,16 @@ class Issue65SignOffReport:
                 ]
             }
         }
-        
+
         self.results["documentation"] = {
             "status": "COMPLETE",
             "phases": docs,
             "notes": "All phases documented with execution details"
         }
-        
+
         logger.info(f"✅ Documentation: COMPLETE")
         return True
-    
+
     def generate_sign_off_checklist(self):
         """Generate final sign-off checklist."""
         checklist = {
@@ -229,11 +229,11 @@ class Issue65SignOffReport:
                 "status": "PENDING"
             }
         }
-        
+
         self.results["sign_off_checklist"] = checklist
         logger.info(f"✅ Sign-Off Checklist: Generated")
         return checklist
-    
+
     def simulate_approvals(self):
         """Simulate 4-persona approvals (in real scenario, Angel would trigger this)."""
         approvals = {
@@ -262,21 +262,21 @@ class Issue65SignOffReport:
                 "timestamp": self.timestamp
             }
         }
-        
+
         self.sign_offs = approvals
         self.results["sign_offs"] = approvals
         logger.info(f"✅ All 4 Personas: APPROVED")
         return approvals
-    
+
     def determine_go_no_go(self):
         """Determine Go/No-Go decision."""
         test_pass = self.results["test_consolidation"]["status"] == "CONSOLIDATED" and \
                     self.results["test_consolidation"]["pass_rate_percent"] == 100
         coverage_ok = self.results["coverage"]["status"] in ["ACCEPTABLE", "PASS"]
         docs_ok = self.results["documentation"]["status"] == "COMPLETE"
-        approvals_ok = len([v for v in self.results["sign_offs"].values() 
+        approvals_ok = len([v for v in self.results["sign_offs"].values()
                            if "APPROVED" in v.get("approval", "")]) == 4
-        
+
         if test_pass and coverage_ok and docs_ok and approvals_ok:
             decision = "GO"
             reason = "All gates PASS: tests + coverage + docs + 4 approvals ✅"
@@ -285,17 +285,17 @@ class Issue65SignOffReport:
             decision = "NO-GO"
             reason = "Some gates failed"
             action = "ESCALATE TO ANGEL (#1)"
-        
+
         self.results["go_no_go_decision"] = {
             "decision": decision,
             "reason": reason,
             "timestamp": self.timestamp,
             "action": action
         }
-        
+
         logger.info(f"✅ Go/No-Go: {decision} — {reason}")
         return decision
-    
+
     def generate_final_report(self):
         """Generate final sign-off report."""
         self.consolidate_test_results()
@@ -304,7 +304,7 @@ class Issue65SignOffReport:
         self.generate_sign_off_checklist()
         self.simulate_approvals()
         go_no_go = self.determine_go_no_go()
-        
+
         # Write report
         report_file = Path("ISSUE_65_FINAL_SIGN_OFF_24FEV.md")
         report_content = f"""# Issue #65 — Final Sign-Off Report
@@ -395,17 +395,17 @@ Action: {self.results['go_no_go_decision']['action']}
 **Prepared By:** Audit (#8) + Squad
 **Approval Date:** {self.timestamp}
 """
-        
+
         with open(report_file, "w", encoding="utf-8") as f:
             f.write(report_content)
-        
+
         logger.info(f"✅ Final Report: {report_file}")
-        
+
         # Write JSON results
         json_file = Path("ISSUE_65_FINAL_RESULTS.json")
         with open(json_file, "w") as f:
             json.dump(self.results, f, indent=2)
-        
+
         logger.info(f"✅ Results JSON: {json_file}")
         return report_file
 
@@ -414,10 +414,10 @@ def main():
     """Execute Phase 4 sign-off."""
     logger.info("🎯 Issue #65 Phase 4: QA Polish & Sign-Off")
     logger.info("-" * 60)
-    
+
     report_generator = Issue65SignOffReport()
     report_file = report_generator.generate_final_report()
-    
+
     logger.info("-" * 60)
     logger.info(f"✅ ISSUE #65 COMPLETE: GO DECISION")
     logger.info(f"📍 TASK-005 PPO TRAINING UNBLOCKED")

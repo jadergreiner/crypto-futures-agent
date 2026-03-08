@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class RateLimitedBinanceCollector(BinanceCollector):
     """
     BinanceCollector com suporte a rate limiting automático.
-    
+
     Herda de BinanceCollector e adiciona:
     - Verificação de rate limits antes de cada requisição
     - Throttling automático quando limite é atingido
@@ -32,14 +32,14 @@ class RateLimitedBinanceCollector(BinanceCollector):
     ):
         """
         Inicializar collector com rate limiting.
-        
+
         Args:
             client: DerivativesTradingUsdsFutures client
             rate_limit_max_per_minute: Limite máximo (default 1200)
             use_adaptive: Usar adaptação automática em caso de 429 (default True)
         """
         super().__init__(client)
-        
+
         if use_adaptive:
             self.rate_limiter = AdaptiveRateLimiter(
                 initial_max_per_minute=rate_limit_max_per_minute
@@ -48,7 +48,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
             self.rate_limiter = RateLimitManager(
                 max_requests_per_minute=rate_limit_max_per_minute
             )
-        
+
         logger.info(
             f"RateLimitedBinanceCollector inicializado: "
             f"rate_limit={rate_limit_max_per_minute} req/min, "
@@ -58,7 +58,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
     def _check_rate_limit(self) -> None:
         """
         Verificar e aplicar rate limiting antes de requisição.
-        
+
         Bloqueia se necessário.
         """
         if self.rate_limiter.is_rate_limited():
@@ -84,7 +84,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
     def get_rate_limit_status(self) -> Dict[str, Any]:
         """
         Obter status atual de rate limiting.
-        
+
         Returns:
             Dict com informações de taxa de requisição
         """
@@ -104,32 +104,32 @@ class RateLimitedBinanceCollector(BinanceCollector):
     ) -> Optional[List]:
         """
         Coletar klines com rate limiting automático.
-        
+
         Este é o método wrapper que garante compliance com <1200 req/min.
-        
+
         Args:
             symbol: Símbolo (ex: 'BTCUSDT')
             interval: Intervalo (ex: '1h', '4h', '1d')
             lookback_days: Dias para trás
-            
+
         Returns:
             Lista de klines ou None se falha
         """
         logger.info(
             f"[COLETA] Coleta com rate limiting: {symbol} {interval} ({lookback_days}d)"
         )
-        
+
         try:
             # Verificar rate limit antes
             self._check_rate_limit()
-            
+
             # Chamar método original
             klines = self.get_ohlcv(
                 symbol=symbol,
                 interval=interval,
                 lookback_days=lookback_days,
             )
-            
+
             # Registrar sucesso
             if klines and len(klines) > 0:
                 self.record_successful_request()
@@ -137,9 +137,9 @@ class RateLimitedBinanceCollector(BinanceCollector):
                     f"[OK] Coleta bem-sucedida: {symbol} = {len(klines)} klines "
                     f"({self.rate_limiter.base_manager.get_current_minute_requests()}/min)"
                 )
-            
+
             return klines
-        
+
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 self.record_rate_limit_error()
@@ -153,7 +153,7 @@ class RateLimitedBinanceCollector(BinanceCollector):
 class BatchCollectorWithRateLimit:
     """
     Coletor em lote com rate limiting para múltiplos símbolos.
-    
+
     Otimizado para coleta de múltiplos pares respeitando <1200 req/min.
     """
 
@@ -164,7 +164,7 @@ class BatchCollectorWithRateLimit:
     ):
         """
         Inicializar batch collector.
-        
+
         Args:
             collector: RateLimitedBinanceCollector instância
             batch_size: Número de símbolos a coletar em paralelo (com cuidado ao rate limit)
@@ -172,7 +172,7 @@ class BatchCollectorWithRateLimit:
         self.collector = collector
         self.batch_size = batch_size
         self.stats: Dict[str, Any] = {}
-        
+
         logger.info(f"BatchCollectorWithRateLimit inicializado (batch_size={batch_size})")
 
     def collect_all_symbols(
@@ -183,21 +183,21 @@ class BatchCollectorWithRateLimit:
     ) -> Dict[str, List]:
         """
         Coletar klines para múltiplos símbolos com rate limiting.
-        
+
         Args:
             symbols: Lista de símbolos
             interval: Intervalo de tempo
             lookback_days: Dias para trás
-            
+
         Returns:
             Dict { symbol: klines }
         """
         logger.info(f"[COLETA] Iniciando coleta em lote de {len(symbols)} símbolos")
-        
+
         results = {}
         successful = 0
         failed = 0
-        
+
         for i, symbol in enumerate(symbols, 1):
             try:
                 # Mostrar progresso
@@ -206,25 +206,25 @@ class BatchCollectorWithRateLimit:
                     f"[{i}/{len(symbols)}] Coletando {symbol}... "
                     f"(Rate: {rate_status['current_requests_per_minute']}/{rate_status['max_requests_per_minute']})"
                 )
-                
+
                 # Coletar com rate limiting
                 klines = self.collector.collect_klines_with_rate_limiting(
                     symbol=symbol,
                     interval=interval,
                     lookback_days=lookback_days,
                 )
-                
+
                 if klines:
                     results[symbol] = klines
                     successful += 1
                 else:
                     logger.warning(f"[FALHA] Falha na coleta de {symbol}")
                     failed += 1
-            
+
             except Exception as e:
                 logger.error(f"[ERRO] Erro ao coletar {symbol}: {e}")
                 failed += 1
-            
+
             # Mostrar status a cada 5 símbolos
             if i % 5 == 0:
                 rate_status = self.collector.get_rate_limit_status()
@@ -232,7 +232,7 @@ class BatchCollectorWithRateLimit:
                     f"[PROGRESSO] {successful} sucesso, {failed} falhas. "
                     f"Rate: {rate_status['current_requests_per_minute']}/{rate_status['max_requests_per_minute']} req/min"
                 )
-        
+
         # Estatísticas finais
         self.stats = {
             "total_symbols": len(symbols),
@@ -241,13 +241,13 @@ class BatchCollectorWithRateLimit:
             "success_rate": (successful / len(symbols)) * 100 if symbols else 0,
             "rate_limit_status": self.collector.get_rate_limit_status(),
         }
-        
+
         logger.info(
             f"[OK] Coleta em lote concluída: "
             f"{successful}/{len(symbols)} sucesso "
             f"({self.stats['success_rate']:.1f}%)"
         )
-        
+
         return results
 
     def get_stats(self) -> Dict[str, Any]:
