@@ -13,8 +13,7 @@ if command -v markdownlint &> /dev/null; then
     # Verifica apenas arquivos staged
     STAGED_MDS=$(
         git diff --cached --name-only --diff-filter=ACM \
-        | grep '\.md$' \
-        | grep -v '^docs_archive_' \
+        | grep -E '(^docs/.*\.md$|^README\.md$)' \
         || true
     )
 
@@ -90,7 +89,11 @@ echo "  ✅ Encoding: OK (UTF-8 válido)"
 
 # 4. SYNC TAG CHECK (WARN) — Alerta se código crítico muda sem [SYNC]
 echo "  ├─ Verificando [SYNC] tag para mudanças críticas..."
-COMMIT_MSG=$(git diff --cached --diff-filter=ACM --name-only | grep -E '(docs/|README|BEST_PRACTICES)' || true)
+COMMIT_MSG=$(
+    git diff --cached --diff-filter=ACM --name-only \
+    | grep -E '(^docs/|^README\.md$)' \
+    || true
+)
 
 if [ -n "$COMMIT_MSG" ]; then
     echo "  ⚠️  Detectado mudança em docs críticas."

@@ -1,26 +1,27 @@
-name: 📋 DOC Governance Validation
+name: Docs Validation
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
-      - 'docs/**'
-      - 'README.md'
-      - 'BEST_PRACTICES.md'
-      - '.github/workflows/docs-validate.yml'
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/docs-validate.yml"
+      - ".githooks/pre-commit"
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'docs/**'
-      - 'README.md'
-      - 'BEST_PRACTICES.md'
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/docs-validate.yml"
+      - ".githooks/pre-commit"
 
 jobs:
   markdown-lint:
-    name: 📝 Markdownlint (80 char, UTF-8)
+    name: Markdownlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -29,24 +30,11 @@ jobs:
 
       - name: Rodar markdownlint
         run: |
-          echo "🔍 Validando markdown..."
           markdownlint \
             --config .markdownlintrc.json \
             docs/**/*.md \
             README.md \
-            BEST_PRACTICES.md \
-            2>&1 | tee markdown-report.txt || {
-            echo "❌ Markdownlint falhou!"
-            echo ""
-            echo "Regras aplicadas:"
-            echo "  • Máximo 80 caracteres por linha"
-            echo "  • UTF-8 válido (sem caracteres corrompidos)"
-            echo "  • Code blocks requerem language declaration (```python, ```bash, etc)"
-            echo "  • Títulos descritivos (não vazios)"
-            echo ""
-            exit 1
-          }
-          echo "✅ Markdownlint passou!"
+            2>&1 | tee markdown-report.txt
 
       - name: Upload markdown report
         if: always()
@@ -56,31 +44,29 @@ jobs:
           path: markdown-report.txt
 
   python-docstring-check:
-    name: 🐍 Python Docstring Coverage
+    name: Python Docstring Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Verificar docstrings (agent/, execution/, risk/, backtest/)
         run: |
-          echo "🔍 Validando docstrings em Python..."
           MISSING_DOCSTRINGS=0
 
           for dir in agent execution risk backtest; do
             if [ -d "$dir" ]; then
-              for file in $(find $dir -name "*.py" -type f | grep -v test | grep -v __pycache__); do
-                # Check se arquivo tem >20 linhas e primeira não tem docstring
+              for file in $(find "$dir" -name "*.py" -type f | grep -v test | grep -v __pycache__); do
                 lines=$(wc -l < "$file")
                 if [ "$lines" -gt 20 ]; then
                   head -n 5 "$file" | grep -q '"""' || {
-                    echo "❌ Docstring faltando: $file"
+                    echo "Docstring faltando: $file"
                     MISSING_DOCSTRINGS=$((MISSING_DOCSTRINGS + 1))
                   }
                 fi
@@ -89,130 +75,79 @@ jobs:
           done
 
           if [ "$MISSING_DOCSTRINGS" -gt 0 ]; then
-            echo ""
-            echo "❌ $MISSING_DOCSTRINGS arquivo(s) com docstring faltando!"
-            echo "Requirement: agent/, execution/, risk/, backtest/ requerem docstring"
-            echo "Format: \"\"\"Descrição breve do módulo.\"\"\""
+            echo "$MISSING_DOCSTRINGS arquivo(s) com docstring faltando."
             exit 1
           fi
-          echo "✅ Python docstrings: OK"
 
   sync-tag-requirement:
-    name: 📌 [SYNC] Tag Requirement
+    name: [SYNC] Tag Requirement
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Verificar [SYNC] tag em commits
+      - name: Verificar [SYNC] em commits com docs
         run: |
-          echo "🔍 Validando [SYNC] tags em PR..."
-
-          # Pega o merge base
           MERGE_BASE=$(git merge-base origin/${{ github.base_ref }} HEAD)
-
-          # Commits no PR
-          COMMITS=$(git rev-list $MERGE_BASE..HEAD)
-
+          COMMITS=$(git rev-list "$MERGE_BASE"..HEAD)
           MISSING_SYNC=0
-          for commit in $COMMITS; do
-            MSG=$(git log -1 --format=%B $commit)
 
-            # Verifica se commit alterou arquivos críticos
-            CRITICAL=$(git diff-tree --no-commit-id --name-only -r $commit | \
-              grep -E '(^docs/|^README|^BEST_PRACTICES|^\.github/workflows)' || true)
+          for commit in $COMMITS; do
+            MSG=$(git log -1 --format=%B "$commit")
+            CRITICAL=$(git diff-tree --no-commit-id --name-only -r "$commit" | \
+              grep -E '(^docs/|^README\.md$|^\.github/workflows/docs-validate\.yml$|^\.githooks/pre-commit$)' || true)
 
             if [ -n "$CRITICAL" ]; then
               if ! echo "$MSG" | grep -q "\[SYNC\]"; then
-                echo "❌ Commit sem [SYNC] tag detectado:"
-                echo "   Hash: $commit"
-                echo "   Msg: $(echo $MSG | head -n1)"
-                echo "   Files: $CRITICAL"
+                echo "Commit sem [SYNC]: $commit"
                 MISSING_SYNC=$((MISSING_SYNC + 1))
               fi
             fi
           done
 
           if [ "$MISSING_SYNC" -gt 0 ]; then
-            echo ""
-            echo "❌ $MISSING_SYNC commit(s) alterou docs mas SEM [SYNC] tag!"
-            echo "Requirement: [SYNC] tag obrigatória em commits que alteram docs"
-            echo "Format: [SYNC] Descrição — mudanças de docs"
+            echo "$MISSING_SYNC commit(s) sem tag [SYNC]."
             exit 1
           fi
-          echo "✅ [SYNC] tags: OK"
-
-  synchronization-md-entry:
-    name: 📖 SYNCHRONIZATION.md Entry
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Verificar entry em SYNCHRONIZATION.md para mudanças críticas
-        run: |
-          echo "🔍 Validando entry em docs/SYNCHRONIZATION.md..."
-
-          # Se há mudanças em arquivos críticos, deve haver entry em SYNCHRONIZATION
-          CRITICAL_FILES=$(git diff origin/${{ github.base_ref }}...HEAD --name-only | \
-            grep -E '(^docs/EQUIPE|^docs/ARCHITECTURE|^README|^BEST_PRACTICES)' || true)
-
-          if [ -n "$CRITICAL_FILES" ]; then
-            # Check se SYNCHRONIZATION.md foi alterado neste PR
-            if ! git diff origin/${{ github.base_ref }}...HEAD --name-only | grep -q "docs/SYNCHRONIZATION.md"; then
-              echo "⚠️  Mudança em arquivo crítico detectada, mas docs/SYNCHRONIZATION.md não foi atualizado."
-              echo "   Arquivos: $CRITICAL_FILES"
-              echo "   Sugestão: Adicione entry em docs/SYNCHRONIZATION.md com timestamp e descrição."
-              echo "   Obs: Esta é um WARNING, não bloqueia merge (mas DOC Advocate debe reviewar)"
-            fi
-          fi
-          echo "✅ SYNCHRONIZATION.md: Validated"
 
   encoding-check:
-    name: 🔤 UTF-8 Encoding Validation
+    name: UTF-8 Encoding Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Validar UTF-8 em todos os .md
+      - name: Validar UTF-8 em docs e README
         run: |
-          echo "🔍 Validando UTF-8 encoding..."
           INVALID_ENCODING=0
 
-          for file in $(find docs -name "*.md" -o -name "README.md" -o -name "BEST_PRACTICES.md"); do
+          for file in $(find docs -name "*.md"; echo README.md); do
             if ! iconv -f UTF-8 -t UTF-8 "$file" > /dev/null 2>&1; then
-              echo "❌ Encoding inválido: $file"
+              echo "Encoding inválido: $file"
               INVALID_ENCODING=$((INVALID_ENCODING + 1))
             fi
           done
 
           if [ "$INVALID_ENCODING" -gt 0 ]; then
-            echo "❌ $INVALID_ENCODING arquivo(s) com encoding inválido!"
+            echo "$INVALID_ENCODING arquivo(s) com encoding inválido."
             exit 1
           fi
-          echo "✅ UTF-8 Encoding: OK"
 
   report:
-    name: 📊 Docs Validation Report
+    name: Docs Validation Report
     runs-on: ubuntu-latest
     if: always()
-    needs: [ markdown-lint, python-docstring-check, encoding-check ]
+    needs: [markdown-lint, python-docstring-check, encoding-check]
     steps:
       - name: Check results
         run: |
-          echo "📊 DOC GOVERNANCE VALIDATION REPORT"
-          echo "===================================="
-          echo ""
-          echo "✅ Markdownlint:           ${{ needs.markdown-lint.result }}"
-          echo "✅ Python Docstrings:     ${{ needs.python-docstring-check.result }}"
-          echo "✅ UTF-8 Encoding:        ${{ needs.encoding-check.result }}"
-          echo ""
+          echo "Markdownlint: ${{ needs.markdown-lint.result }}"
+          echo "Python Docstrings: ${{ needs.python-docstring-check.result }}"
+          echo "UTF-8 Encoding: ${{ needs.encoding-check.result }}"
+
           if [ "${{ needs.markdown-lint.result }}" = "failure" ] || \
              [ "${{ needs.python-docstring-check.result }}" = "failure" ] || \
              [ "${{ needs.encoding-check.result }}" = "failure" ]; then
-            echo "❌ VALIDAÇÃO FALHOU"
             exit 1
           fi
-          echo "✅ VALIDAÇÃO COMPLETA — Pronto para merge"
