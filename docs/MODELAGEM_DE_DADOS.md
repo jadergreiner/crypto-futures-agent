@@ -65,6 +65,29 @@ Regras de integridade implementadas:
 4. `to_status` deve ser um estado valido
 5. `event_timestamp > 0`
 
+## Contrato canonico de estados e transicoes
+
+Fonte canonica de aplicacao: `core/model2/thesis_state.py`.
+
+Estados oficiais:
+
+1. IDENTIFICADA
+2. MONITORANDO
+3. VALIDADA
+4. INVALIDADA
+5. EXPIRADA
+
+Matriz oficial de transicao na aplicacao:
+
+1. `NULL -> IDENTIFICADA`
+2. `IDENTIFICADA -> MONITORANDO`
+3. `MONITORANDO -> VALIDADA|INVALIDADA|EXPIRADA`
+4. Estados finais sem transicoes de saida
+
+Observacao:
+
+1. `from_status = NULL` e reservado ao evento inicial de criacao da tese.
+
 ## Tabela: sinais tecnicos (`technical_signals`) - fase posterior
 
 Gerada pela Ponte de Sinal apos tese validada.

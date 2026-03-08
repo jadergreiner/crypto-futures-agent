@@ -1,14 +1,17 @@
 import json
+import re
 import sqlite3
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
+from core.model2.thesis_state import OFFICIAL_THESIS_STATUSES
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MIGRATE_SCRIPT = REPO_ROOT / "scripts" / "model2" / "migrate.py"
+MIGRATIONS_DIR = REPO_ROOT / "scripts" / "model2" / "migrations"
 
 
 def run_migrate(db_path: Path, output_dir: Path) -> subprocess.CompletedProcess[str]:
@@ -60,6 +63,32 @@ def base_event_payload(opportunity_id: int) -> dict:
         "rule_id": "RN-005",
         "payload_json": "{}",
     }
+
+
+def _extract_quoted_values(raw_values: str) -> set[str]:
+    return set(re.findall(r"'([^']+)'", raw_values))
+
+
+def _extract_status_clause(sql_text: str, column_name: str) -> set[str]:
+    pattern = re.compile(rf"{column_name}\s+IN\s*\(([^)]+)\)", re.IGNORECASE)
+    match = pattern.search(sql_text)
+    assert match is not None, f"Status clause not found for column {column_name}"
+    return _extract_quoted_values(match.group(1))
+
+
+def test_migration_status_enums_follow_canonical_contract() -> None:
+    official_statuses = set(OFFICIAL_THESIS_STATUSES)
+
+    opportunities_sql = (MIGRATIONS_DIR / "0001_create_opportunities.sql").read_text(
+        encoding="utf-8"
+    )
+    events_sql = (MIGRATIONS_DIR / "0002_create_opportunity_events.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert _extract_status_clause(opportunities_sql, "status") == official_statuses
+    assert _extract_status_clause(events_sql, "from_status") == official_statuses
+    assert _extract_status_clause(events_sql, "to_status") == official_statuses
 
 
 def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> None:

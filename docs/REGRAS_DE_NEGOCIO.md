@@ -81,6 +81,33 @@ Toda mudanca de estado deve deixar trilha:
 2. O que mudou.
 3. Qual regra foi usada.
 
+## Estados oficiais e matriz de transicao (M2-001.3)
+
+Fonte canonica de codigo: `core/model2/thesis_state.py`.
+
+Estados oficiais:
+
+1. IDENTIFICADA
+2. MONITORANDO
+3. VALIDADA
+4. INVALIDADA
+5. EXPIRADA
+
+Matriz oficial de transicao:
+
+1. `NULL -> IDENTIFICADA` (criacao auditavel da tese)
+2. `IDENTIFICADA -> MONITORANDO`
+3. `MONITORANDO -> VALIDADA`
+4. `MONITORANDO -> INVALIDADA`
+5. `MONITORANDO -> EXPIRADA`
+6. `VALIDADA` sem saidas
+7. `INVALIDADA` sem saidas
+8. `EXPIRADA` sem saidas
+
+Regra adicional de auditoria:
+
+1. `from_status = NULL` so e permitido no evento inicial com `to_status = IDENTIFICADA`.
+
 ## Regra inicial do padrao de Fase 1
 
 ### Padrao: Falha em regiao de oferta para venda

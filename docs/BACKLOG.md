@@ -38,11 +38,20 @@ Evidencias:
 
 ### TAREFA M2-001.3 - Definir enumeracoes de estado
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Estados oficiais.
-2. Matriz de transicao valida.
+1. Estados oficiais. [OK]
+2. Matriz de transicao valida. [OK]
+
+Evidencias:
+
+1. Contrato canonico: `core/model2/thesis_state.py`.
+2. Pacote de dominio M2: `core/model2/__init__.py`.
+3. Testes do contrato: `tests/test_model2_state_contract.py`.
+4. Migracoes alinhadas ao contrato: `tests/test_model2_migrate.py`.
+5. Documentacao sincronizada: `docs/REGRAS_DE_NEGOCIO.md`,
+   `docs/MODELAGEM_DE_DADOS.md` e `docs/ADRS.md`.
 
 ## INICIATIVA M2-002 - Scanner de Oportunidades
 

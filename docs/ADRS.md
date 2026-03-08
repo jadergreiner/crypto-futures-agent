@@ -43,6 +43,10 @@ Toda oportunidade passa por estados controlados:
 **Consequencia:**
 Fluxo auditavel e sem ambiguidade.
 
+**Implementacao de referencia:**
+Contrato canonico em `core/model2/thesis_state.py`, com `ThesisStatus`,
+`ALLOWED_TRANSITIONS` e validacao utilitaria de transicao.
+
 ## ADR-004 - Persistencia orientada a eventos
 
 **Status:** ACEITO
