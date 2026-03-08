@@ -1,7 +1,7 @@
 # 📚 TASK-005 Lições Aprendidas — Iteração Phase 2/3
 
-**Data:** 07 MAR 2026  
-**Status:** ✅ NO-GO Decisão Registrada  
+**Data:** 07 MAR 2026
+**Status:** ✅ NO-GO Decisão Registrada
 **Próximo Passo:** Phase 2 Refinement & Retraining
 
 ---
@@ -317,9 +317,9 @@ def test_with_known_data():
 
 ## 🚀 Conclusão
 
-**Status:** ✅ Iteração 1 CONCLUÍDA com learnings claros  
-**Próxima:** Phase 2 v2 com fixes  
-**Blocker:** Nenhum (tudo resolvível em dados/code)  
+**Status:** ✅ Iteração 1 CONCLUÍDA com learnings claros
+**Próxima:** Phase 2 v2 com fixes
+**Blocker:** Nenhum (tudo resolvível em dados/code)
 **Timeline:** ~2-4 horas fixes + 96h training = 100h total para v2 completa
 
 **Recomendação:** Implementar Fix #1 (Sharpe) e #2 (Data expansion) em paralelo, depois rerun Phase 2 + 3.

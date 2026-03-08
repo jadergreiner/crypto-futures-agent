@@ -1,0 +1,71 @@
+{
+  "name": "TASK-005: PPO Trading Agent v0",
+  "version": "0.1.0",
+  "status": "PENDING",
+  "timestamp": "2026-03-08T00:12:37.800263",
+  "components": {
+    "model": {
+      "type": "stable-baselines3.PPO",
+      "path": "models/ppo_v0_final.pkl",
+      "training": {
+        "framework": "Gymnasium",
+        "timesteps": 500000,
+        "duration": "96h wall-time"
+      }
+    },
+    "environment": {
+      "type": "CryptoTradingEnv",
+      "observation_space": [
+        5
+      ],
+      "action_space": 3
+    },
+    "data": {
+      "type": "Sprint 1 Trade History",
+      "trades": 70,
+      "path": "data/trades_history.json"
+    }
+  },
+  "metrics": {
+    "sharpe_ratio": "\u22650.80 required",
+    "max_drawdown": "\u226412% required",
+    "win_rate": "\u226545% required",
+    "profit_factor": "\u22651.5 required",
+    "consecutive_losses": "\u22645 required"
+  },
+  "checklist": {
+    "file_Model": true,
+    "file_Validation Report": true,
+    "file_Phase 3 Report": true,
+    "file_Training Log": true,
+    "file_Spec": true,
+    "doc_Operational Manual": true,
+    "doc_Architecture Diagram": true,
+    "doc_Implementation Guide": true,
+    "validation_phase3": false,
+    "configuration": true,
+    "signoffs": false
+  },
+  "deployment_steps": [
+    "1. Backup current production model (if any)",
+    "2. Copy models/ppo_v0_final.pkl to production server",
+    "3. Deploy agent/rl/ modules to production",
+    "4. Initialize CryptoTradingEnv with live data",
+    "5. Run inference loop with circuit breakers enabled",
+    "6. Monitor Sharpe ratio and drawdown metrics",
+    "7. Enable automatic alerts for gate violations"
+  ],
+  "rollback_plan": [
+    "1. Stop inference immediately",
+    "2. Restore previous model version",
+    "3. Run validation on restored model",
+    "4. Resume trading with restored model",
+    "5. Generate incident report"
+  ],
+  "support": {
+    "architect": "Arch (#6)",
+    "qa_lead": "Audit (#8)",
+    "ml_engineer": "Brain (#3)",
+    "escalation": "Dr.Risk (#5) - Risk Manager"
+  }
+}

@@ -5668,10 +5668,10 @@ To launch Phase 2 training:
      └─ Starts 96h wall-time training cycle
      └─ Real-time Sharpe monitoring
      └─ Checkpoints every 5h
-  
+
   2. tensorboard --logdir=logs/ppo_task005/tensorboard/
      └─ Monitor training progress live
-  
+
   3. After 96h: python agent/rl/final_validation.py
      └─ Validate 5 success criteria
      └─ Generate GO/NO-GO decision
@@ -5840,13 +5840,13 @@ After 96h training (Phase 2) completes:
      └─ Process: Backtest → Validate → Approve → Report
      └─ Output: validation/task005_phase3_final_report.json
      └─ Duration: 4-5 hours
-  
+
   2. python agent/rl/deployment_checker.py
      └─ Input: Phase 3 report + deployment artifacts
      └─ Process: 5-point readiness checklist
      └─ Output: deployment/deployment_manifest.json
      └─ Duration: 30 minutes
-  
+
   3. Review GO/NO-GO decision
      └─ All 5 checks must PASS for production deployment
      └─ If GO: Deploy ppo_v0_final.pkl to production
