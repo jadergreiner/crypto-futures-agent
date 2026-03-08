@@ -11,7 +11,12 @@ echo "🔍 PRE-COMMIT: Validando documentação..."
 echo "  ├─ Executando markdownlint..."
 if command -v markdownlint &> /dev/null; then
     # Verifica apenas arquivos staged
-    STAGED_MDS=$(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
+    STAGED_MDS=$(
+        git diff --cached --name-only --diff-filter=ACM \
+        | grep '\.md$' \
+        | grep -v '^docs_archive_' \
+        || true
+    )
 
     if [ -n "$STAGED_MDS" ]; then
         # Usar .markdownlint.json se existir (config customizada)
@@ -21,12 +26,17 @@ if command -v markdownlint &> /dev/null; then
             LINT_CONFIG=""
         fi
 
-        # Contar erros
-        ERROR_COUNT=$(markdownlint $LINT_CONFIG $STAGED_MDS 2>&1 | grep -c "error" || true)
+        # Auto-fix dos arquivos staged e re-stage para o commit atual.
+        echo "  ├─ Aplicando auto-fix do markdownlint..."
+        markdownlint $LINT_CONFIG --fix $STAGED_MDS >/dev/null 2>&1 || true
+        git add $STAGED_MDS
 
-        if [ "$ERROR_COUNT" -gt 0 ]; then
-            echo "  ❌ Markdownlint falhou! ($ERROR_COUNT erros)"
+        # Validação final: se ainda houver erro, bloqueia commit.
+        if ! LINT_OUTPUT=$(markdownlint $LINT_CONFIG $STAGED_MDS 2>&1); then
+            ERROR_COUNT=$(echo "$LINT_OUTPUT" | grep -c "error" || true)
+            echo "  ❌ Markdownlint falhou apos auto-fix! ($ERROR_COUNT erros)"
             echo "     Arquivos: $STAGED_MDS"
+            echo "$LINT_OUTPUT"
             echo "     Opções:"
             echo "       1. Corrigir manualmente"
             echo "       2. Usar script: python scripts/fix_markdown_lint.py <arquivo>"
