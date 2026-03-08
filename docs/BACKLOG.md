@@ -1,7 +1,7 @@
 # 📦 BACKLOG — Crypto Futures Agent
 
 **Status:** 🟢 OPERACIONAL | **FONTE ÚNICA DA VERDADE** para Itens Desenvolvidos + A Desenvolver
-**Atualizado:** 06 MAR 2026 (consolidação: STATUS_ENTREGAS, PLANO_DE_SPRINTS, TRACKER deletados → tudo aqui)
+**Atualizado:** 07 MAR 2026 (TASK-005 v2 docs sync: métricas unificadas + smoke run)
 **Mantém:** Sprint 1-2-3 items + TASK pipeline + Issue tracking + Tabela de visão rápida
 **Responsável:** Planner, Board, Doc Advocate
 
@@ -86,11 +86,22 @@
 **Objetivo:** Tasks em execução, blockers críticos monitorados
 
 - **TASK-005** — PPO Training
-  - Status: 🟡 **PHASE 2/3 ITERATION 1 COMPLETE — NO-GO DECISION** (v2 Refinement in progress: 07 MAR 20:00 UTC)
+  - Status: 🟡 **ITERATION 2 ENGINEERING COMPLETE — LONG RUN PENDING** (07 MAR 21:15 UTC)
   - Owner: The Brain (#3)
-  - Score: 0.6 (iteration 1) | Effort: 22 min exec (early stop) + 4h5m validation cycle
+  - Score: 0.78 (v2 engineering) | Effort: ~3h refactor + smoke validation
   - Descrição: Train PPO agent on 60 pairs. Target: 500k steps, Sharpe ≥1.0
   - Blocker: ✅ Issue #65 COMPLETE (SMC validation finished)
+  - **Iteration 2 Engineering Deliverables (DONE):**
+    - ✅ Unified metrics source: `agent/rl/metrics_utils.py` (PnL/equity-based)
+    - ✅ `training_env.py`: explicit separation `raw_pnl` vs `shaped_reward`
+    - ✅ `training_loop.py`: baseline validation + comparable checkpoint artifacts (`vol_floor`, `num_trades_evaluated`, `stop_reason`, `metric_sanity_passed`)
+    - ✅ `final_validation.py`: same formulas as training loop (single source of truth)
+    - ✅ `phase3_executor.py`: GO/NO-GO now includes sanity diagnostics
+    - ✅ Tests added: `tests/test_task005_metrics_v2.py` (4 tests PASS)
+    - ✅ Smoke run completed (256 timesteps): stop_reason=`completed_full_cycle`, sanity=`True`
+  - **Pending for Iteration 2 Close:**
+    - ⏳ Full training cycle (500k timesteps / 96h target)
+    - ⏳ Phase 3 execution with final GO/NO-GO report on corrected metrics
   - **Phases:**
     - **Phase 1: Setup** — Environment, dependencies, config — ✅ COMPLETE (19:30 UTC)
     - **Phase 2: Training** — 96h wall-time target, early stop at 22min — ✅ EXECUTED (19:50-19:52 UTC | early stop)
@@ -108,20 +119,21 @@
     3. Early stop too aggressive (50k / 500k steps)
     4. Training dataset too small (70 trades only)
     5. Profit Factor unrealistic (25,875)
-  - **Iteration 2 Plan (Next):**
-    - Fix Sharpe volatility calculation (add floor, more data points)
-    - Expand training data 70 → 500+ trades (multi-timeframe, balanced outcomes)
-    - Adjust reward shaping to improve win rate (balance loss penalty)
-    - Remove/increase early stop threshold (allow full training)
-    - Full 500k step cycle with daily gates
-    - Estimated effort: 2-4 hours fixes + 96 hours training + 4.5 hours validation
-  - **Phase 2 Components (7/7 complete):**
+  - **Iteration 2 Plan (Current):**
+    - ✅ Fix Sharpe volatility calculation (shared utility + explicit volatility floor)
+    - ✅ Expand training data 70 → 500+ trades with baseline validation gate
+    - ✅ Separate reward shaping from financial metrics (`raw_pnl` and `shaped_reward`)
+    - ✅ Remove early stop dependence on shaped Sharpe for normal path
+    - ⏳ Execute full 500k cycle with daily gates
+    - ⏳ Execute Phase 3 final validation/sign-off
+  - **Phase 2 Components (8/8 complete):**
     - ✅ CryptoTradingEnv (agent/rl/training_env.py) — refinement needed (reward shaping)
     - ✅ TradeHistoryLoader (agent/rl/data_loader.py)
     - ✅ PPOTrainer (agent/rl/ppo_trainer.py) — refinement needed (early stop threshold)
     - ✅ TrainingLoop w/daily gates (agent/rl/training_loop.py)
     - ✅ FinalValidator (agent/rl/final_validation.py) — refinement needed (Sharpe calc)
     - ✅ TradesGenerator (data/trades_history_generator.py) — refinement needed (expand data)
+    - ✅ MetricsUtils (agent/rl/metrics_utils.py) — single source of truth for metrics
     - ✅ Integration Tests (4/4 PASS)
   - **Phase 3 Components (3/3 complete & tested):**
     - ✅ Phase3Executor (agent/rl/phase3_executor.py) — 505 LOC: Executed, NO-GO result registered
@@ -139,7 +151,7 @@
     - Quality (#12): ⚠️ CONDITIONAL (review quality gates)
     - Brain (#3): ⚠️ CONDITIONAL (review learning metrics)
     - v2 Target: 4/4 approved (or 3/4 with 1 conditional)
-  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md) | [TASK_005_PHASE3_SUMMARY.md](TASK_005_PHASE3_SUMMARY.md) | [TASK_005_PHASE2_EXECUTION_REPORT.md](TASK_005_PHASE2_EXECUTION_REPORT.md) | [TASK_005_LESSONS_LEARNED.md](TASK_005_LESSONS_LEARNED.md)
+  - Documentação: [FEATURES.md#F-ML1](FEATURES.md) | [TASK_005_ML_TRAINING_SPEC.md](docs/TASK_005_ML_TRAINING_SPEC.md) | [TASK_005_PHASE2_SUMMARY.md](TASK_005_PHASE2_SUMMARY.md) | [TASK_005_PHASE3_SUMMARY.md](TASK_005_PHASE3_SUMMARY.md) | [TASK_005_PHASE2_EXECUTION_REPORT.md](TASK_005_PHASE2_EXECUTION_REPORT.md) | [TASK_005_LESSONS_LEARNED.md](TASK_005_LESSONS_LEARNED.md) | [PHASE2_V24_ACTION_PLAN.md](../PHASE2_V24_ACTION_PLAN.md)
 
 - **Issue #65** — SMC Integration QA
   - Status: ✅ **COMPLETA** | 07 MAR 19:25 UTC

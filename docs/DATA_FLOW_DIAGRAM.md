@@ -125,6 +125,38 @@ READ (RL Training & Análise):
   Auditoria: Analisar qualidade de decisões
 ```
 
+### TASK-005 v2 - Fluxo de Treinamento/Validação RL
+
+```
+[A. Dataset]
+  data/trades_history_generator.py
+    ├─ Gera >=500 trades sintéticos
+    └─ Valida baseline (win_rate, profit_factor, balance LONG/SHORT)
+         ↓
+[B. Ambiente RL]
+  agent/rl/training_env.py
+    ├─ step() retorna shaped_reward (treino PPO)
+    └─ info expõe raw_pnl/equity/closed_trade (métricas reais)
+         ↓
+[C. Métricas Unificadas]
+  agent/rl/metrics_utils.py
+    ├─ Sharpe com volatility floor
+    ├─ Profit Factor com cap/sanity
+    └─ Drawdown/WinRate/Consecutive losses
+         ↓
+[D. Treino]
+  agent/rl/training_loop.py
+    ├─ Checkpoints
+    ├─ Artefatos: vol_floor, num_trades_evaluated, metric_sanity_passed
+    └─ stop_reason explícito
+         ↓
+[E. Validação Final]
+  agent/rl/final_validation.py
+    └─ Mesmo cálculo de métricas do treino (single source of truth)
+```
+
+**Regra operacional v2:** `shaped_reward` nunca é usado como métrica de GO/NO-GO.
+
 ## Ponto Crítico: Sincronização de Fechamento
 
 Este é o ponto onde execution_log e trade_log devem sincronizar:

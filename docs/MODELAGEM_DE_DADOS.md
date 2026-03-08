@@ -272,6 +272,24 @@ Agregações: Calculadas automaticamente ao fim de cada período
 
 ## 🔄 FLUXOS DE DADOS CRÍTICOS
 
+### Fluxo 0: TASK-005 v2 (Treino PPO com métricas unificadas)
+
+```
+data/trades_history.json
+    ↓
+TradeHistoryLoader.validate_baseline()
+    ↓
+CryptoTradingEnv.step()
+    ├─ shaped_reward (treino PPO)
+    └─ raw_pnl/equity (métrica financeira)
+    ↓
+metrics_utils.compute_performance_metrics()
+    ↓
+training_log.json + validation_results.json + phase3_report.json
+```
+
+**Contrato v2:** métricas de aceite (Sharpe, PF, WinRate, MaxDD) são calculadas sobre `raw_pnl/equity`.
+
 ### Fluxo 1: Entrada de Dados (Binance → Sistema)
 
 ```
@@ -345,6 +363,21 @@ IF drawdown ≥ -15%: CIRCUIT BREAKER — parar trades
 ---
 
 ## 💾 PERSISTÊNCIA: SQLite vs Parquet
+
+### JSON Operacional (RL Audit Trail)
+
+Arquivos operacionais do ciclo RL:
+
+- `logs/ppo_task005/training_log.json`
+- `validation/task005_validation_results.json`
+- `validation/task005_phase3_final_report.json`
+
+Campos adicionais obrigatórios em v2:
+
+- `vol_floor`
+- `num_trades_evaluated`
+- `metric_sanity_passed`
+- `stop_reason`
 
 ### SQLite (Hot Cache — Operacional)
 
@@ -441,6 +474,7 @@ CREATE INDEX idx_order_account_status
 | 28 FEV | Issue #67 | Data strategy: 4h candles, 1Y histórico | ✅ |
 | 01 MAR | Issue #64 | Adicionado `notification` (Telegram) | ✅ |
 | 07 MAR | DOCS | Criada MODELAGEM_DE_DADOS.md | ✅ |
+| 07 MAR | TASK-005 v2 | Métricas RL unificadas + contratos de artefato JSON | ✅ |
 
 ---
 

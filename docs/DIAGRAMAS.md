@@ -1,6 +1,6 @@
 # 📐 Diagramas — Arquitetura do Sistema
 
-**Versão:** 0.2.0
+**Versão:** 0.2.1
 **Data:** 07 MAR 2026
 **Responsável:** Arquiteto (#6), Data (#11)
 
@@ -130,6 +130,14 @@ Fornecer representações visuais (ASCII + UML) da arquitetura de **classes** e 
              │        │ - confidence score   │
              │        └──────────────────────┘
              │
+             ├─owns─→ ┌──────────────────────┐
+             │        │  MetricsUtils        │
+             │        ├──────────────────────┤
+             │        │ + compute_performance│  PnL/equity metrics
+             │        │ + sanity checks      │  Sharpe/PF bounds
+             │        │ + vol floor policy   │
+             │        └──────────────────────┘
+             │
              └─owns─→ ┌──────────────────────┐
                       │  TradingEnv          │
                       ├──────────────────────┤
@@ -138,6 +146,8 @@ Fornecer representações visuais (ASCII + UML) da arquitetura de **classes** e 
                       │ + step(action)       │
                       │ + reset()            │
                       │ + render()           │
+                      │ + raw_pnl output     │  financial metric
+                      │ + shaped_reward      │  RL learning signal
                       │ - market_data        │
                       │ - positions          │
                       │ - account            │
@@ -516,6 +526,7 @@ Operação: Deletar Order
 | S2 | Adicionar Candle (Parquet) | ✅ |
 | S2 | Adicionar Performance (rolling metrics) | ✅ |
 | S3 | Adicionar notification logs | ✅ |
+| S3 | TASK-005 v2: Unified RL metrics utility | ✅ |
 
 ---
 

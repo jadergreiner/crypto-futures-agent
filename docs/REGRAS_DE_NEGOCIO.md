@@ -249,6 +249,21 @@ Documentar as **regras operacionais da negócio** em linguagem clara e não-téc
 
 ---
 
+## Governança Operacional (TASK-005 v2)
+
+### Política de Métricas de Aceite (PPO)
+
+**Regra operacional:** `shaped_reward` é sinal interno de aprendizado e não pode ser usado para GO/NO-GO.
+
+**Aplicação obrigatória:**
+- Critérios de aceite do modelo (Sharpe, Win Rate, Profit Factor, Drawdown, perdas consecutivas) devem usar `raw_pnl/equity`.
+- Treino e validação final devem usar a mesma fórmula (fonte única em `agent/rl/metrics_utils.py`).
+- Relatórios devem incluir `metric_sanity_passed`, `vol_floor`, `num_trades_evaluated` e `stop_reason`.
+
+**Motivo:** Evitar métricas artificiais e divergência entre treino e validação.
+
+---
+
 ## 🔐 REGRAS INVIOLÁVEIS (NÃO PODEM SER DESABILITADAS)
 
 Estas 5 regras são **críticas** e **nunca** podem ser desabilitadas, mesmo manualmente:
@@ -283,7 +298,7 @@ Quando uma nova feature impacta regras:
 
 - ✅ **TASK-011** (F-12b Symbols) → Validou R1, R6, R7 em 200 símbolos
 - ✅ **Issue #64** (Telegram Alerts) → Implementou notificação de R5 (drawdown alerts)
-- 🔄 **TASK-005** (PPO Training) → Impactará R10, R11, R12 (confidence + consensus)
+- 🔄 **TASK-005** (PPO Training) → Impacta R10, R11, R12 e governança de métricas (v2)
 
 ---
 

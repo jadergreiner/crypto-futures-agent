@@ -163,8 +163,24 @@ cp db/crypto_futures.db.backup_YYYYMMDD db/crypto_futures.db
 - **Trades Obsoletos:** Alerta se > 30 dias aberto
 - **Staleness:** Alerta se nenhum trade_log em 24h
 
+### Artefatos RL (TASK-005 v2)
+
+Além do SQLite, o pipeline RL persiste artefatos JSON operacionais:
+
+- `logs/ppo_task005/training_log.json`
+  - checkpoint metrics com fórmula unificada
+  - campos: `vol_floor`, `num_trades_evaluated`, `metric_sanity_passed`, `stop_reason`
+
+- `validation/task005_validation_results.json`
+  - validação final baseada em `raw_pnl/equity` (não em shaped reward)
+
+- `validation/task005_phase3_final_report.json`
+  - decisão GO/NO-GO + aprovação por personas
+
+**Nota:** Estes artefatos não substituem o banco transacional; funcionam como trilha de auditoria do ciclo de treino.
+
 ---
 
-**Última atualização:** 2026-03-07
+**Última atualização:** 2026-03-07 (sync TASK-005 v2)
 **Responsável:** Database Architecture Board
 **Status:** Em produção (SINGLE SOURCE OF TRUTH)

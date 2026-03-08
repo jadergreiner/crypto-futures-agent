@@ -138,6 +138,12 @@
 │    ├─► Inference on Candidates │                          │
 │    ├─► Confidence 0.0–1.0 Output                        │
 │    └─► Model Version Management │                          │
+│                               │                          │
+│  MetricsUtils (TASK-005 v2) ◄─┤                          │
+│    │                           │                          │
+│    ├─► Unified Sharpe/PF/WR/DD calculations              │
+│    ├─► Volatility floor + sanity checks                  │
+│    └─► Shared by training_loop and final_validation      │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 
@@ -296,6 +302,6 @@ Signal (detected)
 ## Referências
 
 - [DECISIONS.md](DECISIONS.md) — ADRs formalizadas
-- [architecture.md](architecture.md) — Design detalhado
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Arquitetura operacional consolidada
 - [data_models.md](data_models.md) — ORM + Schemas
 
