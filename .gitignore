@@ -38,6 +38,7 @@ desktop.ini
 # Models
 models/*.zip
 models/checkpoints/
+models/tensorboard/
 
 # Logs
 logs/*.log
@@ -58,3 +59,6 @@ htmlcov/
 *.bak
 *.backup
 tmp/
+
+# Local caches/artifacts
+backtest/cache/
