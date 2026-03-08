@@ -31,6 +31,27 @@ Campos sugeridos:
 15. `resolution_reason` (TEXT, nulo permitido)
 16. `metadata_json` (TEXT, metadados)
 
+Contrato minimo de `metadata_json` para M2-002:
+
+1. `rule_id` (ex.: `M2-002.1-RULE-FAIL-SELL-REGION`)
+2. `rule_version` (versao do detector deterministico)
+3. `technical_zone`:
+   - `source` (`order_block` ou `fvg`)
+   - `zone_id` (quando disponivel)
+   - `timestamp`
+   - `zone_low`
+   - `zone_high`
+   - `status`
+4. `rejection_candle`:
+   - `timestamp`
+   - `open`
+   - `high`
+   - `low`
+   - `close`
+5. `context` (estrutura de mercado usada na decisao)
+6. `parameters` (parametros deterministas aplicados)
+7. `scan_timestamp`
+
 Indices sugeridos:
 
 1. `idx_opportunities_status` (`status`)
@@ -64,6 +85,15 @@ Regras de integridade implementadas:
 3. `from_status` deve ser nulo ou um estado valido
 4. `to_status` deve ser um estado valido
 5. `event_timestamp > 0`
+6. Evento inicial da tese deve respeitar `from_status = NULL` e `to_status = IDENTIFICADA`
+7. Evento de monitoramento inicial deve respeitar
+   `from_status = IDENTIFICADA` e `to_status = MONITORANDO`
+8. Evento de validacao deve respeitar
+   `from_status = MONITORANDO` e `to_status = VALIDADA`
+9. Evento de invalidacao deve respeitar
+   `from_status = MONITORANDO` e `to_status = INVALIDADA`
+10. Evento de expiracao deve respeitar
+    `from_status = MONITORANDO` e `to_status = EXPIRADA`
 
 ## Contrato canonico de estados e transicoes
 
@@ -112,3 +142,5 @@ Campos sugeridos:
 3. `invalidation_price` obrigatorio para toda oportunidade
 4. Estado final nao pode voltar para estado anterior
 5. Toda mudanca de status deve gerar evento em `opportunity_events`
+6. Idempotencia de criacao inicial por chave natural:
+   (`symbol`, `timeframe`, `thesis_type`, `metadata_json.rejection_candle.timestamp`)

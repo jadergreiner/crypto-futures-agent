@@ -57,47 +57,81 @@ Evidencias:
 
 ### TAREFA M2-002.1 - Implementar detector do padrao inicial
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Padrao "falha em regiao para venda".
-2. Registro `IDENTIFICADA`.
+1. Padrao "falha em regiao para venda". [OK]
+2. Registro `IDENTIFICADA`. [OK]
+
+Evidencias:
+
+1. Detector canonico: `core/model2/scanner.py`.
+2. Runner operacional do scanner: `scripts/model2/scan.py`.
+3. Testes unitarios do detector: `tests/test_model2_scanner_detector.py`.
 
 ### TAREFA M2-002.2 - Persistir tese inicial
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Gravar niveis de zona.
-2. Gravar gatilho e invalidacao.
-3. Gravar metadados da analise tecnica.
+1. Gravar niveis de zona. [OK]
+2. Gravar gatilho e invalidacao. [OK]
+3. Gravar metadados da analise tecnica. [OK]
+
+Evidencias:
+
+1. Repositorio transacional M2: `core/model2/repository.py`.
+2. Persistencia inicial + evento `NULL -> IDENTIFICADA`: `core/model2/repository.py`.
+3. Cobertura de idempotencia e atomicidade: `tests/test_model2_thesis_repository.py`.
 
 ## INICIATIVA M2-003 - Rastreador de Tese
 
 ### TAREFA M2-003.1 - Monitoramento por vela
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Consumir oportunidades abertas.
-2. Atualizar para `MONITORANDO`.
+1. Consumir oportunidades abertas. [OK]
+2. Atualizar para `MONITORANDO`. [OK]
+
+Evidencias:
+
+1. Transicao de estado no repositorio M2: `core/model2/repository.py`.
+2. Runner do rastreador por vela: `scripts/model2/track.py`.
+3. Testes de transicao e idempotencia: `tests/test_model2_tracker.py`.
 
 ### TAREFA M2-003.2 - Regras de validacao
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Confirmar rejeicao.
-2. Confirmar rompimento do gatilho.
-3. Transicionar para `VALIDADA`.
+1. Confirmar rejeicao. [OK]
+2. Confirmar rompimento do gatilho. [OK]
+3. Transicionar para `VALIDADA`. [OK]
+
+Evidencias:
+
+1. Validador deterministico: `core/model2/validator.py`.
+2. Transicao `MONITORANDO -> VALIDADA`: `core/model2/repository.py`.
+3. Runner operacional de validacao: `scripts/model2/validate.py`.
+4. Testes de regra e fluxo: `tests/test_model2_validator.py` e
+   `tests/test_model2_validation_flow.py`.
 
 ### TAREFA M2-003.3 - Regras de invalidacao/expiracao
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Invalidar por quebra da premissa.
-2. Expirar por tempo limite.
+1. Invalidar por quebra da premissa. [OK]
+2. Expirar por tempo limite. [OK]
+
+Evidencias:
+
+1. Resolvedor deterministico: `core/model2/resolver.py`.
+2. Transicoes `MONITORANDO -> INVALIDADA|EXPIRADA`: `core/model2/repository.py`.
+3. Runner operacional de resolucao: `scripts/model2/resolve.py`.
+4. Testes de regra e fluxo: `tests/test_model2_resolver.py` e
+   `tests/test_model2_resolution_flow.py`.
 
 ## Prioridade P1 (apos P0)
 
