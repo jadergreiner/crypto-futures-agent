@@ -29,6 +29,7 @@ BINANCE_TESTNET_WS_URL = "wss://stream.binancefuture.com"
 
 # Database Configuration
 DB_PATH = "db/crypto_agent.db"
+MODEL2_DB_PATH = os.getenv("MODEL2_DB_PATH", "db/modelo2.db")
 
 # Trading Mode
 TRADING_MODE = os.getenv("TRADING_MODE", "paper")  # "paper" or "live"

@@ -8,12 +8,19 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ### TAREFA M2-001.1 - Criar esquema de oportunidades
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Criar tabela `opportunities`.
-2. Criar indices basicos.
-3. Criar migracao versionada.
+1. Criar tabela `opportunities`. [OK]
+2. Criar indices basicos. [OK]
+3. Criar migracao versionada. [OK]
+
+Evidencias:
+
+1. Migracao SQL: `scripts/model2/migrations/0001_create_opportunities.sql`.
+2. Runner de migracao: `scripts/model2/migrate.py`.
+3. Banco canonico M2: `db/modelo2.db`.
+4. Output operacional: `results/model2/runtime/model2_migrate_*.json`.
 
 ### TAREFA M2-001.2 - Criar esquema de eventos
 

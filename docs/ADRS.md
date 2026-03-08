@@ -76,3 +76,27 @@ Manter uma pasta `docs` nova e focada somente no Modelo 2.0.
 
 **Consequencia:**
 Evita mistura de contexto e acelera integracao de novos membros.
+
+## ADR-007 - Banco canonico e migracoes versionadas do Modelo 2.0
+
+**Status:** ACEITO
+
+**Decisao:**
+Adotar `db/modelo2.db` como banco canonico do Modelo 2.0, com migracoes SQL
+versionadas executadas por `scripts/model2/migrate.py`.
+
+**Consequencia:**
+Evita mistura com schema legado (`db/crypto_agent.db`), melhora rastreabilidade
+de evolucao de schema e padroniza operacao do M2.
+
+## ADR-008 - Governanca de scripts e outputs do Modelo 2.0
+
+**Status:** ACEITO
+
+**Decisao:**
+Centralizar scripts do M2 em `scripts/model2/` e outputs operacionais em
+`results/model2/runtime/`, sem criar artefatos na raiz nem em `docs/`.
+
+**Consequencia:**
+Repositorio mais organizado, menor poluicao de arvore e auditoria operacional
+mais simples.

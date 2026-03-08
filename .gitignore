@@ -62,3 +62,7 @@ tmp/
 
 # Local caches/artifacts
 backtest/cache/
+
+# Model 2.0 runtime outputs
+results/model2/runtime/**
+!results/model2/runtime/.gitkeep
