@@ -134,20 +134,39 @@ jobs:
             exit 1
           fi
 
+  backlog-sync-check:
+    name: Backlog Sync Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validar evidencias do backlog M2
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pytest -q tests/test_docs_model2_sync.py
+
   report:
     name: Docs Validation Report
     runs-on: ubuntu-latest
     if: always()
-    needs: [markdown-lint, python-docstring-check, encoding-check]
+    needs: [markdown-lint, python-docstring-check, encoding-check, backlog-sync-check]
     steps:
       - name: Check results
         run: |
           echo "Markdownlint: ${{ needs.markdown-lint.result }}"
           echo "Python Docstrings: ${{ needs.python-docstring-check.result }}"
           echo "UTF-8 Encoding: ${{ needs.encoding-check.result }}"
+          echo "Backlog Sync: ${{ needs.backlog-sync-check.result }}"
 
           if [ "${{ needs.markdown-lint.result }}" = "failure" ] || \
              [ "${{ needs.python-docstring-check.result }}" = "failure" ] || \
-             [ "${{ needs.encoding-check.result }}" = "failure" ]; then
+             [ "${{ needs.encoding-check.result }}" = "failure" ] || \
+             [ "${{ needs.backlog-sync-check.result }}" = "failure" ]; then
             exit 1
           fi

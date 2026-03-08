@@ -202,6 +202,52 @@ Implementacao de referencia: `core/model2/resolver.py`,
    - Se ja estiver no estado alvo, nao criar novo evento.
    - Se o estado atual nao permitir a transicao, nao transicionar.
 
+## Regra de painel de oportunidades (M2-004.1)
+
+Implementacao de referencia: `core/model2/observability.py` e
+`scripts/model2/dashboard.py`.
+
+1. O painel deve materializar snapshot por execucao com `run_id` e
+   `snapshot_timestamp`.
+2. O painel deve publicar contagem por todos os estados oficiais:
+   `IDENTIFICADA`, `MONITORANDO`, `VALIDADA`, `INVALIDADA`, `EXPIRADA`.
+3. O painel deve publicar tempo medio ate resolucao:
+   - Geral: `AVG(resolved_at - created_at)` para estados finais.
+   - Por estado final: `VALIDADA`, `INVALIDADA`, `EXPIRADA`.
+4. Retencao obrigatoria de snapshots: 30 dias.
+
+## Regra de auditoria materializada (M2-004.2)
+
+Implementacao de referencia: `core/model2/observability.py` e
+`scripts/model2/audit.py`.
+
+1. Cada snapshot deve registrar transicoes com correlacao por
+   `opportunity_id`.
+2. O snapshot deve carregar contexto minimo:
+   `symbol`, `timeframe`, `from_status`, `to_status`, `rule_id`,
+   `event_timestamp` e `payload_json`.
+3. O runner deve aceitar filtros operacionais:
+   `opportunity_id`, `symbol`, `timeframe`, `start_ts`, `end_ts`, `limit`.
+4. Retencao obrigatoria de snapshots: 30 dias.
+
+## Regra de replay historico (M2-005.2)
+
+Implementacao de referencia: `scripts/model2/reprocess.py`.
+
+1. Replay deve rodar por timestamp com pipeline deterministico:
+   `scan -> track -> validate -> resolve`.
+2. O replay deve usar apenas velas com `timestamp <= replay_timestamp`.
+3. O replay deve usar banco isolado (`db/modelo2_replay.db`) por padrao.
+4. O uso de `db/modelo2.db` no replay deve ser bloqueado por padrao, com
+   override explicito.
+5. O resumo deve publicar duas familias oficiais de taxa:
+   - Direcional:
+     `VALIDADA/(VALIDADA+INVALIDADA)` e
+     `INVALIDADA/(VALIDADA+INVALIDADA)`.
+   - Sobre resolvidas:
+     `VALIDADA/(VALIDADA+INVALIDADA+EXPIRADA)` e
+     `INVALIDADA/(VALIDADA+INVALIDADA+EXPIRADA)`.
+
 ## Resultado esperado para o negocio
 
 1. Menos sinais impulsivos.

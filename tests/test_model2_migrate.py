@@ -99,7 +99,7 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
     payload = json.loads(result.stdout)
 
     assert payload["status"] == "ok"
-    assert payload["applied_now"] == [1, 2]
+    assert payload["applied_now"] == [1, 2, 3]
     assert db_path.exists()
 
     with sqlite3.connect(db_path) as conn:
@@ -112,6 +112,8 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "schema_migrations" in tables
         assert "opportunities" in tables
         assert "opportunity_events" in tables
+        assert "opportunity_dashboard_snapshots" in tables
+        assert "opportunity_audit_snapshots" in tables
 
         opportunities_indexes = {
             row[1] for row in conn.execute("PRAGMA index_list(opportunities)").fetchall()
@@ -126,6 +128,20 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "idx_events_opportunity_ts" in events_indexes
         assert "idx_events_event_type" in events_indexes
 
+        dashboard_indexes = {
+            row[1]
+            for row in conn.execute("PRAGMA index_list(opportunity_dashboard_snapshots)").fetchall()
+        }
+        assert "idx_dashboard_run_status" in dashboard_indexes
+        assert "idx_dashboard_snapshot_ts" in dashboard_indexes
+
+        audit_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(opportunity_audit_snapshots)").fetchall()
+        }
+        assert "idx_audit_snapshot_run" in audit_indexes
+        assert "idx_audit_snapshot_ts" in audit_indexes
+        assert "idx_audit_snapshot_opportunity" in audit_indexes
+
     run_files = list(output_dir.glob("model2_migrate_*.json"))
     assert len(run_files) == 1
 
@@ -137,13 +153,13 @@ def test_migration_is_idempotent(tmp_path: Path) -> None:
     first = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
     second = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
 
-    assert first["applied_now"] == [1, 2]
+    assert first["applied_now"] == [1, 2, 3]
     assert second["applied_now"] == []
-    assert second["total_applied"] == 2
+    assert second["total_applied"] == 3
 
     with sqlite3.connect(db_path) as conn:
         row_count = conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
-        assert row_count == 2
+        assert row_count == 3
 
 
 def test_constraints_reject_invalid_values(tmp_path: Path) -> None:

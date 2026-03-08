@@ -8,10 +8,12 @@ flowchart LR
     B --> C[(oportunidades)]
     C --> D[Rastreador de Tese]
     D --> E[(eventos_de_oportunidade)]
+    E --> J[(snapshots_auditoria)]
     D --> F{Estado final?}
     F -->|VALIDADA| G[Ponte de Sinal]
     F -->|INVALIDADA| H[Fim da tese]
     F -->|EXPIRADA| H
+    C --> K[(snapshots_painel)]
     G --> I[(sinais_tecnicos)]
 ```
 

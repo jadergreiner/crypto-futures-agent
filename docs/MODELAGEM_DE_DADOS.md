@@ -135,6 +135,53 @@ Campos sugeridos:
 9. `signal_timestamp` (INTEGER UTC ms)
 10. `status` (TEXT)
 
+## Tabela: snapshots de painel (`opportunity_dashboard_snapshots`)
+
+Materializacao operacional do M2-004.1.
+
+Campos implementados:
+
+1. `id` (PK)
+2. `run_id` (TEXT, identificador da execucao)
+3. `snapshot_timestamp` (INTEGER UTC ms)
+4. `status` (TEXT, estado oficial)
+5. `opportunity_count` (INTEGER)
+6. `avg_resolution_ms` (REAL, media para o estado final quando aplicavel)
+7. `avg_resolution_ms_overall` (REAL, media global de resolucao)
+8. `created_at` (INTEGER UTC ms)
+
+Indices implementados:
+
+1. `idx_dashboard_run_status` (`run_id`, `status`)
+2. `idx_dashboard_snapshot_ts` (`snapshot_timestamp`)
+
+## Tabela: snapshots de auditoria (`opportunity_audit_snapshots`)
+
+Materializacao operacional do M2-004.2.
+
+Campos implementados:
+
+1. `id` (PK)
+2. `run_id` (TEXT)
+3. `snapshot_timestamp` (INTEGER UTC ms)
+4. `event_id` (INTEGER, referencia logica ao evento original)
+5. `opportunity_id` (INTEGER)
+6. `symbol` (TEXT)
+7. `timeframe` (TEXT)
+8. `event_type` (TEXT)
+9. `from_status` (TEXT, nulo permitido)
+10. `to_status` (TEXT)
+11. `event_timestamp` (INTEGER UTC ms)
+12. `rule_id` (TEXT)
+13. `payload_json` (TEXT)
+14. `created_at` (INTEGER UTC ms)
+
+Indices implementados:
+
+1. `idx_audit_snapshot_run` (`run_id`, `event_timestamp`, `event_id`)
+2. `idx_audit_snapshot_ts` (`snapshot_timestamp`)
+3. `idx_audit_snapshot_opportunity` (`opportunity_id`, `event_timestamp`)
+
 ## Regras de integridade
 
 1. `zone_low < zone_high`
@@ -144,3 +191,4 @@ Campos sugeridos:
 5. Toda mudanca de status deve gerar evento em `opportunity_events`
 6. Idempotencia de criacao inicial por chave natural:
    (`symbol`, `timeframe`, `thesis_type`, `metadata_json.rejection_candle.timestamp`)
+7. Snapshots materializados de observabilidade devem respeitar retencao de 30 dias

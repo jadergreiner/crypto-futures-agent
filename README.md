@@ -83,6 +83,7 @@ Validacao manual:
 
 ```bash
 markdownlint docs/*.md
+pytest -q tests/test_docs_model2_sync.py
 ```
 
 O repositorio usa:

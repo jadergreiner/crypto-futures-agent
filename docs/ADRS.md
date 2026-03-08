@@ -104,3 +104,45 @@ Centralizar scripts do M2 em `scripts/model2/` e outputs operacionais em
 **Consequencia:**
 Repositorio mais organizado, menor poluicao de arvore e auditoria operacional
 mais simples.
+
+## ADR-009 - Observabilidade materializada por snapshots com retencao
+
+**Status:** ACEITO
+
+**Decisao:**
+Materializar snapshots operacionais do M2 no proprio banco:
+
+1. Painel (`opportunity_dashboard_snapshots`).
+2. Auditoria (`opportunity_audit_snapshots`).
+3. Retencao hibrida de 30 dias por `snapshot_timestamp`.
+
+**Consequencia:**
+Permite consulta historica, comparacao entre execucoes e governanca de volume
+com limpeza automatica.
+
+## ADR-010 - Reprocessamento historico em banco isolado de replay
+
+**Status:** ACEITO
+
+**Decisao:**
+Executar replay historico em `db/modelo2_replay.db` por padrao, com bloqueio
+do banco operacional `db/modelo2.db` salvo override explicito.
+
+**Consequencia:**
+Evita contaminacao do ambiente operacional e garante reproducibilidade de
+metricas historicas.
+
+## ADR-011 - Taxas oficiais de qualidade em duas familias
+
+**Status:** ACEITO
+
+**Decisao:**
+Publicar simultaneamente:
+
+1. Taxa direcional: `VALIDADA/(VALIDADA+INVALIDADA)` e
+   `INVALIDADA/(VALIDADA+INVALIDADA)`.
+2. Taxa sobre resolvidas: `VALIDADA/(VALIDADA+INVALIDADA+EXPIRADA)` e
+   `INVALIDADA/(VALIDADA+INVALIDADA+EXPIRADA)`.
+
+**Consequencia:**
+Leitura mais completa da qualidade da tese sem perder contexto de expiracao.

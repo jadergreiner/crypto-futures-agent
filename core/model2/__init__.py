@@ -36,6 +36,11 @@ from .resolver import (
     ResolutionInput,
     evaluate_monitoring_resolution,
 )
+from .observability import (
+    AuditSnapshot,
+    DashboardSnapshot,
+    Model2ObservabilityService,
+)
 from .validator import (
     ValidationDecision,
     ValidationInput,
@@ -44,7 +49,9 @@ from .validator import (
 
 __all__ = [
     "ALLOWED_TRANSITIONS",
+    "AuditSnapshot",
     "CreateInitialThesisResult",
+    "DashboardSnapshot",
     "DetectionResult",
     "DetectorInput",
     "FINAL_THESIS_STATUSES",
@@ -56,6 +63,7 @@ __all__ = [
     "M2_003_2_RULE_ID",
     "M2_003_3_RULE_ID_EXPIRATION",
     "M2_003_3_RULE_ID_INVALIDATION",
+    "Model2ObservabilityService",
     "Model2ThesisRepository",
     "OFFICIAL_THESIS_STATUSES",
     "RESOLUTION_ACTION_EXPIRED",

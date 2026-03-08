@@ -139,36 +139,68 @@ Evidencias:
 
 ### TAREFA M2-004.1 - Painel de oportunidades
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Contagem por estado.
-2. Tempo medio ate resolucao.
+1. Contagem por estado. [OK]
+2. Tempo medio ate resolucao. [OK]
+
+Evidencias:
+
+1. Migracao de materializacao: `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
+2. Servico canonico de observabilidade: `core/model2/observability.py`.
+3. Runner operacional do painel: `scripts/model2/dashboard.py`.
+4. Cobertura de metricas e persistencia: `tests/test_model2_observability.py`.
 
 ### TAREFA M2-004.2 - Registros de auditoria
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Registro por transicao.
-2. Correlacao por `opportunity_id`.
+1. Registro por transicao. [OK]
+2. Correlacao por `opportunity_id`. [OK]
+
+Evidencias:
+
+1. Tabela materializada de auditoria: `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
+2. Servico de refresh e filtros de auditoria: `core/model2/observability.py`.
+3. Runner operacional de auditoria: `scripts/model2/audit.py`.
+4. Cobertura de filtros e retencao: `tests/test_model2_observability.py`.
 
 ## INICIATIVA M2-005 - Qualidade
 
 ### TAREFA M2-005.1 - Testes unitarios de transicao
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Casos validos e invalidos de mudanca de estado.
+1. Casos validos e invalidos de mudanca de estado. [OK]
+
+Evidencias:
+
+1. Suite unitaria dedicada de transicoes: `tests/test_model2_transition_suite.py`.
+2. Cobertura de caminhos validos/invalidos/idempotencia/not_found e auditoria por evento:
+   `tests/test_model2_transition_suite.py`.
+3. Checagem automatizada de sincronismo documental:
+   `tests/test_docs_model2_sync.py` e `.github/workflows/docs-validate.yml`.
 
 ### TAREFA M2-005.2 - Reprocessamento historico
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Reprocessar velas passadas.
-2. Medir taxa de validacao vs invalidacao.
+1. Reprocessar velas passadas. [OK]
+2. Medir taxa de validacao vs invalidacao. [OK]
+
+Evidencias:
+
+1. Runner de replay historico em DB isolado: `scripts/model2/reprocess.py`.
+2. Bloqueio por padrao do DB operacional e suporte a janela temporal:
+   `scripts/model2/reprocess.py`.
+3. Taxas direcionais e sobre resolvidas no resumo operacional:
+   `scripts/model2/reprocess.py`.
+4. Cobertura de replay VALIDADA/INVALIDADA/EXPIRADA e taxas:
+   `tests/test_model2_reprocess.py`.
 
 ## Prioridade P2 (fase posterior)
 

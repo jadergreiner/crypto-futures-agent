@@ -50,6 +50,23 @@ Saida:
 
 Fora do escopo da Fase 1.
 
+## Camada transversal - Observabilidade e Qualidade (M2-004/M2-005)
+
+Responsavel por visibilidade operacional e replay historico.
+
+Entradas:
+
+1. `opportunities` e `opportunity_events`.
+2. OHLCV historico para replay deterministico.
+
+Saida:
+
+1. Snapshots de painel em `opportunity_dashboard_snapshots`.
+2. Snapshots de auditoria em `opportunity_audit_snapshots`.
+3. Resumos operacionais em `results/model2/runtime/`:
+   `model2_dashboard_*.json`, `model2_audit_*.json` e
+   `model2_reprocess_*.json`.
+
 ## Fluxo principal
 
 1. Scanner identifica oportunidade.
@@ -61,8 +78,9 @@ Fora do escopo da Fase 1.
 
 1. Auditoria completa de transicoes.
 2. Idempotencia por ciclo.
-3. Reprocessamento historico sem efeitos colaterais.
+3. Reprocessamento historico sem efeitos colaterais (DB de replay isolado).
 4. Baixo acoplamento entre camadas.
+5. Retencao de snapshots de observabilidade por 30 dias.
 
 ## Diagrama de alto nivel
 

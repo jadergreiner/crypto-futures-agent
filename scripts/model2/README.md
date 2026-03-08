@@ -69,3 +69,46 @@ Execucao em modo dry-run:
 ```bash
 python scripts/model2/resolve.py --symbol BTCUSDT --timeframe H4 --dry-run
 ```
+
+## Comando de painel (M2-004.1)
+
+Materializa snapshot de contagem por estado e tempo medio de resolucao:
+
+```bash
+python scripts/model2/dashboard.py
+```
+
+Com retencao customizada:
+
+```bash
+python scripts/model2/dashboard.py --retention-days 30
+```
+
+## Comando de auditoria (M2-004.2)
+
+Materializa snapshot de transicoes com filtros:
+
+```bash
+python scripts/model2/audit.py --symbol BTCUSDT --timeframe H4 --limit 200
+```
+
+Filtro por `opportunity_id`:
+
+```bash
+python scripts/model2/audit.py --opportunity-id 123
+```
+
+## Comando de reprocessamento historico (M2-005.2)
+
+Replay deterministico em banco isolado (`db/modelo2_replay.db`):
+
+```bash
+python scripts/model2/reprocess.py --timeframe H4 --symbol BTCUSDT --start-ts 1700000000000 --end-ts 1701000000000
+```
+
+Por padrao o comando bloqueia replay no banco operacional (`db/modelo2.db`).
+Para sobrescrever explicitamente:
+
+```bash
+python scripts/model2/reprocess.py --replay-db-path db/modelo2.db --allow-operational-db
+```
