@@ -24,11 +24,17 @@ Evidencias:
 
 ### TAREFA M2-001.2 - Criar esquema de eventos
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
 Entrega:
 
-1. Criar tabela `opportunity_events`.
-2. Garantir chave estrangeira e indices.
+1. Criar tabela `opportunity_events`. [OK]
+2. Garantir chave estrangeira e indices. [OK]
+
+Evidencias:
+
+1. Migracao SQL: `scripts/model2/migrations/0002_create_opportunity_events.sql`.
+2. Cobertura de testes: `tests/test_model2_migrate.py`.
+3. Execucao de migracoes M2: `scripts/model2/migrate.py`.
 
 ### TAREFA M2-001.3 - Definir enumeracoes de estado
 

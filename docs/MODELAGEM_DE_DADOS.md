@@ -41,21 +41,29 @@ Indices sugeridos:
 
 Historico completo da tese.
 
-Campos sugeridos:
+Campos implementados:
 
 1. `id` (PK)
 2. `opportunity_id` (FK -> opportunities.id, referencia da oportunidade)
-3. `event_type` (TEXT)
+3. `event_type` (TEXT, obrigatorio)
 4. `from_status` (TEXT, nulo permitido)
-5. `to_status` (TEXT)
-6. `event_timestamp` (INTEGER UTC ms)
-7. `rule_id` (TEXT)
-8. `payload_json` (TEXT)
+5. `to_status` (TEXT, obrigatorio)
+6. `event_timestamp` (INTEGER UTC ms, obrigatorio)
+7. `rule_id` (TEXT, obrigatorio)
+8. `payload_json` (TEXT, obrigatorio, default `'{}'`)
 
 Indices sugeridos:
 
 1. `idx_events_opportunity_ts` (`opportunity_id`, `event_timestamp`)
 2. `idx_events_event_type` (`event_type`)
+
+Regras de integridade implementadas:
+
+1. FK: `opportunity_events.opportunity_id -> opportunities.id`
+2. Politica FK: `ON DELETE RESTRICT` e `ON UPDATE RESTRICT`
+3. `from_status` deve ser nulo ou um estado valido
+4. `to_status` deve ser um estado valido
+5. `event_timestamp > 0`
 
 ## Tabela: sinais tecnicos (`technical_signals`) - fase posterior
 

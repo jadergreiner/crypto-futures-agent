@@ -50,6 +50,18 @@ def base_opportunity_payload() -> dict:
     }
 
 
+def base_event_payload(opportunity_id: int) -> dict:
+    return {
+        "opportunity_id": opportunity_id,
+        "event_type": "STATUS_TRANSITION",
+        "from_status": "IDENTIFICADA",
+        "to_status": "MONITORANDO",
+        "event_timestamp": 1_700_000_000_050,
+        "rule_id": "RN-005",
+        "payload_json": "{}",
+    }
+
+
 def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> None:
     db_path = tmp_path / "db" / "modelo2.db"
     output_dir = tmp_path / "results" / "model2" / "runtime"
@@ -58,7 +70,7 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
     payload = json.loads(result.stdout)
 
     assert payload["status"] == "ok"
-    assert payload["applied_now"] == [1]
+    assert payload["applied_now"] == [1, 2]
     assert db_path.exists()
 
     with sqlite3.connect(db_path) as conn:
@@ -70,13 +82,20 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         }
         assert "schema_migrations" in tables
         assert "opportunities" in tables
+        assert "opportunity_events" in tables
 
-        indexes = {
+        opportunities_indexes = {
             row[1] for row in conn.execute("PRAGMA index_list(opportunities)").fetchall()
         }
-        assert "idx_opportunities_status" in indexes
-        assert "idx_opportunities_symbol_status" in indexes
-        assert "idx_opportunities_created_at" in indexes
+        assert "idx_opportunities_status" in opportunities_indexes
+        assert "idx_opportunities_symbol_status" in opportunities_indexes
+        assert "idx_opportunities_created_at" in opportunities_indexes
+
+        events_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(opportunity_events)").fetchall()
+        }
+        assert "idx_events_opportunity_ts" in events_indexes
+        assert "idx_events_event_type" in events_indexes
 
     run_files = list(output_dir.glob("model2_migrate_*.json"))
     assert len(run_files) == 1
@@ -89,13 +108,13 @@ def test_migration_is_idempotent(tmp_path: Path) -> None:
     first = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
     second = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
 
-    assert first["applied_now"] == [1]
+    assert first["applied_now"] == [1, 2]
     assert second["applied_now"] == []
-    assert second["total_applied"] == 1
+    assert second["total_applied"] == 2
 
     with sqlite3.connect(db_path) as conn:
         row_count = conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
-        assert row_count == 1
+        assert row_count == 2
 
 
 def test_constraints_reject_invalid_values(tmp_path: Path) -> None:
@@ -128,6 +147,49 @@ def test_constraints_reject_invalid_values(tmp_path: Path) -> None:
             conn.execute(
                 f"INSERT INTO opportunities ({columns}) VALUES ({placeholders})",
                 invalid_zone,
+            )
+
+
+def test_events_constraints_and_fk_reject_invalid_values(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    output_dir = tmp_path / "results" / "model2" / "runtime"
+    run_migrate(db_path=db_path, output_dir=output_dir)
+
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+
+        opportunity_payload = base_opportunity_payload()
+        opportunity_columns = ", ".join(opportunity_payload.keys())
+        opportunity_placeholders = ", ".join(
+            [f":{key}" for key in opportunity_payload.keys()]
+        )
+        cursor = conn.execute(
+            f"INSERT INTO opportunities ({opportunity_columns}) VALUES ({opportunity_placeholders})",
+            opportunity_payload,
+        )
+        opportunity_id = int(cursor.lastrowid)
+
+        event_payload = base_event_payload(opportunity_id=opportunity_id)
+        event_columns = ", ".join(event_payload.keys())
+        event_placeholders = ", ".join([f":{key}" for key in event_payload.keys()])
+        conn.execute(
+            f"INSERT INTO opportunity_events ({event_columns}) VALUES ({event_placeholders})",
+            event_payload,
+        )
+
+        invalid_fk = base_event_payload(opportunity_id=opportunity_id + 9999)
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                f"INSERT INTO opportunity_events ({event_columns}) VALUES ({event_placeholders})",
+                invalid_fk,
+            )
+
+        invalid_status = base_event_payload(opportunity_id=opportunity_id)
+        invalid_status["to_status"] = "DESCONHECIDA"
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                f"INSERT INTO opportunity_events ({event_columns}) VALUES ({event_placeholders})",
+                invalid_status,
             )
 
 
