@@ -14,6 +14,19 @@ Parâmetros opcionais:
 python scripts/model2/migrate.py up --db-path db/modelo2.db --output-dir results/model2/runtime
 ```
 
+Pre-flight recomendado para banco operacional:
+
+```bash
+python -c "from config.settings import MODEL2_DB_PATH; print(MODEL2_DB_PATH)"
+python -c "import sqlite3; from config.settings import MODEL2_DB_PATH as p; c=sqlite3.connect(p); c.execute('BEGIN IMMEDIATE'); c.execute('CREATE TABLE IF NOT EXISTS __perm_test(id INTEGER)'); c.execute('DROP TABLE __perm_test'); c.execute('COMMIT'); c.close(); print('ok', p)"
+```
+
+Se houver erro de permissao de escrita no Windows:
+
+```bash
+cmd /c "icacls db /grant %USERNAME%:(OI)(CI)M /T"
+```
+
 ## Comando de scanner (M2-002)
 
 Execucao completa (le OHLCV/indicadores do banco legado e persiste tese inicial no M2):

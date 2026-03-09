@@ -589,11 +589,13 @@ Evidencias:
 
 ## Go-live checklist da Fase 2
 
-1. Executar python scripts/model2/migrate.py up no banco operacional.
-2. Validar M2_EXECUTION_MODE=shadow com whitelist restrita.
-3. Definir M2_LIVE_SYMBOLS explicitamente para o subset inicial.
-4. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD, M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
-5. Validar python scripts/model2/live_execute.py em shadow.
-6. Validar python scripts/model2/live_reconcile.py sem divergencias.
-7. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
-8. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.
+1. Confirmar o banco operacional configurado (`MODEL2_DB_PATH`) e validar permissao de escrita no path resolvido.
+2. Se necessario, corrigir permissao de escrita da pasta `db/` antes do go-live (ex.: ACL no Windows).
+3. Executar python scripts/model2/migrate.py up no banco operacional.
+4. Validar M2_EXECUTION_MODE=shadow com whitelist restrita.
+5. Definir M2_LIVE_SYMBOLS explicitamente para o subset inicial.
+6. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD, M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
+7. Validar python scripts/model2/live_execute.py em shadow.
+8. Validar python scripts/model2/live_reconcile.py sem divergencias.
+9. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
+10. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.

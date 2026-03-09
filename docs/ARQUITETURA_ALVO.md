@@ -5,6 +5,18 @@
 O Modelo 2.0 separa a decisao em etapas simples,
 com responsabilidade clara por camada.
 
+## Banco de dados do M2 (contrato operacional)
+
+1. Banco canonico do M2: `MODEL2_DB_PATH` (default: `db/modelo2.db`).
+2. O path de `MODEL2_DB_PATH` deve ter permissao de leitura e escrita para:
+   `migrate.py`, `live_execute.py`, `live_reconcile.py`, `live_dashboard.py`
+   e `healthcheck_live_execution.py`.
+3. O schema oficial do M2 e versionado por migracoes em
+   `scripts/model2/migrations/*.sql`, aplicado por
+   `python scripts/model2/migrate.py up`.
+4. O banco legado (`db/crypto_agent.db`) permanece separado do banco canonico
+   do M2 para evitar acoplamento de schema e efeitos colaterais operacionais.
+
 ## Camadas
 
 ## Camada 1 - Scanner de Oportunidades

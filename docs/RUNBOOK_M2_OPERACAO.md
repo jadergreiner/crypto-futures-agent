@@ -42,13 +42,19 @@ Artefatos esperados em `results/model2/runtime/`:
 
 Verificar antes do go-live:
 
-1. `python scripts/model2/migrate.py up`
-2. `M2_EXECUTION_MODE=shadow`
-3. `M2_LIVE_SYMBOLS` com subset explicito
-4. `M2_MAX_DAILY_ENTRIES` revisado
-5. `M2_MAX_MARGIN_PER_POSITION_USD` revisado
-6. `M2_MAX_SIGNAL_AGE_MINUTES` revisado
-7. `M2_SYMBOL_COOLDOWN_MINUTES` revisado
+1. Confirmar o banco operacional efetivo:
+   `python -c "from config.settings import MODEL2_DB_PATH; print(MODEL2_DB_PATH)"`
+2. Validar escrita no path resolvido de `MODEL2_DB_PATH` (necessario para snapshots e reconciliacao):
+   `python -c "import sqlite3; from config.settings import MODEL2_DB_PATH as p; c=sqlite3.connect(p); c.execute('BEGIN IMMEDIATE'); c.execute('CREATE TABLE IF NOT EXISTS __perm_test(id INTEGER)'); c.execute('DROP TABLE __perm_test'); c.execute('COMMIT'); c.close(); print('ok', p)"`
+3. Se houver erro de permissao no Windows, corrigir ACL da pasta `db/`:
+   `cmd /c "icacls db /grant %USERNAME%:(OI)(CI)M /T"`
+4. `python scripts/model2/migrate.py up`
+5. `M2_EXECUTION_MODE=shadow`
+6. `M2_LIVE_SYMBOLS` com subset explicito
+7. `M2_MAX_DAILY_ENTRIES` revisado
+8. `M2_MAX_MARGIN_PER_POSITION_USD` revisado
+9. `M2_MAX_SIGNAL_AGE_MINUTES` revisado
+10. `M2_SYMBOL_COOLDOWN_MINUTES` revisado
 
 ## Operacao diaria do pipeline
 
