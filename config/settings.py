@@ -30,6 +30,16 @@ BINANCE_TESTNET_WS_URL = "wss://stream.binancefuture.com"
 # Database Configuration
 DB_PATH = "db/crypto_agent.db"
 MODEL2_DB_PATH = os.getenv("MODEL2_DB_PATH", "db/modelo2.db")
+M2_EXECUTION_MODE = os.getenv("M2_EXECUTION_MODE", "shadow").strip().lower()
+M2_LIVE_SYMBOLS = tuple(
+    symbol.strip().upper()
+    for symbol in os.getenv("M2_LIVE_SYMBOLS", "").split(",")
+    if symbol.strip()
+)
+M2_MAX_DAILY_ENTRIES = int(os.getenv("M2_MAX_DAILY_ENTRIES", "10"))
+M2_MAX_MARGIN_PER_POSITION_USD = float(os.getenv("M2_MAX_MARGIN_PER_POSITION_USD", "1.0"))
+M2_MAX_SIGNAL_AGE_MINUTES = int(os.getenv("M2_MAX_SIGNAL_AGE_MINUTES", "240"))
+M2_SYMBOL_COOLDOWN_MINUTES = int(os.getenv("M2_SYMBOL_COOLDOWN_MINUTES", "240"))
 
 # Trading Mode
 TRADING_MODE = os.getenv("TRADING_MODE", "paper")  # "paper" or "live"

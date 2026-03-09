@@ -1,0 +1,96 @@
+name: Model2 Smoke
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "scripts/model2/**"
+      - "core/model2/**"
+      - "tests/test_model2_daily_*.py"
+      - ".github/workflows/model2-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/model2/**"
+      - "core/model2/**"
+      - "tests/test_model2_daily_*.py"
+      - ".github/workflows/model2-smoke.yml"
+
+jobs:
+  smoke:
+    name: Schedule Once Dry-Run Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas python-dotenv schedule
+
+      - name: Prepare smoke source database
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+
+          source_db = Path("results/model2/runtime/smoke_source.db")
+          source_db.parent.mkdir(parents=True, exist_ok=True)
+          with sqlite3.connect(source_db) as conn:
+              conn.execute(
+                  """
+                  CREATE TABLE IF NOT EXISTS ohlcv_h4 (
+                      timestamp INTEGER NOT NULL,
+                      symbol TEXT NOT NULL,
+                      open REAL NOT NULL,
+                      high REAL NOT NULL,
+                      low REAL NOT NULL,
+                      close REAL NOT NULL,
+                      volume REAL NOT NULL,
+                      quote_volume REAL NOT NULL,
+                      trades_count INTEGER NOT NULL,
+                      PRIMARY KEY (timestamp, symbol)
+                  )
+                  """
+              )
+              conn.execute(
+                  """
+                  CREATE TABLE IF NOT EXISTS indicadores_tecnico (
+                      timestamp INTEGER NOT NULL,
+                      symbol TEXT NOT NULL,
+                      timeframe TEXT NOT NULL,
+                      PRIMARY KEY (timestamp, symbol, timeframe)
+                  )
+                  """
+              )
+              conn.commit()
+          PY
+
+      - name: Run scheduled pipeline once (dry-run)
+        run: |
+          python scripts/model2/schedule_daily_pipeline.py \
+            --once \
+            --dry-run \
+            --timeframe H4 \
+            --symbol BTCUSDT \
+            --source-db-path results/model2/runtime/smoke_source.db \
+            --model2-db-path results/model2/runtime/smoke_model2.db \
+            --legacy-db-path results/model2/runtime/smoke_legacy.db \
+            --output-dir results/model2/runtime \
+            --max-retries 0 \
+            --lock-file results/model2/runtime/model2_daily_pipeline_smoke.lock
+
+      - name: Run healthcheck for scheduled output
+        run: |
+          python scripts/model2/healthcheck_daily_schedule.py \
+            --runtime-dir results/model2/runtime \
+            --output-dir results/model2/runtime \
+            --timezone UTC \
+            --max-age-hours 6 \
+            --require-today \
+            --expected-status ok

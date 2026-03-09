@@ -208,13 +208,367 @@ Evidencias:
 
 ### TAREFA M2-006.1 - Gerar sinal padrao apos validacao
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Contrato canonico de sinal padrao e regra M2-006.1. [OK]
+2. Persistencia dedicada em `technical_signals` com migracao versionada. [OK]
+3. Runner operacional da ponte de sinal com dry-run e resumo de execucao. [OK]
+4. Testes unitarios, de repositorio e fluxo integrado da ponte. [OK]
+
+Subtarefas rastreaveis:
+
+1. M2-006.1.1 - Contrato de sinal padrao. [OK]
+2. M2-006.1.2 - Persistencia e migracao. [OK]
+3. M2-006.1.3 - Runner operacional. [OK]
+4. M2-006.1.4 - Testes e evidencias. [OK]
+
+Evidencias:
+
+1. Dominio da ponte: `core/model2/signal_bridge.py`.
+2. Persistencia no repositorio M2: `core/model2/repository.py`.
+3. Migracao de schema M2: `scripts/model2/migrations/0004_create_technical_signals.sql`.
+4. Runner operacional da ponte: `scripts/model2/bridge.py`.
+5. Documentacao de script: `scripts/model2/README.md`.
+6. Testes de dominio: `tests/test_model2_signal_bridge.py`.
+7. Testes de fluxo integrado: `tests/test_model2_bridge_flow.py`.
+8. Cobertura de migracao/repositorio: `tests/test_model2_migrate.py` e
+   `tests/test_model2_thesis_repository.py`.
 
 ## INICIATIVA M2-007 - Integracao com execucao
 
 ### TAREFA M2-007.1 - Consumir sinal validado na camada de ordem
 
-Status: A FAZER
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Consumir sinais `CREATED` de `technical_signals` na camada de ordem M2. [OK]
+2. Registrar decisao sem envio de ordem real na Fase 1. [OK]
+3. Atualizar status para `CONSUMED` ou `CANCELLED` com idempotencia. [OK]
+
+Evidencias:
+
+1. Contrato de decisao da camada de ordem: `core/model2/order_layer.py`.
+2. Persistencia de consumo idempotente: `core/model2/repository.py`.
+3. Runner operacional da camada de ordem: `scripts/model2/order_layer.py`.
+4. Documentacao operacional: `scripts/model2/README.md`.
+5. Testes unitarios: `tests/test_model2_order_layer.py`.
+6. Testes de fluxo integrado: `tests/test_model2_order_layer_flow.py`.
+7. Cobertura de repositorio: `tests/test_model2_thesis_repository.py`.
+
+### TAREFA M2-007.2 - Adaptar technical_signals para trade_signals legado
+
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Adaptador deterministico `technical_signals -> trade_signals`. [OK]
+2. Dual-write controlado com idempotencia por `technical_signal_id`. [OK]
+3. Sem envio de ordem real (apenas persistencia no legado). [OK]
+
+Evidencias:
+
+1. Contrato do adaptador: `core/model2/signal_adapter.py`.
+2. Marcacao de export no repositorio M2: `core/model2/repository.py`.
+3. Runner operacional de exportacao: `scripts/model2/export_signals.py`.
+4. Documentacao operacional: `scripts/model2/README.md`.
+5. Testes de unidade do adaptador: `tests/test_model2_signal_adapter.py`.
+6. Testes de fluxo E2E do adaptador: `tests/test_model2_export_signals_flow.py`.
+
+### TAREFA M2-007.3 - Observabilidade do fluxo de sinais
+
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Snapshot materializado do fluxo `CREATED -> CONSUMED -> exportado`. [OK]
+2. Metricas de contagem, taxa de exportacao, erros e latencia por etapa. [OK]
+3. Runner operacional dedicado para dashboard do fluxo. [OK]
+
+Evidencias:
+
+1. Migracao de snapshot: `scripts/model2/migrations/0005_create_signal_flow_snapshots.sql`.
+2. Servico canonico de observabilidade estendido: `core/model2/observability.py`.
+3. Runner operacional: `scripts/model2/export_dashboard.py`.
+4. Cobertura de metricas e runner: `tests/test_model2_signal_flow_observability.py`.
+
+## INICIATIVA M2-008 - Orquestracao operacional
+
+### TAREFA M2-008.1 - Orquestrar pipeline diario ponta a ponta
+
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Runner unico para encadear etapas operacionais M2 em sequencia fixa. [OK]
+2. Controle de dry-run, fail-fast e continue-on-error por execucao. [OK]
+3. Resumo operacional unico com rastreio de erros por etapa. [OK]
+
+Evidencias:
+
+1. Orquestrador diario: `scripts/model2/daily_pipeline.py`.
+2. Documentacao operacional: `scripts/model2/README.md`.
+3. Cobertura unitaria do orquestrador: `tests/test_model2_daily_pipeline.py`.
+
+### TAREFA M2-008.2 - Operacionalizar execucao agendada
+
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Runner de agendamento diario com horario fixo e timezone configuravel. [OK]
+2. Controle de concorrencia por lock de arquivo (single-run). [OK]
+3. Politica de retry controlada para falhas de execucao do pipeline. [OK]
+
+Evidencias:
+
+1. Scheduler operacional M2: `scripts/model2/schedule_daily_pipeline.py`.
+2. Documentacao de uso operacional: `scripts/model2/README.md`.
+3. Cobertura unitaria de lock/retry: `tests/test_model2_daily_scheduler.py`.
+
+### TAREFA M2-008.3 - Hardening operacional (monitoramento e alertas)
+
+Status: CONCLUIDA (2026-03-08)
+Entrega:
+
+1. Healthcheck automatizado da execucao agendada com alerta por exit code. [OK]
+2. Validacao de recencia e status (`status=ok`) do ultimo schedule. [OK]
+3. Smoke test de operacao `--once --dry-run` em CI. [OK]
+4. Runbook operacional com resposta a incidentes. [OK]
+
+Evidencias:
+
+1. Healthcheck operacional: `scripts/model2/healthcheck_daily_schedule.py`.
+2. Workflow CI de smoke operacional: `.github/workflows/model2-smoke.yml`.
+3. Testes de healthcheck: `tests/test_model2_daily_healthcheck.py`.
+4. Runbook de operacao/incidentes: `docs/RUNBOOK_M2_OPERACAO.md`.
+5. Documentacao de comandos: `scripts/model2/README.md`.
+
+## Prioridade P0 (Fase 2 - execucao real nativa)
+
+## INICIATIVA M2-009 - Execucao real nativa
+
+### TAREFA M2-009.1 - Modelar ciclo de vida de execucao
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Criar entidade dedicada `signal_executions` para o ciclo real do M2. [OK]
+2. Criar trilha de eventos `signal_execution_events` com auditoria por transicao. [OK]
+3. Manter `technical_signals.status` apenas como trilha de admissao (`CREATED -> CONSUMED|CANCELLED`). [OK]
+
+Evidencias:
+
+1. Contrato canonico de estados live: `core/model2/live_execution.py`.
+2. Persistencia transacional do ciclo live: `core/model2/repository.py`.
+3. Migracao de schema: `scripts/model2/migrations/0006_create_signal_executions.sql`.
+4. Cobertura de migracao: `tests/test_model2_migrate.py`.
+
+### TAREFA M2-009.2 - Gate live do M2
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Admitir apenas `technical_signals` em `CONSUMED`. [OK]
+2. Bloquear por simbolo, saldo, cooldown, limite diario, posicao aberta e sinal vencido. [OK]
+3. Materializar execucao como `READY` ou `BLOCKED` com motivo auditavel. [OK]
+
+Evidencias:
+
+1. Regra deterministica do gate live: `core/model2/live_execution.py`.
+2. Orquestracao de staging live: `core/model2/live_service.py`.
+3. Runner operacional de entrada: `scripts/model2/live_execute.py`.
+4. Testes de aceite do gate e staging: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-009.3 - Executor de entrada MARKET
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Enviar ordem de entrada `MARKET` para o mercado real. [OK]
+2. Persistir `exchange_order_id`, `client_order_id`, `filled_qty` e `filled_price`. [OK]
+3. Garantir idempotencia por `technical_signal_id` sem ordem duplicada. [OK]
+
+Evidencias:
+
+1. Abstracao de exchange live: `core/model2/live_exchange.py`.
+2. Servico de execucao real/shadow: `core/model2/live_service.py`.
+3. Runner operacional live: `scripts/model2/live_execute.py`.
+4. Testes de happy path e idempotencia: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-009.4 - Fail-safe de protecao
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Criar protecoes `STOP_MARKET` e `TAKE_PROFIT_MARKET` apos fill. [OK]
+2. Fechar a posicao imediatamente quando a protecao nao fica armada. [OK]
+3. Encerrar a execucao em `FAILED` com incidente auditavel. [OK]
+
+Evidencias:
+
+1. Fail-safe de protecao no servico live: `core/model2/live_service.py`.
+2. Runner operacional que dispara a protecao: `scripts/model2/live_execute.py`.
+3. Testes de falha de protecao e fechamento emergencial: `tests/test_model2_live_execution.py`.
+
+## INICIATIVA M2-010 - Reconciliacao e observabilidade live
+
+### TAREFA M2-010.1 - Reconciliador de ordens e posicoes
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Recuperar fills apos restart a partir de ordem enviada/posicao aberta. [OK]
+2. Detectar fechamento manual/externo da posicao e encerrar em `EXITED`. [OK]
+3. Recriar protecao ausente quando a posicao ainda existir. [OK]
+
+Evidencias:
+
+1. Servico de reconciliacao restart-safe: `core/model2/live_service.py`.
+2. Runner operacional dedicado: `scripts/model2/live_reconcile.py`.
+3. Testes de reconciliacao e manual exit: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-010.2 - Dashboard live
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Publicar backlog por status do ciclo live. [OK]
+2. Publicar latencias ate `ENTRY_SENT`, `ENTRY_FILLED` e `PROTECTED`. [OK]
+3. Sinalizar posicoes sem protecao, `ENTRY_SENT` stale e falhas. [OK]
+
+Evidencias:
+
+1. Snapshot materializado live: `scripts/model2/migrations/0007_create_signal_execution_snapshots.sql`.
+2. Servico de observabilidade live: `core/model2/observability.py`.
+3. Runner operacional do dashboard: `scripts/model2/live_dashboard.py`.
+4. Testes de metricas e runner: `tests/test_model2_live_observability.py`.
+
+### TAREFA M2-010.3 - Healthcheck e runbook
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Alertar quando houver dashboard stale, posicao sem protecao ou divergencia acima do limite. [OK]
+2. Padronizar resposta a incidentes do live M2. [OK]
+3. Produzir artefato operacional versionado por execucao. [OK]
+
+Evidencias:
+
+1. Healthcheck do live: `scripts/model2/healthcheck_live_execution.py`.
+2. Runbook operacional do M2: `docs/RUNBOOK_M2_OPERACAO.md`.
+3. Testes do healthcheck live: `tests/test_model2_live_healthcheck.py`.
+
+## INICIATIVA M2-011 - Orquestracao operacional live
+
+### TAREFA M2-011.1 - Runner live_execute
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Publicar runner de staging e entrada live/shadow. [OK]
+2. Validar schema antes da execucao. [OK]
+3. Emitir resumo operacional em `results/model2/runtime/`. [OK]
+
+Evidencias:
+
+1. Runner operacional: `scripts/model2/live_execute.py`.
+2. Documentacao de uso: `scripts/model2/README.md`.
+3. Testes de runner e persistencia: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-011.2 - Runner live_reconcile
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Publicar runner de reconciliacao continua. [OK]
+2. Cobrir `READY`, `ENTRY_SENT`, `ENTRY_FILLED` e `PROTECTED`. [OK]
+3. Emitir resumo operacional em `results/model2/runtime/`. [OK]
+
+Evidencias:
+
+1. Runner operacional: `scripts/model2/live_reconcile.py`.
+2. Documentacao de uso: `scripts/model2/README.md`.
+3. Testes de runner e reconciliacao: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-011.3 - Runner live_cycle
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Encadear `live_execute -> live_reconcile -> live_dashboard`. [OK]
+2. Separar o caminho critico live do `export_signals -> trade_signals` legado. [OK]
+3. Publicar resumo unico do ciclo live. [OK]
+
+Evidencias:
+
+1. Orquestrador do ciclo live: `scripts/model2/live_cycle.py`.
+2. Runners independentes do ciclo live: `scripts/model2/live_execute.py` e `scripts/model2/live_reconcile.py`.
+3. Documentacao operacional: `scripts/model2/README.md`.
+
+## INICIATIVA M2-012 - Hardening de risco
+
+### TAREFA M2-012.1 - Contadores persistidos no M2
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Calcular limite diario e cooldown a partir do banco canonico M2. [OK]
+2. Nao depender do contador em memoria do executor legado. [OK]
+3. Rastrear contagem por `execution_mode` e simbolo. [OK]
+
+Evidencias:
+
+1. Consultas persistidas de risco: `core/model2/repository.py`.
+2. Gate live consumindo contadores M2: `core/model2/live_service.py`.
+3. Testes de aceite do gate e idempotencia: `tests/test_model2_live_execution.py`.
+
+### TAREFA M2-012.2 - Configuracao explicita de ativacao
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Expor `M2_EXECUTION_MODE=shadow|live`. [OK]
+2. Expor `M2_LIVE_SYMBOLS`, `M2_MAX_DAILY_ENTRIES` e `M2_MAX_MARGIN_PER_POSITION_USD`. [OK]
+3. Expor idade maxima de sinal e cooldown por simbolo para operacao progressiva. [OK]
+
+Evidencias:
+
+1. Configuracoes do ambiente: `config/settings.py`.
+2. Exemplo de ambiente: `.env.example`.
+3. Runners consumindo configuracao: `scripts/model2/live_execute.py` e `scripts/model2/live_reconcile.py`.
+
+### TAREFA M2-012.3 - Exclusividade por simbolo
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Garantir no maximo uma execucao ativa live por simbolo. [OK]
+2. Bloquear quando existir posicao aberta no ativo. [OK]
+3. Persistir motivo do bloqueio em `signal_executions.gate_reason`. [OK]
+
+Evidencias:
+
+1. Regra de bloqueio por simbolo: `core/model2/live_execution.py`.
+2. Consultas de exclusividade no repositorio: `core/model2/repository.py`.
+3. Testes de gate/blocking: `tests/test_model2_live_execution.py`.
+
+## INICIATIVA M2-013 - Documentacao canonica da Fase 2
+
+### TAREFA M2-013.1 - Sincronizar arquitetura, modelagem e regras de negocio
+
+Status: CONCLUIDA (2026-03-09)
+Entrega:
+
+1. Atualizar backlog, arquitetura alvo, modelagem de dados e regras de negocio. [OK]
+2. Atualizar ADRs, diagramas e runbook operacional. [OK]
+3. Atualizar README operacional dos scripts do M2. [OK]
+
+Evidencias:
+
+1. Backlog canonico: `docs/BACKLOG.md`.
+2. Arquitetura alvo: `docs/ARQUITETURA_ALVO.md`.
+3. Regras de negocio: `docs/REGRAS_DE_NEGOCIO.md`.
+4. Modelagem de dados: `docs/MODELAGEM_DE_DADOS.md`.
+5. ADRs e diagramas: `docs/ADRS.md` e `docs/DIAGRAMAS.md`.
+6. Runbook e comandos: `docs/RUNBOOK_M2_OPERACAO.md` e `scripts/model2/README.md`.
+7. Suite de sincronismo documental: `tests/test_docs_model2_sync.py`.
 
 ## Criterios de pronto para a Fase 1
 
@@ -222,3 +576,24 @@ Status: A FAZER
 2. Toda tese termina em estado final.
 3. Toda transicao gera evento auditavel.
 4. Nenhuma ordem real e enviada na Fase 1.
+
+## Criterios de pronto para a Fase 2
+
+1. `technical_signal` em `CONSUMED` pode virar no maximo uma execucao em `signal_executions`.
+2. O fluxo live oficial suporta `READY -> ENTRY_SENT -> ENTRY_FILLED -> PROTECTED -> EXITED`.
+3. Falha ao armar protecao fecha a posicao e termina em `FAILED`.
+4. Reconciliacao recupera fills pendentes e detecta fechamento manual/externo.
+5. Dashboard live publica backlog, falhas, latencias e posicoes sem protecao.
+6. Healthcheck live alerta quando existir dashboard stale ou risco acima do threshold.
+7. O caminho critico live nao depende de `export_signals -> trade_signals`.
+
+## Go-live checklist da Fase 2
+
+1. Executar python scripts/model2/migrate.py up no banco operacional.
+2. Validar M2_EXECUTION_MODE=shadow com whitelist restrita.
+3. Definir M2_LIVE_SYMBOLS explicitamente para o subset inicial.
+4. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD, M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
+5. Validar python scripts/model2/live_execute.py em shadow.
+6. Validar python scripts/model2/live_reconcile.py sem divergencias.
+7. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
+8. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.

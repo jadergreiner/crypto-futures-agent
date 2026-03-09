@@ -19,6 +19,19 @@ Ela deve:
 2. Registrar tese com niveis claros.
 3. Monitorar a tese ate um desfecho.
 
+## Escopo da Fase 2
+
+Esta fase adiciona execucao real nativa ao M2.
+
+Ela deve:
+
+1. Consumir apenas `technical_signals` ja admitidos em `CONSUMED`.
+2. Criar ciclo de vida dedicado em `signal_executions`.
+3. Enviar apenas entrada `MARKET` na V1 live.
+4. Proteger toda posicao com `STOP_MARKET` e `TAKE_PROFIT_MARKET`.
+5. Reconciliar continuamente ordens, protecoes e saidas.
+6. Manter o adaptador legado fora do caminho critico do live.
+
 ## Conceitos de negocio
 
 ## Oportunidade
@@ -253,3 +266,219 @@ Implementacao de referencia: `scripts/model2/reprocess.py`.
 1. Menos sinais impulsivos.
 2. Mais clareza no motivo da operacao.
 3. Melhor governanca para evolucao do modelo.
+
+## Regra da ponte de sinal (M2-006.1)
+
+Implementacao de referencia: `core/model2/signal_bridge.py`,
+`core/model2/repository.py` e `scripts/model2/bridge.py`.
+
+RN-M2-006.1:
+
+1. Toda tese em `VALIDADA` pode gerar no maximo um sinal padrao idempotente.
+2. Estados nao elegiveis devem ser rejeitados sem persistencia de sinal.
+3. O sinal deve ser persistido em `technical_signals` no banco canonico M2.
+4. Campos minimos obrigatorios do sinal:
+   - `opportunity_id`, `symbol`, `timeframe`, `signal_side`
+   - `entry_type`, `entry_price`, `stop_loss`, `take_profit`
+   - `signal_timestamp`, `status`, `rule_id`, `payload_json`
+5. Regra canonica auditada: `rule_id = M2-006.1-RULE-STANDARD-SIGNAL`.
+6. Status inicial do sinal gerado: `CREATED`.
+
+## Regra de consumo na camada de ordem (M2-007.1)
+
+Implementacao de referencia: `core/model2/order_layer.py`,
+`core/model2/repository.py` e `scripts/model2/order_layer.py`.
+
+1. A camada de ordem deve consumir apenas sinais em `technical_signals.status = CREATED`.
+2. A camada de ordem deve registrar decisao deterministica sem enviar ordem real na Fase 1.
+3. Decisoes validas devem transicionar o sinal para `CONSUMED`.
+4. Decisoes bloqueadas devem transicionar o sinal para `CANCELLED`.
+5. Reprocessamento do mesmo sinal deve ser idempotente:
+   - `CONSUMED` permanece `CONSUMED`.
+   - `CANCELLED` permanece `CANCELLED`.
+6. Regra canonica auditada: `rule_id = M2-007.1-RULE-ORDER-LAYER-CONSUMER`.
+
+## Regra do adaptador para legado (M2-007.2)
+
+Implementacao de referencia: `core/model2/signal_adapter.py`,
+`core/model2/repository.py` e `scripts/model2/export_signals.py`.
+
+1. O adaptador deve consumir apenas sinais em `technical_signals.status = CONSUMED`.
+2. O adaptador deve gerar payload legado em `trade_signals` com
+   `execution_mode = PENDING`.
+3. O adaptador nao deve enviar ordem real na Fase 1.
+4. O adaptador deve registrar idempotencia por origem (`m2_technical_signal_id`)
+   no `confluence_details` do legado.
+5. O adaptador deve marcar exportacao no `payload_json` de `technical_signals`
+   para evitar duplicidade.
+6. Regra canonica auditada: `rule_id = M2-007.2-RULE-TECHNICAL-TO-TRADE-SIGNAL`.
+
+## Regra de observabilidade do fluxo de sinais (M2-007.3)
+
+Implementacao de referencia: `core/model2/observability.py` e
+`scripts/model2/export_dashboard.py`.
+
+1. O snapshot deve publicar contagens por etapa:
+   - `created_count`
+   - `consumed_count`
+   - `cancelled_count`
+   - `exported_count`
+2. O snapshot deve publicar taxa de exportacao:
+   - `export_rate = exported_count / consumed_count` (quando `consumed_count > 0`).
+3. O snapshot deve publicar erro de exportacao:
+   - `export_error_count` a partir da trilha `payload_json.adapter_export_trade_signals.last_error`.
+4. O snapshot deve publicar latencias medias:
+   - `avg_created_to_consumed_ms`
+   - `avg_consumed_to_exported_ms`
+   - `avg_created_to_exported_ms`
+5. Retencao obrigatoria dos snapshots: 30 dias.
+
+## Regra do ciclo de vida de execucao real (M2-009.1)
+
+Implementacao de referencia: `core/model2/live_execution.py`,
+`core/model2/repository.py` e `scripts/model2/migrations/0006_create_signal_executions.sql`.
+
+1. `technical_signals.status` continua sendo apenas trilha de admissao:
+   - `CREATED -> CONSUMED`
+   - `CREATED -> CANCELLED`
+2. O ciclo real da ordem deve existir em entidade separada `signal_executions`.
+3. Estados oficiais de `signal_executions`:
+   - `READY`
+   - `BLOCKED`
+   - `ENTRY_SENT`
+   - `ENTRY_FILLED`
+   - `PROTECTED`
+   - `EXITED`
+   - `FAILED`
+   - `CANCELLED`
+4. Matriz oficial de transicao:
+   - `NULL -> READY|BLOCKED`
+   - `READY -> ENTRY_SENT|FAILED|CANCELLED`
+   - `ENTRY_SENT -> ENTRY_FILLED|FAILED|CANCELLED`
+   - `ENTRY_FILLED -> PROTECTED|EXITED|FAILED`
+   - `PROTECTED -> EXITED|FAILED`
+5. Cada transicao do ciclo live deve gerar evento em `signal_execution_events`.
+6. Um `technical_signal_id` pode existir no maximo uma vez em `signal_executions`.
+
+## Regra do gate live (M2-009.2)
+
+Implementacao de referencia: `core/model2/live_execution.py`,
+`core/model2/live_service.py` e `scripts/model2/live_execute.py`.
+
+1. O gate deve avaliar apenas sinais em `technical_signals.status = CONSUMED`.
+2. O gate deve bloquear quando qualquer condicao ocorrer:
+   - simbolo fora da whitelist live
+   - simbolo fora da whitelist autorizada
+   - saldo indisponivel/insuficiente
+   - limite diario atingido
+   - cooldown ativo por simbolo
+   - execucao ativa ja existente para o simbolo
+   - posicao aberta ja existente na exchange
+   - sinal expirado
+3. O resultado do gate deve ser persistido como:
+   - `READY` quando elegivel
+   - `BLOCKED` quando inelegivel
+4. O motivo do gate deve ser persistido em `signal_executions.gate_reason`
+   e na trilha `payload_json.gate`.
+
+## Regra do executor de entrada MARKET (M2-009.3)
+
+Implementacao de referencia: `core/model2/live_service.py` e
+`scripts/model2/live_execute.py`.
+
+1. A V1 live suporta apenas `entry_order_type = MARKET`.
+2. Ao enviar a entrada, o sistema deve registrar:
+   - `exchange_order_id`
+   - `client_order_id`
+   - `requested_qty`
+3. Quando houver fill confirmado, o sistema deve registrar:
+   - `filled_qty`
+   - `filled_price`
+   - `entry_filled_at`
+4. Reprocessar o mesmo `technical_signal` nao pode abrir ordem duplicada.
+
+## Regra de fail-safe de protecao (M2-009.4)
+
+Implementacao de referencia: `core/model2/live_service.py`.
+
+1. Toda execucao `ENTRY_FILLED` deve tentar armar:
+   - `STOP_MARKET`
+   - `TAKE_PROFIT_MARKET`
+2. A posicao so e considerada saudavel quando `signal_executions.status = PROTECTED`.
+3. Se a protecao nao ficar armada, o agente deve:
+   - fechar a posicao a mercado
+   - registrar incidente
+   - terminar em `FAILED`
+
+## Regra de reconciliacao live (M2-010.1)
+
+Implementacao de referencia: `core/model2/live_service.py` e
+`scripts/model2/live_reconcile.py`.
+
+1. O reconciliador deve operar sobre execucoes em:
+   - `READY`
+   - `ENTRY_SENT`
+   - `ENTRY_FILLED`
+   - `PROTECTED`
+2. Se existir posicao aberta para uma execucao `READY|ENTRY_SENT`, o sistema deve
+   recuperar o fill e seguir para protecao.
+3. Se uma execucao `PROTECTED` perder a posicao na exchange, ela deve terminar em `EXITED`.
+4. Se uma execucao `PROTECTED` perder SL/TP, o reconciliador deve tentar rearmar a protecao.
+5. A reconciliacao deve ser restart-safe e idempotente.
+
+## Regra de observabilidade live (M2-010.2)
+
+Implementacao de referencia: `core/model2/observability.py` e
+`scripts/model2/live_dashboard.py`.
+
+1. O dashboard live deve materializar snapshot em `signal_execution_snapshots`.
+2. O snapshot deve publicar backlog por status:
+   - `ready_count`
+   - `blocked_count`
+   - `entry_sent_count`
+   - `entry_filled_count`
+   - `protected_count`
+   - `exited_count`
+   - `failed_count`
+   - `cancelled_count`
+3. O snapshot deve publicar riscos operacionais:
+   - `unprotected_filled_count`
+   - `stale_entry_sent_count`
+   - `open_position_mismatches_count`
+4. O snapshot deve publicar latencias medias:
+   - `avg_signal_to_entry_sent_ms`
+   - `avg_entry_sent_to_filled_ms`
+   - `avg_filled_to_protected_ms`
+5. Retencao obrigatoria dos snapshots: 30 dias.
+
+## Regra de healthcheck live (M2-010.3)
+
+Implementacao de referencia: `scripts/model2/healthcheck_live_execution.py`.
+
+1. O healthcheck deve validar a recencia do ultimo `model2_live_dashboard_*.json`.
+2. O healthcheck deve alertar quando exceder thresholds de:
+   - `unprotected_filled_count`
+   - `stale_entry_sent_count`
+   - `open_position_mismatches_count`
+3. O healthcheck deve retornar exit code operacional:
+   - `0` para `status=ok`
+   - `1` para `status=alert`
+
+## Regra de hardening de risco (M2-012)
+
+Implementacao de referencia: `config/settings.py`,
+`core/model2/repository.py` e `core/model2/live_service.py`.
+
+1. Configuracoes obrigatorias da Fase 2:
+   - `M2_EXECUTION_MODE=shadow|live`
+   - `M2_LIVE_SYMBOLS`
+   - `M2_MAX_DAILY_ENTRIES`
+   - `M2_MAX_MARGIN_PER_POSITION_USD`
+   - `M2_MAX_SIGNAL_AGE_MINUTES`
+   - `M2_SYMBOL_COOLDOWN_MINUTES`
+2. O limite diario e o cooldown devem ser apurados no banco canonico M2.
+3. Deve existir no maximo uma execucao live ativa por simbolo.
+4. O rollout operacional deve seguir a sequencia:
+   - `shadow`
+   - `live` com subset de simbolos
+   - ampliacao progressiva da whitelist

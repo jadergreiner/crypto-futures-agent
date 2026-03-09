@@ -99,7 +99,7 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
     payload = json.loads(result.stdout)
 
     assert payload["status"] == "ok"
-    assert payload["applied_now"] == [1, 2, 3]
+    assert payload["applied_now"] == [1, 2, 3, 4, 5, 6, 7]
     assert db_path.exists()
 
     with sqlite3.connect(db_path) as conn:
@@ -114,6 +114,11 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "opportunity_events" in tables
         assert "opportunity_dashboard_snapshots" in tables
         assert "opportunity_audit_snapshots" in tables
+        assert "technical_signals" in tables
+        assert "signal_flow_snapshots" in tables
+        assert "signal_executions" in tables
+        assert "signal_execution_events" in tables
+        assert "signal_execution_snapshots" in tables
 
         opportunities_indexes = {
             row[1] for row in conn.execute("PRAGMA index_list(opportunities)").fetchall()
@@ -142,6 +147,41 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "idx_audit_snapshot_ts" in audit_indexes
         assert "idx_audit_snapshot_opportunity" in audit_indexes
 
+        signals_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(technical_signals)").fetchall()
+        }
+        assert "sqlite_autoindex_technical_signals_1" in signals_indexes
+        assert "idx_technical_signals_status" in signals_indexes
+        assert "idx_technical_signals_symbol_timeframe" in signals_indexes
+        assert "idx_technical_signals_timestamp" in signals_indexes
+
+        signal_flow_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(signal_flow_snapshots)").fetchall()
+        }
+        assert "idx_signal_flow_snapshots_run" in signal_flow_indexes
+        assert "idx_signal_flow_snapshots_ts" in signal_flow_indexes
+
+        signal_execution_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(signal_executions)").fetchall()
+        }
+        assert "sqlite_autoindex_signal_executions_1" in signal_execution_indexes
+        assert "idx_signal_executions_status" in signal_execution_indexes
+        assert "idx_signal_executions_symbol_status" in signal_execution_indexes
+        assert "idx_signal_executions_updated_at" in signal_execution_indexes
+        assert "idx_signal_executions_mode_status" in signal_execution_indexes
+
+        signal_execution_event_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(signal_execution_events)").fetchall()
+        }
+        assert "idx_signal_execution_events_execution_ts" in signal_execution_event_indexes
+        assert "idx_signal_execution_events_type" in signal_execution_event_indexes
+
+        signal_execution_snapshot_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(signal_execution_snapshots)").fetchall()
+        }
+        assert "idx_signal_execution_snapshots_run" in signal_execution_snapshot_indexes
+        assert "idx_signal_execution_snapshots_ts" in signal_execution_snapshot_indexes
+
     run_files = list(output_dir.glob("model2_migrate_*.json"))
     assert len(run_files) == 1
 
@@ -153,13 +193,13 @@ def test_migration_is_idempotent(tmp_path: Path) -> None:
     first = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
     second = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
 
-    assert first["applied_now"] == [1, 2, 3]
+    assert first["applied_now"] == [1, 2, 3, 4, 5, 6, 7]
     assert second["applied_now"] == []
-    assert second["total_applied"] == 3
+    assert second["total_applied"] == 7
 
     with sqlite3.connect(db_path) as conn:
         row_count = conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
-        assert row_count == 3
+        assert row_count == 7
 
 
 def test_constraints_reject_invalid_values(tmp_path: Path) -> None:

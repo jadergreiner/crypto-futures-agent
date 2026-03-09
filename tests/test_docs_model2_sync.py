@@ -60,3 +60,71 @@ def test_concluded_backlog_tasks_have_existing_evidence_paths() -> None:
             assert absolute.exists(), (
                 f"Evidence path does not exist for task '{task_name}': {normalized}"
             )
+
+
+def test_m2_006_subtasks_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-006 - Ponte de Sinal" in text
+    assert "M2-006.1.1" in text
+    assert "M2-006.1.2" in text
+    assert "M2-006.1.3" in text
+    assert "M2-006.1.4" in text
+
+
+def test_m2_007_adapter_task_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-007 - Integracao com execucao" in text
+    assert "TAREFA M2-007.2 - Adaptar technical_signals para trade_signals legado" in text
+
+
+def test_m2_007_observability_task_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "TAREFA M2-007.3 - Observabilidade do fluxo de sinais" in text
+
+
+def test_m2_008_daily_pipeline_task_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-008 - Orquestracao operacional" in text
+    assert "TAREFA M2-008.1 - Orquestrar pipeline diario ponta a ponta" in text
+
+
+def test_m2_008_scheduled_execution_task_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "TAREFA M2-008.2 - Operacionalizar execucao agendada" in text
+
+
+def test_m2_008_operational_hardening_task_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "TAREFA M2-008.3 - Hardening operacional (monitoramento e alertas)" in text
+
+
+def test_m2_009_live_execution_tasks_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-009 - Execucao real nativa" in text
+    assert "TAREFA M2-009.1 - Modelar ciclo de vida de execucao" in text
+    assert "TAREFA M2-009.2 - Gate live do M2" in text
+    assert "TAREFA M2-009.3 - Executor de entrada MARKET" in text
+    assert "TAREFA M2-009.4 - Fail-safe de protecao" in text
+
+
+def test_m2_010_live_reconcile_tasks_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-010 - Reconciliacao e observabilidade live" in text
+    assert "TAREFA M2-010.1 - Reconciliador de ordens e posicoes" in text
+    assert "TAREFA M2-010.2 - Dashboard live" in text
+    assert "TAREFA M2-010.3 - Healthcheck e runbook" in text
+
+
+def test_m2_011_m2_013_phase2_delivery_tracks_declared_in_backlog() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "INICIATIVA M2-011 - Orquestracao operacional live" in text
+    assert "TAREFA M2-011.1 - Runner live_execute" in text
+    assert "TAREFA M2-011.2 - Runner live_reconcile" in text
+    assert "TAREFA M2-011.3 - Runner live_cycle" in text
+    assert "INICIATIVA M2-012 - Hardening de risco" in text
+    assert "TAREFA M2-012.1 - Contadores persistidos no M2" in text
+    assert "TAREFA M2-012.2 - Configuracao explicita de ativacao" in text
+    assert "TAREFA M2-012.3 - Exclusividade por simbolo" in text
+    assert "INICIATIVA M2-013 - Documentacao canonica da Fase 2" in text
+    assert "Criterios de pronto para a Fase 2" in text
+    assert "Go-live checklist da Fase 2" in text
