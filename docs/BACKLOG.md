@@ -683,7 +683,7 @@ Evidencias:
 
 ### TAREFA M2-016.2 - Validacao shadow/live com RL enhancement
 
-Status: PENDENTE (apos M2-016.1)
+Status: EM_PROGRESSO (iniciada 2026-03-14 11:51 UTC)
 
 Entrega esperada:
 
