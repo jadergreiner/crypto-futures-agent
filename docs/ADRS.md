@@ -262,3 +262,46 @@ com duas opcoes:
 **Consequencia:**
 Padroniza a operacao, reduz erro humano de comando manual e garante que o
 fluxo live receba sinais atualizados antes de cada tentativa de execucao.
+
+## ADR-021 - Coleta por ciclo com deduplicacao de candles
+
+**Status:** ACEITO
+
+**Decisao:**
+No fluxo operacional Windows (`iniciar.bat`, opcao `2`), executar `sync_market_context`
+antes do pipeline de decisao em dois timeframes por ciclo:
+
+1. `H4` (janela curta de atualizacao)
+2. `M5` (granularidade intraday para contexto operacional)
+
+Regras associadas:
+
+1. A coleta de contexto roda para todo o universo canonico `M2_SYMBOLS`.
+2. `M2_SYMBOLS` e derivado de `M2_LIVE_SYMBOLS` no `.env` (fallback: `config.symbols.ALL_SYMBOLS`).
+3. O sync deve deduplicar candles por chave natural (`symbol`, `timestamp`) antes de persistir.
+
+**Consequencia:**
+
+1. Cada ciclo parte de dados de mercado atualizados, reduzindo sinal sobre base defasada.
+2. A persistencia permanece idempotente, sem duplicar o mesmo candle.
+3. Unifica coleta, pipeline e live no mesmo escopo operacional (`M2_SYMBOLS`).
+
+## ADR-022 - Pipeline de RL com coleta de episodios por ciclo
+
+**Status:** ACEITO
+
+**Decisao:**
+Integrar modelo PPO treinado via episodios coletados automaticamente a cada ciclo do pipeline:
+
+1. Cada ciclo coleta eventos de contexto, oportunidade e resultado em `training_episodes`.
+2. Episodios sao agregados por ciclo (`cycle_run_id`) e persistidos em Sqlite.
+3. Treinamento incremental roda off-pipeline (semanal) via `train_ppo_incremental.py`.
+4. Modelo PPO e consumido on-demand por `rl_signal_generation.py` como etapa 9 do pipeline.
+5. Fallback deterministica com confidence 0.70 quando modelo indisponivel.
+
+**Consequencia:**
+
+1. Cada ciclo contribui dados para melhorar o modelo ML progressivamente.
+2. Pipeline nao e bloqueada por convergencia de treinamento (offline).
+3. RL enhancement e aplicativo apenas quando modelo passar limiares de qualidade (Sharpe > 0.5).
+4. Auditoria completa de episodios permite replay e diagnostico de producao.

@@ -35,6 +35,29 @@ flowchart LR
     I --> U[(signal_flow_snapshots)]
 ```
 
+## 1b) Fluxo de Treinamento e RL (M2-015.3)
+
+Execução semanal, fora do caminho crítico do pipeline diário:
+
+```mermaid
+flowchart LR
+    A[(training_episodes)] -->|Episodios por ciclo| B[Agregar dataset semanal]
+    B -->|547+ episodios| C[train_ppo_incremental.py]
+    C -->|Sharpe > 0.5| D[(ppo_model.pkl)]
+    D -->|Checkpoint| E[rl_signal_generation.py]
+    E -->|RL confidence| F[(technical_signals)]
+    F -->|Etapa 9| G[Pipeline diario]
+    G -->|Novo ciclo| A
+    C -->|Sharpe < 0.5| H[Fallback deterministica]
+    H -->|Regressar confidence 0.70| F
+```
+
+**Notas:**
+- Coleta de episodios é automática em cada ciclo do `daily_pipeline.py`
+- Treinamento PPO roda off-pipeline (semanal)
+- RL enhancement só ativa se modelo passar limiares de qualidade
+- Auditoria completa de qual modelo foi usado (deterministica vs RL)
+
 ## 2) Diagrama de classes
 
 ```mermaid
@@ -170,3 +193,25 @@ flowchart TD
     E -->|Nao| G[timeout M2_LOOP_SECONDS]
     G --> B
 ```
+
+## 7) Loop operacional unificado (Windows) - estado atual
+
+Entry point local: `iniciar.bat` (opcao `2`).
+
+```mermaid
+flowchart TD
+    A[iniciar.bat opcao 2] --> B[sync_market_context H4 M2_SYMBOLS]
+    B --> C[sync_market_context M5 M2_SYMBOLS]
+    C --> D[daily_pipeline H4 M2_SYMBOLS]
+    D --> E[live_cycle H4 M2_SYMBOLS]
+    E --> F[persist_training_episodes H4]
+    F --> G[healthcheck_live_execution]
+    G --> H{M2_RUN_ONCE=1?}
+    H -->|Sim| I[Fim]
+    H -->|Nao| J[timeout M2_LOOP_SECONDS]
+    J --> B
+```
+
+Regra de deduplicacao:
+
+1. `sync_market_context` nao persiste candle repetido com mesmo `symbol+timestamp`.

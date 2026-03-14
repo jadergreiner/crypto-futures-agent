@@ -609,6 +609,24 @@ Evidencias:
 3. Orquestrador do ciclo live: `scripts/model2/live_cycle.py`.
 4. Healthcheck live: `scripts/model2/healthcheck_live_execution.py`.
 5. Regras operacionais atualizadas: `docs/REGRAS_DE_NEGOCIO.md`.
+
+### TAREFA M2-015.2 - Coleta por ciclo e deduplicacao de candles
+
+Status: CONCLUIDA (2026-03-14)
+Entrega:
+
+1. Coleta `H4` e `M5` por ciclo no fluxo `iniciar.bat` opcao `2`. [OK]
+2. Coleta aplicada para todo `M2_SYMBOLS` (derivado de `M2_LIVE_SYMBOLS`, com fallback para `ALL_SYMBOLS`). [OK]
+3. Deduplicacao de candles por (`symbol`, `timestamp`) no sync de contexto. [OK]
+4. Persistencia de episodios por ciclo para treino em JSONL e banco M2. [OK]
+
+Evidencias:
+
+1. Runner de coleta: `scripts/model2/sync_market_context.py`.
+2. Runner de episodios: `scripts/model2/persist_training_episodes.py`.
+3. Entry point atualizado: `iniciar.bat`.
+4. Persistencia M5 no banco de mercado: `data/database.py` (`ohlcv_m5`).
+
 ## Criterios de pronto para a Fase 1
 
 1. Oportunidade nasce sempre com tese completa.
@@ -631,13 +649,63 @@ Evidencias:
 1. Confirmar o banco operacional configurado (`MODEL2_DB_PATH`) e validar permissao de escrita no path resolvido.
 2. Se necessario, corrigir permissao de escrita da pasta `db/` antes do go-live (ex.: ACL no Windows).
 3. Executar python scripts/model2/migrate.py up no banco operacional.
-4. Validar M2_EXECUTION_MODE=shadow com whitelist restrita.
-5. Definir M2_LIVE_SYMBOLS explicitamente para o subset inicial.
+4. Validar M2_EXECUTION_MODE=shadow com `M2_SYMBOLS` restrito.
+5. Definir `M2_LIVE_SYMBOLS` explicitamente para estabelecer `M2_SYMBOLS` inicial.
 6. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD, M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
 7. Validar python scripts/model2/live_execute.py em shadow.
 8. Validar python scripts/model2/live_reconcile.py sem divergencias.
 9. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
 10. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.
+
+---
+
+## INICIATIVA M2-016 - Continuidade e Melhorias Pós-Backlog
+
+### TAREFA M2-016.1 - Treino e convergencia progressiva do modelo PPO
+
+Status: EM PROGRESSO (desempilhamento manual)
+
+Entrega esperada:
+
+1. Executar `train_ppo_incremental.py --timesteps 500000` para modelo inicial.
+2. Atingir convergencia com Sharpe > 1.0 no dia 3.
+3. Validar taxa de sinais com RL enhancement >= 60%.
+4. Documenter learnings de hiperparametros e features.
+
+Evidencias:
+
+1. Checkpoint PPO salvo: `checkpoints/ppo_training/ppo_model.pkl`.
+2. Metricas de treinamento em `results/model2/training_metrics_*.json`.
+3. Comparacao deterministica vs RL em `results/model2/signal_enhancement_report_*.json`.
+4. Atualizacao de `docs/RL_SIGNAL_GENERATION.md` com dados empíricos.
+
+### TAREFA M2-016.2 - Validacao shadow/live com RL enhancement
+
+Status: PENDENTE (apos M2-016.1)
+
+Entrega esperada:
+
+1. 72h em shadow com RL ativo (deterministica fallback desativada).
+2. Comparacao de desempenho vs baseline deterministico.
+3. Documentacao de incidentes, edge cases e respostas operacionais.
+
+Evidencias:
+
+1. Dashboard live com metricas: `results/model2/signal_execution_snapshots_*.json`.
+2. Analise de divergencia entre RL prediction vs resultado real.
+3. Atualizacao do runbook com playbooks de RL-specific incidents.
+
+### TAREFA M2-016.3 - Melhorias de features e reward engineering
+
+Status: BACKLOG (iterativa pós-go-live)
+
+Candidata a explorar:
+
+1. Validar dados historicos de episodios: acuracia de labels vs outcomes reais.
+2. Enriquecer features com onchain data, funding rates, open interest.
+3. Ajustar reward function para incluir Sharpe, drawdown e recovery time.
+4. Fine-tune de hiperparametros PPO (learning rate, batch size, entropy coefficiient).
+5. Experimentar arquitetura alternativa (PPO com LSTM para memoria de estado).
 
 
 

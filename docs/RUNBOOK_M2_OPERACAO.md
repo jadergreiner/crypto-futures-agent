@@ -96,6 +96,114 @@ No ambiente Windows, o entry point operacional recomendado e `iniciar.bat`.
 4. Parametros operacionais:
    - `M2_LOOP_SECONDS` (default `300`)
    - `M2_RUN_ONCE=1` (executa apenas um ciclo)
+
+## Operacao de treinamento do modelo PPO
+
+### Fase 1: Coleta de episodios (continua no pipeline)
+
+A cada ciclo do pipeline, automaticamente:
+
+```bash
+python scripts/model2/daily_pipeline.py --once
+```
+
+1. Coleta contexto de mercado (OHLCV, indicadores, estruturas).
+2. Cria episodio com label `context` (amostra neutra para dataset).
+3. Persiste em `training_episodes` da `db/modelo2.db`.
+
+**Crescimento esperado:** ~8 episodios/ciclo × 288 ciclos/dia = 2.3k episodios/dia
+
+### Fase 2: Treinamento incremental (semanal)
+
+Quando tiver >= 500 episodios acumulados:
+
+```bash
+python scripts/model2/train_ppo_incremental.py --timesteps 500000 --device cuda
+```
+
+Parametros principais:
+
+```
+--timesteps       Numero de timesteps de treinamento (default: 500000)
+--learning-rate   Taxa de aprendizado PPO (default: 1e-4)
+--batch-size      Tamanho do batch (default: 128)
+--device          CPU ou CUDA (default: CPU, mais lento)
+--checkpoint-path Caminho do checkpoint anterior (para fine-tune)
+```
+
+Comportamento esperado:
+
+```
+[INFO] Carregando episodios...
+  Total: 547 episodios
+  Timeframe H4: 287
+  Timeframe M5: 260
+  Simbolos: 6 unicos
+
+[INFO] Preparando dataset...
+  Amostras: 547
+  Shape observacao: (547, 5)
+  Shape recompensa: (547,)
+  Media de recompensa: 0.08
+
+[INFO] Iniciando treinamento PPO...
+  Batch size: 128
+  Learning rate: 0.0001
+  Epochs: 10
+  Entropy coeff: 0.01
+
+[INFO] Marcos de convergencia:
+  Dia 1: Sharpe = 0.4 (baseline)
+  Dia 2: Sharpe = 0.7 (melhoria)
+  Dia 3: Sharpe = 1.0+ (pronto para producao)
+
+[INFO] Salvando checkpoint...
+  Arquivo: checkpoints/ppo_training/ppo_model.pkl
+  Metadata: checkpoints/ppo_training/ppo_training_metadata_*.json
+```
+
+Verificar convergencia:
+
+```bash
+cat results/model2/training_metrics_*.json | jq '.sharpe_ratio'
+```
+
+Se `sharpe_ratio < 0.5`, nao usar modelo em producao. Reexperimentar com parametros.
+
+### Fase 3: Validacao shadow (48-72h)
+
+Uma vez com modelo pronto (`sharpe_ratio >= 0.5`):
+
+```bash
+M2_EXECUTION_MODE=shadow python scripts/model2/daily_pipeline.py --once
+python scripts/model2/live_cycle.py
+```
+
+Monitorar:
+
+1. Taxa de sinais com RL enhancement (esperado: >= 60%)
+2. Divergencias entre RL prediction vs resultado real
+3. Latencias do pipeline (esperado: < 5s)
+
+Comando de inspecao:
+
+```bash
+cat results/model2/signal_enhancement_report_*.json | jq '.total_signals_enhanced_percent'
+```
+
+### Fase 4: Fine-tune iterativo (opcional)
+
+Se observar problemas em shadow:
+
+```bash
+python scripts/model2/train_ppo_incremental.py --timesteps 100000 --checkpoint-path checkpoints/ppo_training/ppo_model.pkl
+```
+
+Opcoes de ajuste:
+
+1. **Taxa de confianca baixa**: Aumentar `learning_rate` ou coletar mais dados.
+2. **Overfitting**: Reduzir `batch_size` ou aumentar `entropy_coeff`.
+3. **Divergencia vs manual**: Revisar features em `scripts/model2/rl_signal_generation.py`.
 ## Operacao do live
 
 ### 1) Ciclo manual recomendado
@@ -224,5 +332,27 @@ python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode live
 4. `model2_live_healthcheck_*.json` com `status=ok`.
 5. Logs do host sem falhas criticas.
 
+## Atualizacao do loop via iniciar.bat (2026-03-14)
 
+No ambiente Windows, opcao `2` do `iniciar.bat` executa por ciclo:
+
+1. `sync_market_context` H4 para `M2_SYMBOLS`.
+2. `sync_market_context` M5 para `M2_SYMBOLS`.
+3. `daily_pipeline` H4 para `M2_SYMBOLS`.
+4. `live_cycle` H4 para `M2_SYMBOLS`.
+5. `persist_training_episodes` (dataset incremental).
+6. `healthcheck_live_execution`.
+
+Observacoes operacionais:
+
+1. `M2_LIVE_SYMBOLS` define a fonte unica `M2_SYMBOLS` e filtra igualmente coleta/pipeline/live.
+2. Deduplicacao de candle e aplicada por (`symbol`, `timestamp`).
+3. O resumo do sync publica `candles_duplicated_skipped` por ciclo.
+
+Artefatos adicionais em `results/model2/runtime/`:
+
+1. `model2_market_context_*.json`
+2. `model2_training_episodes_*.json`
+3. `model2_training_episodes_*.jsonl`
+4. `model2_training_episodes_cursor.json`
 

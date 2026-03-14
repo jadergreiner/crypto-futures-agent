@@ -1,9 +1,12 @@
 # Arquitetura Alvo - Modelo 2.0
 
+**Status:** COMPLETA (14 MAR 2026)
+**Versao:** M2-015.3 (RL Signal Generation operacional)
+
 ## Visao geral
 
 O Modelo 2.0 separa a decisao em etapas simples,
-com responsabilidade clara por camada.
+com responsabilidade clara por camada. Fase 1 (deterministica) e Fase 2 (execucao nativa) estao operacionais.
 
 ## Banco de dados do M2 (contrato operacional)
 
@@ -177,3 +180,27 @@ Em ambiente Windows, a operacao local usa `iniciar.bat` como entry point unico.
 3. O intervalo do loop e configuravel por `M2_LOOP_SECONDS` (default `300`).
 4. `M2_RUN_ONCE=1` executa um unico ciclo para diagnostico operacional.
 
+## Atualizacao operacional 2026-03-14 (coleta por ciclo + episodios)
+
+No fluxo local Windows (`iniciar.bat`, opcao `2`), o ciclo operacional vigente e:
+
+1. `scripts/model2/sync_market_context.py --timeframe H4`
+2. `scripts/model2/sync_market_context.py --timeframe M5`
+3. `scripts/model2/daily_pipeline.py --timeframe H4`
+4. `scripts/model2/live_cycle.py --timeframe H4`
+5. `scripts/model2/persist_training_episodes.py --timeframe H4`
+6. `scripts/model2/healthcheck_live_execution.py`
+
+Regras arquiteturais:
+
+1. `sync_market_context` coleta para `M2_SYMBOLS`.
+2. `M2_SYMBOLS` governa coleta, pipeline e admissao/execucao live.
+3. `M2_LIVE_SYMBOLS` no `.env` define `M2_SYMBOLS` (com fallback para `ALL_SYMBOLS`).
+4. Duplicidade de candle e bloqueada por (`symbol`, `timestamp`) no sync.
+
+Novos artefatos operacionais em `results/model2/runtime/`:
+
+1. `model2_market_context_*.json`
+2. `model2_training_episodes_*.json`
+3. `model2_training_episodes_*.jsonl`
+4. `model2_training_episodes_cursor.json`

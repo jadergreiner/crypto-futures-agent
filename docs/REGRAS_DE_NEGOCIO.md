@@ -94,6 +94,16 @@ Toda mudanca de estado deve deixar trilha:
 2. O que mudou.
 3. Qual regra foi usada.
 
+### RN-006 - RL enhancement com fallback deterministica
+
+Quando um modelo PPO treinado estiver disponivel:
+
+1. Aplicar `rl_signal_generation.py` como etapa 9 do pipeline.
+2. Atribuir confidence score de RL ao sinal (range [0.0, 1.0]).
+3. So gerar sinal se RL confidence >= 0.50 (threshold minimo configurable).
+4. Regressar para confidence deterministica 0.70 se PPO indisponivel ou quando convergencia < 0.5.
+5. Registrar em auditoria qual modelo foi usado (deterministica vs RL) e versao.
+
 ## Estados oficiais e matriz de transicao (M2-001.3)
 
 Fonte canonica de codigo: `core/model2/thesis_state.py`.
@@ -482,6 +492,17 @@ Implementacao de referencia: `config/settings.py`,
    - `shadow`
    - `live` com subset de simbolos
    - ampliacao progressiva da whitelist
+
+## Fonte unica de verdade de simbolos (M2-012.1)
+
+Implementacao de referencia: `config/settings.py`, `scripts/model2/daily_pipeline.py`, `scripts/model2/sync_market_context.py` e `iniciar.bat`.
+
+1. A fonte canonica de simbolos operacionais do M2 e `M2_SYMBOLS` (em `config/settings.py`).
+2. `M2_SYMBOLS` e derivado de `M2_LIVE_SYMBOLS` no `.env` (prioridade maxima).
+3. Se `M2_LIVE_SYMBOLS` estiver vazio, o fallback e `config.symbols.ALL_SYMBOLS`.
+4. Todos os runners M2 devem usar o mesmo conjunto padrao quando `--symbol` nao for informado.
+5. Alteracoes em `M2_LIVE_SYMBOLS` devem refletir igualmente em coleta (`sync_market_context`), pipeline (`daily_pipeline`) e ciclo live (`live_cycle`).
+
 ## Estado operacional atual (2026-03-14)
 
 Implementacao operacional vigente no entrypoint Windows:
@@ -502,4 +523,41 @@ Implementacao operacional vigente no entrypoint Windows:
    configurada por `M2_LIVE_SYMBOLS`.
 6. Nao existir `processed_ready` em um ciclo live nao e erro operacional:
    significa ausencia de sinais elegiveis (`technical_signals` em `CONSUMED`).
+
+## Regra de coleta por ciclo (M2-015.2)
+
+Implementacao de referencia: `scripts/model2/sync_market_context.py` e `iniciar.bat`.
+
+1. No modo `2` do `iniciar.bat`, cada ciclo deve executar coleta de contexto em:
+   - `H4`
+   - `M5`
+2. A coleta deve cobrir o universo canonico `M2_SYMBOLS`.
+3. A coleta deve persistir candles em tabelas OHLCV correspondentes.
+4. A coleta deve registrar resumo por ciclo em `results/model2/runtime/model2_market_context_*.json`.
+
+## Regra de deduplicacao de candles (M2-015.2)
+
+1. E proibido persistir o mesmo candle duas vezes para o mesmo ativo/timeframe.
+2. A chave natural de deduplicacao e (`symbol`, `timestamp`).
+3. O sync deve descartar candles ja existentes antes da insercao.
+4. Resultado esperado no resumo do ciclo:
+   - `candles_persisted`
+   - `candles_duplicated_skipped`
+
+## Regra de escopo de simbolos (coleta x execucao)
+
+1. `M2_SYMBOLS` governa todo o escopo operacional do M2 (coleta, pipeline e live).
+2. `M2_LIVE_SYMBOLS` no `.env` e a forma de declarar/atualizar `M2_SYMBOLS`.
+3. `--symbol` nos scripts atua apenas como filtro ad-hoc do ciclo; sem `--symbol`, prevalece `M2_SYMBOLS`.
+
+## Regra de persistencia de episodios por ciclo
+
+Implementacao de referencia: `scripts/model2/persist_training_episodes.py`.
+
+1. Cada ciclo deve materializar episodios em JSONL para treino incremental.
+2. Cada ciclo deve persistir episodios em `training_episodes` no banco M2.
+3. A extracao incremental deve usar cursor de `updated_at` para evitar reprocessamento total.
+
+
+
 
