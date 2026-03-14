@@ -1,7 +1,7 @@
 # 🚀 Geração de Sinais com Suporte a RL — Model 2.0
 
 **Status:** OPERACIONAL (14 MAR 2026)
-**Versao:** M2-016.1
+**Versao:** M2-016.3 (Feature Enrichment + LSTM Prep)
 **Checkpoint:** PPO treinado 500k timesteps | Sharpe evaluation: IN PROGRESS
 
 ## 📊 Resultados de Treinamento (14 MAR 2026)
@@ -50,7 +50,99 @@ Final Training Stats:
 
 ## Visão Geral
 
-A pipeline de **Geração de Sinais com RL** integra um modelo PPO treinado com a detecção determinística de padrões SMC (Smart Money Concepts) para gerar sinais de trading com maior confiança.
+A pipeline de **Geração de Sinais com RL** integra um modelo PPO treinado com a
+detecção determinística de padrões SMC (Smart Money Concepts) para gerar sinais
+de trading com maior confiança.
+
+## Enriquecimento de Features com Dados de Mercado (Fases D.2-D.4)
+
+A partir de 14 MAR 2026, a pipeline integra dados de mercado externo para
+enriquecer episódios de treinamento:
+
+### Fase D.2: Coleta de Taxas de Financiamento (Operacional)
+
+Daemon coleta taxa de financiamento em tempo real pela API Binance:
+
+```bash
+python scripts/model2/daemon_funding_rates.py --symbols BTCUSDT,ETHUSDT
+```
+
+Dados coletados:
+- `latest_rate`: Taxa atual da posição perpetual
+- `avg_rate_24h`: Média móvel 24h (prediz reversão)
+- `sentiment`: Classificação (bullish/neutral/bearish)
+- `trend`: Dirção da mudança
+
+### Fase D.3: Integração em Episódios (Operacional)
+
+A pipeline enriquece cada episódio com features PR/OI:
+
+```json
+{
+  "episode_id": "EP-20260314-001",
+  "features_json": {
+    "fr_latest_rate": 0.000315,
+    "fr_sentiment": "bullish",
+    "oi_current": 1250000.5,
+    "oi_sentiment": "accumulating",
+    "...": "mais 15 features escalares"
+  }
+}
+```
+
+Estado esperado: >= 90% de episódios com features enriquecidas.
+
+### Fase D.4: Análise de Correlação (Operacional)
+
+Descoberta: sentimento de FR prediz resultado com r=0.27 (p=0.006, significante).
+
+Implicação operacional:
+```
+FR Bearish  → 0.00% win rate (SINAL FORTE DE PERDA)
+FR Neutral  → 37.14% win rate (baseline)
+FR Bullish  → 25.81% win rate (não melhor)
+```
+
+Recomendação: Rejeitar sinais quando `fr_sentiment = bearish`.
+
+Executar análise semanal:
+```bash
+python scripts/model2/phase_d4_correlation_analysis.py \
+  --db-path db/modelo2.db \
+  --output-dir results/model2/analysis/
+```
+
+### Fase E.1: Preparação de Ambiente LSTM (14 MAR)
+
+Novo `LSTMSignalEnvironment` envolve `SignalReplayEnv` com buffer temporal:
+
+```python
+from agent.lstm_environment import LSTMSignalEnvironment
+
+# Transforma state flat → sequential temporal
+lstm_env = LSTMSignalEnvironment(
+    env=original_env,
+    seq_len=10,  # Rolling window 10 timesteps
+    flatten_fallback=False  # Use LSTM output
+)
+
+# Reset retorna (10, 20) ao invés de (n_features,)
+obs, info = lstm_env.reset()
+assert obs.shape == (10, 20)  # 10 timesteps × 20 features
+```
+
+Features do LSTM env (20 escalares):
+- 5 candle: OHLCV
+- 4 volatilidade: ATR, Bollinger bands
+- 3 multi-TF: H1, H4, D1 closes
+- 4 funding rates: rate, avg, sentiment, trend
+- 3 open interest: OI, sentimento, direcao
+- 1 padding
+
+Roadmap E.2-E.4:
+- E.2 (3-4 dias): Politica LSTM (64U LSTM + 128D dense)
+- E.3 (4-5 dias): Treinamento PPO LSTM vs MLP (100+ eps, 2 signals)
+- E.4 (2-3 dias): Comparacao Sharpe (meta: +5% vs MLP)
 
 ### Arquitetura
 
@@ -66,7 +158,8 @@ A pipeline de **Geração de Sinais com RL** integra um modelo PPO treinado com 
 │  6. BRIDGE     → Converter oportunidades → sinais técnicos       │
 │  7. ORDER      → Aplicar lógica de risco                         │
 │  8. EXPORT     → Exportar sinais para trading                    │
-│  9. RL SIGNAL  ← 🆕 ENHANCEMENT com modelo PPO                  │
+│  9. RL SIGNAL  ← ENHANCEMENT com modelo PPO                      │
+│  10. ENRICH    ← 🆕 Enriquecer com FR/OI (D.2-D.3)               │
 └─────────────────────────────────────────────────────────────────┘
                            ↓
         ┌───────────────────────────────────────┐

@@ -1,7 +1,7 @@
 # Arquitetura Alvo - Modelo 2.0
 
 **Status:** COMPLETA (14 MAR 2026)
-**Versao:** M2-015.3 (RL Signal Generation operacional)
+**Versao:** M2-016.3 (RL Signal Generation + Feature Enrichment + LSTM Prep operacionais)
 
 ## Visao geral
 
@@ -120,6 +120,58 @@ Saida:
    `model2_daily_healthcheck_*.json`, `model2_live_execute_*.json`,
    `model2_live_reconcile_*.json`, `model2_live_dashboard_*.json`,
    `model2_live_healthcheck_*.json` e `model2_go_live_preflight_*.json`.
+
+## Camada transversal - Enriquecimento de Features e ML (M2-016 Fases D-E)
+
+Responsavel por enriquecer episodios de treinamento com dados de mercado externo
+(taxas de financiamento, interesse aberto) e preparar estado temporal para
+politicas LSTM.
+
+Fases e componentes:
+
+**Fase D.1 - D.3: Coleta e Integracao de Features**
+- Daemon de coleta (D.2): `scripts/model2/daemon_funding_rates.py` coleta taxa
+  de financiamento pela API Binance em tempo real.
+- Features de FR: `latest_rate`, `avg_rate_24h`, sentimento, tendencia.
+- Features de OI: interesse aberto normalizado, sentimento, direcao de mudanca.
+- Integracao em episodios (D.3): `agent/environment.py` enriquece
+  `training_episodes` com features de FR/OI durante coleta de teses.
+
+**Fase D.4: Analise de Correlacao**
+- Descobre correlacoes entre sentimento de FR e performance de RL.
+- Resultado: FR bearish prediz 0% win rate (sinal forte de perda).
+- FR sentiment weak but significant (Pearson r=0.27, p=0.006).
+- Saida: `phase_d4_correlation_analysis.py` gera JSON com recomendacoes
+  de ajuste de reward.
+
+**Fase E.1: Preparacao de Ambiente LSTM**
+- `agent/lstm_environment.py` envolve `SignalReplayEnv` com buffer
+  temporal (rolling window de 10 timesteps).
+- Extrai 20 features escalares: candles (5), volatilidade (4), multi-TF (3),
+  FR (4), OI (3), padding (1).
+- Modo dual: retorna (seq_len=10, n_features=20) para LSTM ou
+  (seq_len*n_features,)=(200,) para fallback MLP.
+- Sincronizacao com D.2/D.3: consome features de funding/OI enriquecidas
+  em episodios.
+
+Persistencia dedicada:
+
+1. `funding_rates_api` - Taxa de financiamento historica.
+2. Open interest em `training_episodes.oi_*` (sentimento, current, change).
+3. Features normalizadas em `training_episodes.features_json`.
+4. Analise de correlacao em `results/model2/analysis/phase_d4_correlation_*.json`.
+
+Proximas fases (Roadmap E.2-E.4):
+
+- E.2: Politica LSTM (64 units LSTM + 128 dense, 3-4 dias).
+- E.3: Treinamento PPO LSTM vs MLP baseline (4-5 dias).
+- E.4: Analise comparativa e recomendacao final (2-3 dias).
+
+Criterios de sucesso:
+
+- Sharpe ratio LSTM >= baseline MLP (idealmente +5%).
+- Todas 20 features sem NaN, normalizadas em [-1, 1].
+- Taxa de treino >= 500 episodes/dia.
 
 ## Fluxo principal
 

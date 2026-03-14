@@ -62,6 +62,72 @@ Comportamento esperado:
 3. Retorna exit code `0` quando `status=ok` e `1` quando `status=alert`.
 4. Mantem `next_actions` com itens manuais pendentes (ex.: revisao final do runbook).
 
+## Operacao do daemon de coleta de features (Fases D.2-D.3)
+
+O enriquecimento de episodios com dados de mercado (taxas de financiamento,
+interesse aberto) requer um daemon background coletando dados da API.
+
+### Inicie o daemon de funding rates
+
+```bash
+python scripts/model2/daemon_funding_rates.py --symbols BTCUSDT,ETHUSDT --interval 30
+```
+
+Parametros:
+
+```
+--symbols        Lista de pares separados por vírgula (default: BTCUSDT,ETHUSDT)
+--interval       Intervalo de coleta em segundos (default: 30)
+--max-age-hours  Descarta dados com mais de X horas (default: 24)
+--db-path        Caminho do banco de dados (default: db/modelo2.db)
+```
+
+Comportamento esperado:
+
+```
+[INFO] Daemon iniciado: BTCUSDT, ETHUSDT
+[INFO] Coleta a cada 30s
+[INFO] 2026-03-14 10:30:45 | BTCUSDT: FR=0.000315 (bullish), OI=+2.1% (accum)
+[INFO] 2026-03-14 10:31:15 | ETHUSDT: FR=-0.000041 (bearish), OI=-0.8% (dist)
+```
+
+Parar o daemon:
+
+```bash
+# (Ctrl+C na terminal ou kill o processo)
+kill -TERM $(pgrep -f "daemon_funding_rates")
+```
+
+Monitorar coleta:
+
+```bash
+sqlite3 db/modelo2.db "SELECT COUNT(*), MAX(timestamp) FROM funding_rates_api;"
+```
+
+Esperado: >= 1000 registros/dia por par, com `MAX(timestamp)` recente.
+
+### Verificar features enriquecidas em episodios
+
+Uma vez com daemon rodando e pipeline executando (ver proxima secao):
+
+```bash
+sqlite3 db/modelo2.db \
+  "SELECT COUNT(*), COUNT(CASE WHEN features_json LIKE '%funding%' THEN 1 END) \
+   FROM training_episodes;"
+```
+
+Interpretacao:
+
+- Primeira coluna: total de episodios.
+- Segunda coluna: quantos com features de funding enriquecidas.
+- Esperado >= 90% de episodios enriquecidos.
+
+Se < 90%, o daemon nao conectou a tempo. Verifique:
+
+1. Daemon esta rodando? `ps aux | grep daemon_funding_rates`
+2. API Binance acessivel? `curl https://fapi.binance.com/fapi/v1/fundingRate`
+3. Banco com permissoes? `ls -l db/modelo2.db`
+
 ## Operacao diaria do pipeline
 
 ### 1) Execucao do scheduler (once)
@@ -169,6 +235,94 @@ cat results/model2/training_metrics_*.json | jq '.sharpe_ratio'
 ```
 
 Se `sharpe_ratio < 0.5`, nao usar modelo em producao. Reexperimentar com parametros.
+
+### Fase 2.5: Monitoramento de Correlacoes (D.4)
+
+Opcionalmente, analise a correlacao entre sentimento de taxas de financiamento
+e performance de RL:
+
+```bash
+python scripts/model2/phase_d4_correlation_analysis.py --db-path db/modelo2.db --output-dir results/model2/analysis/
+```
+
+Interprete o resultado em `phase_d4_correlation_*.json`:
+
+```json
+{
+  "fr_sentiment_vs_label": {
+    "pearson_r": 0.2738,
+    "p_value": 0.0058,
+    "verdict": "SIGNIFICANTE (fraco positivo)",
+    "win_rate_by_sentiment": {
+      "bullish": 0.2581,    // 25.81% ganho
+      "neutral": 0.3714,    // 37.14% ganho
+      "bearish": 0.0        // 0% ganho - SINAL FORTE DE PERDA!
+    }
+  }
+}
+```
+
+Acao recomendada:
+
+1. Se `bearish` win_rate < 10%: Considere rejeitar sinais com FR extremamente
+   bearish.
+2. Se `bullish` win_rate > median+10%: Aumentar reward para sinais bullish.
+3. Executar `phase_d4_...` toda semana para monitorar drift de correlacao.
+
+### Fase 2.6: Preparacao de Ambiente LSTM (E.1)
+
+Quando pronto para testar politicas LSTM (proxima semana):
+
+```python
+# Em scripts de treinamento custom
+from agent.lstm_environment import LSTMSignalEnvironment
+
+# Envolva o ambiente existente
+lstm_env = LSTMSignalEnvironment(
+    env=original_env,
+    seq_len=10,
+    flatten_fallback=False  # Use LSTM output shape
+)
+
+# Reset retorna (10, 20)
+obs, info = lstm_env.reset()
+assert obs.shape == (10, 20), "LSTM state shape incorrect"
+
+# Step continua retornando (10, 20)
+obs, reward, terminated, truncated, info = lstm_env.step(action)
+assert obs.shape == (10, 20)
+```
+
+Parametros do LSTM env:
+
+```
+seq_len=10                # Rolling window de 10 timesteps
+n_features=20             # 20 features escalares (confirmed em D.4)
+  - 5 candle (OHLCV)
+  - 4 volatilidade (ATR, Bollingers)
+  - 3 multi-TF (H1, H4, D1)
+  - 4 funding rates (rate, avg, sentiment, trend)
+  - 3 open interest (OI, sentimento, direcao)
+  - 1 padding
+```
+
+Verificar estado do ambiente:
+
+```bash
+python -c "
+from agent.lstm_environment import LSTMSignalEnvironment
+env = LSTMSignalEnvironment(None, seq_len=10)
+print(f'Shape LSTM: {env.get_observation_shape()}')
+print(f'Shape fallback: {env.get_observation_shape(use_lstm=False)}')
+"
+```
+
+Esperado output:
+
+```
+Shape LSTM: (10, 20)
+Shape fallback: (200,)
+```
 
 ### Fase 3: Validacao shadow (48-72h)
 

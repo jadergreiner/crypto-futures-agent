@@ -104,6 +104,59 @@ Quando um modelo PPO treinado estiver disponivel:
 4. Regressar para confidence deterministica 0.70 se PPO indisponivel ou quando convergencia < 0.5.
 5. Registrar em auditoria qual modelo foi usado (deterministica vs RL) e versao.
 
+### RN-007 - Coleta obrigatoria de taxas de financiamento (Fase D.2)
+
+Toda operacao deve enriquecer episodios com dados de taxa de financiamento:
+
+1. Daemon `daemon_funding_rates.py` deve estar ativo durante pipeline.
+2. Minimo 30 segundos de intervalo de coleta por par.
+3. Rejeitar episodios sem features de FR quando >= 90% de cobertura atingida.
+4. Registrar em auditoria razao de falha de coleta (API down, timeout, etc).
+5. Fallback: permitir episodio vazio se coleta falhar < 10% de tempo.
+
+Metricas de sucesso:
+- >= 1000 registros/dia por par em `funding_rates_api`
+- >= 90% of episodios enriquecidos com `fr_sentiment` e `fr_trend`
+
+### RN-008 - Validacao de correlacao com sentimento de FR (Fase D.4)
+
+Sinais devem considerar correlacao empirica entre FR sentiment e resultado:
+
+1. **FR Bearish**: REJEITAR sinal. Taxa de ganho = 0% (alto risco).
+2. **FR Neutral**: Usar baseline (37% taxa de ganho, safe).
+3. **FR Bullish**: Usar com cautela (25% taxa de ganho, abaixo de neutral).
+
+Regra pratica:
+- Se `fr_sentiment == "bearish"`, **bloquear entrada** (RN-008.1).
+- Se `fr_sentiment != "bearish"`, prosseguir com RN-006.
+
+Revisao semanal:
+- Executar `phase_d4_correlation_analysis.py`
+- Comparar Pearson r vs threshold 0.20 para sinalizar drift
+- Alertar se `bearish_win_rate > 10%` (mudanca de regra)
+
+### RN-009 - Preparacao de features temporais para LSTM (Fase E.1)
+
+Quando modelo LSTM estiver em desenvolvimento, validar features:
+
+1. **20 scalares obrigatorios** em `training_episodes.features_json`:
+   - 5 candle (OHLCV)
+   - 4 volatilidade (ATR, Bollinger)
+   - 3 multi-TF (H1, H4, D1)
+   - 4 funding rates (rate, avg, sentiment, trend)
+   - 3 open interest (OI, sentimento, direcao)
+   - 1 padding
+
+2. **Normalizacao obrigatoria** em [-1, 1] para cada scalar.
+3. **Sequencia obrigatoria** de 10 timesteps (rolling window).
+4. **Rejeicao**: episodios com NaN ou fora de [-1, 1].
+5. **Audit trail**: registrar qual subconjunto de features usado por modelo.
+
+Metricas de sucesso:
+- 100% dos episodios tem 20 features normalizadas
+- Shape (10, 20) para LSTM, (200,) para fallback MLP
+- Zero NaN apos normalizacao
+
 ## Estados oficiais e matriz de transicao (M2-001.3)
 
 Fonte canonica de codigo: `core/model2/thesis_state.py`.
