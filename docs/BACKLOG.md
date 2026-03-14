@@ -782,13 +782,24 @@ Evidencias (Fase E.1 + Documentação concluídas):
    - 3dc6f79: 2 docs (LOW) + CHANGELOG
    - 367aa73: SYNCHRONIZATION.md
 
+Entrega atual (Fase D.5):
+
+35. Análise de correlação com dados reais (`shadow` e `live`). [OK]
+36. Runner com filtro por `execution_mode` e `min_episodes`. [OK]
+37. Cobertura de testes para o novo runner. [OK]
+
+Evidencias (Fase D.5 concluída):
+
+1. Runner de análise: `scripts/model2/phase_d5_real_data_correlation.py`
+2. Testes de unidade: `tests/test_model2_phase_d5_correlation.py`
+3. Relatório de exemplo: `results/model2/analysis/phase_d5_correlation_*.json`
+
 Próximas Fases:
 
-1. **Fase D.5 (Dias 19-21 est.)**: Real data correlation (coletar 500+ episodes reais com M2-016.2, validar correlações)
-2. **Fase E.2 (Dias 22-26 est.)**: LSTM Policy (64U LSTM + 128D dense, 3-4 dias)
-3. **Fase E.3 (Dias 26-31 est.)**: Training LSTM vs MLP (100+ episodes, 4-5 dias)
-4. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
-5. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
+1. **Fase E.2 (Dias 22-26 est.)**: LSTM Policy (64U LSTM + 128D dense, 3-4 dias)
+2. **Fase E.3 (Dias 26-31 est.)**: Training LSTM vs MLP (100+ episodes, 4-5 dias)
+3. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
+4. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
 
 
 
