@@ -699,7 +699,7 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas, Fase E iniciada)
 
 Entrega atual (Fases A-D.4):
 
