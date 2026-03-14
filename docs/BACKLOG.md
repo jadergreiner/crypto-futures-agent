@@ -699,15 +699,29 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: BACKLOG (iterativa pós-go-live)
+Status: EM_PROGRESSO (iniciada 2026-03-14)
 
-Candidata a explorar:
+Entrega esperada (Fase A - Validação e Enriquecimento Fase 1):
 
-1. Validar dados historicos de episodios: acuracia de labels vs outcomes reais.
-2. Enriquecer features com onchain data, funding rates, open interest.
-3. Ajustar reward function para incluir Sharpe, drawdown e recovery time.
-4. Fine-tune de hiperparametros PPO (learning rate, batch size, entropy coefficiient).
-5. Experimentar arquitetura alternativa (PPO com LSTM para memoria de estado).
+1. Validador de acurácia de labels vs outcomes reais. [OK]
+2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
+3. Enriquecimento com multi-timeframe context (H1, H4, D1). [OK]
+4. Especificação técnica completa de roadmap (5 fases). [OK]
+
+Evidencias (Fase A - Concluído):
+
+1. Validador: `scripts/model2/validate_training_episodes.py`
+2. Enriquecedor: `scripts/model2/feature_enricher.py`
+3. Integração ao pipeline: `scripts/model2/persist_training_episodes.py` (alvo M2-016.2)
+4. Features adicionadas em episódios: `volatility` (atr_20, rsi_14, bb_position), `multi_timeframe_context` (H1, D1)
+5. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
+
+Candidatas a explorar pós-Fase A:
+
+1. **Fase B (Dias 8-14)**: Ajustar reward function para incluir Sharpe, drawdown e recovery time
+2. **Fase C (Dias 15-21)**: Fine-tune de hiperparâmetros PPO (learning rate, batch size, entropy)
+3. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
+4. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
 
 
 

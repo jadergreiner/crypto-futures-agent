@@ -15,6 +15,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import DB_PATH, MODEL2_DB_PATH
+from scripts.model2.feature_enricher import FeatureEnricher
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 TIMEFRAME_TO_TABLE = {
@@ -242,6 +243,19 @@ def run_persist_training_episodes(
                 },
             }
 
+            # Enriquecer features com volatilidade e multi-timeframe
+            try:
+                enriched_features = FeatureEnricher.enrich_features(
+                    conn=source_conn,
+                    symbol=symbol,
+                    timeframe=str(row["timeframe"]),
+                    base_features=episode["features"],
+                )
+                episode["features"] = enriched_features
+            except Exception as e:
+                # Log mas não falhe se enriquecimento falhar
+                pass
+
             model2_conn.execute(
                 """
                 INSERT OR IGNORE INTO training_episodes (
@@ -300,6 +314,20 @@ def run_persist_training_episodes(
                     "objective": "support_training_dataset_with_cycle_state",
                 },
             }
+            
+            # Enriquecer features de contexto também
+            try:
+                enriched_features = FeatureEnricher.enrich_features(
+                    conn=source_conn,
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    base_features=context_episode["features"],
+                )
+                context_episode["features"] = enriched_features
+            except Exception:
+                # Log mas não falhe
+                pass
+            
             model2_conn.execute(
                 """
                 INSERT OR IGNORE INTO training_episodes (
