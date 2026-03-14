@@ -1,0 +1,453 @@
+"""Phase D.4: Análise de correlação entre funding rates/OI e performance RL.
+
+Analisa:
+- Correlação entre FR sentiment e label (win/loss)
+- Correlação entre OI trend e reward_proxy
+- Recomendações para tune de reward weights
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+try:
+    import numpy as np
+    from scipy import stats
+except ImportError:
+    print("Instale: pip install numpy scipy")
+    sys.exit(1)
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from config.settings import MODEL2_DB_PATH
+
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "analysis"
+
+
+def _safe_json_dict(raw_value: Any) -> dict[str, Any]:
+    try:
+        payload = json.loads(raw_value or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _sentiment_to_numeric(sentiment: str) -> float:
+    """Converte sentiment para valor numerico para correlacao."""
+    mapping = {
+        "bullish": 1.0,
+        "neutral": 0.0,
+        "bearish": -1.0,
+    }
+    return mapping.get(str(sentiment).lower(), 0.0)
+
+
+def _trend_to_numeric(trend: str) -> float:
+    """Converte trend para valor numerico."""
+    mapping = {
+        "increasing": 1.0,
+        "stable": 0.0,
+        "decreasing": -1.0,
+    }
+    return mapping.get(str(trend).lower(), 0.0)
+
+
+def _label_to_numeric(label: str) -> float:
+    """Converte label para valor numerico (win=1, loss=-1, breakeven=0)."""
+    mapping = {
+        "win": 1.0,
+        "loss": -1.0,
+        "breakeven": 0.0,
+    }
+    return mapping.get(str(label).lower(), None)
+
+
+class CorrelationAnalyzer:
+    """Analiza correlacoes entre funding data e performance."""
+
+    def __init__(self, db_path: Path | str):
+        self.db_path = Path(db_path)
+        self.conn = sqlite3.connect(str(self.db_path))
+        self.conn.row_factory = sqlite3.Row
+
+    def close(self):
+        if self.conn:
+            self.conn.close()
+
+    def load_episodes(self) -> list[dict[str, Any]]:
+        """Carrega todos os training episodes."""
+        rows = self.conn.execute(
+            """
+            SELECT 
+                episode_key,
+                symbol,
+                label,
+                reward_proxy,
+                features_json
+            FROM training_episodes
+            WHERE label IS NOT NULL
+              AND label != 'context'
+              AND features_json IS NOT NULL
+            ORDER BY episode_key
+            """
+        ).fetchall()
+
+        episodes = []
+        for row in rows:
+            try:
+                features = _safe_json_dict(row["features_json"])
+                episodes.append({
+                    "episode_key": str(row["episode_key"]),
+                    "symbol": str(row["symbol"]),
+                    "label": str(row["label"]),
+                    "reward_proxy": float(row["reward_proxy"]) if row["reward_proxy"] is not None else None,
+                    "features": features,
+                })
+            except Exception:
+                pass
+
+        return episodes
+
+    def analyze_fr_sentiment_vs_label(self, episodes: list[dict]) -> dict[str, Any]:
+        """Analiza correlacao entre funding rate sentiment e label."""
+        fr_sentiments = []
+        labels_numeric = []
+
+        for ep in episodes:
+            features = ep.get("features", {})
+            fr_data = features.get("funding_rates", {})
+            
+            if not fr_data or "sentiment" not in fr_data:
+                continue
+
+            sentiment = _sentiment_to_numeric(fr_data["sentiment"])
+            label_num = _label_to_numeric(ep["label"])
+            
+            if label_num is not None:
+                fr_sentiments.append(sentiment)
+                labels_numeric.append(label_num)
+
+        if len(fr_sentiments) < 3:
+            return {"status": "INSUFFICIENT_DATA", "n_samples": len(fr_sentiments)}
+
+        corr_pearson, p_value_pearson = stats.pearsonr(fr_sentiments, labels_numeric)
+        corr_spearman, p_value_spearman = stats.spearmanr(fr_sentiments, labels_numeric)
+
+        sentiment_outcomes = {"bullish": [], "neutral": [], "bearish": []}
+        for i, sentiment in enumerate(fr_sentiments):
+            if sentiment > 0.5:
+                sentiment_outcomes["bullish"].append(labels_numeric[i])
+            elif sentiment < -0.5:
+                sentiment_outcomes["bearish"].append(labels_numeric[i])
+            else:
+                sentiment_outcomes["neutral"].append(labels_numeric[i])
+
+        win_rates = {}
+        for sentiment, outcomes in sentiment_outcomes.items():
+            if outcomes:
+                win_rate = sum(1 for x in outcomes if x > 0) / len(outcomes)
+                win_rates[sentiment] = {
+                    "win_rate": win_rate,
+                    "n_episodes": len(outcomes),
+                    "avg_reward": float(np.mean(outcomes)),
+                    "std_reward": float(np.std(outcomes)) if len(outcomes) > 1 else 0.0,
+                }
+
+        return {
+            "status": "OK",
+            "n_samples": len(fr_sentiments),
+            "pearson_correlation": float(corr_pearson),
+            "pearson_p_value": float(p_value_pearson),
+            "spearman_correlation": float(corr_spearman),
+            "spearman_p_value": float(p_value_spearman),
+            "win_rates_by_sentiment": win_rates,
+            "interpretation": _interpret_correlation(corr_pearson, p_value_pearson),
+        }
+
+    def analyze_fr_trend_vs_reward(self, episodes: list[dict]) -> dict[str, Any]:
+        """Analiza correlacao entre funding rate trend e reward."""
+        fr_trends = []
+        rewards = []
+
+        for ep in episodes:
+            features = ep.get("features", {})
+            fr_data = features.get("funding_rates", {})
+            
+            if not fr_data or "trend" not in fr_data:
+                continue
+
+            trend = _trend_to_numeric(fr_data["trend"])
+            reward = ep.get("reward_proxy")
+            
+            if reward is not None:
+                fr_trends.append(trend)
+                rewards.append(float(reward))
+
+        if len(fr_trends) < 3:
+            return {"status": "INSUFFICIENT_DATA", "n_samples": len(fr_trends)}
+
+        corr_pearson, p_value = stats.pearsonr(fr_trends, rewards)
+        corr_spearman, p_value_spearman = stats.spearmanr(fr_trends, rewards)
+
+        trend_outcomes = {"increasing": [], "stable": [], "decreasing": []}
+        for i, trend in enumerate(fr_trends):
+            if trend > 0.5:
+                trend_outcomes["increasing"].append(rewards[i])
+            elif trend < -0.5:
+                trend_outcomes["decreasing"].append(rewards[i])
+            else:
+                trend_outcomes["stable"].append(rewards[i])
+
+        avg_rewards = {}
+        for trend, reward_list in trend_outcomes.items():
+            if reward_list:
+                avg_rewards[trend] = {
+                    "avg_reward": float(np.mean(reward_list)),
+                    "std_reward": float(np.std(reward_list)) if len(reward_list) > 1 else 0.0,
+                    "min_reward": float(np.min(reward_list)),
+                    "max_reward": float(np.max(reward_list)),
+                    "n_episodes": len(reward_list),
+                }
+
+        return {
+            "status": "OK",
+            "n_samples": len(fr_trends),
+            "pearson_correlation": float(corr_pearson),
+            "pearson_p_value": float(p_value),
+            "spearman_correlation": float(corr_spearman),
+            "spearman_p_value": float(p_value_spearman),
+            "avg_rewards_by_trend": avg_rewards,
+            "interpretation": _interpret_correlation(corr_pearson, p_value),
+        }
+
+    def analyze_oi_sentiment_vs_label(self, episodes: list[dict]) -> dict[str, Any]:
+        """Analiza correlacao entre OI sentiment e label."""
+        oi_sentiments = []
+        labels_numeric = []
+
+        for ep in episodes:
+            features = ep.get("features", {})
+            oi_data = features.get("open_interest", {})
+            
+            if not oi_data or "oi_sentiment" not in oi_data:
+                continue
+
+            sentiment = _sentiment_to_numeric(oi_data["oi_sentiment"])
+            label_num = _label_to_numeric(ep["label"])
+            
+            if label_num is not None:
+                oi_sentiments.append(sentiment)
+                labels_numeric.append(label_num)
+
+        if len(oi_sentiments) < 3:
+            return {"status": "INSUFFICIENT_DATA", "n_samples": len(oi_sentiments)}
+
+        corr_pearson, p_value_pearson = stats.pearsonr(oi_sentiments, labels_numeric)
+        corr_spearman, p_value_spearman = stats.spearmanr(oi_sentiments, labels_numeric)
+
+        sentiment_outcomes = {"accumulating": [], "neutral": [], "distributing": []}
+        for i, sentiment in enumerate(oi_sentiments):
+            if sentiment > 0.5:
+                sentiment_outcomes["accumulating"].append(labels_numeric[i])
+            elif sentiment < -0.5:
+                sentiment_outcomes["distributing"].append(labels_numeric[i])
+            else:
+                sentiment_outcomes["neutral"].append(labels_numeric[i])
+
+        win_rates = {}
+        for sentiment, outcomes in sentiment_outcomes.items():
+            if outcomes:
+                win_rate = sum(1 for x in outcomes if x > 0) / len(outcomes)
+                win_rates[sentiment] = {
+                    "win_rate": win_rate,
+                    "n_episodes": len(outcomes),
+                    "avg_reward": float(np.mean(outcomes)),
+                }
+
+        return {
+            "status": "OK",
+            "n_samples": len(oi_sentiments),
+            "pearson_correlation": float(corr_pearson),
+            "pearson_p_value": float(p_value_pearson),
+            "spearman_correlation": float(corr_spearman),
+            "spearman_p_value": float(p_value_spearman),
+            "win_rates_by_sentiment": win_rates,
+            "interpretation": _interpret_correlation(corr_pearson, p_value_pearson),
+        }
+
+    def generate_report(self) -> dict[str, Any]:
+        """Gera relatorio completo de correlacao."""
+        episodes = self.load_episodes()
+
+        if not episodes:
+            print("[ERROR] Nenhum episode encontrado!")
+            return {"status": "FAILED", "error": "No episodes found"}
+
+        print(f"[ANALYSIS] Analisando {len(episodes)} episodes...")
+
+        report = {
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+            "analysis_type": "Phase D.4 Correlation Analysis",
+            "total_episodes": len(episodes),
+            "fr_sentiment_vs_label": self.analyze_fr_sentiment_vs_label(episodes),
+            "fr_trend_vs_reward": self.analyze_fr_trend_vs_reward(episodes),
+            "oi_sentiment_vs_label": self.analyze_oi_sentiment_vs_label(episodes),
+            "recommendations": self._generate_recommendations(episodes),
+        }
+
+        return report
+
+    def _generate_recommendations(self, episodes: list[dict]) -> list[str]:
+        """Gera recomendacoes baseadas nos dados."""
+        recommendations = []
+
+        label_counts = {"win": 0, "loss": 0, "breakeven": 0}
+        for ep in episodes:
+            label = ep.get("label", "unknown")
+            if label in label_counts:
+                label_counts[label] += 1
+
+        total = sum(label_counts.values())
+        if total > 0:
+            win_rate = label_counts["win"] / total
+            if win_rate < 0.4:
+                recommendations.append(
+                    "[WARNING] Win rate baixo (<40%). Considere: (1) aumentar reward para winners, "
+                    "(2) investigar sinais com FR bullish/OI accumulating, "
+                    "(3) revisar stop loss / take profit levels"
+                )
+            elif win_rate > 0.6:
+                recommendations.append(
+                    "[OK] Win rate alto (>60%). Sistema esta funcionando bem. "
+                    "Monitorar possivel overfitting ao aumentar complexidade."
+                )
+
+        rewards = [ep.get("reward_proxy") for ep in episodes if ep.get("reward_proxy") is not None]
+        if rewards:
+            avg_reward = np.mean(rewards)
+            if avg_reward < -0.1:
+                recommendations.append(
+                    "[TREND] Media de reward negativa. Considere aumentar reward para winners "
+                    "ou reduzir penalidade para losers."
+                )
+
+        if len(episodes) < 50:
+            recommendations.append(
+                f"[DATA] Apenas {len(episodes)} episodes. Coletar mais dados para "
+                "correlacoes estatisticamente significantes (ideal: 100+)."
+            )
+
+        if not recommendations:
+            recommendations.append("[OK] Dados parecem saudaveis. Continue monitorando tendencias.")
+
+        return recommendations
+
+
+def _interpret_correlation(corr: float, p_value: float) -> str:
+    """Interpreta forca de correlacao."""
+    if p_value > 0.05:
+        return f"Nao significante (p={p_value:.4f} > 0.05)"
+    
+    abs_corr = abs(corr)
+    if abs_corr < 0.3:
+        strength = "fraca"
+    elif abs_corr < 0.7:
+        strength = "moderada"
+    else:
+        strength = "forte"
+    
+    direction = "positiva" if corr > 0 else "negativa"
+    return f"Correlacao {strength} {direction} (r={corr:.4f}, p={p_value:.4f})"
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Phase D.4: Analise de Correlacao")
+    parser.add_argument(
+        "--db",
+        type=str,
+        default=str(MODEL2_DB_PATH),
+        help="Caminho para modelo2.db",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=DEFAULT_OUTPUT_DIR,
+        help="Diretorio de saida",
+    )
+    args = parser.parse_args()
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    analyzer = CorrelationAnalyzer(db_path=args.db)
+    try:
+        report = analyzer.generate_report()
+
+        report_path = args.output_dir / f"phase_d4_correlation_{int(datetime.now(timezone.utc).timestamp())}.json"
+        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+        print(f"\n[OK] Relatorio salvo: {report_path}")
+
+        print("\n" + "=" * 60)
+        print("PHASE D.4 - CORRELATION ANALYSIS SUMMARY")
+        print("=" * 60)
+
+        if report.get("status") == "FAILED":
+            print(f"[ERROR] {report.get('error')}")
+            return 1
+
+        print(f"\n[ANALYSIS] Total episodes analisados: {report['total_episodes']}")
+
+        print("\n[FR SENTIMENT vs LABEL]:")
+        _print_analysis_result(report.get("fr_sentiment_vs_label", {}))
+
+        print("\n[FR TREND vs REWARD]:")
+        _print_analysis_result(report.get("fr_trend_vs_reward", {}))
+
+        print("\n[OI SENTIMENT vs LABEL]:")
+        _print_analysis_result(report.get("oi_sentiment_vs_label", {}))
+
+        print("\n[RECOMMENDATIONS]:")
+        for rec in report.get("recommendations", []):
+            print(f"  {rec}")
+
+        return 0
+
+    finally:
+        analyzer.close()
+
+
+def _print_analysis_result(analysis: dict[str, Any]):
+    """Printa resultado da analise."""
+    if analysis.get("status") == "INSUFFICIENT_DATA":
+        print(f"  [WARN] Dados insuficientes (n={analysis.get('n_samples', 0)})")
+        return
+
+    print(f"  n_samples: {analysis.get('n_samples', 'N/A')}")
+    print(f"  Pearson r: {analysis.get('pearson_correlation', 'N/A'):.4f}")
+    print(f"  p-value: {analysis.get('pearson_p_value', 'N/A'):.4f}")
+    print(f"  Interpretacao: {analysis.get('interpretation', 'N/A')}")
+
+    if "win_rates_by_sentiment" in analysis:
+        print("\n  Por sentimento:")
+        for sent, data in analysis["win_rates_by_sentiment"].items():
+            if "win_rate" in data:
+                print(f"    {sent}: {data['win_rate']:.2%} wins (n={data['n_episodes']})")
+            else:
+                print(f"    {sent}: avg_reward={data['avg_reward']:.4f} (n={data['n_episodes']})")
+
+    if "avg_rewards_by_trend" in analysis:
+        print("\n  Por trend:")
+        for trend, data in analysis["avg_rewards_by_trend"].items():
+            print(f"    {trend}: {data['avg_reward']:.4f} avg (n={data['n_episodes']})")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -699,9 +699,9 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas, D-D.2 concluídas)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas)
 
-Entrega atual (Fases A-D.2):
+Entrega atual (Fases A-D.4):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
 2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
@@ -718,12 +718,22 @@ Entrega atual (Fases A-D.2):
 13. API client Binance real (mode hybrid mock/real). [OK]
 14. Daemon background para coleta contínua (8h FR, 1h OI). [OK]
 15. Integration test Phase D.2 (Daemon + API + Enrichment). [OK]
+16. Integração API client com persist_training_episodes.py. [OK]
+17. Enriquecimento composto (volatility + multi-TF + funding rates + OI) em episodes. [OK]
+18. API client com métodos de sentiment analysis (funding + OI). [OK]
+19. Teste end-to-end Phase D.3 (episodes contêm funding data enriched). [OK]
+20. Análise de correlação FR sentiment vs label (Pearson r). [OK]
+21. Análise de correlação FR trend vs reward (Pearson r). [OK]
+22. Análise de correlação OI sentiment vs label (Pearson r). [OK]
+23. Gerador de dados sintéticos para validação. [OK]
+24. Script phase_d4_correlation_analysis.py. [OK]
+25. Relatório JSON com estatísticas e interpretações. [OK]
 
-Evidencias (Fases A-D.2 concluídas):
+Evidencias (Fases A-D.4 concluídas):
 
 1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor features: `scripts/model2/feature_enricher.py`
-3. Integração pipeline: `scripts/model2/persist_training_episodes.py`
+3. Integração pipeline: `scripts/model2/persist_training_episodes.py` (com API client Phase D.3)
 4. Reward estendida: `agent/reward_extended.py`
 5. Teste cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
 6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
@@ -731,16 +741,22 @@ Evidencias (Fases A-D.2 concluídas):
 8. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
 9. Coletor funding/OI simulator: `scripts/model2/binance_funding_collector.py`
 10. Teste Phase D: `scripts/model2/test_phase_d_funding_enrichment.py`
-11. API client Binance: `scripts/model2/binance_funding_api_client.py` (mock + real modes)
+11. API client Binance: `scripts/model2/binance_funding_api_client.py` (mock + real modes, sentiment methods)
 12. Daemon collector: `scripts/model2/binance_funding_daemon.py` (8h/1h schedule)
 13. Teste Phase D.2: `scripts/model2/test_phase_d2_api_integration.py`
 14. Spec Phase D.2: `designs/M2_016_3_PHASE_D2_API_DAEMON.md`
+15. Teste Phase D.3 integration: `scripts/model2/test_phase_d3_integration.py`
+16. Teste Phase D.3 direct: `scripts/model2/test_phase_d3_direct.py` (PASSED)
+17. Gerador dados sintéticos D.4: `scripts/model2/test_phase_d4_synthetic_data.py`
+18. Análise correlação D.4: `scripts/model2/phase_d4_correlation_analysis.py`
+19. Spec Phase D.4: `designs/M2_016_3_PHASE_D4_CORRELATION_ANALYSIS.md`
+20. Relatório correlação: `results/model2/analysis/phase_d4_correlation_*.json`
 
 Próximas Fases:
 
-1. **Fase D.3 (Dias 15-18)**: Integração com persist_training_episodes.py (episodes recebem API data real)
-2. **Fase D.4 (Dias 19-21)**: Análise correlação FR/OI vs performance RL
-3. **Fase E (Dias 22-35)**: Experimentar LSTM para capturar state dependence temporal
+1. **Fase D.5 (Dias 19-21)**: Real data correlation (coletar 500+ episodes reais, validar correlações com model M2-016.2)
+2. **Fase E (Dias 22-35)**: LSTM policy exploration (policy com memoria temporal, baseline vs LSTM comparison)
+3. **Produção (When ready)**: Deploy daemon como systemd service + credenciais real Binance
 
 
 
