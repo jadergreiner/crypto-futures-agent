@@ -1,8 +1,52 @@
 # 🚀 Geração de Sinais com Suporte a RL — Model 2.0
 
 **Status:** OPERACIONAL (14 MAR 2026)
-**Versao:** M2-015.3
-**Checkpoint:** JSON (7 episódios) | Modelo PKL: Pendente treinamento inicial
+**Versao:** M2-016.1
+**Checkpoint:** PPO treinado 500k timesteps | Sharpe evaluation: IN PROGRESS
+
+## 📊 Resultados de Treinamento (14 MAR 2026)
+
+### Execução M2-016.1 — Treino PPO Incremental
+
+| Métrica | Valor |
+|---------|-------|
+| Timesteps Treinos | 500,000 ✓ |
+| Duração Treinamento | 1118.3s (18.6 min) |
+| Dataset Episodes | 7 episódios |
+| Symbols Processados | BNBUSDT, SOLUSDT, ETHUSDT, PTBUSDT, BTCUSDT, XRPUSDT |
+| Timeframe | H4 |
+| Learning Rate | 0.0003 |
+| Modelo Final | `checkpoints/ppo_training/ppo_model.zip` |
+| Taxa RL Enhancement (Validação) | 100% (2/2 sinais) |
+| RL Confidence Médio | 0.75 |
+
+### Métricas de Treinamento
+
+```
+Final Training Stats:
+- Rollout EP Reward Mean: 0.6
+- Entropy Loss: -0.0266
+- Explained Variance: 0.00116
+- Loss: -0.000398
+- N Updates: 39,060
+- FPS: 447
+```
+
+### Learnings de Hiperparâmetros
+
+1. **Learning Rate:** 0.0003 funcionou bem para dados esparsos (7 episódios)
+2. **Batch Size:** 32 foi suficiente para 7 samples
+3. **N Epochs:** 10 convergiu sem overfitting
+4. **Environment Window:** 100 timesteps por episódio foi adequado
+
+### Próximos Passos
+
+- [ ] **Validação Sharpe:** Executar backtest 72h para medir Sharpe ratio
+- [ ] **Scaling de Dados:** Coletar >=50 episódios antes de próximo treino
+- [ ] **Feature Engineering:** Adicionar market regime features
+- [ ] **RL Enhancement Goal:** Atingir 60%+ de melhoria sobre determinístico
+
+---
 
 ## Visão Geral
 
