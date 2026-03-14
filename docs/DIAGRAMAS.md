@@ -58,6 +58,81 @@ flowchart LR
 - RL enhancement só ativa se modelo passar limiares de qualidade
 - Auditoria completa de qual modelo foi usado (deterministica vs RL)
 
+## 1c) Fluxo de Enriquecimento de Features (Fases D.2-D.4)
+
+Daemon de coleta contínua de dados de mercado externos:
+
+```mermaid
+flowchart LR
+    A[daemon_funding_rates.py]
+    B[Coleta a cada 30s]
+    C[Binance API: Funding Rates]
+    D[Calcula Sentiment + Trend]
+    E[(funding_rates_api)]
+    F[daily_pipeline.py]
+    G[training_episodes]
+    H[phase_d4_correlation_analysis.py]
+    I[(Análise de Correlação)]
+    J[RN-008: Bloqueio se FR Bearish]
+    
+    A -->|Coleta continua| B
+    B -->|latest_rate, avg_24h| C
+    C --> D
+    D -->|Persiste em DB| E
+    F -->|Busca features de FR| E
+    F -->|Enriquece episódios| G
+    G -->|Semanal: análise| H
+    H -->|Correlação FR vs Performance| I
+    I -->|Bearish=0% win rate| J
+    J -->|Feedback para RN| F
+```
+
+**Componentes:**
+- `daemon_funding_rates.py`: Coleta em background (PID persistente)
+- `funding_rates_api`: Tabela com fr_sentiment, fr_trend, timestamp
+- `phase_d4_correlation_analysis.py`: Pearson r, p-value, win_rate por sentiment
+- **Descoberta**: FR Bearish → 0% win rate (sinal forte de rejeição)
+- **Resultado**: RN-008 implementada (bloqueio de sinais em FR bearish)
+
+## 1d) Fluxo de Preparação LSTM (Fase E.1)
+
+Transformação de estado flat → temporal para políticas LSTM:
+
+```mermaid
+flowchart LR
+    A[SignalReplayEnv]
+    B[Observação flat n_features]
+    C[LSTMSignalEnvironment]
+    D[Rolling Buffer deque maxlen=10]
+    E[20 Features Extracted]
+    F[Normalização -1 a 1]
+    G[Shape: 10x20]
+    H[LSTM Policy]
+    I[Fallback MLP: 200,]
+    J[Treinamento PPO]
+    K[Comparação Sharpe]
+    
+    A --> B
+    B -->|reset/step| C
+    C -->|Buffer temporal| D
+    D -->|5 candle, 4 vol, 3 TF, 4 FR, 3 OI, 1 pad| E
+    E --> F
+    F --> G
+    G -->|E.2-E.4| H
+    G -->|Fallback| I
+    H --> J
+    I --> J
+    J --> K
+    K -->|Meta: +5% vs MLP| H
+```
+
+**Componentes:**
+- `agent/lstm_environment.py`: Wrapper com state buffer
+- 20 features escalares: OHLCV, volatilidade, multi-TF, FR, OI
+- Modo dual: (10, 20) para LSTM ou (200,) para MLP backward compat
+- Roadmap E.2-E.4: LSTM policy, training, comparison analysis
+- **Meta**: Sharpe ratio LSTM >= baseline MLP (+5% ideal)
+
 ## 2) Diagrama de classes
 
 ```mermaid
