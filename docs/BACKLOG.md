@@ -699,9 +699,9 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas, Fase D iniciada)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas, D-D.2 concluídas)
 
-Entrega atual (Fases A-D):
+Entrega atual (Fases A-D.2):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
 2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
@@ -713,10 +713,13 @@ Entrega atual (Fases A-D):
 8. Best hyperparams validados: lr=3e-4, bs=64, ent=0.01 (Sharpe=1.176). [OK]
 9. Coletor de funding rates com análise de sentiment e leverage. [OK]
 10. Integração de open interest com análise de acumulação/distribuição. [OK]
-11. Integração feature enricher com dados Binance Futures. [OK]
+11. Integração feature enricher com dados Binance Futures (simulator). [OK]
 12. Teste end-to-end Phase D (simulator). [OK]
+13. API client Binance real (mode hybrid mock/real). [OK]
+14. Daemon background para coleta contínua (8h FR, 1h OI). [OK]
+15. Integration test Phase D.2 (Daemon + API + Enrichment). [OK]
 
-Evidencias (Fases A-D):
+Evidencias (Fases A-D.2 concluídas):
 
 1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor features: `scripts/model2/feature_enricher.py`
@@ -724,17 +727,20 @@ Evidencias (Fases A-D):
 4. Reward estendida: `agent/reward_extended.py`
 5. Teste cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
 6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
-7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md` (grid 64 combos, best=baseline)
-8. Resultados grid: `results/model2/ppo_grid_search_20260314T121210Z.json`
-9. Spec técnica Fases A-E: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
-10. Coletor funding/OI: `scripts/model2/binance_funding_collector.py`
-11. Integração test: `scripts/model2/test_phase_d_funding_enrichment.py` (output: `results/model2/phase_d_enrichment_demo.json`)
-12. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
+7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md`
+8. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
+9. Coletor funding/OI simulator: `scripts/model2/binance_funding_collector.py`
+10. Teste Phase D: `scripts/model2/test_phase_d_funding_enrichment.py`
+11. API client Binance: `scripts/model2/binance_funding_api_client.py` (mock + real modes)
+12. Daemon collector: `scripts/model2/binance_funding_daemon.py` (8h/1h schedule)
+13. Teste Phase D.2: `scripts/model2/test_phase_d2_api_integration.py`
+14. Spec Phase D.2: `designs/M2_016_3_PHASE_D2_API_DAEMON.md`
 
 Próximas Fases:
 
-1. **Fase D.2 (Dias 14-22)**: Integração API Binance real (funding rates, open interest endpoints)
-2. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
+1. **Fase D.3 (Dias 15-18)**: Integração com persist_training_episodes.py (episodes recebem API data real)
+2. **Fase D.4 (Dias 19-21)**: Análise correlação FR/OI vs performance RL
+3. **Fase E (Dias 22-35)**: Experimentar LSTM para capturar state dependence temporal
 
 
 
