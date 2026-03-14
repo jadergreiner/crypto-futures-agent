@@ -180,3 +180,56 @@ class FeatureEnricher:
             enriched["multi_timeframe_context"] = multi_tf
 
         return enriched
+
+    @staticmethod
+    def enrich_with_funding_data(
+        enriched_features: dict[str, Any],
+        symbol: str,
+        funding_collector: Any = None,  # BinanceFundingCollector instance
+    ) -> dict[str, Any]:
+        """
+        Enriquece features com dados de funding rates e open interest.
+        
+        Args:
+            enriched_features: Features já enriquecidas
+            symbol: Ex. 'BTCUSDT'
+            funding_collector: Instância de BinanceFundingCollector (lazy import)
+            
+        Returns:
+            Dict enriquecido com chaves 'funding_rates' e 'open_interest'
+        """
+        if not funding_collector:
+            return enriched_features
+        
+        enriched = dict(enriched_features)
+        
+        try:
+            # Funding rates data
+            fr = funding_collector.get_latest_funding_rate(symbol)
+            if fr:
+                sentiment = funding_collector.estimate_funding_sentiment(symbol, hours=24)
+                enriched["funding_rates"] = {
+                    "latest_rate": fr.get("funding_rate"),
+                    "estimated_leverage": fr.get("estimated_leverage"),
+                    "timestamp_utc": fr.get("timestamp_utc"),
+                    "sentiment_24h": sentiment.get("sentiment"),
+                    "avg_rate_24h": sentiment.get("avg_funding_rate"),
+                    "trend": sentiment.get("trend"),
+                }
+            
+            # Open interest data
+            oi = funding_collector.get_latest_open_interest(symbol)
+            if oi:
+                oi_sentiment = funding_collector.estimate_oi_sentiment(symbol)
+                enriched["open_interest"] = {
+                    "current_oi": oi.get("open_interest"),
+                    "oi_usd": oi.get("open_interest_usd"),
+                    "timestamp_utc": oi.get("timestamp_utc"),
+                    "oi_sentiment": oi_sentiment.get("sentiment"),
+                    "oi_change_direction": oi_sentiment.get("change_direction"),
+                }
+        except Exception as e:
+            # Graceful fallback se API/DB falhar
+            enriched["funding_data_error"] = str(e)
+        
+        return enriched

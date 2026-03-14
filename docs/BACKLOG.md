@@ -699,9 +699,9 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas, Fase D iniciada)
 
-Entrega atual (Fases A-C):
+Entrega atual (Fases A-D):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
 2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
@@ -711,8 +711,12 @@ Entrega atual (Fases A-C):
 6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06), Slow Recovery (-0.47), Losing (-0.85). [OK]
 7. Grid search PPO 64 combinações (learning_rate, batch_size, entropy_coef). [OK]
 8. Best hyperparams validados: lr=3e-4, bs=64, ent=0.01 (Sharpe=1.176). [OK]
+9. Coletor de funding rates com análise de sentiment e leverage. [OK]
+10. Integração de open interest com análise de acumulação/distribuição. [OK]
+11. Integração feature enricher com dados Binance Futures. [OK]
+12. Teste end-to-end Phase D (simulator). [OK]
 
-Evidencias (Fases A-C concluídas):
+Evidencias (Fases A-D):
 
 1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor features: `scripts/model2/feature_enricher.py`
@@ -722,11 +726,14 @@ Evidencias (Fases A-C concluídas):
 6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
 7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md` (grid 64 combos, best=baseline)
 8. Resultados grid: `results/model2/ppo_grid_search_20260314T121210Z.json`
-9. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
+9. Spec técnica Fases A-E: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
+10. Coletor funding/OI: `scripts/model2/binance_funding_collector.py`
+11. Integração test: `scripts/model2/test_phase_d_funding_enrichment.py` (output: `results/model2/phase_d_enrichment_demo.json`)
+12. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
 
 Próximas Fases:
 
-1. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
+1. **Fase D.2 (Dias 14-22)**: Integração API Binance real (funding rates, open interest endpoints)
 2. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
 
 
