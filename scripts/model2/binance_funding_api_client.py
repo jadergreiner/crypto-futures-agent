@@ -228,6 +228,54 @@ class BinanceFundingAPIClient:
             logger.error(f"Erro ao persistir open interest: {e}")
             return False
 
+    def get_latest_funding_rate(self, symbol: str) -> Optional[Dict]:
+        """Retorna funding rate mais recente (compatibilidade com BinanceFundingCollector)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT funding_rate, timestamp_utc, mark_price
+                    FROM funding_rates_api
+                    WHERE symbol = ? AND api_source = 'binance'
+                    ORDER BY timestamp_utc DESC
+                    LIMIT 1
+                """, (symbol,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "funding_rate": row[0],
+                        "timestamp_utc": row[1],
+                        "mark_price": row[2]
+                    }
+        except Exception as e:
+            logger.error(f"Erro ao get_latest_funding_rate: {e}")
+        return None
+
+    def get_latest_open_interest(self, symbol: str) -> Optional[Dict]:
+        """Retorna open interest mais recente (compatibilidade com BinanceFundingCollector)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT open_interest, timestamp_utc, api_source
+                    FROM open_interest_api
+                    WHERE symbol = ? AND api_source = 'binance'
+                    ORDER BY timestamp_utc DESC
+                    LIMIT 1
+                """, (symbol,))
+                
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "open_interest": row[0],
+                        "timestamp_utc": row[1],
+                        "market_sentiment": "neutral"  # Seria calculado em enrich_with_funding_data
+                    }
+        except Exception as e:
+            logger.error(f"Erro ao get_latest_open_interest: {e}")
+        return None
+
     def get_latest_api_data(self, symbol: str) -> Dict:
         """
         Query últimos rates/OI coletados via API.
@@ -270,6 +318,122 @@ class BinanceFundingAPIClient:
         except Exception as e:
             logger.error(f"Erro ao query dados API: {e}")
             return {}
+
+    def estimate_funding_sentiment(self, symbol: str, hours: int = 24) -> Dict:
+        """Analisa funding rate sentiment (compatibilidade com BinanceFundingCollector)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cutoff_ts = int((datetime.utcnow() - timedelta(hours=hours)).timestamp() * 1000)
+                
+                cursor.execute("""
+                    SELECT funding_rate
+                    FROM funding_rates_api
+                    WHERE symbol = ? AND timestamp_utc >= ?
+                    ORDER BY timestamp_utc DESC
+                    LIMIT 100
+                """, (symbol, cutoff_ts))
+                
+                rows = cursor.fetchall()
+            
+            if not rows:
+                return {
+                    "avg_funding_rate": 0,
+                    "max_leverage": 0,
+                    "sentiment": "unknown",
+                    "trend": None
+                }
+            
+            funding_rates = [float(row[0]) for row in rows if row[0] is not None]
+            
+            if not funding_rates:
+                return {
+                    "avg_funding_rate": 0,
+                    "max_leverage": 0,
+                    "sentiment": "unknown",
+                    "trend": None
+                }
+            
+            avg_fr = sum(funding_rates) / len(funding_rates)
+            
+            # Sentiment
+            if avg_fr < -0.0001:
+                sentiment = "bullish"
+            elif avg_fr > 0.0001:
+                sentiment = "bearish"
+            else:
+                sentiment = "neutral"
+            
+            # Trend
+            trend = None
+            if len(funding_rates) > 1:
+                if funding_rates[-1] > funding_rates[0]:
+                    trend = "increasing"
+                elif funding_rates[-1] < funding_rates[0]:
+                    trend = "decreasing"
+                else:
+                    trend = "stable"
+            
+            return {
+                "avg_funding_rate": avg_fr,
+                "max_leverage": 0,  # Não disponível em API pública
+                "sentiment": sentiment,
+                "trend": trend
+            }
+        except Exception as e:
+            logger.error(f"Erro ao estimar funding sentiment: {e}")
+            return {"sentiment": "unknown", "trend": None, "avg_funding_rate": 0, "max_leverage": 0}
+
+    def estimate_oi_sentiment(self, symbol: str) -> Dict:
+        """Analisa OI sentiment (compatibilidade com BinanceFundingCollector)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT open_interest, timestamp_utc
+                    FROM open_interest_api
+                    WHERE symbol = ? AND api_source = 'binance'
+                    ORDER BY timestamp_utc DESC
+                    LIMIT 2
+                """, (symbol,))
+                
+                rows = cursor.fetchall()
+            
+            if not rows:
+                return {
+                    "current_oi": 0,
+                    "sentiment": "unknown",
+                    "change_direction": None
+                }
+            
+            current_oi = rows[0][0] if rows else 0
+            
+            change = None
+            sentiment = None
+            if len(rows) > 1 and rows[0][0] and rows[1][0]:
+                if rows[0][0] > rows[1][0]:
+                    change = "increasing"
+                    sentiment = "accumulating"
+                elif rows[0][0] < rows[1][0]:
+                    change = "decreasing"
+                    sentiment = "distributing"
+                else:
+                    change = "stable"
+                    sentiment = "neutral"
+            else:
+                change = None
+                sentiment = "insufficient_data"
+            
+            return {
+                "current_oi": current_oi,
+                "sentiment": sentiment,
+                "change_direction": change
+            }
+        except Exception as e:
+            logger.error(f"Erro ao estimar OI sentiment: {e}")
+            return {"current_oi": 0, "sentiment": "unknown", "change_direction": None}
 
     # ===== Mock Methods (para demonstração sem credenciais API)
     

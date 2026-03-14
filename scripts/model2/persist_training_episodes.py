@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from config.settings import DB_PATH, MODEL2_DB_PATH
 from scripts.model2.feature_enricher import FeatureEnricher
+from scripts.model2.binance_funding_api_client import BinanceFundingAPIClient
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 TIMEFRAME_TO_TABLE = {
@@ -155,6 +156,13 @@ def run_persist_training_episodes(
     resolved_output_dir = _resolve_repo_path(output_dir)
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Inicializar Binance Funding API Client (integração Phase D.3)
+    try:
+        funding_api_client = BinanceFundingAPIClient(db_path=str(resolved_model2_db), use_mock=False)
+    except Exception:
+        # Fallback se API indisponível
+        funding_api_client = None
+
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     now_ms = _utc_now_ms()
     cursor_file = resolved_output_dir / "model2_training_episodes_cursor.json"
@@ -256,6 +264,18 @@ def run_persist_training_episodes(
                 # Log mas não falhe se enriquecimento falhar
                 pass
 
+            # Enriquecer com funding rates + open interest (Phase D.3)
+            if funding_api_client:
+                try:
+                    episode["features"] = FeatureEnricher.enrich_with_funding_data(
+                        enriched_features=episode["features"],
+                        symbol=symbol,
+                        funding_collector=funding_api_client
+                    )
+                except Exception as e:
+                    # Graceful fallback se funding data indisponível
+                    pass
+
             model2_conn.execute(
                 """
                 INSERT OR IGNORE INTO training_episodes (
@@ -327,6 +347,18 @@ def run_persist_training_episodes(
             except Exception:
                 # Log mas não falhe
                 pass
+
+            # Enriquecer com funding rates + open interest (Phase D.3)
+            if funding_api_client:
+                try:
+                    context_episode["features"] = FeatureEnricher.enrich_with_funding_data(
+                        enriched_features=context_episode["features"],
+                        symbol=symbol,
+                        funding_collector=funding_api_client
+                    )
+                except Exception:
+                    # Graceful fallback
+                    pass
             
             model2_conn.execute(
                 """
