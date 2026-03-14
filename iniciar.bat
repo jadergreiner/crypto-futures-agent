@@ -9,14 +9,12 @@ setlocal enabledelayedexpansion
 if not exist "venv" (
     echo [ERRO] Ambiente virtual nao encontrado!
     echo Execute setup.bat primeiro para configurar o ambiente.
-    pause
     exit /b 1
 )
 
 call venv\Scripts\activate.bat 2>nul
 if %errorlevel% neq 0 (
     echo [ERRO] Falha ao ativar venv.
-    pause
     exit /b 1
 )
 
@@ -112,10 +110,8 @@ if "!M2_RUN_ONCE!"=="1" goto END
 
 echo.
 echo [INFO] Aguardando !M2_LOOP_SECONDS!s para o proximo ciclo...
-timeout /t !M2_LOOP_SECONDS! >nul
+timeout /t !M2_LOOP_SECONDS! /nobreak >nul 2>&1
 goto M2_LOOP
 
 :END
-echo.
-pause
 exit /b 0

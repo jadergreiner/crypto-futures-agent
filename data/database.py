@@ -101,6 +101,23 @@ class DatabaseManager:
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_ohlcv_h1_symbol ON ohlcv_h1(symbol)")
 
+            # Table 4: OHLCV M5
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ohlcv_m5 (
+                    timestamp INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    open REAL NOT NULL,
+                    high REAL NOT NULL,
+                    low REAL NOT NULL,
+                    close REAL NOT NULL,
+                    volume REAL NOT NULL,
+                    quote_volume REAL NOT NULL,
+                    trades_count INTEGER NOT NULL,
+                    PRIMARY KEY (timestamp, symbol)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_ohlcv_m5_symbol ON ohlcv_m5(symbol)")
+
             # Table 4: Technical Indicators
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS indicadores_tecnico (
@@ -1038,7 +1055,7 @@ class DatabaseManager:
         cutoff_timestamp = int((datetime.now() - timedelta(days=days_to_keep)).timestamp() * 1000)
 
         tables_to_clean = [
-            'ohlcv_d1', 'ohlcv_h4', 'ohlcv_h1', 'indicadores_tecnico',
+            'ohlcv_d1', 'ohlcv_h4', 'ohlcv_h1', 'ohlcv_m5', 'indicadores_tecnico',
             'sentimento_mercado', 'smc_market_structure', 'eventos_websocket'
         ]
 

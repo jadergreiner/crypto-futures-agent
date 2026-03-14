@@ -639,19 +639,6 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "speculative"
         ]
     },
-    "XIAUSDT": {
-        "papel": "XAI. Token de infraestrutura/gaming com foco em AI.",
-        "ciclo_proprio": "Sensível a narrativa de AI e adoção em gaming/aplicações.",
-        "correlacao_btc": [0.40, 0.75],
-        "beta_estimado": 3.0,
-        "classificacao": "mid_cap_ai_narrative",
-        "caracteristicas": [
-            "ai_narrative",
-            "gaming_integration",
-            "high_beta",
-            "narrative_sensitive"
-        ]
-    },
     "GTCUSDT": {
         "papel": "Gitcoin (GTC). Token de infraestrutura/governança focado em funding público.",
         "ciclo_proprio": "Sensível a ciclos de funding Web3 e governança descentralizada.",

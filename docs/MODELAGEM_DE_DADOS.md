@@ -358,10 +358,63 @@ Indices implementados:
 
 ## Atualizacao operacional 2026-03-14
 
-A unificacao do entry point em `iniciar.bat` NAO alterou schema do banco M2.
+A operacao da opcao `2` do `iniciar.bat` foi expandida para coleta por ciclo,
+persistencia `M5` e materializacao de episodios de treino.
 
-1. O fluxo em loop apenas orquestra runners existentes (`daily_pipeline`,
-   `live_cycle`, `healthcheck_live_execution`).
-2. O contrato de dados permanece o mesmo desta modelagem.
-3. Evidencias operacionais continuam sendo geradas em
-   `results/model2/runtime/*.json`.
+Mudancas de dados:
+
+1. Banco de mercado (`db/crypto_agent.db`) inclui `ohlcv_m5`.
+2. Chave primaria de OHLCV segue `PRIMARY KEY (timestamp, symbol)`.
+3. `sync_market_context` aplica filtro de duplicidade por (`symbol`, `timestamp`) antes de inserir.
+4. Banco M2 (`db/modelo2.db`) passa a materializar `training_episodes` para dataset incremental.
+
+Novos artefatos operacionais:
+
+1. `model2_market_context_*.json`
+2. `model2_training_episodes_*.json`
+3. `model2_training_episodes_*.jsonl`
+4. `model2_training_episodes_cursor.json`
+
+
+
+## Tabela: OHLCV M5 (`ohlcv_m5`)
+
+Persistencia intraday para coleta por ciclo na operacao M2.
+
+Campos:
+
+1. `timestamp` (INTEGER UTC ms)
+2. `symbol` (TEXT)
+3. `open` (REAL)
+4. `high` (REAL)
+5. `low` (REAL)
+6. `close` (REAL)
+7. `volume` (REAL)
+8. `quote_volume` (REAL)
+9. `trades_count` (INTEGER)
+
+Integridade:
+
+1. `PRIMARY KEY (timestamp, symbol)`
+2. Index: `idx_ohlcv_m5_symbol`
+
+
+
+## Tabela: episodios de treino (`training_episodes`)
+
+Materializacao incremental de episodios por ciclo operacional.
+
+Campos principais:
+
+1. `episode_key` (TEXT UNIQUE)
+2. `cycle_run_id` (TEXT)
+3. `execution_id` (INTEGER)
+4. `symbol` (TEXT)
+5. `timeframe` (TEXT)
+6. `status` (TEXT)
+7. `event_timestamp` (INTEGER UTC ms)
+8. `label` (TEXT)
+9. `reward_proxy` (REAL, nulo permitido)
+10. `features_json` (TEXT)
+11. `target_json` (TEXT)
+12. `created_at` (INTEGER UTC ms)

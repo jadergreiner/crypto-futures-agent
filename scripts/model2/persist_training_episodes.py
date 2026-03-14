@@ -1,0 +1,399 @@
+"""Persist cycle episodes for downstream model training datasets."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from config.settings import DB_PATH, MODEL2_DB_PATH
+
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
+TIMEFRAME_TO_TABLE = {
+    "D1": "ohlcv_d1",
+    "H4": "ohlcv_h4",
+    "H1": "ohlcv_h1",
+}
+
+
+def _utc_now_ms() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
+def _resolve_repo_path(value: str | Path) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return (REPO_ROOT / path).resolve()
+
+
+def _safe_json_dict(raw_value: Any) -> dict[str, Any]:
+    try:
+        payload = json.loads(raw_value or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _reward_label(side: str, entry_price: float | None, exit_price: float | None) -> tuple[float | None, str]:
+    if entry_price is None or exit_price is None or entry_price <= 0:
+        return None, "pending"
+
+    if str(side).upper() == "SHORT":
+        reward = (entry_price - exit_price) / entry_price
+    else:
+        reward = (exit_price - entry_price) / entry_price
+
+    if reward > 0:
+        return reward, "win"
+    if reward < 0:
+        return reward, "loss"
+    return reward, "breakeven"
+
+
+def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dict[str, Any] | None:
+    table = TIMEFRAME_TO_TABLE[timeframe]
+    row = conn.execute(
+        f"""
+        SELECT timestamp, open, high, low, close, volume
+        FROM {table}
+        WHERE symbol = ?
+        ORDER BY timestamp DESC
+        LIMIT 1
+        """,
+        (symbol,),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "timestamp": int(row[0]),
+        "open": float(row[1]),
+        "high": float(row[2]),
+        "low": float(row[3]),
+        "close": float(row[4]),
+        "volume": float(row[5]),
+    }
+
+
+def _counts_by_status(conn: sqlite3.Connection, table_name: str, symbol: str, timeframe: str | None = None) -> dict[str, int]:
+    if timeframe is None:
+        rows = conn.execute(
+            f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? GROUP BY status",
+            (symbol,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? AND timeframe = ? GROUP BY status",
+            (symbol, timeframe),
+        ).fetchall()
+    return {str(status): int(count) for status, count in rows}
+
+
+def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS training_episodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            episode_key TEXT NOT NULL UNIQUE,
+            cycle_run_id TEXT NOT NULL,
+            execution_id INTEGER NOT NULL,
+            symbol TEXT NOT NULL,
+            timeframe TEXT NOT NULL,
+            status TEXT NOT NULL,
+            event_timestamp INTEGER NOT NULL,
+            label TEXT NOT NULL,
+            reward_proxy REAL,
+            features_json TEXT NOT NULL,
+            target_json TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_training_episodes_symbol_ts ON training_episodes(symbol, event_timestamp DESC)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_training_episodes_cycle ON training_episodes(cycle_run_id)"
+    )
+
+
+def _load_cursor(cursor_file: Path) -> int:
+    if not cursor_file.exists():
+        return 0
+    try:
+        payload = json.loads(cursor_file.read_text(encoding="utf-8"))
+        return int(payload.get("last_updated_at_ms", 0))
+    except Exception:
+        return 0
+
+
+def _save_cursor(cursor_file: Path, updated_at_ms: int) -> None:
+    cursor_file.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"last_updated_at_ms": int(updated_at_ms)}
+    cursor_file.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+
+
+def run_persist_training_episodes(
+    *,
+    source_db_path: str | Path,
+    model2_db_path: str | Path,
+    symbols: list[str],
+    timeframe: str,
+    output_dir: str | Path,
+) -> dict[str, Any]:
+    resolved_source_db = _resolve_repo_path(source_db_path)
+    resolved_model2_db = _resolve_repo_path(model2_db_path)
+    resolved_output_dir = _resolve_repo_path(output_dir)
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
+
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now_ms = _utc_now_ms()
+    cursor_file = resolved_output_dir / "model2_training_episodes_cursor.json"
+    last_cursor_ms = _load_cursor(cursor_file)
+
+    with sqlite3.connect(resolved_source_db) as source_conn, sqlite3.connect(resolved_model2_db) as model2_conn:
+        source_conn.row_factory = sqlite3.Row
+        model2_conn.row_factory = sqlite3.Row
+        _ensure_training_episodes_table(model2_conn)
+
+        symbol_filter = list(dict.fromkeys(symbols))
+        if not symbol_filter:
+            rows = model2_conn.execute(
+                "SELECT DISTINCT symbol FROM signal_executions ORDER BY symbol"
+            ).fetchall()
+            symbol_filter = [str(row[0]) for row in rows]
+
+        placeholders = ", ".join(["?"] * len(symbol_filter)) if symbol_filter else ""
+        query = [
+            "SELECT",
+            "  se.id, se.symbol, se.timeframe, se.signal_side, se.status, se.updated_at,",
+            "  se.entry_filled_at, se.exited_at, se.exit_price, se.payload_json,",
+            "  ts.entry_price, ts.stop_loss, ts.take_profit, ts.signal_timestamp",
+            "FROM signal_executions se",
+            "JOIN technical_signals ts ON ts.id = se.technical_signal_id",
+            "WHERE se.updated_at > ?",
+        ]
+        params: list[Any] = [int(last_cursor_ms)]
+
+        if symbol_filter:
+            query.append(f"AND se.symbol IN ({placeholders})")
+            params.extend(symbol_filter)
+        query.append("AND se.timeframe = ?")
+        params.append(timeframe)
+        query.append("ORDER BY se.updated_at ASC, se.id ASC")
+
+        execution_rows = model2_conn.execute(" ".join(query), params).fetchall()
+
+        jsonl_path = resolved_output_dir / f"model2_training_episodes_{run_id}.jsonl"
+        jsonl_lines: list[str] = []
+        inserted_rows = 0
+        max_seen_updated_at = int(last_cursor_ms)
+
+        for row in execution_rows:
+            execution_id = int(row["id"])
+            symbol = str(row["symbol"])
+            status = str(row["status"])
+            updated_at = int(row["updated_at"])
+            max_seen_updated_at = max(max_seen_updated_at, updated_at)
+            payload = _safe_json_dict(row["payload_json"])
+            signal_snapshot = payload.get("signal_snapshot") if isinstance(payload.get("signal_snapshot"), dict) else {}
+            gate_payload = payload.get("gate") if isinstance(payload.get("gate"), dict) else {}
+            latest_candle = _latest_candle(source_conn, symbol=symbol, timeframe=timeframe)
+
+            entry_price = float(row["entry_price"]) if row["entry_price"] is not None else None
+            exit_price = float(row["exit_price"]) if row["exit_price"] is not None else None
+            reward_proxy, label = _reward_label(
+                side=str(row["signal_side"]),
+                entry_price=entry_price,
+                exit_price=exit_price,
+            )
+
+            episode = {
+                "episode_key": f"exec:{execution_id}:{updated_at}",
+                "cycle_run_id": run_id,
+                "execution_id": execution_id,
+                "symbol": symbol,
+                "timeframe": str(row["timeframe"]),
+                "status": status,
+                "event_timestamp": updated_at,
+                "label": label,
+                "reward_proxy": reward_proxy,
+                "features": {
+                    "latest_candle": latest_candle,
+                    "signal_snapshot": signal_snapshot,
+                    "gate": gate_payload,
+                },
+                "target": {
+                    "final_status": status,
+                    "entry_filled_at": row["entry_filled_at"],
+                    "exited_at": row["exited_at"],
+                    "exit_price": exit_price,
+                    "signal_timestamp": row["signal_timestamp"],
+                    "stop_loss": row["stop_loss"],
+                    "take_profit": row["take_profit"],
+                },
+            }
+
+            model2_conn.execute(
+                """
+                INSERT OR IGNORE INTO training_episodes (
+                    episode_key,
+                    cycle_run_id,
+                    execution_id,
+                    symbol,
+                    timeframe,
+                    status,
+                    event_timestamp,
+                    label,
+                    reward_proxy,
+                    features_json,
+                    target_json,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    episode["episode_key"],
+                    run_id,
+                    execution_id,
+                    symbol,
+                    str(row["timeframe"]),
+                    status,
+                    updated_at,
+                    label,
+                    reward_proxy,
+                    json.dumps(episode["features"], ensure_ascii=True, sort_keys=True),
+                    json.dumps(episode["target"], ensure_ascii=True, sort_keys=True),
+                    now_ms,
+                ),
+            )
+
+            jsonl_lines.append(json.dumps(episode, ensure_ascii=True, sort_keys=True))
+            inserted_rows += 1
+
+        context_episodes = 0
+        for symbol in symbol_filter:
+            context_episode = {
+                "episode_key": f"context:{run_id}:{symbol}",
+                "cycle_run_id": run_id,
+                "execution_id": 0,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "status": "CYCLE_CONTEXT",
+                "event_timestamp": now_ms,
+                "label": "context",
+                "reward_proxy": None,
+                "features": {
+                    "latest_candle": _latest_candle(source_conn, symbol=symbol, timeframe=timeframe),
+                    "opportunities_by_status": _counts_by_status(model2_conn, "opportunities", symbol, timeframe),
+                    "technical_signals_by_status": _counts_by_status(model2_conn, "technical_signals", symbol, timeframe),
+                    "signal_executions_by_status": _counts_by_status(model2_conn, "signal_executions", symbol, timeframe),
+                },
+                "target": {
+                    "objective": "support_training_dataset_with_cycle_state",
+                },
+            }
+            model2_conn.execute(
+                """
+                INSERT OR IGNORE INTO training_episodes (
+                    episode_key,
+                    cycle_run_id,
+                    execution_id,
+                    symbol,
+                    timeframe,
+                    status,
+                    event_timestamp,
+                    label,
+                    reward_proxy,
+                    features_json,
+                    target_json,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    context_episode["episode_key"],
+                    run_id,
+                    0,
+                    symbol,
+                    timeframe,
+                    "CYCLE_CONTEXT",
+                    now_ms,
+                    "context",
+                    None,
+                    json.dumps(context_episode["features"], ensure_ascii=True, sort_keys=True),
+                    json.dumps(context_episode["target"], ensure_ascii=True, sort_keys=True),
+                    now_ms,
+                ),
+            )
+            jsonl_lines.append(json.dumps(context_episode, ensure_ascii=True, sort_keys=True))
+            context_episodes += 1
+
+        model2_conn.commit()
+
+    jsonl_path.write_text("\n".join(jsonl_lines) + ("\n" if jsonl_lines else ""), encoding="utf-8")
+    if execution_rows:
+        _save_cursor(cursor_file, max_seen_updated_at)
+
+    summary = {
+        "status": "ok",
+        "run_id": run_id,
+        "timestamp_utc_ms": now_ms,
+        "source_db_path": str(resolved_source_db),
+        "model2_db_path": str(resolved_model2_db),
+        "timeframe": timeframe,
+        "symbols": symbol_filter,
+        "cursor_start_ms": int(last_cursor_ms),
+        "cursor_end_ms": int(max_seen_updated_at) if execution_rows else int(last_cursor_ms),
+        "execution_episodes_persisted": int(inserted_rows),
+        "context_episodes_persisted": int(context_episodes),
+        "jsonl_file": str(jsonl_path),
+        "cursor_file": str(cursor_file),
+    }
+    summary_path = resolved_output_dir / f"model2_training_episodes_{run_id}.json"
+    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    summary["output_file"] = str(summary_path)
+    return summary
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Persist cycle episodes for model training")
+    parser.add_argument("--source-db-path", default=DB_PATH, help="Legacy/source SQLite with OHLCV tables.")
+    parser.add_argument("--model2-db-path", default=MODEL2_DB_PATH, help="Model2 SQLite path.")
+    parser.add_argument(
+        "--symbol",
+        action="append",
+        default=[],
+        help="Symbol filter. Repeat flag for multiple symbols.",
+    )
+    parser.add_argument(
+        "--timeframe",
+        default="H4",
+        choices=sorted(TIMEFRAME_TO_TABLE.keys()),
+        help="Timeframe for episode extraction and latest candle snapshot.",
+    )
+    parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Output directory for artifacts.")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    summary = run_persist_training_episodes(
+        source_db_path=args.source_db_path,
+        model2_db_path=args.model2_db_path,
+        symbols=list(args.symbol or []),
+        timeframe=args.timeframe,
+        output_dir=args.output_dir,
+    )
+    print(json.dumps(summary, indent=2, ensure_ascii=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

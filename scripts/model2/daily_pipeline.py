@@ -23,18 +23,18 @@ from scripts.model2.resolve import run_resolution
 from scripts.model2.scan import run_scan
 from scripts.model2.track import run_tracking
 from scripts.model2.validate import run_validation
+from scripts.model2.rl_signal_generation_wrapper import run_rl_signal_generation
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
 try:
-    from config.settings import DB_PATH, MODEL2_DB_PATH
-    from config.symbols import ALL_SYMBOLS
+    from config.settings import DB_PATH, M2_SYMBOLS, MODEL2_DB_PATH
 except Exception:
     DB_PATH = "db/crypto_agent.db"
     MODEL2_DB_PATH = "db/modelo2.db"
-    ALL_SYMBOLS = ("BTCUSDT",)
+    M2_SYMBOLS = ("BTCUSDT",)
 
-DEFAULT_SYMBOLS = list(ALL_SYMBOLS) if ALL_SYMBOLS else ["BTCUSDT"]
+DEFAULT_SYMBOLS = list(M2_SYMBOLS) if M2_SYMBOLS else ["BTCUSDT"]
 
 
 def _utc_now_ms() -> int:
@@ -199,6 +199,17 @@ def run_daily_pipeline(
                 "output_dir": resolved_output_dir,
             },
         ),
+        (
+            "rl_signal_generation",
+            run_rl_signal_generation,
+            {
+                "model2_db_path": resolved_model2_db,
+                "timeframe": timeframe,
+                "symbols": symbols_to_use,
+                "dry_run": bool(dry_run),
+                "output_dir": resolved_output_dir,
+            },
+        ),
     ]
 
     if not dry_run:
@@ -292,7 +303,7 @@ def _parse_args() -> argparse.Namespace:
         "--symbol",
         action="append",
         default=[],
-        help="Symbol filter. Repeat to pass multiple values. Defaults to ALL_SYMBOLS if omitted.",
+        help="Symbol filter. Repeat to pass multiple values. Defaults to M2_SYMBOLS if omitted.",
     )
     parser.add_argument(
         "--timeframe",
@@ -371,3 +382,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

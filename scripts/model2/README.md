@@ -2,6 +2,20 @@
 
 Este diretório contém apenas scripts operacionais do Modelo 2.0.
 
+## Fonte unica de simbolos (M2)
+
+Fonte canonica: `M2_SYMBOLS` em `config/settings.py`.
+
+Prioridade de resolucao:
+
+1. `M2_LIVE_SYMBOLS` no `.env` (recomendado para operacao).
+2. Fallback para `config.symbols.ALL_SYMBOLS` quando `M2_LIVE_SYMBOLS` estiver vazio.
+
+Regra operacional:
+
+1. Sem `--symbol`, scripts M2 usam `M2_SYMBOLS` por padrao.
+2. Com `--symbol`, o filtro e ad-hoc somente para aquela execucao.
+
 ## Comando de migração
 
 ```bash
@@ -322,4 +336,6 @@ Variaveis de ambiente principais:
 4. `M2_MAX_MARGIN_PER_POSITION_USD=25`
 5. `M2_MAX_SIGNAL_AGE_MINUTES=240`
 6. `M2_SYMBOL_COOLDOWN_MINUTES=240`
+
+
 

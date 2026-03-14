@@ -36,6 +36,15 @@ M2_LIVE_SYMBOLS = tuple(
     for symbol in os.getenv("M2_LIVE_SYMBOLS", "").split(",")
     if symbol.strip()
 )
+# Single source of truth for M2 operational symbol scope.
+# Priority:
+# 1) Explicit .env allow-list (`M2_LIVE_SYMBOLS`)
+# 2) Legacy universe fallback from `config.symbols.ALL_SYMBOLS`
+try:
+    from config.symbols import ALL_SYMBOLS as _ALL_SYMBOLS
+except Exception:
+    _ALL_SYMBOLS = []
+M2_SYMBOLS = M2_LIVE_SYMBOLS if M2_LIVE_SYMBOLS else tuple(_ALL_SYMBOLS)
 M2_MAX_DAILY_ENTRIES = int(os.getenv("M2_MAX_DAILY_ENTRIES", "10"))
 M2_MAX_MARGIN_PER_POSITION_USD = float(os.getenv("M2_MAX_MARGIN_PER_POSITION_USD", "1.0"))
 M2_MAX_SIGNAL_AGE_MINUTES = int(os.getenv("M2_MAX_SIGNAL_AGE_MINUTES", "240"))

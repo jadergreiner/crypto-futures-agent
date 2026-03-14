@@ -16,8 +16,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from config.settings import DB_PATH, MODEL2_DB_PATH
-from config.symbols import ALL_SYMBOLS
+from config.settings import DB_PATH, M2_SYMBOLS, MODEL2_DB_PATH
 from core.model2 import DetectorInput, Model2ThesisRepository, detect_initial_short_failure
 from indicators.smc import SmartMoneyConcepts
 
@@ -209,7 +208,7 @@ def _parse_args() -> argparse.Namespace:
         "--symbol",
         action="append",
         default=[],
-        help="Symbol to scan. Repeat to pass multiple values. Defaults to ALL_SYMBOLS.",
+        help="Symbol to scan. Repeat to pass multiple values. Defaults to M2_SYMBOLS.",
     )
     parser.add_argument(
         "--timeframe",
@@ -238,7 +237,7 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    symbols = args.symbol or list(ALL_SYMBOLS)
+    symbols = args.symbol or list(M2_SYMBOLS)
     summary = run_scan(
         source_db_path=args.source_db_path,
         model2_db_path=args.model2_db_path,
@@ -254,3 +253,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

@@ -335,7 +335,7 @@ def _parse_args() -> argparse.Namespace:
         "--symbol",
         action="append",
         default=[],
-        help="Symbol filter. Repeat to pass multiple values. Defaults to ALL_SYMBOLS if omitted.",
+        help="Symbol filter. Repeat to pass multiple values. Defaults to M2_SYMBOLS if omitted.",
     )
     parser.add_argument(
         "--timeframe",
@@ -431,3 +431,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
