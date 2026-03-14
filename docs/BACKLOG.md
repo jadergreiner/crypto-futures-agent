@@ -699,29 +699,31 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-B concluídas)
 
-Entrega esperada (Fase A - Validação e Enriquecimento Fase 1):
+Entrega atual (Fase A + Fase B):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
 2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
 3. Enriquecimento com multi-timeframe context (H1, H4, D1). [OK]
 4. Especificação técnica completa de roadmap (5 fases). [OK]
+5. Reward function estendida com Sharpe, drawdown, recovery time. [OK]
+6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06), Slow Recovery (-0.47), Losing (-0.85). [OK]
 
-Evidencias (Fase A - Concluído):
+Evidencias (Fases A-B concluídas):
 
 1. Validador: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor: `scripts/model2/feature_enricher.py`
-3. Integração ao pipeline: `scripts/model2/persist_training_episodes.py` (alvo M2-016.2)
-4. Features adicionadas em episódios: `volatility` (atr_20, rsi_14, bb_position), `multi_timeframe_context` (H1, D1)
-5. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
+3. Integração ao pipeline: `scripts/model2/persist_training_episodes.py`
+4. Reward estendida: `agent/reward_extended.py`
+5. Teste de cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
+6. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
 
-Candidatas a explorar pós-Fase A:
+Próximas Fases:
 
-1. **Fase B (Dias 8-14)**: Ajustar reward function para incluir Sharpe, drawdown e recovery time
-2. **Fase C (Dias 15-21)**: Fine-tune de hiperparâmetros PPO (learning rate, batch size, entropy)
-3. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
-4. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
+1. **Fase C (Dias 15-21)**: Fine-tune de hiperparâmetros PPO (learning rate, batch size, entropy)
+2. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
+3. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
 
 
 
