@@ -126,5 +126,8 @@ def test_m2_011_m2_013_phase2_delivery_tracks_declared_in_backlog() -> None:
     assert "TAREFA M2-012.2 - Configuracao explicita de ativacao" in text
     assert "TAREFA M2-012.3 - Exclusividade por simbolo" in text
     assert "INICIATIVA M2-013 - Documentacao canonica da Fase 2" in text
+    assert "INICIATIVA M2-014 - Automacao de go-live da Fase 2" in text
+    assert "TAREFA M2-014.1 - Runner unico de preflight para go-live" in text
     assert "Criterios de pronto para a Fase 2" in text
     assert "Go-live checklist da Fase 2" in text
+

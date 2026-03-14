@@ -14,17 +14,23 @@ Parâmetros opcionais:
 python scripts/model2/migrate.py up --db-path db/modelo2.db --output-dir results/model2/runtime
 ```
 
-Pre-flight recomendado para banco operacional:
+## Comando de preflight de go-live (M2-014)
+
+Valida os 10 itens do checklist da Fase 2 e aplica auto-fix por padrao
+(Windows), incluindo: permissao de escrita, migracao, ajustes em `.env`,
+execucao `live_execute/live_reconcile/live_dashboard/healthcheck` e
+artefato `model2_go_live_preflight_*.json`.
+
+Execucao padrao (auto-fix habilitado):
 
 ```bash
-python -c "from config.settings import MODEL2_DB_PATH; print(MODEL2_DB_PATH)"
-python -c "import sqlite3; from config.settings import MODEL2_DB_PATH as p; c=sqlite3.connect(p); c.execute('BEGIN IMMEDIATE'); c.execute('CREATE TABLE IF NOT EXISTS __perm_test(id INTEGER)'); c.execute('DROP TABLE __perm_test'); c.execute('COMMIT'); c.close(); print('ok', p)"
+python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
 ```
 
-Se houver erro de permissao de escrita no Windows:
+Execucao em modo validacao somente (sem auto-fix):
 
 ```bash
-cmd /c "icacls db /grant %USERNAME%:(OI)(CI)M /T"
+python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT --no-apply
 ```
 
 ## Comando de scanner (M2-002)
@@ -316,3 +322,4 @@ Variaveis de ambiente principais:
 4. `M2_MAX_MARGIN_PER_POSITION_USD=25`
 5. `M2_MAX_SIGNAL_AGE_MINUTES=240`
 6. `M2_SYMBOL_COOLDOWN_MINUTES=240`
+

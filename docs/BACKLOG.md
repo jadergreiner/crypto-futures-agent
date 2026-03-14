@@ -570,6 +570,45 @@ Evidencias:
 6. Runbook e comandos: `docs/RUNBOOK_M2_OPERACAO.md` e `scripts/model2/README.md`.
 7. Suite de sincronismo documental: `tests/test_docs_model2_sync.py`.
 
+## INICIATIVA M2-014 - Automacao de go-live da Fase 2
+
+### TAREFA M2-014.1 - Runner unico de preflight para go-live
+
+Status: CONCLUIDA (2026-03-13)
+Entrega:
+
+1. Publicar runner unico `go_live_preflight.py` cobrindo os 10 itens do checklist. [OK]
+2. Aplicar auto-fix por padrao no Windows com opcao `--no-apply`. [OK]
+3. Emitir resumo operacional versionado em `results/model2/runtime/`. [OK]
+4. Cobrir cenarios de sucesso/falha/continue-on-error em testes. [OK]
+5. Atualizar README e runbook para o fluxo oficial de preflight. [OK]
+
+Evidencias:
+
+1. Runner operacional de preflight: `scripts/model2/go_live_preflight.py`.
+2. Cobertura unitaria dedicada: `tests/test_model2_go_live_preflight.py`.
+3. Validacao de sincronismo documental: `tests/test_docs_model2_sync.py`.
+4. Documentacao de comandos: `scripts/model2/README.md`.
+5. Runbook operacional atualizado: `docs/RUNBOOK_M2_OPERACAO.md`.
+## INICIATIVA M2-015 - Unificacao operacional do agente
+
+### TAREFA M2-015.1 - Consolidar entrada operacional em `iniciar.bat`
+
+Status: CONCLUIDA (2026-03-14)
+Entrega:
+
+1. Manter um unico agente de inicializacao no Windows (`iniciar.bat`). [OK]
+2. Preservar acesso ao fluxo legado e ao fluxo M2 no mesmo entrypoint. [OK]
+3. Executar ciclo operacional M2 em loop continuo com healthcheck por ciclo. [OK]
+4. Permitir modo de diagnostico `M2_RUN_ONCE=1` e intervalo configuravel via `M2_LOOP_SECONDS`. [OK]
+
+Evidencias:
+
+1. Entry point unificado: `iniciar.bat`.
+2. Orquestrador do pipeline de sinais: `scripts/model2/daily_pipeline.py`.
+3. Orquestrador do ciclo live: `scripts/model2/live_cycle.py`.
+4. Healthcheck live: `scripts/model2/healthcheck_live_execution.py`.
+5. Regras operacionais atualizadas: `docs/REGRAS_DE_NEGOCIO.md`.
 ## Criterios de pronto para a Fase 1
 
 1. Oportunidade nasce sempre com tese completa.
@@ -599,3 +638,6 @@ Evidencias:
 8. Validar python scripts/model2/live_reconcile.py sem divergencias.
 9. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
 10. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.
+
+
+

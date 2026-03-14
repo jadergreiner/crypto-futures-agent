@@ -355,3 +355,13 @@ Indices implementados:
 6. Idempotencia de criacao inicial por chave natural:
    (`symbol`, `timeframe`, `thesis_type`, `metadata_json.rejection_candle.timestamp`)
 7. Snapshots materializados de observabilidade devem respeitar retencao de 30 dias
+
+## Atualizacao operacional 2026-03-14
+
+A unificacao do entry point em `iniciar.bat` NAO alterou schema do banco M2.
+
+1. O fluxo em loop apenas orquestra runners existentes (`daily_pipeline`,
+   `live_cycle`, `healthcheck_live_execution`).
+2. O contrato de dados permanece o mesmo desta modelagem.
+3. Evidencias operacionais continuam sendo geradas em
+   `results/model2/runtime/*.json`.

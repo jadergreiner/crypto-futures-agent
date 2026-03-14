@@ -110,14 +110,13 @@ Saida:
 1. Snapshots de painel em `opportunity_dashboard_snapshots`.
 2. Snapshots de auditoria em `opportunity_audit_snapshots`.
 3. Snapshots live em `signal_execution_snapshots`.
-3. Resumos operacionais em `results/model2/runtime/`:
-   `model2_dashboard_*.json`, `model2_audit_*.json` e
-   `model2_reprocess_*.json`, `model2_bridge_*.json` e
-   `model2_export_dashboard_*.json`, `model2_daily_pipeline_*.json` e
-   `model2_daily_schedule_*.json`, `model2_daily_healthcheck_*.json`,
-   `model2_live_execute_*.json`, `model2_live_reconcile_*.json`,
-   `model2_live_dashboard_*.json`, `model2_live_healthcheck_*.json` e
-   `model2_live_cycle_*.json`.
+4. Resumos operacionais em `results/model2/runtime/`:
+   `model2_dashboard_*.json`, `model2_audit_*.json`, `model2_reprocess_*.json`,
+   `model2_bridge_*.json`, `model2_export_dashboard_*.json`,
+   `model2_daily_pipeline_*.json`, `model2_daily_schedule_*.json`,
+   `model2_daily_healthcheck_*.json`, `model2_live_execute_*.json`,
+   `model2_live_reconcile_*.json`, `model2_live_dashboard_*.json`,
+   `model2_live_healthcheck_*.json` e `model2_go_live_preflight_*.json`.
 
 ## Fluxo principal
 
@@ -165,3 +164,16 @@ flowchart LR
     K --> L[Reconcile + Dashboard + Healthcheck]
     H --> M[Adaptador legado opcional]
 ```
+
+## Entrada operacional unificada (estado atual)
+
+Em ambiente Windows, a operacao local usa `iniciar.bat` como entry point unico.
+
+1. Opcao `1`: fluxo legado (`menu.py`).
+2. Opcao `2`: fluxo M2 em loop continuo, executando em cada iteracao:
+   - `scripts/model2/daily_pipeline.py`
+   - `scripts/model2/live_cycle.py`
+   - `scripts/model2/healthcheck_live_execution.py`
+3. O intervalo do loop e configuravel por `M2_LOOP_SECONDS` (default `300`).
+4. `M2_RUN_ONCE=1` executa um unico ciclo para diagnostico operacional.
+

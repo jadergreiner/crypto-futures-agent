@@ -482,3 +482,24 @@ Implementacao de referencia: `config/settings.py`,
    - `shadow`
    - `live` com subset de simbolos
    - ampliacao progressiva da whitelist
+## Estado operacional atual (2026-03-14)
+
+Implementacao operacional vigente no entrypoint Windows:
+`iniciar.bat`.
+
+1. O agente possui dois modos no menu:
+   - `1` legado (`menu.py`)
+   - `2` nova versao M2 (loop continuo)
+2. O modo `2` executa em cada ciclo:
+   - `daily_pipeline` para gerar/atualizar oportunidades e sinais
+   - `live_cycle` para execucao/reconciliacao/dashboard live
+   - `healthcheck_live_execution` para gate de saude operacional
+3. O loop fica ativo ate interrupcao manual (`Ctrl+C`).
+4. Parametros operacionais do loop:
+   - `M2_LOOP_SECONDS` (padrao: `300`)
+   - `M2_RUN_ONCE=1` para executar apenas um ciclo
+5. No estado atual de producao, `M2_EXECUTION_MODE=live` com whitelist progressiva
+   configurada por `M2_LIVE_SYMBOLS`.
+6. Nao existir `processed_ready` em um ciclo live nao e erro operacional:
+   significa ausencia de sinais elegiveis (`technical_signals` em `CONSUMED`).
+

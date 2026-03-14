@@ -27,6 +27,8 @@ Componentes do live:
 3. `scripts/model2/live_dashboard.py`
 4. `scripts/model2/healthcheck_live_execution.py`
 5. `scripts/model2/live_cycle.py`
+6. `scripts/model2/go_live_preflight.py`
+7. `iniciar.bat` (entry point unificado Windows)
 
 Artefatos esperados em `results/model2/runtime/`:
 
@@ -37,24 +39,28 @@ Artefatos esperados em `results/model2/runtime/`:
 5. `model2_live_reconcile_*.json`
 6. `model2_live_dashboard_*.json`
 7. `model2_live_healthcheck_*.json`
+8. `model2_go_live_preflight_*.json`
 
 ## Pre-flight do live
 
-Verificar antes do go-live:
+Comando oficial de preflight (Windows, auto-fix por padrao):
 
-1. Confirmar o banco operacional efetivo:
-   `python -c "from config.settings import MODEL2_DB_PATH; print(MODEL2_DB_PATH)"`
-2. Validar escrita no path resolvido de `MODEL2_DB_PATH` (necessario para snapshots e reconciliacao):
-   `python -c "import sqlite3; from config.settings import MODEL2_DB_PATH as p; c=sqlite3.connect(p); c.execute('BEGIN IMMEDIATE'); c.execute('CREATE TABLE IF NOT EXISTS __perm_test(id INTEGER)'); c.execute('DROP TABLE __perm_test'); c.execute('COMMIT'); c.close(); print('ok', p)"`
-3. Se houver erro de permissao no Windows, corrigir ACL da pasta `db/`:
-   `cmd /c "icacls db /grant %USERNAME%:(OI)(CI)M /T"`
-4. `python scripts/model2/migrate.py up`
-5. `M2_EXECUTION_MODE=shadow`
-6. `M2_LIVE_SYMBOLS` com subset explicito
-7. `M2_MAX_DAILY_ENTRIES` revisado
-8. `M2_MAX_MARGIN_PER_POSITION_USD` revisado
-9. `M2_MAX_SIGNAL_AGE_MINUTES` revisado
-10. `M2_SYMBOL_COOLDOWN_MINUTES` revisado
+```bash
+python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
+```
+
+Modo validacao somente (sem auto-fix):
+
+```bash
+python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT --no-apply
+```
+
+Comportamento esperado:
+
+1. Valida os 10 itens do checklist de go-live da Fase 2.
+2. Emite `model2_go_live_preflight_*.json` em `results/model2/runtime/`.
+3. Retorna exit code `0` quando `status=ok` e `1` quando `status=alert`.
+4. Mantem `next_actions` com itens manuais pendentes (ex.: revisao final do runbook).
 
 ## Operacao diaria do pipeline
 
@@ -77,6 +83,19 @@ Interpretacao:
 1. Exit `0`: operacao saudavel.
 2. Exit `1`: alerta operacional.
 
+## Operacao via iniciar.bat (estado atual)
+
+No ambiente Windows, o entry point operacional recomendado e `iniciar.bat`.
+
+1. Opcao `1`: fluxo legado (`menu.py`).
+2. Opcao `2`: fluxo M2 continuo, executando por ciclo:
+   - `daily_pipeline` (gera/atualiza sinais)
+   - `live_cycle` (execucao/reconcile/dashboard)
+   - `healthcheck_live_execution` (gate de saude)
+3. O loop repete ate interrupcao manual (`Ctrl+C`).
+4. Parametros operacionais:
+   - `M2_LOOP_SECONDS` (default `300`)
+   - `M2_RUN_ONCE=1` (executa apenas um ciclo)
 ## Operacao do live
 
 ### 1) Ciclo manual recomendado
@@ -204,3 +223,6 @@ python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode live
 3. `model2_live_dashboard_*.json` atualizado.
 4. `model2_live_healthcheck_*.json` com `status=ok`.
 5. Logs do host sem falhas criticas.
+
+
+

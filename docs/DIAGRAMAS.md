@@ -155,3 +155,18 @@ stateDiagram-v2
     FAILED --> [*]
     EXITED --> [*]
 ```
+
+## 6) Loop operacional unificado (Windows)
+
+Entry point local: `iniciar.bat` (opcao `2`).
+
+```mermaid
+flowchart TD
+    A[iniciar.bat opcao 2] --> B[daily_pipeline]
+    B --> C[live_cycle]
+    C --> D[healthcheck_live_execution]
+    D --> E{M2_RUN_ONCE=1?}
+    E -->|Sim| F[Fim]
+    E -->|Nao| G[timeout M2_LOOP_SECONDS]
+    G --> B
+```

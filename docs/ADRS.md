@@ -247,3 +247,18 @@ canonico M2 e publicar dashboard/healthcheck dedicados do live.
 **Consequencia:**
 O M2 deixa de depender dos contadores em memoria do executor legado e ganha
 capacidade propria de rollout progressivo (`shadow -> live subset -> whitelist ampla`).
+
+## ADR-020 - Entry point unico em Windows para operacao legacy + M2
+
+**Status:** ACEITO
+
+**Decisao:**
+Consolidar a operacao local Windows em um unico entry point (`iniciar.bat`),
+com duas opcoes:
+
+1. Fluxo legado (`menu.py`).
+2. Fluxo M2 em loop continuo (`daily_pipeline -> live_cycle -> healthcheck`).
+
+**Consequencia:**
+Padroniza a operacao, reduz erro humano de comando manual e garante que o
+fluxo live receba sinais atualizados antes de cada tentativa de execucao.
