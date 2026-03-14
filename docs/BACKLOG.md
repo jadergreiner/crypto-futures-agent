@@ -752,11 +752,43 @@ Evidencias (Fases A-D.4 concluídas):
 19. Spec Phase D.4: `designs/M2_016_3_PHASE_D4_CORRELATION_ANALYSIS.md`
 20. Relatório correlação: `results/model2/analysis/phase_d4_correlation_*.json`
 
+Entrega atual (Fases E.1 + Documentação):
+
+21. LSTM Environment wrapper com rolling buffer (10 timesteps, 20 features). [OK]
+22. Feature extraction (5 candle + 4 volatility + 3 multi-TF + 4 FR + 3 OI). [OK]
+23. Modo dual LSTM/MLP (output shapes: (10,20) vs (200,)). [OK]
+24. Ambiente LSTM ready para integração com training pipeline. [OK]
+25. Sincronização de 8 docs governança (CRITICAL/HIGH/MEDIUM/LOW). [OK]
+26. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
+27. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
+28. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment + LSTM). [OK]
+29. REGRAS_DE_NEGOCIO.md atualizado (RN-007, RN-008, RN-009). [OK]
+30. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api, open_interest_api). [OK]
+31. ADRS.md atualizado (ADR-023: Feature enrichment, ADR-024: LSTM design). [OK]
+32. DIAGRAMAS.md atualizado (diagrama 1c D.2-D.4, diagrama 1d E.1). [OK]
+33. CHANGELOG.md criado (M2-016.x release history). [OK]
+34. SYNCHRONIZATION.md criado (audit trail de sincronização completo). [OK]
+
+Evidencias (Fase E.1 + Documentação concluídas):
+
+1. LSTM environment wrapper: `agent/lstm_environment.py`
+2. Spec Phase E.1: `designs/M2_016_3_PHASE_E_LSTM_POLICY.md`
+3. Docs sincronizados: `docs/ARQUITETURA_ALVO.md`, `docs/RUNBOOK_M2_OPERACAO.md`, `docs/RL_SIGNAL_GENERATION.md`, `docs/REGRAS_DE_NEGOCIO.md`, `docs/MODELAGEM_DE_DADOS.md`, `docs/ADRS.md`, `docs/DIAGRAMAS.md`
+4. Novo CHANGELOG: `docs/CHANGELOG.md`
+5. Audit trail sincronização: `docs/SYNCHRONIZATION.md`
+6. Commits sync:
+   - eae8d20: 4 docs (CRITICAL+HIGH)
+   - 7064e13: 2 docs (MEDIUM)
+   - 3dc6f79: 2 docs (LOW) + CHANGELOG
+   - 367aa73: SYNCHRONIZATION.md
+
 Próximas Fases:
 
-1. **Fase D.5 (Dias 19-21)**: Real data correlation (coletar 500+ episodes reais, validar correlações com model M2-016.2)
-2. **Fase E (Dias 22-35)**: LSTM policy exploration (policy com memoria temporal, baseline vs LSTM comparison)
-3. **Produção (When ready)**: Deploy daemon como systemd service + credenciais real Binance
+1. **Fase D.5 (Dias 19-21 est.)**: Real data correlation (coletar 500+ episodes reais com M2-016.2, validar correlações)
+2. **Fase E.2 (Dias 22-26 est.)**: LSTM Policy (64U LSTM + 128D dense, 3-4 dias)
+3. **Fase E.3 (Dias 26-31 est.)**: Training LSTM vs MLP (100+ episodes, 4-5 dias)
+4. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
+5. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
 
 
 
