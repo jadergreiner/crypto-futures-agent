@@ -305,3 +305,65 @@ Integrar modelo PPO treinado via episodios coletados automaticamente a cada cicl
 2. Pipeline nao e bloqueada por convergencia de treinamento (offline).
 3. RL enhancement e aplicativo apenas quando modelo passar limiares de qualidade (Sharpe > 0.5).
 4. Auditoria completa de episodios permite replay e diagnostico de producao.
+
+## ADR-023 - Enriquecimento de episodios com dados de mercado externo
+
+**Status:** ACEITO
+
+**Decisao:**
+Enriquecer episodios de treinamento com dados de taxa de financiamento (FR)
+e interesse aberto (OI) coletados via API Binance (Fases D.2-D.4):
+
+1. Daemon `daemon_funding_rates.py` coleta FR continuamente (interval: 30s).
+2. Features de FR (`latest_rate`, `avg_rate_24h`, `sentiment`, `trend`)
+   sao integradas em cada episodio durante coleta do pipeline.
+3. Features de OI (`open_interest`, `oi_sentiment`, `change_direction`)
+   sao calculadas e persistidas em `training_episodes.features_json`.
+4. Analise de correlacao (Fase D.4) roda semanal via
+   `phase_d4_correlation_analysis.py` para validar poder preditivo.
+5. Descoberta: FR bearish prediz 0% win rate (sinal forte de perda).
+
+**Alternativas consideradas:**
+
+- Sincronização pull-on-demand (rejeitada): aumentaria latencia do pipeline.
+- Apenas histórico Binance (rejeitada): não captura dados em tempo real necessários.
+- Mock data (rejeitada): não valida integracao real com API.
+
+**Consequencia:**
+
+1. Episodios agora contem contexto de mercado externo (20 features).
+2. Modelos PPO treinam com sinal mais rico, potencialmente melhorando performance.
+3. Correlacao descoberta (r=0.27, p=0.006) pode gerar regra RN-008 de rejeicao.
+4. Requer monitoramento continuo do daemon (operacao day-to-day).
+5. Fallback: permitir episodio com NaN se coleta falhar < 10%.
+
+## ADR-024 - Ambiente LSTM with rolling window state buffer
+
+**Status:** ACEITO
+
+**Decisao:**
+Preparar suporte para politicas LSTM na pipeline RL via novo
+`LSTMSignalEnvironment` wrapper (Fase E.1):
+
+1. `LSTMSignalEnvironment` envolve `SignalReplayEnv` com buffer temporal
+   (`deque`, `maxlen=10` timesteps).
+2. Feature extraction normaliza 20 escalares (candle, volatility,
+   multi-TF, FR, OI) para shape (seq_len=10, n_features=20).
+3. Modo dual suporta LSTM output (10, 20) e fallback MLP flat (200,).
+4. Runtime switchable via `set_model_type()` para compatibilidade backward.
+5. Proximas fases (E.2-E.4): Treinar LSTM policy e comparar vs MLP baseline.
+
+**Alternativas consideradas:**
+
+- Stacking candles em (n_candles, n_features) sem buffer (rejeitada):
+  pierde ordem temporal importante.
+- Frame stacking legado (rejeitada): sem normalizacao, features heterogeneas.
+- Apenas LSTM sem fallback (rejeitada): quebra compatibilidade com agents MLP existentes.
+
+**Consequencia:**
+
+1. Novo `agent/lstm_environment.py` (260 linhas) requerido com manutencao.
+2. LSTM politicas agora viavel (roadmap E.2-E.4).
+3. Backward compatibility preservada com flat mode.
+4. Sharpe ratio LSTM >= baseline MLP meta para go-live (idealm. +5%).
+5. Requer validacao de normalizacao ([-1, 1]) em todos 20 features.

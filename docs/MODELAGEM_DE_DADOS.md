@@ -418,3 +418,126 @@ Campos principais:
 10. `features_json` (TEXT)
 11. `target_json` (TEXT)
 12. `created_at` (INTEGER UTC ms)
+
+## Tabela: taxas de financiamento da API (`funding_rates_api`)
+
+Coleta continua de taxa de financiamento (FR) pela API Binance (Fase D.2).
+
+Campos:
+
+1. `id` (PK INTEGER)
+2. `symbol` (TEXT, ex.: BTCUSDT)
+3. `timestamp` (INTEGER UTC ms, indice)
+4. `funding_rate` (REAL, valor bruto da taxa)
+5. `mark_price` (REAL, preco de marca)
+6. `index_price` (REAL, preco de indice)
+7. `sentiment` (TEXT: bullish|neutral|bearish)
+   - bullish: funding_rate > 0.0001
+   - neutral: -0.0001 <= funding_rate <= 0.0001
+   - bearish: funding_rate < -0.0001
+8. `trend` (TEXT: increasing|stable|decreasing)
+   - Comparacao: valor atual vs media movel 24h
+9. `created_at` (INTEGER UTC ms, quando registrado)
+
+Indices:
+
+1. `idx_funding_rates_symbol_timestamp` (`symbol`, `timestamp` DESC)
+2. `idx_funding_rates_sentiment` (`sentiment`)
+3. `idx_funding_rates_created_at` (`created_at`)
+
+Schema minimo esperado:
+```sql
+CREATE TABLE funding_rates_api (
+  id INTEGER PRIMARY KEY,
+  symbol TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  funding_rate REAL,
+  mark_price REAL,
+  index_price REAL,
+  sentiment TEXT,
+  trend TEXT,
+  created_at INTEGER
+);
+```
+
+Target: >= 1000 registros/dia por par.
+
+## Tabela: interesse aberto da API (`open_interest_api`)
+
+Coleta de interesse aberto (OI) para analise de sentimento (Fase D.3).
+
+Campos:
+
+1. `id` (PK INTEGER)
+2. `symbol` (TEXT, ex.: BTCUSDT)
+3. `timestamp` (INTEGER UTC ms, indice)
+4. `open_interest` (REAL, OI total normalizado /100k)
+5. `oi_sentiment` (TEXT: accumulating|neutral|liquidating)
+   - accumulating: OI aumentando + FR bullish
+   - neutral: OI estavel
+   - liquidating: OI reduzindo + FR bearish
+6. `change_direction` (TEXT: up|down|stable)
+   - Derivada: (OI_atual - OI_24h_atras) / OI_24h_atras
+7. `created_at` (INTEGER UTC ms)
+
+Indices:
+
+1. `idx_oi_symbol_timestamp` (`symbol`, `timestamp` DESC)
+2. `idx_oi_sentiment` (`oi_sentiment`)
+
+Schema minimo:
+```sql
+CREATE TABLE open_interest_api (
+  id INTEGER PRIMARY KEY,
+  symbol TEXT NOT NULL,
+  timestamp INTEGER NOT NULL,
+  open_interest REAL,
+  oi_sentiment TEXT,
+  change_direction TEXT,
+  created_at INTEGER
+);
+```
+
+## Enriquecimento de Features em training_episodes (Fases D.3, E.1)
+
+Campo `features_json` em `training_episodes` contem 20 features escalares normalizadas para LSTM:
+
+```json
+{
+  "episode_id": "EP-20260314-001",
+  "timestamp": 1710417600000,
+  "features_json": {
+    "candle_open": 0.125,
+    "candle_high": 0.342,
+    "candle_low": -0.089,
+    "candle_close": 0.205,
+    "candle_volume": 0.567,
+    "volatility_atr_14": 0.043,
+    "volatility_bb_upper": 0.234,
+    "volatility_bb_sma": 0.089,
+    "volatility_bb_lower": -0.056,
+    "multitf_h1_close": 0.101,
+    "multitf_h4_close": 0.215,
+    "multitf_d1_close": 0.312,
+    "fr_latest_rate": 0.00031,
+    "fr_avg_rate_24h": 0.00015,
+    "fr_sentiment": 0.67,
+    "fr_trend": 0.45,
+    "oi_current": 0.789,
+    "oi_sentiment": 0.56,
+    "oi_change_direction": 0.32,
+    "padding": 0.0
+  },
+  "timestamp_utc_ms": 1710417600000
+}
+```
+
+Normalizacao obrigatoria:
+- Todos valores em [-1.0, 1.0]
+- NaN nao permitido (rejeitar episodio se falhar)
+- Ordem fixa (LSTM exige consistencia)
+
+Frequencia de atualizacao:
+- A cada ciclo de pipeline (every H4 candle)
+- Fallback: permitir NaN se coleta de API falhar < 10%
+- Retry: tentar coleta de dados historicos via Binance REST API
