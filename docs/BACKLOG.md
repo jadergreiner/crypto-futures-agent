@@ -699,9 +699,9 @@ Evidencias:
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-B concluídas)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-C concluídas)
 
-Entrega atual (Fase A + Fase B):
+Entrega atual (Fases A-C):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
 2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
@@ -709,21 +709,25 @@ Entrega atual (Fase A + Fase B):
 4. Especificação técnica completa de roadmap (5 fases). [OK]
 5. Reward function estendida com Sharpe, drawdown, recovery time. [OK]
 6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06), Slow Recovery (-0.47), Losing (-0.85). [OK]
+7. Grid search PPO 64 combinações (learning_rate, batch_size, entropy_coef). [OK]
+8. Best hyperparams validados: lr=3e-4, bs=64, ent=0.01 (Sharpe=1.176). [OK]
 
-Evidencias (Fases A-B concluídas):
+Evidencias (Fases A-C concluídas):
 
-1. Validador: `scripts/model2/validate_training_episodes.py`
-2. Enriquecedor: `scripts/model2/feature_enricher.py`
-3. Integração ao pipeline: `scripts/model2/persist_training_episodes.py`
+1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
+2. Enriquecedor features: `scripts/model2/feature_enricher.py`
+3. Integração pipeline: `scripts/model2/persist_training_episodes.py`
 4. Reward estendida: `agent/reward_extended.py`
-5. Teste de cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
-6. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
+5. Teste cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
+6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
+7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md` (grid 64 combos, best=baseline)
+8. Resultados grid: `results/model2/ppo_grid_search_20260314T121210Z.json`
+9. Spec técnica: `designs/M2_016_3_FEATURE_REWARD_IMPROVEMENTS.md`
 
 Próximas Fases:
 
-1. **Fase C (Dias 15-21)**: Fine-tune de hiperparâmetros PPO (learning rate, batch size, entropy)
-2. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
-3. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
+1. **Fase D (Dias 22-28)**: Enriquecimento Fase 2 - Funding rates, open interest, onchain data
+2. **Fase E (Dias 29-42)**: Experimentar LSTM para capturar state dependence temporal
 
 
 
