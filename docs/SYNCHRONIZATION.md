@@ -23,6 +23,35 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-006] M2-016.4 LSTM Policy Implementation and Training
+
+**Data/Hora**: 2026-03-15
+**Commits**: 1 commit [SYNC] (Pendente)
+**Status**: ✅ COMPLETO
+
+#### Mudanças no Código (Fases E.2, E.3)
+
+| Componente | Arquivo | Mudança | Versão |
+|------------|---------|---------|--------|
+| LSTM Policy | agent/lstm_policy.py | Novo (Feature Extractor) | E.2 |
+| Config de Envs | agent/lstm_environment.py | Wrapper compativel c/ Gym | E.3 |
+| PPO Custom Pipeline | scripts/model2/train_ppo_lstm.py | Suporte duplo (LSTM/MLP) | E.3 |
+
+#### Documentação Sincronizada (10/10)
+
+1. **ARQUITETURA_ALVO.md**: Roadmap atualizado para [CONCLUÍDA] nas Fases E.2/E.3 e apontando E.4.
+2. **ADRS.md**: Retificado que roadmap de treinamento já é viável e finalizado.
+3. **BACKLOG.md**: Fases marcadas como `[OK]` e validadas.
+4. **CHANGELOG.md**: Tópico de release `[M2-016.4]` incluído.
+5. **DIAGRAMAS.md**: Alterados labels do flowchart E.1 para apontar componentes de E.2 e E.3.
+6. **MODELAGEM_DE_DADOS.md**: Checado (features OK).
+7. **REGRAS_DE_NEGOCIO.md**: Checado (features temporais OK).
+8. **RL_SIGNAL_GENERATION.md**: Checklist das implementações de treino e política.
+9. **RUNBOOK_M2_OPERACAO.md**: Documentado os comandos de CLI via `--policy` utilizando `train_ppo_lstm.py`.
+10. **SYNCHRONIZATION.md**: Criado rastreabilidade desta sincronização geral.
+
+---
+
 ### [SYNC-005] M2-016.3 Feature Enrichment + LSTM Preparation
 
 **Data/Hora**: 2026-03-14 10:30-11:45 UTC
@@ -143,10 +172,9 @@ toda vez que mudanças significativas são feitas no código:
 - [ ] ROADMAP.md: Atualizar progresso semana N+1
 - [ ] STATUS_ATUAL.md: Update GO-LIVE dashboard
 
-**Quando fase E.2 for completada:**
-- [ ] RL_SIGNAL_GENERATION.md: Documentar LSTM policy
-- [ ] DIAGRAMAS.md: Atualizar diagrama E.2
-- [ ] ADRS.md: Adicionar ADR-025 (LSTM policy design)
+**Quando fase E.4 for completada:**
+- [ ] RL_SIGNAL_GENERATION.md: Documentar sharpe index report e métricas comparativas
+- [ ] DIAGRAMAS.md: Atualizar arquitetura se MLP não for recomendado
 
 ---
 

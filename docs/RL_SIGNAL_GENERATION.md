@@ -1,8 +1,8 @@
 # 🚀 Geração de Sinais com Suporte a RL — Model 2.0
 
-**Status:** OPERACIONAL (14 MAR 2026)
-**Versao:** M2-016.3 (Feature Enrichment + LSTM Prep)
-**Checkpoint:** PPO treinado 500k timesteps | Sharpe evaluation: IN PROGRESS
+**Status:** OPERACIONAL (15 MAR 2026)
+**Versão:** M2-016.4 (LSTM Policy & Training)
+**Checkpoint:** LSTM Policy integrated, Treino PPO vs MLP | Sharpe evaluation: IN PROGRESS
 
 ## 📊 Resultados de Treinamento (14 MAR 2026)
 
@@ -112,7 +112,7 @@ python scripts/model2/phase_d4_correlation_analysis.py \
   --output-dir results/model2/analysis/
 ```
 
-### Fase E.1: Preparação de Ambiente LSTM (14 MAR)
+### Fase E.1 a E.3: Ambiente, Política e Treino LSTM (15 MAR)
 
 Novo `LSTMSignalEnvironment` envolve `SignalReplayEnv` com buffer temporal:
 
@@ -139,10 +139,10 @@ Features do LSTM env (20 escalares):
 - 3 open interest: OI, sentimento, direcao
 - 1 padding
 
-Roadmap E.2-E.4:
-- E.2 (3-4 dias): Politica LSTM (64U LSTM + 128D dense)
-- E.3 (4-5 dias): Treinamento PPO LSTM vs MLP (100+ eps, 2 signals)
-- E.4 (2-3 dias): Comparacao Sharpe (meta: +5% vs MLP)
+Roadmap LSTM:
+- E.2 (Concluída): Politica LSTM (64U LSTM + 128D dense)
+- E.3 (Concluída): Treinamento PPO LSTM vs MLP (`train_ppo_lstm.py`)
+- E.4 (Pendente): Comparacao Sharpe (meta: +5% vs MLP)
 
 ### Arquitetura
 
@@ -387,9 +387,11 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ### ✅ Implementado
 - [x] Persistência de episódios (`persist_training_episodes.py`)
 - [x] Geração de sinais com RL (`rl_signal_generation.py`)
-- [x] Treinamento incremental (`train_ppo_incremental.py`)
 - [x] Integração na pipeline diária
 - [x] Logging e monitoramento
+- [x] Ambiente Temporal LSTM (`LSTMSignalEnvironment`)
+- [x] Política LSTM customizada (`LSTMPolicy` + Extractor)
+- [x] Script de Treino PPO Dual MLP/LSTM (`train_ppo_lstm.py`)
 
 ### 🔄 Próximo
 - [ ] Executar primeiro treinamento completo (500k timesteps, 96h)
@@ -462,4 +464,4 @@ iniciar.bat opção 2
 ---
 
 **Status:** ✅ OPERACIONAL (modo fallback determinístico ativo)
-**Última Atualização:** 14 MAR 2026 01:12 UTC
+**Última Atualização:** 15 MAR 2026

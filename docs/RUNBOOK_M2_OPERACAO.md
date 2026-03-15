@@ -269,60 +269,26 @@ Acao recomendada:
 2. Se `bullish` win_rate > median+10%: Aumentar reward para sinais bullish.
 3. Executar `phase_d4_...` toda semana para monitorar drift de correlacao.
 
-### Fase 2.6: Preparacao de Ambiente LSTM (E.1)
+### Fase 2.6: Treinamento com Politica LSTM (Fases E.1-E.3)
 
-Quando pronto para testar politicas LSTM (proxima semana):
-
-```python
-# Em scripts de treinamento custom
-from agent.lstm_environment import LSTMSignalEnvironment
-
-# Envolva o ambiente existente
-lstm_env = LSTMSignalEnvironment(
-    env=original_env,
-    seq_len=10,
-    flatten_fallback=False  # Use LSTM output shape
-)
-
-# Reset retorna (10, 20)
-obs, info = lstm_env.reset()
-assert obs.shape == (10, 20), "LSTM state shape incorrect"
-
-# Step continua retornando (10, 20)
-obs, reward, terminated, truncated, info = lstm_env.step(action)
-assert obs.shape == (10, 20)
-```
-
-Parametros do LSTM env:
-
-```
-seq_len=10                # Rolling window de 10 timesteps
-n_features=20             # 20 features escalares (confirmed em D.4)
-  - 5 candle (OHLCV)
-  - 4 volatilidade (ATR, Bollingers)
-  - 3 multi-TF (H1, H4, D1)
-  - 4 funding rates (rate, avg, sentiment, trend)
-  - 3 open interest (OI, sentimento, direcao)
-  - 1 padding
-```
-
-Verificar estado do ambiente:
+O treinamento PPO customizado para comparar desempenho já está implementado
+(a partir de 15 MAR 2026). Para utilizar a nova política LSTM contra o
+baseline MLP, utilize o script `train_ppo_lstm.py`.
 
 ```bash
-python -c "
-from agent.lstm_environment import LSTMSignalEnvironment
-env = LSTMSignalEnvironment(None, seq_len=10)
-print(f'Shape LSTM: {env.get_observation_shape()}')
-print(f'Shape fallback: {env.get_observation_shape(use_lstm=False)}')
-"
+# Treinar com rede MLP (Baseline Backward Compatible)
+python scripts/model2/train_ppo_lstm.py --policy mlp --timesteps 50000
+
+# Treinar usando arquitetura LSTM com histórico temporal
+python scripts/model2/train_ppo_lstm.py --policy lstm --timesteps 50000
 ```
 
-Esperado output:
+Este script encapsula de maneira transparente o `LSTMSignalEnvironment`, 
+configurando `seq_len=10`, a rede customizada de Extração de Features, 
+além de instanciar corretamente a `LSTMPolicy` do agente.
 
-```
-Shape LSTM: (10, 20)
-Shape fallback: (200,)
-```
+Pode-se verificar os modelos salvos em `checkpoints/ppo_training/lstm` ou
+`checkpoints/ppo_training/mlp` gerados pela rotina.
 
 ### Fase 3: Validacao shadow (48-72h)
 

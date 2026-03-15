@@ -351,7 +351,8 @@ Preparar suporte para politicas LSTM na pipeline RL via novo
    multi-TF, FR, OI) para shape (seq_len=10, n_features=20).
 3. Modo dual suporta LSTM output (10, 20) e fallback MLP flat (200,).
 4. Runtime switchable via `set_model_type()` para compatibilidade backward.
-5. Proximas fases (E.2-E.4): Treinar LSTM policy e comparar vs MLP baseline.
+5. Fases E.2 e E.3 (Concluídas): Arquitetura LSTM construída e pipeline PPO parametrizado funcionando com o novo ambiente.
+6. Fase E.4 (Pendente): Análise comparativa de performance e validação de Sharpe.
 
 **Alternativas consideradas:**
 
@@ -363,7 +364,7 @@ Preparar suporte para politicas LSTM na pipeline RL via novo
 **Consequencia:**
 
 1. Novo `agent/lstm_environment.py` (260 linhas) requerido com manutencao.
-2. LSTM politicas agora viavel (roadmap E.2-E.4).
+2. LSTM politicas agora viavel (roadmap E.2 e E.3 atingidos).
 3. Backward compatibility preservada com flat mode.
 4. Sharpe ratio LSTM >= baseline MLP meta para go-live (idealm. +5%).
 5. Requer validacao de normalizacao ([-1, 1]) em todos 20 features.

@@ -9,13 +9,14 @@ Wraps Signal ReplayEnv to provide:
 from __future__ import annotations
 
 import numpy as np
+import gymnasium as gym
 from collections import deque
-from typing import Any
+from typing import Any, Dict, Tuple, Union
 
 from agent.signal_environment import SignalReplayEnv
 
 
-class LSTMSignalEnvironment:
+class LSTMSignalEnvironment(gym.Wrapper):
     """Environment wrapper adding temporal state buffering for LSTM policies.
     
     Params:
@@ -26,10 +27,11 @@ class LSTMSignalEnvironment:
 
     def __init__(
         self,
-        env: SignalEnvironment,
+        env: gym.Env,
         seq_len: int = 10,
         flatten_fallback: bool = True,
     ):
+        super().__init__(env)
         self.env = env
         self.seq_len = seq_len
         self.flatten_fallback = flatten_fallback
@@ -38,7 +40,24 @@ class LSTMSignalEnvironment:
         self.state_buffer = deque(maxlen=seq_len)
 
         # Feature dimensions (estimated)
-        self.n_features = 20  # Based on analysis: ~18-20 scalars
+        self.n_features = 19  # Based on extraction logic: 5+4+3+4+3 = 19
+
+        # Explicitly define observation_space to satisfy Gymnasium APIs
+        if self.flatten_fallback:
+            self.observation_space = gym.spaces.Box(
+                low=-np.inf, high=np.inf, 
+                shape=(self.seq_len * self.n_features,), 
+                dtype=np.float32
+            )
+        else:
+            self.observation_space = gym.spaces.Box(
+                low=-np.inf, high=np.inf, 
+                shape=(self.seq_len, self.n_features), 
+                dtype=np.float32
+            )
+            
+        # Inherit action space
+        self.action_space = env.action_space
 
     def _extract_features(self, obs: np.ndarray | dict[str, Any]) -> np.ndarray:
         """Extract flat feature vector from observation.
@@ -118,7 +137,9 @@ class LSTMSignalEnvironment:
             # Fallback for numpy array observations
             features = [0.0] * self.n_features
 
-        return np.array(features[:self.n_features], dtype=np.float32)
+        # Resolve Pyre2 slicing issue by casting
+        arr = np.array(features, dtype=np.float32)
+        return arr[:self.n_features]
 
     def _sentiment_to_numeric(self, sentiment: str) -> float:
         """bullish=1, neutral=0, bearish=-1"""
@@ -138,7 +159,7 @@ class LSTMSignalEnvironment:
             str(direction).lower(), 0.0
         )
 
-    def reset(self, seed: int | None = None) -> tuple[np.ndarray, dict]:
+    def reset(self, seed: int | None = None) -> Tuple[np.ndarray, dict]:
         """Reset environment and clear state buffer."""
         obs, info = self.env.reset(seed=seed)
 
@@ -156,7 +177,7 @@ class LSTMSignalEnvironment:
         else:
             return self._get_lstm_obs(), info
 
-    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
+    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, dict]:
         """Step environment and update state buffer."""
         obs, reward, terminated, truncated, info = self.env.step(action)
 
@@ -198,9 +219,24 @@ class LSTMSignalEnvironment:
     def set_model_type(self, use_lstm: bool):
         """Switch between LSTM and flat observation modes at runtime."""
         self.flatten_fallback = not use_lstm
+        if self.flatten_fallback:
+            self.observation_space = gym.spaces.Box(
+                low=-np.inf, high=np.inf, 
+                shape=(self.seq_len * self.n_features,), 
+                dtype=np.float32
+            )
+        else:
+            self.observation_space = gym.spaces.Box(
+                low=-np.inf, high=np.inf, 
+                shape=(self.seq_len, self.n_features), 
+                dtype=np.float32
+            )
 
     # Delegate other methods to wrapped environment
+    # (gym.Wrapper already delegates methods)
     def __getattr__(self, name: str) -> Any:
+        if name in ["observation_space", "action_space"]:
+            return getattr(self, name)
         return getattr(self.env, name)
 
 

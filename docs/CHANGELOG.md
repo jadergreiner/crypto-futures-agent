@@ -2,6 +2,29 @@
 
 Histórico de mudanças, releases e milestones do Modelo 2.0.
 
+## [M2-016.4] - 2026-03-15
+
+### 🎯 Tema
+LSTM Policy Implementation and PPO Training (Fases E.2 e E.3)
+
+### ✅ Completado
+
+**Fase E.2: Política LSTM**
+- [x] Criação da classe `CustomLSTMFeaturesExtractor`
+- [x] Criação da classe `LSTMPolicy` integrada com `ActorCriticPolicy`
+- [x] Testes unitários para a política usando `DummyLSTMEnv`
+
+**Fase E.3: Treinamento PPO (LSTM vs MLP)**
+- [x] Script `train_ppo_lstm.py` configurado com suporte dinâmico a `--policy`
+- [x] Fix na integração SB3 (`LSTMSignalEnvironment` herdando de `gym.Wrapper`, 19 features)
+- [x] Run de verificação PPO com dataset de `training_episodes`
+
+### 🚀 Próximas Fases (Roadmap)
+- [ ] **Fase E.4**: Análise de Sharpe delta e recomendação final.
+- [ ] Deploy operacional com RL.
+
+---
+
 ## [M2-016.3] - 2026-03-14
 
 ### 🎯 Tema
@@ -74,8 +97,8 @@ Feature Enrichment com dados de mercado externo + LSTM Preparation
 - [ ] Dashboard de monitoramento de correlação
 
 **Fases E.2-E.4** (semanas 3-6)
-- [ ] E.2: LSTM Policy (64U LSTM + 128D dense) — 3-4 dias
-- [ ] E.3: Treinamento PPO LSTM vs MLP — 4-5 dias
+- [x] E.2: LSTM Policy (64U LSTM + 128D dense)
+- [x] E.3: Treinamento PPO LSTM vs MLP
 - [ ] E.4: Análise comparativa Sharpe delta — 2-3 dias
 - [ ] **Meta**: Sharpe ratio LSTM >= baseline (+5%)
 

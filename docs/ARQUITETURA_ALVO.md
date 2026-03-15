@@ -161,11 +161,11 @@ Persistencia dedicada:
 3. Features normalizadas em `training_episodes.features_json`.
 4. Analise de correlacao em `results/model2/analysis/phase_d4_correlation_*.json`.
 
-Proximas fases (Roadmap E.2-E.4):
+Roadmap LSTM (Fases E.2-E.4):
 
-- E.2: Politica LSTM (64 units LSTM + 128 dense, 3-4 dias).
-- E.3: Treinamento PPO LSTM vs MLP baseline (4-5 dias).
-- E.4: Analise comparativa e recomendacao final (2-3 dias).
+- E.2: Política LSTM (`CustomLSTMFeaturesExtractor` + `LSTMPolicy`) [CONCLUÍDA].
+- E.3: Treinamento PPO LSTM vs MLP (`train_ppo_lstm.py`) [CONCLUÍDA].
+- E.4: Análise comparativa e recomendação final (Sharpe delta) [PENDENTE].
 
 Criterios de sucesso:
 

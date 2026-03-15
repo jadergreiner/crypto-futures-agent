@@ -794,12 +794,34 @@ Evidencias (Fase D.5 concluída):
 2. Testes de unidade: `tests/test_model2_phase_d5_correlation.py`
 3. Relatório de exemplo: `results/model2/analysis/phase_d5_correlation_*.json`
 
+Entrega atual (Fase E.2):
+
+38. LSTM Policy usando CustomLSTMFeaturesExtractor (64U LSTM + 128D dense). [OK]
+39. SubclassedPolicy LSTMPolicy integrada com ActorCriticPolicy para suporte default em SB3. [OK]
+40. Unit tests executados com sucesso em ambiente simulado DummyLSTMEnv. [OK]
+
+Evidencias (Fase E.2 concluída):
+
+1. LSTM Policy implementation: `agent/lstm_policy.py`
+2. Testes de unidade da LSTM Policy: `tests/test_lstm_policy.py`
+3. Backlog e docs sincronizados com o encerramento da E.2.
+
+Entrega atual (Fase E.3):
+
+41. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py` parametrizado. [OK]
+42. Refatoração do ambiente para suporte ao Gym.Wrapper via `LSTMSignalEnvironment`. [OK]
+43. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas separadamente. [OK]
+
+Evidencias (Fase E.3 concluída):
+
+1. Script de Treinamento Duplo: `scripts/model2/train_ppo_lstm.py`
+2. Resoluções do ambiente LSTM: `agent/lstm_environment.py`
+3. Checkpoints e modelos localizados em: `checkpoints/ppo_training/mlp` e `checkpoints/ppo_training/lstm`
+
 Próximas Fases:
 
-1. **Fase E.2 (Dias 22-26 est.)**: LSTM Policy (64U LSTM + 128D dense, 3-4 dias)
-2. **Fase E.3 (Dias 26-31 est.)**: Training LSTM vs MLP (100+ episodes, 4-5 dias)
-3. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
-4. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
+1. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
+2. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
 
 
 

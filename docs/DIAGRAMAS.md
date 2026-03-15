@@ -94,9 +94,9 @@ flowchart LR
 - **Descoberta**: FR Bearish → 0% win rate (sinal forte de rejeição)
 - **Resultado**: RN-008 implementada (bloqueio de sinais em FR bearish)
 
-## 1d) Fluxo de Preparação LSTM (Fase E.1)
+## 1d) Fluxo de Preparação e Treino LSTM (Fases E.1-E.3)
 
-Transformação de estado flat → temporal para políticas LSTM:
+Transformação de estado flat → temporal para políticas LSTM e rotina de treinamento:
 
 ```mermaid
 flowchart LR
@@ -118,7 +118,7 @@ flowchart LR
     D -->|5 candle, 4 vol, 3 TF, 4 FR, 3 OI, 1 pad| E
     E --> F
     F --> G
-    G -->|E.2-E.4| H
+    G -->|CustomLSTMFeaturesExtractor| H
     G -->|Fallback| I
     H --> J
     I --> J
@@ -127,10 +127,12 @@ flowchart LR
 ```
 
 **Componentes:**
-- `agent/lstm_environment.py`: Wrapper com state buffer
+- `agent/lstm_environment.py`: Wrapper com state buffer (Fase E.1)
+- `agent/lstm_policy.py`: Custom LSTM features extractor + Policy Network (Fase E.2)
+- `scripts/model2/train_ppo_lstm.py`: Pipeline comparativo PPO (Fase E.3)
 - 20 features escalares: OHLCV, volatilidade, multi-TF, FR, OI
-- Modo dual: (10, 20) para LSTM ou (200,) para MLP backward compat
-- Roadmap E.2-E.4: LSTM policy, training, comparison analysis
+- Modo dual garantindo integração com arquiteturas SB3
+- Roadmap restante (E.4): Análise comparativa (Pendente)
 - **Meta**: Sharpe ratio LSTM >= baseline MLP (+5% ideal)
 
 ## 2) Diagrama de classes
