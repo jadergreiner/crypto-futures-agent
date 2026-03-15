@@ -831,7 +831,11 @@ Evidencias (Fase E.4 concluída):
 
 Próximas Fases:
 
-1. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
+_(Model 2.0 Oficialmente Concluído e Entregue para Go-Live)_
 
+---
+## Evidências Finais de Deploy (Model 2.0)
 
-
+1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
+2. **Payload Daemon:** Input stream mockado em `deploy/daemon_input.txt`.
+3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background Process no `RUNBOOK_M2_OPERACAO.md`.
