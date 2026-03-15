@@ -88,6 +88,14 @@ if "!M2_RUN_ONCE!"=="1" echo [INFO] M2_RUN_ONCE=1: executara apenas um ciclo.
 
 :M2_LOOP
 echo.
+echo [RUN] python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
+
+echo.
+echo [RUN] python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS!
+
+echo.
 echo [RUN] python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS!
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS!
 if %errorlevel% neq 0 (
@@ -100,6 +108,10 @@ python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !L
 if %errorlevel% neq 0 (
     echo [ALERTA] live_cycle retornou erro.
 )
+
+echo.
+echo [RUN] python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
 
 echo.
 echo [RUN] python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0
