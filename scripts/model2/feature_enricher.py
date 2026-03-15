@@ -76,6 +76,30 @@ class FeatureEnricher:
         return float(lower_band), float(upper_band), float(bb_position)
 
     @staticmethod
+    def calculate_macd(
+        closes: list[float], fast_period: int = 12, slow_period: int = 26, signal_period: int = 9
+    ) -> tuple[float, float, float]:
+        """Calcula MACD (Moving Average Convergence Divergence)."""
+        if len(closes) < slow_period:
+            return 0.0, 0.0, 0.0
+
+        slow_ema = np.mean(closes[-slow_period:])
+        fast_ema = np.mean(closes[-fast_period:])
+
+        macd_line = fast_ema - slow_ema
+
+        # Para o signal, precisaríamos de um histórico de MACD, simplificando para a simulação
+        # Usando uma média simples da macd_line como proxy
+        if len(closes) < slow_period + signal_period:
+             signal_line = np.mean([fast_ema - np.mean(closes[-(slow_period+i):-(i if i > 0 else None)]) for i in range(signal_period)])
+        else:
+             signal_line = np.mean([fast_ema - np.mean(closes[-(slow_period+i):-(i if i > 0 else None)]) for i in range(signal_period)])
+        
+        histogram = macd_line - signal_line
+        
+        return float(macd_line), float(signal_line), float(histogram)
+
+    @staticmethod
     def fetch_candles_by_timeframe(
         conn: sqlite3.Connection,
         symbol: str,
@@ -152,6 +176,7 @@ class FeatureEnricher:
             atr = cls.calculate_atr(highs, lows, closes, period=20)
             rsi = cls.calculate_rsi(closes, period=14)
             bb_lower, bb_upper, bb_position = cls.calculate_bollinger_bands(closes, period=20)
+            macd_line, macd_signal, macd_hist = cls.calculate_macd(closes)
 
             enriched["volatility"] = {
                 "atr_20": atr,
@@ -159,6 +184,9 @@ class FeatureEnricher:
                 "bb_lower": bb_lower,
                 "bb_upper": bb_upper,
                 "bb_position": bb_position,
+                "macd_line": macd_line,
+                "macd_signal": macd_signal,
+                "macd_hist": macd_hist,
             }
 
         # Buscar candles de outros timeframes para contexto

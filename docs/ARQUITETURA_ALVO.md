@@ -130,6 +130,7 @@ politicas LSTM.
 Fases e componentes:
 
 **Fase D.1 - D.3: Coleta e Integracao de Features**
+
 - Daemon de coleta (D.2): `scripts/model2/daemon_funding_rates.py` coleta taxa
   de financiamento pela API Binance em tempo real.
 - Features de FR: `latest_rate`, `avg_rate_24h`, sentimento, tendencia.
@@ -138,6 +139,7 @@ Fases e componentes:
   `training_episodes` com features de FR/OI durante coleta de teses.
 
 **Fase D.4: Analise de Correlacao**
+
 - Descobre correlacoes entre sentimento de FR e performance de RL.
 - Resultado: FR bearish prediz 0% win rate (sinal forte de perda).
 - FR sentiment weak but significant (Pearson r=0.27, p=0.006).
@@ -145,12 +147,11 @@ Fases e componentes:
   de ajuste de reward.
 
 **Fase E.1: Preparacao de Ambiente LSTM**
+
 - `agent/lstm_environment.py` envolve `SignalReplayEnv` com buffer
   temporal (rolling window de 10 timesteps).
-- Extrai 20 features escalares: candles (5), volatilidade (4), multi-TF (3),
-  FR (4), OI (3), padding (1).
-- Modo dual: retorna (seq_len=10, n_features=20) para LSTM ou
-  (seq_len*n_features,)=(200,) para fallback MLP.
+- Extrai 22 features escalares: candles (5), volatilidade (4 + 3 MACD), multi-TF (3), FR (4), OI (3).
+- Modo dual: retorna (seq_len=10, n_features=22) para LSTM ou (seq_len*n_features,)=(220,) para fallback MLP.
 - Sincronizacao com D.2/D.3: consome features de funding/OI enriquecidas
   em episodios.
 

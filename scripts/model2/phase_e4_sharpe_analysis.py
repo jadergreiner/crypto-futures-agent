@@ -36,7 +36,7 @@ class PPOEvaluator:
         self.db_path = model2_db_path
         self.episodes_limit = episodes_limit
         self.seq_len = 10
-        self.n_features = 19
+        self.n_features = 22
         
     def _extract_features(self, features_dict: Dict[str, Any]) -> np.ndarray:
         """Extrai as 19 features seguindo o padrão do LSTMSignalEnvironment."""
@@ -55,6 +55,9 @@ class PPOEvaluator:
         bb = vol.get("bollinger_bands", {})
         features.extend([
             bb.get("upper", 0.0), bb.get("sma", 0.0), bb.get("lower", 0.0)
+        ])
+        features.extend([
+            vol.get("macd_line", 0.0), vol.get("macd_signal", 0.0), vol.get("macd_hist", 0.0)
         ])
         
         # Multi-timeframe (3)

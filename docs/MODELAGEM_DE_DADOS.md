@@ -156,9 +156,9 @@ Regras de integridade implementadas:
    - `CREATED -> CANCELLED` (decisao bloqueada)
 5. Na Fase 2, `technical_signals` NAO representa o ciclo real da ordem.
    O ciclo live passa a existir em `signal_executions`.
-5. `payload_json` pode carregar trilha da camada de ordem em
+6. `payload_json` pode carregar trilha da camada de ordem em
    `payload_json.order_layer`.
-6. `payload_json` pode carregar trilha do adaptador legado em
+7. `payload_json` pode carregar trilha do adaptador legado em
    `payload_json.adapter_export_trade_signals`.
 
 ## Tabela: execucoes live (`signal_executions`)
@@ -375,8 +375,6 @@ Novos artefatos operacionais:
 3. `model2_training_episodes_*.jsonl`
 4. `model2_training_episodes_cursor.json`
 
-
-
 ## Tabela: OHLCV M5 (`ohlcv_m5`)
 
 Persistencia intraday para coleta por ciclo na operacao M2.
@@ -397,8 +395,6 @@ Integridade:
 
 1. `PRIMARY KEY (timestamp, symbol)`
 2. Index: `idx_ohlcv_m5_symbol`
-
-
 
 ## Tabela: episodios de treino (`training_episodes`)
 
@@ -446,6 +442,7 @@ Indices:
 3. `idx_funding_rates_created_at` (`created_at`)
 
 Schema minimo esperado:
+
 ```sql
 CREATE TABLE funding_rates_api (
   id INTEGER PRIMARY KEY,
@@ -486,6 +483,7 @@ Indices:
 2. `idx_oi_sentiment` (`oi_sentiment`)
 
 Schema minimo:
+
 ```sql
 CREATE TABLE open_interest_api (
   id INTEGER PRIMARY KEY,
@@ -500,7 +498,7 @@ CREATE TABLE open_interest_api (
 
 ## Enriquecimento de Features em training_episodes (Fases D.3, E.1)
 
-Campo `features_json` em `training_episodes` contem 20 features escalares normalizadas para LSTM:
+Campo `features_json` em `training_episodes` contem 22 features escalares normalizadas para LSTM:
 
 ```json
 {
@@ -516,6 +514,9 @@ Campo `features_json` em `training_episodes` contem 20 features escalares normal
     "volatility_bb_upper": 0.234,
     "volatility_bb_sma": 0.089,
     "volatility_bb_lower": -0.056,
+    "volatility_macd_line": 0.012,
+    "volatility_macd_signal": 0.009,
+    "volatility_macd_hist": 0.003,
     "multitf_h1_close": 0.101,
     "multitf_h4_close": 0.215,
     "multitf_d1_close": 0.312,
@@ -525,19 +526,20 @@ Campo `features_json` em `training_episodes` contem 20 features escalares normal
     "fr_trend": 0.45,
     "oi_current": 0.789,
     "oi_sentiment": 0.56,
-    "oi_change_direction": 0.32,
-    "padding": 0.0
+    "oi_change_direction": 0.32
   },
   "timestamp_utc_ms": 1710417600000
 }
 ```
 
 Normalizacao obrigatoria:
+
 - Todos valores em [-1.0, 1.0]
 - NaN nao permitido (rejeitar episodio se falhar)
 - Ordem fixa (LSTM exige consistencia)
 
 Frequencia de atualizacao:
+
 - A cada ciclo de pipeline (every H4 candle)
 - Fallback: permitir NaN se coleta de API falhar < 10%
 - Retry: tentar coleta de dados historicos via Binance REST API

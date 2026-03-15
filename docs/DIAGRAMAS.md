@@ -53,6 +53,7 @@ flowchart LR
 ```
 
 **Notas:**
+
 - Coleta de episodios é automática em cada ciclo do `daily_pipeline.py`
 - Treinamento PPO roda off-pipeline (semanal)
 - RL enhancement só ativa se modelo passar limiares de qualidade
@@ -88,6 +89,7 @@ flowchart LR
 ```
 
 **Componentes:**
+
 - `daemon_funding_rates.py`: Coleta em background (PID persistente)
 - `funding_rates_api`: Tabela com fr_sentiment, fr_trend, timestamp
 - `phase_d4_correlation_analysis.py`: Pearson r, p-value, win_rate por sentiment
@@ -104,18 +106,18 @@ flowchart LR
     B[Observação flat n_features]
     C[LSTMSignalEnvironment]
     D[Rolling Buffer deque maxlen=10]
-    E[20 Features Extracted]
+    E[22 Features Extracted]
     F[Normalização -1 a 1]
-    G[Shape: 10x20]
+    G[Shape: 10x22]
     H[LSTM Policy]
-    I[Fallback MLP: 200,]
+    I[Fallback MLP: 220,]
     J[Treinamento PPO]
     K[Comparação Sharpe]
     
     A --> B
     B -->|reset/step| C
     C -->|Buffer temporal| D
-    D -->|5 candle, 4 vol, 3 TF, 4 FR, 3 OI, 1 pad| E
+    D -->|5 candle, 4 vol, 3 MACD, 3 TF, 4 FR, 3 OI| E
     E --> F
     F --> G
     G -->|CustomLSTMFeaturesExtractor| H
@@ -127,10 +129,11 @@ flowchart LR
 ```
 
 **Componentes:**
+
 - `agent/lstm_environment.py`: Wrapper com state buffer (Fase E.1)
 - `agent/lstm_policy.py`: Custom LSTM features extractor + Policy Network (Fase E.2)
 - `scripts/model2/train_ppo_lstm.py`: Pipeline comparativo PPO (Fase E.3)
-- 20 features escalares: OHLCV, volatilidade, multi-TF, FR, OI
+- 22 features escalares: OHLCV, volatilidade, MACD, multi-TF, FR, OI
 - Modo dual garantindo integração com arquiteturas SB3
 - Roadmap restante (E.4): Análise comparativa (Pendente)
 - **Meta**: Sharpe ratio LSTM >= baseline MLP (+5% ideal)

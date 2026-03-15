@@ -590,6 +590,7 @@ Evidencias:
 3. Validacao de sincronismo documental: `tests/test_docs_model2_sync.py`.
 4. Documentacao de comandos: `scripts/model2/README.md`.
 5. Runbook operacional atualizado: `docs/RUNBOOK_M2_OPERACAO.md`.
+
 ## INICIATIVA M2-015 - Unificacao operacional do agente
 
 ### TAREFA M2-015.1 - Consolidar entrada operacional em `iniciar.bat`
@@ -754,20 +755,20 @@ Evidencias (Fases A-D.4 concluídas):
 
 Entrega atual (Fases E.1 + Documentação):
 
-21. LSTM Environment wrapper com rolling buffer (10 timesteps, 20 features). [OK]
-22. Feature extraction (5 candle + 4 volatility + 3 multi-TF + 4 FR + 3 OI). [OK]
-23. Modo dual LSTM/MLP (output shapes: (10,20) vs (200,)). [OK]
-24. Ambiente LSTM ready para integração com training pipeline. [OK]
-25. Sincronização de 8 docs governança (CRITICAL/HIGH/MEDIUM/LOW). [OK]
-26. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
-27. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
-28. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment + LSTM). [OK]
-29. REGRAS_DE_NEGOCIO.md atualizado (RN-007, RN-008, RN-009). [OK]
-30. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api, open_interest_api). [OK]
-31. ADRS.md atualizado (ADR-023: Feature enrichment, ADR-024: LSTM design). [OK]
-32. DIAGRAMAS.md atualizado (diagrama 1c D.2-D.4, diagrama 1d E.1). [OK]
-33. CHANGELOG.md criado (M2-016.x release history). [OK]
-34. SYNCHRONIZATION.md criado (audit trail de sincronização completo). [OK]
+1. LSTM Environment wrapper com rolling buffer (10 timesteps, 20 features). [OK]
+2. Feature extraction (5 candle + 4 volatility + 3 multi-TF + 4 FR + 3 OI). [OK]
+3. Modo dual LSTM/MLP (output shapes: (10,20) vs (200,)). [OK]
+4. Ambiente LSTM ready para integração com training pipeline. [OK]
+5. Sincronização de 8 docs governança (CRITICAL/HIGH/MEDIUM/LOW). [OK]
+6. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
+7. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
+8. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment + LSTM). [OK]
+9. REGRAS_DE_NEGOCIO.md atualizado (RN-007, RN-008, RN-009). [OK]
+10. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api, open_interest_api). [OK]
+11. ADRS.md atualizado (ADR-023: Feature enrichment, ADR-024: LSTM design). [OK]
+12. DIAGRAMAS.md atualizado (diagrama 1c D.2-D.4, diagrama 1d E.1). [OK]
+13. CHANGELOG.md criado (M2-016.x release history). [OK]
+14. SYNCHRONIZATION.md criado (audit trail de sincronização completo). [OK]
 
 Evidencias (Fase E.1 + Documentação concluídas):
 
@@ -784,9 +785,9 @@ Evidencias (Fase E.1 + Documentação concluídas):
 
 Entrega atual (Fase D.5):
 
-35. Análise de correlação com dados reais (`shadow` e `live`). [OK]
-36. Runner com filtro por `execution_mode` e `min_episodes`. [OK]
-37. Cobertura de testes para o novo runner. [OK]
+1. Análise de correlação com dados reais (`shadow` e `live`). [OK]
+2. Runner com filtro por `execution_mode` e `min_episodes`. [OK]
+3. Cobertura de testes para o novo runner. [OK]
 
 Evidencias (Fase D.5 concluída):
 
@@ -796,9 +797,9 @@ Evidencias (Fase D.5 concluída):
 
 Entrega atual (Fase E.2):
 
-38. LSTM Policy usando CustomLSTMFeaturesExtractor (64U LSTM + 128D dense). [OK]
-39. SubclassedPolicy LSTMPolicy integrada com ActorCriticPolicy para suporte default em SB3. [OK]
-40. Unit tests executados com sucesso em ambiente simulado DummyLSTMEnv. [OK]
+1. LSTM Policy usando CustomLSTMFeaturesExtractor (64U LSTM + 128D dense). [OK]
+2. SubclassedPolicy LSTMPolicy integrada com ActorCriticPolicy para suporte default em SB3. [OK]
+3. Unit tests executados com sucesso em ambiente simulado DummyLSTMEnv. [OK]
 
 Evidencias (Fase E.2 concluída):
 
@@ -808,9 +809,9 @@ Evidencias (Fase E.2 concluída):
 
 Entrega atual (Fase E.3):
 
-41. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py` parametrizado. [OK]
-42. Refatoração do ambiente para suporte ao Gym.Wrapper via `LSTMSignalEnvironment`. [OK]
-43. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas separadamente. [OK]
+1. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py` parametrizado. [OK]
+2. Refatoração do ambiente para suporte ao Gym.Wrapper via `LSTMSignalEnvironment`. [OK]
+3. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas separadamente. [OK]
 
 Evidencias (Fase E.3 concluída):
 
@@ -820,20 +821,35 @@ Evidencias (Fase E.3 concluída):
 
 Entrega atual (Fase E.4):
 
-44. Script avaliador para simular e calcular histórico real: `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
-45. Implementação de Testes mockando banco SQLite: `tests/test_model2_phase_e4_sharpe.py` [OK]
-46. Comparativo PPO MLP vs PPO LSTM exportados para a pasta analysis [OK]
+1. Script avaliador para simular e calcular histórico real: `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
+2. Implementação de Testes mockando banco SQLite: `tests/test_model2_phase_e4_sharpe.py` [OK]
+3. Comparativo PPO MLP vs PPO LSTM exportados para a pasta analysis [OK]
 
 Evidencias (Fase E.4 concluída):
 
 1. Script de Análise Comparativa: `scripts/model2/phase_e4_sharpe_analysis.py`
 2. Relatório exportado em: `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
+Entrega atual (Fase E.5):
+
+1. Adição de features MACD (linha, sinal, histograma) ao `feature_enricher`. [OK]
+2. Modelos MLP e LSTM retreinados com 22 features. [OK]
+3. Nova avaliação comparativa executada. [OK]
+
+Evidencias (Fase E.5 concluída):
+
+1. Feature Enricher atualizado: `scripts/model2/feature_enricher.py`
+2. Modelos retreinados em: `checkpoints/ppo_training/`
+3. Relatório de análise atualizado: `results/model2/analysis/phase_e4_sharpe_analysis.json`
+
 Próximas Fases:
 
-_(Model 2.0 Oficialmente Concluído e Entregue para Go-Live)_
+- Adicionar mais indicadores técnicos para melhorar a performance do modelo.
+- Otimizar os hiperparâmetros dos modelos PPO.
+- Status: EM PROGRESSO (2026-03-15)
 
 ---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.

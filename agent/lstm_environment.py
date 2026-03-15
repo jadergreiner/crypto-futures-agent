@@ -40,7 +40,7 @@ class LSTMSignalEnvironment(gym.Wrapper):
         self.state_buffer = deque(maxlen=seq_len)
 
         # Feature dimensions (estimated)
-        self.n_features = 19  # Based on extraction logic: 5+4+3+4+3 = 19
+        self.n_features = 22  # Based on extraction logic: 5+4+3+4+3+3 = 22
 
         # Explicitly define observation_space to satisfy Gymnasium APIs
         if self.flatten_fallback:
@@ -96,8 +96,13 @@ class LSTMSignalEnvironment(gym.Wrapper):
                     ])
                 else:
                     features.extend([0.0] * 3)
+                features.extend([
+                    volatility.get("macd_line", 0.0),
+                    volatility.get("macd_signal", 0.0),
+                    volatility.get("macd_hist", 0.0),
+                ])
             else:
-                features.extend([0.0] * 4)
+                features.extend([0.0] * 7)
 
             # multi_timeframe (3: H1, H4, D1 closes)
             mf = obs.get("multi_timeframe", {})

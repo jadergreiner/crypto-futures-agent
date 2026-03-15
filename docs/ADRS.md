@@ -347,8 +347,8 @@ Preparar suporte para politicas LSTM na pipeline RL via novo
 
 1. `LSTMSignalEnvironment` envolve `SignalReplayEnv` com buffer temporal
    (`deque`, `maxlen=10` timesteps).
-2. Feature extraction normaliza 20 escalares (candle, volatility,
-   multi-TF, FR, OI) para shape (seq_len=10, n_features=20).
+2. Feature extraction normaliza 22 escalares (candle, volatility + MACD,
+   multi-TF, FR, OI) para shape (seq_len=10, n_features=22).
 3. Modo dual suporta LSTM output (10, 20) e fallback MLP flat (200,).
 4. Runtime switchable via `set_model_type()` para compatibilidade backward.
 5. Fases E.2 e E.3 (Concluídas): Arquitetura LSTM construída e pipeline PPO parametrizado funcionando com o novo ambiente.

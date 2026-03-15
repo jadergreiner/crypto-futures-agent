@@ -115,6 +115,7 @@ Toda operacao deve enriquecer episodios com dados de taxa de financiamento:
 5. Fallback: permitir episodio vazio se coleta falhar < 10% de tempo.
 
 Metricas de sucesso:
+>
 - >= 1000 registros/dia por par em `funding_rates_api`
 - >= 90% of episodios enriquecidos com `fr_sentiment` e `fr_trend`
 
@@ -127,10 +128,12 @@ Sinais devem considerar correlacao empirica entre FR sentiment e resultado:
 3. **FR Bullish**: Usar com cautela (25% taxa de ganho, abaixo de neutral).
 
 Regra pratica:
+
 - Se `fr_sentiment == "bearish"`, **bloquear entrada** (RN-008.1).
 - Se `fr_sentiment != "bearish"`, prosseguir com RN-006.
 
 Revisao semanal:
+
 - Executar `phase_d4_correlation_analysis.py`
 - Comparar Pearson r vs threshold 0.20 para sinalizar drift
 - Alertar se `bearish_win_rate > 10%` (mudanca de regra)
@@ -139,13 +142,12 @@ Revisao semanal:
 
 Quando modelo LSTM estiver em desenvolvimento, validar features:
 
-1. **20 scalares obrigatorios** em `training_episodes.features_json`:
+1. **22 scalares obrigatorios** em `training_episodes.features_json`:
    - 5 candle (OHLCV)
-   - 4 volatilidade (ATR, Bollinger)
+   - 7 volatilidade (ATR, Bollinger, MACD)
    - 3 multi-TF (H1, H4, D1)
    - 4 funding rates (rate, avg, sentiment, trend)
    - 3 open interest (OI, sentimento, direcao)
-   - 1 padding
 
 2. **Normalizacao obrigatoria** em [-1, 1] para cada scalar.
 3. **Sequencia obrigatoria** de 10 timesteps (rolling window).
@@ -153,6 +155,7 @@ Quando modelo LSTM estiver em desenvolvimento, validar features:
 5. **Audit trail**: registrar qual subconjunto de features usado por modelo.
 
 Metricas de sucesso:
+
 - 100% dos episodios tem 20 features normalizadas
 - Shape (10, 20) para LSTM, (200,) para fallback MLP
 - Zero NaN apos normalizacao
@@ -610,7 +613,3 @@ Implementacao de referencia: `scripts/model2/persist_training_episodes.py`.
 1. Cada ciclo deve materializar episodios em JSONL para treino incremental.
 2. Cada ciclo deve persistir episodios em `training_episodes` no banco M2.
 3. A extracao incremental deve usar cursor de `updated_at` para evitar reprocessamento total.
-
-
-
-
