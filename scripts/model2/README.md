@@ -326,6 +326,36 @@ do live, sem depender de `export_signals -> trade_signals`.
 python scripts/model2/live_cycle.py --timeframe H4 --symbol BTCUSDT --execution-mode shadow
 ```
 
+
+## Comando de validacao da janela M2-016.2 (72h)
+
+Automatiza o ciclo `start -> checkpoint -> finalize` para consolidar
+metricas RL em janela de 72h e comparar com baseline deterministico.
+
+Iniciar janela:
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py start --execution-mode live --duration-hours 72 --checkpoint-hours 12
+```
+
+Consolidar checkpoint (cadencia recomendada: 12h):
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py checkpoint
+```
+
+Gerar relatorio final RL vs baseline:
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py finalize
+```
+
+Artefatos:
+
+1. `results/model2/runtime/model2_m2_016_2_window_*.json`
+2. `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`
+3. `results/model2/runtime/model2_m2_016_2_final_*.json`
+4. `results/model2/analysis/model2_m2_016_2_report_*.json`
 ## Configuracoes de ativacao da Fase 2 (M2-012)
 
 Variaveis de ambiente principais:
@@ -336,6 +366,7 @@ Variaveis de ambiente principais:
 4. `M2_MAX_MARGIN_PER_POSITION_USD=25`
 5. `M2_MAX_SIGNAL_AGE_MINUTES=240`
 6. `M2_SYMBOL_COOLDOWN_MINUTES=240`
+
 
 
 

@@ -24,6 +24,7 @@ from scripts.model2.scan import run_scan
 from scripts.model2.track import run_tracking
 from scripts.model2.validate import run_validation
 from scripts.model2.rl_signal_generation_wrapper import run_rl_signal_generation
+from scripts.model2.ensemble_signal_generation_wrapper import run_ensemble_signal_generation
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -206,6 +207,19 @@ def run_daily_pipeline(
                 "model2_db_path": resolved_model2_db,
                 "timeframe": timeframe,
                 "symbols": symbols_to_use,
+                "dry_run": bool(dry_run),
+                "output_dir": resolved_output_dir,
+            },
+        ),
+        (
+            "ensemble_signal_generation",
+            run_ensemble_signal_generation,
+            {
+                "model2_db_path": resolved_model2_db,
+                "timeframe": timeframe,
+                "symbols": symbols_to_use,
+                "voting_method": "soft",
+                "min_confidence": 0.6,
                 "dry_run": bool(dry_run),
                 "output_dir": resolved_output_dir,
             },

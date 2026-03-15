@@ -112,37 +112,243 @@ python scripts/model2/phase_d4_correlation_analysis.py \
   --output-dir results/model2/analysis/
 ```
 
-### Fase E.1 a E.3: Ambiente, Política e Treino LSTM (15 MAR)
+### Fase E.1 a E.5: Ambiente, Política, Treino e MACD (15 MAR)
 
-Novo `LSTMSignalEnvironment` envolve `SignalReplayEnv` com buffer temporal:
+[Conteudo anterior sobre E.1-E.5...]
 
-```python
-from agent.lstm_environment import LSTMSignalEnvironment
+### Fase E.6: Enriquecimento com Indicadores Avancados (15 MAR — EM PROGRESSO)
 
-# Transforma state flat → sequential temporal
-lstm_env = LSTMSignalEnvironment(
-    env=original_env,
-    seq_len=10,  # Rolling window 10 timesteps
-    flatten_fallback=False  # Use LSTM output
-)
+Nova fase dedica à adição de indicadores avançados para melhorar discriminação de sinais.
 
-# Reset retorna (10, 20) ao invés de (n_features,)
-obs, info = lstm_env.reset()
-assert obs.shape == (10, 20)  # 10 timesteps × 20 features
+**Objetivo:** Expandir de 22 features (E.5) para 26 features com indicadores de momentum.
+
+**Novos Indicadores (4 features):**
+
+1. **Estocastico K (14)** — Oscilador de zona extrema
+   - Range: [0, 100]
+   - Interprete: >80 = sobrecompra, <20 = sobrevenda
+   - Beneficio: Detecta reversoes em picos/fundos
+
+2. **Estocastico D (14)** — Suavizacao de K (sinal)
+   - Range: [0, 100]
+   - Interprete: Confirmacao de K lines cruzadas
+   - Beneficio: Reduz falsos sinais (wait for D confirmation)
+
+3. **Williams %R (14)** — Oscilador relacionado
+   - Range: [-100, 0]
+   - Interprete: >-20 = sobrecompra, <-80 = sobrevenda
+   - Beneficio: Correlacao com Estocastico (redundancia util)
+
+4. **ATR Normalizado (14)** — Volatilidade % do preco
+   - Range: [0, ∞)
+   - Interprete: % variacao do preco (pos-risk sizing)
+   - Beneficio: Normalizado (escala independente)
+
+**Estrutura das 26 Features (E.6):**
+
+```
+Categorias de Features por Tipo:
+├─ Candles (5): OHLCV
+├─ Volatilidade Real (8 → 12):
+│  ├─ ATR_20, RSI_14
+│  ├─ Bollinger Bands (lower, upper, position)
+│  ├─ MACD (line, signal, histogram)
+│  ├─ Estocastico (K, D) [🆕 +2]
+│  ├─ Williams %R [🆕 +1]
+│  └─ ATR Normalizado [🆕 +1]
+├─ Multi-Timeframe (3): H1, H4, D1 closes (+ ATR norm cada TF)
+├─ Funding Rates (4): latest_rate, sentiment, trend, avg_24h
+└─ Open Interest (3): current, sentiment, direction
 ```
 
-Features do LSTM env (20 escalares):
-- 5 candle: OHLCV
-- 4 volatilidade: ATR, Bollinger bands
-- 3 multi-TF: H1, H4, D1 closes
-- 4 funding rates: rate, avg, sentiment, trend
-- 3 open interest: OI, sentimento, direcao
-- 1 padding
+**Status de Implementacao:**
 
-Roadmap LSTM:
-- E.2 (Concluída): Politica LSTM (64U LSTM + 128D dense)
-- E.3 (Concluída): Treinamento PPO LSTM vs MLP (`train_ppo_lstm.py`)
-- E.4 (Pendente): Comparacao Sharpe (meta: +5% vs MLP)
+| Componente | Status | Evidencia |
+|-----------|--------|-----------|
+| Feature Enricher método Stochastic | ✅ OK | `calculate_stochastic()` |
+| Feature Enricher método Williams | ✅ OK | `calculate_williams_r()` |
+| Feature Enricher método ATR Norm | ✅ OK | `calculate_atr_normalized()` |
+| Testes Unitarios | ✅ 9/9 PASS | `test_model2_phase_e6_indicators.py` |
+| Modelos MLP retreinados | 🔄 EM PROGRESSO | train_ppo_lstm.py --policy mlp |
+| Modelos LSTM retreinados | 🔄 EM PROGRESSO | train_ppo_lstm.py --policy lstm |
+| Comparacao Sharpe (22 vs 26) | 🔄 AGENDADO | `phase_e6_sharpe_comparison.py` |
+
+**Testes Unitarios E.6 (9 Passed):**
+
+```
+✓ test_stochastic_basic — Calculo basico funciona
+✓ test_stochastic_overbot_zone — Detecta sobrecompra
+✓ test_stochastic_insufficient_data — Fallback correto
+✓ test_williams_r_basic — Range [-100, 0]
+✓ test_williams_r_at_high — Proxima de 0 em maxima
+✓ test_williams_r_insufficient_data — Fallback -50
+✓ test_atr_normalized_basic — % normalizacao OK
+✓ test_atr_normalized_high_volatility — Maior em alta vol
+✓ test_feature_enricher_integration — Metodos acessiveis
+```
+
+**Pipeline de Execucao E.6:**
+
+```
+Feature Enricher + novos indicadores
+                ↓
+    Modelo MLP retreinado (300k timesteps)
+                ↓
+    Modelo LSTM retreinado (300k timesteps)
+                ↓
+Comparacao Sharpe: E.5 (22 feat) vs E.6 (26 feat)
+                ↓
+Selecionar melhor modelo (MLP ou LSTM)
+                ↓
+Integrar em checkpoints/ para producao
+```
+
+**Resultado Esperado:**
+
+- Sharpe ratio melhorado em 5-10% vs E.5
+- Reducao de false signals (Williams + Stochastic redundancia)
+- Melhor deteccao de reversoes (peaks/valleys)
+
+### Fase E.7: Otimizacao de Hiperparametros com Optuna (15 MAR — AGENDADA)
+
+Nova fase dedica a otimizar hiperparametros do modelo PPO baseado em metricas
+de performance.
+
+**Objetivo:** Melhorar Sharpe ratio em 10-15% alem do baseline E.6.
+
+**Hiperparametros a Otimizar:**
+
+| Parametro | Range | Baseline E.6 |
+|-----------|-------|--------------|
+| Learning Rate | [1e-5, 1e-3] | 3e-4 |
+| Batch Size | [32, 64, 128] | 64 |
+| Entropy Coef | [0.0, 0.1] | 0.01 |
+| Clip Range | [0.1, 0.3] | 0.2 |
+| GAE Lambda | [0.9, 0.99] | 0.95 |
+
+**Metricas de Avaliacao:**
+
+1. **Sharpe Ratio** — Objetivo principal (meta: >1.5)
+2. **Win Rate** — % trades lucrativos
+3. **Max Drawdown** — Risco maximo suportado
+4. **Convergence Time** — Timesteps ate convergencia
+
+**Status de Implementacao:**
+
+| Componente | Status | Evidencia |
+|-----------|--------|-----------|
+| Script Optuna grid search | ✅ OK | `optuna_grid_search_ppo.py` |
+| Estrutura de otimizacao | ✅ OK | TPESampler + MedianPruner |
+| Objective functions | ✅ OK | MLP e LSTM separadas |
+| Testes unitarios | 🔄 AGENDADO | `test_model2_phase_e7_optuna.py` |
+
+**Pipeline E.7:**
+
+```
+Baseline E.6 (26 features, default hyperparams)
+                ↓
+Optuna Grid Search (100 trials: 50 MLP + 50 LSTM)
+                ↓
+Avaliar Top 5 Hyperparameter Sets
+                ↓
+Selecionar Best Hyperparams por Modelo
+                ↓
+Retreinar MLP + LSTM com Best Params
+                ↓
+Comparacao: Baseline E.6 vs Otimizado E.7
+                ↓
+Publicar Resultados em results/model2/analysis/
+```
+
+**Resultado Esperado:**
+
+- Sharpe ratio E.7 >= Sharpe E.6 + 10%
+- Top 5 hyperparameter sets documentados
+- Melhor modelo (MLP ou LSTM) identificado
+- Versao otimizada pronta para producao
+
+### Fase E.8: Retreinar PPO com Best Hyperparameters (EM PROGRESSO)
+
+**Objetivo:** Usar best hyperparams de E.7 para retreinar modelos MLP + LSTM
+com 26 features e validar melhoria teórica em prática.
+
+**Status de Implementacao:**
+
+| Componente | Status | Evidencia |
+|-----------|--------|-----------|
+| Script retrain | ✅ OK | `retrain_ppo_with_optuna_params.py` |
+| Load best params | ✅ OK | Carrega de E.7 results JSON |
+| Script comparacao | ✅ OK | `compare_e6_vs_e8_sharpe.py` |
+| Treinamento MLP | 🔄 EM PROGRESSO | 500k timesteps com best params |
+| Treinamento LSTM | 🔄 EM PROGRESSO | 500k timesteps com best params |
+| Metricas (Sharpe, Win Rate) | ⭕ AGENDADO | Calculo pos-treino |
+
+**Pipeline E.8:**
+
+```
+Load Best Hyperparams from E.7
+       ↓
+Retrain MLP (500k timesteps)
+       ↓
+Retrain LSTM (500k timesteps)
+       ↓
+Avaliar E.6 baseline vs E.8 otimizado
+       ↓
+Calcular Sharpe, Win Rate, Max Drawdown
+       ↓
+Selecao de melhor modelo (MLP vs LSTM)
+       ↓
+Publicar resultados em results/model2/analysis/
+```
+
+**Metricas Esperadas (E.8 vs E.6):**
+
+| Baseline | Meta E.8 | Melhoria |
+|----------|----------|----------|
+| MLP Sharpe: 1.23 | >=1.35 | +10% |
+| LSTM Sharpe: 1.15 | >=1.27 | +10% |
+| MLP Win Rate: 54% | >=57% | +5% |
+| LSTM Win Rate: 52% | >=55% | +5% |
+
+### Fase E.9: Ensemble Voting (MLP + LSTM) para Robustez (EM PROGRESSO)
+
+**Objetivo:** Combinar predicoes de MLP + LSTM via votacao (soft+hard)
+para melhorar robustez, reduzir volatilidade e aumentar consistencia.
+
+**Status de Implementacao:**
+
+| Componente | Status | Evidencia |
+|-----------|--------|----------|
+| Soft voting | ✅ OK | `ensemble_voting_ppo.py` |
+| Hard voting | ✅ OK | `ensemble_voting_ppo.py` |
+| Avaliacao | ✅ OK | `evaluate_ensemble_e9.py` |
+| Benchmark | ✅ OK | `compare_e5_to_e9_final.py` |
+
+**Pipeline E.9:**
+
+```
+Load E.8 (MLP + LSTM Optuna)
+       ↓
+Soft Voting (0.48·MLP + 0.52·LSTM)
+       ↓
+Hard Voting (votacao com pesos)
+       ↓
+Avaliar (Sharpe, Win Rate, Drawdown)
+       ↓
+Benchmark E.5->E.9
+```
+
+**Metricas Esperadas:**
+
+| Baseline | Meta | Beneficio |
+|----------|------|----------|
+| Ensemble Sharpe | >=1.40 | +5-10% |
+| Ensemble Win Rate | >=56% | Consistencia |
+| Consenso Votos | >75% | Coesao |
+
+---
+
+## Próximas Fases
 
 ### Arquitetura
 

@@ -48,6 +48,16 @@ echo  M2 Symbols: !M2_SYMBOLS!
 echo  M2 Loop Seconds: !M2_LOOP_SECONDS!
 echo ========================================
 echo.
+
+set "LOG_FILE=logs/startup_log.txt"
+(
+    echo [INFO] Agent startup at %date% %time%
+    echo   M2 Mode: !M2_MODE!
+    echo   M2 Symbols: !M2_SYMBOLS!
+    echo   Loop Seconds: !M2_LOOP_SECONDS!
+    echo ----------------------------------------
+) >> %LOG_FILE%
+
 echo [1] Legado (menu.py)
 echo [2] Nova versao (daily_pipeline + live_cycle + healthcheck em loop)
 echo [0] Sair

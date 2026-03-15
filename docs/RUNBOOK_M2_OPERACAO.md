@@ -311,6 +311,39 @@ Comando de inspecao:
 cat results/model2/signal_enhancement_report_*.json | jq '.total_signals_enhanced_percent'
 ```
 
+
+### Operacao formal da janela M2-016.2 (72h)
+
+Fluxo recomendado para consolidar a validacao com checkpoints de 12h:
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py start --execution-mode live --duration-hours 72 --checkpoint-hours 12
+```
+
+Checkpoint operacional (executar a cada 12h):
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py checkpoint
+```
+
+Encerramento com comparativo RL vs baseline:
+
+```bash
+python scripts/model2/m2_016_2_validation_window.py finalize
+```
+
+Artefatos gerados:
+
+1. `results/model2/runtime/model2_m2_016_2_window_*.json`
+2. `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`
+3. `results/model2/runtime/model2_m2_016_2_final_*.json`
+4. `results/model2/analysis/model2_m2_016_2_report_*.json`
+
+Regras de resposta a incidente durante a janela:
+
+1. `enhancement_rate_percent < 60`: congelar expansao live e abrir fine-tune.
+2. Divergencia proxy crescente em 2 checkpoints consecutivos: incidentar e rastrear run_id.
+3. Qualquer `healthcheck` com violacao: tratar como P1 operacional.
 ### Fase 4: Fine-tune iterativo (opcional)
 
 Se observar problemas em shadow:
@@ -511,3 +544,4 @@ Enquanto a janela estiver aberta, o agente executará a captura por sync_market_
 > 2. Execute deploy\install_windows_service.bat como Administrador na raiz do projeto.
 > 3. Controle a execução pelos comandos: sc start CryptoFuturesAgentM2 e sc stop CryptoFuturesAgentM2.
 > 4. Monitore as predições abrindo o arquivo logs\daemon_live_stdout.log.
+

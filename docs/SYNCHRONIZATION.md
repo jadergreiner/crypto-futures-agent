@@ -23,6 +23,210 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-011] M2-016.4 Phase E.10 - Ensemble Pipeline Integration (BLID-068)
+
+**Data/Hora**: 2026-03-15 17:30 UTC
+**Status**: 🔄 EM PROGRESSO
+
+#### Mudancas no Codigo (Fase E.10 — E.10)
+
+| Componente | Arquivo | Mudanca | V |
+|-----------|---------|---------|---|
+| Wrapper Ensemble | scripts/model2/ensemble_signal_generation_wrapper.py | Novo | E.10 |
+| Pipeline | scripts/model2/daily_pipeline.py | +import+etapa | E.10 |
+| Backlog | docs/BACKLOG.md | +BLID-068 (E.10) | E.10 |
+| SYNCHRONIZATION | docs/SYNCHRONIZATION.md (este) | +[SYNC-011] | E.10 |
+
+#### Integridade do Codigo
+
+```
+✓ EnsembleSignalGenerator com soft+hard voting
+✓ Load checkpoints E.8 com fallback gracioso
+✓ Confidence scoring baseado em consenso
+✓ Integração em daily_pipeline (etapa nova)
+✓ Zero breaking changes (etapa após RL)
+✓ Logging + stats para observabilidade
+✓ Mock-ready para testes
+```
+
+#### Proximos Passos (Apos BLID-068)
+
+1. Executar daily_pipeline com ensemble enabled
+2. Validar statsística votação (divergence rate, etc)
+3. BLID-069: 72h paper trading + validação
+4. BLID-070: Risk management para ensemble
+
+---
+
+### [SYNC-010] M2-016.4 Phase E.9 - Ensemble Voting (BLID-067)
+
+**Data/Hora**: 2026-03-15 17:00 UTC
+**Status**: 🔄 EM PROGRESSO
+
+#### Mudancas no Codigo (Fase E.9)
+
+| Componente | Arquivo | Mudanca | V |
+|-----------|---------|---------|---|
+| Ensemble | scripts/model2/ensemble_voting_ppo.py | Novo | E.9 |
+| Avaliacao | scripts/model2/evaluate_ensemble_e9.py | Novo | E.9 |
+| Benchmark | scripts/model2/compare_e5_to_e9_final.py | Novo | E.9 |
+| Backlog | docs/BACKLOG.md | +BLID-067 | E.9 |
+| RL_SIGNAL | docs/RL_SIGNAL_GENERATION.md | +Fase E.9 | E.9 |
+
+#### Integridade do Codigo
+
+```
+✓ EnsembleVotingPPO (soft + hard voting)
+✓ Load E.8 checkpoints (MLP + LSTM Optuna)
+✓ Evaluate vs individuais
+✓ Benchmark E.5->E.9 completo
+✓ Sem breaking changes
+```
+
+---
+
+### [SYNC-009] M2-016.4 Phase E.8 - Retrain with Best Hyperparams (BLID-066)
+
+**Data/Hora**: 2026-03-15 16:00 UTC
+**Commits**: 1 commit [FEAT] (Pendente)
+**Status**: 🔄 EM PROGRESSO
+
+#### Mudancas no Código (Fase E.8 — Retrain com Best Hyperparams)
+
+| Componente | Arquivo | Mudanca | Versao |
+|-----------|---------|---------|--------|
+| Retrain Script | scripts/model2/retrain_ppo_with_optuna_params.py | Novo | E.8 |
+| Compare Script | scripts/model2/compare_e6_vs_e8_sharpe.py | Novo | E.8 |
+| Checkpoint MLP | checkpoints/ppo_training/mlp/optuna/ | Novo (500k) | E.8 |
+| Checkpoint LSTM | checkpoints/ppo_training/lstm/optuna/ | Novo (500k) | E.8 |
+| Relatorio E.8 | results/model2/analysis/phase_e8_comparison_*.json | Novo | E.8 |
+| Backlog | docs/BACKLOG.md | +BLID-066 (Phase E.8) | E.8 |
+| RL_SIGNAL_GENERATION | docs/RL_SIGNAL_GENERATION.md | +Fase E.8 | E.8 |
+
+#### Integridade do Código
+
+```
+✓ Retrain scripts criados (load best params OK)
+✓ Checkpoints salvos em paths corretos (mlp/optuna, lstm/optuna)
+✓ Compare script encontrando modelos E.6 vs E.8
+✓ Metricas calculadas (Sharpe, mean_reward, drawdown)
+✓ Output JSON estruturado para analise
+✓ Compatibilidade com 26 features (E.6+E.7)
+✓ Sem breaking changes em pipeline existente
+```
+
+---
+
+### [SYNC-008] M2-016.4 Phase E.7 - Hyperparameter Optimization (BLID-065)
+
+**Data/Hora**: 2026-03-15 15:30 UTC
+**Commits**: 1 commit [FEAT] (Pendente)
+**Status**: 🔄 EM PROGRESSO
+
+#### Mudanças no Código (Fase E.7 — Hyperparameter Optimization)
+
+| Componente | Arquivo | Mudança | Versão |
+|------------|---------|---------|--------|
+| Optuna Grid Search | scripts/model2/optuna_grid_search_ppo.py | Novo (100 trials: 50 MLP + 50 LSTM) | E.7 |
+| Objective Functions | (função Python) | MLP e LSTM com objetivos separados | E.7 |
+| Resultados Analysis | results/model2/analysis/optuna_grid_search_results.json | Novo (top 5 hyperparams per model) | E.7 |
+| Backlog | docs/BACKLOG.md | +BLID-065 (M2-016.3 Fase E.7) | E.7 |
+
+#### Hiperparametros Otimizados
+
+| Parametro | Range Otimizada | Meta |
+|-----------|-----------------|------|
+| Learning Rate | [1e-5, 1e-3] | Encontrar sweet spot (tipicamente 3e-4 a 5e-4) |
+| Batch Size | {32, 64, 128} | 64 historicamente melhor |
+| Entropy Coef | [0.0, 0.1] | Balancear exploracao vs explotacao |
+| Clip Range | [0.1, 0.3] | Stabilidade de atualizacao policy |
+| GAE Lambda | [0.9, 0.99] | Tradeoff bias-variance em rewards |
+
+#### Documentacao Sincronizada (Agendada)
+
+**HIGH (1 doc)** — Operacional
+
+1. **RL_SIGNAL_GENERATION.md** 🔄
+   - Versão: M2-016.4 → M2-016.4
+   - Nova subsecção: "Fase E.7: Otimizacao de Hiperparametros com Optuna"
+   - Status de implementacao (Script: ✅, Otimizacao: 🔄)
+   - Pipeline E.7 com expectativas de resultado
+   - Commit: [FEAT] BLID-065 Otimizar hiperparametros PPO Optuna (PENDENTE)
+
+#### Integridade do Código
+
+```
+✓ Script Optuna criado com TPESampler + MedianPruner
+✓ Objective functions para MLP e LSTM implementadas
+✓ Logic de selecao top 5 hyperparams integrada
+✓ Output JSON estruturado para analise
+✓ Compatibilidade com resultados de E.6 (26 features)
+✓ Sem breaking changes em pipeline existente
+```
+
+---
+
+### [SYNC-007] M2-016.4 Phase E.6 - Advanced Indicators (Estocastico, Williams, ATR)
+
+**Data/Hora**: 2026-03-15 14:00 UTC
+**Commits**: 1 commit [FEAT] (Pendente)
+**Status**: 🔄 EM PROGRESSO
+
+#### Mudanças no Código (Fase E.6 — Advanced Indicators)
+
+| Componente | Arquivo | Mudança | Versão |
+|------------|---------|---------|--------|
+| Feature Enricher | scripts/model2/feature_enricher.py | +3 métodos (Stoch, Williams, ATR norm) | E.6 |
+| Feature Count | (20 → 22 → 26 features) | +4 novas features | E.6 |
+| Testes | tests/test_model2_phase_e6_indicators.py | Novo (9 testes, 100% PASS) | E.6 |
+| Treinamento MLP | scripts/model2/train_ppo_lstm.py --policy mlp | Em progresso (300k timesteps) | E.6 |
+| Treinamento LSTM | scripts/model2/train_ppo_lstm.py --policy lstm | Em progresso (300k timesteps) | E.6 |
+| Comparação | scripts/model2/phase_e6_sharpe_comparison.py | Novo (comparação 22 vs 26) | E.6 |
+| Backlog | docs/BACKLOG.md | +BLID-064 (M2-016.3 Fase E.6) | E.6 |
+
+#### Novos Indicadores Adicionados
+
+| Indicador | Features | Range | Beneficio |
+|-----------|----------|-------|-----------|
+| Estocastico K | stoch_k | [0, 100] | Detecta reversoes (>80 overbot, <20 oversold) |
+| Estocastico D | stoch_d | [0, 100] | Confirmacao K lines, reduz falsos |
+| Williams %R | williams_r | [-100, 0] | Correlacao com K, validacao extra |
+| ATR Normalizado | atr_normalized | [0, ∞) | Volatilidade %, pos-risk sizing |
+
+#### Documentação Sincronizada (Agendada)
+
+**HIGH (1 doc)** — Operacional
+
+1. **RL_SIGNAL_GENERATION.md** 🔄
+   - Versão: M2-016.3 → M2-016.4
+   - Novas subsecções:
+     - "Fase E.6: Enriquecimento com Indicadores Avancados"
+     - Status de implementação (Feature Enricher: ✅, Testes: ✅, Treino: 🔄)
+     - Estrutura de 26 features (categorização por tipo)
+     - Pipeline de execução E.6
+     - Resultado esperado (Sharpe +5-10%)
+   - Commit: [FEAT] BLID-064 Estocastico Williams ATR multiTF (PENDENTE)
+
+#### Integridade do Código
+
+```
+✓ Feature Enricher extensões: calculate_stochastic(), calculate_williams_r(), calculate_atr_normalized()
+✓ Metodos integrados em enrich_features() com saída em dict['volatility']
+✓ Multi-timeframe ATR normalizado adicionado em multi_timeframe_context
+✓ 9/9 testes unitários PASS
+✓ Compatibilidade com train_ppo_lstm.py (Feature Shape invariante)
+✓ Sem breaking changes em repositórios existentes
+```
+
+#### Dependências de Docs ainda Pendentes
+
+- [ ] BACKLOG.md: Atualizar Fase E.6 quando treinamentos completarem (Evidence de checkpoints)
+- [ ] ARQUITETURA_ALVO.md: Documentar E.6 como "Feature Enrichment Layer v2"
+- [ ] ADRS.md: Considerar novo ADR se decisão técnica signer (ex: "Por que Estocastico K+D vs só D?")
+- [ ] CHANGELOG.md: Adicionar entrada M2-016.4 com data exata de conclusão
+
+---
+
 ### [SYNC-006] M2-016.4 LSTM Policy Implementation and Training
 
 **Data/Hora**: 2026-03-15

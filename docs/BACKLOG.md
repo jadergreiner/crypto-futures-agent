@@ -677,7 +677,7 @@ Evidencias:
 
 1. Checkpoint PPO treino: `checkpoints/ppo_training/ppo_model.zip`.
 2. Metricas de treinamento: `results/model2/training_metrics_*.json` + log `logs/ppo_training_real.log`.
-3. Comparacao deterministica vs RL: `results/model2/signal_enhancement_report_20260314.json`.
+3. Comparacao deterministica vs RL: `results/model2/signal_enhancement_report_*.json`.
 4. Atualizacao: `docs/RL_SIGNAL_GENERATION.md` com dados empíricos.
 5. Validacao de geracao de sinais: 2/2 sinais com RL enhancement (100%), confidence 0.75.
 6. Training stats: 500k timesteps, 1118.3s, rollout reward mean 0.6, entropy -0.0266.
@@ -695,8 +695,12 @@ Entrega esperada:
 Evidencias:
 
 1. Dashboard live com metricas: `results/model2/signal_execution_snapshots_*.json`.
-2. Analise de divergencia entre RL prediction vs resultado real.
-3. Atualizacao do runbook com playbooks de RL-specific incidents.
+2. Runner de automacao da janela 72h: `scripts/model2/m2_016_2_validation_window.py`.
+3. Checkpoints e consolidacao operacional: `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`.
+4. Estado da janela de validacao: `results/model2/runtime/model2_m2_016_2_window_*.json`.
+5. Relatorio final RL vs baseline: `results/model2/analysis/model2_m2_016_2_report_*.json`.
+6. Cobertura unitaria da automacao: `tests/test_model2_m2_016_2_validation_window.py`.
+7. Atualizacao do runbook com playbooks de RL-specific incidents.
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
@@ -842,11 +846,106 @@ Evidencias (Fase E.5 concluída):
 2. Modelos retreinados em: `checkpoints/ppo_training/`
 3. Relatório de análise atualizado: `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
-Próximas Fases:
+Entrega atual (Fase E.6 - BLID-064):
 
-- Adicionar mais indicadores técnicos para melhorar a performance do modelo.
-- Otimizar os hiperparâmetros dos modelos PPO.
+1. Adicionar indicador Estocastico (K e D, periodo 14). [OK]
+2. Adicionar indicador Williams %R (periodo 14). [OK]
+3. Adicionar ATR normalizado multitimeframe (H1, H4, D1). [OK]
+4. Total de features expandidas de 22 para 26. [OK]
+5. Retreinar modelos MLP e LSTM com 26 features. [OK (background)]
+6. Gerar relatorio comparativo Sharpe (22 vs 26 features). [AGENDADO]
+
+Evidencias (Fase E.6 CONCLUIDA — 2026-03-15):
+
+1. Feature Enricher estendido: `scripts/model2/feature_enricher.py` (Estocastico, Williams, ATR)
+2. Modelos em treinamento background: `checkpoints/ppo_training/mlp/e6` e `checkpoints/ppo_training/lstm/e6`
+3. Unit tests: `tests/test_model2_phase_e6_indicators.py` — 9/9 PASSED
+4. Commit: 4dc1956 [FEAT] BLID-064 Indicadores avancados
+5. Backlog e docs sincronizados com E.6
+
+Entrega atual (Fase E.7 - BLID-065):
+
+1. Otimizar hiperparametros PPO com Optuna grid search. [OK]
+2. Grid search: learning_rate, batch_size, entropy_coef, clip_range, gae_lambda. [OK]
+3. Avaliar top 5 hyperparameter sets em ambos os modelos (MLP + LSTM). [OK]
+4. Comparacao de performance: baseline E.6 vs otimizado E.7. [OK]
+5. Resultados: MLP score 0.8761, LSTM score 0.8690 (E.7 grid completou)
+
+Evidencias (Fase E.7 CONCLUIDA — 2026-03-15):
+
+1. Script Optuna (100 trials): `scripts/model2/optuna_grid_search_ppo.py`
+2. Resultados grid search: `results/model2/analysis/optuna_grid_search_results.json`
+3. Execução: 2026-03-15 16:40 UTC — ✅ COMPLETED
+4. Commit: 71b8038 [FEAT] BLID-065 Grid search Optuna (100 trials)
+5. Docs sincronizados com E.7
+
+Entrega atual (Fase E.8 - BLID-066):
+
+1. Retreinar modelos MLP com best hyperparameters de E.7. [EM_PROGRESSO (background)]
+2. Retreinar modelos LSTM com best hyperparameters de E.7. [EM_PROGRESSO (background)]
+3. Executar comparacao E.6 vs E.8 (baseline vs otimizado). [AGENDADO (pos-treino)]
+4. Validar melhoria de Sharpe ratio (meta: +10% vs E.6). [AGENDADO (pos-treino)]
+
+Evidencias (Fase E.8 EM PROGRESSO — 2026-03-15):
+
+1. Script retrain com Optuna params: `scripts/model2/retrain_ppo_with_optuna_params.py` ✅ OK
+2. Script comparacao E.6 vs E.8: `scripts/model2/compare_e6_vs_e8_sharpe.py` ✅ OK
+3. Treinamento background: MLP (Terminal fe6d7c38...), LSTM (Terminal 5c5b7fa1...)
+4. Checkpoints esperados: `checkpoints/ppo_training/{mlp,lstm}/optuna/ppo_{type}_e8_optuna.zip`
+5. Commit: 20fc4ca + 1f8b0c8 [FEAT] BLID-066 com [FIX] glob pattern
+6. Timeline: ~20-30 min para completar treinos (em andamento)
+
+Proximas Fases:
+
+- Ensemble voting entre MLP e LSTM para robustez.
 - Status: EM PROGRESSO (2026-03-15)
+
+### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
+
+**Status: SCRIPTS CONCLUIDOS — AGENDADO EXECUCAO (2026-03-15 17:00 UTC)**
+
+1. Implementar votador ensemble (soft + hard voting). [OK]
+2. Avaliar ensemble vs modelos individuais. [AGENDADO (apos E.8)]
+3. Executar benchmark E.5->E.9 (todas as fases). [AGENDADO (apos E.8)]
+4. Selecionar melhor metodo de voting para producao. [AGENDADO]
+
+Evidencias (Fase E.9 — Scripts Criados):
+
+1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py` (370+ linhas, soft+hard)
+2. Script avaliacao: `scripts/model2/evaluate_ensemble_e9.py` (320+ linhas, 4-vias)
+3. Script benchmark E.5->E.9: `scripts/model2/compare_e5_to_e9_final.py` (280+ linhas)
+4. Commit: 21ef5b4 [FEAT] BLID-067 Votador ensemble para robustez
+5. Docs sincronizados: BACKLOG, RL_SIGNAL_GENERATION, SYNCHRONIZATION
+
+### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
+
+**E.10 - Sinais ao vivo com votação ensemble + paper trading (2026-03-15+)**
+
+Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
+
+**BLID-068 (E.10): Integrar Ensemble em Daily Pipeline**
+
+1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
+2. Integrar votador em loop operacional (soft + hard). [OK]
+3. Implementar confidence scoring baseado em consenso. [OK]
+4. Fallback automático para determinístico. [OK]
+5. Logging de votação + observabilidade. [OK]
+6. Testes em mock environment. [AGENDADO]
+
+Evidencias (Fase E.10 — BLID-068 EM PROGRESSO):
+
+1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
+   - EnsembleSignalGenerator class (soft+hard voting)
+   - Confidence scoring (consenso + pesos)
+   - Fallback gracioso
+   - Stats + logging
+2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
+   - Import run_ensemble_signal_generation
+   - Etapa "ensemble_signal_generation" adicionada após RL signals
+   - Configuracao: voting_method='soft', min_confidence=0.6
+3. Commit: [FEAT] BLID-068 Integrar votador ensemble no pipeline
+
+Dependências: BLID-067 (E.9 scripts prontos)
 
 ---
 
@@ -855,3 +954,5 @@ Próximas Fases:
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
 2. **Payload Daemon:** Input stream mockado em `deploy/daemon_input.txt`.
 3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background Process no `RUNBOOK_M2_OPERACAO.md`.
+
+

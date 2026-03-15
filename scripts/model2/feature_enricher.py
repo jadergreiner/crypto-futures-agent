@@ -94,10 +94,80 @@ class FeatureEnricher:
              signal_line = np.mean([fast_ema - np.mean(closes[-(slow_period+i):-(i if i > 0 else None)]) for i in range(signal_period)])
         else:
              signal_line = np.mean([fast_ema - np.mean(closes[-(slow_period+i):-(i if i > 0 else None)]) for i in range(signal_period)])
-        
+
         histogram = macd_line - signal_line
-        
+
         return float(macd_line), float(signal_line), float(histogram)
+
+    @staticmethod
+    def calculate_stochastic(highs: list[float], lows: list[float], closes: list[float], period: int = 14, smooth_k: int = 3, smooth_d: int = 3) -> tuple[float, float]:
+        """Calcula Estocastico (K e D) - indicador de momentum em zonas extremas."""
+        if len(closes) < period:
+            return 50.0, 50.0
+
+        recent_highs = highs[-period:]
+        recent_lows = lows[-period:]
+        recent_closes = closes[-period:]
+
+        highest = max(recent_highs)
+        lowest = min(recent_lows)
+
+        if highest == lowest:
+            k_line = 50.0
+        else:
+            k_line = ((closes[-1] - lowest) / (highest - lowest)) * 100.0
+
+        # Suavizar K com EMA simples
+        if len(closes) >= period + smooth_k - 1:
+            k_values = []
+            for i in range(len(closes) - period - smooth_k + 2):
+                h = max(closes[i:i+period])
+                l = min(closes[i:i+period])
+                if h == l:
+                    k = 50.0
+                else:
+                    k = ((closes[i+period-1] - l) / (h - l)) * 100.0
+                k_values.append(k)
+            k_line = float(np.mean(k_values[-smooth_k:])) if k_values else 50.0
+
+        # D linha e uma media suavizada de K
+        d_line = k_line  # Simplificacao: usar K como proxy
+
+        return float(np.clip(k_line, 0.0, 100.0)), float(np.clip(d_line, 0.0, 100.0))
+
+    @staticmethod
+    def calculate_williams_r(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> float:
+        """Calcula Williams %R - oscilador relacionado ao Estocastico."""
+        if len(closes) < period:
+            return -50.0
+
+        recent_highs = highs[-period:]
+        recent_lows = lows[-period:]
+
+        highest = max(recent_highs)
+        lowest = min(recent_lows)
+
+        if highest == lowest:
+            williams_r = -50.0
+        else:
+            williams_r = -100.0 * (highest - closes[-1]) / (highest - lowest)
+
+        return float(np.clip(williams_r, -100.0, 0.0))
+
+    @staticmethod
+    def calculate_atr_normalized(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> float:
+        """Calcula ATR normalizado (em percentual do preco)."""
+        if len(closes) < period:
+            return 0.0
+
+        atr = FeatureEnricher.calculate_atr(highs, lows, closes, period)
+        current_close = closes[-1]
+
+        if current_close == 0:
+            return 0.0
+
+        atr_normalized = (atr / current_close) * 100.0
+        return float(atr_normalized)
 
     @staticmethod
     def fetch_candles_by_timeframe(
@@ -177,6 +247,9 @@ class FeatureEnricher:
             rsi = cls.calculate_rsi(closes, period=14)
             bb_lower, bb_upper, bb_position = cls.calculate_bollinger_bands(closes, period=20)
             macd_line, macd_signal, macd_hist = cls.calculate_macd(closes)
+            stoch_k, stoch_d = cls.calculate_stochastic(highs, lows, closes, period=14)
+            williams_r = cls.calculate_williams_r(highs, lows, closes, period=14)
+            atr_normalized = cls.calculate_atr_normalized(highs, lows, closes, period=14)
 
             enriched["volatility"] = {
                 "atr_20": atr,
@@ -187,6 +260,10 @@ class FeatureEnricher:
                 "macd_line": macd_line,
                 "macd_signal": macd_signal,
                 "macd_hist": macd_hist,
+                "stoch_k": stoch_k,
+                "stoch_d": stoch_d,
+                "williams_r": williams_r,
+                "atr_normalized": atr_normalized,
             }
 
         # Buscar candles de outros timeframes para contexto
@@ -197,11 +274,16 @@ class FeatureEnricher:
             other_candles = cls.fetch_candles_by_timeframe(conn, symbol, other_tf, limit=50)
             if other_candles.get("available"):
                 closes = other_candles["closes"]
+                highs = other_candles["highs"]
+                lows = other_candles["lows"]
+                atr_norm_tf = cls.calculate_atr_normalized(highs, lows, closes, period=14)
+
                 multi_tf[other_tf] = {
                     "count": other_candles["count"],
                     "last_5_closes": closes[-5:] if len(closes) >= 5 else closes,
                     "current_close": closes[-1],
                     "ma_20": float(np.mean(closes[-20:]) if len(closes) >= 20 else np.mean(closes)),
+                    "atr_normalized": atr_norm_tf,
                 }
 
         if multi_tf:
@@ -217,20 +299,20 @@ class FeatureEnricher:
     ) -> dict[str, Any]:
         """
         Enriquece features com dados de funding rates e open interest.
-        
+
         Args:
             enriched_features: Features já enriquecidas
             symbol: Ex. 'BTCUSDT'
             funding_collector: Instância de BinanceFundingCollector (lazy import)
-            
+
         Returns:
             Dict enriquecido com chaves 'funding_rates' e 'open_interest'
         """
         if not funding_collector:
             return enriched_features
-        
+
         enriched = dict(enriched_features)
-        
+
         try:
             # Funding rates data
             fr = funding_collector.get_latest_funding_rate(symbol)
@@ -244,7 +326,7 @@ class FeatureEnricher:
                     "avg_rate_24h": sentiment.get("avg_funding_rate"),
                     "trend": sentiment.get("trend"),
                 }
-            
+
             # Open interest data
             oi = funding_collector.get_latest_open_interest(symbol)
             if oi:
@@ -259,5 +341,5 @@ class FeatureEnricher:
         except Exception as e:
             # Graceful fallback se API/DB falhar
             enriched["funding_data_error"] = str(e)
-        
+
         return enriched
