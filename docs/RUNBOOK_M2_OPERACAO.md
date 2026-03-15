@@ -480,40 +480,34 @@ Artefatos adicionais em `results/model2/runtime/`:
 
 ---
 
-## Fase 4: O Go-Live e o Windows Daemon de Produção
+## Fase 4: O Go-Live (Execução Manual de Produção)
 
-A etapa final do modelo 2.0 (`live` mode) envolve habilitar as chaves de API da Binance reais e desatrelar o programa da sessão interativa do CMD, transformando-o num verdadeiro *Robô Autônomo 24/7*. Para isso, criamos o framework de *Windows Service* usando o `NSSM` (Non-Sucking Service Manager).
+A etapa final do modelo 2.0 (live mode) envolve habilitar as chaves de API reais da Binance para o agente começar a operar ativamente no mercado em sua sessão de terminal.
 
 **Pré-requisitos de Produção:**
-1. Verifique `.env`:
-   ```env
+1. Verifique .env:
+   `nv
    M2_EXECUTION_MODE=live
    BINANCE_API_KEY=sua_live_key
    BINANCE_API_SECRET=sua_live_secret
-   ```
-2. Baixe o `nssm.cc` (versão win64) e mova para pasta Path como `%WINDIR%\System32\nssm.exe`.
+   `
 
-**Instalando o Daemon M2:**
-Execute como **Administrador** via terminal interativo ou botão direito:
-```cmd
-cd C:\repo\crypto-futures-agent\deploy
-install_windows_service.bat
-```
+**Operacionalizando o Agente:**
+Abra seu terminal preferido (CMD ou PowerShell) na pasta do repositório:
+`cmd
+cd C:\repo\crypto-futures-agent
+iniciar.bat
+`
+Ao ver o menu principal, tecle 2 e pressione ENTER para **iniciar o Pipeline Completo Híbrido** e deixe a janela executando.
 
-Este script vai:
-1. Criar o serviço `CryptoFuturesAgentM2`.
-2. Registrar o arquivo principal `iniciar.bat` nativamente no Windows.
-3. Informar à rotina que exigimos a `Opção 2` (live loop pipeline) via STDIN estático `deploy\daemon_input.txt`.
-4. Desviar toda falha, print, warning e traceback natural do Python para: `logs/daemon_live_stdout.log` e `logs/daemon_live_stderr.log`.
+Enquanto a janela estiver aberta, o agente executará a captura por sync_market_context, atualizará o modelo dinamicamente e submeterá logs em stdout (Terminal) continuamente.
 
-**Operacionalizando o Serviço:**
-A partir deste momento, se o Windows reiniciar ou você fechar a conta local, o Agente continuará varrendo H4 e M5 e consumindo CPU para gerenciar risco via RL localmente.
-
-> **Parar o robô de urgência**:
-> `sc stop CryptoFuturesAgentM2`
+---
+> **Dica - Modo Avançado (Opcional)**
 >
-> **Ligar o robô**:
-> `sc start CryptoFuturesAgentM2`
+> Caso no futuro você deseje rodar o robô blindado em plano de fundo (*Windows Daemon*) sem um terminal aberto, preparamos as ferramentas necessárias:
 >
-> **Checar falhas**:
-> `type logs\daemon_live_stderr.log`
+> 1. Baixe o [NSSM](http://nssm.cc/) (win64) e mova para %WINDIR%\System32\nssm.exe.
+> 2. Execute deploy\install_windows_service.bat como Administrador na raiz do projeto.
+> 3. Controle a execução pelos comandos: sc start CryptoFuturesAgentM2 e sc stop CryptoFuturesAgentM2.
+> 4. Monitore as predições abrindo o arquivo logs\daemon_live_stdout.log.
