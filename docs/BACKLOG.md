@@ -818,10 +818,20 @@ Evidencias (Fase E.3 concluída):
 2. Resoluções do ambiente LSTM: `agent/lstm_environment.py`
 3. Checkpoints e modelos localizados em: `checkpoints/ppo_training/mlp` e `checkpoints/ppo_training/lstm`
 
+Entrega atual (Fase E.4):
+
+44. Script avaliador para simular e calcular histórico real: `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
+45. Implementação de Testes mockando banco SQLite: `tests/test_model2_phase_e4_sharpe.py` [OK]
+46. Comparativo PPO MLP vs PPO LSTM exportados para a pasta analysis [OK]
+
+Evidencias (Fase E.4 concluída):
+
+1. Script de Análise Comparativa: `scripts/model2/phase_e4_sharpe_analysis.py`
+2. Relatório exportado em: `results/model2/analysis/phase_e4_sharpe_analysis.json`
+
 Próximas Fases:
 
-1. **Fase E.4 (Dias 31-34 est.)**: Comparison analysis (Sharpe delta, 2-3 dias)
-2. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
+1. **Produção (When Fase E ready)**: Deploy daemon como systemd service + credenciais real Binance
 
 
 
