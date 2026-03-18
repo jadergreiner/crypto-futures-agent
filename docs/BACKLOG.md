@@ -949,10 +949,36 @@ Dependências: BLID-067 (E.9 scripts prontos)
 
 ---
 
+## INICIATIVA M2-017 - Adicao de novos simbolos ao pipeline RL
+
+### TAREFA M2-017.1 - Habilitar FLUXUSDT no pipeline RL
+
+Status: CONCLUIDA (2026-03-17)
+
+Entrega:
+
+1. Adicionar FLUXUSDT a config/symbols.py com metadados completos. [OK]
+2. Criar playbook FLUXPlaybook (playbooks/flux_playbook.py). [OK]
+3. Registrar FLUXPlaybook em playbooks/**init**.py. [OK]
+4. Corrigir bug SYMBOLS_ENABLED -> ALL_SYMBOLS no daemon de funding. [OK]
+5. Criar testes de integracao tests/test_fluxusdt_integration.py (41 testes). [OK]
+6. Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados. [PENDENTE]
+7. Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run. [PENDENTE]
+
+Evidencias (Fase M2-017.1 — CONCLUIDA):
+
+1. Config: `config/symbols.py` — FLUXUSDT (mid_cap_cross_chain, beta 2.9)
+2. Playbook: `playbooks/flux_playbook.py` — FLUXPlaybook (4 metodos)
+3. Registro: `playbooks/__init__.py` — import + **all** atualizados
+4. Bug fix: `scripts/model2/binance_funding_daemon.py`
+   - SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
+5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
+6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
 2. **Payload Daemon:** Input stream mockado em `deploy/daemon_input.txt`.
 3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background Process no `RUNBOOK_M2_OPERACAO.md`.
-
-

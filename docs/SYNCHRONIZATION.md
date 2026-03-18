@@ -23,6 +23,43 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-012] M2-017.1 FLUXUSDT - Habilitacao no pipeline RL
+
+**Data/Hora**: 2026-03-17 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas no Codigo (M2-017.1)
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Simbolos | config/symbols.py | +FLUXUSDT (beta 2.9) |
+| Playbook | playbooks/flux_playbook.py | Novo |
+| Registry | playbooks/\_\_init\_\_.py | +FLUXPlaybook |
+| Bug fix | scripts/model2/binance_funding_daemon.py | ALL_SYMBOLS |
+| Testes | tests/test_fluxusdt_integration.py | 41 testes ok |
+| Backlog | docs/BACKLOG.md | +M2-017.1 |
+| SYNC | docs/SYNCHRONIZATION.md | +[SYNC-012] |
+
+#### Integridade do Codigo
+
+```
+OK config/symbols.py: FLUXUSDT propaga para ALL_SYMBOLS,
+   AUTHORIZED_SYMBOLS e M2_SYMBOLS automaticamente
+OK playbooks/flux_playbook.py: mypy sem erros
+OK tests/test_fluxusdt_integration.py: 41/41 passando
+OK bug fix daemon: excecao tipada (Exception, nao bare except)
+OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
+```
+
+#### Proximos Passos (Apos M2-017.1)
+
+1. Coletar dados OHLCV FLUXUSDT via main.py --setup
+2. Aguardar >= 20 sinais validados em modelo2.db
+3. Executar python main.py --train --symbols "FLUXUSDT"
+4. Verificar daily_pipeline --dry-run --symbol FLUXUSDT
+
+---
+
 ### [SYNC-011] M2-016.4 Phase E.10 - Ensemble Pipeline Integration (BLID-068)
 
 **Data/Hora**: 2026-03-15 17:30 UTC
