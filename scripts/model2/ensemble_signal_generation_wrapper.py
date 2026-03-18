@@ -38,7 +38,7 @@ logging.basicConfig(
     format='[%(asctime)s] [%(levelname)s] %(message)s',
     handlers=[
         logging.FileHandler(
-            _os.path.join(_log_dir, 'm2_cycle.log'), encoding='utf-8'
+            _os.path.join(_log_dir, 'm2_ensemble.log'), encoding='utf-8'
         )
     ]
 )
