@@ -39,19 +39,26 @@ elif label == 'live':
     exe = d.get('execute', {})
     staged = exe.get('staged', [])
     ready = exe.get('processed_ready', [])
+    live_symbols = exe.get('live_symbols', [])
     blocked = dash.get('blocked_count', 0)
     protected = dash.get('protected_count', 0)
     exited = dash.get('exited_count', 0)
     failed = dash.get('failed_count', 0)
     print(f'[live    ] status={d.get("status","?")} | staged={len(staged)} | ready={len(ready)} | blocked={blocked} | protected={protected} | exited={exited} | failed={failed}')
-    for s in staged:
-        sym = s.get('symbol', '?')
-        st = s.get('status', '?')
-        reason = s.get('reason', '')
-        detail = f' ({reason})' if reason else ''
-        print(f'           {sym} -> {st}{detail}')
-    for r in ready:
-        print(f'           {r.get("symbol","?")} -> {r.get("status","?")}')
+    # Mapear status por simbolo
+    staged_map = {s.get('symbol'): s for s in staged}
+    ready_map = {r.get('symbol'): r for r in ready}
+    for sym in live_symbols:
+        if sym in ready_map:
+            r = ready_map[sym]
+            print(f'  {sym:<10} READY -> {r.get("status","?")}')
+        elif sym in staged_map:
+            s = staged_map[sym]
+            reason = s.get('reason', '')
+            detail = f' ({reason})' if reason else ''
+            print(f'  {sym:<10} {s.get("status","?")}{detail}')
+        else:
+            print(f'  {sym:<10} aguardando oportunidade')
 
 elif label == 'episodio':
     inseridos = d.get('episodes_inserted', d.get('inserted', 0))
