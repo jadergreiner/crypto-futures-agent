@@ -29,10 +29,18 @@ if str(REPO_ROOT) not in sys.path:
 from agent.lstm_environment import LSTMSignalEnvironment
 from scripts.model2.ensemble_voting_ppo import EnsembleVotingPPO
 
-# Setup logging
+# Setup logging — redireciona para arquivo para evitar OSError no pipe CMD
+import os as _os
+_log_dir = _os.path.join(_os.path.dirname(__file__), '..', '..', 'logs')
+_os.makedirs(_log_dir, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s] [%(levelname)s] %(message)s'
+    format='[%(asctime)s] [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler(
+            _os.path.join(_log_dir, 'm2_cycle.log'), encoding='utf-8'
+        )
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -321,8 +329,8 @@ def run_ensemble_signal_generation(
         # Mock: simular 10 sinais
         n_signals = 10
         for i in range(n_signals):
-            # Mock observation
-            observation = np.random.randn(10, 20).astype(np.float32)  # LSTM shape
+            # Mock observation — shape flat (220,) compativel com MLP/LSTM treinados
+            observation = np.random.randn(220).astype(np.float32)
             signal = generator.generate_ensemble_signal(observation)
 
             if i == 0:
