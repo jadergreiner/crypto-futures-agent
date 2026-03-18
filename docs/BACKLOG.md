@@ -1148,6 +1148,215 @@ Evidencias:
 
 ---
 
+## INICIATIVA M2-019 - RL por Simbolo como Decisor de Entrada
+
+Objetivo: Substituir o scanner SMC deterministico como unico decisor por
+modelos RL individuais por simbolo (BTCUSDT, ETHUSDT, BNBUSDT, SOLUSDT,
+XRPUSDT, FLUXUSDT). Cada simbolo tem seu proprio modelo PPO que decide
+LONG/SHORT/NEUTRAL com base em features reais de mercado, integrado ao
+pipeline diario como filtro entre o bridge e a order layer.
+
+Arquitetura resultante:
+
+Scanner SMC -> Bridge -> persist_episodes -> train_entry_agents
+-> entry_rl_filter -> Order Layer -> Execucao
+
+Regras inviolaveis:
+
++ Fallback conservador quando modelo nao existe ou confianca baixa
++ risk_gate.py e circuit_breaker.py permanecem ativos na execucao
++ Novos stages com continue_on_error=True
+
+### TAREFA M2-019.1 - EntryDecisionEnv: environment de decisao de entrada
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `agent/entry_decision_env.py` com `EntryDecisionEnv(gym.Env)`. [ ]
+2. Action space: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT. [ ]
+3. Observation space: Box(36,) normalizado em [-1, 1] com OHLCV
+   multi-TF H1/H4/D1 (24), indicadores RSI/MACD/BB/ATR/Stoch/Williams
+   (6), funding/LS-ratio/OI (3), contexto SMC (3). [ ]
+4. Reward retroativo: outcome real da signal_execution. [ ]
+5. Reset seleciona episodio aleatorio da lista de training_episodes. [ ]
+6. Fallback gracioso para lista vazia (episodio dummy, reward=0). [ ]
+7. Passar gym.utils.check_env sem erro. [ ]
+8. Criar `tests/test_entry_decision_env.py` com mock de episodios. [ ]
+
+Dependencias: Nenhuma
+
+---
+
+### TAREFA M2-019.2 - EpisodeLoader: carregamento e normalizacao de episodios
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `agent/episode_loader.py` com load_episodes(db_path, symbol,
+   timeframe, min_episodes=20). [ ]
+2. Conectar ao banco `modelo2.db`, filtrar por symbol e timeframe. [ ]
+3. Descartar episodios com label=pending (sem outcome real). [ ]
+4. Parsear features_json e mapear para vetor de 36 features. [ ]
+5. Normalizar cada feature para [-1, 1] com limites empiricos. [ ]
+6. Campos ausentes tornam-se 0.0 (np.nan_to_num). [ ]
+7. Retornar List[Dict] ou [] quando insuficiente. [ ]
+8. Testar com banco in-memory e episodios sinteticos. [ ]
+
+Dependencias: M2-019.1
+
+---
+
+### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
+
+Status: PENDENTE
+
+Entrega:
+
+1. Modificar `agent/sub_agent_manager.py`. [ ]
+2. Adicionar train_entry_agent(symbol, episodes, total_timesteps)
+   usando EntryDecisionEnv. [ ]
+3. Adicionar predict_entry(symbol, observation) retornando
+   Tuple[int, float] (acao, confianca). [ ]
+4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
+5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
+   gestao). [ ]
+6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
+7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [ ]
+
+Dependencias: M2-019.1, M2-019.2
+
+---
+
+### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `scripts/model2/train_entry_agents.py` compativel com
+   daily_pipeline. [ ]
+2. Para cada simbolo, carregar episodios via EpisodeLoader. [ ]
+3. Se episodios >= 20: treinar (5000 steps por ciclo). [ ]
+4. Se episodios < 20: retornar status=skipped para o simbolo. [ ]
+5. Dry_run nao salva modelos. [ ]
+6. Output JSON em `results/model2/runtime/`. [ ]
+7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
+
+Dependencias: M2-019.2, M2-019.3
+
+---
+
+### TAREFA M2-019.5 - EntryRLFilter: stage de filtragem por RL no pipeline
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `scripts/model2/entry_rl_filter.py` compativel com
+   daily_pipeline. [ ]
+2. Ler technical_signals com status=CREATED. [ ]
+3. Para cada sinal, extrair features (OHLCV + indicadores + funding). [ ]
+4. Chamar SubAgentManager.predict_entry(symbol, obs). [ ]
+5. Modelo nao existe: passa adiante (fallback conservador). [ ]
+6. Confianca < M2_RL_MIN_CONFIDENCE (0.55): passa adiante. [ ]
+7. Acao NEUTRAL com confianca >= threshold: cancela com
+   reason=rl_entry_neutral. [ ]
+8. Acao coincide com direcao: enriquece payload_json e passa. [ ]
+9. Acao contradiz direcao: cancela com reason=rl_entry_contradiction. [ ]
+10. Output JSON com contagens por categoria de decisao. [ ]
+11. Criar `tests/test_entry_rl_filter.py` com todos os caminhos. [ ]
+
+Dependencias: M2-019.3, M2-019.4
+
+---
+
+### TAREFA M2-019.6 - Integrar novos stages ao daily_pipeline
+
+Status: PENDENTE
+
+Entrega:
+
+1. Modificar `scripts/model2/daily_pipeline.py`. [ ]
+2. Inserir stage train_entry_agents apos bridge. [ ]
+3. Inserir stage entry_rl_filter antes de order_layer. [ ]
+4. Ambos os stages com continue_on_error=True. [ ]
+5. Manter stages rl_signal_generation e ensemble_signal_generation. [ ]
+6. pytest -q tests/ passa apos modificacao. [ ]
+
+Dependencias: M2-019.4, M2-019.5
+
+---
+
+### TAREFA M2-019.7 - Mover persist_training_episodes no pipeline
+
+Status: PENDENTE
+
+Entrega:
+
+1. Modificar `scripts/model2/daily_pipeline.py`. [ ]
+2. Reposicionar persist_training_episodes antes de
+   train_entry_agents. [ ]
+3. Ordem: bridge -> persist_training_episodes ->
+   train_entry_agents -> entry_rl_filter -> order_layer. [ ]
+4. Episodios do ciclo atual disponiveis para treino no mesmo
+   ciclo. [ ]
+
+Dependencias: M2-019.6
+
+---
+
+### TAREFA M2-019.8 - Migracao: auditoria de decisao RL em technical_signals
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `scripts/model2/migrations/0008_add_rl_decision.sql`
+   ou usar payload_json existente sem ALTER TABLE. [ ]
+2. Executar via `python scripts/model2/migrate.py up` sem erro em
+   banco novo e existente. [ ]
+3. Ampliar `tests/test_model2_migrate.py`. [ ]
+
+Dependencias: Paralelo a M2-019.5
+
+---
+
+### TAREFA M2-019.9 - Testes de integracao ponta-a-ponta
+
+Status: PENDENTE
+
+Entrega:
+
+1. Criar `tests/test_entry_decision_env.py`. [ ]
+2. Criar `tests/test_entry_rl_filter.py`. [ ]
+3. Criar `tests/test_train_entry_agents.py`. [ ]
+4. Todos usando banco in-memory. [ ]
+5. Cobrir os 3 caminhos de fallback do entry_rl_filter. [ ]
+6. pytest -q tests/ passa sem falhas. [ ]
+
+Dependencias: M2-019.1 a M2-019.7
+
+---
+
+### TAREFA M2-019.10 - Atualizacao documental
+
+Status: PENDENTE
+
+Entrega:
+
+1. Atualizar `docs/ARQUITETURA_ALVO.md` com nova camada RL. [ ]
+2. Atualizar `docs/REGRAS_DE_NEGOCIO.md` com regras do
+   entry_rl_filter (threshold, fallback, cancelamento). [ ]
+3. Atualizar `README.md` mencionando novo stage. [ ]
+4. markdownlint docs/*.md passa sem erro. [ ]
+5. pytest -q tests/test_docs_model2_sync.py passa. [ ]
+
+Dependencias: M2-019.9
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
