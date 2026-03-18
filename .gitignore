@@ -44,6 +44,7 @@ models/tensorboard/
 logs/*.log
 logs/*.log.*
 logs/**/*.log
+logs/m2_tmp.json
 
 # Testing
 .pytest_cache/
@@ -86,6 +87,7 @@ results/model2/ppo_grid_search_*.json
 
 # Claude Code configuracao local (especifico da maquina)
 .claude/settings.local.json
+.claude/settings.json
 
 # Artefatos de testes gerados em runtime
 test_results_phase*.json
