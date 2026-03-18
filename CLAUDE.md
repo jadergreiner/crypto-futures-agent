@@ -125,3 +125,29 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 
 Após qualquer alteração de código: executar `pytest -q`, atualizar docs dependentes
 e commitar com a tag correta.
+
+## Git Workflow
+
+- Ao finalizar alterações, sempre fazer commit e push automaticamente sem
+  perguntar quais arquivos incluir.
+- Usar `git add -A` por padrão — inclui arquivos novos, modificados e deletados.
+- Não perguntar se deve incluir arquivos deletados: incluir tudo.
+- Commit message deve seguir o padrão `[TAG] Descricao` (ASCII, max 72 chars).
+
+## Testing & Quality
+
+- Sempre rodar `pytest -q` e corrigir falhas antes de fazer commit.
+- Sempre rodar `mypy --strict` nos módulos alterados e corrigir erros antes
+  de commit.
+- Ao editar código, nunca duplicar blocos (ex.: blocos `except`) — verificar
+  o resultado da edição antes de prosseguir.
+- Se lint ou testes falharem: corrigir na mesma sessão, não deixar para depois.
+
+## Backlog
+
+- Ao receber instrução para adicionar itens ao backlog, inserir diretamente
+  em `docs/BACKLOG.md` sem apenas ler o arquivo.
+- Não aguardar confirmação adicional para operações de escrita no backlog,
+  a menos que haja ambiguidade explícita.
+- Após qualquer alteração em `docs/BACKLOG.md`, atualizar `docs/TRACKER.md`
+  e registrar em `docs/SYNCHRONIZATION.md`.
