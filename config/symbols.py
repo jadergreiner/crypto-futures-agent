@@ -881,6 +881,27 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "risk_on_dependent",
             "autonomous_learning"
         ]
+    },
+    "FLUXUSDT": {
+        "papel": (
+            "Flux (FLUX). Token de infraestrutura cross-chain e computacao descentralizada. "
+            "Protocolo de computacao distribuida com foco em privacidade e interoperabilidade."
+        ),
+        "ciclo_proprio": (
+            "Segue ciclo altcoin com sensibilidade a narrativas DeFi e cross-chain. "
+            "Ciclos de acumulacao definidos no D1/H4. Amplifica movimentos risk-on/risk-off. "
+            "Beta 2.9: exagera tendencias do BTC em altseason."
+        ),
+        "correlacao_btc": [0.45, 0.75],
+        "beta_estimado": 2.9,
+        "classificacao": "mid_cap_cross_chain",
+        "caracteristicas": [
+            "cross_chain",
+            "defi_infrastructure",
+            "decentralized_compute",
+            "high_beta",
+            "altseason_sensitive"
+        ]
     }
 }
 

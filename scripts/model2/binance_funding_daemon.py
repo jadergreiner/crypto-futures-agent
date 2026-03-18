@@ -64,14 +64,14 @@ class BinanceFundingDaemon:
         logger.info(f"Daemon inicializado: {len(self.symbols)} símbolos, mock={use_mock}")
 
     def _load_symbols(self) -> List[str]:
-        """Carrega símbolos do config oficial."""
+        """Carrega simbolos do config oficial."""
         try:
-            # Tentar carregar de config/symbols.py
-            from config.symbols import SYMBOLS_ENABLED
-            return SYMBOLS_ENABLED
-        except:
-            # Fallback para símbolos padrão
-            logger.warning("Falha ao carregar símbolos; usando padrão")
+            # Carregar lista canonica de config/symbols.py
+            from config.symbols import ALL_SYMBOLS
+            return list(ALL_SYMBOLS)
+        except Exception:
+            # Fallback para simbolos padrao em caso de falha de importacao
+            logger.warning("Falha ao carregar simbolos; usando padrao")
             return ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
 
     def should_collect_funding_rate(self, symbol: str) -> bool:
