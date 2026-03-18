@@ -101,15 +101,19 @@ if "!M2_RUN_ONCE!"=="1" echo [INFO] M2_RUN_ONCE=1: executara apenas um ciclo.
 
 :M2_LOOP
 echo.
-python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);print('[sync H4 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
+python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "import json;d=json.load(open('logs/m2_tmp.json'));print('[sync H4 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
 
-python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);print('[sync M5 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
+python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "import json;d=json.load(open('logs/m2_tmp.json'));print('[sync M5 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
 
-python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json,re;raw=sys.stdin.read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};stages=d.get('stages',{});erros=d.get('stage_errors',[]);ok=sum(1 for s in stages.values() if s.get('status')=='ok');print('[pipeline] status='+d.get('status','?')+' | stages_ok='+str(ok)+'/'+str(len(stages))+(' | ERROS='+str(erros) if erros else ''))"
+python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "import json,re;raw=open('logs/m2_tmp.json',encoding='utf-8').read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};stages=d.get('stages',{});erros=d.get('stage_errors',[]);ok=sum(1 for s in stages.values() if s.get('status')=='ok');print('[pipeline] status='+d.get('status','?')+' | stages_ok='+str(ok)+'/'+str(len(stages))+(' | ERROS='+str(erros) if erros else ''))"
 
-python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "
-import sys,json,re
-raw=sys.stdin.read()
+python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "
+import json,re
+raw=open('logs/m2_tmp.json',encoding='utf-8').read()
 m=re.search(r'\{.*\}',raw,re.DOTALL)
 d=json.loads(m.group()) if m else {}
 dash=d.get('dashboard',{})
@@ -126,9 +130,11 @@ for r in ready:
     print('           '+sym+' -> '+st)
 "
 
-python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json,re;raw=sys.stdin.read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};print('[episodio] status='+d.get('status','?')+' | inseridos='+str(d.get('episodes_inserted',d.get('inserted',0))))"
+python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "import json,re;raw=open('logs/m2_tmp.json',encoding='utf-8').read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};print('[episodio] status='+d.get('status','?')+' | inseridos='+str(d.get('episodes_inserted',d.get('inserted',0))))"
 
-python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);v=d.get('violations',[]);print('[health  ] status='+d['status']+(' | VIOLACOES: '+str(v) if v else ''))"
+python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0 >logs\m2_tmp.json 2>>logs/m2_cycle.log
+python -c "import json;d=json.load(open('logs/m2_tmp.json'));v=d.get('violations',[]);print('[health  ] status='+d['status']+(' | VIOLACOES: '+str(v) if v else ''))"
 
 if "!M2_RUN_ONCE!"=="1" goto END
 
