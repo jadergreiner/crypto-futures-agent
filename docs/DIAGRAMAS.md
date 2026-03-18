@@ -98,7 +98,8 @@ flowchart LR
 
 ## 1d) Fluxo de Preparação e Treino LSTM (Fases E.1-E.3)
 
-Transformação de estado flat → temporal para políticas LSTM e rotina de treinamento:
+Transformação de estado flat → temporal para políticas LSTM e rotina
+de treinamento:
 
 ```mermaid
 flowchart LR
@@ -131,7 +132,8 @@ flowchart LR
 **Componentes:**
 
 - `agent/lstm_environment.py`: Wrapper com state buffer (Fase E.1)
-- `agent/lstm_policy.py`: Custom LSTM features extractor + Policy Network (Fase E.2)
+- `agent/lstm_policy.py`: Custom LSTM features extractor + Policy Network
+  (Fase E.2)
 - `scripts/model2/train_ppo_lstm.py`: Pipeline comparativo PPO (Fase E.3)
 - 22 features escalares: OHLCV, volatilidade, MACD, multi-TF, FR, OI
 - Modo dual garantindo integração com arquiteturas SB3
@@ -294,4 +296,5 @@ flowchart TD
 
 Regra de deduplicacao:
 
-1. `sync_market_context` nao persiste candle repetido com mesmo `symbol+timestamp`.
+1. `sync_market_context` nao persiste candle repetido com mesmo
+   `symbol+timestamp`.

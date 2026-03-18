@@ -81,8 +81,10 @@ Entrega:
 Evidencias:
 
 1. Repositorio transacional M2: `core/model2/repository.py`.
-2. Persistencia inicial + evento `NULL -> IDENTIFICADA`: `core/model2/repository.py`.
-3. Cobertura de idempotencia e atomicidade: `tests/test_model2_thesis_repository.py`.
+2. Persistencia inicial + evento `NULL -> IDENTIFICADA`:
+   `core/model2/repository.py`.
+3. Cobertura de idempotencia e atomicidade:
+   `tests/test_model2_thesis_repository.py`.
 
 ## INICIATIVA M2-003 - Rastreador de Tese
 
@@ -147,7 +149,8 @@ Entrega:
 
 Evidencias:
 
-1. Migracao de materializacao: `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
+1. Migracao de materializacao:
+   `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
 2. Servico canonico de observabilidade: `core/model2/observability.py`.
 3. Runner operacional do painel: `scripts/model2/dashboard.py`.
 4. Cobertura de metricas e persistencia: `tests/test_model2_observability.py`.
@@ -162,7 +165,8 @@ Entrega:
 
 Evidencias:
 
-1. Tabela materializada de auditoria: `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
+1. Tabela materializada de auditoria:
+   `scripts/model2/migrations/0003_create_observability_snapshots.sql`.
 2. Servico de refresh e filtros de auditoria: `core/model2/observability.py`.
 3. Runner operacional de auditoria: `scripts/model2/audit.py`.
 4. Cobertura de filtros e retencao: `tests/test_model2_observability.py`.
@@ -178,9 +182,10 @@ Entrega:
 
 Evidencias:
 
-1. Suite unitaria dedicada de transicoes: `tests/test_model2_transition_suite.py`.
-2. Cobertura de caminhos validos/invalidos/idempotencia/not_found e auditoria por evento:
+1. Suite unitaria dedicada de transicoes:
    `tests/test_model2_transition_suite.py`.
+2. Cobertura de caminhos validos/invalidos/idempotencia/not_found e auditoria
+   por evento: `tests/test_model2_transition_suite.py`.
 3. Checagem automatizada de sincronismo documental:
    `tests/test_docs_model2_sync.py` e `.github/workflows/docs-validate.yml`.
 
@@ -227,7 +232,8 @@ Evidencias:
 
 1. Dominio da ponte: `core/model2/signal_bridge.py`.
 2. Persistencia no repositorio M2: `core/model2/repository.py`.
-3. Migracao de schema M2: `scripts/model2/migrations/0004_create_technical_signals.sql`.
+3. Migracao de schema M2:
+   `scripts/model2/migrations/0004_create_technical_signals.sql`.
 4. Runner operacional da ponte: `scripts/model2/bridge.py`.
 5. Documentacao de script: `scripts/model2/README.md`.
 6. Testes de dominio: `tests/test_model2_signal_bridge.py`.
@@ -285,10 +291,13 @@ Entrega:
 
 Evidencias:
 
-1. Migracao de snapshot: `scripts/model2/migrations/0005_create_signal_flow_snapshots.sql`.
-2. Servico canonico de observabilidade estendido: `core/model2/observability.py`.
+1. Migracao de snapshot:
+   `scripts/model2/migrations/0005_create_signal_flow_snapshots.sql`.
+2. Servico canonico de observabilidade estendido:
+   `core/model2/observability.py`.
 3. Runner operacional: `scripts/model2/export_dashboard.py`.
-4. Cobertura de metricas e runner: `tests/test_model2_signal_flow_observability.py`.
+4. Cobertura de metricas e runner:
+   `tests/test_model2_signal_flow_observability.py`.
 
 ## INICIATIVA M2-008 - Orquestracao operacional
 
@@ -350,14 +359,17 @@ Status: CONCLUIDA (2026-03-09)
 Entrega:
 
 1. Criar entidade dedicada `signal_executions` para o ciclo real do M2. [OK]
-2. Criar trilha de eventos `signal_execution_events` com auditoria por transicao. [OK]
-3. Manter `technical_signals.status` apenas como trilha de admissao (`CREATED -> CONSUMED|CANCELLED`). [OK]
+2. Criar trilha de eventos `signal_execution_events` com auditoria
+   por transicao. [OK]
+3. Manter `technical_signals.status` apenas como trilha de admissao
+   (`CREATED -> CONSUMED|CANCELLED`). [OK]
 
 Evidencias:
 
 1. Contrato canonico de estados live: `core/model2/live_execution.py`.
 2. Persistencia transacional do ciclo live: `core/model2/repository.py`.
-3. Migracao de schema: `scripts/model2/migrations/0006_create_signal_executions.sql`.
+3. Migracao de schema:
+   `scripts/model2/migrations/0006_create_signal_executions.sql`.
 4. Cobertura de migracao: `tests/test_model2_migrate.py`.
 
 ### TAREFA M2-009.2 - Gate live do M2
@@ -366,7 +378,8 @@ Status: CONCLUIDA (2026-03-09)
 Entrega:
 
 1. Admitir apenas `technical_signals` em `CONSUMED`. [OK]
-2. Bloquear por simbolo, saldo, cooldown, limite diario, posicao aberta e sinal vencido. [OK]
+2. Bloquear por simbolo, saldo, cooldown, limite diario, posicao aberta
+   e sinal vencido. [OK]
 3. Materializar execucao como `READY` ou `BLOCKED` com motivo auditavel. [OK]
 
 Evidencias:
@@ -382,7 +395,8 @@ Status: CONCLUIDA (2026-03-09)
 Entrega:
 
 1. Enviar ordem de entrada `MARKET` para o mercado real. [OK]
-2. Persistir `exchange_order_id`, `client_order_id`, `filled_qty` e `filled_price`. [OK]
+2. Persistir `exchange_order_id`, `client_order_id`, `filled_qty`
+   e `filled_price`. [OK]
 3. Garantir idempotencia por `technical_signal_id` sem ordem duplicada. [OK]
 
 Evidencias:
@@ -405,7 +419,8 @@ Evidencias:
 
 1. Fail-safe de protecao no servico live: `core/model2/live_service.py`.
 2. Runner operacional que dispara a protecao: `scripts/model2/live_execute.py`.
-3. Testes de falha de protecao e fechamento emergencial: `tests/test_model2_live_execution.py`.
+3. Testes de falha de protecao e fechamento emergencial:
+   `tests/test_model2_live_execution.py`.
 
 ## INICIATIVA M2-010 - Reconciliacao e observabilidade live
 
@@ -435,7 +450,8 @@ Entrega:
 
 Evidencias:
 
-1. Snapshot materializado live: `scripts/model2/migrations/0007_create_signal_execution_snapshots.sql`.
+1. Snapshot materializado live:
+   `scripts/model2/migrations/0007_create_signal_execution_snapshots.sql`.
 2. Servico de observabilidade live: `core/model2/observability.py`.
 3. Runner operacional do dashboard: `scripts/model2/live_dashboard.py`.
 4. Testes de metricas e runner: `tests/test_model2_live_observability.py`.
@@ -445,7 +461,8 @@ Evidencias:
 Status: CONCLUIDA (2026-03-09)
 Entrega:
 
-1. Alertar quando houver dashboard stale, posicao sem protecao ou divergencia acima do limite. [OK]
+1. Alertar quando houver dashboard stale, posicao sem protecao ou divergencia
+   acima do limite. [OK]
 2. Padronizar resposta a incidentes do live M2. [OK]
 3. Produzir artefato operacional versionado por execucao. [OK]
 
@@ -493,13 +510,15 @@ Status: CONCLUIDA (2026-03-09)
 Entrega:
 
 1. Encadear `live_execute -> live_reconcile -> live_dashboard`. [OK]
-2. Separar o caminho critico live do `export_signals -> trade_signals` legado. [OK]
+2. Separar o caminho critico live do `export_signals -> trade_signals`
+   legado. [OK]
 3. Publicar resumo unico do ciclo live. [OK]
 
 Evidencias:
 
 1. Orquestrador do ciclo live: `scripts/model2/live_cycle.py`.
-2. Runners independentes do ciclo live: `scripts/model2/live_execute.py` e `scripts/model2/live_reconcile.py`.
+2. Runners independentes do ciclo live: `scripts/model2/live_execute.py`
+   e `scripts/model2/live_reconcile.py`.
 3. Documentacao operacional: `scripts/model2/README.md`.
 
 ## INICIATIVA M2-012 - Hardening de risco
@@ -517,7 +536,8 @@ Evidencias:
 
 1. Consultas persistidas de risco: `core/model2/repository.py`.
 2. Gate live consumindo contadores M2: `core/model2/live_service.py`.
-3. Testes de aceite do gate e idempotencia: `tests/test_model2_live_execution.py`.
+3. Testes de aceite do gate e idempotencia:
+   `tests/test_model2_live_execution.py`.
 
 ### TAREFA M2-012.2 - Configuracao explicita de ativacao
 
@@ -525,14 +545,17 @@ Status: CONCLUIDA (2026-03-09)
 Entrega:
 
 1. Expor `M2_EXECUTION_MODE=shadow|live`. [OK]
-2. Expor `M2_LIVE_SYMBOLS`, `M2_MAX_DAILY_ENTRIES` e `M2_MAX_MARGIN_PER_POSITION_USD`. [OK]
-3. Expor idade maxima de sinal e cooldown por simbolo para operacao progressiva. [OK]
+2. Expor `M2_LIVE_SYMBOLS`, `M2_MAX_DAILY_ENTRIES`
+   e `M2_MAX_MARGIN_PER_POSITION_USD`. [OK]
+3. Expor idade maxima de sinal e cooldown por simbolo para operacao
+   progressiva. [OK]
 
 Evidencias:
 
 1. Configuracoes do ambiente: `config/settings.py`.
 2. Exemplo de ambiente: `.env.example`.
-3. Runners consumindo configuracao: `scripts/model2/live_execute.py` e `scripts/model2/live_reconcile.py`.
+3. Runners consumindo configuracao: `scripts/model2/live_execute.py`
+   e `scripts/model2/live_reconcile.py`.
 
 ### TAREFA M2-012.3 - Exclusividade por simbolo
 
@@ -556,7 +579,8 @@ Evidencias:
 Status: CONCLUIDA (2026-03-09)
 Entrega:
 
-1. Atualizar backlog, arquitetura alvo, modelagem de dados e regras de negocio. [OK]
+1. Atualizar backlog, arquitetura alvo, modelagem de dados e regras
+   de negocio. [OK]
 2. Atualizar ADRs, diagramas e runbook operacional. [OK]
 3. Atualizar README operacional dos scripts do M2. [OK]
 
@@ -567,7 +591,8 @@ Evidencias:
 3. Regras de negocio: `docs/REGRAS_DE_NEGOCIO.md`.
 4. Modelagem de dados: `docs/MODELAGEM_DE_DADOS.md`.
 5. ADRs e diagramas: `docs/ADRS.md` e `docs/DIAGRAMAS.md`.
-6. Runbook e comandos: `docs/RUNBOOK_M2_OPERACAO.md` e `scripts/model2/README.md`.
+6. Runbook e comandos: `docs/RUNBOOK_M2_OPERACAO.md`
+   e `scripts/model2/README.md`.
 7. Suite de sincronismo documental: `tests/test_docs_model2_sync.py`.
 
 ## INICIATIVA M2-014 - Automacao de go-live da Fase 2
@@ -577,7 +602,8 @@ Evidencias:
 Status: CONCLUIDA (2026-03-13)
 Entrega:
 
-1. Publicar runner unico `go_live_preflight.py` cobrindo os 10 itens do checklist. [OK]
+1. Publicar runner unico `go_live_preflight.py` cobrindo os 10 itens
+   do checklist. [OK]
 2. Aplicar auto-fix por padrao no Windows com opcao `--no-apply`. [OK]
 3. Emitir resumo operacional versionado em `results/model2/runtime/`. [OK]
 4. Cobrir cenarios de sucesso/falha/continue-on-error em testes. [OK]
@@ -600,8 +626,10 @@ Entrega:
 
 1. Manter um unico agente de inicializacao no Windows (`iniciar.bat`). [OK]
 2. Preservar acesso ao fluxo legado e ao fluxo M2 no mesmo entrypoint. [OK]
-3. Executar ciclo operacional M2 em loop continuo com healthcheck por ciclo. [OK]
-4. Permitir modo de diagnostico `M2_RUN_ONCE=1` e intervalo configuravel via `M2_LOOP_SECONDS`. [OK]
+3. Executar ciclo operacional M2 em loop continuo com healthcheck
+   por ciclo. [OK]
+4. Permitir modo de diagnostico `M2_RUN_ONCE=1` e intervalo configuravel
+   via `M2_LOOP_SECONDS`. [OK]
 
 Evidencias:
 
@@ -617,7 +645,8 @@ Status: CONCLUIDA (2026-03-14)
 Entrega:
 
 1. Coleta `H4` e `M5` por ciclo no fluxo `iniciar.bat` opcao `2`. [OK]
-2. Coleta aplicada para todo `M2_SYMBOLS` (derivado de `M2_LIVE_SYMBOLS`, com fallback para `ALL_SYMBOLS`). [OK]
+2. Coleta aplicada para todo `M2_SYMBOLS` (derivado de `M2_LIVE_SYMBOLS`,
+   com fallback para `ALL_SYMBOLS`). [OK]
 3. Deduplicacao de candles por (`symbol`, `timestamp`) no sync de contexto. [OK]
 4. Persistencia de episodios por ciclo para treino em JSONL e banco M2. [OK]
 
@@ -637,25 +666,33 @@ Evidencias:
 
 ## Criterios de pronto para a Fase 2
 
-1. `technical_signal` em `CONSUMED` pode virar no maximo uma execucao em `signal_executions`.
-2. O fluxo live oficial suporta `READY -> ENTRY_SENT -> ENTRY_FILLED -> PROTECTED -> EXITED`.
+1. `technical_signal` em `CONSUMED` pode virar no maximo uma execucao
+   em `signal_executions`.
+2. O fluxo live oficial suporta
+   `READY -> ENTRY_SENT -> ENTRY_FILLED -> PROTECTED -> EXITED`.
 3. Falha ao armar protecao fecha a posicao e termina em `FAILED`.
 4. Reconciliacao recupera fills pendentes e detecta fechamento manual/externo.
 5. Dashboard live publica backlog, falhas, latencias e posicoes sem protecao.
-6. Healthcheck live alerta quando existir dashboard stale ou risco acima do threshold.
+6. Healthcheck live alerta quando existir dashboard stale ou risco
+   acima do threshold.
 7. O caminho critico live nao depende de `export_signals -> trade_signals`.
 
 ## Go-live checklist da Fase 2
 
-1. Confirmar o banco operacional configurado (`MODEL2_DB_PATH`) e validar permissao de escrita no path resolvido.
-2. Se necessario, corrigir permissao de escrita da pasta `db/` antes do go-live (ex.: ACL no Windows).
+1. Confirmar o banco operacional configurado (`MODEL2_DB_PATH`) e validar
+   permissao de escrita no path resolvido.
+2. Se necessario, corrigir permissao de escrita da pasta `db/` antes
+   do go-live (ex.: ACL no Windows).
 3. Executar python scripts/model2/migrate.py up no banco operacional.
 4. Validar M2_EXECUTION_MODE=shadow com `M2_SYMBOLS` restrito.
-5. Definir `M2_LIVE_SYMBOLS` explicitamente para estabelecer `M2_SYMBOLS` inicial.
-6. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD, M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
+5. Definir `M2_LIVE_SYMBOLS` explicitamente para estabelecer
+   `M2_SYMBOLS` inicial.
+6. Revisar M2_MAX_DAILY_ENTRIES, M2_MAX_MARGIN_PER_POSITION_USD,
+   M2_MAX_SIGNAL_AGE_MINUTES e M2_SYMBOL_COOLDOWN_MINUTES.
 7. Validar python scripts/model2/live_execute.py em shadow.
 8. Validar python scripts/model2/live_reconcile.py sem divergencias.
-9. Confirmar python scripts/model2/live_dashboard.py e python scripts/model2/healthcheck_live_execution.py publicando status=ok.
+9. Confirmar python scripts/model2/live_dashboard.py e python
+   scripts/model2/healthcheck_live_execution.py publicando status=ok.
 10. Revisar o runbook de incidente antes de ativar M2_EXECUTION_MODE=live.
 
 ---
@@ -668,19 +705,25 @@ Status: CONCLUIDA (2026-03-14)
 
 Entrega esperada:
 
-1. Executar `train_ppo_incremental.py --timesteps 500000` para modelo inicial. [OK]
+1. Executar `train_ppo_incremental.py --timesteps 500000` para modelo
+   inicial. [OK]
 2. Atingir convergencia com Sharpe > 1.0 no dia 3. [PENDENTE - validacao shadow]
-3. Validar taxa de sinais com RL enhancement >= 60%. [OK - 100% enhancement em validacao]
+3. Validar taxa de sinais com RL enhancement >= 60%.
+   [OK - 100% enhancement em validacao]
 4. Documenter learnings de hiperparametros e features. [OK]
 
 Evidencias:
 
 1. Checkpoint PPO treino: `checkpoints/ppo_training/ppo_model.zip`.
-2. Metricas de treinamento: `results/model2/training_metrics_*.json` + log `logs/ppo_training_real.log`.
-3. Comparacao deterministica vs RL: `results/model2/signal_enhancement_report_*.json`.
+2. Metricas de treinamento: `results/model2/training_metrics_*.json`
+   + log `logs/ppo_training_real.log`.
+3. Comparacao deterministica vs RL:
+   `results/model2/signal_enhancement_report_*.json`.
 4. Atualizacao: `docs/RL_SIGNAL_GENERATION.md` com dados empíricos.
-5. Validacao de geracao de sinais: 2/2 sinais com RL enhancement (100%), confidence 0.75.
-6. Training stats: 500k timesteps, 1118.3s, rollout reward mean 0.6, entropy -0.0266.
+5. Validacao de geracao de sinais: 2/2 sinais com RL enhancement (100%),
+   confidence 0.75.
+6. Training stats: 500k timesteps, 1118.3s, rollout reward mean 0.6,
+   entropy -0.0266.
 
 ### TAREFA M2-016.2 - Validacao shadow/live com RL enhancement
 
@@ -694,27 +737,37 @@ Entrega esperada:
 
 Evidencias:
 
-1. Dashboard live com metricas: `results/model2/signal_execution_snapshots_*.json`.
-2. Runner de automacao da janela 72h: `scripts/model2/m2_016_2_validation_window.py`.
-3. Checkpoints e consolidacao operacional: `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`.
-4. Estado da janela de validacao: `results/model2/runtime/model2_m2_016_2_window_*.json`.
-5. Relatorio final RL vs baseline: `results/model2/analysis/model2_m2_016_2_report_*.json`.
-6. Cobertura unitaria da automacao: `tests/test_model2_m2_016_2_validation_window.py`.
+1. Dashboard live com metricas:
+   `results/model2/signal_execution_snapshots_*.json`.
+2. Runner de automacao da janela 72h:
+   `scripts/model2/m2_016_2_validation_window.py`.
+3. Checkpoints e consolidacao operacional:
+   `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`.
+4. Estado da janela de validacao:
+   `results/model2/runtime/model2_m2_016_2_window_*.json`.
+5. Relatorio final RL vs baseline:
+   `results/model2/analysis/model2_m2_016_2_report_*.json`.
+6. Cobertura unitaria da automacao:
+   `tests/test_model2_m2_016_2_validation_window.py`.
 7. Atualizacao do runbook com playbooks de RL-specific incidents.
 
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
-Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas, Fase E iniciada)
+Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas,
+Fase E iniciada)
 
 Entrega atual (Fases A-D.4):
 
 1. Validador de acurácia de labels vs outcomes reais. [OK]
-2. Enriquecimento de features com volatilidade (ATR, RSI, Bandas de Bollinger). [OK]
+2. Enriquecimento de features com volatilidade (ATR, RSI,
+   Bandas de Bollinger). [OK]
 3. Enriquecimento com multi-timeframe context (H1, H4, D1). [OK]
 4. Especificação técnica completa de roadmap (5 fases). [OK]
 5. Reward function estendida com Sharpe, drawdown, recovery time. [OK]
-6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06), Slow Recovery (-0.47), Losing (-0.85). [OK]
-7. Grid search PPO 64 combinações (learning_rate, batch_size, entropy_coef). [OK]
+6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06),
+   Slow Recovery (-0.47), Losing (-0.85). [OK]
+7. Grid search PPO 64 combinações (learning_rate, batch_size,
+   entropy_coef). [OK]
 8. Best hyperparams validados: lr=3e-4, bs=64, ent=0.01 (Sharpe=1.176). [OK]
 9. Coletor de funding rates com análise de sentiment e leverage. [OK]
 10. Integração de open interest com análise de acumulação/distribuição. [OK]
@@ -724,7 +777,8 @@ Entrega atual (Fases A-D.4):
 14. Daemon background para coleta contínua (8h FR, 1h OI). [OK]
 15. Integration test Phase D.2 (Daemon + API + Enrichment). [OK]
 16. Integração API client com persist_training_episodes.py. [OK]
-17. Enriquecimento composto (volatility + multi-TF + funding rates + OI) em episodes. [OK]
+17. Enriquecimento composto (volatility + multi-TF + funding rates + OI)
+    em episodes. [OK]
 18. API client com métodos de sentiment analysis (funding + OI). [OK]
 19. Teste end-to-end Phase D.3 (episodes contêm funding data enriched). [OK]
 20. Análise de correlação FR sentiment vs label (Pearson r). [OK]
@@ -738,21 +792,26 @@ Evidencias (Fases A-D.4 concluídas):
 
 1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor features: `scripts/model2/feature_enricher.py`
-3. Integração pipeline: `scripts/model2/persist_training_episodes.py` (com API client Phase D.3)
+3. Integração pipeline: `scripts/model2/persist_training_episodes.py`
+   (com API client Phase D.3)
 4. Reward estendida: `agent/reward_extended.py`
-5. Teste cenários: `scripts/test_reward_extended.py` (output: `results/model2/extended_reward_test.json`)
+5. Teste cenários: `scripts/test_reward_extended.py`
+   (output: `results/model2/extended_reward_test.json`)
 6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
 7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md`
 8. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
 9. Coletor funding/OI simulator: `scripts/model2/binance_funding_collector.py`
 10. Teste Phase D: `scripts/model2/test_phase_d_funding_enrichment.py`
-11. API client Binance: `scripts/model2/binance_funding_api_client.py` (mock + real modes, sentiment methods)
-12. Daemon collector: `scripts/model2/binance_funding_daemon.py` (8h/1h schedule)
+11. API client Binance: `scripts/model2/binance_funding_api_client.py`
+    (mock + real modes, sentiment methods)
+12. Daemon collector: `scripts/model2/binance_funding_daemon.py`
+    (8h/1h schedule)
 13. Teste Phase D.2: `scripts/model2/test_phase_d2_api_integration.py`
 14. Spec Phase D.2: `designs/M2_016_3_PHASE_D2_API_DAEMON.md`
 15. Teste Phase D.3 integration: `scripts/model2/test_phase_d3_integration.py`
 16. Teste Phase D.3 direct: `scripts/model2/test_phase_d3_direct.py` (PASSED)
-17. Gerador dados sintéticos D.4: `scripts/model2/test_phase_d4_synthetic_data.py`
+17. Gerador dados sintéticos D.4:
+    `scripts/model2/test_phase_d4_synthetic_data.py`
 18. Análise correlação D.4: `scripts/model2/phase_d4_correlation_analysis.py`
 19. Spec Phase D.4: `designs/M2_016_3_PHASE_D4_CORRELATION_ANALYSIS.md`
 20. Relatório correlação: `results/model2/analysis/phase_d4_correlation_*.json`
@@ -766,9 +825,11 @@ Entrega atual (Fases E.1 + Documentação):
 5. Sincronização de 8 docs governança (CRITICAL/HIGH/MEDIUM/LOW). [OK]
 6. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
 7. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
-8. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment + LSTM). [OK]
+8. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment
+   + LSTM). [OK]
 9. REGRAS_DE_NEGOCIO.md atualizado (RN-007, RN-008, RN-009). [OK]
-10. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api, open_interest_api). [OK]
+10. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api,
+    open_interest_api). [OK]
 11. ADRS.md atualizado (ADR-023: Feature enrichment, ADR-024: LSTM design). [OK]
 12. DIAGRAMAS.md atualizado (diagrama 1c D.2-D.4, diagrama 1d E.1). [OK]
 13. CHANGELOG.md criado (M2-016.x release history). [OK]
@@ -778,14 +839,17 @@ Evidencias (Fase E.1 + Documentação concluídas):
 
 1. LSTM environment wrapper: `agent/lstm_environment.py`
 2. Spec Phase E.1: `designs/M2_016_3_PHASE_E_LSTM_POLICY.md`
-3. Docs sincronizados: `docs/ARQUITETURA_ALVO.md`, `docs/RUNBOOK_M2_OPERACAO.md`, `docs/RL_SIGNAL_GENERATION.md`, `docs/REGRAS_DE_NEGOCIO.md`, `docs/MODELAGEM_DE_DADOS.md`, `docs/ADRS.md`, `docs/DIAGRAMAS.md`
+3. Docs sincronizados: `docs/ARQUITETURA_ALVO.md`,
+   `docs/RUNBOOK_M2_OPERACAO.md`, `docs/RL_SIGNAL_GENERATION.md`,
+   `docs/REGRAS_DE_NEGOCIO.md`, `docs/MODELAGEM_DE_DADOS.md`,
+   `docs/ADRS.md`, `docs/DIAGRAMAS.md`
 4. Novo CHANGELOG: `docs/CHANGELOG.md`
 5. Audit trail sincronização: `docs/SYNCHRONIZATION.md`
 6. Commits sync:
-   - eae8d20: 4 docs (CRITICAL+HIGH)
-   - 7064e13: 2 docs (MEDIUM)
-   - 3dc6f79: 2 docs (LOW) + CHANGELOG
-   - 367aa73: SYNCHRONIZATION.md
+   + eae8d20: 4 docs (CRITICAL+HIGH)
+   + 7064e13: 2 docs (MEDIUM)
+   + 3dc6f79: 2 docs (LOW) + CHANGELOG
+   + 367aa73: SYNCHRONIZATION.md
 
 Entrega atual (Fase D.5):
 
@@ -802,7 +866,8 @@ Evidencias (Fase D.5 concluída):
 Entrega atual (Fase E.2):
 
 1. LSTM Policy usando CustomLSTMFeaturesExtractor (64U LSTM + 128D dense). [OK]
-2. SubclassedPolicy LSTMPolicy integrada com ActorCriticPolicy para suporte default em SB3. [OK]
+2. SubclassedPolicy LSTMPolicy integrada com ActorCriticPolicy para suporte
+   default em SB3. [OK]
 3. Unit tests executados com sucesso em ambiente simulado DummyLSTMEnv. [OK]
 
 Evidencias (Fase E.2 concluída):
@@ -813,30 +878,38 @@ Evidencias (Fase E.2 concluída):
 
 Entrega atual (Fase E.3):
 
-1. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py` parametrizado. [OK]
-2. Refatoração do ambiente para suporte ao Gym.Wrapper via `LSTMSignalEnvironment`. [OK]
-3. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas separadamente. [OK]
+1. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py`
+   parametrizado. [OK]
+2. Refatoração do ambiente para suporte ao Gym.Wrapper via
+   `LSTMSignalEnvironment`. [OK]
+3. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas
+   separadamente. [OK]
 
 Evidencias (Fase E.3 concluída):
 
 1. Script de Treinamento Duplo: `scripts/model2/train_ppo_lstm.py`
 2. Resoluções do ambiente LSTM: `agent/lstm_environment.py`
-3. Checkpoints e modelos localizados em: `checkpoints/ppo_training/mlp` e `checkpoints/ppo_training/lstm`
+3. Checkpoints e modelos localizados em: `checkpoints/ppo_training/mlp`
+   e `checkpoints/ppo_training/lstm`
 
 Entrega atual (Fase E.4):
 
-1. Script avaliador para simular e calcular histórico real: `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
-2. Implementação de Testes mockando banco SQLite: `tests/test_model2_phase_e4_sharpe.py` [OK]
+1. Script avaliador para simular e calcular histórico real:
+   `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
+2. Implementação de Testes mockando banco SQLite:
+   `tests/test_model2_phase_e4_sharpe.py` [OK]
 3. Comparativo PPO MLP vs PPO LSTM exportados para a pasta analysis [OK]
 
 Evidencias (Fase E.4 concluída):
 
 1. Script de Análise Comparativa: `scripts/model2/phase_e4_sharpe_analysis.py`
-2. Relatório exportado em: `results/model2/analysis/phase_e4_sharpe_analysis.json`
+2. Relatório exportado em:
+   `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
 Entrega atual (Fase E.5):
 
-1. Adição de features MACD (linha, sinal, histograma) ao `feature_enricher`. [OK]
+1. Adição de features MACD (linha, sinal, histograma) ao
+   `feature_enricher`. [OK]
 2. Modelos MLP e LSTM retreinados com 22 features. [OK]
 3. Nova avaliação comparativa executada. [OK]
 
@@ -844,7 +917,8 @@ Evidencias (Fase E.5 concluída):
 
 1. Feature Enricher atualizado: `scripts/model2/feature_enricher.py`
 2. Modelos retreinados em: `checkpoints/ppo_training/`
-3. Relatório de análise atualizado: `results/model2/analysis/phase_e4_sharpe_analysis.json`
+3. Relatório de análise atualizado:
+   `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
 Entrega atual (Fase E.6 - BLID-064):
 
@@ -857,8 +931,10 @@ Entrega atual (Fase E.6 - BLID-064):
 
 Evidencias (Fase E.6 CONCLUIDA — 2026-03-15):
 
-1. Feature Enricher estendido: `scripts/model2/feature_enricher.py` (Estocastico, Williams, ATR)
-2. Modelos em treinamento background: `checkpoints/ppo_training/mlp/e6` e `checkpoints/ppo_training/lstm/e6`
+1. Feature Enricher estendido: `scripts/model2/feature_enricher.py`
+   (Estocastico, Williams, ATR)
+2. Modelos em treinamento background: `checkpoints/ppo_training/mlp/e6`
+   e `checkpoints/ppo_training/lstm/e6`
 3. Unit tests: `tests/test_model2_phase_e6_indicators.py` — 9/9 PASSED
 4. Commit: 4dc1956 [FEAT] BLID-064 Indicadores avancados
 5. Backlog e docs sincronizados com E.6
@@ -866,7 +942,8 @@ Evidencias (Fase E.6 CONCLUIDA — 2026-03-15):
 Entrega atual (Fase E.7 - BLID-065):
 
 1. Otimizar hiperparametros PPO com Optuna grid search. [OK]
-2. Grid search: learning_rate, batch_size, entropy_coef, clip_range, gae_lambda. [OK]
+2. Grid search: learning_rate, batch_size, entropy_coef, clip_range,
+   gae_lambda. [OK]
 3. Avaliar top 5 hyperparameter sets em ambos os modelos (MLP + LSTM). [OK]
 4. Comparacao de performance: baseline E.6 vs otimizado E.7. [OK]
 5. Resultados: MLP score 0.8761, LSTM score 0.8690 (E.7 grid completou)
@@ -874,31 +951,39 @@ Entrega atual (Fase E.7 - BLID-065):
 Evidencias (Fase E.7 CONCLUIDA — 2026-03-15):
 
 1. Script Optuna (100 trials): `scripts/model2/optuna_grid_search_ppo.py`
-2. Resultados grid search: `results/model2/analysis/optuna_grid_search_results.json`
+2. Resultados grid search:
+   `results/model2/analysis/optuna_grid_search_results.json`
 3. Execução: 2026-03-15 16:40 UTC — ✅ COMPLETED
 4. Commit: 71b8038 [FEAT] BLID-065 Grid search Optuna (100 trials)
 5. Docs sincronizados com E.7
 
 Entrega atual (Fase E.8 - BLID-066):
 
-1. Retreinar modelos MLP com best hyperparameters de E.7. [EM_PROGRESSO (background)]
-2. Retreinar modelos LSTM com best hyperparameters de E.7. [EM_PROGRESSO (background)]
-3. Executar comparacao E.6 vs E.8 (baseline vs otimizado). [AGENDADO (pos-treino)]
+1. Retreinar modelos MLP com best hyperparameters de E.7.
+   [EM_PROGRESSO (background)]
+2. Retreinar modelos LSTM com best hyperparameters de E.7.
+   [EM_PROGRESSO (background)]
+3. Executar comparacao E.6 vs E.8 (baseline vs otimizado).
+   [AGENDADO (pos-treino)]
 4. Validar melhoria de Sharpe ratio (meta: +10% vs E.6). [AGENDADO (pos-treino)]
 
 Evidencias (Fase E.8 EM PROGRESSO — 2026-03-15):
 
-1. Script retrain com Optuna params: `scripts/model2/retrain_ppo_with_optuna_params.py` ✅ OK
-2. Script comparacao E.6 vs E.8: `scripts/model2/compare_e6_vs_e8_sharpe.py` ✅ OK
-3. Treinamento background: MLP (Terminal fe6d7c38...), LSTM (Terminal 5c5b7fa1...)
-4. Checkpoints esperados: `checkpoints/ppo_training/{mlp,lstm}/optuna/ppo_{type}_e8_optuna.zip`
+1. Script retrain com Optuna params:
+   `scripts/model2/retrain_ppo_with_optuna_params.py` ✅ OK
+2. Script comparacao E.6 vs E.8: `scripts/model2/compare_e6_vs_e8_sharpe.py`
+   ✅ OK
+3. Treinamento background: MLP (Terminal fe6d7c38...),
+   LSTM (Terminal 5c5b7fa1...)
+4. Checkpoints esperados:
+   `checkpoints/ppo_training/{mlp,lstm}/optuna/ppo_{type}_e8_optuna.zip`
 5. Commit: 20fc4ca + 1f8b0c8 [FEAT] BLID-066 com [FIX] glob pattern
 6. Timeline: ~20-30 min para completar treinos (em andamento)
 
 Proximas Fases:
 
-- Ensemble voting entre MLP e LSTM para robustez.
-- Status: EM PROGRESSO (2026-03-15)
++ Ensemble voting entre MLP e LSTM para robustez.
++ Status: EM PROGRESSO (2026-03-15)
 
 ### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
 
@@ -911,19 +996,22 @@ Proximas Fases:
 
 Evidencias (Fase E.9 — Scripts Criados):
 
-1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py` (370+ linhas, soft+hard)
-2. Script avaliacao: `scripts/model2/evaluate_ensemble_e9.py` (320+ linhas, 4-vias)
-3. Script benchmark E.5->E.9: `scripts/model2/compare_e5_to_e9_final.py` (280+ linhas)
+1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py`
+   (370+ linhas, soft+hard)
+2. Script avaliacao: `scripts/model2/evaluate_ensemble_e9.py`
+   (320+ linhas, 4-vias)
+3. Script benchmark E.5->E.9: `scripts/model2/compare_e5_to_e9_final.py`
+   (280+ linhas)
 4. Commit: 21ef5b4 [FEAT] BLID-067 Votador ensemble para robustez
 5. Docs sincronizados: BACKLOG, RL_SIGNAL_GENERATION, SYNCHRONIZATION
 
 ### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
 
-**E.10 - Sinais ao vivo com votação ensemble + paper trading (2026-03-15+)**
+#### E.10 - Sinais ao vivo com votacao ensemble + paper trading (2026-03-15+)
 
 Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
 
-**BLID-068 (E.10): Integrar Ensemble em Daily Pipeline**
+#### BLID-068 (E.10): Integrar Ensemble em Daily Pipeline
 
 1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
 2. Integrar votador em loop operacional (soft + hard). [OK]
@@ -935,14 +1023,14 @@ Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
 Evidencias (Fase E.10 — BLID-068 EM PROGRESSO):
 
 1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
-   - EnsembleSignalGenerator class (soft+hard voting)
-   - Confidence scoring (consenso + pesos)
-   - Fallback gracioso
-   - Stats + logging
+   + EnsembleSignalGenerator class (soft+hard voting)
+   + Confidence scoring (consenso + pesos)
+   + Fallback gracioso
+   + Stats + logging
 2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
-   - Import run_ensemble_signal_generation
-   - Etapa "ensemble_signal_generation" adicionada após RL signals
-   - Configuracao: voting_method='soft', min_confidence=0.6
+   + Import run_ensemble_signal_generation
+   + Etapa "ensemble_signal_generation" adicionada após RL signals
+   + Configuracao: voting_method='soft', min_confidence=0.6
 3. Commit: [FEAT] BLID-068 Integrar votador ensemble no pipeline
 
 Dependências: BLID-067 (E.9 scripts prontos)
@@ -961,7 +1049,8 @@ Entrega:
 2. Criar playbook FLUXPlaybook (playbooks/flux_playbook.py). [OK]
 3. Registrar FLUXPlaybook em playbooks/**init**.py. [OK]
 4. Corrigir bug SYMBOLS_ENABLED -> ALL_SYMBOLS no daemon de funding. [OK]
-5. Criar testes de integracao tests/test_fluxusdt_integration.py (41 testes). [OK]
+5. Criar testes de integracao tests/test_fluxusdt_integration.py
+   (41 testes). [OK]
 6. Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados. [PENDENTE]
 7. Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run. [PENDENTE]
 
@@ -971,7 +1060,7 @@ Evidencias (Fase M2-017.1 — CONCLUIDA):
 2. Playbook: `playbooks/flux_playbook.py` — FLUXPlaybook (4 metodos)
 3. Registro: `playbooks/__init__.py` — import + **all** atualizados
 4. Bug fix: `scripts/model2/binance_funding_daemon.py`
-   - SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
+   + SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
 5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
 6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
 
@@ -981,4 +1070,5 @@ Evidencias (Fase M2-017.1 — CONCLUIDA):
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
 2. **Payload Daemon:** Input stream mockado em `deploy/daemon_input.txt`.
-3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background Process no `RUNBOOK_M2_OPERACAO.md`.
+3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background
+   Process no `RUNBOOK_M2_OPERACAO.md`.

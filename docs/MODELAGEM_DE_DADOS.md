@@ -85,7 +85,8 @@ Regras de integridade implementadas:
 3. `from_status` deve ser nulo ou um estado valido
 4. `to_status` deve ser um estado valido
 5. `event_timestamp > 0`
-6. Evento inicial da tese deve respeitar `from_status = NULL` e `to_status = IDENTIFICADA`
+6. Evento inicial da tese deve respeitar `from_status = NULL`
+   e `to_status = IDENTIFICADA`
 7. Evento de monitoramento inicial deve respeitar
    `from_status = IDENTIFICADA` e `to_status = MONITORANDO`
 8. Evento de validacao deve respeitar
@@ -174,7 +175,8 @@ Campos implementados:
 5. `timeframe` (TEXT)
 6. `signal_side` (TEXT: LONG|SHORT)
 7. `execution_mode` (TEXT: shadow|live)
-8. `status` (TEXT: READY|BLOCKED|ENTRY_SENT|ENTRY_FILLED|PROTECTED|EXITED|FAILED|CANCELLED)
+8. `status` (TEXT:
+   READY|BLOCKED|ENTRY_SENT|ENTRY_FILLED|PROTECTED|EXITED|FAILED|CANCELLED)
 9. `entry_order_type` (TEXT: MARKET)
 10. `gate_reason` (TEXT, nulo permitido)
 11. `exchange_order_id` (TEXT, nulo permitido)
@@ -233,7 +235,8 @@ Campos implementados:
 
 Indices implementados:
 
-1. `idx_signal_execution_events_execution_ts` (`signal_execution_id`, `event_timestamp`)
+1. `idx_signal_execution_events_execution_ts`
+   (`signal_execution_id`, `event_timestamp`)
 2. `idx_signal_execution_events_type` (`event_type`)
 
 Regras de integridade implementadas:
@@ -353,8 +356,10 @@ Indices implementados:
 4. Estado final nao pode voltar para estado anterior
 5. Toda mudanca de status deve gerar evento em `opportunity_events`
 6. Idempotencia de criacao inicial por chave natural:
-   (`symbol`, `timeframe`, `thesis_type`, `metadata_json.rejection_candle.timestamp`)
-7. Snapshots materializados de observabilidade devem respeitar retencao de 30 dias
+   (`symbol`, `timeframe`, `thesis_type`,
+   `metadata_json.rejection_candle.timestamp`)
+7. Snapshots materializados de observabilidade devem respeitar retencao
+   de 30 dias
 
 ## Atualizacao operacional 2026-03-14
 
@@ -365,8 +370,10 @@ Mudancas de dados:
 
 1. Banco de mercado (`db/crypto_agent.db`) inclui `ohlcv_m5`.
 2. Chave primaria de OHLCV segue `PRIMARY KEY (timestamp, symbol)`.
-3. `sync_market_context` aplica filtro de duplicidade por (`symbol`, `timestamp`) antes de inserir.
-4. Banco M2 (`db/modelo2.db`) passa a materializar `training_episodes` para dataset incremental.
+3. `sync_market_context` aplica filtro de duplicidade por
+   (`symbol`, `timestamp`) antes de inserir.
+4. Banco M2 (`db/modelo2.db`) passa a materializar `training_episodes`
+   para dataset incremental.
 
 Novos artefatos operacionais:
 
@@ -498,7 +505,8 @@ CREATE TABLE open_interest_api (
 
 ## Enriquecimento de Features em training_episodes (Fases D.3, E.1)
 
-Campo `features_json` em `training_episodes` contem 22 features escalares normalizadas para LSTM:
+Campo `features_json` em `training_episodes` contem 22 features escalares
+normalizadas para LSTM:
 
 ```json
 {

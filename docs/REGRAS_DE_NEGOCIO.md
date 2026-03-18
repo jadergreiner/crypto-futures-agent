@@ -101,7 +101,8 @@ Quando um modelo PPO treinado estiver disponivel:
 1. Aplicar `rl_signal_generation.py` como etapa 9 do pipeline.
 2. Atribuir confidence score de RL ao sinal (range [0.0, 1.0]).
 3. So gerar sinal se RL confidence >= 0.50 (threshold minimo configurable).
-4. Regressar para confidence deterministica 0.70 se PPO indisponivel ou quando convergencia < 0.5.
+4. Regressar para confidence deterministica 0.70 se PPO indisponivel
+   ou quando convergencia < 0.5.
 5. Registrar em auditoria qual modelo foi usado (deterministica vs RL) e versao.
 
 ### RN-007 - Coleta obrigatoria de taxas de financiamento (Fase D.2)
@@ -185,7 +186,8 @@ Matriz oficial de transicao:
 
 Regra adicional de auditoria:
 
-1. `from_status = NULL` so e permitido no evento inicial com `to_status = IDENTIFICADA`.
+1. `from_status = NULL` so e permitido no evento inicial com
+   `to_status = IDENTIFICADA`.
 
 ## Regra inicial do padrao de Fase 1
 
@@ -202,7 +204,8 @@ Contrato:
 ### Identificacao
 
 1. Selecionar a zona bearish mais recente e valida (`order_block` ou `fvg`).
-2. Preco deve tocar/intersectar a zona (`high >= zone_low` e `low <= zone_high`).
+2. Preco deve tocar/intersectar a zona
+   (`high >= zone_low` e `low <= zone_high`).
 3. Contexto tecnico nao pode estar em estrutura bullish.
 
 ### Validacao
@@ -214,22 +217,27 @@ Contrato:
 
 ### Invalidacao
 
-1. Nivel inicial de invalidacao: topo da zona (`invalidation_price = zone_high`).
+1. Nivel inicial de invalidacao: topo da zona
+   (`invalidation_price = zone_high`).
 2. Estrutura muda para leitura altista clara no periodo de decisao.
 
 ### Registro inicial da tese (M2-002.2)
 
 1. Detectado o padrao, criar oportunidade em `IDENTIFICADA` com tese completa.
-2. Registrar evento inicial auditavel `NULL -> IDENTIFICADA` em `opportunity_events`.
-3. Aplicar idempotencia por (`symbol`, `timeframe`, `thesis_type`, `rejection_candle.timestamp`).
+2. Registrar evento inicial auditavel `NULL -> IDENTIFICADA`
+   em `opportunity_events`.
+3. Aplicar idempotencia por (`symbol`, `timeframe`, `thesis_type`,
+   `rejection_candle.timestamp`).
 
 ## Regra de monitoramento inicial por vela (M2-003.1)
 
-Implementacao de referencia: `core/model2/repository.py` e `scripts/model2/track.py`.
+Implementacao de referencia: `core/model2/repository.py`
+e `scripts/model2/track.py`.
 
 1. O rastreador deve consumir oportunidades em `IDENTIFICADA`.
 2. Cada oportunidade consumida deve transicionar para `MONITORANDO`.
-3. A transicao deve respeitar a matriz oficial de estados (`IDENTIFICADA -> MONITORANDO`).
+3. A transicao deve respeitar a matriz oficial de estados
+   (`IDENTIFICADA -> MONITORANDO`).
 4. A transicao deve gerar evento auditavel em `opportunity_events` com:
    - `event_type = STATUS_TRANSITION`
    - `from_status = IDENTIFICADA`
@@ -276,7 +284,8 @@ Implementacao de referencia: `core/model2/resolver.py`,
    - `event_type = STATUS_TRANSITION`
    - `from_status = MONITORANDO`
    - `to_status = INVALIDADA|EXPIRADA`
-   - `rule_id = M2-003.3-RULE-THESIS-INVALIDATION|M2-003.3-RULE-THESIS-EXPIRATION`
+   - `rule_id =
+     M2-003.3-RULE-THESIS-INVALIDATION|M2-003.3-RULE-THESIS-EXPIRATION`
 5. Idempotencia operacional:
    - Se ja estiver no estado alvo, nao criar novo evento.
    - Se o estado atual nao permitir a transicao, nao transicionar.
@@ -355,8 +364,10 @@ RN-M2-006.1:
 Implementacao de referencia: `core/model2/order_layer.py`,
 `core/model2/repository.py` e `scripts/model2/order_layer.py`.
 
-1. A camada de ordem deve consumir apenas sinais em `technical_signals.status = CREATED`.
-2. A camada de ordem deve registrar decisao deterministica sem enviar ordem real na Fase 1.
+1. A camada de ordem deve consumir apenas sinais em
+   `technical_signals.status = CREATED`.
+2. A camada de ordem deve registrar decisao deterministica sem enviar
+   ordem real na Fase 1.
 3. Decisoes validas devem transicionar o sinal para `CONSUMED`.
 4. Decisoes bloqueadas devem transicionar o sinal para `CANCELLED`.
 5. Reprocessamento do mesmo sinal deve ser idempotente:
@@ -369,7 +380,8 @@ Implementacao de referencia: `core/model2/order_layer.py`,
 Implementacao de referencia: `core/model2/signal_adapter.py`,
 `core/model2/repository.py` e `scripts/model2/export_signals.py`.
 
-1. O adaptador deve consumir apenas sinais em `technical_signals.status = CONSUMED`.
+1. O adaptador deve consumir apenas sinais em
+   `technical_signals.status = CONSUMED`.
 2. O adaptador deve gerar payload legado em `trade_signals` com
    `execution_mode = PENDING`.
 3. O adaptador nao deve enviar ordem real na Fase 1.
@@ -390,9 +402,11 @@ Implementacao de referencia: `core/model2/observability.py` e
    - `cancelled_count`
    - `exported_count`
 2. O snapshot deve publicar taxa de exportacao:
-   - `export_rate = exported_count / consumed_count` (quando `consumed_count > 0`).
+   - `export_rate = exported_count / consumed_count`
+     (quando `consumed_count > 0`).
 3. O snapshot deve publicar erro de exportacao:
-   - `export_error_count` a partir da trilha `payload_json.adapter_export_trade_signals.last_error`.
+   - `export_error_count` a partir da trilha
+     `payload_json.adapter_export_trade_signals.last_error`.
 4. O snapshot deve publicar latencias medias:
    - `avg_created_to_consumed_ms`
    - `avg_consumed_to_exported_ms`
@@ -402,7 +416,8 @@ Implementacao de referencia: `core/model2/observability.py` e
 ## Regra do ciclo de vida de execucao real (M2-009.1)
 
 Implementacao de referencia: `core/model2/live_execution.py`,
-`core/model2/repository.py` e `scripts/model2/migrations/0006_create_signal_executions.sql`.
+`core/model2/repository.py` e
+`scripts/model2/migrations/0006_create_signal_executions.sql`.
 
 1. `technical_signals.status` continua sendo apenas trilha de admissao:
    - `CREATED -> CONSUMED`
@@ -424,7 +439,8 @@ Implementacao de referencia: `core/model2/live_execution.py`,
    - `ENTRY_FILLED -> PROTECTED|EXITED|FAILED`
    - `PROTECTED -> EXITED|FAILED`
 5. Cada transicao do ciclo live deve gerar evento em `signal_execution_events`.
-6. Um `technical_signal_id` pode existir no maximo uma vez em `signal_executions`.
+6. Um `technical_signal_id` pode existir no maximo uma vez
+   em `signal_executions`.
 
 ## Regra do gate live (M2-009.2)
 
@@ -470,7 +486,8 @@ Implementacao de referencia: `core/model2/live_service.py`.
 1. Toda execucao `ENTRY_FILLED` deve tentar armar:
    - `STOP_MARKET`
    - `TAKE_PROFIT_MARKET`
-2. A posicao so e considerada saudavel quando `signal_executions.status = PROTECTED`.
+2. A posicao so e considerada saudavel quando
+   `signal_executions.status = PROTECTED`.
 3. Se a protecao nao ficar armada, o agente deve:
    - fechar a posicao a mercado
    - registrar incidente
@@ -486,10 +503,12 @@ Implementacao de referencia: `core/model2/live_service.py` e
    - `ENTRY_SENT`
    - `ENTRY_FILLED`
    - `PROTECTED`
-2. Se existir posicao aberta para uma execucao `READY|ENTRY_SENT`, o sistema deve
-   recuperar o fill e seguir para protecao.
-3. Se uma execucao `PROTECTED` perder a posicao na exchange, ela deve terminar em `EXITED`.
-4. Se uma execucao `PROTECTED` perder SL/TP, o reconciliador deve tentar rearmar a protecao.
+2. Se existir posicao aberta para uma execucao `READY|ENTRY_SENT`,
+   o sistema deve recuperar o fill e seguir para protecao.
+3. Se uma execucao `PROTECTED` perder a posicao na exchange, ela deve
+   terminar em `EXITED`.
+4. Se uma execucao `PROTECTED` perder SL/TP, o reconciliador deve tentar
+   rearmar a protecao.
 5. A reconciliacao deve ser restart-safe e idempotente.
 
 ## Regra de observabilidade live (M2-010.2)
@@ -521,7 +540,8 @@ Implementacao de referencia: `core/model2/observability.py` e
 
 Implementacao de referencia: `scripts/model2/healthcheck_live_execution.py`.
 
-1. O healthcheck deve validar a recencia do ultimo `model2_live_dashboard_*.json`.
+1. O healthcheck deve validar a recencia do ultimo
+   `model2_live_dashboard_*.json`.
 2. O healthcheck deve alertar quando exceder thresholds de:
    - `unprotected_filled_count`
    - `stale_entry_sent_count`
@@ -551,13 +571,20 @@ Implementacao de referencia: `config/settings.py`,
 
 ## Fonte unica de verdade de simbolos (M2-012.1)
 
-Implementacao de referencia: `config/settings.py`, `scripts/model2/daily_pipeline.py`, `scripts/model2/sync_market_context.py` e `iniciar.bat`.
+Implementacao de referencia: `config/settings.py`,
+`scripts/model2/daily_pipeline.py`,
+`scripts/model2/sync_market_context.py` e `iniciar.bat`.
 
-1. A fonte canonica de simbolos operacionais do M2 e `M2_SYMBOLS` (em `config/settings.py`).
+1. A fonte canonica de simbolos operacionais do M2 e `M2_SYMBOLS`
+   (em `config/settings.py`).
 2. `M2_SYMBOLS` e derivado de `M2_LIVE_SYMBOLS` no `.env` (prioridade maxima).
-3. Se `M2_LIVE_SYMBOLS` estiver vazio, o fallback e `config.symbols.ALL_SYMBOLS`.
-4. Todos os runners M2 devem usar o mesmo conjunto padrao quando `--symbol` nao for informado.
-5. Alteracoes em `M2_LIVE_SYMBOLS` devem refletir igualmente em coleta (`sync_market_context`), pipeline (`daily_pipeline`) e ciclo live (`live_cycle`).
+3. Se `M2_LIVE_SYMBOLS` estiver vazio, o fallback e
+   `config.symbols.ALL_SYMBOLS`.
+4. Todos os runners M2 devem usar o mesmo conjunto padrao quando `--symbol`
+   nao for informado.
+5. Alteracoes em `M2_LIVE_SYMBOLS` devem refletir igualmente em coleta
+   (`sync_market_context`), pipeline (`daily_pipeline`) e ciclo live
+   (`live_cycle`).
 
 ## Estado operacional atual (2026-03-14)
 
@@ -575,21 +602,23 @@ Implementacao operacional vigente no entrypoint Windows:
 4. Parametros operacionais do loop:
    - `M2_LOOP_SECONDS` (padrao: `300`)
    - `M2_RUN_ONCE=1` para executar apenas um ciclo
-5. No estado atual de producao, `M2_EXECUTION_MODE=live` com whitelist progressiva
-   configurada por `M2_LIVE_SYMBOLS`.
+5. No estado atual de producao, `M2_EXECUTION_MODE=live`
+   com whitelist progressiva configurada por `M2_LIVE_SYMBOLS`.
 6. Nao existir `processed_ready` em um ciclo live nao e erro operacional:
    significa ausencia de sinais elegiveis (`technical_signals` em `CONSUMED`).
 
 ## Regra de coleta por ciclo (M2-015.2)
 
-Implementacao de referencia: `scripts/model2/sync_market_context.py` e `iniciar.bat`.
+Implementacao de referencia: `scripts/model2/sync_market_context.py`
+e `iniciar.bat`.
 
 1. No modo `2` do `iniciar.bat`, cada ciclo deve executar coleta de contexto em:
    - `H4`
    - `M5`
 2. A coleta deve cobrir o universo canonico `M2_SYMBOLS`.
 3. A coleta deve persistir candles em tabelas OHLCV correspondentes.
-4. A coleta deve registrar resumo por ciclo em `results/model2/runtime/model2_market_context_*.json`.
+4. A coleta deve registrar resumo por ciclo em
+   `results/model2/runtime/model2_market_context_*.json`.
 
 ## Regra de deduplicacao de candles (M2-015.2)
 
@@ -602,9 +631,11 @@ Implementacao de referencia: `scripts/model2/sync_market_context.py` e `iniciar.
 
 ## Regra de escopo de simbolos (coleta x execucao)
 
-1. `M2_SYMBOLS` governa todo o escopo operacional do M2 (coleta, pipeline e live).
+1. `M2_SYMBOLS` governa todo o escopo operacional do M2
+   (coleta, pipeline e live).
 2. `M2_LIVE_SYMBOLS` no `.env` e a forma de declarar/atualizar `M2_SYMBOLS`.
-3. `--symbol` nos scripts atua apenas como filtro ad-hoc do ciclo; sem `--symbol`, prevalece `M2_SYMBOLS`.
+3. `--symbol` nos scripts atua apenas como filtro ad-hoc do ciclo;
+   sem `--symbol`, prevalece `M2_SYMBOLS`.
 
 ## Regra de persistencia de episodios por ciclo
 
@@ -612,4 +643,5 @@ Implementacao de referencia: `scripts/model2/persist_training_episodes.py`.
 
 1. Cada ciclo deve materializar episodios em JSONL para treino incremental.
 2. Cada ciclo deve persistir episodios em `training_episodes` no banco M2.
-3. A extracao incremental deve usar cursor de `updated_at` para evitar reprocessamento total.
+3. A extracao incremental deve usar cursor de `updated_at` para evitar
+   reprocessamento total.

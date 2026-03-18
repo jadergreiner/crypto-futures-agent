@@ -202,8 +202,9 @@ taxa de exportacao, backlog, erros e latencias sem consultar tabelas brutas.
 **Status:** ACEITO
 
 **Decisao:**
-Manter `technical_signals` apenas como trilha de admissao (`CREATED -> CONSUMED|CANCELLED`)
-e modelar o ciclo real da ordem em `signal_executions` e `signal_execution_events`.
+Manter `technical_signals` apenas como trilha de admissao
+(`CREATED -> CONSUMED|CANCELLED`) e modelar o ciclo real da ordem em
+`signal_executions` e `signal_execution_events`.
 
 **Consequencia:**
 Evita misturar decisao de admissao com estado real da execucao, melhora a
@@ -215,9 +216,9 @@ tabela de sinais tecnicos.
 **Status:** ACEITO
 
 **Decisao:**
-Executar o live do M2 por runners dedicados (`live_execute`, `live_reconcile`,
-`live_dashboard`, `live_cycle`) sem depender do `export_signals -> trade_signals`
-no caminho critico.
+Executar o live do M2 por runners dedicados (`live_execute`,
+`live_reconcile`, `live_dashboard`, `live_cycle`) sem depender do
+`export_signals -> trade_signals` no caminho critico.
 
 **Consequencia:**
 O legado continua disponivel por compatibilidade, mas deixa de ser requisito
@@ -246,7 +247,8 @@ canonico M2 e publicar dashboard/healthcheck dedicados do live.
 
 **Consequencia:**
 O M2 deixa de depender dos contadores em memoria do executor legado e ganha
-capacidade propria de rollout progressivo (`shadow -> live subset -> whitelist ampla`).
+capacidade propria de rollout progressivo
+(`shadow -> live subset -> whitelist ampla`).
 
 ## ADR-020 - Entry point unico em Windows para operacao legacy + M2
 
@@ -268,8 +270,8 @@ fluxo live receba sinais atualizados antes de cada tentativa de execucao.
 **Status:** ACEITO
 
 **Decisao:**
-No fluxo operacional Windows (`iniciar.bat`, opcao `2`), executar `sync_market_context`
-antes do pipeline de decisao em dois timeframes por ciclo:
+No fluxo operacional Windows (`iniciar.bat`, opcao `2`), executar
+`sync_market_context` antes do pipeline de decisao em dois timeframes por ciclo:
 
 1. `H4` (janela curta de atualizacao)
 2. `M5` (granularidade intraday para contexto operacional)
@@ -277,12 +279,15 @@ antes do pipeline de decisao em dois timeframes por ciclo:
 Regras associadas:
 
 1. A coleta de contexto roda para todo o universo canonico `M2_SYMBOLS`.
-2. `M2_SYMBOLS` e derivado de `M2_LIVE_SYMBOLS` no `.env` (fallback: `config.symbols.ALL_SYMBOLS`).
-3. O sync deve deduplicar candles por chave natural (`symbol`, `timestamp`) antes de persistir.
+2. `M2_SYMBOLS` e derivado de `M2_LIVE_SYMBOLS` no `.env`
+   (fallback: `config.symbols.ALL_SYMBOLS`).
+3. O sync deve deduplicar candles por chave natural (`symbol`, `timestamp`)
+   antes de persistir.
 
 **Consequencia:**
 
-1. Cada ciclo parte de dados de mercado atualizados, reduzindo sinal sobre base defasada.
+1. Cada ciclo parte de dados de mercado atualizados, reduzindo sinal
+   sobre base defasada.
 2. A persistencia permanece idempotente, sem duplicar o mesmo candle.
 3. Unifica coleta, pipeline e live no mesmo escopo operacional (`M2_SYMBOLS`).
 
@@ -291,19 +296,24 @@ Regras associadas:
 **Status:** ACEITO
 
 **Decisao:**
-Integrar modelo PPO treinado via episodios coletados automaticamente a cada ciclo do pipeline:
+Integrar modelo PPO treinado via episodios coletados automaticamente
+a cada ciclo do pipeline:
 
-1. Cada ciclo coleta eventos de contexto, oportunidade e resultado em `training_episodes`.
+1. Cada ciclo coleta eventos de contexto, oportunidade e resultado
+   em `training_episodes`.
 2. Episodios sao agregados por ciclo (`cycle_run_id`) e persistidos em Sqlite.
-3. Treinamento incremental roda off-pipeline (semanal) via `train_ppo_incremental.py`.
-4. Modelo PPO e consumido on-demand por `rl_signal_generation.py` como etapa 9 do pipeline.
+3. Treinamento incremental roda off-pipeline (semanal)
+   via `train_ppo_incremental.py`.
+4. Modelo PPO e consumido on-demand por `rl_signal_generation.py`
+   como etapa 9 do pipeline.
 5. Fallback deterministica com confidence 0.70 quando modelo indisponivel.
 
 **Consequencia:**
 
 1. Cada ciclo contribui dados para melhorar o modelo ML progressivamente.
 2. Pipeline nao e bloqueada por convergencia de treinamento (offline).
-3. RL enhancement e aplicativo apenas quando modelo passar limiares de qualidade (Sharpe > 0.5).
+3. RL enhancement e aplicativo apenas quando modelo passar limiares
+   de qualidade (Sharpe > 0.5).
 4. Auditoria completa de episodios permite replay e diagnostico de producao.
 
 ## ADR-023 - Enriquecimento de episodios com dados de mercado externo
@@ -326,13 +336,15 @@ e interesse aberto (OI) coletados via API Binance (Fases D.2-D.4):
 **Alternativas consideradas:**
 
 - Sincronização pull-on-demand (rejeitada): aumentaria latencia do pipeline.
-- Apenas histórico Binance (rejeitada): não captura dados em tempo real necessários.
+- Apenas histórico Binance (rejeitada): não captura dados em tempo real
+  necessários.
 - Mock data (rejeitada): não valida integracao real com API.
 
 **Consequencia:**
 
 1. Episodios agora contem contexto de mercado externo (20 features).
-2. Modelos PPO treinam com sinal mais rico, potencialmente melhorando performance.
+2. Modelos PPO treinam com sinal mais rico, potencialmente melhorando
+   performance.
 3. Correlacao descoberta (r=0.27, p=0.006) pode gerar regra RN-008 de rejeicao.
 4. Requer monitoramento continuo do daemon (operacao day-to-day).
 5. Fallback: permitir episodio com NaN se coleta falhar < 10%.
@@ -351,15 +363,18 @@ Preparar suporte para politicas LSTM na pipeline RL via novo
    multi-TF, FR, OI) para shape (seq_len=10, n_features=22).
 3. Modo dual suporta LSTM output (10, 20) e fallback MLP flat (200,).
 4. Runtime switchable via `set_model_type()` para compatibilidade backward.
-5. Fases E.2 e E.3 (Concluídas): Arquitetura LSTM construída e pipeline PPO parametrizado funcionando com o novo ambiente.
-6. Fase E.4 (Pendente): Análise comparativa de performance e validação de Sharpe.
+5. Fases E.2 e E.3 (Concluídas): Arquitetura LSTM construída e pipeline PPO
+   parametrizado funcionando com o novo ambiente.
+6. Fase E.4 (Pendente): Análise comparativa de performance e validação
+   de Sharpe.
 
 **Alternativas consideradas:**
 
 - Stacking candles em (n_candles, n_features) sem buffer (rejeitada):
   pierde ordem temporal importante.
 - Frame stacking legado (rejeitada): sem normalizacao, features heterogeneas.
-- Apenas LSTM sem fallback (rejeitada): quebra compatibilidade com agents MLP existentes.
+- Apenas LSTM sem fallback (rejeitada): quebra compatibilidade com agents
+  MLP existentes.
 
 **Consequencia:**
 
