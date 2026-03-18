@@ -8,6 +8,7 @@
     "code_line_length": 120,
     "list_item_line_length": 110,
     "table": false,
+    "tables": false,
     "headers": true
   },
   "MD024": {

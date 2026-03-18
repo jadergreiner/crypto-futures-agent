@@ -11,7 +11,7 @@ toda vez que mudanças significativas são feitas no código:
 ### Matriz de Dependências (Camada 1 → Camada 2/3)
 
 | Trigger | Dependências Afetadas | Owner | SLA |
-|---------|----------------------|-------|-----|
+| --------- | ---------------------- | ------- | ----- |
 | Nova Fase (A-E) | BACKLOG.md, ROADMAP.md, FEATURES.md | Agent | 24h |
 | Mudança Arquitetura | ARQUITETURA_ALVO.md, C4_MODEL.md, ADRS.md | Agent | 24h |
 | Nova Regra de Negócio | REGRAS_DE_NEGOCIO.md, RUNBOOK_OPERACIONAL.md | Agent | 12h |
@@ -22,6 +22,29 @@ toda vez que mudanças significativas são feitas no código:
 ---
 
 ## Histórico de Sincronizações
+
+### [SYNC-013] M2-019 - Iniciativa RL por Simbolo como Decisor de Entrada
+
+**Data/Hora**: 2026-03-18 UTC
+**Status**: PLANEJADA
+
+#### Mudancas no Backlog (M2-019)
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | +M2-019 (tarefas .1 a .10) |
+| SYNC | docs/SYNCHRONIZATION.md | +[SYNC-013] |
+
+#### Resumo da Iniciativa
+
+Transformar o sistema para usar modelos RL individuais por simbolo como decisor
+de entrada (LONG/SHORT/NEUTRAL), substituindo o scanner SMC deterministico como
+unico decisor. Novos componentes: EntryDecisionEnv, EpisodeLoader,
+train_entry_agents,
+entry_rl_filter. Fallback conservador preserva comportamento existente durante
+treinamento inicial.
+
+---
 
 ### [SYNC-012] M2-017.1 FLUXUSDT - Habilitacao no pipeline RL
 
@@ -42,13 +65,14 @@ toda vez que mudanças significativas são feitas no código:
 
 #### Integridade do Codigo
 
-```
+```markdown
 OK config/symbols.py: FLUXUSDT propaga para ALL_SYMBOLS,
    AUTHORIZED_SYMBOLS e M2_SYMBOLS automaticamente
 OK playbooks/flux_playbook.py: mypy sem erros
 OK tests/test_fluxusdt_integration.py: 41/41 passando
 OK bug fix daemon: excecao tipada (Exception, nao bare except)
 OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
+
 ```
 
 #### Proximos Passos (Apos M2-017.1)
@@ -68,15 +92,15 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudancas no Codigo (Fase E.10 — E.10)
 
 | Componente | Arquivo | Mudanca | V |
-|-----------|---------|---------|---|
+| ----------- | --------- | --------- | --- |
 | Wrapper Ensemble | scripts/model2/ensemble_signal_generation_wrapper.py | Novo | E.10 |
 | Pipeline | scripts/model2/daily_pipeline.py | +import+etapa | E.10 |
 | Backlog | docs/BACKLOG.md | +BLID-068 (E.10) | E.10 |
 | SYNCHRONIZATION | docs/SYNCHRONIZATION.md (este) | +[SYNC-011] | E.10 |
 
-#### Integridade do Codigo
+#### Integridade do Codigo (#2)
 
-```
+```markdown
 ✓ EnsembleSignalGenerator com soft+hard voting
 ✓ Load checkpoints E.8 com fallback gracioso
 ✓ Confidence scoring baseado em consenso
@@ -84,6 +108,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 ✓ Zero breaking changes (etapa após RL)
 ✓ Logging + stats para observabilidade
 ✓ Mock-ready para testes
+
 ```
 
 #### Proximos Passos (Apos BLID-068)
@@ -103,21 +128,22 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudancas no Codigo (Fase E.9)
 
 | Componente | Arquivo | Mudanca | V |
-|-----------|---------|---------|---|
+| ----------- | --------- | --------- | --- |
 | Ensemble | scripts/model2/ensemble_voting_ppo.py | Novo | E.9 |
 | Avaliacao | scripts/model2/evaluate_ensemble_e9.py | Novo | E.9 |
 | Benchmark | scripts/model2/compare_e5_to_e9_final.py | Novo | E.9 |
 | Backlog | docs/BACKLOG.md | +BLID-067 | E.9 |
 | RL_SIGNAL | docs/RL_SIGNAL_GENERATION.md | +Fase E.9 | E.9 |
 
-#### Integridade do Codigo
+#### Integridade do Codigo (#3)
 
-```
+```markdown
 ✓ EnsembleVotingPPO (soft + hard voting)
 ✓ Load E.8 checkpoints (MLP + LSTM Optuna)
 ✓ Evaluate vs individuais
 ✓ Benchmark E.5->E.9 completo
 ✓ Sem breaking changes
+
 ```
 
 ---
@@ -131,7 +157,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudancas no Código (Fase E.8 — Retrain com Best Hyperparams)
 
 | Componente | Arquivo | Mudanca | Versao |
-|-----------|---------|---------|--------|
+| ----------- | --------- | --------- | -------- |
 | Retrain Script | scripts/model2/retrain_ppo_with_optuna_params.py | Novo | E.8 |
 | Compare Script | scripts/model2/compare_e6_vs_e8_sharpe.py | Novo | E.8 |
 | Checkpoint MLP | checkpoints/ppo_training/mlp/optuna/ | Novo (500k) | E.8 |
@@ -142,7 +168,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 #### Integridade do Código
 
-```
+```markdown
 ✓ Retrain scripts criados (load best params OK)
 ✓ Checkpoints salvos em paths corretos (mlp/optuna, lstm/optuna)
 ✓ Compare script encontrando modelos E.6 vs E.8
@@ -150,6 +176,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 ✓ Output JSON estruturado para analise
 ✓ Compatibilidade com 26 features (E.6+E.7)
 ✓ Sem breaking changes em pipeline existente
+
 ```
 
 ---
@@ -163,7 +190,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudanças no Código (Fase E.7 — Hyperparameter Optimization)
 
 | Componente | Arquivo | Mudança | Versão |
-|------------|---------|---------|--------|
+| ------------ | --------- | --------- | -------- |
 | Optuna Grid Search | scripts/model2/optuna_grid_search_ppo.py | Novo (100 trials: 50 MLP + 50 LSTM) | E.7 |
 | Objective Functions | (função Python) | MLP e LSTM com objetivos separados | E.7 |
 | Resultados Analysis | results/model2/analysis/optuna_grid_search_results.json | Novo (top 5 hyperparams per model) | E.7 |
@@ -172,7 +199,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Hiperparametros Otimizados
 
 | Parametro | Range Otimizada | Meta |
-|-----------|-----------------|------|
+| ----------- | ----------------- | ------ |
 | Learning Rate | [1e-5, 1e-3] | Encontrar sweet spot (tipicamente 3e-4 a 5e-4) |
 | Batch Size | {32, 64, 128} | 64 historicamente melhor |
 | Entropy Coef | [0.0, 0.1] | Balancear exploracao vs explotacao |
@@ -190,15 +217,16 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
    - Pipeline E.7 com expectativas de resultado
    - Commit: [FEAT] BLID-065 Otimizar hiperparametros PPO Optuna (PENDENTE)
 
-#### Integridade do Código
+#### Integridade do Código (#2)
 
-```
+```txt
 ✓ Script Optuna criado com TPESampler + MedianPruner
 ✓ Objective functions para MLP e LSTM implementadas
 ✓ Logic de selecao top 5 hyperparams integrada
 ✓ Output JSON estruturado para analise
 ✓ Compatibilidade com resultados de E.6 (26 features)
 ✓ Sem breaking changes em pipeline existente
+
 ```
 
 ---
@@ -212,7 +240,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudanças no Código (Fase E.6 — Advanced Indicators)
 
 | Componente | Arquivo | Mudança | Versão |
-|------------|---------|---------|--------|
+| ------------ | --------- | --------- | -------- |
 | Feature Enricher | scripts/model2/feature_enricher.py | +3 métodos (Stoch, Williams, ATR norm) | E.6 |
 | Feature Count | (20 → 22 → 26 features) | +4 novas features | E.6 |
 | Testes | tests/test_model2_phase_e6_indicators.py | Novo (9 testes, 100% PASS) | E.6 |
@@ -224,7 +252,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Novos Indicadores Adicionados
 
 | Indicador | Features | Range | Beneficio |
-|-----------|----------|-------|-----------|
+| ----------- | ---------- | ------- | ----------- |
 | Estocastico K | stoch_k | [0, 100] | Detecta reversoes (>80 overbot, <20 oversold) |
 | Estocastico D | stoch_d | [0, 100] | Confirmacao K lines, reduz falsos |
 | Williams %R | williams_r | [-100, 0] | Correlacao com K, validacao extra |
@@ -244,22 +272,25 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
      - Resultado esperado (Sharpe +5-10%)
    - Commit: [FEAT] BLID-064 Estocastico Williams ATR multiTF (PENDENTE)
 
-#### Integridade do Código
+#### Integridade do Código (#3)
 
-```
+```txt
 ✓ Feature Enricher extensões: calculate_stochastic(), calculate_williams_r(), calculate_atr_normalized()
 ✓ Metodos integrados em enrich_features() com saída em dict['volatility']
 ✓ Multi-timeframe ATR normalizado adicionado em multi_timeframe_context
 ✓ 9/9 testes unitários PASS
 ✓ Compatibilidade com train_ppo_lstm.py (Feature Shape invariante)
 ✓ Sem breaking changes em repositórios existentes
+
 ```
 
 #### Dependências de Docs ainda Pendentes
 
-- [ ] BACKLOG.md: Atualizar Fase E.6 quando treinamentos completarem (Evidence de checkpoints)
+- [ ] BACKLOG.md: Atualizar Fase E.6 quando treinamentos completarem (Evidence
+de checkpoints)
 - [ ] ARQUITETURA_ALVO.md: Documentar E.6 como "Feature Enrichment Layer v2"
-- [ ] ADRS.md: Considerar novo ADR se decisão técnica signer (ex: "Por que Estocastico K+D vs só D?")
+- [ ] ADRS.md: Considerar novo ADR se decisão técnica signer (ex: "Por que
+Estocastico K+D vs só D?")
 - [ ] CHANGELOG.md: Adicionar entrada M2-016.4 com data exata de conclusão
 
 ---
@@ -273,22 +304,26 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudanças no Código (Fases E.2, E.3)
 
 | Componente | Arquivo | Mudança | Versão |
-|------------|---------|---------|--------|
+| ------------ | --------- | --------- | -------- |
 | LSTM Policy | agent/lstm_policy.py | Novo (Feature Extractor) | E.2 |
 | Config de Envs | agent/lstm_environment.py | Wrapper compativel c/ Gym | E.3 |
 | PPO Custom Pipeline | scripts/model2/train_ppo_lstm.py | Suporte duplo (LSTM/MLP) | E.3 |
 
 #### Documentação Sincronizada (10/10)
 
-1. **ARQUITETURA_ALVO.md**: Roadmap atualizado para [CONCLUÍDA] nas Fases E.2/E.3 e apontando E.4.
+1. **ARQUITETURA_ALVO.md**: Roadmap atualizado para [CONCLUÍDA] nas Fases
+E.2/E.3 e apontando E.4.
 2. **ADRS.md**: Retificado que roadmap de treinamento já é viável e finalizado.
 3. **BACKLOG.md**: Fases marcadas como `[OK]` e validadas.
 4. **CHANGELOG.md**: Tópico de release `[M2-016.4]` incluído.
-5. **DIAGRAMAS.md**: Alterados labels do flowchart E.1 para apontar componentes de E.2 e E.3.
+5. **DIAGRAMAS.md**: Alterados labels do flowchart E.1 para apontar componentes
+de E.2 e E.3.
 6. **MODELAGEM_DE_DADOS.md**: Checado (features OK).
 7. **REGRAS_DE_NEGOCIO.md**: Checado (features temporais OK).
-8. **RL_SIGNAL_GENERATION.md**: Checklist das implementações de treino e política.
-9. **RUNBOOK_M2_OPERACAO.md**: Documentado os comandos de CLI via `--policy` utilizando `train_ppo_lstm.py`.
+8. **RL_SIGNAL_GENERATION.md**: Checklist das implementações de treino e
+política.
+9. **RUNBOOK_M2_OPERACAO.md**: Documentado os comandos de CLI via `--policy`
+utilizando `train_ppo_lstm.py`.
 10. **SYNCHRONIZATION.md**: Criado rastreabilidade desta sincronização geral.
 
 ---
@@ -302,7 +337,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Mudanças no Código (Fases D.2-D.4, E.1)
 
 | Componente | Arquivo | Mudança | Versão |
-|------------|---------|---------|--------|
+| ------------ | --------- | --------- | -------- |
 | Daemon | scripts/model2/daemon_funding_rates.py | Novo (coleta FR) | D.2 |
 | API Client | scripts/model2/api_client_funding.py | Novo (REST API) | D.2 |
 | Feature Enrichment | agent/environment.py | Função de coleta FR/OI | D.3 |
@@ -329,7 +364,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 **HIGH (2 docs)** — Entendimento
 
-3. **RL_SIGNAL_GENERATION.md** ✅
+1. **RL_SIGNAL_GENERATION.md** ✅
    - Versão: M2-016.1 → M2-016.3
    - Adições:
      - Nova seção "Enriquecimento de Features" (D.2-D.4)
@@ -340,7 +375,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
    - Mudanças: Diagrama de arquitetura com nova etapa 10 (ENRICH)
    - Commit: eae8d20
 
-4. **REGRAS_DE_NEGOCIO.md** ✅
+2. **REGRAS_DE_NEGOCIO.md** ✅
    - Adições: 3 novas regras
      - RN-007: Coleta obrigatória de FR (D.2)
      - RN-008: Validação de correlação FR bearish (D.4)
@@ -350,7 +385,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 **MEDIUM (2 docs)** — Referência
 
-5. **MODELAGEM_DE_DADOS.md** ✅
+1. **MODELAGEM_DE_DADOS.md** ✅
    - Adições: 2 novas tabelas de schema
      - funding_rates_api (FR historical)
      - open_interest_api (OI historical)
@@ -360,7 +395,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
      - Frequência de atualização (H4 cycle)
    - Commit: 7064e13
 
-6. **ADRS.md** ✅
+2. **ADRS.md** ✅
    - Adições: 2 novos ADRs
      - ADR-023: Enriquecimento de episódios com FR/OI (D.2-D.4)
      - ADR-024: LSTM environment com rolling window (E.1)
@@ -369,14 +404,14 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 **LOW (2 docs)** — Visual/Histórico
 
-7. **DIAGRAMAS.md** ✅
+1. **DIAGRAMAS.md** ✅
    - Adições: 2 novos diagramas Mermaid
      - Diagrama 1c: Fluxo D.2-D.4 (daemon → coleta → análise → RN-008)
      - Diagrama 1d: Fluxo E.1 (feature extraction → normalization → LSTM)
    - Mudanças: Diagrama 1b atualizado com status M2-016.3
    - Commit: 3dc6f79
 
-8. **CHANGELOG.md** ✅ (novo arquivo)
+2. **CHANGELOG.md** ✅ (novo arquivo)
    - Criado: Histórico de releases e milestones
    - Conteúdo M2-016.3:
      - Tema, features completadas, métricas, roadmap
@@ -388,6 +423,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 **Cobertura**: 8/8 docs (100%)
 **Commits**: 3 commits [SYNC]
+
 - eae8d20: 4 docs (CRITICAL + HIGH)
 - 7064e13: 2 docs (MEDIUM)
 - 3dc6f79: 2 docs (LOW) + CHANGELOG novo
@@ -409,12 +445,15 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Próximas Sincronizações
 
 **Quando fase D.5 for completada:**
+
 - [ ] BACKLOG.md: Adicionar D.5 resultado
 - [ ] ROADMAP.md: Atualizar progresso semana N+1
 - [ ] STATUS_ATUAL.md: Update GO-LIVE dashboard
 
 **Quando fase E.4 for completada:**
-- [ ] RL_SIGNAL_GENERATION.md: Documentar sharpe index report e métricas comparativas
+
+- [ ] RL_SIGNAL_GENERATION.md: Documentar sharpe index report e métricas
+comparativas
 - [ ] DIAGRAMAS.md: Atualizar arquitetura se MLP não for recomendado
 
 ---
@@ -454,7 +493,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 #### Mudanças no Código (Fase X)
 | Componente | Arquivo | Mudança | Versão |
-|--|--|--|--|
+| -- | -- | -- | -- |
 | ... | ... | ... | ... |
 
 #### Documentação Sincronizada (X/Y)
@@ -469,12 +508,13 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 - Tempo total: X minutes
 - Palavras/linhas adicionadas: X/Y
 
-#### Validação
+#### Validação (#2)
 - [ ] Todos docs sincronizados
 - [ ] Português validado
 - [ ] Max 80 chars/linha respeitado
 - [ ] Commits com tag [SYNC]
 
-#### Próximas Sincronizações
+#### Próximas Sincronizações (#2)
 - [ ] Ação quando fase Y completa
-```
+
+```txt
