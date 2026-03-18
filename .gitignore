@@ -43,6 +43,7 @@ models/tensorboard/
 # Logs
 logs/*.log
 logs/*.log.*
+logs/**/*.log
 
 # Testing
 .pytest_cache/
@@ -51,6 +52,7 @@ htmlcov/
 
 # Experimental/Debug files
 acc_debug.json
+FINAL_INTEGRATION_TEST.json
 logs/startup_log.txt
 scripts/go_live_preflight.py
 scripts/model2/m2_016_2_validation_window.py
