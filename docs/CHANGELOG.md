@@ -2,6 +2,51 @@
 
 Histórico de mudanças, releases e milestones do Modelo 2.0.
 
+## [M2-017.1] - 2026-03-17
+
+### Tema
+
+Habilitacao de novo simbolo no pipeline RL: FLUXUSDT
+
+### Completado
+
+#### Configuracao de Simbolo
+
+- [x] Adiciona FLUXUSDT a config/symbols.py (mid_cap_cross_chain, beta 2.9)
+- [x] Propaga automaticamente para ALL_SYMBOLS, AUTHORIZED_SYMBOLS, M2_SYMBOLS
+
+#### Playbook
+
+- [x] FLUXPlaybook: confluencia, risco, ciclo e should_trade
+- [x] RISK_ON only, bias D1 direcional, narrativa DeFi/cross-chain
+- [x] Posicao conservadora: position_size 0.45, stop 1.4x (ajustado por ATR%)
+
+#### Correcao de Bug
+
+- [x] binance_funding_daemon.py: SYMBOLS_ENABLED -> ALL_SYMBOLS
+- [x] Afeta todos os simbolos (fallback silencioso corrigido)
+
+#### Testes
+
+- [x] tests/test_fluxusdt_integration.py: 41/41 passando
+- [x] Cobertura: config, ALL_SYMBOLS, AUTHORIZED_SYMBOLS, playbook, pipeline
+
+### Proximos Passos
+
+- Coletar dados OHLCV FLUXUSDT via main.py --setup
+- Aguardar >= 20 sinais validados em modelo2.db (~7-14 dias)
+- Executar python main.py --train --symbols "FLUXUSDT"
+
+### Commits
+
+| Hash | Mensagem | Data |
+| --- | --- | --- |
+| 67cbc65 | [FEAT] Habilitar FLUXUSDT + playbook + daemon | 17 MAR |
+| f032573 | [TEST] Testes de integracao FLUXUSDT (41) | 17 MAR |
+| d088627 | [SYNC] BACKLOG + SYNCHRONIZATION M2-017.1 | 17 MAR |
+
+---
+
 ## [M2-016.4] - 2026-03-15
 
 ### 🎯 Tema
