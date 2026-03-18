@@ -83,3 +83,9 @@ results/model2/runtime/**
 results/model2/*.json
 results/model2/analysis/
 results/model2/ppo_grid_search_*.json
+
+# Claude Code configuracao local (especifico da maquina)
+.claude/settings.local.json
+
+# Artefatos de testes gerados em runtime
+test_results_phase*.json
