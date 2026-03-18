@@ -92,41 +92,43 @@ goto END
 
 :M2_VERSION_LOOP
 call :BUILD_ARGS
+set PYTHONIOENCODING=utf-8
+if not exist "logs" mkdir logs
 echo.
 echo [INFO] Modo continuo ativado. Use Ctrl+C para interromper.
+echo [INFO] Log detalhado em: logs\m2_cycle.log
 if "!M2_RUN_ONCE!"=="1" echo [INFO] M2_RUN_ONCE=1: executara apenas um ciclo.
 
 :M2_LOOP
 echo.
-echo [RUN] python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
-python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);print('[sync H4 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
 
-echo.
-echo [RUN] python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS!
-python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);print('[sync M5 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))"
 
-echo.
-echo [RUN] python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS!
-python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS!
-if %errorlevel% neq 0 (
-    echo [ALERTA] daily_pipeline retornou erro.
-)
+python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json,re;raw=sys.stdin.read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};stages=d.get('stages',{});erros=d.get('stage_errors',[]);ok=sum(1 for s in stages.values() if s.get('status')=='ok');print('[pipeline] status='+d.get('status','?')+' | stages_ok='+str(ok)+'/'+str(len(stages))+(' | ERROS='+str(erros) if erros else ''))"
 
-echo.
-echo [RUN] python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS!
-python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS!
-if %errorlevel% neq 0 (
-    echo [ALERTA] live_cycle retornou erro.
-)
+python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "
+import sys,json,re
+raw=sys.stdin.read()
+m=re.search(r'\{.*\}',raw,re.DOTALL)
+d=json.loads(m.group()) if m else {}
+dash=d.get('dashboard',{})
+exe=d.get('execute',{})
+staged=exe.get('staged',[])
+ready=exe.get('processed_ready',[])
+print('[live    ] status='+d.get('status','?')+' | staged='+str(len(staged))+' | ready='+str(len(ready))+' | blocked='+str(dash.get('blocked_count',0))+' | protected='+str(dash.get('protected_count',0))+' | exited='+str(dash.get('exited_count',0))+' | failed='+str(dash.get('failed_count',0)))
+for s in staged:
+    sym=s.get('symbol','?'); st=s.get('status','?'); reason=s.get('reason','')
+    detail=' ('+reason+')' if reason else ''
+    print('           '+sym+' -> '+st+detail)
+for r in ready:
+    sym=r.get('symbol','?'); st=r.get('status','?')
+    print('           '+sym+' -> '+st)
+"
 
-echo.
-echo [RUN] python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
-python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS!
+python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! 2>>logs/m2_cycle.log | python -c "import sys,json,re;raw=sys.stdin.read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};print('[episodio] status='+d.get('status','?')+' | inseridos='+str(d.get('episodes_inserted',d.get('inserted',0))))"
 
-echo.
-echo [RUN] python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0
-python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0
-if %errorlevel% neq 0 echo [ALERTA] Healthcheck live retornou alert.
+python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0 2>>logs/m2_cycle.log | python -c "import sys,json;d=json.load(sys.stdin);v=d.get('violations',[]);print('[health  ] status='+d['status']+(' | VIOLACOES: '+str(v) if v else ''))"
 
 if "!M2_RUN_ONCE!"=="1" goto END
 
@@ -136,4 +138,7 @@ timeout /t !M2_LOOP_SECONDS! /nobreak >nul 2>&1
 goto M2_LOOP
 
 :END
+echo.
+echo [FIM] Pressione qualquer tecla para fechar...
+pause >nul
 exit /b 0

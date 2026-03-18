@@ -57,12 +57,13 @@ def validate_markdown(files: list[str]) -> None:
     if not markdown_files:
         return
 
-    if shutil.which("markdownlint") is None:
+    _md_bin = shutil.which("markdownlint") or shutil.which("markdownlint.cmd")
+    if _md_bin is None:
         print("  [AVISO] markdownlint nao encontrado. Install: npm install -g markdownlint-cli")
         return
 
     config_path = ".markdownlint.json" if (REPO_ROOT / ".markdownlint.json").exists() else ""
-    autofix_cmd = ["markdownlint"]
+    autofix_cmd = [_md_bin]
     if config_path:
         autofix_cmd.extend(["--config", config_path])
     autofix_cmd.append("--fix")
@@ -70,7 +71,7 @@ def validate_markdown(files: list[str]) -> None:
     run(autofix_cmd, capture=False)
     run(["git", "add", *markdown_files], capture=False)
 
-    check_cmd = ["markdownlint"]
+    check_cmd = [_md_bin]
     if config_path:
         check_cmd.extend(["--config", config_path])
     check_cmd.extend(markdown_files)

@@ -1054,7 +1054,7 @@ Entrega:
 6. Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados. [PENDENTE]
 7. Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run. [PENDENTE]
 
-Evidencias (Fase M2-017.1 — CONCLUIDA):
+Evidencias:
 
 1. Config: `config/symbols.py` — FLUXUSDT (mid_cap_cross_chain, beta 2.9)
 2. Playbook: `playbooks/flux_playbook.py` — FLUXPlaybook (4 metodos)
@@ -1063,6 +1063,88 @@ Evidencias (Fase M2-017.1 — CONCLUIDA):
    + SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
 5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
 6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
+
+---
+
+## INICIATIVA M2-018 - Ativacao do modo live na Binance
+
+Objetivo: ativar `M2_EXECUTION_MODE=live` com confianca, aproveitando
+a integracao ja existente entre `scripts/model2/live_execute.py`, `Model2LiveExchange`
+e `BinanceClientFactory`. A Camada 5 esta implementada; o que falta e
+validar o ciclo ponta-a-ponta no testnet e promover para producao.
+
+Contexto:
+
++ `core/model2/live_exchange.py` — adapter completo (394 linhas):
+  `place_market_entry`, `place_protective_order`, `get_available_balance`,
+  `list_open_positions`, `get_protection_state`, `close_position_market`,
+  precisao automatica via `exchange_information()`.
++ `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
++ `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
+  `create_binance_client(mode="live")` quando `execution_mode == "live"`.
++ O pipeline roda em shadow por padrao; trocar para live so requer
+  `M2_EXECUTION_MODE=live` no `.env`.
+
+### TAREFA M2-018.1 - Validacao do ciclo shadow ponta-a-ponta
+
+Status: PENDENTE
+
+Entrega:
+
+1. Executar `go_live_preflight.py` e confirmar todos os 10 checks. [ ]
+2. Rodar 3 ciclos completos (`daily_pipeline + live_cycle`) em shadow
+   e confirmar `status=ok` no healthcheck em cada ciclo. [ ]
+3. Confirmar que `signal_executions` acumula registros READY/BLOCKED
+   com `execution_mode=shadow`. [ ]
+4. Confirmar que nenhuma ordem e enviada a Binance em shadow. [ ]
+
+Evidencias:
+
+1. Preflight: `results/model2/runtime/model2_go_live_preflight_*.json`.
+2. Healthcheck: `results/model2/runtime/model2_healthcheck_*.json`.
+3. Snapshot execucoes: banco `db/modelo2.db` tabela `signal_executions`.
+
+### TAREFA M2-018.2 - Testes de integracao com Binance Testnet
+
+Status: PENDENTE
+
+Entrega:
+
+1. Configurar chaves de testnet em `.env`
+   (`BINANCE_API_KEY`, `BINANCE_API_SECRET`, `TRADING_MODE=paper`). [ ]
+2. Setar `M2_LIVE_SYMBOLS` com 1 simbolo de baixa liquidez (ex.: BNBUSDT)
+   e `M2_MAX_MARGIN_PER_POSITION_USD=1.0`. [ ]
+3. Executar 1 ciclo live no testnet e confirmar fill real em
+   `signal_executions` (`status=PROTECTED`). [ ]
+4. Simular fechamento externo e confirmar que reconciliacao detecta
+   `EXITED`. [ ]
+5. Confirmar healthcheck sem divergencias apos o ciclo. [ ]
+
+Evidencias:
+
+1. Log do ciclo: `results/model2/runtime/model2_live_execute_*.json`.
+2. Snapshot: `signal_executions` com `status=PROTECTED` + `status=EXITED`.
+3. Healthcheck: `results/model2/runtime/model2_healthcheck_*.json`.
+
+### TAREFA M2-018.3 - Ativacao em producao com limites conservadores
+
+Status: PENDENTE
+
+Entrega:
+
+1. Definir `M2_EXECUTION_MODE=live` + `TRADING_MODE=live` no `.env`. [ ]
+2. Definir `M2_LIVE_SYMBOLS` com no maximo 3 simbolos de alta liquidez
+   (BTCUSDT, ETHUSDT, SOLUSDT). [ ]
+3. Manter `M2_MAX_MARGIN_PER_POSITION_USD=1.0` e
+   `M2_MAX_DAILY_ENTRIES=3` para estreia. [ ]
+4. Monitorar os primeiros 5 ciclos live manualmente via healthcheck. [ ]
+5. Documentar no runbook os thresholds de escalonamento progressivo. [ ]
+
+Evidencias:
+
+1. `.env` configurado (nao comitar segredos).
+2. Log primeiros ciclos: `results/model2/runtime/model2_live_execute_*.json`.
+3. Runbook atualizado: `docs/RUNBOOK_M2_OPERACAO.md`.
 
 ---
 

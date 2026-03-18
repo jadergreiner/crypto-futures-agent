@@ -71,17 +71,20 @@ class EnsembleSignalGenerator:
         self.total_calls = 0
         self.votes_diverged = 0
 
-        # Defaults: E.8 Optuna checkpoints
+        # Checkpoints E.8 com fallback para versao disponivel
+        _mlp_e8 = REPO_ROOT / 'checkpoints/ppo_training/mlp/optuna/ppo_mlp_e8_optuna.zip'
+        _mlp_fallback = REPO_ROOT / 'checkpoints/ppo_training/mlp/ppo_model_mlp.zip'
+        _lstm_e8 = REPO_ROOT / 'checkpoints/ppo_training/lstm/optuna/ppo_lstm_e8_optuna.zip'
+        _lstm_fallback = REPO_ROOT / 'checkpoints/ppo_training/lstm/ppo_model_lstm.zip'
         self.mlp_checkpoint = mlp_checkpoint or \
-            str(REPO_ROOT / 'checkpoints/ppo_training/mlp/optuna/ppo_mlp_e8_optuna.zip')
+            str(_mlp_e8 if _mlp_e8.exists() else _mlp_fallback)
         self.lstm_checkpoint = lstm_checkpoint or \
-            str(REPO_ROOT / 'checkpoints/ppo_training/lstm/optuna/ppo_lstm_e8_optuna.zip')
+            str(_lstm_e8 if _lstm_e8.exists() else _lstm_fallback)
 
-        self.ensemble = None
-        self.env = None
+        self.ensemble: Optional[EnsembleVotingPPO] = None
         self._init_ensemble()
 
-    def _init_ensemble(self):
+    def _init_ensemble(self) -> None:
         """Carrega ensemble (com fallback gracioso se checkpoints não existem)"""
         try:
             logger.info(f"Carregando checkpoints E.8...")
@@ -96,13 +99,11 @@ class EnsembleSignalGenerator:
                 voting_method=self.voting_method
             )
 
-            # Criar environment para feature extraction
-            self.env = LSTMSignalEnvironment(mode='paper')
-            logger.info("✓ Ensemble carregado com sucesso")
+            logger.info("[OK] Ensemble carregado com sucesso")
 
         except Exception as e:
-            logger.warning(f"⚠ Erro ao carregar ensemble: {e}")
-            logger.warning("  Fallback para sinais determinísticos")
+            logger.warning(f"[AVISO] Erro ao carregar ensemble: {e}")
+            logger.warning("  Fallback para sinais deterministicos")
             self.ensemble = None
             self.env = None
 
@@ -260,13 +261,9 @@ class EnsembleSignalGenerator:
             'min_confidence': self.min_confidence
         }
 
-    def close(self):
-        """Fecha environment"""
-        if self.env is not None:
-            try:
-                self.env.close()
-            except:
-                pass
+    def close(self) -> None:
+        """Libera recursos"""
+        pass
 
 
 def run_ensemble_signal_generation(
@@ -354,7 +351,7 @@ def run_ensemble_signal_generation(
         with open(result_file, 'w') as f:
             json.dump(result, f, indent=2)
 
-        logger.info(f"\n✓ Ensembles gerados: {n_signals}")
+        logger.info(f"[OK] Ensembles gerados: {n_signals}")
         logger.info(f"  Fallback rate: {stats['fallback_rate']:.2%}")
         logger.info(f"  Divergence rate: {stats['divergence_rate']:.2%}")
         logger.info(f"  Output: {result_file}")

@@ -79,7 +79,7 @@ class EnsembleVotingPPO:
         try:
             self.mlp_model = PPO.load(mlp_checkpoint_path)
             self.lstm_model = PPO.load(lstm_checkpoint_path)
-            logger.info("✓ Modelos carregados com sucesso")
+            logger.info("[OK] Modelos carregados com sucesso")
         except Exception as e:
             logger.error(f"Erro ao carregar modelos: {e}")
             raise
@@ -297,9 +297,15 @@ def main():
         voting_method=args.voting_method
     )
 
-    # Criar environment
+    # Criar environment com dados mock para avaliacao standalone
     logger.info("Inicializando LSTMSignalEnvironment...")
-    env = LSTMSignalEnvironment(mode='paper')
+    _mock_signals = [{'id': i, 'symbol': 'BTCUSDT', 'direction': 'LONG',
+                      'entry_price': 50000.0, 'stop_loss': 49000.0,
+                      'take_profit': 52000.0, 'outcome': 'WIN',
+                      'pnl_pct': 0.04} for i in range(10)]
+    _mock_evolutions: dict[int, list[dict]] = {i: [] for i in range(10)}
+    from agent.signal_environment import SignalReplayEnv
+    env = LSTMSignalEnvironment(SignalReplayEnv(_mock_signals, _mock_evolutions))
 
     # Avaliar
     metrics = evaluate_ensemble(
@@ -324,7 +330,7 @@ def main():
             'metrics': metrics
         }, f, indent=2)
 
-    logger.info(f"✓ Config salvo em {config_path}")
+    logger.info(f"[OK] Config salvo em {config_path}")
 
     env.close()
 
