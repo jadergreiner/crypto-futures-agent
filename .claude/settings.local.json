@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/repo/crypto-futures-agent//**)",
+      "Read(//c/repo/crypto-futures-agent/**)",
+      "Bash(find /c/repo/crypto-futures-agent/scripts/model2 -type f -name *.py)",
+      "Bash(git -C /c/repo/crypto-futures-agent log --oneline -20)"
+    ]
+  }
+}

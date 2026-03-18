@@ -143,7 +143,73 @@ def retrain_ppo_model(
     if env_kwargs is None:
         env_kwargs = {}
 
-    env = LSTMSignalEnvironment(**env_kwargs)
+    # Primeiro, criar SignalReplayEnv com dados de sinais
+    # Se nenhum sinal fornecido, criar simples para teste
+    if 'signals' not in env_kwargs or 'evolutions_dict' not in env_kwargs:
+        # Signals/evolutions mock para teste = usar dados E.6 baseline
+        print(f"[E.8] Usando ambiente mock para {model_type}...")
+        
+        # Criar sinais mock simples (5 episódios)
+        mock_signals = [
+            {
+                'id': i + 1,
+                'timestamp': 1000000 + i * 100000,
+                'symbol': 'BTCUSDT',
+                'direction': 'LONG' if i % 2 == 0 else 'SHORT',
+                'entry_price': 50000.0 + i * 100,
+                'stop_loss': 49000.0 + i * 100,
+                'take_profit_1': 51000.0 + i * 100,
+                'exit_price': 51500.0 + i * 100,
+                'exit_reason': 'take_profit',
+                'pnl_pct': 3.0,
+                'r_multiple': 3.0,
+                'outcome_label': 'win'
+            }
+            for i in range(5)
+        ]
+        
+        # Criar evoluções mock (3 snapshots por sinal)
+        mock_evolutions = {}
+        for sig in mock_signals:
+            sig_id = sig['id']
+            mock_evolutions[sig_id] = [
+                {
+                    'timestamp': sig['timestamp'] + j * 900,
+                    'current_price': sig['entry_price'] + j * 50,
+                    'unrealized_pnl_pct': j * 1.0,
+                    'distance_to_stop_pct': -2.0 - j * 0.5,
+                    'distance_to_tp1_pct': 1.0 + j * 0.5,
+                    'rsi_14': 50.0 + j * 5,
+                    'macd_histogram': 0.1 * j,
+                    'bb_percent_b': 0.6,
+                    'atr_14': 1.0,
+                    'adx_14': 30.0,
+                    'market_structure': 'bullish',
+                    'funding_rate': 0.01,
+                    'long_short_ratio': 1.2,
+                    'mfe_pct': 1.0 + j * 0.5,
+                    'mae_pct': -0.2,
+                    'event_type': None
+                }
+                for j in range(3)
+            ]
+        
+        env_kwargs['signals'] = mock_signals
+        env_kwargs['evolutions_dict'] = mock_evolutions
+
+    # Criar SignalReplayEnv base
+    from agent.signal_environment import SignalReplayEnv
+    signal_env = SignalReplayEnv(
+        signals=env_kwargs.get('signals'),
+        evolutions_dict=env_kwargs.get('evolutions_dict')
+    )
+    
+    # Envolver em LSTMSignalEnvironment
+    env = LSTMSignalEnvironment(
+        env=signal_env,
+        seq_len=env_kwargs.get('seq_len', 10),
+        flatten_fallback=env_kwargs.get('flatten_fallback', True)
+    )
 
     # Criar modelo PPO com best hyperparams
     ppo_kwargs = {
