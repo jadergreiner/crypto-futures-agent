@@ -102,51 +102,23 @@ if "!M2_RUN_ONCE!"=="1" echo [INFO] M2_RUN_ONCE=1: executara apenas um ciclo.
 
 :M2_LOOP
 echo.
-echo [DEBUG] CWD: %CD% >> logs\m2_cycle.log
-
 python scripts/model2/sync_market_context.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] sync_H4 exit=!errorlevel! >> logs\m2_cycle.log
-python -c "import json;d=json.load(open('logs/m2_tmp.json'));print('[sync H4 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))" 2>>logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py sync logs\m2_tmp.json
 
 python scripts/model2/sync_market_context.py --timeframe M5 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] sync_M5 exit=!errorlevel! >> logs\m2_cycle.log
-python -c "import json;d=json.load(open('logs/m2_tmp.json'));print('[sync M5 ] status='+d['status']+' | persisted='+str(d['candles_persisted'])+' | skipped='+str(d['candles_duplicated_skipped']))" 2>>logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py sync logs\m2_tmp.json
 
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] pipeline exit=!errorlevel! >> logs\m2_cycle.log
-python -c "import json,re;raw=open('logs/m2_tmp.json',encoding='utf-8').read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};stages=d.get('stages',{});erros=d.get('stage_errors',[]);ok=sum(1 for s in stages.values() if s.get('status')=='ok');print('[pipeline] status='+d.get('status','?')+' | stages_ok='+str(ok)+'/'+str(len(stages))+(' | ERROS='+str(erros) if erros else ''))" 2>>logs\m2_cycle.log
-echo [DEBUG] pipeline_parse exit=!errorlevel! >> logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py pipeline logs\m2_tmp.json
 
 python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] live exit=!errorlevel! >> logs\m2_cycle.log
-python -c "
-import json,re
-raw=open('logs/m2_tmp.json',encoding='utf-8').read()
-m=re.search(r'\{.*\}',raw,re.DOTALL)
-d=json.loads(m.group()) if m else {}
-dash=d.get('dashboard',{})
-exe=d.get('execute',{})
-staged=exe.get('staged',[])
-ready=exe.get('processed_ready',[])
-print('[live    ] status='+d.get('status','?')+' | staged='+str(len(staged))+' | ready='+str(len(ready))+' | blocked='+str(dash.get('blocked_count',0))+' | protected='+str(dash.get('protected_count',0))+' | exited='+str(dash.get('exited_count',0))+' | failed='+str(dash.get('failed_count',0)))
-for s in staged:
-    sym=s.get('symbol','?'); st=s.get('status','?'); reason=s.get('reason','')
-    detail=' ('+reason+')' if reason else ''
-    print('           '+sym+' -> '+st+detail)
-for r in ready:
-    sym=r.get('symbol','?'); st=r.get('status','?')
-    print('           '+sym+' -> '+st)
-" 2>>logs\m2_cycle.log
-echo [DEBUG] live_parse exit=!errorlevel! >> logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py live logs\m2_tmp.json
 
 python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] episodio exit=!errorlevel! >> logs\m2_cycle.log
-python -c "import json,re;raw=open('logs/m2_tmp.json',encoding='utf-8').read();m=re.search(r'\{.*\}',raw,re.DOTALL);d=json.loads(m.group()) if m else {};print('[episodio] status='+d.get('status','?')+' | inseridos='+str(d.get('episodes_inserted',d.get('inserted',0))))" 2>>logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py episodio logs\m2_tmp.json
 
 python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0 >logs\m2_tmp.json 2>>logs\m2_cycle.log
-echo [DEBUG] health exit=!errorlevel! >> logs\m2_cycle.log
-python -c "import json;d=json.load(open('logs/m2_tmp.json'));v=d.get('violations',[]);print('[health  ] status='+d['status']+(' | VIOLACOES: '+str(v) if v else ''))" 2>>logs\m2_cycle.log
-echo [DEBUG] health_parse exit=!errorlevel! >> logs\m2_cycle.log
+python scripts/model2/print_cycle_summary.py health logs\m2_tmp.json
 
 if "!M2_RUN_ONCE!"=="1" goto END
 
