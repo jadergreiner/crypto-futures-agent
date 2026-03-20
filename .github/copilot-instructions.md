@@ -177,6 +177,29 @@ via Copilot.
 
 ---
 
+## Bootstrap rápido para agentes
+
+Use estas instruções quando for iniciar trabalho no repositório ou configurar
+um agente localmente. Mantém foco nas tarefas mais comuns e evita duplicação
+de conteúdo já presente em `docs/`.
+
+- **Configurar ambiente (Windows):** executar `setup.bat` na raiz.
+- **Instalar dependências de teste:** `pip install -r requirements-test.txt`.
+- **Rodar suíte de testes:** `pytest -q tests/`.
+- **Executar em modo paper (dev):** `python main.py --mode paper` ou `make paper`.
+- **Verificação rápida de docs:** `markdownlint docs/*.md`.
+
+Exemplo de prompt para agentes (usar em PT-BR):
+
+> "Sincronize os docs oficiais do projeto: verifique Links Rápidos em `docs/`,
+> atualize `docs/STATUS_ENTREGAS.md` com o sprint atual e registre o sync em
+> `docs/SYNCHRONIZATION.md` com tag [SYNC]."
+
+Mantemos o princípio "Link, não duplicar": sempre referencie `docs/` ao
+trabalhar com política, backlog e trackers.
+
+---
+
 ## Protocolo [SYNC] — Obrigatório
 
 Todo commit que altera docs deve incluir:

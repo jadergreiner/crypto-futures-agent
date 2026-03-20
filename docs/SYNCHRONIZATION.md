@@ -23,48 +23,10 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
-### [SYNC-014] PRD - Product Requirements Document
+### Proximas Tarefas M2-019 Desbloqueadas (#2)
 
-**Data/Hora**: 2026-03-20 UTC
-**Status**: COMPLETO
-
-#### Mudancas (PRD)
-
-| Componente | Arquivo | Mudanca |
-| --- | --- | --- |
-| PRD | docs/PRD.md | +Criacao do PRD completo |
-| SYNC | docs/SYNCHRONIZATION.md | +[SYNC-014] |
-
-#### Resumo
-
-Criacao do PRD (Product Requirements Document) versao 1.0.0 contendo:
-visao geral, analise de viabilidade tecnica com 8 riscos identificados,
-objetivos e KPIs, 3 personas, 8 user stories, 38 requisitos funcionais,
-20 requisitos nao-funcionais, justificativas da stack tecnologica e plano
-de release em 3 fases (MVP operacional, consolidacao e escala).
-
----
-
-### [SYNC-013] M2-019 - Iniciativa RL por Simbolo como Decisor de Entrada
-
-**Data/Hora**: 2026-03-18 UTC
-**Status**: PLANEJADA
-
-#### Mudancas no Backlog (M2-019)
-
-| Componente | Arquivo | Mudanca |
-| --- | --- | --- |
-| Backlog | docs/BACKLOG.md | +M2-019 (tarefas .1 a .10) |
-| SYNC | docs/SYNCHRONIZATION.md | +[SYNC-013] |
-
-#### Resumo da Iniciativa
-
-Transformar o sistema para usar modelos RL individuais por simbolo como decisor
-de entrada (LONG/SHORT/NEUTRAL), substituindo o scanner SMC deterministico como
-unico decisor. Novos componentes: EntryDecisionEnv, EpisodeLoader,
-train_entry_agents,
-entry_rl_filter. Fallback conservador preserva comportamento existente durante
-treinamento inicial.
+- M2-019.2: EpisodeLoader (Dependencias: M2-019.1)
+- M2-019.3: SubAgentManager entry (Dependencias: M2-019.1, M2-019.2)
 
 ---
 
@@ -95,7 +57,7 @@ OK tests/test_fluxusdt_integration.py: 41/41 passando
 OK bug fix daemon: excecao tipada (Exception, nao bare except)
 OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
-```
+```python
 
 #### Proximos Passos (Apos M2-017.1)
 
@@ -166,7 +128,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 ✓ Benchmark E.5->E.9 completo
 ✓ Sem breaking changes
 
-```
+```bash
 
 ---
 
@@ -249,7 +211,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 ✓ Compatibilidade com resultados de E.6 (26 features)
 ✓ Sem breaking changes em pipeline existente
 
-```
+```json
 
 ---
 

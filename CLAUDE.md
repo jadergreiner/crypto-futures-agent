@@ -151,3 +151,21 @@ e commitar com a tag correta.
   a menos que haja ambiguidade explícita.
 - Após qualquer alteração em `docs/BACKLOG.md`, atualizar `docs/TRACKER.md`
   e registrar em `docs/SYNCHRONIZATION.md`.
+
+## Bootstrap rápido
+
+Se está começando no repositório, use este pequeno checklist:
+
+- Windows: executar `setup.bat` para criar venv e instalar dependências.
+- Instalar deps de teste: `pip install -r requirements-test.txt`.
+- Rodar testes: `pytest -q tests/`.
+- Executar pipeline local (dev): `python main.py --mode paper`.
+
+Prompt de exemplo para interações com agentes (PT-BR):
+
+> "Explique onde ficam os scripts de treino e mostre os comandos para
+> treinar o modelo PPO localmente. Liste também os requisitos mínimos do
+> ambiente."
+
+Mantenha todo o conteúdo do agente em Português e siga as regras de commit
+e sincronização descritas acima.
