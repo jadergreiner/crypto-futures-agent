@@ -134,10 +134,23 @@ class Model2LiveExchange:
                         tick_size = None
                     break
 
+                # Buscar minNotional (ou min_notional) se presente
+                min_notional = None
+                for current_filter in filters or []:
+                    filter_type = self._safe_get(current_filter, ["filterType", "filter_type"])
+                    if str(filter_type).upper() in {"MIN_NOTIONAL", "MINNOTIONAL"}:
+                        raw_min_notional = self._safe_get(current_filter, ["minNotional", "min_notional", "minNotionalValue"])
+                        try:
+                            min_notional = float(raw_min_notional) if raw_min_notional is not None else None
+                        except (TypeError, ValueError):
+                            min_notional = None
+                        break
+
                 info = {
                     "quantity_precision": int(quantity_precision) if quantity_precision is not None else 8,
                     "price_precision": int(price_precision) if price_precision is not None else 8,
                     "tick_size": tick_size if tick_size and tick_size > 0 else None,
+                    "min_notional": min_notional if min_notional and min_notional > 0 else None,
                 }
                 self._symbol_precision_cache[normalized] = info
                 return info
@@ -221,9 +234,27 @@ class Model2LiveExchange:
     def calculate_entry_quantity(self, symbol: str, entry_price: float, margin_usd: float, leverage: int) -> float:
         if entry_price <= 0:
             return 0.0
+        # Calcular notional alvo e quantidade bruta
         notional_usd = float(margin_usd) * float(leverage)
         raw_qty = notional_usd / float(entry_price)
-        return self._round_quantity(symbol, raw_qty)
+
+        # Aplicar precisao/tick
+        qty = self._round_quantity(symbol, raw_qty)
+
+        # Validar min_notional do simbolo (se disponivel)
+        info = self._get_symbol_precision_info(symbol)
+        min_notional = info.get("min_notional")
+        try:
+            qty_notional = float(qty) * float(entry_price)
+        except (TypeError, ValueError):
+            qty_notional = 0.0
+
+        # Se mesmo apos arredondamento o notional estiver abaixo do minimo, retornar 0.0
+        if min_notional is not None and qty_notional < float(min_notional):
+            return 0.0
+
+        # Retornar quantidade arredondada conforme precisao do simbolo
+        return float(qty)
 
     def place_market_entry(
         self,
