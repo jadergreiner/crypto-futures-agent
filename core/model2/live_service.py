@@ -326,13 +326,49 @@ class Model2LiveExecutionService:
                 "reason": failed.reason,
             }
 
+        # Protecao: validar notional minimo (exchange exige notional >= 20 USD)
+        try:
+            entry_price = float(execution.get("entry_price") or 0.0)
+        except (TypeError, ValueError):
+            entry_price = 0.0
+        notional_usd = float(quantity) * float(entry_price)
+        if notional_usd < 20.0:
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="notional_too_small",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"requested_qty": quantity, "entry_price": entry_price, "notional_usd": notional_usd},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
         client_order_id = self._client_order_id(int(execution["id"]))
-        order_response = exchange.place_market_entry(
-            symbol=str(execution["symbol"]),
-            signal_side=str(execution["signal_side"]),
-            quantity=quantity,
-            client_order_id=client_order_id,
-        )
+        # Enviar ordem com tratamento de excecoes para evitar crash do ciclo
+        try:
+            order_response = exchange.place_market_entry(
+                symbol=str(execution["symbol"]),
+                signal_side=str(execution["signal_side"]),
+                quantity=quantity,
+                client_order_id=client_order_id,
+            )
+        except Exception as exc:
+            # Registrar falha e marcar execucao como failed sem propagar
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="exchange_error",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"error": str(exc)},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
         entry_sent = self.repository.mark_signal_execution_entry_sent(
             execution_id=int(execution["id"]),
             now_ms=now_ms,

@@ -258,7 +258,7 @@ if __name__ == "__main__":
 
     for sym in symbols:
         sym = sym.strip().upper()
-        
+
         # 1. Carregar episodios do DB
         episodes = load_episodes(
             db_path=db_path,
@@ -268,7 +268,7 @@ if __name__ == "__main__":
         )
 
         n_ep = len(episodes)
-        
+
         # 2. Verificar condicao de minimo de episodios
         if n_ep < args.min_episodes:
             logger.info(f"[{sym}] SKIPPED: Apenas {n_ep} episodios "
@@ -323,10 +323,10 @@ if __name__ == "__main__":
     # 5. Output Summary (JSON)
     results_dir = REPO_ROOT / "results" / "model2" / "runtime"
     results_dir.mkdir(parents=True, exist_ok=True)
-    
+
     date_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     summary_path = results_dir / f"entry_training_summary_{date_str}.json"
-    
+
     with summary_path.open("w") as f:
         json.dump(summary, f, indent=2)
 

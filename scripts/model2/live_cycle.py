@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -105,19 +106,27 @@ def _parse_args() -> argparse.Namespace:
 def main() -> int:
     args = _parse_args()
     live_symbols = tuple(symbol.upper() for symbol in (args.live_symbol or M2_LIVE_SYMBOLS) if symbol)
-    summary = run_live_cycle(
-        model2_db_path=args.model2_db_path,
-        symbol=args.symbol,
-        timeframe=args.timeframe,
-        limit=int(args.limit),
-        output_dir=args.output_dir,
-        execution_mode=args.execution_mode,
-        live_symbols=live_symbols,
-        max_daily_entries=int(args.max_daily_entries),
-        max_margin_per_position_usd=float(args.max_margin_per_position_usd),
-        max_signal_age_minutes=int(args.max_signal_age_minutes),
-        symbol_cooldown_minutes=int(args.symbol_cooldown_minutes),
-    )
+    try:
+        summary = run_live_cycle(
+            model2_db_path=args.model2_db_path,
+            symbol=args.symbol,
+            timeframe=args.timeframe,
+            limit=int(args.limit),
+            output_dir=args.output_dir,
+            execution_mode=args.execution_mode,
+            live_symbols=live_symbols,
+            max_daily_entries=int(args.max_daily_entries),
+            max_margin_per_position_usd=float(args.max_margin_per_position_usd),
+            max_signal_age_minutes=int(args.max_signal_age_minutes),
+            symbol_cooldown_minutes=int(args.symbol_cooldown_minutes),
+        )
+    except Exception as exc:
+        tb = traceback.format_exc()
+        summary = {
+            "status": "error",
+            "error": str(exc),
+            "traceback": tb,
+        }
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0
 
