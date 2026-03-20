@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 import uuid
 from typing import Any
 
@@ -20,6 +21,9 @@ from .live_execution import (
     evaluate_live_execution_gate,
 )
 from .repository import Model2ThesisRepository
+
+_PROTECTION_MAX_RETRIES = 3
+_PROTECTION_RETRY_BASE_DELAY_S = 1.0
 
 
 class Model2LiveExecutionService:
@@ -169,6 +173,42 @@ class Model2LiveExecutionService:
                 filled_price = float(fallback_position.get("entry_price") or 0) or None
         return filled_qty, filled_price
 
+    def _place_protective_order_with_retry(
+        self,
+        exchange: Model2LiveExchange,
+        *,
+        symbol: str,
+        signal_side: str,
+        trigger_price: float,
+        order_type: str,
+    ) -> tuple[Any, list[dict[str, str]]]:
+        """Envia ordem de proteção com retry exponencial (mínimo 3 tentativas)."""
+        errors: list[dict[str, str]] = []
+        response = None
+        for attempt in range(_PROTECTION_MAX_RETRIES):
+            try:
+                response = exchange.place_protective_order(
+                    symbol=symbol,
+                    signal_side=signal_side,
+                    trigger_price=trigger_price,
+                    order_type=order_type,
+                )
+                return response, errors
+            except Exception as exc:
+                if exchange.is_existing_protection_error(exc):
+                    return None, []
+                delay = _PROTECTION_RETRY_BASE_DELAY_S * (2 ** attempt)
+                errors.append(
+                    {
+                        "order_type": order_type,
+                        "attempt": str(attempt + 1),
+                        "error": str(exc),
+                    }
+                )
+                if attempt < _PROTECTION_MAX_RETRIES - 1:
+                    time.sleep(delay)
+        return response, errors
+
     def _arm_protection(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
         signal_side = str(execution["signal_side"])
@@ -180,40 +220,28 @@ class Model2LiveExecutionService:
         protection_errors: list[dict[str, str]] = []
 
         if not protection_state.get("has_sl"):
-            try:
-                response = exchange.place_protective_order(
-                    symbol=symbol,
-                    signal_side=signal_side,
-                    trigger_price=float(execution["stop_loss"]),
-                    order_type="STOP_MARKET",
-                )
-                sl_order = exchange.extract_order_identifier(response) or sl_order
-            except Exception as exc:
-                if not exchange.is_existing_protection_error(exc):
-                    protection_errors.append(
-                        {
-                            "order_type": "STOP_MARKET",
-                            "error": str(exc),
-                        }
-                    )
+            sl_response, sl_errors = self._place_protective_order_with_retry(
+                exchange,
+                symbol=symbol,
+                signal_side=signal_side,
+                trigger_price=float(execution["stop_loss"]),
+                order_type="STOP_MARKET",
+            )
+            protection_errors.extend(sl_errors)
+            if sl_response is not None:
+                sl_order = exchange.extract_order_identifier(sl_response) or sl_order
 
         if not protection_state.get("has_tp"):
-            try:
-                response = exchange.place_protective_order(
-                    symbol=symbol,
-                    signal_side=signal_side,
-                    trigger_price=float(execution["take_profit"]),
-                    order_type="TAKE_PROFIT_MARKET",
-                )
-                tp_order = exchange.extract_order_identifier(response) or tp_order
-            except Exception as exc:
-                if not exchange.is_existing_protection_error(exc):
-                    protection_errors.append(
-                        {
-                            "order_type": "TAKE_PROFIT_MARKET",
-                            "error": str(exc),
-                        }
-                    )
+            tp_response, tp_errors = self._place_protective_order_with_retry(
+                exchange,
+                symbol=symbol,
+                signal_side=signal_side,
+                trigger_price=float(execution["take_profit"]),
+                order_type="TAKE_PROFIT_MARKET",
+            )
+            protection_errors.extend(tp_errors)
+            if tp_response is not None:
+                tp_order = exchange.extract_order_identifier(tp_response) or tp_order
 
         final_state = exchange.get_protection_state(symbol=symbol, signal_side=signal_side)
         if final_state.get("has_sl") and final_state.get("has_tp"):

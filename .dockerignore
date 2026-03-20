@@ -1,0 +1,49 @@
+# .dockerignore — exclui arquivos sensíveis e desnecessários da imagem Docker
+.env
+.env.*
+!.env.example
+
+# Banco de dados local (montado via volume)
+db/*.db
+db/*.db-journal
+db/*.db-wal
+db/*.db-shm
+
+# Virtualenv e cache Python
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+.githooks/
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Checkpoints e modelos treinados (montados via volume)
+checkpoints/
+models/
+
+# Logs e resultados
+logs/
+results/
+
+# Arquivos temporários
+tmp/
+*.tmp
