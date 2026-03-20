@@ -139,7 +139,7 @@ class Model2LiveExchange:
                 for current_filter in filters or []:
                     filter_type = self._safe_get(current_filter, ["filterType", "filter_type"])
                     if str(filter_type).upper() in {"MIN_NOTIONAL", "MINNOTIONAL"}:
-                        raw_min_notional = self._safe_get(current_filter, ["minNotional", "min_notional", "minNotionalValue"]) 
+                        raw_min_notional = self._safe_get(current_filter, ["minNotional", "min_notional", "minNotionalValue"])
                         try:
                             min_notional = float(raw_min_notional) if raw_min_notional is not None else None
                         except (TypeError, ValueError):

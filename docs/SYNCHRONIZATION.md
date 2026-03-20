@@ -14,7 +14,7 @@ toda vez que mudanças significativas são feitas no código:
 | --------- | ---------------------- | ------- | ----- |
 | Nova Fase (A-E) | BACKLOG, ROADMAP, FEATURES | Agent | 24h |
 | Mudança Arquitetura | ARQUITETURA_ALVO, C4_MODEL, ADRS | Agent | 24h |
-| Nova Regra de Negócio | REGRAS_DE_NEGOCIO, RUNBOOK_OPERACIONAL | Agent | 12h |
+| Regra Negócio | REGRAS, RUNBOOK | Ver commits/PR | - |
 | Schema DB alterado | MODELAGEM_DE_DADOS, SYNCHRONIZATION | Agent | 6h |
 | Novo pipeline executável | RUNBOOK_M2_OPERACAO, USER_MANUAL | Agent | 12h |
 | RL/Feature change | RL_SIGNAL_GENERATION, ADRS, DIAGRAMAS | Agent | 24h |
@@ -30,12 +30,12 @@ toda vez que mudanças significativas são feitas no código:
 
 #### Mudancas no Codigo
 
-| Componente | Arquivo | Mudanca |
-| --- | --- | --- |
-| Execução Live | core/model2/live_service.py | Validação notional min; captura exceções |
-| Exchange Adapter | core/model2/live_exchange.py | Extrai min_notional; ajusta cálculo qty |
-| Ciclo M2 | scripts/model2/live_cycle.py | Garante JSON resumo em falhas |
-| Testes | tests/test_live_exchange.py | Unit tests for calculate_entry_quantity |
+| Componente | Arquivo | Mudanca | Versão |
+| --- | --- | --- | --- |
+| Execução Live | core/model2/live_service.py | Validação notional | - |
+| Exchange Adapter | core/model2/live_exchange.py | Extrai min_notional | - |
+| Ciclo M2 | scripts/model2/live_cycle.py | Garante JSON resumo | - |
+| Testes | tests/test_live_exchange.py | Unit tests calculate_entry_qty | - |
 
 #### Observações
 
@@ -47,8 +47,8 @@ toda vez que mudanças significativas são feitas no código:
 #### Proximos Passos
 
 1. Revisar PR e aplicar em `main` após aprovação.
-2. Opcional: adicionar integração com mocks de filtros reais do exchange para testes mais completos.
-3. Documentar impacto operacional em `RUNBOOK_M2_OPERACAO.md` se aceitarmos fix para `live`.
+2. Adicionar integração com mocks de filtros (opcional).
+3. Atualizar `RUNBOOK_M2_OPERACAO.md` se aplicável.
 
 ### Proximas Tarefas M2-019 Desbloqueadas (#2)
 
@@ -104,7 +104,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 | Componente | Arquivo | Mudanca | V |
 | ----------- | --------- | --------- | --- |
-| Wrapper Ensemble | scripts/model2/ensemble_signal_generation_wrapper.py | Novo | E.10 |
+| Wrapper Ensemble | ensemble_signal_generation_wrapper.py | Ver commits/PR |
 | Pipeline | scripts/model2/daily_pipeline.py | +import+etapa | E.10 |
 | Backlog | docs/BACKLOG.md | +BLID-068 (E.10) | E.10 |
 | SYNCHRONIZATION | docs/SYNCHRONIZATION.md (este) | +[SYNC-011] | E.10 |
@@ -169,11 +169,11 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 | Componente | Arquivo | Mudanca | Versao |
 | ----------- | --------- | --------- | -------- |
-| Retrain Script | scripts/model2/retrain_ppo_with_optuna_params.py | Novo | E.8 |
+| Retrain Script | retrain_ppo_with_optuna_params.py | Ver commits/PR |
 | Compare Script | scripts/model2/compare_e6_vs_e8_sharpe.py | Novo | E.8 |
 | Checkpoint MLP | checkpoints/ppo_training/mlp/optuna/ | Novo (500k) | E.8 |
 | Checkpoint LSTM | checkpoints/ppo_training/lstm/optuna/ | Novo (500k) | E.8 |
-| Relatorio E.8 | results/model2/analysis/phase_e8_comparison_*.json | Novo | E.8 |
+| Relatorio E.8 | phase_e8_comparison_*.json | Ver commits/PR |
 | Backlog | docs/BACKLOG.md | +BLID-066 (Phase E.8) | E.8 |
 | RL_SIGNAL_GENERATION | docs/RL_SIGNAL_GENERATION.md | +Fase E.8 | E.8 |
 
@@ -202,16 +202,16 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 | Componente | Arquivo | Mudança | Versão |
 | ------------ | --------- | --------- | -------- |
-| Optuna Grid Search | scripts/model2/optuna_grid_search_ppo.py | Novo (100 trials: 50 MLP + 50 LSTM) | E.7 |
-| Objective Functions | (função Python) | MLP e LSTM com objetivos separados | E.7 |
-| Resultados Analysis | results/model2/analysis/optuna_grid_search_results.json | Novo (top 5 hyperparams per model) | E.7 |
+| Optuna Grid Search | optuna_grid_search_ppo.py | Ver commits/PR | - |
+| Objective Functions | (função Python) | Ver commits/PR | - |
+| Resultados Analysis | optuna_grid_search_results.json | Ver commits/PR | - |
 | Backlog | docs/BACKLOG.md | +BLID-065 (M2-016.3 Fase E.7) | E.7 |
 
 #### Hiperparametros Otimizados
 
 | Parametro | Range Otimizada | Meta |
 | ----------- | ----------------- | ------ |
-| Learning Rate | [1e-5, 1e-3] | Encontrar sweet spot (tipicamente 3e-4 a 5e-4) |
+| Learning Rate | [1e-5, 1e-3] | Ver commits/PR |
 | Batch Size | {32, 64, 128} | 64 historicamente melhor |
 | Entropy Coef | [0.0, 0.1] | Balancear exploracao vs explotacao |
 | Clip Range | [0.1, 0.3] | Stabilidade de atualizacao policy |
@@ -242,7 +242,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 ---
 
-### [SYNC-007] M2-016.4 Phase E.6 - Advanced Indicators (Estocastico, Williams, ATR)
+### [SYNC-007] M2-016.4 Phase E.6 - Advanced Indicators (Estocastico, ATR)
 
 **Data/Hora**: 2026-03-15 14:00 UTC
 **Commits**: 1 commit [FEAT] (Pendente)
@@ -252,19 +252,19 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 | Componente | Arquivo | Mudança | Versão |
 | ------------ | --------- | --------- | -------- |
-| Feature Enricher | scripts/model2/feature_enricher.py | +3 métodos (Stoch, Williams, ATR norm) | E.6 |
+| Feature Enricher | scripts/model2/feature_enricher.py | Ver commits/PR |
 | Feature Count | (20 → 22 → 26 features) | +4 novas features | E.6 |
-| Testes | tests/test_model2_phase_e6_indicators.py | Novo (9 testes, 100% PASS) | E.6 |
-| Treinamento MLP | scripts/model2/train_ppo_lstm.py --policy mlp | Em progresso (300k timesteps) | E.6 |
-| Treinamento LSTM | scripts/model2/train_ppo_lstm.py --policy lstm | Em progresso (300k timesteps) | E.6 |
-| Comparação | scripts/model2/phase_e6_sharpe_comparison.py | Novo (comparação 22 vs 26) | E.6 |
+| Testes | tests/test_model2_phase_e6_indicators.py | Ver commits/PR |
+| Treinamento MLP | train_ppo_lstm.py --policy mlp | Ver commits/PR |
+| Treinamento LSTM | train_ppo_lstm.py --policy lstm | Ver commits/PR |
+| Comparação | scripts/model2/phase_e6_sharpe_comparison.py | Ver commits/PR |
 | Backlog | docs/BACKLOG.md | +BLID-064 (M2-016.3 Fase E.6) | E.6 |
 
 #### Novos Indicadores Adicionados
 
 | Indicador | Features | Range | Beneficio |
 | ----------- | ---------- | ------- | ----------- |
-| Estocastico K | stoch_k | [0, 100] | Detecta reversoes (>80 overbot, <20 oversold) |
+| Estocastico K | stoch_k | Ver commits/PR |
 | Estocastico D | stoch_d | [0, 100] | Confirmacao K lines, reduz falsos |
 | Williams %R | williams_r | [-100, 0] | Correlacao com K, validacao extra |
 | ATR Normalizado | atr_normalized | [0, ∞) | Volatilidade %, pos-risk sizing |
@@ -286,7 +286,10 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 #### Integridade do Código (#3)
 
 ```txt
-✓ Feature Enricher extensões: calculate_stochastic(), calculate_williams_r(), calculate_atr_normalized()
+✓ Feature Enricher extensões:
+   - calculate_stochastic()
+   - calculate_williams_r()
+   - calculate_atr_normalized()
 ✓ Metodos integrados em enrich_features() com saída em dict['volatility']
 ✓ Multi-timeframe ATR normalizado adicionado em multi_timeframe_context
 ✓ 9/9 testes unitários PASS
@@ -317,8 +320,8 @@ Estocastico K+D vs só D?")
 | Componente | Arquivo | Mudança | Versão |
 | ------------ | --------- | --------- | -------- |
 | LSTM Policy | agent/lstm_policy.py | Novo (Feature Extractor) | E.2 |
-| Config de Envs | agent/lstm_environment.py | Wrapper compativel c/ Gym | E.3 |
-| PPO Custom Pipeline | scripts/model2/train_ppo_lstm.py | Suporte duplo (LSTM/MLP) | E.3 |
+| Config de Envs | agent/lstm_environment.py | Ver commits/PR | - |
+| PPO Custom Pipeline | scripts/model2/train_ppo_lstm.py | Ver commits/PR | - |
 
 #### Documentação Sincronizada (10/10)
 
@@ -352,7 +355,7 @@ utilizando `train_ppo_lstm.py`.
 | Daemon | scripts/model2/daemon_funding_rates.py | Novo (coleta FR) | D.2 |
 | API Client | scripts/model2/api_client_funding.py | Novo (REST API) | D.2 |
 | Feature Enrichment | agent/environment.py | Função de coleta FR/OI | D.3 |
-| Correlação | scripts/model2/phase_d4_correlation_analysis.py | Novo (100 episódios) | D.4 |
+| Correlação | phase_d4_correlation_analysis.py | Ver commits/PR | - |
 | LSTM Wrapper | agent/lstm_environment.py | Novo (rolling buffer) | E.1 |
 
 #### Documentação Sincronizada (8/8)
