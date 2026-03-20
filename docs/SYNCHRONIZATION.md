@@ -12,16 +12,43 @@ toda vez que mudanças significativas são feitas no código:
 
 | Trigger | Dependências Afetadas | Owner | SLA |
 | --------- | ---------------------- | ------- | ----- |
-| Nova Fase (A-E) | BACKLOG.md, ROADMAP.md, FEATURES.md | Agent | 24h |
-| Mudança Arquitetura | ARQUITETURA_ALVO.md, C4_MODEL.md, ADRS.md | Agent | 24h |
-| Nova Regra de Negócio | REGRAS_DE_NEGOCIO.md, RUNBOOK_OPERACIONAL.md | Agent | 12h |
-| Schema DB alterado | MODELAGEM_DE_DADOS.md, SYNCHRONIZATION.md | Agent | 6h |
-| Novo pipeline executável | RUNBOOK_M2_OPERACAO.md, USER_MANUAL.md | Agent | 12h |
-| RL/Feature change | RL_SIGNAL_GENERATION.md, ADRS.md, DIAGRAMAS.md | Agent | 24h |
+| Nova Fase (A-E) | BACKLOG, ROADMAP, FEATURES | Agent | 24h |
+| Mudança Arquitetura | ARQUITETURA_ALVO, C4_MODEL, ADRS | Agent | 24h |
+| Nova Regra de Negócio | REGRAS_DE_NEGOCIO, RUNBOOK_OPERACIONAL | Agent | 12h |
+| Schema DB alterado | MODELAGEM_DE_DADOS, SYNCHRONIZATION | Agent | 6h |
+| Novo pipeline executável | RUNBOOK_M2_OPERACAO, USER_MANUAL | Agent | 12h |
+| RL/Feature change | RL_SIGNAL_GENERATION, ADRS, DIAGRAMAS | Agent | 24h |
 
 ---
 
 ## Histórico de Sincronizações
+
+### [SYNC-013] M2-019 - Correção sizing / notional + proteção de execução
+
+**Data/Hora**: 2026-03-20 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas no Codigo
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Execução Live | core/model2/live_service.py | Validação notional min; captura exceções |
+| Exchange Adapter | core/model2/live_exchange.py | Extrai min_notional; ajusta cálculo qty |
+| Ciclo M2 | scripts/model2/live_cycle.py | Garante JSON resumo em falhas |
+| Testes | tests/test_live_exchange.py | Unit tests for calculate_entry_quantity |
+
+#### Observações
+
+- Branch: `fix/calc-entry-notional` (PR criado)
+- Commit: `[FIX] Ajusta calculo de tamanho/notional e adiciona testes unitarios`
+- Resultado: testes unitários relevantes passam localmente.
+- Ciclo em `shadow` gera `logs/m2_tmp.json` corretamente.
+
+#### Proximos Passos
+
+1. Revisar PR e aplicar em `main` após aprovação.
+2. Opcional: adicionar integração com mocks de filtros reais do exchange para testes mais completos.
+3. Documentar impacto operacional em `RUNBOOK_M2_OPERACAO.md` se aceitarmos fix para `live`.
 
 ### Proximas Tarefas M2-019 Desbloqueadas (#2)
 
