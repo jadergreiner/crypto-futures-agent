@@ -1,451 +1,440 @@
-# PRD — crypto-futures-agent
+# PRD - crypto-futures-agent
 
-**Versão:** 1.0.0
-**Data:** 2026-03-20
-**Autor:** Arquiteto de Soluções Sênior / Product Owner
-**Status:** APROVADO PARA REVISÃO
+**Produto:** Agente especialista em posicoes short de futuros de
+criptomoedas na Binance  
+**Versao do Documento:** 1.0  
+**Versao do Produto:** 0.1.0  
+**Data:** 2026-03-21  
+**Autor:** Arquiteto de Solucoes Senior  
+**Status:** FONTE DA VERDADE
+
+> Este documento substitui `docs/prd_short.md` e
+> `docs/PRD_SHORT_AGENT.html` e passa a ser a unica referencia de produto
+> do projeto.
 
 ---
 
-## Sumário
+## Sumario
 
-- [1. Visão Geral](#1-visão-geral)
-- [2. Análise de Viabilidade Técnica e Riscos](#2-análise-de-viabilidade-técnica-e-riscos)
+- [1. Visao do Produto](#1-visao-do-produto)
+- [2. Problema que Resolve](#2-problema-que-resolve)
 - [3. Objetivos e KPIs](#3-objetivos-e-kpis)
-- [4. Personas e User Stories](#4-personas-e-user-stories)
-- [5. Requisitos Funcionais](#5-requisitos-funcionais)
-- [6. Requisitos Não-Funcionais](#6-requisitos-não-funcionais)
-- [7. Stack Tecnológica](#7-stack-tecnológica)
-- [8. Plano de Release — Fases e MVP](#8-plano-de-release--fases-e-mvp)
-- [9. Glossário](#9-glossário)
+- [4. Publico-Alvo e Casos de Uso](#4-publico-alvo-e-casos-de-uso)
+- [5. Escopo e Arquitetura Atual](#5-escopo-e-arquitetura-atual)
+- [6. Requisitos Funcionais](#6-requisitos-funcionais)
+- [7. Requisitos Nao Funcionais](#7-requisitos-nao-funcionais)
+- [8. Arquitetura Tecnica e Stack](#8-arquitetura-tecnica-e-stack)
+- [9. Riscos e Mitigacoes](#9-riscos-e-mitigacoes)
+- [10. Release Atual, Backlog Prioritario e Go No-Go](#10-release-atual-backlog-prioritario-e-go-no-go)
+- [11. Glossario](#11-glossario)
 
 ---
 
-## 1. Visão Geral
+## 1. Visao do Produto
 
-### 1.1 Problema
+O **crypto-futures-agent** e um agente autonomo especializado em
+**posicoes short** para contratos perpetuos de criptomoedas na Binance
+Futures. O produto identifica, avalia, admite e executa oportunidades de
+venda em ativos de alta liquidez, combinando:
 
-Operadores de criptomoedas no mercado de futuros enfrentam três desafios
-centrais:
+- pipeline operacional M2 com rastreabilidade ponta a ponta;
+- contexto de mercado enriquecido com funding, basis e dados multi-timeframe;
+- controles de risco fail-closed;
+- camadas de ML e RL usadas para ranking, calibracao e promocao gradual.
 
-1. **Volume e velocidade:** O mercado opera 24/7 com dezenas de pares
-   simultâneos — impossível para análise manual em escala.
-2. **Disciplina emocional:** Decisões humanas sofrem viés cognitivo (FOMO,
-   over-trading, hesitação em stop loss), degradando o resultado esperado.
-3. **Fragmentação de ferramentas:** Análise técnica, gestão de risco,
-   execução de ordens e monitoramento ficam em sistemas separados, criando
-   latência e inconsistências operacionais.
+### 1.1 Escopo operacional atual
 
-### 1.2 Solução
+| Dimensao | Posicao atual do projeto |
+| --- | --- |
+| Mercado | Binance USD-M Futures |
+| Direcao operacional | Short-only em `live` |
+| Modos suportados | `backtest`, `shadow`, `live` |
+| Banco principal | `db/modelo2.db` |
+| Agente dedicado | ciclo short com runtime proprio e artefatos operacionais |
+| Usuario alvo | operacao single-user, conta propria |
+| Promocao de mudancas | `shadow` antes de qualquer promocao para `live` |
 
-O **crypto-futures-agent** é um agente autônomo de negociação de futuros de
-criptomoedas na Binance, combinando duas camadas de decisão:
+### 1.2 Diferenciais do produto
 
-- **Camada Determinística (Modelo 2.0):** Pipeline de 5 etapas baseado em
-  Smart Money Concepts (SMC) — detecção de padrões, rastreamento de tese,
-  conversão em sinal, admissão de ordem e execução nativa.
-- **Camada de Aprendizado por Reforço (PPO/LSTM):** Modelo PPO que gradua
-  sinais determinísticos com confiança aprendida, melhorando sizing e
-  filtragem de entradas ao longo do tempo.
-
-### 1.3 Proposta de Valor
-
-| Dimensão | Benefício Entregue |
-| --------- | ------------------ |
-| Velocidade | Scan de 40+ pares simultâneos em cada candle novo |
-| Disciplina | Regras de negócio invioláveis codificadas no sistema |
-| Rastreabilidade | Audit trail completo de cada decisão (DB canônico) |
-| Segurança | Circuit breaker automático, stop loss obrigatório |
-| Evolução | Modelo RL que aprende com o histórico de sinais |
+| Diferencial | Beneficio entregue |
+| --- | --- |
+| Especializacao em short | captura movimentos de queda com regras especificas de futures |
+| Gate de funding e basis | evita shorts caros ou estruturalmente desfavoraveis |
+| Pipeline auditavel | cada oportunidade, sinal, execucao e bloqueio deixa trilha persistida |
+| Risco no caminho critico | stop, limites, circuit breaker e preflight nao sao opcionais |
+| Evolucao assistida por modelos | ML e RL entram por validacao gradual, sem romper o baseline operacional |
 
 ---
 
-## 2. Análise de Viabilidade Técnica e Riscos
+## 2. Problema que Resolve
 
-### 2.1 Pontos Fortes Identificados
-
-- **Pipeline bem definido:** A separação em 5 camadas com
-  responsabilidades claras facilita manutenção e evolução independente de
-  cada etapa.
-- **Estado auditável:** O uso de máquinas de estado explícitas
-  (`IDENTIFICADA → MONITORANDO → VALIDADA → EXPIRADA/INVALIDADA`) garante
-  idempotência e rastreabilidade completa.
-- **Controles de risco invioláveis:** `risk_gate.py` e `circuit_breaker.py`
-  estão no caminho crítico de toda execução live; remoção deliberada
-  exigiria modificação estrutural, reduzindo risco de bypass acidental.
-- **Cobertura de testes adequada:** 112 arquivos de teste cobrindo unidade,
-  integração e pipeline completo.
-
-### 2.2 Riscos e Falhas Lógicas Identificadas
-
-> ⚠️ **Seção crítica** — pontos onde a arquitetura atual tem lacunas que
-> devem ser endereçadas antes da operação live em escala.
-
-| # | Risco | Severidade | Observação |
-| --- | ----- | ---------- | ---------- |
-| R-01 | **SQLite em produção** — escritas concorrentes de múltiplos processos (scanner, executor, reconciliador) em `modelo2.db` podem gerar `database is locked` sob carga | Alta | SQLite é single-writer; processos assíncronos precisam de WAL mode habilitado e retry com back-off |
-| R-02 | **RL em mercados financeiros não-estacionários** — modelos PPO treinados em janelas históricas tendem a overfitting; o mercado muda de regime (bull/bear/sideways) quebrando políticas otimizadas | Alta | Necessário mecanismo de detecção de drift e retreino automático com validação walk-forward |
-| R-03 | **Setup Windows-only** — scripts `setup.bat` e `iniciar.bat` limitam o ambiente de produção a Windows, inviabilizando deploy em servidores Linux/cloud | Média | Criar equivalentes `Makefile` ou `setup.sh`; dockerizar para eliminar dependência de SO |
-| R-04 | **Ausência de streaming de dados em tempo real** — o sistema consome candles OHLCV fechados (batch), introduzindo latência de até um candle inteiro antes de reagir a um sinal | Média | Para scalping/operações de curto prazo isso é inaceitável; para swing trade (H4/D1) é aceitável |
-| R-05 | **Credenciais em `.env` local** — chaves Binance armazenadas em arquivo plano sem rotação ou secret manager; risco de exfiltração caso o repositório seja exposto | Alta | Integrar com vault (ex.: HashiCorp Vault, AWS Secrets Manager) ou variáveis de ambiente CI/CD |
-| R-06 | **Sem mecanismo de rollback de ordens** — se a proteção (STOP/TP) falhar no envio após a entrada MARKET ser executada, a posição fica desprotegida | Alta | Implementar idempotência com retry e verificação de estado pós-envio de proteção |
-| R-07 | **Modelo RL único para 40+ símbolos** — política global tende a generalizar mal para ativos com beta e liquidez muito distintos (DOGE vs BTC) | Média | Iniciativa M2-019 (RL por símbolo) já está no backlog; deve ser priorizada |
-| R-08 | **Ausência de testes de carga e stress** — comportamento do pipeline sob alta volatilidade (ex.: liquidação em cascata, falha da API Binance) não está coberto | Média | Adicionar chaos tests e mock de falhas da API |
-
-### 2.3 Viabilidade Geral
-
-O projeto é tecnicamente viável para **operação paper trading e swing trade
-live em escala de 1 usuário**. Para escala multi-usuário ou HFT, as
-mitigações dos riscos R-01, R-04 e R-07 são bloqueantes.
+| Dor do operador | Solucao do produto |
+| --- | --- |
+| Ficar exposto apenas a altas e perder movimentos fortes de queda | o agente opera vendido de forma sistematica, com foco em setups short |
+| Ser liquidado ou sofrer perdas desproporcionais em futures | o pipeline aplica limites de exposicao, stop obrigatorio, hard caps e circuit breaker |
+| Entrar vendido em contexto caro ou desfavoravel | funding e basis sao avaliados antes da execucao |
+| Ter bom backtest e mau desempenho ao vivo | a promocao exige validacao em `shadow`, healthcheck e gate de risco de modelo |
+| Nao conseguir explicar por que uma operacao entrou ou foi bloqueada | toda decisao gera motivo, status e timestamps em banco e artefatos operacionais |
 
 ---
 
 ## 3. Objetivos e KPIs
 
-### 3.1 Objetivos Estratégicos
+### 3.1 Objetivos estrategicos
 
-| OBJ | Descrição |
-| ---- | --------- |
-| OBJ-01 | Executar operações rentáveis de forma autônoma no mercado de futuros da Binance |
-| OBJ-02 | Manter drawdown máximo controlado com circuit breaker automático |
-| OBJ-03 | Evoluir continuamente a política de decisão via aprendizado por reforço |
-| OBJ-04 | Fornecer rastreabilidade completa de cada decisão para auditoria |
+| ID | Objetivo |
+| --- | --- |
+| OBJ-01 | Operar quedas do mercado de criptofuturos com preservacao de capital como restricao primaria |
+| OBJ-02 | Manter uma esteira short-only segura, auditavel e repetivel em `shadow` e `live` |
+| OBJ-03 | Incorporar ML/RL como camada de inteligencia validada, e nao como atalho operacional |
+| OBJ-04 | Reduzir falsos positivos e custos de short com gates especificos de futures |
+| OBJ-05 | Centralizar o contrato do produto em um unico PRD |
 
-### 3.2 KPIs por Camada
+### 3.2 KPIs de trading e risco
 
-#### Performance de Trading
+| KPI | Meta atual |
+| --- | --- |
+| Win rate | >= 45% |
+| Profit factor | >= 1.3 |
+| Sharpe ratio | >= 0.8 |
+| Max drawdown | <= 10% em janelas de 30 dias |
+| Posicoes live protegidas | 100% |
+| Posicoes preenchidas sem protecao | 0 |
+| Tempo medio entre stop-loss | > 5 h |
 
-| KPI | Meta MVP | Meta v1.0 | Método de Medição |
-| --- | -------- | --------- | ----------------- |
-| Win Rate (taxa de acerto) | ≥ 45% | ≥ 55% | `signal_executions` resolvidas como lucro / total |
-| Profit Factor | ≥ 1.3 | ≥ 1.8 | Soma de ganhos / soma de perdas |
-| Sharpe Ratio anualizado | ≥ 0.8 | ≥ 1.5 | `backtest_metrics.py` |
-| Max Drawdown | ≤ −15% | ≤ −10% | `circuit_breaker.py` threshold |
-| Latência entrada (MARKET) | ≤ 500 ms | ≤ 200 ms | Timestamp order_sent − signal_created |
+### 3.3 KPIs operacionais e de modelo
 
-#### Pipeline de Sinais
-
-| KPI | Meta MVP | Meta v1.0 | Método de Medição |
-| --- | -------- | --------- | ----------------- |
-| Oportunidades identificadas / dia | ≥ 5 | ≥ 20 | `opportunities` table count |
-| Taxa de validação de teses | ≥ 30% | ≥ 40% | VALIDADA / (VALIDADA + INVALIDADA) |
-| Taxa de conversão sinal → ordem | ≥ 80% | ≥ 90% | CONSUMED / (CONSUMED + CANCELLED) |
-| Integridade do audit trail | 100% | 100% | Ausência de `opportunity_events` faltantes |
-
-#### Aprendizado por Reforço
-
-| KPI | Meta | Método de Medição |
-| --- | ---- | ----------------- |
-| Convergência do treinamento PPO | ≤ 500k steps | `convergence_monitor.py` |
-| Melhora de Win Rate com RL vs sem RL | ≥ +5 pp | A/B em paper trading |
-| Detecção de drift de regime | ≤ 48h | Alerta automático no log |
+| KPI | Meta atual |
+| --- | --- |
+| Preflight antes de live | 100% |
+| Integridade do audit trail | 100% |
+| Concordancia shadow vs promocao | >= 60% |
+| Taxa de modelos rejeitados por overfitting | < 10% |
+| Latencia de ordem em live | <= 300 ms |
+| Alertas criticos | < 60 s |
 
 ---
 
-## 4. Personas e User Stories
+## 4. Publico-Alvo e Casos de Uso
 
-### 4.1 Personas
+### 4.1 Publico-alvo
 
-#### P-01: Trader Quantitativo Independente
+- **Trader individual:** operador com conta Futures na Binance que quer
+  automatizar shorts com disciplina.
+- **Perfil tecnico:** programador Python com conhecimento de mercado de criptomoedas.
+- **Perfil de pesquisa:** usuario que quer testar features, modelos e
+  politica RL sobre pipeline real e auditavel.
 
-- **Perfil:** Desenvolvedor/trader com conhecimento de Python e mercado
-  financeiro; opera com capital próprio de R$10k–R$200k.
-- **Objetivo:** Automatizar estratégias SMC já validadas manualmente,
-  aumentando escala sem aumentar tempo dedicado.
-- **Frustração:** Ferramentas de automação existentes são genéricas demais
-  (sem SMC), caras (assinatura SaaS) ou inseguras.
+### 4.2 User stories
 
-#### P-02: Analista Técnico em Transição para Automação
-
-- **Perfil:** Experiência em análise técnica (Smart Money, ICT), iniciante
-  em programação; quer reduzir viés emocional.
-- **Objetivo:** Codificar suas regras de entrada/saída e deixar o sistema
-  operar 24/7 com discipline enforcement.
-- **Frustração:** Não executa suas próprias ideias por medo de perder o
-  controle ou por dificuldade técnica.
-
-#### P-03: Pesquisador de Sistemas de Trading Algorítmico
-
-- **Perfil:** Mestrando/doutorando ou profissional de quant finance
-  explorando RL aplicado a mercados de alta volatilidade.
-- **Objetivo:** Usar o projeto como plataforma de pesquisa para testar
-  hipóteses de policy gradient em dados de cripto.
-- **Frustração:** Faltam ambientes de backtesting com dados reais de
-  futuros e integração nativa com exchanges.
-
-### 4.2 User Stories
-
-| ID | Persona | Eu quero... | Para... | Critério de Aceite |
-| -- | ------- | ----------- | ------- | ------------------ |
-| US-01 | P-01 | Configurar os símbolos e timeframes que o scanner deve monitorar | Focar em pares de alta liquidez | Editar `config/symbols.py` e reiniciar; scanner opera apenas nos símbolos configurados |
-| US-02 | P-01 | Ver em tempo real quais oportunidades estão sendo rastreadas | Auditar a lógica sem intervenção manual | `python status_realtime.py` exibe estado atual de todas as `opportunities` abertas |
-| US-03 | P-02 | Definir stop loss e take profit como percentual do preço de entrada | Garantir relação risco/retorno mínima | `risk_params.py` aceita `stop_pct` e `tp_pct`; sistema rejeita ordens fora da faixa configurada |
-| US-04 | P-02 | Receber notificação quando uma ordem for executada | Acompanhar operações sem monitorar tela | Telegram alert disparado em `signal_execution` com status PROTECTED |
-| US-05 | P-01 | Rodar backtest de uma estratégia antes de ativá-la em live | Validar parâmetros sem risco real | `python main.py --mode paper` executa com dados históricos e retorna métricas de Sharpe e max drawdown |
-| US-06 | P-03 | Treinar um modelo PPO isolado por símbolo | Comparar performance por ativo | `python scripts/model2/train_entry_agents.py --symbol BTCUSDT` treina e salva checkpoint |
-| US-07 | P-01 | Pausar o agente imediatamente em caso de perda acima de X% no dia | Evitar blow-up de capital | Circuit breaker ativa `HALT` automaticamente; `python status.py` confirma estado HALTED |
-| US-08 | P-03 | Exportar histórico completo de sinais e execuções para análise | Pesquisar features e patterns | `SELECT * FROM signal_executions` em `modelo2.db` com todos os campos documentados |
+| ID | Usuario | Eu quero... | Para... |
+| --- | --- | --- | --- |
+| US-01 | Trader | configurar simbolos e timeframes autorizados | restringir o agente ao universo operacional desejado |
+| US-02 | Trader | executar o ciclo dedicado do agente short em `shadow` ou `live` | rodar a operacao de forma repetivel |
+| US-03 | Trader | bloquear shorts com funding ou basis desfavoravel | evitar entradas caras ou com estrutura ruim |
+| US-04 | Trader | garantir protecao obrigatoria apos entrada | nao deixar posicoes descobertas |
+| US-05 | Trader | receber trilha de auditoria para cada decisao | entender por que entrou, bloqueou ou saiu |
+| US-06 | Pesquisador | comparar baseline operacional com ML/RL em `shadow` | validar ganho real antes da promocao |
+| US-07 | Pesquisador | treinar modelos por simbolo e reprocessar episodios | capturar comportamento especifico de cada ativo |
 
 ---
 
-## 5. Requisitos Funcionais
+## 5. Escopo e Arquitetura Atual
 
-> Formato: RF-[Módulo]-[Número] | Prioridade: P0 (bloqueante MVP), P1
-> (essencial v1.0), P2 (melhoria futura)
+### 5.1 Mercados, simbolos e timeframes
 
-### 5.1 Scanner de Oportunidades (Camada 1)
+- Mercado alvo: contratos perpetuos USD-M da Binance.
+- Universo base: configurado centralmente em `config/symbols.py`.
+- Universo live: allow-list via `M2_LIVE_SYMBOLS`.
+- Timeframes operacionais: `D1`, `H4` e `H1`.
+- Timeframe auxiliar de contexto: `M5` para sincronizacao
+  tatico-operacional do ciclo short.
 
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-SC-001 | O sistema deve detectar padrões SMC (Order Blocks, Fair Value Gaps, falha de venda/compra) em dados OHLCV de múltiplos timeframes (D1, H4, H1) | P0 |
-| RF-SC-002 | Cada oportunidade detectada deve ser persistida em `opportunities` com status inicial `IDENTIFICADA` e timestamp de criação | P0 |
-| RF-SC-003 | O scanner deve operar sobre todos os símbolos configurados em `config/symbols.py` a cada ciclo de candle novo | P0 |
-| RF-SC-004 | O sistema deve registrar zona de entrada, alvo (TP) e nível de invalidação (SL) no momento da identificação | P0 |
-| RF-SC-005 | Oportunidades duplicadas para o mesmo símbolo/timeframe devem ser idempotentes (sem inserção duplicada) | P1 |
+### 5.2 Modos de operacao
 
-### 5.2 Rastreador e Validador de Tese (Camada 2)
+| Modo | Papel |
+| --- | --- |
+| `backtest` | validar a estrategia fora do ambiente operacional |
+| `shadow` | executar o pipeline completo sem enviar ordens reais |
+| `live` | executar ordens reais com gates, preflight e protecao obrigatoria |
 
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-VL-001 | O rastreador deve atualizar o estado de oportunidades a cada novo candle para `MONITORANDO`, `VALIDADA`, `INVALIDADA` ou `EXPIRADA` | P0 |
-| RF-VL-002 | Uma tese deve ser marcada `VALIDADA` somente quando todos os critérios de confirmação SMC definidos em `REGRAS_DE_NEGOCIO.md` forem satisfeitos | P0 |
-| RF-VL-003 | Teses com TTL expirado (sem validação dentro do prazo) devem ser marcadas `EXPIRADA` automaticamente | P0 |
-| RF-VL-004 | Toda transição de estado deve gerar um registro em `opportunity_events` com timestamp e motivo | P0 |
-| RF-VL-005 | O sistema não deve reabrir teses `INVALIDADA` ou `EXPIRADA` para o mesmo gatilho | P1 |
+### 5.3 Estrategias e camadas ativas
 
-### 5.3 Ponte de Sinal (Camada 3)
+| Camada | Papel no produto | Status |
+| --- | --- | --- |
+| M2 deterministico | identifica, valida e materializa sinais tecnicos | Ativa |
+| Short rules-based | baseline de execucao live | Ativa |
+| LSTM + XGBoost | ranking e previsao de queda/volatilidade | Piloto |
+| PPO/A2C | calibracao, confianca e priorizacao | Piloto |
+| Modelos por simbolo | especializacao por ativo | Backlog prioritario |
+| DRL comportamental / regime-aware | extensao de pesquisa | Futuro |
 
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-SB-001 | Teses `VALIDADA` devem ser convertidas em registros padronizados em `technical_signals` com status `CREATED` | P0 |
-| RF-SB-002 | O sinal deve conter direção (LONG/SHORT), preço de entrada, SL, TP, símbolo, timeframe e referência à oportunidade de origem | P0 |
-| RF-SB-003 | A conversão deve ser idempotente: uma tese não deve gerar mais de um sinal ativo simultaneamente | P0 |
+### 5.4 Fora de escopo na release atual
 
-### 5.4 Camada de Ordem (Camada 4)
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-OL-001 | O sistema deve consumir sinais `CREATED` e verificar limite diário de entradas (`M2_MAX_DAILY_ENTRIES`) antes de aprovar | P0 |
-| RF-OL-002 | Sinais que excedam o limite diário devem ser marcados `CANCELLED` com motivo registrado | P0 |
-| RF-OL-003 | O sistema deve verificar razão risco/retorno mínima (configurável) antes de aprovar a entrada | P0 |
-| RF-OL-004 | Sinais aprovados devem transitar para `CONSUMED` e ser entregues à Camada 5 | P0 |
-
-### 5.5 Execução Live (Camada 5)
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-EX-001 | O sistema deve enviar ordem MARKET na entrada; imediatamente após o fill, armar STOP_MARKET e TAKE_PROFIT_MARKET | P0 |
-| RF-EX-002 | Se o envio de ordens de proteção falhar, o sistema deve tentar novamente (retry com back-off exponencial, mínimo 3 tentativas) | P0 |
-| RF-EX-003 | O reconciliador deve verificar continuamente o estado das ordens abertas na Binance e sincronizar com `signal_executions` | P0 |
-| RF-EX-004 | O sistema deve detectar saídas externas (liquidação manual, liquidação forçada) e atualizar o estado para `EXITED` | P0 |
-| RF-EX-005 | Toda execução deve ser precedida de validação pelo `risk_gate.py`; ordens reprovadas devem ser registradas com motivo | P0 |
-
-### 5.6 Gestão de Risco
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-RK-001 | O circuit breaker deve monitorar drawdown diário e ativar `HALT` automático quando o limite configurado for atingido | P0 |
-| RF-RK-002 | Stop loss deve ser obrigatório em toda ordem; ordens sem SL devem ser rejeitadas antes do envio | P0 |
-| RF-RK-003 | O sizing de posição deve ser calculado em função do capital disponível, stop percentual e alavancagem configurada | P0 |
-| RF-RK-004 | O sistema deve impedir alavancagem acima do limite configurado em `risk_params.py` | P0 |
-
-### 5.7 Aprendizado por Reforço (RL)
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-RL-001 | O agente PPO deve receber vetores de features de sinais técnicos e retornar um escore de confiança (0–1) | P1 |
-| RF-RL-002 | O ambiente de treino deve suportar sequências LSTM de comprimento configurável (padrão seq_len=10, n_features=20) | P1 |
-| RF-RL-003 | O sistema deve suportar retreino com parâmetros otimizados via Optuna sem interromper o pipeline de produção | P1 |
-| RF-RL-004 | O modelo RL deve poder operar em modo degradado (fallback determinístico) caso o checkpoint não esteja disponível | P0 |
-| RF-RL-005 | Deve haver suporte a modelos RL individuais por símbolo para capturar idiossincrasias de cada ativo | P2 |
-
-### 5.8 Backtest e Validação
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-BT-001 | O backtester deve suportar walk-forward validation com janelas de treino e teste configuráveis | P1 |
-| RF-BT-002 | As métricas de saída devem incluir: Sharpe Ratio, Sortino Ratio, max drawdown, win rate, profit factor e número de trades | P1 |
-| RF-BT-003 | O backtester deve ser idêntico ao pipeline live para garantir ausência de look-ahead bias | P1 |
-
-### 5.9 Observabilidade e Auditoria
-
-| ID | Descrição | Prioridade |
-| -- | --------- | ---------- |
-| RF-OB-001 | O sistema deve gerar snapshots periódicos do estado do pipeline em `observability.py` | P1 |
-| RF-OB-002 | Notificações Telegram devem ser enviadas nos eventos: entrada executada, proteção armada, saída detectada, circuit breaker ativado | P1 |
-| RF-OB-003 | Logs estruturados devem ser gerados para todos os eventos críticos com nível, timestamp, símbolo e contexto | P0 |
+- Operacao spot.
+- Estrategia long em `live`.
+- Multiusuario e multi-tenant.
+- Exchange adicional alem da Binance Futures.
+- Escalada agressiva de alavancagem.
 
 ---
 
-## 6. Requisitos Não-Funcionais
+## 6. Requisitos Funcionais
 
-### 6.1 Desempenho
+> Prioridades: `P0` = bloqueante para a release atual, `P1` = essencial
+> na proxima release operacional, `P2` = evolucao futura.
 
-| ID | Requisito | Métrica | Prioridade |
-| -- | --------- | ------- | ---------- |
-| RNF-DE-001 | Latência fim-a-fim sinal → ordem MARKET enviada | ≤ 500 ms (paper), ≤ 200 ms (live) | P0 |
-| RNF-DE-002 | Throughput do scanner sobre 40 símbolos por candle | ≤ 5 s por ciclo completo | P0 |
-| RNF-DE-003 | Tempo de retreino PPO completo (500k steps) | ≤ 2 h em hardware local (GPU opcional) | P1 |
-| RNF-DE-004 | Tempo de inicialização do pipeline completo | ≤ 30 s | P1 |
+### 6.1 Orquestracao do ciclo short
 
-### 6.2 Segurança
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-ORQ-001 | O agente short deve orquestrar sincronizacao de mercado, pipeline diario, execucao, persistencia de episodios e healthcheck em um ciclo unico | P0 |
+| RF-ORQ-002 | O ciclo deve suportar execucao em `shadow` e `live` com saida operacional resumida e artefato persistido | P0 |
+| RF-ORQ-003 | O ciclo deve operar apenas sobre simbolos autorizados para o contexto atual | P0 |
+| RF-ORQ-004 | O runtime deve registrar status `ok`, `partial` ou `error` por ciclo executado | P1 |
 
-| ID | Requisito | Métrica | Prioridade |
-| -- | --------- | ------- | ---------- |
-| RNF-SE-001 | Credenciais Binance nunca devem ser hardcoded ou commitadas no repositório | 0 ocorrências em `git log` | P0 |
-| RNF-SE-002 | Chaves de API devem ser lidas exclusivamente via variáveis de ambiente ou secret manager | Validado por `go_live_preflight.py` | P0 |
-| RNF-SE-003 | Comunicação com a API Binance deve usar TLS 1.2+ | Verificado pelo SDK oficial | P0 |
-| RNF-SE-004 | O banco `modelo2.db` deve ter permissões restritas ao processo do agente (chmod 600 em Linux) | Verificado no deploy | P1 |
-| RNF-SE-005 | Toda ordem live deve ser precedida de checklist automatizado (`go_live_preflight.py`) sem erros | 0 erros no preflight | P0 |
+### 6.2 Contexto de mercado e enriquecimento
 
-### 6.3 Disponibilidade
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-CTX-001 | O sistema deve sincronizar OHLCV multi-timeframe para o universo operacional | P0 |
+| RF-CTX-002 | O sistema deve enriquecer contexto com funding rate, basis e demais features operacionais disponiveis | P0 |
+| RF-CTX-003 | O sistema deve bloquear execucao quando o contexto critico estiver ausente, stale ou inconsistente | P0 |
+| RF-CTX-004 | O conjunto de features deve aceitar extensao para open interest, sentimento e variaveis exogenas | P1 |
 
-| ID | Requisito | Métrica | Prioridade |
-| -- | --------- | ------- | ---------- |
-| RNF-DI-001 | O pipeline deve se recuperar automaticamente de falhas transientes da API Binance (rate limit, timeout) com retry e back-off exponencial | ≥ 3 retentativas antes de abort | P0 |
-| RNF-DI-002 | Em caso de restart do processo, o sistema deve retomar o estado persistido sem criar ordens duplicadas (idempotência de re-entrada) | Validado por teste de integração | P0 |
-| RNF-DI-003 | O circuit breaker deve permanecer ativo mesmo após restart do processo | Estado persistido em DB | P0 |
+### 6.3 Pipeline M2 de oportunidade e sinal
 
-### 6.4 Escalabilidade
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-M2-001 | O scanner deve detectar oportunidades short em OHLCV multi-timeframe e persistir em `opportunities` | P0 |
+| RF-M2-002 | O rastreador deve mover a tese por estados auditaveis ate `VALIDADA`, `INVALIDADA` ou `EXPIRADA` | P0 |
+| RF-M2-003 | Toda transicao deve gerar evento com motivo e timestamp em `opportunity_events` | P0 |
+| RF-M2-004 | Teses validadas devem gerar `technical_signals` padronizados e idempotentes | P0 |
+| RF-M2-005 | Sinais devem carregar lado, preco de entrada, stop, alvo, simbolo, timeframe e referencia da tese | P0 |
 
-| ID | Requisito | Métrica | Prioridade |
-| -- | --------- | ------- | ---------- |
-| RNF-ES-001 | Adicionar novo símbolo ao pipeline deve exigir apenas inserção em `config/symbols.py` sem alteração de código | Validado por convenção arquitetural | P0 |
-| RNF-ES-002 | O banco `modelo2.db` deve suportar 12 meses de histórico de operações sem degradação de consulta | ≤ 100 ms para queries de auditoria com índices | P1 |
-| RNF-ES-003 | A arquitetura deve permitir migração futura para PostgreSQL substituindo apenas a camada de repositório (`repository.py`) | Sem SQL vendor-specific fora de `repository.py` | P2 |
+### 6.4 Camada preditiva
 
-### 6.5 Manutenibilidade
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-PR-001 | O produto deve suportar um modelo hibrido LSTM + XGBoost para prever probabilidade de queda e qualidade do contexto short | P1 |
+| RF-PR-002 | As entradas do modelo devem aceitar OHLCV, indicadores tecnicos, funding, open interest e features enriquecidas | P1 |
+| RF-PR-003 | A camada preditiva deve operar primeiro em `shadow` antes de qualquer promocao operacional | P0 |
+| RF-PR-004 | O produto deve manter fallback para baseline rules-based quando o modelo nao estiver disponivel ou aprovado | P0 |
 
-| ID | Requisito | Métrica | Prioridade |
-| -- | --------- | ------- | ---------- |
-| RNF-MA-001 | Cobertura de testes ≥ 80% nos módulos críticos (risk, execution, core/model2) | Medido por `pytest --cov` | P1 |
-| RNF-MA-002 | Toda mudança de schema no DB deve ser aplicada via migration versionada (`scripts/model2/migrations/*.sql`) | 0 alterações diretas de schema fora de migrations | P0 |
-| RNF-MA-003 | Código deve passar em linter (`markdownlint`, `mypy --strict`) sem erros nos módulos críticos | CI verde obrigatório antes de merge | P1 |
-| RNF-MA-004 | Documentação de regras de negócio (`REGRAS_DE_NEGOCIO.md`) deve ser atualizada junto com toda mudança de lógica de validação | Revisão humana obrigatória no PR | P0 |
+### 6.5 Camada RL
+
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-RL-001 | O produto deve suportar agente PPO/A2C para ranking, confianca ou acao sugerida sobre sinais short | P1 |
+| RF-RL-002 | O reward deve considerar P&L liquido, custo de funding e permanencia em contexto desfavoravel | P1 |
+| RF-RL-003 | O ambiente de treino deve suportar validacao walk-forward e comparacao contra o baseline operacional | P1 |
+| RF-RL-004 | Deve haver suporte a modelos por simbolo como extensao prioritaria | P2 |
+| RF-RL-005 | O sistema deve operar em modo degradado quando checkpoint ou features RL nao estiverem disponiveis | P0 |
+
+### 6.6 Risco e gates short-only
+
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-RK-001 | O rollout live deve operar em modo short-only por padrao | P0 |
+| RF-RK-002 | Sinais `LONG` devem ser bloqueados quando o modo short-only estiver ativo | P0 |
+| RF-RK-003 | Shorts devem ser bloqueados quando o funding rate exceder o limite configurado | P0 |
+| RF-RK-004 | Shorts devem ser bloqueados quando a basis estiver negativa ou desfavoravel | P0 |
+| RF-RK-005 | Toda entrada deve possuir stop loss obrigatorio | P0 |
+| RF-RK-006 | O sizing deve respeitar saldo disponivel, distancia ate o stop, margem maxima por posicao e risco maximo por trade | P0 |
+| RF-RK-007 | O sistema deve impor limite diario de entradas e cooldown por simbolo | P0 |
+| RF-RK-008 | O circuit breaker deve acionar `HALT` automatico ao atingir o limite de perda configurado | P0 |
+| RF-RK-009 | O sistema deve suportar gate de risco de modelo, incluindo rejeicao por overfitting e kill switch por divergencia em `shadow` | P1 |
+
+### 6.7 Execucao e reconciliacao
+
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-EX-001 | O fluxo `shadow` deve percorrer o pipeline de execucao sem enviar ordem real | P0 |
+| RF-EX-002 | O fluxo `live` deve enviar ordem de entrada e, apos fill, armar protecoes obrigatorias | P0 |
+| RF-EX-003 | Falha no envio das protecoes deve disparar retry com backoff e classificacao de risco bloqueante | P0 |
+| RF-EX-004 | O reconciliador deve sincronizar ordens e posicoes com a Binance continuamente | P0 |
+| RF-EX-005 | Saidas externas ou divergencias devem atualizar `signal_executions` e gerar eventos de auditoria | P0 |
+| RF-EX-006 | Nenhuma execucao live pode ocorrer sem preflight operacional aprovado | P0 |
+
+### 6.8 Observabilidade, auditoria e operacao
+
+| ID | Descricao | Prioridade |
+| --- | --- | --- |
+| RF-OB-001 | O produto deve gerar logs estruturados por operacao com simbolo, timeframe, motivo, status e timestamps | P0 |
+| RF-OB-002 | O banco deve manter trilha completa de oportunidades, sinais, execucoes e eventos | P0 |
+| RF-OB-003 | O produto deve emitir artefatos JSON para preflight, healthcheck e ciclos executados | P1 |
+| RF-OB-004 | O healthcheck deve detectar posicoes sem protecao, entradas stale e mismatch entre exchange e banco | P0 |
+| RF-OB-005 | Eventos criticos devem poder disparar notificacao operacional | P1 |
 
 ---
 
-## 7. Stack Tecnológica
+## 7. Requisitos Nao Funcionais
 
-### 7.1 Decisões Atuais e Justificativas
+### 7.1 Desempenho
 
-| Componente | Tecnologia Atual | Justificativa | Alternativa Considerada |
-| ---------- | ---------------- | ------------- | ----------------------- |
-| **Linguagem** | Python 3.8+ | Ecossistema de ML/quant finance maduro; Stable-Baselines3, PyTorch, Pandas, TA-Lib nativos | Go (performance), Rust (latência) — descartados pela ausência de ecossistema RL comparável |
-| **Exchange API** | Binance SDK Derivatives (USDS Futures) | SDK oficial com suporte a STOP_MARKET e TAKE_PROFIT_MARKET nativos; rate limiting gerenciado | CCXT (mais genérico, menos controle sobre tipos de ordem específicos) |
-| **Banco de Dados** | SQLite3 (dual DB) | Zero-setup, transacional, auditável; adequado para 1 usuário/processo | PostgreSQL (multi-user, WAL robusto) — planejado para v2.0 |
-| **RL Framework** | Stable-Baselines3 + PPO | Implementação PPO estável, bem testada, integração nativa com Gymnasium | RLlib (mais complexo, overhead de cluster), custom PPO (risco de bugs) |
-| **Deep Learning** | PyTorch ≥ 2.0 | Backend do SB3; suporte nativo CUDA para treino acelerado | TensorFlow — descartado por ruptura de API histórica |
-| **Hyperparameter Search** | Optuna | Busca bayesiana eficiente, persistência de trials, suporte a pruning | Ray Tune — funcionalidade equivalente com overhead maior |
-| **Scheduling** | APScheduler + schedule | Simplicidade; adequado para processo único local | Celery (overkill para 1 processo), Airflow (infraestrutura excessiva) |
-| **CI/CD** | GitHub Actions | Integração nativa com repositório; workflows de lint e validação de docs já configurados | Jenkins, GitLab CI — sem vantagem para projeto open/individual |
-| **Deploy** | Script local (Windows) + systemd (Linux planejado) | Fase atual é single-user local; systemd para persistência em servidor | Docker — **recomendado** para eliminar dependência de SO |
+| ID | Requisito | Meta | Prioridade |
+| --- | --- | --- | --- |
+| RNF-DE-001 | Latencia sinal admitido -> ordem enviada em `live` | <= 300 ms | P0 |
+| RNF-DE-002 | Ciclo de analise e decisao por ativo | <= 20 s | P1 |
+| RNF-DE-003 | Throughput do scanner no universo operacional | <= 5 s por ciclo padrao | P0 |
+| RNF-DE-004 | Alertas criticos operacionais | < 60 s | P1 |
 
-### 7.2 Recomendações de Evolução
+### 7.2 Seguranca e compliance
 
+| ID | Requisito | Meta | Prioridade |
+| --- | --- | --- | --- |
+| RNF-SE-001 | Credenciais nunca devem ficar hardcoded nem commitadas | 0 ocorrencias | P0 |
+| RNF-SE-002 | Chaves devem ser lidas via variaveis de ambiente ou secret manager | 100% | P0 |
+| RNF-SE-003 | Toda promocao para `live` deve passar por `go_live_preflight.py` sem erro bloqueante | 100% | P0 |
+| RNF-SE-004 | O produto deve falhar fechado em caso de restricao operacional ou regulatoria aplicavel | Fail-closed | P1 |
+| RNF-SE-005 | Comunicacao com a Binance deve usar canais autenticados e stack suportada | 100% | P0 |
+
+### 7.3 Confiabilidade e resiliencia
+
+| ID | Requisito | Meta | Prioridade |
+| --- | --- | --- | --- |
+| RNF-DI-001 | Falhas transientes de API devem usar retry com backoff | >= 3 tentativas | P0 |
+| RNF-DI-002 | Reinicio do processo nao pode gerar ordens duplicadas | Idempotencia validada | P0 |
+| RNF-DI-003 | Estado de `HALT` deve sobreviver a restart | Persistido | P0 |
+| RNF-DI-004 | O runtime deve produzir healthchecks e artefatos recentes para auditoria operacional | Dentro da janela configurada | P1 |
+
+### 7.4 Manutenibilidade e evolucao
+
+| ID | Requisito | Meta | Prioridade |
+| --- | --- | --- | --- |
+| RNF-MA-001 | Modulos criticos devem possuir cobertura automatizada adequada | >= 80% nos modulos criticos | P1 |
+| RNF-MA-002 | Mudancas de schema devem ocorrer via migrations versionadas | 100% | P0 |
+| RNF-MA-003 | O PRD deve permanecer como documento mestre e unico do produto | 1 fonte de verdade | P0 |
+| RNF-MA-004 | A arquitetura deve permitir migracao futura de SQLite para PostgreSQL | Suportada | P1 |
+
+---
+
+## 8. Arquitetura Tecnica e Stack
+
+### 8.1 Arquitetura atual
+
+```text
++----------------------------------------------------+
+| Orquestracao do Ciclo Short                        |
+| live_cycle_short_agent / live_cycle                |
++----------------------------------------------------+
+| Contexto de Mercado e Features                     |
+| OHLCV + funding + basis + multi-timeframe          |
++----------------------------------------------------+
+| Pipeline M2                                        |
+| opportunities -> validation -> technical_signals   |
++----------------------------------------------------+
+| Camada Preditiva                                   |
+| LSTM + XGBoost (piloto / shadow)                   |
++----------------------------------------------------+
+| Camada RL                                          |
+| PPO/A2C para ranking e confianca                   |
++----------------------------------------------------+
+| Risco e Gates de Admissao                          |
+| short-only, funding, basis, margem, cooldown       |
++----------------------------------------------------+
+| Execucao e Reconciliacao Binance                   |
+| shadow/live, protecao, sync                        |
++----------------------------------------------------+
+| Persistencia e Observabilidade                     |
+| modelo2.db, eventos, healthcheck, artefatos JSON   |
++----------------------------------------------------+
 ```
-Fase atual (MVP)          →  Fase v1.0              →  Fase v2.0
-─────────────────────────────────────────────────────────────────
-SQLite (WAL mode)         →  PostgreSQL              →  TimescaleDB
-Script local              →  Docker Compose          →  Kubernetes
-Credenciais em .env       →  Variáveis CI/CD         →  HashiCorp Vault
-Modelo RL global          →  RL por símbolo          →  Ensemble adaptativo
-Batch OHLCV               →  WebSocket streaming     →  CEP (event processing)
-```
+
+### 8.2 Decisoes arquiteturais atuais
+
+| Tema | Decisao |
+| --- | --- |
+| Direcao operacional | short-only em `live` |
+| Promocao | `shadow` obrigatorio antes de `live` |
+| Banco canonico | `db/modelo2.db` |
+| Persistencia operacional | tabelas dedicadas para oportunidades, sinais, execucoes e eventos |
+| Gating de futures | funding, basis, margem, cooldown, idade do sinal e preflight no caminho critico |
+| Agente dedicado | ciclo short com runtime e artefatos operacionais proprios |
+
+### 8.3 Stack
+
+| Componente | Baseline atual |
+| --- | --- |
+| Linguagem | Python 3.10+ |
+| Exchange integration | Binance Futures REST/WebSocket |
+| Persistencia | SQLite |
+| RL | PyTorch + Stable-Baselines3 |
+| Hiperparametros | Optuna |
+| Modelos supervisionados | LSTM + XGBoost |
+| Operacao | scripts CLI, `setup.bat`, `setup.sh`, `Makefile`, `Dockerfile` |
+| Observabilidade | logs estruturados, runbook, healthchecks e artefatos JSON |
 
 ---
 
-## 8. Plano de Release — Fases e MVP
+## 9. Riscos e Mitigacoes
 
-### 8.1 Princípio de Priorização
-
-Entregar primeiro o **controle de risco** e a **rastreabilidade**; depois
-**rentabilidade**; por último **escalabilidade**. Um sistema que perde
-capital de forma incontrolável é pior que um sistema parado.
-
-### 8.2 Fases
-
-#### Fase 0 — Fundação (CONCLUÍDA)
-
-> Sprint de estabilização arquitetural: pipeline determinístico 5 camadas
-> operacional em paper trading.
-
-| Entregável | Status |
-| ---------- | ------ |
-| Pipeline 5 camadas (Scanner → Execução) | ✅ Completo |
-| Circuit breaker e risk gate invioláveis | ✅ Completo |
-| Banco canônico `modelo2.db` com migrations | ✅ Completo |
-| Suite de testes (112 arquivos) | ✅ Completo |
-| Documentação de regras de negócio | ✅ Completo |
-
-#### Fase 1 — MVP Operacional (EM CURSO — Sprint Atual)
-
-> **Meta:** Operação live real com controle de risco validado e RL básico.
-
-| ID | Entregável | Critério de Aceite | Prazo |
-| -- | ---------- | ------------------ | ----- |
-| M1-01 | Execução live com STOP + TP nativos Binance | 10 operações paper sem erro de proteção | Sprint atual |
-| M1-02 | Reconciliação de ordens e detecção de saída externa | 0 posições órfãs após 24h de paper | Sprint atual |
-| M1-03 | PPO global treinado e integrado ao order_layer | Melhora ≥ +3 pp Win Rate vs baseline | Sprint +1 |
-| M1-04 | Checklist preflight live automático | `go_live_preflight.py` sem falhas | Sprint +1 |
-| M1-05 | Dockerfile para deploy Linux | Container sobe e opera paper em Ubuntu 22.04 | Sprint +2 |
-| M1-06 | Mitigação R-01 (SQLite WAL + retry) | 0 erros `database is locked` em 48h de operação contínua | Sprint +2 |
-
-#### Fase 2 — Consolidação e Resiliência (v0.9)
-
-> **Meta:** Sistema estável para operação live prolongada; RL por símbolo.
-
-| ID | Entregável | Critério de Aceite |
-| -- | ---------- | ------------------ |
-| M2-01 | RL individual por símbolo (M2-019) | Modelo por símbolo ≥ performance modelo global |
-| M2-02 | Detecção automática de drift de regime | Alerta em ≤ 48h após mudança de regime |
-| M2-03 | WebSocket streaming de dados (substituir batch) | Latência sinal → ordem ≤ 200 ms |
-| M2-04 | Chaos tests (mock de falha API Binance) | Pipeline se recupera em ≤ 60s após falha simulada |
-| M2-05 | Integração com secret manager | 0 credenciais em arquivos locais |
-
-#### Fase 3 — Escala (v1.0)
-
-> **Meta:** Multi-usuário, observabilidade avançada, PostgreSQL.
-
-| ID | Entregável | Critério de Aceite |
-| -- | ---------- | ------------------ |
-| M3-01 | Migração para PostgreSQL | 0 regressões em suite de testes existente |
-| M3-02 | Dashboard web de observabilidade | Métricas live acessíveis via browser |
-| M3-03 | API REST para consulta de status e controle | Especificação OpenAPI 3.0 publicada |
-| M3-04 | Multi-tenant (múltiplos usuários isolados) | Isolamento de DB e configuração por tenant |
-
-### 8.3 Critérios de Go/No-Go para Live Real
-
-Antes de qualquer operação live com capital real, os seguintes critérios
-devem ser satisfeitos:
-
-- [ ] `go_live_preflight.py` executa sem nenhum erro
-- [ ] Mínimo de 30 dias de paper trading com Win Rate ≥ 45%
-- [ ] Circuit breaker testado e validado em paper (não apenas unitariamente)
-- [ ] Toda posição aberta tem STOP_MARKET confirmado na Binance
-- [ ] Logs e audit trail acessíveis e legíveis
-- [ ] Capital inicial não superior ao limite configurado em `risk_params.py`
+| ID | Risco | Severidade | Mitigacao |
+| --- | --- | --- | --- |
+| R-01 | Funding e basis desfavoraveis degradarem o short | Alta | gates especificos antes da execucao |
+| R-02 | Posicao entrar sem protecao confirmada | Alta | retry, reconciliacao e healthcheck |
+| R-03 | Overfitting ou leak de validacao nos modelos | Alta | walk-forward, gate de risco de modelo e shadow obrigatorio |
+| R-04 | Drift de mercado degradar ML/RL | Alta | fallback rules-based, monitoramento e retreino controlado |
+| R-05 | API Binance falhar em momento critico | Alta | retry com backoff, reconciliacao e artefatos operacionais |
+| R-06 | Lock ou gargalo de concorrencia no SQLite | Media | idempotencia, WAL e trilha de migracao futura |
+| R-07 | Divergencia entre documento e produto | Media | manter apenas este PRD como contrato ativo |
 
 ---
 
-## 9. Glossário
+## 10. Release Atual, Backlog Prioritario e Go No-Go
 
-| Termo | Definição |
-| ----- | --------- |
-| **SMC** | Smart Money Concepts — metodologia de análise técnica baseada em rastreamento de liquidez e fluxo institucional |
-| **Order Block** | Zona de preço onde houve acumulação/distribuição institucional relevante |
-| **FVG** | Fair Value Gap — desequilíbrio de preço entre candles consecutivos |
-| **Tese** | Hipótese de trade com entrada, alvo e invalidação definidos |
-| **Idempotência** | Propriedade de operações que produzem o mesmo resultado independente do número de execuções |
-| **Walk-forward** | Técnica de validação temporal que evita look-ahead bias em backtesting |
-| **Circuit Breaker** | Mecanismo automático de parada do sistema ao atingir limite de perda configurado |
-| **Drift de Regime** | Mudança estatística no comportamento do mercado que invalida uma política RL treinada |
-| **WAL** | Write-Ahead Logging — modo de operação do SQLite que permite leituras concorrentes durante escritas |
-| **PPO** | Proximal Policy Optimization — algoritmo de aprendizado por reforço baseado em gradiente de política |
-| **LSTM** | Long Short-Term Memory — arquitetura de rede neural recorrente para dados sequenciais |
+### 10.1 Release atual
+
+A release atual do produto e um **agente short-only para Binance Futures**, com:
+
+- pipeline M2 auditavel;
+- gates de funding e basis no caminho de admissao;
+- execucao segregada em `shadow` e `live`;
+- protecao obrigatoria;
+- preflight e healthcheck operacionais;
+- trilha pronta para ML e RL com promocao gradual.
+
+### 10.2 Backlog prioritario
+
+| Prioridade | Item |
+| --- | --- |
+| P1 | consolidar camada LSTM + XGBoost em `shadow` com metricas de promocao |
+| P1 | validar PPO/A2C sobre baseline short com comparacao estatistica |
+| P1 | ativar gate de risco de modelo com criterio formal de overfitting |
+| P1 | ampliar enriquecimento com open interest e features de regime |
+| P2 | modelos dedicados por simbolo |
+| P2 | migracao para PostgreSQL quando o volume operacional justificar |
+
+### 10.3 Go/No-Go para capital real
+
+Antes de qualquer ampliacao de uso em `live`, os itens abaixo devem estar satisfeitos:
+
+- `go_live_preflight.py` sem erro bloqueante.
+- Janela minima de validacao em `shadow` concluida com sucesso.
+- `Posicoes protegidas = 100%`.
+- `Posicoes preenchidas sem protecao = 0`.
+- Logs, healthchecks e artefatos operacionais disponiveis.
+- Simbolos live explicitamente allow-listed.
+- KPIs minimos de risco e operacao dentro das metas definidas neste documento.
 
 ---
 
-*Este documento é a fonte de verdade para requisitos do crypto-futures-agent.*
-*Atualizações devem ser registradas em `docs/SYNCHRONIZATION.md` com tag*
-*`[SYNC]`.*
+## 11. Glossario
+
+| Termo | Definicao |
+| --- | --- |
+| Short-only | politica operacional que permite apenas sinais `SHORT` em `live` |
+| Funding rate | taxa periodica dos contratos perpetuos que afeta o custo da posicao |
+| Basis | diferenca entre preco futuro e spot usada como gate de contexto |
+| `shadow` | execucao operacional sem envio de ordens reais |
+| `live` | execucao operacional com envio real de ordens |
+| Tese | hipotese operacional com entrada, alvo, stop e criterio de validacao |
+| M2 | pipeline operacional que materializa oportunidade, validacao, sinal e execucao |
+| Audit trail | trilha completa de eventos, estados e motivos persistidos |
+| Walk-forward | validacao temporal sem contaminacao entre treino e teste |
+| Drift | mudanca de regime que degrada a qualidade do modelo |
+
+---
+
+*Documento mestre do produto. Toda alteracao de escopo, requisito ou
+criterio operacional deve ser feita aqui primeiro.*
