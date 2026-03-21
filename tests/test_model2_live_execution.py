@@ -1,10 +1,15 @@
+import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.model2.model_decision import ACTION_HOLD, ACTION_OPEN_LONG, ModelDecision
+from core.model2.model_inference_service import InferenceServiceResult
 from core.model2.model_state_builder import M2_020_3_SCHEMA_VERSION, StateBuilderResult
 from core.model2.repository import Model2ThesisRepository
 from core.model2.scanner import DetectionResult, M2_002_RULE_ID, M2_002_THESIS_TYPE
+from risk.circuit_breaker import CircuitBreaker
+from risk.risk_gate import RiskGate, RiskGateStatus
 from scripts.model2.live_execute import run_live_execute
 from scripts.model2.live_reconcile import run_live_reconcile
 from scripts.model2.migrate import run_up
@@ -147,6 +152,51 @@ class FakeExchange:
         return {"orderId": f"close-{symbol}", "executedQty": str(quantity)}
 
 
+class SequencedBalanceExchange(FakeExchange):
+    def __init__(self, balances: list[float], *, protection_works: bool = True) -> None:
+        super().__init__(available_balance=float(balances[0]), protection_works=protection_works)
+        self._balances = [float(value) for value in balances]
+        self._cursor = 0
+
+    def get_available_balance(self) -> float | None:
+        index = min(self._cursor, len(self._balances) - 1)
+        value = self._balances[index]
+        self._cursor += 1
+        return value
+
+
+def _forced_inference_result(model_input, *, action: str, reason: str) -> InferenceServiceResult:
+    if action == ACTION_OPEN_LONG:
+        sl_target = 95.0
+        tp_target = 110.0
+        size_fraction = 0.4
+    else:
+        sl_target = None
+        tp_target = None
+        size_fraction = 0.0
+
+    return InferenceServiceResult(
+        accepted=True,
+        decision=ModelDecision(
+            action=action,
+            confidence=0.88 if action != ACTION_HOLD else 0.62,
+            size_fraction=size_fraction,
+            sl_target=sl_target,
+            tp_target=tp_target,
+            reason_code=reason,
+            decision_timestamp=int(model_input.decision_timestamp),
+            symbol=str(model_input.symbol),
+            model_version=str(model_input.model_version),
+            metadata={"origin": "test"},
+        ),
+        model_version=str(model_input.model_version),
+        inference_latency_ms=1,
+        reason=reason,
+        rule_id="TEST-M2-020.4",
+        details={"origin": "test"},
+    )
+
+
 def test_run_live_execute_shadow_creates_ready_candidate_without_real_order(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _, signal_id = _create_consumed_signal(db_path)
@@ -190,6 +240,149 @@ def test_run_live_execute_shadow_creates_ready_candidate_without_real_order(tmp_
     assert decision_row is not None
     assert decision_row[0] == "m2-inference-v1"
     assert int(decision_row[1]) >= 0
+
+
+def test_run_live_execute_persists_complete_inference_state_in_model_decisions(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    decision_id = int(summary["staged"][0]["decision_id"])
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT input_json FROM model_decisions WHERE id = ?",
+            (decision_id,),
+        ).fetchone()
+
+    assert row is not None
+    input_payload = json.loads(row[0])
+    assert input_payload["market_state"]["signal_side"] == "SHORT"
+    assert input_payload["market_state"]["market_context"]["market_regime"] == "UNKNOWN"
+    assert input_payload["position_state"]["has_open_position"] is False
+    assert input_payload["risk_state"]["max_daily_entries"] == 10
+    assert input_payload["state_builder"]["success"] is True
+    assert input_payload["state_schema_version"] == M2_020_3_SCHEMA_VERSION
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+    assert row == ("READY",)
+
+
+def test_run_live_execute_uses_model_action_as_execution_origin(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    def _force_open_long(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_OPEN_LONG,
+            reason="force_open_long",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_open_long,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["action"] == ACTION_OPEN_LONG
+    assert summary["staged"][0]["signal_side"] == "LONG"
+    assert summary["staged"][0]["status"] == "READY"
+    assert summary["processed_ready"][0]["reason"] == "shadow_mode_no_order_sent"
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT signal_side, gate_reason, payload_json FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert row is not None
+    payload = json.loads(row[2])
+    assert row[0] == "LONG"
+    assert row[1] == "ready_for_live_execution"
+    assert payload["signal_snapshot"]["signal_side"] == "LONG"
+    assert payload["signal_snapshot"]["source_signal_side"] == "SHORT"
+    assert payload["model_decision"]["action"] == ACTION_OPEN_LONG
+
+
+def test_run_live_execute_accepts_hold_without_order(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    def _force_hold(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_HOLD,
+            reason="force_hold",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_hold,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["action"] == ACTION_HOLD
+    assert summary["staged"][0]["status"] == "BLOCKED"
+    assert summary["staged"][0]["reason"] == "model_action_hold"
+    assert summary["processed_ready"] == []
+
+    with sqlite3.connect(db_path) as conn:
+        decision_row = conn.execute(
+            "SELECT action, reason_code FROM model_decisions WHERE id = ?",
+            (int(summary["staged"][0]["decision_id"]),),
+        ).fetchone()
+        execution_row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert decision_row == (ACTION_HOLD, "force_hold")
+    assert execution_row == ("BLOCKED", "model_action_hold")
 
 
 def test_run_live_execute_live_happy_path_transitions_to_protected(tmp_path: Path) -> None:
@@ -241,6 +434,81 @@ def test_run_live_execute_live_happy_path_transitions_to_protected(tmp_path: Pat
     assert float(row[4]) > 0
     assert float(row[5]) == 97.0
     assert events == 4
+
+
+def test_run_live_execute_blocks_when_risk_gate_is_not_allowing_orders(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+    exchange = FakeExchange(available_balance=100.0, protection_works=True)
+    risk_gate = RiskGate()
+    risk_gate.status = RiskGateStatus.FROZEN
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+        risk_gate=risk_gate,
+        circuit_breaker=CircuitBreaker(),
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["status"] == "BLOCKED"
+    assert summary["staged"][0]["reason"] == "risk_gate_blocked"
+    assert summary["processed_ready"] == []
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert row == ("BLOCKED", "risk_gate_blocked")
+
+
+def test_run_live_execute_revalidates_guardrails_before_market_order(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+    exchange = SequencedBalanceExchange([100.0, 100.0, 96.8], protection_works=True)
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+        risk_gate=RiskGate(),
+        circuit_breaker=CircuitBreaker(),
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["status"] == "READY"
+    assert summary["processed_ready"][0]["status"] == "FAILED"
+    assert summary["processed_ready"][0]["reason"] == "risk_gate_blocked"
+    assert exchange.market_calls == 0
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, failure_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert row == ("FAILED", "risk_gate_blocked")
 
 
 def test_run_live_execute_is_idempotent_for_same_consumed_signal(tmp_path: Path) -> None:

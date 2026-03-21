@@ -26,6 +26,12 @@ def _base_gate_input() -> LiveExecutionGateInput:
         cooldown_active=False,
         signal_age_ms=1_000,
         max_signal_age_ms=240_000,
+        risk_gate_status="ativo",
+        risk_gate_allows_order=True,
+        risk_gate_drawdown_pct=0.0,
+        circuit_breaker_state="normal",
+        circuit_breaker_allows_trading=True,
+        circuit_breaker_drawdown_pct=0.0,
     )
 
 
@@ -57,3 +63,33 @@ def test_short_signal_with_valid_context_is_ready() -> None:
     decision = evaluate_live_execution_gate(_base_gate_input())
     assert decision.allow_execution is True
     assert decision.reason == "ready_for_live_execution"
+
+
+def test_risk_gate_explicit_state_blocks_entry() -> None:
+    gate_input = _base_gate_input()
+    gate_input = LiveExecutionGateInput(
+        **{
+            **gate_input.__dict__,
+            "risk_gate_status": "congelado",
+            "risk_gate_allows_order": False,
+            "risk_gate_drawdown_pct": -3.5,
+        }
+    )
+    decision = evaluate_live_execution_gate(gate_input)
+    assert decision.allow_execution is False
+    assert decision.reason == "risk_gate_blocked"
+
+
+def test_circuit_breaker_explicit_state_blocks_entry() -> None:
+    gate_input = _base_gate_input()
+    gate_input = LiveExecutionGateInput(
+        **{
+            **gate_input.__dict__,
+            "circuit_breaker_state": "acionado",
+            "circuit_breaker_allows_trading": False,
+            "circuit_breaker_drawdown_pct": -3.2,
+        }
+    )
+    decision = evaluate_live_execution_gate(gate_input)
+    assert decision.allow_execution is False
+    assert decision.reason == "circuit_breaker_blocked"

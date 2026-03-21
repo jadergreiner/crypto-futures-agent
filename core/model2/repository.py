@@ -1910,7 +1910,8 @@ class Model2ThesisRepository:
                         "technical_signal_id": int(signal_row["id"]),
                         "symbol": str(signal_row["symbol"]),
                         "timeframe": str(signal_row["timeframe"]),
-                        "signal_side": str(signal_row["signal_side"]),
+                        "signal_side": str(signal_side),
+                        "source_signal_side": str(signal_row["signal_side"]),
                         "entry_price": float(signal_row["entry_price"]),
                         "stop_loss": float(signal_row["stop_loss"]),
                         "take_profit": float(signal_row["take_profit"]),
@@ -1964,7 +1965,10 @@ class Model2ThesisRepository:
                         int(now_ms),
                     ),
                 )
-                execution_id = int(cursor.lastrowid)
+                raw_execution_id = cursor.lastrowid
+                if raw_execution_id is None:
+                    raise RuntimeError("falha ao obter execution_id apos insert")
+                execution_id = int(raw_execution_id)
                 self._insert_signal_execution_event(
                     conn,
                     execution_id=execution_id,
@@ -2046,7 +2050,10 @@ class Model2ThesisRepository:
                     ),
                 )
                 conn.execute("COMMIT")
-                return CreateModelDecisionResult(decision_id=int(cursor.lastrowid))
+                raw_decision_id = cursor.lastrowid
+                if raw_decision_id is None:
+                    raise RuntimeError("falha ao obter decision_id apos insert")
+                return CreateModelDecisionResult(decision_id=int(raw_decision_id))
             except Exception:
                 conn.execute("ROLLBACK")
                 raise

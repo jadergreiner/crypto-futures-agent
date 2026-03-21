@@ -89,6 +89,8 @@ def run_live_execute(
     funding_rate_max_for_short: float = 0.0005,
     leverage: int | None = None,
     exchange: Model2LiveExchange | None = None,
+    risk_gate: Any | None = None,
+    circuit_breaker: Any | None = None,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
@@ -118,6 +120,8 @@ def run_live_execute(
         repository=Model2ThesisRepository(str(resolved_model2_db)),
         config=config,
         exchange=exchange,
+        risk_gate=risk_gate,
+        circuit_breaker=circuit_breaker,
     )
 
     now_ms = _utc_now_ms()

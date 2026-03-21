@@ -1064,42 +1064,82 @@ Evidencias:
 
 ### TAREFA M2-020.3 - Consolidar state builder de mercado
 
-Status: BACKLOG
+Status: CONCLUIDA (2026-03-21)
 Entrega:
 
-1. Consolidar estado unico para inferencia em tempo real.
-2. Incluir contexto de posicao e risco no estado.
+1. Consolidar estado unico para inferencia em tempo real. [OK]
+2. Incluir contexto de posicao e risco no estado. [OK]
 
 Critérios de aceite:
 
-1. Estado completo e serializavel.
-2. Falta de campo critico bloqueia fluxo com fail-safe.
+1. Estado completo e serializavel. [OK]
+2. Falta de campo critico bloqueia fluxo com fail-safe. [OK]
+
+Evidencias:
+
+1. Builder consolidado com `market_state`, `position_state` e `risk_state`:
+   `core/model2/model_state_builder.py`.
+2. Persistencia auditavel do estado completo em `model_decisions.input_json`:
+   `core/model2/live_service.py`.
+3. Cobertura unitaria do builder: `tests/test_model2_model_state_builder.py`.
+4. Cobertura integrada no fluxo live/shadow:
+   `tests/test_model2_live_execution.py`.
 
 ### TAREFA M2-020.4 - Integrar decisao ao orquestrador de execucao
 
-Status: BACKLOG
+Status: CONCLUIDA (2026-03-21)
 Entrega:
 
-1. Substituir origem de decisao atual pelo contrato do modelo.
-2. Permitir acao HOLD sem erro e sem ordem.
+1. Substituir origem de decisao atual pelo contrato do modelo. [OK]
+2. Permitir acao HOLD sem erro e sem ordem. [OK]
 
 Critérios de aceite:
 
-1. Ordem nasce apenas de decisao do modelo.
-2. Fluxo nao depende de tese/oportunidade para abrir ordem.
+1. Ordem nasce apenas de decisao do modelo. [OK]
+2. Fluxo nao depende de tese/oportunidade para abrir ordem. [OK]
+
+Evidencias:
+
+1. Orquestrador passa a derivar a direcao efetiva da execucao da acao
+   do modelo: `core/model2/live_service.py`.
+2. Persistencia da execucao reflete o lado decidido pelo modelo e
+   preserva a trilha do lado legado de origem:
+   `core/model2/repository.py`.
+3. Cobertura do fluxo com `OPEN_LONG` sobre candidato `SHORT` e `HOLD`
+   sem ordem: `tests/test_model2_live_execution.py`.
 
 ### TAREFA M2-020.5 - Manter guard-rails sem estrategia externa
 
 Status: BACKLOG
 Entrega:
 
-1. Preservar risk_gate e circuit_breaker no caminho critico.
-2. Remover regras estrategicas externas de direcao/entrada.
+1. Preservar `risk/risk_gate.py` e `risk/circuit_breaker.py` no caminho
+   critico entre `ModelDecision.action` e envio de ordem.
+2. Manter `scripts/model2/go_live_preflight.py` como gate obrigatorio
+   para promocao e operacao `live`.
+3. Remover qualquer estrategia externa como fonte de direcao, entrada ou
+   desbloqueio operacional.
 
 Critérios de aceite:
 
-1. Guard-rails ativos em todos os caminhos live.
-2. Regras externas nao definem direcao de trade.
+1. Toda tentativa de entrada `live` passa pelo safety envelope antes de
+   qualquer ordem real.
+2. `risk_gate` e `circuit_breaker` permanecem ativos mesmo quando a
+   direcao nasce exclusivamente do modelo.
+3. `OPEN_LONG` e `OPEN_SHORT` representam apenas intencao do modelo; a
+   liberacao final continua subordinada aos guard-rails.
+4. `HOLD`, `REDUCE` e `CLOSE` nao reativam estrategia externa como
+   fallback de direcao.
+5. Falha, ausencia ou inconsistencia em guard-rails bloqueia a execucao
+   em fail-safe.
+
+Pontos de impacto esperados:
+
+1. `core/model2/live_service.py`.
+2. `core/model2/live_execution.py`.
+3. `risk/risk_gate.py`.
+4. `risk/circuit_breaker.py`.
+5. `scripts/model2/go_live_preflight.py`.
 
 ### TAREFA M2-020.6 - Persistir episodios completos de aprendizado
 

@@ -142,6 +142,12 @@ class LiveExecutionGateInput:
     cooldown_active: bool
     signal_age_ms: int
     max_signal_age_ms: int
+    risk_gate_status: str
+    risk_gate_allows_order: bool
+    risk_gate_drawdown_pct: float | None
+    circuit_breaker_state: str
+    circuit_breaker_allows_trading: bool
+    circuit_breaker_drawdown_pct: float | None
 
 
 @dataclass(frozen=True)
@@ -179,6 +185,36 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
         return _blocked(
             "status_not_consumed",
             current_status=gate_input.technical_signal_status,
+        )
+
+    risk_gate_status = str(gate_input.risk_gate_status).strip().lower()
+    if risk_gate_status in {"", "unknown", "unavailable"}:
+        return _blocked(
+            "risk_gate_state_unavailable",
+            risk_gate_status=gate_input.risk_gate_status,
+            risk_gate_drawdown_pct=gate_input.risk_gate_drawdown_pct,
+        )
+
+    if not bool(gate_input.risk_gate_allows_order):
+        return _blocked(
+            "risk_gate_blocked",
+            risk_gate_status=gate_input.risk_gate_status,
+            risk_gate_drawdown_pct=gate_input.risk_gate_drawdown_pct,
+        )
+
+    circuit_breaker_state = str(gate_input.circuit_breaker_state).strip().lower()
+    if circuit_breaker_state in {"", "unknown", "unavailable"}:
+        return _blocked(
+            "circuit_breaker_state_unavailable",
+            circuit_breaker_state=gate_input.circuit_breaker_state,
+            circuit_breaker_drawdown_pct=gate_input.circuit_breaker_drawdown_pct,
+        )
+
+    if not bool(gate_input.circuit_breaker_allows_trading):
+        return _blocked(
+            "circuit_breaker_blocked",
+            circuit_breaker_state=gate_input.circuit_breaker_state,
+            circuit_breaker_drawdown_pct=gate_input.circuit_breaker_drawdown_pct,
         )
 
     if gate_input.signal_side not in {"LONG", "SHORT"}:

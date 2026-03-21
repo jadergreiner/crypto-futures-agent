@@ -23,6 +23,85 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-025] Refinar M2-020.5 com guard-rails no caminho critico
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-020.5 refinada com safety envelope obrigatorio |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-025] |
+
+#### Observacoes
+
+- A decisao continua nascendo no modelo, mas `risk_gate` e
+   `circuit_breaker` seguem obrigatorios no caminho critico.
+- `go_live_preflight.py` permanece como gate de promocao e operacao
+   `live`.
+- Nenhuma estrategia externa pode voltar a definir direcao ou destravar
+   entrada no lugar do modelo.
+
+#### Proximos Passos
+
+1. Implementar a preservacao explicita dos guard-rails em
+    `core/model2/live_service.py` e `core/model2/live_execution.py`.
+2. Cobrir o fluxo com testes que validem bloqueio fail-safe sem
+    estrategia externa.
+
+### [SYNC-024] M2-020.4 decisao unica no orquestrador
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-020.4 marcada como concluida com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-024] |
+
+#### Observacoes
+
+- A direcao efetiva da execucao passou a nascer de
+   `ModelDecision.action` no orquestrador.
+- `HOLD` passou a ser tratado como decisao valida, sem ordem e sem erro
+   operacional.
+- A trilha de execucao preserva o lado legado de origem apenas para
+   auditoria comparativa.
+
+#### Proximos Passos
+
+1. Avancar para M2-020.5 preservando guard-rails sem estrategia externa.
+2. Validar sincronismo documental com `tests/test_docs_model2_sync.py`.
+
+### [SYNC-023] M2-020.3 state builder consolidado
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-020.3 marcada como concluida com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-023] |
+
+#### Observacoes
+
+- Estado de inferencia passou a consolidar `market_state`,
+   `position_state` e `risk_state` em payload serializavel.
+- `model_decisions.input_json` agora registra a trilha completa do estado
+   usado pela inferencia.
+- Falta de campo critico continua bloqueando o fluxo com fail-safe.
+
+#### Proximos Passos
+
+1. Avancar para M2-020.4 com a decisao do modelo como origem unica.
+2. Validar sincronismo documental com `tests/test_docs_model2_sync.py`.
+
 ### [SYNC-022] M2-020.1/M2-020.2 contrato e inferencia desacoplada
 
 **Data/Hora**: 2026-03-21 UTC

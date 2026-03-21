@@ -8,6 +8,8 @@ import uuid
 from typing import Any
 
 import numpy as np
+from risk.circuit_breaker import CircuitBreaker, CircuitBreakerState
+from risk.risk_gate import RiskGate, RiskGateStatus
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from .rl_model_loader import RLModelLoader
@@ -50,10 +52,15 @@ class Model2LiveExecutionService:
         repository: Model2ThesisRepository,
         config: LiveExecutionConfig,
         exchange: Model2LiveExchange | None = None,
+        risk_gate: RiskGate | None = None,
+        circuit_breaker: CircuitBreaker | None = None,
     ) -> None:
         self.repository = repository
         self.config = config
         self.exchange = exchange
+        self._risk_gate = risk_gate or RiskGate()
+        self._circuit_breaker = circuit_breaker or CircuitBreaker()
+        self._guardrail_balance_initialized = False
         self._rl_loader = RLModelLoader()
         self._inference_service = ModelInferenceService()
 
@@ -134,6 +141,15 @@ class Model2LiveExecutionService:
             basis = self.repository.get_latest_basis_value(symbol=str(candidate["symbol"]))
         return funding, basis
 
+    @staticmethod
+    def _signal_side_from_action(action: str) -> str | None:
+        normalized_action = str(action).strip().upper()
+        if normalized_action == ACTION_OPEN_LONG:
+            return "LONG"
+        if normalized_action == ACTION_OPEN_SHORT:
+            return "SHORT"
+        return None
+
     def _compute_bbapt_context(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         payload = self._safe_json_dict(execution.get("payload_json"))
         signal_side = str(execution.get("signal_side") or "")
@@ -193,18 +209,26 @@ class Model2LiveExecutionService:
             "computed_at": int(now_ms),
         }
 
-    def _build_gate_input(self, candidate: dict[str, Any], now_ms: int) -> LiveExecutionGateInput:
+    def _build_gate_input(
+        self,
+        candidate: dict[str, Any],
+        now_ms: int,
+        *,
+        signal_side_override: str | None = None,
+    ) -> LiveExecutionGateInput:
         exchange = self.exchange if self.config.execution_mode == "live" else None
         position = exchange.get_open_position(str(candidate["symbol"])) if exchange else None
         available_balance = exchange.get_available_balance() if exchange else None
         funding_rate, basis_value = self._extract_funding_and_basis(candidate)
+        effective_signal_side = str(signal_side_override or candidate["signal_side"])
+        guardrail_state = self._snapshot_guardrail_state(available_balance)
 
         return LiveExecutionGateInput(
             technical_signal_id=int(candidate["id"]),
             opportunity_id=int(candidate["opportunity_id"]),
             symbol=str(candidate["symbol"]),
             timeframe=str(candidate["timeframe"]),
-            signal_side=str(candidate["signal_side"]),
+            signal_side=effective_signal_side,
             technical_signal_status=str(candidate["status"]),
             signal_timestamp=int(candidate["signal_timestamp"]),
             short_only=bool(self.config.short_only),
@@ -234,7 +258,128 @@ class Model2LiveExecutionService:
             ),
             signal_age_ms=max(0, int(now_ms) - int(candidate["signal_timestamp"])),
             max_signal_age_ms=self.config.max_signal_age_ms,
+            risk_gate_status=str(guardrail_state["risk_gate_status"]),
+            risk_gate_allows_order=bool(guardrail_state["risk_gate_allows_order"]),
+            risk_gate_drawdown_pct=self._to_float(guardrail_state.get("risk_gate_drawdown_pct")),
+            circuit_breaker_state=str(guardrail_state["circuit_breaker_state"]),
+            circuit_breaker_allows_trading=bool(guardrail_state["circuit_breaker_allows_trading"]),
+            circuit_breaker_drawdown_pct=self._to_float(guardrail_state.get("circuit_breaker_drawdown_pct")),
         )
+
+    def _snapshot_guardrail_state(self, available_balance: float | None) -> dict[str, Any]:
+        if self.config.execution_mode != "live":
+            return {
+                "risk_gate_status": RiskGateStatus.ACTIVE.value,
+                "risk_gate_allows_order": True,
+                "risk_gate_drawdown_pct": 0.0,
+                "circuit_breaker_state": CircuitBreakerState.NORMAL.value,
+                "circuit_breaker_allows_trading": True,
+                "circuit_breaker_drawdown_pct": 0.0,
+            }
+
+        if available_balance is None:
+            return {
+                "risk_gate_status": "unavailable",
+                "risk_gate_allows_order": False,
+                "risk_gate_drawdown_pct": None,
+                "circuit_breaker_state": "unavailable",
+                "circuit_breaker_allows_trading": False,
+                "circuit_breaker_drawdown_pct": None,
+            }
+
+        normalized_balance = float(available_balance)
+        if not self._guardrail_balance_initialized:
+            self._risk_gate._portfolio_value = normalized_balance
+            self._risk_gate._peak_portfolio_value = normalized_balance
+            self._circuit_breaker._portfolio_current = normalized_balance
+            self._circuit_breaker._portfolio_peak = normalized_balance
+            self._guardrail_balance_initialized = True
+        else:
+            self._risk_gate.update_portfolio_value(normalized_balance)
+            self._circuit_breaker.update_portfolio_value(normalized_balance)
+
+        circuit_breaker_status = self._circuit_breaker.check_status()
+        risk_metrics = self._risk_gate.get_risk_metrics()
+
+        return {
+            "risk_gate_status": self._risk_gate.status.value,
+            "risk_gate_allows_order": self._risk_gate.can_execute_order("market"),
+            "risk_gate_drawdown_pct": float(risk_metrics.drawdown_pct),
+            "circuit_breaker_state": self._circuit_breaker.state.value,
+            "circuit_breaker_allows_trading": bool(
+                circuit_breaker_status.get("trading_allowed", self._circuit_breaker.can_trade())
+            ),
+            "circuit_breaker_drawdown_pct": self._to_float(circuit_breaker_status.get("drawdown_pct")),
+        }
+
+    def _enforce_guardrails_before_order(
+        self,
+        execution: dict[str, Any],
+        now_ms: int,
+    ) -> dict[str, Any] | None:
+        if self.config.execution_mode != "live":
+            return None
+
+        exchange = self._ensure_live_exchange()
+        guardrail_state = self._snapshot_guardrail_state(exchange.get_available_balance())
+
+        if str(guardrail_state["risk_gate_status"]).lower() == "unavailable":
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="risk_gate_state_unavailable",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"guardrails": guardrail_state},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
+        if not bool(guardrail_state["risk_gate_allows_order"]):
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="risk_gate_blocked",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"guardrails": guardrail_state},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
+        if str(guardrail_state["circuit_breaker_state"]).lower() == "unavailable":
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="circuit_breaker_state_unavailable",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"guardrails": guardrail_state},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
+        if not bool(guardrail_state["circuit_breaker_allows_trading"]):
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="circuit_breaker_blocked",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"guardrails": guardrail_state},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
+        return None
 
     def stage_signal_execution_candidates(
         self,
@@ -250,7 +395,11 @@ class Model2LiveExecutionService:
             timeframe=timeframe,
             limit=limit,
         ):
-            position_state: dict[str, Any] = {}
+            position_state: dict[str, Any] = {
+                "has_open_position": False,
+                "position_size_qty": 0.0,
+                "entry_price": None,
+            }
             if self.config.execution_mode == "live" and self.exchange is not None:
                 position = self.exchange.get_open_position(str(candidate["symbol"]))
                 if position:
@@ -260,22 +409,45 @@ class Model2LiveExecutionService:
                         "entry_price": float(position.get("entry_price") or 0.0),
                     }
 
+            source_gate_input = self._build_gate_input(candidate, now_ms=now_ms)
+            payload = self._safe_json_dict(candidate.get("payload_json"))
+            payload_market_context = self._lookup_nested(payload, "market_context")
+            market_context = {
+                **(dict(payload_market_context) if isinstance(payload_market_context, dict) else {}),
+                "funding_rate": source_gate_input.funding_rate,
+                "basis": source_gate_input.basis_value,
+                "market_regime": str(
+                    self._lookup_nested(payload, "market_context", "market_regime")
+                    or payload.get("market_regime")
+                    or "UNKNOWN"
+                ).upper(),
+            }
+
             builder_result = build_model_decision_input(
                 candidate=candidate,
                 decision_timestamp=int(now_ms),
                 model_version=self._inference_service.model_version,
                 execution_mode=self.config.execution_mode,
                 max_margin_per_position_usd=self.config.max_margin_per_position_usd,
+                market_context=market_context,
                 position_state=position_state,
                 risk_context={
-                    "active_executions_for_symbol": self.repository.count_active_live_executions_for_symbol(
-                        symbol=str(candidate["symbol"]),
-                        execution_mode=self.config.execution_mode,
-                    ),
-                    "recent_entries_today": self.repository.count_live_entries_today(
-                        execution_mode=self.config.execution_mode,
-                        now_ms=now_ms,
-                    ),
+                    "available_balance_usd": source_gate_input.available_balance_usd,
+                    "active_executions_for_symbol": source_gate_input.symbol_active_execution_count,
+                    "recent_entries_today": source_gate_input.recent_entries_today,
+                    "max_daily_entries": self.config.max_daily_entries,
+                    "cooldown_active": source_gate_input.cooldown_active,
+                    "signal_age_ms": source_gate_input.signal_age_ms,
+                    "max_signal_age_ms": source_gate_input.max_signal_age_ms,
+                    "open_position_qty": source_gate_input.open_position_qty,
+                    "short_only": self.config.short_only,
+                    "funding_rate_max_for_short": source_gate_input.funding_rate_max_for_short,
+                    "risk_gate_status": source_gate_input.risk_gate_status,
+                    "risk_gate_allows_order": source_gate_input.risk_gate_allows_order,
+                    "risk_gate_drawdown_pct": source_gate_input.risk_gate_drawdown_pct,
+                    "circuit_breaker_state": source_gate_input.circuit_breaker_state,
+                    "circuit_breaker_allows_trading": source_gate_input.circuit_breaker_allows_trading,
+                    "circuit_breaker_drawdown_pct": source_gate_input.circuit_breaker_drawdown_pct,
                 },
             )
 
@@ -295,6 +467,9 @@ class Model2LiveExecutionService:
                 if inference is not None
                 else M2_020_3_RULE_ID
             )
+            decision_signal_side = None
+            if inference is not None and inference.decision is not None:
+                decision_signal_side = self._signal_side_from_action(inference.decision.action)
 
             inferred_decision: ModelDecision
             if inference is not None and inference.accepted and inference.decision is not None:
@@ -336,6 +511,7 @@ class Model2LiveExecutionService:
                     },
                 )
 
+            gate_input: LiveExecutionGateInput | None = None
             created_decision = self.repository.create_model_decision(
                 decision_timestamp=int(inferred_decision.decision_timestamp),
                 symbol=str(inferred_decision.symbol),
@@ -351,8 +527,15 @@ class Model2LiveExecutionService:
                     "symbol": str(model_input.symbol) if model_input is not None else str(candidate["symbol"]),
                     "timeframe": str(model_input.timeframe) if model_input is not None else str(candidate["timeframe"]),
                     "market_state": dict(model_input.market_state) if model_input is not None else {},
+                    "position_state": dict(model_input.position_state) if model_input is not None else position_state,
+                    "risk_state": dict(model_input.risk_state) if model_input is not None else {},
                     "state_schema_version": str(builder_result.schema_version),
                     "state_generated_at_ms": int(builder_result.generated_at_ms),
+                    "state_builder": {
+                        "success": bool(builder_result.success),
+                        "diagnostics": dict(builder_result.diagnostics),
+                        "rule_id": M2_020_3_RULE_ID,
+                    },
                 },
                 output_payload={
                     "accepted": bool(inference.accepted if inference is not None else False),
@@ -371,12 +554,20 @@ class Model2LiveExecutionService:
                         "action": str(inferred_decision.action),
                         "confidence": float(inferred_decision.confidence),
                         "size_fraction": float(inferred_decision.size_fraction),
+                        "execution_signal_side": decision_signal_side,
                     },
                 },
                 created_at=int(now_ms),
             )
 
-            gate_input = self._build_gate_input(candidate, now_ms=now_ms)
+            execution_signal_side = self._signal_side_from_action(inferred_decision.action)
+            if execution_signal_side is not None:
+                gate_input = self._build_gate_input(
+                    candidate,
+                    now_ms=now_ms,
+                    signal_side_override=execution_signal_side,
+                )
+
             if builder_result.success is False:
                 decision = LiveExecutionGateDecision(
                     allow_execution=False,
@@ -402,31 +593,19 @@ class Model2LiveExecutionService:
                         "inference_latency_ms": inference_latency_ms,
                     },
                 )
-            elif inferred_decision.action == ACTION_OPEN_LONG and str(candidate["signal_side"]).upper() != "LONG":
+            elif execution_signal_side is None:
                 decision = LiveExecutionGateDecision(
                     allow_execution=False,
                     target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
-                    reason="model_action_mismatch",
+                    reason="model_action_not_supported_for_entry",
                     rule_id=inference_rule_id,
                     details={
-                        "expected_side": "LONG",
-                        "signal_side": str(candidate["signal_side"]),
-                        "decision_id": int(created_decision.decision_id),
-                    },
-                )
-            elif inferred_decision.action == ACTION_OPEN_SHORT and str(candidate["signal_side"]).upper() != "SHORT":
-                decision = LiveExecutionGateDecision(
-                    allow_execution=False,
-                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
-                    reason="model_action_mismatch",
-                    rule_id=inference_rule_id,
-                    details={
-                        "expected_side": "SHORT",
-                        "signal_side": str(candidate["signal_side"]),
+                        "action": str(inferred_decision.action),
                         "decision_id": int(created_decision.decision_id),
                     },
                 )
             else:
+                assert gate_input is not None
                 decision = evaluate_live_execution_gate(gate_input)
 
             result = self.repository.create_signal_execution_candidate(
@@ -434,7 +613,7 @@ class Model2LiveExecutionService:
                 opportunity_id=int(candidate["opportunity_id"]),
                 symbol=str(candidate["symbol"]),
                 timeframe=str(candidate["timeframe"]),
-                signal_side=str(candidate["signal_side"]),
+                signal_side=str(execution_signal_side or candidate["signal_side"]),
                 signal_timestamp=int(candidate["signal_timestamp"]),
                 gate_decision=decision,
                 execution_mode=self.config.execution_mode,
@@ -445,6 +624,8 @@ class Model2LiveExecutionService:
                     "model_version": inference_model_version,
                     "inference_latency_ms": inference_latency_ms,
                     "action": str(inferred_decision.action),
+                    "execution_signal_side": execution_signal_side,
+                    "source_signal_side": str(candidate["signal_side"]),
                     "confidence": float(inferred_decision.confidence),
                     "reason_code": str(inferred_decision.reason_code),
                 },
@@ -457,6 +638,8 @@ class Model2LiveExecutionService:
                     "decision_id": int(created_decision.decision_id),
                     "model_version": inference_model_version,
                     "inference_latency_ms": inference_latency_ms,
+                    "action": str(inferred_decision.action),
+                    "signal_side": str(execution_signal_side or candidate["signal_side"]),
                     "created": bool(result.created),
                     "execution_id": result.execution_id,
                     "status": result.current_status,
@@ -697,6 +880,10 @@ class Model2LiveExecutionService:
                 "status": execution["status"],
                 "reason": "shadow_mode_no_order_sent",
             }
+
+        guardrail_failure = self._enforce_guardrails_before_order(execution, now_ms=now_ms)
+        if guardrail_failure is not None:
+            return guardrail_failure
 
         if self.config.short_only and str(execution.get("signal_side") or "").upper() != "SHORT":
             failed = self.repository.mark_signal_execution_failed(
