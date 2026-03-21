@@ -39,7 +39,7 @@ set "LOG_FILE=logs/startup_log.txt"
     echo ----------------------------------------
 ) >> %LOG_FILE%
 
-echo [1] Iniciar Execucao
+echo [1] Iniciar model-driven
 echo [0] Sair
 echo.
 set /p CHOICE="Escolha uma opcao: "
