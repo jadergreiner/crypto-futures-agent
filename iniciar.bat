@@ -70,6 +70,7 @@ set "LOG_FILE=logs/startup_log.txt"
 
 echo [1] Legado (menu.py)
 echo [2] Nova versao (daily_pipeline + live_cycle + healthcheck em loop)
+echo [3] main.py --mode !M2_MODE!
 echo [0] Sair
 echo.
 set /p CHOICE="Escolha uma opcao: "
@@ -78,6 +79,7 @@ set "CHOICE=%CHOICE:~0,1%"
 
 if "%CHOICE%"=="1" goto LEGACY_MENU
 if "%CHOICE%"=="2" goto M2_VERSION_LOOP
+if "%CHOICE%"=="3" goto MAIN_PY
 if "%CHOICE%"=="0" goto END
 
 echo [ERRO] Opcao invalida.
@@ -93,6 +95,12 @@ for %%S in (%M2_SYMBOLS:,= %) do (
     )
 )
 exit /b 0
+
+:MAIN_PY
+echo.
+echo [RUN] python main.py --mode !M2_MODE!
+python main.py --mode !M2_MODE!
+goto END
 
 :LEGACY_MENU
 echo.
