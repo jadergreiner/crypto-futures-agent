@@ -19,7 +19,6 @@ if %errorlevel% neq 0 (
 
 for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_EXECUTION_MODE; print(M2_EXECUTION_MODE)"`) do set "M2_MODE=%%i"
 for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_LIVE_SYMBOLS; print(','.join(M2_LIVE_SYMBOLS))"`) do set "M2_SYMBOLS=%%i"
-for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_LOOP_SECONDS; print(M2_LOOP_SECONDS)" 2>nul`) do set "M2_LOOP_SECONDS=%%i"
 
 if "!M2_MODE!"=="" set "M2_MODE=shadow"
 if "!M2_SYMBOLS!"=="" set "M2_SYMBOLS=BTCUSDT"
