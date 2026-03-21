@@ -115,7 +115,7 @@ def run_daily_pipeline(
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_legacy_db = _resolve_repo_path(legacy_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
-    
+
     # Normalizar símbolos: expandir placeholders e deduplica
     if symbols:
         # Símbolos explícitos passados - normalizar/expandir placeholders
@@ -125,7 +125,7 @@ def run_daily_pipeline(
     else:
         # Nenhum símbolo explícito - usar padrão
         symbols_to_use = list(DEFAULT_SYMBOLS)
-    
+
     optional_symbol_filter = _single_symbol_or_none(symbols_to_use)
 
     stage_summaries: dict[str, dict[str, Any]] = {}

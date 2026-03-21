@@ -40,28 +40,28 @@ def sync_ohlcv_from_binance(
 ) -> dict[str, Any]:
     """
     Sincroniza dados OHLCV mais recentes da Binance.
-    
+
     Atualiza cada timeframe com os candles mais recentes para os símbolos
     solicitados. Usa BinanceCollector para buscar dados e insere/atualiza
     no banco legado (crypto_agent.db).
-    
+
     Args:
         source_db_path: Banco legado (coleta via Binance)
         symbols: Lista de símbolos
         timeframes: Lista de timeframes (D1, H4, H1)
         output_dir: Diretório para saída de summary
-        
+
     Returns:
         dict com status, símbolos sincronizados, erros, etc.
     """
     from data.database import DatabaseManager
-    
+
     resolved_source_db = _resolve_repo_path(source_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     db = DatabaseManager(str(resolved_source_db))
-    
+
     try:
         client = create_binance_client()
     except Exception as e:
@@ -72,12 +72,12 @@ def sync_ohlcv_from_binance(
             "source_db_path": str(resolved_source_db),
             "output_file": "",
         }
-    
+
     collector = BinanceCollector(client)
-    
+
     symbols_to_use = list(symbols) if symbols else list(M2_SYMBOLS)
     timeframes_to_sync = timeframes if timeframes else ["H4"]
-    
+
     summary: dict[str, Any] = {
         "status": "ok",
         "timestamp_utc_ms": _utc_now_ms(),
@@ -88,14 +88,14 @@ def sync_ohlcv_from_binance(
         "error_count": 0,
         "items": [],
     }
-    
+
     # Mapear nomes Binance → nomes locais
     timeframe_map = {
         "D1": "1d",
         "H4": "4h",
         "H1": "1h",
     }
-    
+
     for symbol in symbols_to_use:
         for timeframe in timeframes_to_sync:
             if timeframe not in timeframe_map:
@@ -107,7 +107,7 @@ def sync_ohlcv_from_binance(
                     "reason": f"Timeframe inválido: {timeframe}",
                 })
                 continue
-            
+
             binance_tf = timeframe_map[timeframe]
             try:
                 # Buscar candles recentes (últimos 2 = ultimos ~8h para H4)
@@ -116,7 +116,7 @@ def sync_ohlcv_from_binance(
                     binance_tf,
                     days=1,  # Busca 1 dia de data, mas será apenas os candles recentes
                 )
-                
+
                 if data is None or data.empty:
                     summary["error_count"] += 1
                     summary["items"].append({
@@ -125,10 +125,10 @@ def sync_ohlcv_from_binance(
                         "status": "no_data",
                     })
                     continue
-                
+
                 # Inserir/atualizar no banco
                 db.insert_ohlcv(timeframe.lower(), data)
-                
+
                 summary["synced_count"] += 1
                 summary["items"].append({
                     "symbol": symbol,
@@ -137,7 +137,7 @@ def sync_ohlcv_from_binance(
                     "rows": len(data),
                     "latest_timestamp": int(data.iloc[-1]["timestamp"]) if len(data) > 0 else None,
                 })
-                
+
             except Exception as e:
                 summary["error_count"] += 1
                 summary["items"].append({
@@ -146,14 +146,14 @@ def sync_ohlcv_from_binance(
                     "status": "error",
                     "reason": str(e),
                 })
-    
+
     # Persistir summary
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_file = resolved_output_dir / f"sync_ohlcv_from_binance_{run_id}.json"
-    
+
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=True, default=str)
-    
+
     summary["output_file"] = str(output_file)
     return summary
 
