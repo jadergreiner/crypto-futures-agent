@@ -1,18 +1,38 @@
-2. Prompt Otimizado para Copilot (Foco em Python)
-Copie e use este prompt para garantir que o Copilot respeite as boas práticas de engenharia Python ao finalizar uma task:
+# Prompt Otimizado para Copilot (Pos-task no M2 model-driven)
 
-Contexto: Finalizei a task [NOME_DA_TASK] em Python.
+Contexto: Finalizei a task [NOME_DA_TASK] no projeto crypto-futures-agent.
 
-Ações de Arquiteto:
+Acoes de Arquiteto:
 
-Code Review Interno: Verifique se segui a PEP 8 e se usei Type Hints em todas as novas funções/classes.
+1. Coerencia arquitetural
 
-Data Models: Se alterei modelos SQLAlchemy, Django ORM ou classes Pydantic, atualize o data_models.md com os novos campos e tipos.
+- Verifique se a mudanca respeita o fluxo model-driven:
+  estado -> inferencia -> safety envelope -> execucao/reconciliacao ->
+  aprendizado.
+- Garanta que a decisao de trade permanece no modelo
+  (OPEN_LONG, OPEN_SHORT, HOLD, REDUCE, CLOSE).
 
-Arquitetura (Imports): Verifique se não criei importações circulares ou violei camadas (ex: lógica de negócio dentro de uma rota FastAPI/Flask). Atualize o architecture.md.
+1. Guard-rails e risco
 
-Testes: Garanta que a task incluiu testes em pytest. Se não, sugira os casos de teste básicos.
+- Confirme que `risk/risk_gate.py` e `risk/circuit_breaker.py` permanecem
+  ativos nos caminhos alterados.
+- Em caso de ambiguidade operacional, confirmar comportamento fail-safe.
 
-Backlog & Docs: Marque a task no BACKLOG.md e atualize o ROADMAP.md. Gere o registro no CHANGELOG.md focando no impacto técnico.
+1. Qualidade de codigo e testes
 
-Saída: Apresente o resumo das alterações nos arquivos de documentação e valide se a estrutura do código está "Pythonic".
+- Verifique padrao Python (PEP 8) e type hints nas funcoes novas.
+- Garanta testes relevantes em pytest para o comportamento alterado.
+
+1. Sincronizacao de docs
+
+- Se houve impacto em arquitetura/regras/dados, sincronize:
+  `docs/ARQUITETURA_ALVO.md`, `docs/REGRAS_DE_NEGOCIO.md`,
+  `docs/MODELAGEM_DE_DADOS.md`.
+- Registre alteracoes em `docs/SYNCHRONIZATION.md` com tag `[SYNC]`.
+
+1. Saida obrigatoria
+
+- Liste os arquivos alterados.
+- Informe riscos de regressao.
+- Indique testes executados e resultado.
+- Diga se esta pronto para commit (`[SYNC]`, `[FIX]`, `[FEAT]`, etc.).

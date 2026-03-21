@@ -13,16 +13,19 @@ Instrucoes para agentes no repositorio `crypto-futures-agent`.
 ## Architecture
 
 - Linguagem principal: Python.
-- Arquitetura operacional: Modelo 2.0 em 5 camadas.
-- Scanner: `core/model2/scanner.py` e `scripts/model2/scan.py`.
-- Rastreador/validador: `core/model2/validator.py` e
-  `core/model2/resolver.py`.
-- Ponte de sinal: `core/model2/signal_bridge.py` e
-  `core/model2/signal_adapter.py`.
-- Camada de ordem: `core/model2/order_layer.py`.
-- Execucao live: `core/model2/live_execution.py`,
-  `core/model2/live_service.py` e `core/model2/live_exchange.py`.
-- Bancos: `db/crypto_agent.db` (legado) e `db/modelo2.db` (canonico M2).
+- Arquitetura operacional vigente: Modelo 2.0 model-driven.
+- A decisao de trade nasce no modelo, com acoes:
+  - `OPEN_LONG`, `OPEN_SHORT`, `HOLD`, `REDUCE`, `CLOSE`.
+- Guard-rails obrigatorios e inviolaveis:
+  - `risk/risk_gate.py`
+  - `risk/circuit_breaker.py`
+- Camadas operacionais vigentes:
+  1. Coleta de estado de mercado.
+  2. Inference de policy model.
+  3. Safety envelope.
+  4. Execucao e reconciliacao.
+  5. Persistencia e aprendizado continuo.
+- Banco canonico M2: `db/modelo2.db`.
 
 ## Build and Test
 
@@ -53,7 +56,7 @@ Instrucoes para agentes no repositorio `crypto-futures-agent`.
 Ao pedir "proxima tarefa", prioridade ou planejamento:
 
 1. Ler `docs/BACKLOG.md`.
-2. Conferir `docs/TRACKER.md`.
+2. Conferir `docs/TRACKER.md` (se existir no workspace atual).
 3. Complementar com `docs/ROADMAP.md`.
 4. Se necessario, cruzar com GitHub Issues abertas.
 

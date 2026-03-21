@@ -18,7 +18,7 @@ Reforcar reconciliacao de estado e idempotencia no ponto critico de execucao.
 
 ## Regras de Idempotencia
 
-- Evitar envio duplicado para o mesmo `technical_signal_id`.
+- Evitar envio duplicado para a mesma decisao efetiva do modelo.
 - Antes de enviar ordem, validar se ja existe execucao ativa equivalente.
 - Em retries, usar chaves/identificadores estaveis para evitar duplicidade.
 
@@ -35,7 +35,8 @@ Registrar eventos com:
 - `reason`
 - `status`
 - `timestamp`
-- `metadata` (order_id, symbol, execution_id, origem da decisao)
+- `metadata` (`decision_id`, `execution_id`, `order_id`, `symbol`,
+  origem da decisao)
 
 ## Escopo de Mudanca
 
