@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import threading
+import time
 from pathlib import Path
 from datetime import datetime
 import numpy as np
@@ -15,7 +16,9 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Supprime INFO e WARNING (mantém ERROR)
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Evita warnings de oneDNN
 
-from config.settings import DB_PATH, TRADING_MODE, HISTORICAL_PERIODS
+from config.settings import (
+    DB_PATH, TRADING_MODE, HISTORICAL_PERIODS, M2_EXECUTION_MODE, M2_LIVE_SYMBOLS, M2_LOOP_SECONDS
+)
 from config.symbols import ALL_SYMBOLS
 from data.database import DatabaseManager
 from data.binance_client import create_binance_client
@@ -24,6 +27,7 @@ from data.sentiment_collector import SentimentCollector
 from data.macro_collector import MacroCollector
 from data.background_data_collector import start_background_collector
 from monitoring.logger import AgentLogger
+from core.live_cycle_orchestrator import LiveCycleOrchestrator
 
 # Setup logger
 logger = AgentLogger.setup_logger()
@@ -787,6 +791,19 @@ def main():
         help='Interval in seconds for concurrent training cycles (default: 14400 = 4 hours)'
     )
 
+    parser.add_argument(
+        '--run-m2-cycle',
+        action='store_true',
+        help='Run the M2 model-driven orchestration cycle continuously'
+    )
+
+    parser.add_argument(
+        '--m2-loop-seconds',
+        type=int,
+        default=M2_LOOP_SECONDS,
+        help=f'Loop time in seconds for the M2 cycle (default: {M2_LOOP_SECONDS})'
+    )
+
     args = parser.parse_args()
 
     # Banner
@@ -800,6 +817,23 @@ def main():
     db = setup_database()
 
     # Fluxo de execução
+    if args.run_m2_cycle:
+        logger.info("Starting M2 model-driven cycle execution.")
+        try:
+            orchestrator = LiveCycleOrchestrator(
+                execution_mode=M2_EXECUTION_MODE,
+                symbols=M2_LIVE_SYMBOLS
+            )
+            while True:
+                orchestrator.run_cycle()
+                logger.info(f"M2 cycle finished. Waiting for {args.m2_loop_seconds} seconds...")
+                time.sleep(args.m2_loop_seconds)
+        except KeyboardInterrupt:
+            logger.info("M2 cycle interrupted by user.")
+        except Exception as e:
+            logger.critical(f"A critical error occurred in the M2 cycle orchestrator: {e}", exc_info=True)
+        sys.exit(0)
+        
     if args.dry_run:
         # Modo dry-run: não requer API keys
         run_dry_run()
