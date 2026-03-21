@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-021] Adicionar secao Agent Customizations ao copilot-instructions
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Copilot instructions | .github/copilot-instructions.md | Secao Agent Customizations com instructions, prompts, skills e workflows |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-021] |
+
+#### Observacoes
+
+- Instructions listadas com escopo applyTo.
+- Prompts listados para invocacao explicita.
+- Skills listadas para carga sob demanda.
+- Workflows CI/CD listados com gatilhos.
+
+---
+
 ### [SYNC-020] Atualizar copilot-instructions conforme arquitetura nova
 
 **Data/Hora**: 2026-03-21 UTC

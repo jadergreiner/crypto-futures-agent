@@ -87,6 +87,42 @@ Ao pedir "proxima tarefa", prioridade ou planejamento:
 - Nao alterar arquitetura global para resolver problema local.
 - Nao deixar mudanca de codigo sem atualizacao dos docs dependentes.
 
+## Agent Customizations
+
+### Instructions (aplicadas automaticamente por escopo)
+
+| Arquivo | Escopo (`applyTo`) | Descricao |
+| --- | --- | --- |
+| `.github/instructions/docs-sync.instructions.md` | `docs/**` | Checklist MD013 e padrao de sincronizacao |
+| `.github/instructions/incident-logs.instructions.md` | `logs/**` | Padrao de artefatos JSON para incidentes |
+| `.github/instructions/m2-reconciliation.instructions.md` | `core/model2/live_service.py` | Regras de idempotencia por `decision_id` |
+| `.github/instructions/model2-live.instructions.md` | `core/model2/**` | Regras extras para o live M2 |
+| `.github/instructions/preflight-gates.instructions.md` | `scripts/model2/go_live_preflight.py` | Gates de liberacao live |
+
+### Prompts (invocar explicitamente)
+
+| Arquivo | Descricao |
+| --- | --- |
+| `.github/prompts/post-task.md` | Revisao pos-task: coerencia, guard-rails, docs, commit |
+| `.github/prompts/preflight-live-check.prompt.md` | Validar ambiente e risco antes de ir para live |
+| `.github/prompts/m2-go-no-go-report.prompt.md` | Relatorio GO/NO-GO para promocao shadow→live |
+| `.github/prompts/m2-sev1-triage.prompt.md` | Triage de incidente SEV-1 em execucao M2 |
+
+### Skills (carregar sob demanda)
+
+| Skill | Descricao |
+| --- | --- |
+| `backlog-development` | Gerenciar backlog, atualizar status, mover sprints |
+| `live-release-readiness` | Workflow GO/NO-GO para promocao para live |
+| `m2-incident-response` | Playbook de incidente: evidencias, mitigacao, auditoria |
+
+### Workflows CI/CD
+
+| Arquivo | Gatilho | Descricao |
+| --- | --- | --- |
+| `.github/workflows/docs-validate.yml` | `push` / `pull_request` | Valida markdownlint e sincronizacao de docs |
+| `.github/workflows/model2-smoke.yml` | `push` / `pull_request` | Smoke test do pipeline M2 (dry-run + healthcheck) |
+
 ## Referencias (Link, nao duplicar)
 
 - Visao geral: `README.md`.
