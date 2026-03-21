@@ -14,16 +14,27 @@ from .rl_model_loader import RLModelLoader
 from .live_exchange import Model2LiveExchange
 from .live_execution import (
     LiveExecutionConfig,
+    LiveExecutionGateDecision,
     LiveExecutionGateInput,
     M2_009_3_RULE_ID,
     M2_009_4_RULE_ID,
     M2_010_1_RULE_ID,
+    SIGNAL_EXECUTION_STATUS_BLOCKED,
     SIGNAL_EXECUTION_STATUS_ENTRY_FILLED,
     SIGNAL_EXECUTION_STATUS_ENTRY_SENT,
     SIGNAL_EXECUTION_STATUS_PROTECTED,
     SIGNAL_EXECUTION_STATUS_READY,
     evaluate_live_execution_gate,
 )
+from .model_decision import (
+    ACTION_HOLD,
+    ACTION_OPEN_LONG,
+    ACTION_OPEN_SHORT,
+    ModelDecision,
+    ModelDecisionInput,
+)
+from .model_inference_service import ModelInferenceService
+from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
 
 _PROTECTION_MAX_RETRIES = 3
@@ -44,6 +55,7 @@ class Model2LiveExecutionService:
         self.config = config
         self.exchange = exchange
         self._rl_loader = RLModelLoader()
+        self._inference_service = ModelInferenceService()
 
     @staticmethod
     def build_config(
@@ -238,8 +250,185 @@ class Model2LiveExecutionService:
             timeframe=timeframe,
             limit=limit,
         ):
+            position_state: dict[str, Any] = {}
+            if self.config.execution_mode == "live" and self.exchange is not None:
+                position = self.exchange.get_open_position(str(candidate["symbol"]))
+                if position:
+                    position_state = {
+                        "has_open_position": True,
+                        "position_size_qty": float(position.get("position_size_qty") or 0.0),
+                        "entry_price": float(position.get("entry_price") or 0.0),
+                    }
+
+            builder_result = build_model_decision_input(
+                candidate=candidate,
+                decision_timestamp=int(now_ms),
+                model_version=self._inference_service.model_version,
+                execution_mode=self.config.execution_mode,
+                max_margin_per_position_usd=self.config.max_margin_per_position_usd,
+                position_state=position_state,
+                risk_context={
+                    "active_executions_for_symbol": self.repository.count_active_live_executions_for_symbol(
+                        symbol=str(candidate["symbol"]),
+                        execution_mode=self.config.execution_mode,
+                    ),
+                    "recent_entries_today": self.repository.count_live_entries_today(
+                        execution_mode=self.config.execution_mode,
+                        now_ms=now_ms,
+                    ),
+                },
+            )
+
+            inference = None
+            model_input: ModelDecisionInput | None = builder_result.model_input
+            if model_input is not None:
+                inference = self._inference_service.infer(model_input)
+
+            inference_model_version = (
+                str(inference.model_version)
+                if inference is not None
+                else self._inference_service.model_version
+            )
+            inference_latency_ms = int(inference.inference_latency_ms) if inference is not None else 0
+            inference_rule_id = (
+                str(inference.rule_id)
+                if inference is not None
+                else M2_020_3_RULE_ID
+            )
+
+            inferred_decision: ModelDecision
+            if inference is not None and inference.accepted and inference.decision is not None:
+                inferred_decision = inference.decision
+            elif builder_result.success is False:
+                inferred_decision = ModelDecision(
+                    action=ACTION_HOLD,
+                    confidence=0.0,
+                    size_fraction=0.0,
+                    sl_target=None,
+                    tp_target=None,
+                    reason_code="invalid_model_inference_state",
+                    decision_timestamp=int(now_ms),
+                    symbol=str(candidate["symbol"]),
+                    model_version=self._inference_service.model_version,
+                    metadata={
+                        "state_builder": {
+                            "error_code": builder_result.error_code,
+                            "error_message": builder_result.error_message,
+                            "schema_version": builder_result.schema_version,
+                            "generated_at_ms": builder_result.generated_at_ms,
+                            "diagnostics": dict(builder_result.diagnostics),
+                        }
+                    },
+                )
+            else:
+                inferred_decision = ModelDecision(
+                    action=ACTION_HOLD,
+                    confidence=0.0,
+                    size_fraction=0.0,
+                    sl_target=None,
+                    tp_target=None,
+                    reason_code=str(inference.reason if inference is not None else "inference_unavailable"),
+                    decision_timestamp=int(now_ms),
+                    symbol=str(candidate["symbol"]),
+                    model_version=inference_model_version,
+                    metadata={
+                        "fallback_from_inference_error": dict(inference.details if inference is not None else {}),
+                    },
+                )
+
+            created_decision = self.repository.create_model_decision(
+                decision_timestamp=int(inferred_decision.decision_timestamp),
+                symbol=str(inferred_decision.symbol),
+                action=str(inferred_decision.action),
+                confidence=float(inferred_decision.confidence),
+                size_fraction=float(inferred_decision.size_fraction),
+                sl_target=(float(inferred_decision.sl_target) if inferred_decision.sl_target is not None else None),
+                tp_target=(float(inferred_decision.tp_target) if inferred_decision.tp_target is not None else None),
+                model_version=inference_model_version,
+                reason_code=str(inferred_decision.reason_code),
+                inference_latency_ms=inference_latency_ms,
+                input_payload={
+                    "symbol": str(model_input.symbol) if model_input is not None else str(candidate["symbol"]),
+                    "timeframe": str(model_input.timeframe) if model_input is not None else str(candidate["timeframe"]),
+                    "market_state": dict(model_input.market_state) if model_input is not None else {},
+                    "state_schema_version": str(builder_result.schema_version),
+                    "state_generated_at_ms": int(builder_result.generated_at_ms),
+                },
+                output_payload={
+                    "accepted": bool(inference.accepted if inference is not None else False),
+                    "reason": str(
+                        inference.reason
+                        if inference is not None
+                        else (builder_result.error_message or "invalid_model_inference_state")
+                    ),
+                    "state_builder": {
+                        "success": bool(builder_result.success),
+                        "error_code": builder_result.error_code,
+                        "diagnostics": dict(builder_result.diagnostics),
+                        "rule_id": M2_020_3_RULE_ID,
+                    },
+                    "decision": {
+                        "action": str(inferred_decision.action),
+                        "confidence": float(inferred_decision.confidence),
+                        "size_fraction": float(inferred_decision.size_fraction),
+                    },
+                },
+                created_at=int(now_ms),
+            )
+
             gate_input = self._build_gate_input(candidate, now_ms=now_ms)
-            decision = evaluate_live_execution_gate(gate_input)
+            if builder_result.success is False:
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="invalid_model_inference_state",
+                    rule_id=M2_020_3_RULE_ID,
+                    details={
+                        "decision_id": int(created_decision.decision_id),
+                        "error_code": builder_result.error_code,
+                        "error_message": builder_result.error_message,
+                        "state_schema_version": builder_result.schema_version,
+                    },
+                )
+            elif inferred_decision.action == ACTION_HOLD:
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="model_action_hold",
+                    rule_id=inference_rule_id,
+                    details={
+                        "decision_id": int(created_decision.decision_id),
+                        "model_version": inference_model_version,
+                        "inference_latency_ms": inference_latency_ms,
+                    },
+                )
+            elif inferred_decision.action == ACTION_OPEN_LONG and str(candidate["signal_side"]).upper() != "LONG":
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="model_action_mismatch",
+                    rule_id=inference_rule_id,
+                    details={
+                        "expected_side": "LONG",
+                        "signal_side": str(candidate["signal_side"]),
+                        "decision_id": int(created_decision.decision_id),
+                    },
+                )
+            elif inferred_decision.action == ACTION_OPEN_SHORT and str(candidate["signal_side"]).upper() != "SHORT":
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="model_action_mismatch",
+                    rule_id=inference_rule_id,
+                    details={
+                        "expected_side": "SHORT",
+                        "signal_side": str(candidate["signal_side"]),
+                        "decision_id": int(created_decision.decision_id),
+                    },
+                )
+            else:
+                decision = evaluate_live_execution_gate(gate_input)
+
             result = self.repository.create_signal_execution_candidate(
                 technical_signal_id=int(candidate["id"]),
                 opportunity_id=int(candidate["opportunity_id"]),
@@ -250,12 +439,24 @@ class Model2LiveExecutionService:
                 gate_decision=decision,
                 execution_mode=self.config.execution_mode,
                 now_ms=now_ms,
+                decision_id=int(created_decision.decision_id),
+                decision_trace={
+                    "decision_id": int(created_decision.decision_id),
+                    "model_version": inference_model_version,
+                    "inference_latency_ms": inference_latency_ms,
+                    "action": str(inferred_decision.action),
+                    "confidence": float(inferred_decision.confidence),
+                    "reason_code": str(inferred_decision.reason_code),
+                },
             )
             items.append(
                 {
                     "technical_signal_id": int(candidate["id"]),
                     "symbol": str(candidate["symbol"]),
                     "timeframe": str(candidate["timeframe"]),
+                    "decision_id": int(created_decision.decision_id),
+                    "model_version": inference_model_version,
+                    "inference_latency_ms": inference_latency_ms,
                     "created": bool(result.created),
                     "execution_id": result.execution_id,
                     "status": result.current_status,
@@ -320,22 +521,22 @@ class Model2LiveExecutionService:
             )
             try:
                 if order_id and self.exchange is not None:
-                    remote = self.exchange.query_order(symbol=self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol"), order_id=order_id)
+                    raw_symbol = self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol")
+                    symbol = str(raw_symbol) if raw_symbol else ""
+                    remote = self.exchange.query_order(symbol=symbol, order_id=order_id) if symbol else None
                     if remote:
                         for k in qty_keys:
                             if k in remote and remote.get(k) is not None:
-                                try:
-                                    filled_qty = float(remote.get(k)) if float(remote.get(k)) > 0 else filled_qty
+                                parsed_qty = self._to_float(remote.get(k))
+                                if parsed_qty is not None and parsed_qty > 0:
+                                    filled_qty = parsed_qty
                                     break
-                                except Exception:
-                                    continue
                         for k in price_keys:
                             if k in remote and remote.get(k) is not None:
-                                try:
-                                    filled_price = float(remote.get(k)) if float(remote.get(k)) > 0 else filled_price
+                                parsed_price = self._to_float(remote.get(k))
+                                if parsed_price is not None and parsed_price > 0:
+                                    filled_price = parsed_price
                                     break
-                                except Exception:
-                                    continue
             except Exception:
                 # ignore query failures here and fallback to position
                 pass
@@ -641,7 +842,9 @@ class Model2LiveExecutionService:
                 )
                 try:
                     if order_id and self.exchange is not None:
-                        last_remote_order = self.exchange.query_order(symbol=self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol"), order_id=order_id)
+                        raw_symbol = self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol")
+                        symbol = str(raw_symbol) if raw_symbol else ""
+                        last_remote_order = self.exchange.query_order(symbol=symbol, order_id=order_id) if symbol else None
                         if last_remote_order:
                             q_filled, q_price = self._extract_fill_from_order_response(last_remote_order, fallback_position=current_position)
                             if q_filled is not None:

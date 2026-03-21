@@ -161,6 +161,13 @@ class TransitionSignalExecutionResult:
     reason: str
 
 
+@dataclass(frozen=True)
+class CreateModelDecisionResult:
+    """Resultado da persistencia de uma decisao model-driven."""
+
+    decision_id: int
+
+
 class Model2ThesisRepository:
     """Repository that writes opportunities and initial events in one transaction."""
 
@@ -1379,7 +1386,7 @@ class Model2ThesisRepository:
         query = [
             "SELECT",
             "  se.id, se.technical_signal_id, se.opportunity_id, se.symbol, se.timeframe, se.signal_side,",
-            "  se.execution_mode, se.status, se.entry_order_type, se.gate_reason, se.exchange_order_id,",
+            "  se.execution_mode, se.status, se.entry_order_type, se.gate_reason, se.decision_id, se.exchange_order_id,",
             "  se.client_order_id, se.requested_qty, se.filled_qty, se.filled_price, se.stop_order_id,",
             "  se.take_profit_order_id, se.entry_sent_at, se.entry_filled_at, se.protected_at,",
             "  se.exited_at, se.exit_reason, se.exit_price, se.failure_reason, se.payload_json,",
@@ -1422,7 +1429,7 @@ class Model2ThesisRepository:
                 """
                 SELECT
                     se.id, se.technical_signal_id, se.opportunity_id, se.symbol, se.timeframe, se.signal_side,
-                    se.execution_mode, se.status, se.entry_order_type, se.gate_reason, se.exchange_order_id,
+                    se.execution_mode, se.status, se.entry_order_type, se.gate_reason, se.decision_id, se.exchange_order_id,
                     se.client_order_id, se.requested_qty, se.filled_qty, se.filled_price, se.stop_order_id,
                     se.take_profit_order_id, se.entry_sent_at, se.entry_filled_at, se.protected_at,
                     se.exited_at, se.exit_reason, se.exit_price, se.failure_reason, se.payload_json,
@@ -1847,6 +1854,8 @@ class Model2ThesisRepository:
         gate_decision: LiveExecutionGateDecision,
         execution_mode: str,
         now_ms: int,
+        decision_id: int | None = None,
+        decision_trace: Mapping[str, Any] | None = None,
     ) -> CreateSignalExecutionResult:
         """Create a live execution candidate row from a CONSUMED technical signal."""
 
@@ -1918,6 +1927,8 @@ class Model2ThesisRepository:
                         "created_rule_id": M2_009_1_RULE_ID,
                     },
                 }
+                if decision_trace:
+                    payload["model_decision"] = dict(decision_trace)
 
                 cursor = conn.execute(
                     """
@@ -1931,10 +1942,11 @@ class Model2ThesisRepository:
                         status,
                         entry_order_type,
                         gate_reason,
+                        decision_id,
                         payload_json,
                         created_at,
                         updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         int(technical_signal_id),
@@ -1946,6 +1958,7 @@ class Model2ThesisRepository:
                         str(gate_decision.target_status),
                         ENTRY_ORDER_TYPE_MARKET,
                         str(gate_decision.reason),
+                        int(decision_id) if decision_id is not None else None,
                         json.dumps(payload, ensure_ascii=True, sort_keys=True),
                         int(now_ms),
                         int(now_ms),
@@ -1972,6 +1985,68 @@ class Model2ThesisRepository:
                     current_status=str(gate_decision.target_status),
                     reason=str(gate_decision.reason),
                 )
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+    def create_model_decision(
+        self,
+        *,
+        decision_timestamp: int,
+        symbol: str,
+        action: str,
+        confidence: float,
+        size_fraction: float,
+        sl_target: float | None,
+        tp_target: float | None,
+        model_version: str,
+        reason_code: str,
+        inference_latency_ms: int,
+        input_payload: Mapping[str, Any] | None = None,
+        output_payload: Mapping[str, Any] | None = None,
+        created_at: int,
+    ) -> CreateModelDecisionResult:
+        """Persist decisao model-driven para trilha auditavel de inferencia."""
+
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO model_decisions (
+                        decision_timestamp,
+                        symbol,
+                        action,
+                        confidence,
+                        size_fraction,
+                        sl_target,
+                        tp_target,
+                        model_version,
+                        reason_code,
+                        inference_latency_ms,
+                        input_json,
+                        output_json,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        int(decision_timestamp),
+                        str(symbol),
+                        str(action),
+                        float(confidence),
+                        float(size_fraction),
+                        float(sl_target) if sl_target is not None else None,
+                        float(tp_target) if tp_target is not None else None,
+                        str(model_version),
+                        str(reason_code),
+                        int(inference_latency_ms),
+                        json.dumps(dict(input_payload) if input_payload else {}, ensure_ascii=True, sort_keys=True),
+                        json.dumps(dict(output_payload) if output_payload else {}, ensure_ascii=True, sort_keys=True),
+                        int(created_at),
+                    ),
+                )
+                conn.execute("COMMIT")
+                return CreateModelDecisionResult(decision_id=int(cursor.lastrowid))
             except Exception:
                 conn.execute("ROLLBACK")
                 raise

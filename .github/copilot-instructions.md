@@ -76,8 +76,8 @@ Instrucoes para agentes no repositorio `crypto-futures-agent`.
 Ao pedir "proxima tarefa", prioridade ou planejamento:
 
 1. Ler `docs/BACKLOG.md`.
-2. Conferir `docs/TRACKER.md` (se existir no workspace atual).
-3. Complementar com `docs/ROADMAP.md`.
+2. Ler `docs/PRD.md`.
+3. Complementar com `docs/ARQUITETURA_ALVO.md` quando necessario.
 4. Se necessario, cruzar com GitHub Issues abertas.
 
 ## Common Pitfalls

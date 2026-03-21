@@ -2,14 +2,15 @@
 
 **Status:** OPERACIONAL (15 MAR 2026)
 **Versão:** M2-016.4 (LSTM Policy & Training)
-**Checkpoint:** LSTM Policy integrated, Treino PPO vs MLP | Sharpe evaluation: IN PROGRESS
+**Checkpoint:** LSTM Policy integrated, Treino PPO vs MLP |
+Sharpe evaluation: IN PROGRESS
 
 ## 📊 Resultados de Treinamento (14 MAR 2026)
 
 ### Execução M2-016.1 — Treino PPO Incremental
 
 | Métrica | Valor |
-|---------|-------|
+| --------- | ------- |
 | Timesteps Treinos | 500,000 ✓ |
 | Duração Treinamento | 1118.3s (18.6 min) |
 | Dataset Episodes | 7 episódios |
@@ -68,6 +69,7 @@ python scripts/model2/daemon_funding_rates.py --symbols BTCUSDT,ETHUSDT
 ```
 
 Dados coletados:
+
 - `latest_rate`: Taxa atual da posição perpetual
 - `avg_rate_24h`: Média móvel 24h (prediz reversão)
 - `sentiment`: Classificação (bullish/neutral/bearish)
@@ -97,6 +99,7 @@ Estado esperado: >= 90% de episódios com features enriquecidas.
 Descoberta: sentimento de FR prediz resultado com r=0.27 (p=0.006, significante).
 
 Implicação operacional:
+
 ```
 FR Bearish  → 0.00% win rate (SINAL FORTE DE PERDA)
 FR Neutral  → 37.14% win rate (baseline)
@@ -106,6 +109,7 @@ FR Bullish  → 25.81% win rate (não melhor)
 Recomendação: Rejeitar sinais quando `fr_sentiment = bearish`.
 
 Executar análise semanal:
+
 ```bash
 python scripts/model2/phase_d4_correlation_analysis.py \
   --db-path db/modelo2.db \
@@ -118,9 +122,11 @@ python scripts/model2/phase_d4_correlation_analysis.py \
 
 ### Fase E.6: Enriquecimento com Indicadores Avancados (15 MAR — EM PROGRESSO)
 
-Nova fase dedica à adição de indicadores avançados para melhorar discriminação de sinais.
+Nova fase dedica à adição de indicadores avançados para melhorar
+discriminação de sinais.
 
-**Objetivo:** Expandir de 22 features (E.5) para 26 features com indicadores de momentum.
+**Objetivo:** Expandir de 22 features (E.5) para 26 features com
+indicadores de momentum.
 
 **Novos Indicadores (4 features):**
 
@@ -164,7 +170,7 @@ Categorias de Features por Tipo:
 **Status de Implementacao:**
 
 | Componente | Status | Evidencia |
-|-----------|--------|-----------|
+| ----------- | -------- | ----------- |
 | Feature Enricher método Stochastic | ✅ OK | `calculate_stochastic()` |
 | Feature Enricher método Williams | ✅ OK | `calculate_williams_r()` |
 | Feature Enricher método ATR Norm | ✅ OK | `calculate_atr_normalized()` |
@@ -219,7 +225,7 @@ de performance.
 **Hiperparametros a Otimizar:**
 
 | Parametro | Range | Baseline E.6 |
-|-----------|-------|--------------|
+| ----------- | ------- | -------------- |
 | Learning Rate | [1e-5, 1e-3] | 3e-4 |
 | Batch Size | [32, 64, 128] | 64 |
 | Entropy Coef | [0.0, 0.1] | 0.01 |
@@ -236,7 +242,7 @@ de performance.
 **Status de Implementacao:**
 
 | Componente | Status | Evidencia |
-|-----------|--------|-----------|
+| ----------- | -------- | ----------- |
 | Script Optuna grid search | ✅ OK | `optuna_grid_search_ppo.py` |
 | Estrutura de otimizacao | ✅ OK | TPESampler + MedianPruner |
 | Objective functions | ✅ OK | MLP e LSTM separadas |
@@ -275,7 +281,7 @@ com 26 features e validar melhoria teórica em prática.
 **Status de Implementacao:**
 
 | Componente | Status | Evidencia |
-|-----------|--------|-----------|
+| ----------- | -------- | ----------- |
 | Script retrain | ✅ OK | `retrain_ppo_with_optuna_params.py` |
 | Load best params | ✅ OK | Carrega de E.7 results JSON |
 | Script comparacao | ✅ OK | `compare_e6_vs_e8_sharpe.py` |
@@ -304,7 +310,7 @@ Publicar resultados em results/model2/analysis/
 **Metricas Esperadas (E.8 vs E.6):**
 
 | Baseline | Meta E.8 | Melhoria |
-|----------|----------|----------|
+| ---------- | ---------- | ---------- |
 | MLP Sharpe: 1.23 | >=1.35 | +10% |
 | LSTM Sharpe: 1.15 | >=1.27 | +10% |
 | MLP Win Rate: 54% | >=57% | +5% |
@@ -318,7 +324,7 @@ para melhorar robustez, reduzir volatilidade e aumentar consistencia.
 **Status de Implementacao:**
 
 | Componente | Status | Evidencia |
-|-----------|--------|----------|
+| ----------- | -------- | ---------- |
 | Soft voting | ✅ OK | `ensemble_voting_ppo.py` |
 | Hard voting | ✅ OK | `ensemble_voting_ppo.py` |
 | Avaliacao | ✅ OK | `evaluate_ensemble_e9.py` |
@@ -341,14 +347,14 @@ Benchmark E.5->E.9
 **Metricas Esperadas:**
 
 | Baseline | Meta | Beneficio |
-|----------|------|----------|
+| ---------- | ------ | ---------- |
 | Ensemble Sharpe | >=1.40 | +5-10% |
 | Ensemble Win Rate | >=56% | Consistencia |
 | Consenso Votos | >75% | Coesao |
 
 ---
 
-## Próximas Fases
+## Proximas Etapas
 
 ### Arquitetura
 
@@ -408,6 +414,7 @@ Cada ciclo da pipeline gera **episódios de treinamento** que alimentam o modelo
 ```
 
 **Tabela**: `training_episodes` em `db/modelo2.db`
+
 - 7 episódios atuais (H4, todos simbologia 'context')
 - Crescimento esperado: 8 episódios/ciclo × 288 ciclos/dia = 2.3k episódios/dia
 
@@ -416,10 +423,12 @@ Cada ciclo da pipeline gera **episódios de treinamento** que alimentam o modelo
 Script: `scripts/model2/train_ppo_incremental.py`
 
 **Entrada:**
+
 - Episódios persistidos da semana (2k+ amostras)
 - Modelo anterior (para fine-tune)
 
 **Pipeline:**
+
 ```
 Load Episodes (2k+)  →  Prepare Dataset  →  Train PPO  →  Save Checkpoint
   7 episódios          Obs shape (7,5)      10k steps     ppo_model.pkl
@@ -428,6 +437,7 @@ Load Episodes (2k+)  →  Prepare Dataset  →  Train PPO  →  Save Checkpoint
 ```
 
 **Saída:**
+
 ```
 checkpoints/ppo_training/
   ├── ppo_model.pkl                    (modelo treinado)
@@ -440,6 +450,7 @@ checkpoints/ppo_training/
 Script: `scripts/model2/rl_signal_generation.py`
 
 **Input:**
+
 - 2 oportunidades detectadas (from BRIDGE stage)
 - Modelo PPO (se disponível em checkpoints/)
 
@@ -500,8 +511,10 @@ Opportunity  →  Extract Features  →  PPO Predict  →  Filter  →  Generate
 ## Modos de Operação
 
 ### Modo 1: Fallback Determinístico (Atual)
+
 **Situação:** Sem modelo PPO treinado
 **Comportamento:**
+
 - ✅ Gera sinais normalmente
 - ✅ Usa confiança padrão (0.7)
 - ⚠️ Sem otimização ML
@@ -513,8 +526,10 @@ rl_enhanced = false
 ```
 
 ### Modo 2: PPO Enhancement (Quando modelo disponível)
+
 **Situação:** Checkpoint PPO em `checkpoints/ppo_training/ppo_model.pkl`
 **Comportamento:**
+
 - ✅ Carrega modelo
 - ✅ Faz predição por oportunidade
 - ✅ Ajusta confiança baseado em concordância PPO/determinístico
@@ -533,6 +548,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ## Features do Modelo RL
 
 **Espaço de Observação:**
+
 ```python
 [
     close_normalized,     # log(close) — fechamento normalizado
@@ -545,6 +561,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ```
 
 **Espaço de Ações:**
+
 ```python
 {
     0: "HOLD",    # Não fazer nada
@@ -557,7 +574,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 **Rewards:**
 
 | Episódio | Label | Reward |
-|----------|-------|--------|
+| ---------- | ------- | -------- |
 | Vitória | `win` | +1.0 |
 | P&L positivo | `profit` | +0.5 a +1.0 (proportional) |
 | Breakeven | `breakeven` | ±0.0 |
@@ -591,6 +608,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ## Próximas Fases
 
 ### ✅ Implementado
+
 - [x] Persistência de episódios (`persist_training_episodes.py`)
 - [x] Geração de sinais com RL (`rl_signal_generation.py`)
 - [x] Integração na pipeline diária
@@ -600,6 +618,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 - [x] Script de Treino PPO Dual MLP/LSTM (`train_ppo_lstm.py`)
 
 ### 🔄 Próximo
+
 - [ ] Executar primeiro treinamento completo (500k timesteps, 96h)
 - [ ] Validar Sharpe ratio gates (0.4 → 0.7 → 1.0)
 - [ ] Testar predições em mercado ao vivo
@@ -609,7 +628,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ### 📊 Métricas de Sucesso
 
 | Métrica | Baseline | Target |
-|---------|----------|--------|
+| --------- | ---------- | -------- |
 | Episódios/dia | 8 | 50+ |
 | Taxa de RL enhancement | 0% | 60%+ |
 | Sharpe ratio médio | - | 0.70+ |
@@ -621,6 +640,7 @@ Filtro: signal_generated = True if rl_confidence >= 0.50
 ### Manual
 
 **Geração de sinais (uma execução):**
+
 ```bash
 python scripts/model2/rl_signal_generation.py \
   --model2-db-path db/modelo2.db \
@@ -628,6 +648,7 @@ python scripts/model2/rl_signal_generation.py \
 ```
 
 **Treinamento incremental (semanal):**
+
 ```bash
 python scripts/model2/train_ppo_incremental.py \
   --model2-db-path db/modelo2.db \
@@ -635,6 +656,7 @@ python scripts/model2/train_ppo_incremental.py \
 ```
 
 ### Automático (via iniciar.bat)
+
 ```batch
 REM Option 2: Model 2.0 Pipeline Runner
 REM Executa diariamente:
@@ -644,16 +666,19 @@ iniciar.bat opção 2
 ## Troubleshooting
 
 ### "Nenhum checkpoint PPO disponível"
+
 **Cause:** Nenhum treinamento executado ainda
 **Solution:** Rodar `train_ppo_incremental.py` uma vez
 **Teste Interim:** Fallback determinístico funciona
 
 ### "Reward: mean=0.100 std=0.000"
+
 **Cause:** Episódios são todos "context" label
 **Solution:** Aguardar execuções com dados pós-trade
 **Status:** Normal em fase inicial
 
 ### "stable_baselines3 indisponível"
+
 **Cause:** Dependência não instalada
 **Solution:** `pip install stable-baselines3[extra]`
 **Teste Interim:** Continua em fallback determinístico

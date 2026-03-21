@@ -60,7 +60,8 @@ goto END
 REM Montar argumentos de simbolos para live_cycle e daily_pipeline
 set "LIVE_SYMBOL_ARGS="
 set "PIPELINE_SYMBOL_ARGS="
-for %%S in (!M2_SYMBOLS:,= !) do (
+set "M2_SYMBOLS_LOOP=!M2_SYMBOLS:,= !"
+for %%S in (!M2_SYMBOLS_LOOP!) do (
     if not "%%~S"=="" (
         set "LIVE_SYMBOL_ARGS=!LIVE_SYMBOL_ARGS! --live-symbol %%~S"
         set "PIPELINE_SYMBOL_ARGS=!PIPELINE_SYMBOL_ARGS! --symbol %%~S"

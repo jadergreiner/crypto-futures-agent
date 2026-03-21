@@ -27,13 +27,15 @@ Campos minimos sugeridos:
 8. `tp_target` (REAL, nulo permitido)
 9. `model_version` (TEXT)
 10. `reason_code` (TEXT)
-11. `features_json` (TEXT)
-12. `created_at` (UTC ms)
+11. `inference_latency_ms` (INTEGER)
+12. `input_json` (TEXT)
+13. `output_json` (TEXT)
+14. `created_at` (UTC ms)
 
 Indices recomendados:
 
 1. `(symbol, decision_timestamp)`
-2. `(action, decision_timestamp)`
+2. `(model_version)`
 
 ## 2) signal_executions
 
@@ -58,6 +60,7 @@ Regras:
 
 1. Uma decisao efetiva nao pode gerar execucao duplicada.
 2. Execucao em `live` exige reconciliacao e trilha de eventos.
+3. `decision_id` pode ser nulo em registros anteriores a migracao 0008.
 
 ## 3) signal_execution_events
 

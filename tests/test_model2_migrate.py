@@ -99,7 +99,7 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
     payload = json.loads(result.stdout)
 
     assert payload["status"] == "ok"
-    assert payload["applied_now"] == [1, 2, 3, 4, 5, 6, 7]
+    assert payload["applied_now"] == [1, 2, 3, 4, 5, 6, 7, 8]
     assert db_path.exists()
 
     with sqlite3.connect(db_path) as conn:
@@ -115,6 +115,7 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "opportunity_dashboard_snapshots" in tables
         assert "opportunity_audit_snapshots" in tables
         assert "technical_signals" in tables
+        assert "model_decisions" in tables
         assert "signal_flow_snapshots" in tables
         assert "signal_executions" in tables
         assert "signal_execution_events" in tables
@@ -169,6 +170,13 @@ def test_migration_creates_schema_indexes_and_runtime_output(tmp_path: Path) -> 
         assert "idx_signal_executions_symbol_status" in signal_execution_indexes
         assert "idx_signal_executions_updated_at" in signal_execution_indexes
         assert "idx_signal_executions_mode_status" in signal_execution_indexes
+        assert "idx_signal_executions_decision_id" in signal_execution_indexes
+
+        model_decision_indexes = {
+            row[1] for row in conn.execute("PRAGMA index_list(model_decisions)").fetchall()
+        }
+        assert "idx_model_decisions_symbol_ts" in model_decision_indexes
+        assert "idx_model_decisions_model_version" in model_decision_indexes
 
         signal_execution_event_indexes = {
             row[1] for row in conn.execute("PRAGMA index_list(signal_execution_events)").fetchall()
@@ -193,13 +201,13 @@ def test_migration_is_idempotent(tmp_path: Path) -> None:
     first = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
     second = json.loads(run_migrate(db_path=db_path, output_dir=output_dir).stdout)
 
-    assert first["applied_now"] == [1, 2, 3, 4, 5, 6, 7]
+    assert first["applied_now"] == [1, 2, 3, 4, 5, 6, 7, 8]
     assert second["applied_now"] == []
-    assert second["total_applied"] == 7
+    assert second["total_applied"] == 8
 
     with sqlite3.connect(db_path) as conn:
         row_count = conn.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
-        assert row_count == 7
+        assert row_count == 8
 
 
 def test_constraints_reject_invalid_values(tmp_path: Path) -> None:

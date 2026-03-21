@@ -115,8 +115,7 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 ## Fontes de Verdade da Documentação
 
 - **`docs/BACKLOG.md`** — Fonte única de verdade para tarefas, sprints e status
-- **`docs/TRACKER.md`** — Tabela visual compacta de sprint
-- **`docs/ROADMAP.md`** — Linha do tempo estratégica
+- **`docs/PRD.md`** — Fonte de verdade de escopo e direcionamento do produto
 - **`docs/REGRAS_DE_NEGOCIO.md`** — Regras de negócio para validação de teses e
   transições de estado
 - **`docs/ARQUITETURA_ALVO.md`** — Arquitetura alvo e schema do DB M2
@@ -149,8 +148,8 @@ e commitar com a tag correta.
   em `docs/BACKLOG.md` sem apenas ler o arquivo.
 - Não aguardar confirmação adicional para operações de escrita no backlog,
   a menos que haja ambiguidade explícita.
-- Após qualquer alteração em `docs/BACKLOG.md`, atualizar `docs/TRACKER.md`
-  e registrar em `docs/SYNCHRONIZATION.md`.
+- Após qualquer alteração em `docs/BACKLOG.md`, atualizar `docs/PRD.md`
+  quando houver impacto de escopo e registrar em `docs/SYNCHRONIZATION.md`.
 
 ## Bootstrap rápido
 

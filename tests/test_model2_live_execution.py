@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from core.model2.model_state_builder import M2_020_3_SCHEMA_VERSION, StateBuilderResult
 from core.model2.repository import Model2ThesisRepository
 from core.model2.scanner import DetectionResult, M2_002_RULE_ID, M2_002_THESIS_TYPE
 from scripts.model2.live_execute import run_live_execute
@@ -166,15 +167,29 @@ def test_run_live_execute_shadow_creates_ready_candidate_without_real_order(tmp_
 
     assert summary["status"] == "ok"
     assert summary["staged"][0]["technical_signal_id"] == signal_id
+    assert summary["staged"][0]["decision_id"] > 0
+    assert summary["staged"][0]["model_version"] == "m2-inference-v1"
+    assert summary["staged"][0]["inference_latency_ms"] >= 0
     assert summary["staged"][0]["status"] == "READY"
     assert summary["processed_ready"][0]["reason"] == "shadow_mode_no_order_sent"
 
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
-            "SELECT execution_mode, status FROM signal_executions WHERE technical_signal_id = ?",
+            "SELECT execution_mode, status, decision_id FROM signal_executions WHERE technical_signal_id = ?",
             (signal_id,),
         ).fetchone()
-    assert row == ("shadow", "READY")
+        decision_row = conn.execute(
+            "SELECT model_version, inference_latency_ms FROM model_decisions WHERE id = ?",
+            (int(row[2]),),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] == "shadow"
+    assert row[1] == "READY"
+    assert int(row[2]) > 0
+    assert decision_row is not None
+    assert decision_row[0] == "m2-inference-v1"
+    assert int(decision_row[1]) >= 0
 
 
 def test_run_live_execute_live_happy_path_transitions_to_protected(tmp_path: Path) -> None:
@@ -200,6 +215,8 @@ def test_run_live_execute_live_happy_path_transitions_to_protected(tmp_path: Pat
     assert summary["status"] == "ok"
     assert exchange.market_calls == 1
     assert exchange.protection_calls == 2
+    assert summary["staged"][0]["decision_id"] > 0
+    assert summary["staged"][0]["model_version"] == "m2-inference-v1"
     assert summary["processed_ready"][0]["status"] == "PROTECTED"
 
     with sqlite3.connect(db_path) as conn:
@@ -305,6 +322,53 @@ def test_run_live_execute_blocks_signal_outside_live_gates_without_order_call(tm
             (signal_id,),
         ).fetchone()
     assert row == ("BLOCKED", "symbol_not_enabled")
+
+
+def test_run_live_execute_blocks_when_inference_state_is_invalid(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    def _always_invalid_builder(**kwargs):
+        return StateBuilderResult(
+            success=False,
+            model_input=None,
+            error_code="invalid_inference_state",
+            error_message="builder_forcado_para_teste",
+            diagnostics={"origin": "test"},
+            generated_at_ms=1_700_000_000_000,
+            schema_version=M2_020_3_SCHEMA_VERSION,
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.build_model_decision_input",
+        _always_invalid_builder,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["status"] == "BLOCKED"
+    assert summary["staged"][0]["reason"] == "invalid_model_inference_state"
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert row == ("BLOCKED", "invalid_model_inference_state")
 
 
 def test_run_live_execute_protection_failure_is_deferred_without_failing_entry(tmp_path: Path) -> None:

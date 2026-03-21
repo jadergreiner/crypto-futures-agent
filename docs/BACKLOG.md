@@ -1013,7 +1013,7 @@ seguranca operacional.
 
 ### TAREFA M2-020.1 - Definir contrato unico de decisao do modelo
 
-Status: BACKLOG
+Status: CONCLUIDA (2026-03-21)
 Entrega:
 
 1. Especificar entrada e saida da decisao do modelo.
@@ -1025,9 +1025,16 @@ Critérios de aceite:
 1. Contrato documentado e validado por testes.
 2. Payload invalido gera erro explicito e bloqueio seguro.
 
+Evidencias:
+
+1. Contrato canonico de decisao: `core/model2/model_decision.py`.
+2. Exposicao no pacote M2: `core/model2/__init__.py`.
+3. Testes do contrato e fail-safe:
+   `tests/test_model2_model_decision.py`.
+
 ### TAREFA M2-020.2 - Criar camada de inferencia desacoplada
 
-Status: BACKLOG
+Status: CONCLUIDA (2026-03-21)
 Entrega:
 
 1. Implementar servico de inferencia independente da tese.
@@ -1037,6 +1044,23 @@ Critérios de aceite:
 
 1. Decisao operacional nasce da inferencia do modelo.
 2. Logs incluem model_version e tempo de inferencia.
+
+Evidencias:
+
+1. Servico desacoplado de inferencia:
+   `core/model2/model_inference_service.py`.
+2. Integracao no ponto de decisao (staging live/shadow):
+   `core/model2/live_service.py`.
+3. Persistencia de `model_decisions` e vinculo por `decision_id`:
+   `core/model2/repository.py`.
+4. Migracao de schema M2:
+   `scripts/model2/migrations/0008_create_model_decisions.sql`.
+5. Runner exigindo tabela `model_decisions`:
+   `scripts/model2/live_execute.py`.
+6. Testes de inferencia desacoplada:
+   `tests/test_model2_model_inference_service.py`.
+7. Testes de migracao e fluxo live atualizados:
+   `tests/test_model2_migrate.py` e `tests/test_model2_live_execution.py`.
 
 ### TAREFA M2-020.3 - Consolidar state builder de mercado
 

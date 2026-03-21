@@ -23,6 +23,32 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-022] M2-020.1/M2-020.2 contrato e inferencia desacoplada
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-020.1 e M2-020.2 marcadas como concluidas com evidencias |
+| Arquitetura alvo | docs/ARQUITETURA_ALVO.md | Inclusao da camada de inferencia desacoplada e metadados |
+| Modelagem de dados | docs/MODELAGEM_DE_DADOS.md | Ajuste de campos reais de model_decisions e correlacao |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-022] |
+
+#### Observacoes
+
+- Implementacao introduziu `model_decisions` no schema M2.
+- Ponto de decisao passou a registrar `decision_id`, `model_version` e
+   `inference_latency_ms`.
+- Fluxo live/shadow manteve guard-rails e fail-safe.
+
+#### Proximos Passos
+
+1. Avancar M2-020.3 para consolidar state builder unico.
+2. Validar sincronismo com `pytest -q tests/test_docs_model2_sync.py`.
+
 ### [SYNC-021] Adicionar secao Agent Customizations ao copilot-instructions
 
 **Data/Hora**: 2026-03-21 UTC

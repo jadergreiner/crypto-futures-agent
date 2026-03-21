@@ -9,8 +9,7 @@ description: |
   Saida: Atualizacoes em docs/, commits audataveis com tag [SYNC]/[FEAT].
 applyTo:
   - docs/BACKLOG.md
-  - docs/TRACKER.md
-  - docs/ROADMAP.md
+  - docs/PRD.md
   - docs/*.md
   - .github/**
 keywords:
@@ -34,8 +33,7 @@ Este skill implementa um workflow multi-step para gerenciar o backlog do
 projeto `crypto-futures-agent` mantendo integridade com:
 
 - **docs/BACKLOG.md** (fonte única de verdade)
-- **docs/TRACKER.md** (visualização compacta)
-- **docs/ROADMAP.md** (contexto estratégico)
+- **docs/PRD.md** (escopo e direcionamento do produto)
 - **docs/SYNCHRONIZATION.md** (auditoria de mudanças)
 - **iniciar.bat** (integração com automação)
 
@@ -125,8 +123,12 @@ projeto `crypto-futures-agent` mantendo integridade com:
 - [ ] Validações de risco (sizing, stop, liquidação) preservadas?
 - [ ] Se novo comportamento, regra foi criada/documentada?
 
+**Checklist - PRD (docs/PRD.md):**
+- [ ] Prioridade alinhada com PRD?
+- [ ] Task alinhada aos demais DOCs?
+
 **Checklist - Regras de Negócio (Geral):**
-- [ ] Prioridade alinhada com ROADMAP.md?
+- [ ] Prioridade alinhada com PRD.md?
 - [ ] Dependências existem e estão resolvidas?
 - [ ] Status transitions valid? (Backlog→Planned→In Progress→Done)
 - [ ] Task não viola regra de risco (security-first)?
@@ -179,7 +181,10 @@ Recomendação: Atualizar dependências em BACKLOG.md antes de prosseguir.
 - Docs Arquiteturais a Atualizar?
   - docs/ARQUITETURA_ALVO.md? [SIM/NÃO]
   - docs/ADRS.md? [SIM/NÃO, criar ADR-XXX?]
+  - docs/BACKLOG.md? [SIM/NÃO]
+  - docs/CHANGELOG.md? [SIM/NÃO]
   - docs/DIAGRAMAS.md? [SIM/NÃO]
+  - docs/PRD.md? [SIM/NÃO]
   - docs/MODELAGEM_DE_DADOS.md? [SIM/NÃO]
   - docs/REGRAS_DE_NEGOCIO.md? [SIM/NÃO]
 
@@ -265,8 +270,7 @@ Recomendação: Iniciar planejamento S-3 detalhado na reunião de sprint.
 
 **Arquivos Impactados:**
 - docs/BACKLOG.md: [RAZÃO]
-- docs/TRACKER.md: [RAZÃO]
-- docs/ROADMAP.md: [RAZÃO]
+- docs/PRD.md: [RAZÃO]
 - docs/SYNCHRONIZATION.md: [REGISTRO]
 - docs/ARQUITETURA_ALVO.md: [SIM/NÃO, RAZÃO]
 - docs/ADRS.md: [SIM/NÃO, RAZÃO]
@@ -276,8 +280,7 @@ Recomendação: Iniciar planejamento S-3 detalhado na reunião de sprint.
 
 **Mudanças Propostas:**
 1. Atualizar BACKLOG.md com status novo
-2. Regenerar TRACKER.md com table compacta
-3. Atualizar ROADMAP.md com data de hoje e progresso %
+2. Atualizar PRD.md quando houver impacto de escopo/produto
 4. Atualizar DIAGRAMAS.md se flow/componentes mudaram
 5. Atualizar ARQUITETURA_ALVO.md se evolução arquitetural ocorreu
 6. Criar/atualizar ADRs se decisões novas (docs/ADRS.md)
@@ -299,7 +302,7 @@ Recomendação: Iniciar planejamento S-3 detalhado na reunião de sprint.
 ### PASSO 4 — Sincronizar & Auditoria (com Lint Automático)
 
 **O que fazer:**
-1. Atualizar arquivo(s) em disk (BACKLOG.md, TRACKER.md, etc.)
+1. Atualizar arquivo(s) em disk (BACKLOG.md, PRD.md, etc.)
 2. **Validar markdown lint** — docs nascem com lint correto
 3. Gerar commit com tag adequada ([SYNC], [FEAT], [DOCS])
 4. Registrar em docs/SYNCHRONIZATION.md para auditoria
@@ -852,7 +855,7 @@ tarefas do backlog criem efeito observável:
 **Auto-discovery:**
 
 - Task com tag `[FEAT]` em `agent/` ou `risk/` → será compilada + testada
-- Task com tag `[DOCS]` → sincronizada no README.md + ROADMAP.md
+- Task com tag `[DOCS]` → sincronizada no README.md + PRD.md
 - Task com tag `[SYNC]` → registrada em SYNCHRONIZATION.md automaticamente
 
 ---
@@ -867,7 +870,7 @@ tarefas do backlog criem efeito observável:
 3. **Usuário confirma:** "Sim, criar"
 4. **Skill executa:**
    - Atualiza BACKLOG.md
-   - Atualiza TRACKER.md
+  - Atualiza PRD.md (quando houver impacto)
    - Registra em SYNCHRONIZATION.md
    - Gera commit [FEAT] + mensagem ASCII
 5. **Resultado:** Task criada, auditável, sincronizada com iniciar.bat

@@ -54,6 +54,7 @@ def _ensure_model2_live_execute_schema(conn: sqlite3.Connection) -> None:
     required_tables = {
         "schema_migrations",
         "technical_signals",
+        "model_decisions",
         "signal_executions",
         "signal_execution_events",
     }

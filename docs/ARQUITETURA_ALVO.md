@@ -42,6 +42,11 @@ Saida:
 
 Responsavel por inferencia da acao de trading.
 
+Implementacao vigente do ponto de inferencia desacoplado:
+
+1. `core/model2/model_inference_service.py`
+2. Contrato de decisao: `core/model2/model_decision.py`
+
 Entradas:
 
 1. Estado de mercado consolidado.
@@ -50,6 +55,7 @@ Entradas:
 Saida:
 
 1. Acao + confianca + parametros de execucao.
+2. Metadados de inferencia: `model_version`, `inference_latency_ms`.
 
 ## Camada 3 - Safety Envelope
 
@@ -87,6 +93,11 @@ Responsavel por:
 2. Persistir episodios completos para treino.
 3. Persistir rewards para operar e nao operar.
 4. Habilitar retreino automatico governado.
+
+Persistencia de decisao no estado atual:
+
+1. Tabela `model_decisions` para trilha da inferencia.
+2. Vinculo opcional `signal_executions.decision_id` para correlacao.
 
 ## Fluxo operacional atual
 
