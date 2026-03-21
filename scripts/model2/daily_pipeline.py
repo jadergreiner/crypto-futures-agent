@@ -22,6 +22,7 @@ from scripts.model2.migrate import run_up
 from scripts.model2.order_layer import run_order_layer
 from scripts.model2.resolve import run_resolution
 from scripts.model2.scan import run_scan
+from scripts.model2.sync_ohlcv_from_binance import sync_ohlcv_from_binance
 from scripts.model2.track import run_tracking
 from scripts.model2.validate import run_validation
 from scripts.model2.rl_signal_generation_wrapper import run_rl_signal_generation
@@ -131,6 +132,16 @@ def run_daily_pipeline(
     stage_errors: list[dict[str, Any]] = []
 
     stage_definitions: list[tuple[str, Callable[..., dict[str, Any]], dict[str, Any]]] = [
+        (
+            "sync_ohlcv",
+            sync_ohlcv_from_binance,
+            {
+                "source_db_path": resolved_source_db,
+                "symbols": symbols_to_use,
+                "timeframes": [timeframe],
+                "output_dir": resolved_output_dir,
+            },
+        ),
         (
             "migrate",
             run_up,
