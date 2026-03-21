@@ -1,6 +1,6 @@
 # PRD - crypto-futures-agent
 
-**Produto:** Agente especialista em posicoes short de futuros de
+**Produto:** Agente especialista em decisao model-driven para futuros de
 criptomoedas na Binance
 **Versao do Documento:** 1.0
 **Versao do Produto:** 0.1.0
@@ -121,7 +121,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 ### 4.1 Publico-alvo
 
 - **Trader individual:** operador com conta Futures na Binance que quer
-  automatizar shorts com disciplina.
+  automatizar operacoes com disciplina.
 - **Perfil tecnico:** programador Python com conhecimento de mercado de criptomoedas.
 - **Perfil de pesquisa:** usuario que quer testar features, modelos e
   politica RL sobre pipeline real e auditavel.
@@ -131,8 +131,8 @@ executa com rastreabilidade ponta a ponta, combinando:
 | ID | Usuario | Eu quero... | Para... |
 | --- | --- | --- | --- |
 | US-01 | Trader | configurar simbolos e timeframes autorizados | restringir o agente ao universo operacional desejado |
-| US-02 | Trader | executar o ciclo dedicado do agente short em `shadow` ou `live` | rodar a operacao de forma repetivel |
-| US-03 | Trader | bloquear shorts com funding ou basis desfavoravel | evitar entradas caras ou com estrutura ruim |
+| US-02 | Trader | executar o ciclo do agente model-driven em `shadow` ou `live` | rodar a operacao de forma repetivel |
+| US-03 | Trader | bloquear entradas com funding ou basis desfavoravel | evitar operacoes caras ou com estrutura ruim |
 | US-04 | Trader | garantir protecao obrigatoria apos entrada | nao deixar posicoes descobertas |
 | US-05 | Trader | receber trilha de auditoria para cada decisao | entender por que entrou, bloqueou ou saiu |
 | US-06 | Pesquisador | comparar baseline operacional com ML/RL em `shadow` | validar ganho real antes da promocao |
@@ -149,7 +149,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 - Universo live: allow-list via `M2_LIVE_SYMBOLS`.
 - Timeframes operacionais: `D1`, `H4` e `H1`.
 - Timeframe auxiliar de contexto: `M5` para sincronizacao
-  tatico-operacional do ciclo short.
+  tatico-operacional do ciclo operacional.
 
 ### 5.2 Modos de operacao
 
@@ -173,7 +173,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 ### 5.4 Fora de escopo na release atual
 
 - Operacao spot.
-- Estrategia long em `live`.
+- Operacao discricionaria manual no runtime live.
 - Multiusuario e multi-tenant.
 - Exchange adicional alem da Binance Futures.
 - Escalada agressiva de alavancagem.
@@ -185,11 +185,11 @@ executa com rastreabilidade ponta a ponta, combinando:
 > Prioridades: `P0` = bloqueante para a release atual, `P1` = essencial
 > na proxima release operacional, `P2` = evolucao futura.
 
-### 6.1 Orquestracao do ciclo short
+### 6.1 Orquestracao do ciclo model-driven
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
-| RF-ORQ-001 | O agente short deve orquestrar sincronizacao de mercado, pipeline diario, execucao, persistencia de episodios e healthcheck em um ciclo unico | P0 |
+| RF-ORQ-001 | O agente deve orquestrar sincronizacao de mercado, pipeline diario, execucao, persistencia de episodios e healthcheck em um ciclo unico | P0 |
 | RF-ORQ-002 | O ciclo deve suportar execucao em `shadow` e `live` com saida operacional resumida e artefato persistido | P0 |
 | RF-ORQ-003 | O ciclo deve operar apenas sobre simbolos autorizados para o contexto atual | P0 |
 | RF-ORQ-004 | O runtime deve registrar status `ok`, `partial` ou `error` por ciclo executado | P1 |
@@ -203,7 +203,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 | RF-CTX-003 | O sistema deve bloquear execucao quando o contexto critico estiver ausente, stale ou inconsistente | P0 |
 | RF-CTX-004 | O conjunto de features deve aceitar extensao para open interest, sentimento e variaveis exogenas | P1 |
 
-### 6.3 Pipeline M2 de oportunidade e sinal
+### 6.3 Pipeline M2 de decisao e execucao
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
@@ -260,7 +260,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
 | RF-OB-001 | O produto deve gerar logs estruturados por operacao com simbolo, timeframe, motivo, status e timestamps | P0 |
-| RF-OB-002 | O banco deve manter trilha completa de oportunidades, sinais, execucoes e eventos | P0 |
+| RF-OB-002 | O banco deve manter trilha completa de decisoes, execucoes, eventos e episodios | P0 |
 | RF-OB-003 | O produto deve emitir artefatos JSON para preflight, healthcheck e ciclos executados | P1 |
 | RF-OB-004 | O healthcheck deve detectar posicoes sem protecao, entradas stale e mismatch entre exchange e banco | P0 |
 | RF-OB-005 | Eventos criticos devem poder disparar notificacao operacional | P1 |
@@ -275,7 +275,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 | --- | --- | --- | --- |
 | RNF-DE-001 | Latencia sinal admitido -> ordem enviada em `live` | <= 300 ms | P0 |
 | RNF-DE-002 | Ciclo de analise e decisao por ativo | <= 20 s | P1 |
-| RNF-DE-003 | Throughput do scanner no universo operacional | <= 5 s por ciclo padrao | P0 |
+| RNF-DE-003 | Throughput da inferencia no universo operacional | <= 5 s por ciclo padrao | P0 |
 | RNF-DE-004 | Alertas criticos operacionais | < 60 s | P1 |
 
 ### 7.2 Seguranca e compliance
@@ -315,7 +315,7 @@ executa com rastreabilidade ponta a ponta, combinando:
 ```text
 +----------------------------------------------------+
 | Orquestracao do Ciclo Model-Driven                 |
-| live_cycle_short_agent / live_cycle                |
+| live_cycle                                         |
 +----------------------------------------------------+
 | Contexto de Mercado e Features                     |
 | OHLCV + funding + basis + multi-timeframe          |

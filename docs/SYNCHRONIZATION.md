@@ -23,6 +23,52 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-019] Revisao cirurgica do PRD para coerencia model-driven
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| PRD | docs/PRD.md | Ajuste de termos legados para decisao e ciclo model-driven |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-019] |
+
+#### Observacoes
+
+- Removidas referencias a "ciclo short" e "scanner" em requisitos centrais.
+- Ajustada observabilidade para decisoes, execucoes, eventos e episodios.
+- Mantido escopo do produto sem alteracao de objetivos de negocio.
+
+#### Proximos Passos
+
+1. Validar consistencia cruzada entre PRD, DIAGRAMAS e REGRAS.
+2. Seguir implementacao do backlog M2-020 com sincronizacao continua.
+
+### [SYNC-018] Diagramas alinhados ao estado model-driven
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Diagramas M2 | docs/DIAGRAMAS.md | Reescrita completa para fluxo model-driven atual |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-018] |
+
+#### Observacoes
+
+- Removidos diagramas de tese/oportunidade e scanner legado.
+- Incluidos fluxos atuais de decisao, safety envelope e reconciliacao.
+- Incluida visao de entidades do estado atual de dados M2.
+
+#### Proximos Passos
+
+1. Revisar diagramas em renderizacao Mermaid no ambiente de docs.
+2. Sincronizar diagramas novamente ao concluir M2-020 no codigo.
+
 ### [SYNC-017] Normalizacao de docs para estado atual model-driven
 
 **Data/Hora**: 2026-03-21 UTC
