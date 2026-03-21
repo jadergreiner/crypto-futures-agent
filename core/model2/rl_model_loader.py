@@ -18,6 +18,16 @@ _DEFAULT_FALLBACK_CONFIDENCE = 0.70
 _PPO_AVAILABLE: bool | None = None
 
 
+def _checkpoint_aliases(path: Path) -> list[Path]:
+    """Retorna aliases plausiveis para checkpoints sem extensao padronizada."""
+    candidates = [path]
+    if path.suffix:
+        return candidates
+    candidates.append(path.with_suffix(".zip"))
+    candidates.append(path.with_suffix(".pkl"))
+    return candidates
+
+
 def _check_ppo_available() -> bool:
     global _PPO_AVAILABLE
     if _PPO_AVAILABLE is None:
@@ -27,6 +37,17 @@ def _check_ppo_available() -> bool:
         except ImportError:
             _PPO_AVAILABLE = False
     return bool(_PPO_AVAILABLE)
+
+
+def _observation_shape(model: Any) -> tuple[int, ...] | None:
+    """Retorna o shape do observation_space do modelo, quando disponivel."""
+    observation_space = getattr(model, "observation_space", None)
+    shape = getattr(observation_space, "shape", None)
+    if shape is None:
+        return None
+    if not isinstance(shape, tuple):
+        return None
+    return tuple(int(item) for item in shape)
 
 
 class RLModelLoader:
@@ -87,12 +108,20 @@ class RLModelLoader:
     def _resolve_checkpoint(self) -> Path | None:
         """Resolve o caminho do checkpoint procurando nos locais padrão."""
         if self._checkpoint_path is not None:
+            for candidate in _checkpoint_aliases(self._checkpoint_path):
+                if candidate.exists():
+                    return candidate
             return self._checkpoint_path
 
         repo_root = Path(__file__).resolve().parents[2]
         candidates = [
+            repo_root / "checkpoints" / "ppo_training" / "ppo_model.zip",
             repo_root / "checkpoints" / "ppo_training" / "ppo_model.pkl",
+            repo_root / "checkpoints" / "ppo_training" / "best_model.zip",
             repo_root / "checkpoints" / "ppo_training" / "best_model.pkl",
+            repo_root / "checkpoints" / "ppo_training" / "mlp" / "optuna" / "ppo_mlp_e8_optuna.zip",
+            repo_root / "checkpoints" / "ppo_training" / "mlp" / "ppo_model_mlp.zip",
+            repo_root / "models" / "ppo_model.zip",
             repo_root / "models" / "ppo_model.pkl",
         ]
         for candidate in candidates:
@@ -132,8 +161,9 @@ class RLModelLoader:
             return self._deterministic_fallback(signal_side)
 
         try:
+            adapted_features = self._adapt_features_for_model(features)
             action_id, _states = self._model.predict(
-                features.reshape(1, -1) if features.ndim == 1 else features,
+                adapted_features,
                 deterministic=True,
             )
             action_map = {0: "HOLD", 1: "LONG", 2: "SHORT"}
@@ -156,6 +186,37 @@ class RLModelLoader:
         except Exception as exc:
             logger.error("[RL] Erro em predict_confidence: %s", exc)
             return self._deterministic_fallback(signal_side)
+
+    def _adapt_features_for_model(self, features: np.ndarray) -> np.ndarray:
+        """Adapta o vetor de features ao shape esperado pelo checkpoint carregado."""
+        features_array = np.asarray(features, dtype=np.float32)
+        expected_shape = _observation_shape(self._model)
+
+        if expected_shape is None:
+            return features_array.reshape(1, -1) if features_array.ndim == 1 else features_array
+
+        if features_array.ndim == 1 and len(expected_shape) == 1:
+            expected_size = expected_shape[0]
+            if features_array.size < expected_size:
+                features_array = np.pad(
+                    features_array,
+                    (0, expected_size - features_array.size),
+                    mode="constant",
+                )
+            elif features_array.size > expected_size:
+                features_array = features_array[:expected_size]
+            return features_array
+
+        if tuple(features_array.shape) == expected_shape:
+            return features_array
+
+        expected_size = int(np.prod(expected_shape, dtype=np.int64))
+        if int(features_array.size) != expected_size:
+            raise ValueError(
+                "Features incompatíveis com observation_space do modelo: "
+                f"recebido={tuple(features_array.shape)}, esperado={expected_shape}"
+            )
+        return features_array.reshape(expected_shape)
 
     @staticmethod
     def _deterministic_fallback(signal_side: str) -> tuple[float, str]:

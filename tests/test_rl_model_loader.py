@@ -43,6 +43,27 @@ class TestFallbackSemCheckpoint:
         assert confidence == _DEFAULT_FALLBACK_CONFIDENCE
         assert action == "HOLD"
 
+    def test_resolve_checkpoint_com_alias_zip(self, tmp_path: Path) -> None:
+        checkpoint_base = tmp_path / "ppo_model"
+        checkpoint_zip = tmp_path / "ppo_model.zip"
+        checkpoint_zip.write_bytes(b"fake")
+
+        loader = RLModelLoader.__new__(RLModelLoader)
+        loader._checkpoint_path = checkpoint_base
+
+        resolved = RLModelLoader._resolve_checkpoint(loader)
+
+        assert resolved == checkpoint_zip
+
+    def test_resolve_checkpoint_prioriza_zip_padrao(self) -> None:
+        loader = RLModelLoader.__new__(RLModelLoader)
+        loader._checkpoint_path = None
+
+        repo_root = Path(__file__).resolve().parents[1]
+        resolved = RLModelLoader._resolve_checkpoint(loader)
+
+        assert resolved == repo_root / "checkpoints" / "ppo_training" / "ppo_model.zip"
+
 
 class TestFallbackSemSB3:
     """Testa fallback quando stable_baselines3 nao esta instalado."""
@@ -139,4 +160,24 @@ class TestComModeloCarregado:
         features = np.zeros(5, dtype=np.float32)
         confidence, action = loader.predict_confidence(features, signal_side="BUY")
         assert confidence == _DEFAULT_FALLBACK_CONFIDENCE
+        assert action == "LONG"
+
+    def test_adapta_features_quando_modelo_espera_5(self) -> None:
+        mock_model = MagicMock()
+        mock_model.observation_space = type("Space", (), {"shape": (5,)})()
+        mock_model.predict.return_value = (np.array([1]), None)
+
+        loader = RLModelLoader.__new__(RLModelLoader)
+        loader._model = mock_model
+        loader._fallback_mode = False
+        loader._fallback_reason = ""
+        loader._checkpoint_path = None
+
+        features = np.array([1.0, 2.0, 3.0, 4.0], dtype=np.float32)
+        confidence, action = loader.predict_confidence(features, signal_side="BUY")
+
+        received = mock_model.predict.call_args.args[0]
+        assert tuple(received.shape) == (5,)
+        assert float(received[-1]) == 0.0
+        assert confidence == 0.85
         assert action == "LONG"

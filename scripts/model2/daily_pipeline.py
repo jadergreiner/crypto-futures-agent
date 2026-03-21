@@ -31,12 +31,28 @@ from scripts.model2.io_utils import atomic_write_json
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
 try:
-    from config.settings import DB_PATH, M2_SHORT_ONLY, M2_SYMBOLS, MODEL2_DB_PATH
+    from config.settings import DB_PATH, M2_SHORT_ONLY, M2_SYMBOLS, MODEL2_DB_PATH, _normalize_symbol_scope
 except Exception:
     DB_PATH = "db/crypto_agent.db"
     MODEL2_DB_PATH = "db/modelo2.db"
     M2_SHORT_ONLY = False
     M2_SYMBOLS = ("BTCUSDT",)
+    def _normalize_symbol_scope(raw_value: str | None, *, fallback_symbols) -> tuple[str, ...]:
+        """Normaliza lista de simbolos e expande placeholders."""
+        fallback_list = [str(s).strip().upper() for s in fallback_symbols if str(s).strip()]
+        if raw_value is None:
+            return ()
+        placeholder_tokens = {"M2_SYMBOLS", "M2_SYMBOLS:", "M2_LIVE_SYMBOLS", "M2_LIVE_SYMBOLS:", "ALL_SYMBOLS", "ALL_SYMBOLS:"}
+        normalized: list[str] = []
+        for token in str(raw_value).split(","):
+            symbol = str(token).strip().upper()
+            if not symbol:
+                continue
+            if symbol in placeholder_tokens:
+                normalized.extend(fallback_list)
+            else:
+                normalized.append(symbol)
+        return tuple(dict.fromkeys(normalized))
 
 DEFAULT_SYMBOLS = list(M2_SYMBOLS) if M2_SYMBOLS else ["BTCUSDT"]
 
@@ -98,7 +114,17 @@ def run_daily_pipeline(
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_legacy_db = _resolve_repo_path(legacy_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
-    symbols_to_use = list(symbols) if symbols else list(DEFAULT_SYMBOLS)
+    
+    # Normalizar símbolos: expandir placeholders e deduplica
+    if symbols:
+        # Símbolos explícitos passados - normalizar/expandir placeholders
+        symbols_str = ",".join(symbols)
+        normalized = _normalize_symbol_scope(symbols_str, fallback_symbols=DEFAULT_SYMBOLS)
+        symbols_to_use = list(normalized) if normalized else list(DEFAULT_SYMBOLS)
+    else:
+        # Nenhum símbolo explícito - usar padrão
+        symbols_to_use = list(DEFAULT_SYMBOLS)
+    
     optional_symbol_filter = _single_symbol_or_none(symbols_to_use)
 
     stage_summaries: dict[str, dict[str, Any]] = {}

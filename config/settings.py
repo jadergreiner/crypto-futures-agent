@@ -4,7 +4,7 @@ All sensitive data should be loaded from environment variables.
 """
 
 import os
-from typing import List
+from typing import Iterable, List
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -17,6 +17,42 @@ def _env_bool(name: str, default: bool = False) -> bool:
     if raw is None:
         return bool(default)
     return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _normalize_symbol_scope(
+    raw_value: str | None,
+    *,
+    fallback_symbols: Iterable[str],
+) -> tuple[str, ...]:
+    """Normaliza lista de simbolos e expande placeholders suportados."""
+    fallback_list = [
+        str(symbol).strip().upper()
+        for symbol in fallback_symbols
+        if str(symbol).strip()
+    ]
+    fallback_tuple = tuple(dict.fromkeys(fallback_list))
+    if raw_value is None:
+        return ()
+
+    placeholder_tokens = {
+        "M2_SYMBOLS",
+        "M2_SYMBOLS:",
+        "M2_LIVE_SYMBOLS",
+        "M2_LIVE_SYMBOLS:",
+        "ALL_SYMBOLS",
+        "ALL_SYMBOLS:",
+    }
+    normalized: list[str] = []
+    for token in str(raw_value).split(","):
+        symbol = str(token).strip().upper()
+        if not symbol:
+            continue
+        if symbol in placeholder_tokens:
+            normalized.extend(fallback_tuple)
+            continue
+        normalized.append(symbol)
+
+    return tuple(dict.fromkeys(normalized))
 
 # Binance API Configuration
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
@@ -46,11 +82,6 @@ M2_CANARY_LEVERAGE = int(os.getenv("M2_CANARY_LEVERAGE", "3"))
 M2_FUNDING_RATE_MAX_FOR_SHORT = float(os.getenv("M2_FUNDING_RATE_MAX_FOR_SHORT", "0.0005"))
 M2_REQUIRE_MAINNET_CONFIRM = _env_bool("M2_REQUIRE_MAINNET_CONFIRM", True)
 M2_MAINNET_CONFIRM_TOKEN = os.getenv("M2_MAINNET_CONFIRM_TOKEN", "").strip()
-M2_LIVE_SYMBOLS = tuple(
-    symbol.strip().upper()
-    for symbol in os.getenv("M2_LIVE_SYMBOLS", "").split(",")
-    if symbol.strip()
-)
 # Single source of truth for M2 operational symbol scope.
 # Priority:
 # 1) Explicit .env allow-list (`M2_LIVE_SYMBOLS`)
@@ -59,6 +90,10 @@ try:
     from config.symbols import ALL_SYMBOLS as _ALL_SYMBOLS
 except Exception:
     _ALL_SYMBOLS = []
+M2_LIVE_SYMBOLS = _normalize_symbol_scope(
+    os.getenv("M2_LIVE_SYMBOLS", ""),
+    fallback_symbols=_ALL_SYMBOLS,
+)
 M2_SYMBOLS = M2_LIVE_SYMBOLS if M2_LIVE_SYMBOLS else tuple(_ALL_SYMBOLS)
 M2_MAX_DAILY_ENTRIES = int(os.getenv("M2_MAX_DAILY_ENTRIES", "10"))
 M2_MAX_MARGIN_PER_POSITION_USD = float(os.getenv("M2_MAX_MARGIN_PER_POSITION_USD", "1.0"))

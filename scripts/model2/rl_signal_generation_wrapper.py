@@ -30,6 +30,15 @@ def _to_float(value: Any) -> float:
         return 0.0
 
 
+def _signal_side_to_feature(signal_side: Any) -> float:
+    side = str(signal_side or "").strip().upper()
+    if side in {"BUY", "LONG"}:
+        return 1.0
+    if side in {"SELL", "SHORT"}:
+        return -1.0
+    return 0.0
+
+
 def _build_features(row: sqlite3.Row) -> np.ndarray:
     entry = _to_float(row["entry_price"])
     stop = _to_float(row["stop_loss"])
@@ -37,7 +46,8 @@ def _build_features(row: sqlite3.Row) -> np.ndarray:
     risk = abs(stop - entry)
     reward = abs(entry - target)
     rr = reward / risk if risk > 0 else 0.0
-    return np.array([entry, stop, target, rr], dtype=float)
+    side_feature = _signal_side_to_feature(row["signal_side"])
+    return np.array([entry, stop, target, rr, side_feature], dtype=np.float32)
 
 
 def run_rl_signal_generation(
