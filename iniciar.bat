@@ -96,7 +96,7 @@ python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2
 call :GET_BRT_TIMESTAMP
 echo [!TS_BRT! BRT] [M2] Status por simbolo...
 >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Status por simbolo...
-python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 20 !PIPELINE_SYMBOL_ARGS! > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
+python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 20 --symbols-csv "!M2_SYMBOLS!" > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
 if exist logs\m2_cycle_status.tmp (
     for /f "usebackq delims=" %%L in ("logs\m2_cycle_status.tmp") do (
         call :GET_BRT_TIMESTAMP

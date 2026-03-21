@@ -9,6 +9,38 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from config.settings import M2_SYMBOLS, _normalize_symbol_scope
+except Exception:
+    M2_SYMBOLS = ("BTCUSDT",)
+
+    def _normalize_symbol_scope(
+        raw_value: str | None,
+        *,
+        fallback_symbols: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        fallback_list = [str(symbol).strip().upper() for symbol in fallback_symbols if str(symbol).strip()]
+        if raw_value is None:
+            return ()
+        placeholder_tokens = {
+            "M2_SYMBOLS",
+            "M2_SYMBOLS:",
+            "M2_LIVE_SYMBOLS",
+            "M2_LIVE_SYMBOLS:",
+            "ALL_SYMBOLS",
+            "ALL_SYMBOLS:",
+        }
+        normalized: list[str] = []
+        for token in str(raw_value).split(","):
+            symbol = str(token).strip().upper()
+            if not symbol:
+                continue
+            if symbol in placeholder_tokens:
+                normalized.extend(fallback_list)
+                continue
+            normalized.append(symbol)
+        return tuple(dict.fromkeys(normalized))
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -24,6 +56,11 @@ def _parse_args() -> argparse.Namespace:
         action="append",
         default=[],
         help="Simbolo monitorado. Repita a flag para varios simbolos.",
+    )
+    parser.add_argument(
+        "--symbols-csv",
+        default="",
+        help="Lista CSV de simbolos monitorados; placeholders como M2_SYMBOLS: sao expandidos.",
     )
     parser.add_argument(
         "--max-age-minutes",
@@ -295,7 +332,15 @@ def _build_symbol_line(
 def main() -> int:
     args = _parse_args()
     runtime_dir = Path(args.runtime_dir).resolve()
-    symbols = [str(s).upper() for s in (args.symbol or []) if str(s).strip()]
+    csv_symbols = _normalize_symbol_scope(
+        args.symbols_csv,
+        fallback_symbols=tuple(M2_SYMBOLS),
+    )
+    cli_symbols = _normalize_symbol_scope(
+        ",".join(args.symbol or []),
+        fallback_symbols=tuple(M2_SYMBOLS),
+    )
+    symbols = list(dict.fromkeys([*csv_symbols, *cli_symbols]))
 
     if not symbols:
         print("Nenhum simbolo informado para resumo operacional.")
