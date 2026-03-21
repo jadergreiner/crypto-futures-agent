@@ -14,44 +14,44 @@ Instrucoes para agentes no repositorio `crypto-futures-agent`.
 
 - Linguagem principal: Python.
 - Arquitetura operacional vigente: Modelo 2.0 model-driven.
-  Referencia completa: `docs/ARQUITETURA_ALVO.md`.
-- A decisao de trade nasce no modelo, com acoes:
-  - `OPEN_LONG`, `OPEN_SHORT`, `HOLD`, `REDUCE`, `CLOSE`.
-- Guard-rails obrigatorios e inviolaveis:
+- A decisao de trade nasce no modelo com acoes permitidas:
+  `OPEN_LONG`, `OPEN_SHORT`, `HOLD`, `REDUCE`, `CLOSE`.
+- Safety Envelope e guard-rails sao inviolaveis em qualquer modo:
   - `risk/risk_gate.py`
   - `risk/circuit_breaker.py`
   - `scripts/model2/go_live_preflight.py`
-- Camadas operacionais vigentes:
-  1. Coleta de estado — OHLCV multi-timeframe, features tecnicas,
-     estado de posicao e restricoes operacionais.
-  2. Policy Model — inferencia do modelo RL; saida: acao +
-     confianca + parametros de execucao.
-  3. Safety Envelope — `risk/risk_gate.py`,
-     `risk/circuit_breaker.py`,
-     `scripts/model2/go_live_preflight.py`.
-  4. Execucao e reconciliacao — `core/model2/live_service.py`,
-     `core/model2/live_exchange.py`,
-     `core/model2/live_execution.py`.
-  5. Persistencia e aprendizado — `db/modelo2.db`, episodios
-     para retreino governado.
-- Banco canonico M2: `db/modelo2.db`
-  - Tabelas: `model_decisions`, `signal_executions`,
-    `signal_execution_events`, `learning_episodes`,
-    `training_runs`.
-  - Migracoes versionadas em `scripts/model2/migrations/*.sql`.
-- Modos de operacao: `backtest` (validacao offline),
-  `shadow` (decisao sem ordem real),
-  `live` (decisao com ordem real e guard-rails ativos).
+- Modos de operacao:
+  - `backtest` (validacao offline)
+  - `shadow` (decisao sem ordem real)
+  - `live` (decisao com ordem real e guard-rails ativos)
+- Referencias de arquitetura e dados:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/MODELAGEM_DE_DADOS.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+
+## Garantias Operacionais
+
+- Nunca desabilitar `risk/risk_gate.py` ou `risk/circuit_breaker.py`.
+- Em duvida operacional, bloquear operacao em vez de assumir risco.
+- Decisao e execucao devem ser idempotentes por `decision_id`.
+- Antes de operar em live, executar `scripts/model2/go_live_preflight.py`.
 
 ## Build and Test
 
 - Setup (Windows): `setup.bat`.
 - Setup alternativo: `make setup`.
 - Modo paper: `python main.py --mode paper` ou `make paper`.
-- Modo live: `python main.py --mode live` ou `make live`.
+- Modo live: `make live` (inclui preflight) ou `python main.py --mode live`.
 - Inicializacao de dados: `python main.py --setup` ou `make db`.
 - Treino RL: `python main.py --train` ou `make train`.
 - Pipeline diario M2: `python scripts/model2/daily_pipeline.py`.
+- Cadeia operacional M2:
+  - `python scripts/model2/scan.py --timeframe H4`
+  - `python scripts/model2/track.py --symbol BTCUSDT --timeframe H4`
+  - `python scripts/model2/validate.py --symbol BTCUSDT --timeframe H4`
+  - `python scripts/model2/resolve.py --symbol BTCUSDT --timeframe H4`
+  - `python scripts/model2/bridge.py --symbol BTCUSDT --timeframe H4`
+  - `python scripts/model2/order_layer.py --symbol BTCUSDT --timeframe H4`
 - Migracoes do banco M2: `python scripts/model2/migrate.py up`.
 - Checagem pre-live: `python scripts/model2/go_live_preflight.py`.
 - Testes: `pytest -q tests/`.
@@ -61,10 +61,6 @@ Instrucoes para agentes no repositorio `crypto-futures-agent`.
 
 ## Conventions
 
-- Regras de risco sao inviolaveis.
-- Nunca desabilitar `risk/risk_gate.py` ou `risk/circuit_breaker.py`.
-- Em duvida operacional, bloquear operacao em vez de assumir risco.
-- Decisao e execucao devem ser idempotentes por `decision_id`.
 - Commits: `[TAG] Descricao breve em portugues` (ASCII, max 72 chars).
 - Tags aceitas: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`.
 - Alterou docs: registrar sincronizacao em `docs/SYNCHRONIZATION.md`.
@@ -89,39 +85,11 @@ Ao pedir "proxima tarefa", prioridade ou planejamento:
 
 ## Agent Customizations
 
-### Instructions (aplicadas automaticamente por escopo)
-
-| Arquivo | Escopo (`applyTo`) | Descricao |
-| --- | --- | --- |
-| `.github/instructions/docs-sync.instructions.md` | `docs/**` | Checklist MD013 e padrao de sincronizacao |
-| `.github/instructions/incident-logs.instructions.md` | `logs/**` | Padrao de artefatos JSON para incidentes |
-| `.github/instructions/m2-reconciliation.instructions.md` | `core/model2/live_service.py` | Regras de idempotencia por `decision_id` |
-| `.github/instructions/model2-live.instructions.md` | `core/model2/**` | Regras extras para o live M2 |
-| `.github/instructions/preflight-gates.instructions.md` | `scripts/model2/go_live_preflight.py` | Gates de liberacao live |
-
-### Prompts (invocar explicitamente)
-
-| Arquivo | Descricao |
-| --- | --- |
-| `.github/prompts/post-task.md` | Revisao pos-task: coerencia, guard-rails, docs, commit |
-| `.github/prompts/preflight-live-check.prompt.md` | Validar ambiente e risco antes de ir para live |
-| `.github/prompts/m2-go-no-go-report.prompt.md` | Relatorio GO/NO-GO para promocao shadow→live |
-| `.github/prompts/m2-sev1-triage.prompt.md` | Triage de incidente SEV-1 em execucao M2 |
-
-### Skills (carregar sob demanda)
-
-| Skill | Descricao |
-| --- | --- |
-| `backlog-development` | Gerenciar backlog, atualizar status, mover sprints |
-| `live-release-readiness` | Workflow GO/NO-GO para promocao para live |
-| `m2-incident-response` | Playbook de incidente: evidencias, mitigacao, auditoria |
-
-### Workflows CI/CD
-
-| Arquivo | Gatilho | Descricao |
-| --- | --- | --- |
-| `.github/workflows/docs-validate.yml` | `push` / `pull_request` | Valida markdownlint e sincronizacao de docs |
-| `.github/workflows/model2-smoke.yml` | `push` / `pull_request` | Smoke test do pipeline M2 (dry-run + healthcheck) |
+- Instrucoes por escopo: ver `.github/instructions/`.
+- Prompts operacionais: ver `.github/prompts/`.
+- Skills de workflow: ver `.github/skills/`.
+- CI de referencia: `.github/workflows/docs-validate.yml` e
+  `.github/workflows/model2-smoke.yml`.
 
 ## Referencias (Link, nao duplicar)
 

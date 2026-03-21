@@ -3,7 +3,13 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from core.model2.model_decision import ACTION_HOLD, ACTION_OPEN_LONG, ModelDecision
+from core.model2.model_decision import (
+    ACTION_CLOSE,
+    ACTION_HOLD,
+    ACTION_OPEN_LONG,
+    ACTION_REDUCE,
+    ModelDecision,
+)
 from core.model2.model_inference_service import InferenceServiceResult
 from core.model2.model_state_builder import M2_020_3_SCHEMA_VERSION, StateBuilderResult
 from core.model2.repository import Model2ThesisRepository
@@ -736,3 +742,117 @@ def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Pa
     execution = repository.list_signal_executions(limit=10)[0]
     assert int(execution["technical_signal_id"]) == signal_id
     assert execution["status"] == "EXITED"
+
+
+def _forced_action_result(action: str) -> "InferenceServiceResult":
+    """Gera InferenceServiceResult forçado com a acao especificada (helper para testes M2-020.5)."""
+    from core.model2.model_decision import ModelDecision
+
+    return InferenceServiceResult(
+        accepted=True,
+        decision=ModelDecision(
+            action=action,
+            confidence=0.70,
+            size_fraction=0.0,
+            sl_target=None,
+            tp_target=None,
+            reason_code=f"force_{action.lower()}",
+            decision_timestamp=1_700_000_000_000,
+            symbol="BTCUSDT",
+            model_version="m2-inference-v1",
+            metadata={"origin": "test_m2_020_5"},
+        ),
+        model_version="m2-inference-v1",
+        inference_latency_ms=1,
+        reason=f"force_{action.lower()}",
+        rule_id="TEST-M2-020.5",
+        details={"origin": "test"},
+    )
+
+
+def test_model_action_reduce_blocks_without_order_and_no_strategy_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """M2-020.5: REDUCE nao gera entrada e nao reativa estrategia externa."""
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    def _force_reduce(self, model_input):
+        return _forced_action_result(ACTION_REDUCE)
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_reduce,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    staged = summary["staged"][0]
+    assert staged["action"] == ACTION_REDUCE
+    assert staged["status"] == "BLOCKED"
+    assert staged["reason"] == "model_action_reduce_no_entry"
+    assert summary["processed_ready"] == []
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+    assert row == ("BLOCKED", "model_action_reduce_no_entry")
+
+
+def test_model_action_close_blocks_without_order_and_no_strategy_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """M2-020.5: CLOSE nao gera entrada e nao reativa estrategia externa."""
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    def _force_close(self, model_input):
+        return _forced_action_result(ACTION_CLOSE)
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_close,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    staged = summary["staged"][0]
+    assert staged["action"] == ACTION_CLOSE
+    assert staged["status"] == "BLOCKED"
+    assert staged["reason"] == "model_action_close_no_entry"
+    assert summary["processed_ready"] == []
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+    assert row == ("BLOCKED", "model_action_close_no_entry")

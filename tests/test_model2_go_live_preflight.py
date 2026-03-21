@@ -1,9 +1,10 @@
 import sqlite3
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 from config.settings import M2_MAX_DAILY_ENTRIES
-from scripts.model2.go_live_preflight import run_go_live_preflight
+from scripts.model2.go_live_preflight import _check_guardrails_functional, run_go_live_preflight
 
 
 def _ok_summary(output_file: Path) -> dict:
@@ -242,3 +243,58 @@ def test_continue_on_error_controls_followup_execution(tmp_path: Path) -> None:
     check8_continue = next(item for item in summary_continue["checks"] if item["id"] == "8")
     assert check8_continue["status"] == "ok"
     assert calls["reconcile"] == 1
+
+
+def test_check_guardrails_functional_returns_ok_when_modules_available() -> None:
+    """M2-020.5: _check_guardrails_functional retorna ok quando RiskGate e CircuitBreaker funcionam."""
+    result = _check_guardrails_functional()
+    assert result["ok"] is True
+    assert result["details"]["risk_gate"]["instantiated"] is True
+    assert result["details"]["circuit_breaker"]["instantiated"] is True
+    assert "status" in result["details"]["risk_gate"]
+    assert "state" in result["details"]["circuit_breaker"]
+
+
+def test_check_guardrails_functional_fails_when_risk_gate_unavailable(monkeypatch) -> None:
+    """M2-020.5: _check_guardrails_functional retorna ok=False quando RiskGate nao pode ser importado."""
+    import builtins
+    real_import = builtins.__import__
+
+    def mock_import(name, *args, **kwargs):
+        if name == "risk.risk_gate":
+            raise ImportError("modulo indisponivel")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", mock_import)
+    result = _check_guardrails_functional()
+    assert result["ok"] is False
+    assert result["details"]["risk_gate"]["instantiated"] is False
+    assert "error" in result["details"]["risk_gate"]
+
+
+def test_preflight_check6_includes_guardrails_evidence(tmp_path: Path) -> None:
+    """M2-020.5: check 6 do preflight inclui evidencia dos guard-rails."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check6 = next(item for item in summary["checks"] if item["id"] == "6")
+    assert check6["status"] == "ok"
+    assert "guardrails" in check6["evidence"]
+    assert check6["evidence"]["guardrails"]["risk_gate"]["instantiated"] is True
+    assert check6["evidence"]["guardrails"]["circuit_breaker"]["instantiated"] is True

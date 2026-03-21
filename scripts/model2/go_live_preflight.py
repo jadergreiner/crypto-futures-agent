@@ -200,6 +200,48 @@ def _default_command_runner(*args: Any, **kwargs: Any) -> subprocess.CompletedPr
     return subprocess.run(*args, **kwargs)
 
 
+def _check_guardrails_functional() -> dict[str, Any]:
+    """Verifica que RiskGate e CircuitBreaker podem ser instanciados e estao funcionais.
+
+    Retorna dict com 'ok' (bool) e 'details' (dict com evidencias por guard-rail).
+    Falha explicita se qualquer guard-rail nao puder ser importado ou instanciado.
+    """
+    details: dict[str, Any] = {}
+    try:
+        from risk.risk_gate import RiskGate
+
+        rg = RiskGate()
+        can_order = rg.can_execute_order("market")
+        metrics = rg.get_risk_metrics()
+        details["risk_gate"] = {
+            "instantiated": True,
+            "can_execute_order": bool(can_order),
+            "status": str(rg.status.value),
+            "drawdown_pct": float(metrics.drawdown_pct),
+        }
+    except Exception as exc:
+        details["risk_gate"] = {"instantiated": False, "error": str(exc)}
+
+    try:
+        from risk.circuit_breaker import CircuitBreaker
+
+        cb = CircuitBreaker()
+        can_trade = cb.can_trade()
+        status = cb.check_status()
+        details["circuit_breaker"] = {
+            "instantiated": True,
+            "can_trade": bool(can_trade),
+            "state": str(cb.state.value),
+            "trading_allowed": bool(status.get("trading_allowed", can_trade)),
+        }
+    except Exception as exc:
+        details["circuit_breaker"] = {"instantiated": False, "error": str(exc)}
+
+    rg_ok = bool(details.get("risk_gate", {}).get("instantiated"))
+    cb_ok = bool(details.get("circuit_breaker", {}).get("instantiated"))
+    return {"ok": rg_ok and cb_ok, "details": details}
+
+
 def run_go_live_preflight(
     *,
     model2_db_path: str | Path,
@@ -440,10 +482,14 @@ def run_go_live_preflight(
                 _to_positive_float(env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT", ""), -1.0) > 0,
             )
         )
+        # Verificar que guard-rails podem ser instanciados e estao funcionais (M2-020.5)
+        guardrails_check = _check_guardrails_functional()
+        guardrails_ok = bool(guardrails_check["ok"])
+        check6_ok = risk_ok and guardrails_ok
         add_check(
             check_id="6",
-            description="Validar limites de risco da Fase 2.",
-            status="ok" if risk_ok else "alert",
+            description="Validar limites de risco e guard-rails ativos (M2-020.5).",
+            status="ok" if check6_ok else "alert",
             evidence={
                 "M2_MAX_DAILY_ENTRIES": env_values.get("M2_MAX_DAILY_ENTRIES"),
                 "M2_MAX_MARGIN_PER_POSITION_USD": env_values.get("M2_MAX_MARGIN_PER_POSITION_USD"),
@@ -452,8 +498,16 @@ def run_go_live_preflight(
                 "M2_SHORT_ONLY": env_values.get("M2_SHORT_ONLY"),
                 "M2_CANARY_LEVERAGE": env_values.get("M2_CANARY_LEVERAGE"),
                 "M2_FUNDING_RATE_MAX_FOR_SHORT": env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT"),
+                "guardrails": guardrails_check["details"],
             },
-            error=None if risk_ok else "One or more risk limits are missing/invalid.",
+            error=(
+                None if check6_ok
+                else (
+                    "Guard-rails nao funcionais (risk_gate/circuit_breaker)."
+                    if not guardrails_ok
+                    else "One or more risk limits are missing/invalid."
+                )
+            ),
         )
 
         if not continue_on_error and any(item["status"] != "ok" for item in checks if item["id"] in {"3", "4", "5", "6"}):

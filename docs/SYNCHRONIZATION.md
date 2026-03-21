@@ -28,28 +28,32 @@ toda vez que mudanças significativas são feitas no código:
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
+#### Mudancas em Codigo
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Live Service | core/model2/live_service.py | Imports ACTION_REDUCE/CLOSE, M2_020_5_RULE_ID, |
+| | | handling explicito REDUCE/CLOSE com reason codes |
+| Preflight | scripts/model2/go_live_preflight.py | _check_guardrails_functional, check 6 expandido |
+| Testes live | tests/test_model2_live_execution.py | 2 testes REDUCE/CLOSE M2-020.5 |
+| Testes preflight | tests/test_model2_go_live_preflight.py | 3 testes guardrails M2-020.5 |
+
 #### Mudancas em Documentacao
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
-| Backlog M2 | docs/BACKLOG.md | M2-020.5 refinada com safety envelope obrigatorio |
-| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-025] |
+| Backlog M2 | docs/BACKLOG.md | M2-020.5 marcada CONCLUIDA com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-025] atualizado |
 
 #### Observacoes
 
-- A decisao continua nascendo no modelo, mas `risk_gate` e
-   `circuit_breaker` seguem obrigatorios no caminho critico.
-- `go_live_preflight.py` permanece como gate de promocao e operacao
-   `live`.
-- Nenhuma estrategia externa pode voltar a definir direcao ou destravar
-   entrada no lugar do modelo.
-
-#### Proximos Passos
-
-1. Implementar a preservacao explicita dos guard-rails em
-    `core/model2/live_service.py` e `core/model2/live_execution.py`.
-2. Cobrir o fluxo com testes que validem bloqueio fail-safe sem
-    estrategia externa.
+- `risk_gate` e `circuit_breaker` verificados no preflight via
+   `_check_guardrails_functional` (instanciacao + metodos criticos).
+- `ACTION_REDUCE` e `ACTION_CLOSE` bloqueados com reason codes
+   dedicados (`model_action_reduce_no_entry`,
+   `model_action_close_no_entry`) sem fallback para estrategia externa.
+- Fail-safe generico (`model_action_not_supported_for_entry`) mantido
+   para acoes desconhecidas futuras com `M2_020_5_RULE_ID`.
 
 ### [SYNC-024] M2-020.4 decisao unica no orquestrador
 

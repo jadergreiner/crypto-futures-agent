@@ -1110,36 +1110,44 @@ Evidencias:
 
 ### TAREFA M2-020.5 - Manter guard-rails sem estrategia externa
 
-Status: BACKLOG
+Status: CONCLUIDA (2026-03-21)
 Entrega:
 
 1. Preservar `risk/risk_gate.py` e `risk/circuit_breaker.py` no caminho
-   critico entre `ModelDecision.action` e envio de ordem.
+   critico entre `ModelDecision.action` e envio de ordem. [OK]
 2. Manter `scripts/model2/go_live_preflight.py` como gate obrigatorio
-   para promocao e operacao `live`.
+   para promocao e operacao `live`. [OK]
 3. Remover qualquer estrategia externa como fonte de direcao, entrada ou
-   desbloqueio operacional.
+   desbloqueio operacional. [OK]
 
-Critérios de aceite:
+Criterios de aceite:
 
 1. Toda tentativa de entrada `live` passa pelo safety envelope antes de
-   qualquer ordem real.
+   qualquer ordem real. [OK]
 2. `risk_gate` e `circuit_breaker` permanecem ativos mesmo quando a
-   direcao nasce exclusivamente do modelo.
+   direcao nasce exclusivamente do modelo. [OK]
 3. `OPEN_LONG` e `OPEN_SHORT` representam apenas intencao do modelo; a
-   liberacao final continua subordinada aos guard-rails.
+   liberacao final continua subordinada aos guard-rails. [OK]
 4. `HOLD`, `REDUCE` e `CLOSE` nao reativam estrategia externa como
-   fallback de direcao.
+   fallback de direcao. [OK]
 5. Falha, ausencia ou inconsistencia em guard-rails bloqueia a execucao
-   em fail-safe.
+   em fail-safe. [OK]
 
-Pontos de impacto esperados:
+Evidencias:
 
-1. `core/model2/live_service.py`.
-2. `core/model2/live_execution.py`.
-3. `risk/risk_gate.py`.
-4. `risk/circuit_breaker.py`.
-5. `scripts/model2/go_live_preflight.py`.
+1. Importacao e handling explicito de `ACTION_REDUCE` e `ACTION_CLOSE`
+   com reason codes auditaveis: `core/model2/live_service.py`.
+2. Constante `M2_020_5_RULE_ID` rastreavel em todos os bloqueios de
+   acao nao suportada: `core/model2/live_service.py`.
+3. Funcao `_check_guardrails_functional` verificando instanciacao e
+   operacionalidade de `RiskGate` e `CircuitBreaker` no preflight:
+   `scripts/model2/go_live_preflight.py`.
+4. Check 6 do preflight expandido com evidencias dos guard-rails:
+   `scripts/model2/go_live_preflight.py`.
+5. Testes de bloqueio auditavel para `ACTION_REDUCE` e `ACTION_CLOSE`:
+   `tests/test_model2_live_execution.py`.
+6. Testes do novo check de guard-rails no preflight:
+   `tests/test_model2_go_live_preflight.py`.
 
 ### TAREFA M2-020.6 - Persistir episodios completos de aprendizado
 

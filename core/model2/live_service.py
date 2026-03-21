@@ -29,15 +29,21 @@ from .live_execution import (
     evaluate_live_execution_gate,
 )
 from .model_decision import (
+    ACTION_CLOSE,
     ACTION_HOLD,
     ACTION_OPEN_LONG,
     ACTION_OPEN_SHORT,
+    ACTION_REDUCE,
     ModelDecision,
     ModelDecisionInput,
 )
 from .model_inference_service import ModelInferenceService
 from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
+
+# Regra que garante que guard-rails permanecem no caminho critico
+# independente da acao do modelo (M2-020.5)
+M2_020_5_RULE_ID = "M2-020.5-RULE-GUARDRAILS-ACTIVE"
 
 _PROTECTION_MAX_RETRIES = 3
 _PROTECTION_RETRY_BASE_DELAY_S = 1.0
@@ -593,12 +599,39 @@ class Model2LiveExecutionService:
                         "inference_latency_ms": inference_latency_ms,
                     },
                 )
+            elif str(inferred_decision.action).upper() == ACTION_REDUCE:
+                # REDUCE indica intencao de reducao de posicao existente.
+                # Nao mapeia para entrada nova — guard-rails nao sao contornados.
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="model_action_reduce_no_entry",
+                    rule_id=M2_020_5_RULE_ID,
+                    details={
+                        "action": str(inferred_decision.action),
+                        "decision_id": int(created_decision.decision_id),
+                    },
+                )
+            elif str(inferred_decision.action).upper() == ACTION_CLOSE:
+                # CLOSE indica intencao de encerramento de posicao existente.
+                # Nao gera ordem de entrada — guard-rails permanecem no caminho critico.
+                decision = LiveExecutionGateDecision(
+                    allow_execution=False,
+                    target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
+                    reason="model_action_close_no_entry",
+                    rule_id=M2_020_5_RULE_ID,
+                    details={
+                        "action": str(inferred_decision.action),
+                        "decision_id": int(created_decision.decision_id),
+                    },
+                )
             elif execution_signal_side is None:
+                # Acao desconhecida ou nao suportada — bloquear por seguranca (fail-safe).
                 decision = LiveExecutionGateDecision(
                     allow_execution=False,
                     target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
                     reason="model_action_not_supported_for_entry",
-                    rule_id=inference_rule_id,
+                    rule_id=M2_020_5_RULE_ID,
                     details={
                         "action": str(inferred_decision.action),
                         "decision_id": int(created_decision.decision_id),
