@@ -10,6 +10,14 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Parse boolean environment variables using common truthy values."""
+    raw = os.getenv(name)
+    if raw is None:
+        return bool(default)
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
 # Binance API Configuration
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "")
@@ -30,7 +38,14 @@ BINANCE_TESTNET_WS_URL = "wss://stream.binancefuture.com"
 # Database Configuration
 DB_PATH = "db/crypto_agent.db"
 MODEL2_DB_PATH = os.getenv("MODEL2_DB_PATH", "db/modelo2.db")
+M2_CANARY_DB_PATH = os.getenv("M2_CANARY_DB_PATH", "db/modelo2_canary.db")
 M2_EXECUTION_MODE = os.getenv("M2_EXECUTION_MODE", "shadow").strip().lower()
+M2_SHORT_ONLY = _env_bool("M2_SHORT_ONLY", True)
+M2_INJECTION_ENABLED = _env_bool("M2_INJECTION_ENABLED", True)
+M2_CANARY_LEVERAGE = int(os.getenv("M2_CANARY_LEVERAGE", "3"))
+M2_FUNDING_RATE_MAX_FOR_SHORT = float(os.getenv("M2_FUNDING_RATE_MAX_FOR_SHORT", "0.0005"))
+M2_REQUIRE_MAINNET_CONFIRM = _env_bool("M2_REQUIRE_MAINNET_CONFIRM", True)
+M2_MAINNET_CONFIRM_TOKEN = os.getenv("M2_MAINNET_CONFIRM_TOKEN", "").strip()
 M2_LIVE_SYMBOLS = tuple(
     symbol.strip().upper()
     for symbol in os.getenv("M2_LIVE_SYMBOLS", "").split(",")

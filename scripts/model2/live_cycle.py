@@ -15,11 +15,14 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import (
+    M2_CANARY_LEVERAGE,
     M2_EXECUTION_MODE,
+    M2_FUNDING_RATE_MAX_FOR_SHORT,
     M2_LIVE_SYMBOLS,
     M2_MAX_DAILY_ENTRIES,
     M2_MAX_MARGIN_PER_POSITION_USD,
     M2_MAX_SIGNAL_AGE_MINUTES,
+    M2_SHORT_ONLY,
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
@@ -43,6 +46,9 @@ def run_live_cycle(
     max_margin_per_position_usd: float,
     max_signal_age_minutes: int,
     symbol_cooldown_minutes: int,
+    short_only: bool,
+    funding_rate_max_for_short: float,
+    leverage: int,
 ) -> dict[str, Any]:
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     execute_summary = run_live_execute(
@@ -57,6 +63,9 @@ def run_live_cycle(
         max_margin_per_position_usd=max_margin_per_position_usd,
         max_signal_age_minutes=max_signal_age_minutes,
         symbol_cooldown_minutes=symbol_cooldown_minutes,
+        short_only=short_only,
+        funding_rate_max_for_short=funding_rate_max_for_short,
+        leverage=leverage,
     )
     reconcile_summary = run_live_reconcile(
         model2_db_path=model2_db_path,
@@ -70,6 +79,9 @@ def run_live_cycle(
         max_margin_per_position_usd=max_margin_per_position_usd,
         max_signal_age_minutes=max_signal_age_minutes,
         symbol_cooldown_minutes=symbol_cooldown_minutes,
+        short_only=short_only,
+        funding_rate_max_for_short=funding_rate_max_for_short,
+        leverage=leverage,
     )
     dashboard_summary = run_live_dashboard(
         model2_db_path=model2_db_path,
@@ -81,6 +93,9 @@ def run_live_cycle(
         "status": "ok",
         "run_id": run_id,
         "execution_mode": execution_mode,
+        "short_only": bool(short_only),
+        "leverage": int(leverage),
+        "funding_rate_max_for_short": float(funding_rate_max_for_short),
         "execute": execute_summary,
         "reconcile": reconcile_summary,
         "dashboard": dashboard_summary,
@@ -100,6 +115,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-margin-per-position-usd", type=float, default=M2_MAX_MARGIN_PER_POSITION_USD)
     parser.add_argument("--max-signal-age-minutes", type=int, default=M2_MAX_SIGNAL_AGE_MINUTES)
     parser.add_argument("--symbol-cooldown-minutes", type=int, default=M2_SYMBOL_COOLDOWN_MINUTES)
+    parser.add_argument("--short-only", action="store_true", default=M2_SHORT_ONLY)
+    parser.add_argument("--funding-rate-max-for-short", type=float, default=M2_FUNDING_RATE_MAX_FOR_SHORT)
+    parser.add_argument("--leverage", type=int, default=M2_CANARY_LEVERAGE)
     return parser.parse_args()
 
 
@@ -119,6 +137,9 @@ def main() -> int:
             max_margin_per_position_usd=float(args.max_margin_per_position_usd),
             max_signal_age_minutes=int(args.max_signal_age_minutes),
             symbol_cooldown_minutes=int(args.symbol_cooldown_minutes),
+            short_only=bool(args.short_only),
+            funding_rate_max_for_short=float(args.funding_rate_max_for_short),
+            leverage=int(args.leverage),
         )
     except Exception as exc:
         tb = traceback.format_exc()

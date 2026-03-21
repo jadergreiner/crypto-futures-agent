@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from config.settings import MODEL2_DB_PATH
 from core.model2 import Model2ThesisRepository
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -121,7 +122,7 @@ def run_bridge(
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_file = resolved_output_dir / f"model2_bridge_{run_id}.json"
-    output_file.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 

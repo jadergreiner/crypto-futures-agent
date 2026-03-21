@@ -79,7 +79,7 @@ def test_evaluator_loading_episodes(mock_db):
     assert episodes["BTCUSDT"][0]["reward_proxy"] == 1.0
     
     feats = episodes["BTCUSDT"][0]["features"]
-    assert len(feats) == 19
+    assert len(feats) == evaluator.n_features
     # check funding rate sentiment (bullish -> 1.0, idx 14)
     # let's not hardcode exact index, just check type and sum > 0
     assert isinstance(feats, np.ndarray)

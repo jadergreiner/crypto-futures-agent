@@ -106,10 +106,12 @@ class LiveExecutionConfig:
     execution_mode: str
     live_symbols: tuple[str, ...]
     authorized_symbols: tuple[str, ...]
+    short_only: bool
     max_daily_entries: int
     max_margin_per_position_usd: float
     max_signal_age_ms: int
     symbol_cooldown_ms: int
+    funding_rate_max_for_short: float
     leverage: int
 
 
@@ -124,6 +126,10 @@ class LiveExecutionGateInput:
     signal_side: str
     technical_signal_status: str
     signal_timestamp: int
+    short_only: bool
+    funding_rate: float | None
+    basis_value: float | None
+    funding_rate_max_for_short: float
     execution_mode: str
     live_symbols: tuple[str, ...]
     authorized_symbols: tuple[str, ...]
@@ -181,6 +187,12 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             signal_side=gate_input.signal_side,
         )
 
+    if bool(gate_input.short_only) and gate_input.signal_side != "SHORT":
+        return _blocked(
+            "short_only_enforced",
+            signal_side=gate_input.signal_side,
+        )
+
     authorized_symbols = {symbol.upper() for symbol in gate_input.authorized_symbols}
     if authorized_symbols and gate_input.symbol.upper() not in authorized_symbols:
         return _blocked(
@@ -234,6 +246,19 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             "invalid_margin_limit",
             max_margin_per_position_usd=float(gate_input.max_margin_per_position_usd),
         )
+
+    if gate_input.signal_side == "SHORT":
+        if gate_input.funding_rate is not None and gate_input.funding_rate > gate_input.funding_rate_max_for_short:
+            return _blocked(
+                "funding_unfavorable",
+                funding_rate=float(gate_input.funding_rate),
+                threshold=float(gate_input.funding_rate_max_for_short),
+            )
+        if gate_input.basis_value is not None and gate_input.basis_value < 0:
+            return _blocked(
+                "negative_basis",
+                basis_value=float(gate_input.basis_value),
+            )
 
     if execution_mode == "live":
         if gate_input.available_balance_usd is None:

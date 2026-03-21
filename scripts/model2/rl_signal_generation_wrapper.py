@@ -1,13 +1,43 @@
-"""Wrapper para RL Signal Generation na pipeline diária."""
+"""RL scoring wrapper for Model 2.0 technical signals."""
+
+from __future__ import annotations
 
 import json
-import subprocess
+import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict
 
+import numpy as np
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from core.model2.rl_model_loader import RLModelLoader
+from scripts.model2.io_utils import atomic_write_json
+
+
+def _utc_now_ms() -> int:
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
+def _to_float(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _build_features(row: sqlite3.Row) -> np.ndarray:
+    entry = _to_float(row["entry_price"])
+    stop = _to_float(row["stop_loss"])
+    target = _to_float(row["take_profit"])
+    risk = abs(stop - entry)
+    reward = abs(entry - target)
+    rr = reward / risk if risk > 0 else 0.0
+    return np.array([entry, stop, target, rr], dtype=float)
 
 
 def run_rl_signal_generation(
@@ -19,104 +49,111 @@ def run_rl_signal_generation(
     dry_run: bool = False,
     output_dir: Path | str | None = None,
 ) -> Dict[str, Any]:
-    """
-    Executar geração de sinais com suporte RL.
+    """Apply RL confidence scoring to technical_signals payload."""
 
-    Usa subprocess para isolar dependências de stable_baselines3.
+    resolved_db = Path(model2_db_path)
+    resolved_output_dir = Path(output_dir) if output_dir else (REPO_ROOT / "results" / "model2" / "runtime")
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
-    Args:
-        model2_db_path: Caminho do banco modelo2
-        timeframe: Timeframe (H4, H1, M5)
-        symbols: Lista de símbolos (opcional)
-        ppo_checkpoint: Checkpoint PPO customizado (opcional)
-        dry_run: Modo simulado
-        output_dir: Diretório de saída
+    rl_loader = RLModelLoader(checkpoint_path=ppo_checkpoint)
+    now_ms = _utc_now_ms()
+    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
-    Returns:
-        Resultado do processamento
-    """
-
-    script_path = REPO_ROOT / "scripts" / "model2" / "rl_signal_generation.py"
-
-    cmd = [
-        sys.executable,
-        str(script_path),
-        "--model2-db-path", str(model2_db_path),
-        "--timeframe", timeframe,
+    query = [
+        "SELECT id, symbol, timeframe, signal_side, entry_price, stop_loss, take_profit, payload_json",
+        "FROM technical_signals",
+        "WHERE timeframe = ?",
+        "  AND status IN ('CREATED', 'CONSUMED')",
+        "ORDER BY id ASC",
     ]
-
-    if ppo_checkpoint:
-        cmd.extend(["--ppo-checkpoint", str(ppo_checkpoint)])
-
+    params: list[Any] = [str(timeframe)]
     if symbols:
-        cmd.extend(["--symbols", ",".join(symbols)])
+        placeholders = ", ".join("?" for _ in symbols)
+        query.insert(3, f"  AND symbol IN ({placeholders})")
+        params = [str(timeframe), *[str(item).upper() for item in symbols]]
 
-    if dry_run:
-        cmd.append("--dry-run")
+    processed = 0
+    enhanced = 0
+    eligible = 0
+    items: list[dict[str, Any]] = []
 
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
+    with sqlite3.connect(resolved_db) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("\n".join(query), params).fetchall()
 
-        # Check if successful
-        if result.returncode == 0:
-            # Try to parse JSON from stdout
-            lines = result.stdout.strip().split('\n')
+        for row in rows:
+            processed += 1
+            features = _build_features(row)
+            confidence, action = rl_loader.predict_confidence(features=features, signal_side=str(row["signal_side"]))
+            is_eligible = confidence >= 0.50
+            if is_eligible:
+                eligible += 1
 
-            # Find the JSON object (starts with '{' and is valid JSON)
-            for i in range(len(lines) - 1, -1, -1):
-                line = lines[i].strip()
-                if line.startswith('{'):
-                    try:
-                        json_result = json.loads(line)
-                        return json_result
-                    except json.JSONDecodeError:
-                        continue
+            payload = {}
+            try:
+                payload = json.loads(row["payload_json"] or "{}")
+                if not isinstance(payload, dict):
+                    payload = {}
+            except json.JSONDecodeError:
+                payload = {}
+            payload["rl"] = {
+                "confidence": float(round(confidence, 6)),
+                "action": str(action),
+                "eligible": bool(is_eligible),
+                "fallback": bool(rl_loader.is_fallback),
+                "fallback_reason": rl_loader.fallback_reason,
+                "scored_at": int(now_ms),
+            }
 
-        # If couldn't parse, check stderr for RL signal output file
-        output_lines = result.stderr.strip().split('\n')
-        for line in output_lines:
-            if "Resultado salvo:" in line or "output_file" in line:
-                # Try to extract path and read file
-                parts = line.split(":")
-                if len(parts) > 1:
-                    try:
-                        potential_path = parts[-1].strip()
-                        if Path(potential_path).exists():
-                            with open(potential_path) as f:
-                                return json.load(f)
-                    except:
-                        pass
+            if not dry_run:
+                conn.execute(
+                    """
+                    UPDATE technical_signals
+                    SET payload_json = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (json.dumps(payload, ensure_ascii=True, sort_keys=True), int(now_ms), int(row["id"])),
+                )
+                enhanced += 1
 
-        # Fallback: return generic success with subprocess output
-        return {
-            "status": "ok" if result.returncode == 0 else "error",
-            "message": "RL signal generation executed (output parse issue)",
-            "return_code": result.returncode,
-            "env_note": "Check result files in results/model2/runtime/model2_rl_signals_*.json"
-        }
+            items.append(
+                {
+                    "signal_id": int(row["id"]),
+                    "symbol": str(row["symbol"]),
+                    "confidence": float(round(confidence, 6)),
+                    "action": str(action),
+                    "eligible": bool(is_eligible),
+                }
+            )
 
-    except subprocess.TimeoutExpired:
-        return {
-            "status": "error",
-            "error": "RL signal generation timeout (60s)",
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-        }
+        if not dry_run:
+            conn.commit()
+
+    summary = {
+        "status": "ok",
+        "run_id": run_id,
+        "timestamp_utc_ms": now_ms,
+        "model2_db_path": str(resolved_db),
+        "timeframe": str(timeframe),
+        "symbols": [str(item).upper() for item in symbols] if symbols else [],
+        "dry_run": bool(dry_run),
+        "ppo_available": not rl_loader.is_fallback,
+        "fallback_reason": rl_loader.fallback_reason,
+        "signals_processed": int(processed),
+        "signals_enhanced": int(enhanced),
+        "signals_eligible_threshold": int(eligible),
+        "items": items,
+    }
+    output_file = resolved_output_dir / f"model2_rl_signals_{run_id}.json"
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
+    summary["output_file"] = str(output_file)
+    return summary
 
 
-if __name__ == '__main__':
-    # Test
+if __name__ == "__main__":
     result = run_rl_signal_generation(
         model2_db_path="db/modelo2.db",
         timeframe="H4",
         dry_run=True,
     )
-    print(json.dumps(result, indent=2))
+    print(json.dumps(result, indent=2, ensure_ascii=True))

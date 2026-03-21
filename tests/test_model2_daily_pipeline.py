@@ -22,6 +22,12 @@ def test_daily_pipeline_runs_all_stages_in_order(tmp_path: Path, monkeypatch) ->
     monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_stage(calls, "bridge"))
     monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage(calls, "order_layer"))
     monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(
+        daily_pipeline,
+        "run_ensemble_signal_generation",
+        _fake_stage(calls, "ensemble_signal_generation"),
+    )
     monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_stage(calls, "export_dashboard"))
 
     summary = daily_pipeline.run_daily_pipeline(
@@ -49,6 +55,8 @@ def test_daily_pipeline_runs_all_stages_in_order(tmp_path: Path, monkeypatch) ->
         "bridge",
         "order_layer",
         "export_signals",
+        "rl_signal_generation",
+        "ensemble_signal_generation",
         "export_dashboard",
     ]
     assert calls[1][1]["symbols"] == ["BTCUSDT", "ETHUSDT"]
@@ -77,6 +85,12 @@ def test_daily_pipeline_skips_dashboard_stage_on_dry_run(
     monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_stage(calls, "bridge"))
     monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage(calls, "order_layer"))
     monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(
+        daily_pipeline,
+        "run_ensemble_signal_generation",
+        _fake_stage(calls, "ensemble_signal_generation"),
+    )
     monkeypatch.setattr(
         daily_pipeline,
         "run_export_dashboard",
@@ -108,6 +122,8 @@ def test_daily_pipeline_skips_dashboard_stage_on_dry_run(
         "bridge",
         "order_layer",
         "export_signals",
+        "rl_signal_generation",
+        "ensemble_signal_generation",
     ]
     assert summary["status"] == "ok"
     assert summary["stages"]["export_dashboard"]["status"] == "skipped_dry_run"
@@ -131,6 +147,12 @@ def test_daily_pipeline_fails_fast_when_continue_on_error_is_false(
     monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_stage(calls, "bridge"))
     monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage(calls, "order_layer"))
     monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(
+        daily_pipeline,
+        "run_ensemble_signal_generation",
+        _fake_stage(calls, "ensemble_signal_generation"),
+    )
     monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_stage(calls, "export_dashboard"))
 
     summary = daily_pipeline.run_daily_pipeline(
@@ -173,6 +195,12 @@ def test_daily_pipeline_continues_after_error_when_flag_enabled(
     monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_stage(calls, "bridge"))
     monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage(calls, "order_layer"))
     monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(
+        daily_pipeline,
+        "run_ensemble_signal_generation",
+        _fake_stage(calls, "ensemble_signal_generation"),
+    )
     monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_stage(calls, "export_dashboard"))
 
     summary = daily_pipeline.run_daily_pipeline(
@@ -200,6 +228,8 @@ def test_daily_pipeline_continues_after_error_when_flag_enabled(
         "bridge",
         "order_layer",
         "export_signals",
+        "rl_signal_generation",
+        "ensemble_signal_generation",
         "export_dashboard",
     ]
     assert summary["status"] == "partial"

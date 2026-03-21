@@ -15,11 +15,16 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import (
+    M2_CANARY_LEVERAGE,
     M2_EXECUTION_MODE,
+    M2_FUNDING_RATE_MAX_FOR_SHORT,
     M2_LIVE_SYMBOLS,
+    M2_MAINNET_CONFIRM_TOKEN,
     M2_MAX_DAILY_ENTRIES,
     M2_MAX_MARGIN_PER_POSITION_USD,
+    M2_REQUIRE_MAINNET_CONFIRM,
     M2_MAX_SIGNAL_AGE_MINUTES,
+    M2_SHORT_ONLY,
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
@@ -29,6 +34,7 @@ from core.model2 import (
     Model2ThesisRepository,
 )
 from data.binance_client import create_binance_client
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -78,6 +84,9 @@ def run_live_execute(
     max_margin_per_position_usd: float,
     max_signal_age_minutes: int,
     symbol_cooldown_minutes: int,
+    short_only: bool = False,
+    funding_rate_max_for_short: float = 0.0005,
+    leverage: int | None = None,
     exchange: Model2LiveExchange | None = None,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -89,12 +98,19 @@ def run_live_execute(
     config = Model2LiveExecutionService.build_config(
         execution_mode=execution_mode,
         live_symbols=live_symbols,
+        short_only=bool(short_only),
         max_daily_entries=max_daily_entries,
         max_margin_per_position_usd=max_margin_per_position_usd,
         max_signal_age_ms=int(max_signal_age_minutes) * 60_000,
         symbol_cooldown_ms=int(symbol_cooldown_minutes) * 60_000,
+        funding_rate_max_for_short=float(funding_rate_max_for_short),
+        leverage=leverage,
     )
     if config.execution_mode == "live" and exchange is None:
+        if M2_REQUIRE_MAINNET_CONFIRM and M2_MAINNET_CONFIRM_TOKEN != "YES_MAINNET":
+            raise RuntimeError(
+                "Mainnet confirmation token missing. Set M2_MAINNET_CONFIRM_TOKEN=YES_MAINNET to execute live."
+            )
         exchange = Model2LiveExchange(create_binance_client(mode="live"))
 
     service = Model2LiveExecutionService(
@@ -128,12 +144,15 @@ def run_live_execute(
         "max_margin_per_position_usd": float(config.max_margin_per_position_usd),
         "max_signal_age_minutes": int(max_signal_age_minutes),
         "symbol_cooldown_minutes": int(symbol_cooldown_minutes),
+        "short_only": bool(config.short_only),
+        "funding_rate_max_for_short": float(config.funding_rate_max_for_short),
+        "leverage": int(config.leverage),
         "staged": execution_result["staged"],
         "processed_ready": execution_result["processed_ready"],
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_live_execute_{run_id}.json"
-    output_file.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 
@@ -156,6 +175,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-margin-per-position-usd", type=float, default=M2_MAX_MARGIN_PER_POSITION_USD)
     parser.add_argument("--max-signal-age-minutes", type=int, default=M2_MAX_SIGNAL_AGE_MINUTES)
     parser.add_argument("--symbol-cooldown-minutes", type=int, default=M2_SYMBOL_COOLDOWN_MINUTES)
+    parser.add_argument("--short-only", action="store_true", default=M2_SHORT_ONLY)
+    parser.add_argument("--funding-rate-max-for-short", type=float, default=M2_FUNDING_RATE_MAX_FOR_SHORT)
+    parser.add_argument("--leverage", type=int, default=M2_CANARY_LEVERAGE)
     return parser.parse_args()
 
 
@@ -174,6 +196,9 @@ def main() -> int:
         max_margin_per_position_usd=float(args.max_margin_per_position_usd),
         max_signal_age_minutes=int(args.max_signal_age_minutes),
         symbol_cooldown_minutes=int(args.symbol_cooldown_minutes),
+        short_only=bool(args.short_only),
+        funding_rate_max_for_short=float(args.funding_rate_max_for_short),
+        leverage=int(args.leverage),
     )
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0

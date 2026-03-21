@@ -14,8 +14,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from config.settings import MODEL2_DB_PATH
+from config.settings import M2_SHORT_ONLY, MODEL2_DB_PATH
 from core.model2 import M2_003_1_RULE_ID, Model2ThesisRepository
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -55,6 +56,7 @@ def run_tracking(
     timeframe: str | None,
     limit: int,
     dry_run: bool,
+    short_only: bool = False,
     output_dir: str | Path,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -63,15 +65,33 @@ def run_tracking(
         _ensure_model2_schema(model2_conn)
 
     repository = Model2ThesisRepository(str(resolved_model2_db))
-    candidates = repository.list_identified_opportunities(
+    identified_candidates = repository.list_identified_opportunities(
         symbol=symbol,
         timeframe=timeframe,
         limit=limit,
     )
+    candidates: list[dict[str, Any]] = []
+    skipped_short_only = 0
 
     transitioned = 0
     skipped = 0
     items: list[dict[str, Any]] = []
+    for candidate in identified_candidates:
+        if short_only and str(candidate.get("side") or "").upper() != "SHORT":
+            skipped_short_only += 1
+            items.append(
+                {
+                    "opportunity_id": int(candidate["id"]),
+                    "symbol": candidate["symbol"],
+                    "timeframe": candidate["timeframe"],
+                    "from_status": candidate["status"],
+                    "status": "SKIPPED_SHORT_ONLY",
+                    "reason": "short_only_enforced",
+                }
+            )
+            continue
+        candidates.append(candidate)
+
     for candidate in candidates:
         item = {
             "opportunity_id": int(candidate["id"]),
@@ -108,8 +128,11 @@ def run_tracking(
             "symbol": symbol,
             "timeframe": timeframe,
             "limit": limit,
+            "short_only": bool(short_only),
         },
-        "identified_candidates": len(candidates),
+        "identified_candidates": len(identified_candidates),
+        "eligible_candidates": len(candidates),
+        "skipped_short_only": skipped_short_only,
         "transitioned_now": transitioned,
         "skipped_now": skipped,
         "items": items,
@@ -117,7 +140,7 @@ def run_tracking(
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_file = resolved_output_dir / f"model2_track_{run_id}.json"
-    output_file.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 
@@ -151,6 +174,12 @@ def _parse_args() -> argparse.Namespace:
         help="Only list transition candidates, without updating DB.",
     )
     parser.add_argument(
+        "--short-only",
+        action="store_true",
+        default=M2_SHORT_ONLY,
+        help="Enforce SHORT-only tracking (skip LONG opportunities).",
+    )
+    parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory used for tracker run summaries.",
@@ -166,6 +195,7 @@ def main() -> int:
         timeframe=args.timeframe,
         limit=args.limit,
         dry_run=bool(args.dry_run),
+        short_only=bool(args.short_only),
         output_dir=args.output_dir,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=True))

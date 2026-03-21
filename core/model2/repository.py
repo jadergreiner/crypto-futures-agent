@@ -1076,6 +1076,7 @@ class Model2ThesisRepository:
         *,
         signal_id: int,
         now_ms: int,
+        short_only: bool = False,
     ) -> ConsumeTechnicalSignalResult:
         """Consume CREATED technical signal and persist order-layer decision."""
 
@@ -1143,7 +1144,8 @@ class Model2ThesisRepository:
                         signal_timestamp=int(row["signal_timestamp"]),
                         payload=payload,
                         decision_timestamp=now_ms,
-                    )
+                    ),
+                    short_only=bool(short_only),
                 )
 
                 if not decision.should_transition:
@@ -1523,6 +1525,144 @@ class Model2ThesisRepository:
                 ),
             ).fetchone()
             return int(row[0]) if row is not None else 0
+
+    def _table_has_column(self, conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+        try:
+            rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+        except sqlite3.Error:
+            return False
+        return any(str(row[1]).lower() == str(column_name).lower() for row in rows)
+
+    def get_latest_funding_rate(self, *, symbol: str) -> float | None:
+        """Return latest funding rate for symbol when funding tables are available."""
+        table_candidates = ("funding_rates_api", "funding_rates_history")
+        timestamp_candidates = ("timestamp_utc", "timestamp")
+        with self._connect() as conn:
+            for table_name in table_candidates:
+                if not self._table_has_column(conn, table_name, "funding_rate"):
+                    continue
+
+                order_column = None
+                for candidate in timestamp_candidates:
+                    if self._table_has_column(conn, table_name, candidate):
+                        order_column = candidate
+                        break
+                if order_column is None:
+                    order_column = "id"
+
+                try:
+                    row = conn.execute(
+                        f"""
+                        SELECT funding_rate
+                        FROM {table_name}
+                        WHERE symbol = ?
+                        ORDER BY {order_column} DESC
+                        LIMIT 1
+                        """,
+                        (str(symbol),),
+                    ).fetchone()
+                except sqlite3.Error:
+                    continue
+                if row is None:
+                    continue
+                try:
+                    return float(row[0])
+                except (TypeError, ValueError):
+                    continue
+        return None
+
+    def get_latest_basis_value(self, *, symbol: str) -> float | None:
+        """Return latest basis metric for symbol when available in funding tables."""
+        table_candidates = ("funding_rates_api", "funding_rates_history")
+        basis_columns = ("basis", "basis_value", "basis_pct")
+        timestamp_candidates = ("timestamp_utc", "timestamp")
+        with self._connect() as conn:
+            for table_name in table_candidates:
+                basis_column = None
+                for column_name in basis_columns:
+                    if self._table_has_column(conn, table_name, column_name):
+                        basis_column = column_name
+                        break
+                if basis_column is None:
+                    continue
+
+                order_column = None
+                for candidate in timestamp_candidates:
+                    if self._table_has_column(conn, table_name, candidate):
+                        order_column = candidate
+                        break
+                if order_column is None:
+                    order_column = "id"
+
+                try:
+                    row = conn.execute(
+                        f"""
+                        SELECT {basis_column}
+                        FROM {table_name}
+                        WHERE symbol = ?
+                        ORDER BY {order_column} DESC
+                        LIMIT 1
+                        """,
+                        (str(symbol),),
+                    ).fetchone()
+                except sqlite3.Error:
+                    continue
+                if row is None:
+                    continue
+                try:
+                    return float(row[0])
+                except (TypeError, ValueError):
+                    continue
+        return None
+
+    def get_live_performance_snapshot(
+        self,
+        *,
+        execution_mode: str,
+        limit: int = 20,
+    ) -> dict[str, float]:
+        """Return lightweight performance snapshot used by BBAPT sizing."""
+
+        capped_limit = max(1, int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT status
+                FROM signal_executions
+                WHERE execution_mode = ?
+                  AND status IN (?, ?, ?)
+                ORDER BY updated_at DESC
+                LIMIT ?
+                """,
+                (
+                    str(execution_mode),
+                    SIGNAL_EXECUTION_STATUS_FAILED,
+                    SIGNAL_EXECUTION_STATUS_EXITED,
+                    SIGNAL_EXECUTION_STATUS_CANCELLED,
+                    capped_limit,
+                ),
+            ).fetchall()
+
+        statuses = [str(row[0]) for row in rows]
+        if not statuses:
+            return {
+                "recent_total": 0.0,
+                "recent_failure_ratio": 0.0,
+                "loss_streak": 0.0,
+            }
+
+        losses = [status for status in statuses if status == SIGNAL_EXECUTION_STATUS_FAILED]
+        streak = 0
+        for status in statuses:
+            if status == SIGNAL_EXECUTION_STATUS_FAILED:
+                streak += 1
+                continue
+            break
+        return {
+            "recent_total": float(len(statuses)),
+            "recent_failure_ratio": float(len(losses) / len(statuses)),
+            "loss_streak": float(streak),
+        }
 
     def _insert_signal_execution_event(
         self,

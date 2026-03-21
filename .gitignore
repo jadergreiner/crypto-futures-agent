@@ -1,6 +1,8 @@
 # Database
 db/*.db
 db/*.db-journal
+db/*.db-wal
+db/*.db-shm
 
 # Environment
 .env
@@ -84,6 +86,9 @@ results/model2/runtime/**
 results/model2/*.json
 results/model2/analysis/
 results/model2/ppo_grid_search_*.json
+results/model2_short/runtime/**
+!results/model2_short/runtime/.gitkeep
+results/model2_short/*.json
 
 # Claude Code configuracao local (especifico da maquina)
 .claude/settings.local.json

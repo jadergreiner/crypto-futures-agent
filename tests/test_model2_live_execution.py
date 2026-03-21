@@ -307,7 +307,7 @@ def test_run_live_execute_blocks_signal_outside_live_gates_without_order_call(tm
     assert row == ("BLOCKED", "symbol_not_enabled")
 
 
-def test_run_live_execute_protection_failure_triggers_emergency_close(tmp_path: Path) -> None:
+def test_run_live_execute_protection_failure_is_deferred_without_failing_entry(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _, signal_id = _create_consumed_signal(db_path)
     exchange = FakeExchange(available_balance=100.0, protection_works=False)
@@ -328,11 +328,11 @@ def test_run_live_execute_protection_failure_triggers_emergency_close(tmp_path: 
     )
 
     assert summary["status"] == "ok"
-    assert summary["processed_ready"][0]["status"] == "FAILED"
-    assert summary["processed_ready"][0]["reason"] == "protection_not_armed"
+    assert summary["processed_ready"][0]["status"] == "ENTRY_FILLED"
+    assert summary["processed_ready"][0]["reason"] == "protection_not_armed_deferred"
     assert exchange.market_calls == 1
-    assert exchange.close_calls == 1
-    assert exchange.get_open_position("BTCUSDT") is None
+    assert exchange.close_calls == 0
+    assert exchange.get_open_position("BTCUSDT") is not None
 
     with sqlite3.connect(db_path) as conn:
         row = conn.execute(
@@ -343,7 +343,7 @@ def test_run_live_execute_protection_failure_triggers_emergency_close(tmp_path: 
             """,
             (signal_id,),
         ).fetchone()
-    assert row == ("FAILED", "protection_not_armed", None, None)
+    assert row == ("ENTRY_FILLED", None, None, None)
 
 
 def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Path) -> None:

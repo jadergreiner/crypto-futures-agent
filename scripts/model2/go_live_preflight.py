@@ -17,10 +17,14 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import (
+    M2_CANARY_DB_PATH,
+    M2_CANARY_LEVERAGE,
     M2_LIVE_SYMBOLS,
+    M2_FUNDING_RATE_MAX_FOR_SHORT,
     M2_MAX_DAILY_ENTRIES,
     M2_MAX_MARGIN_PER_POSITION_USD,
     M2_MAX_SIGNAL_AGE_MINUTES,
+    M2_SHORT_ONLY,
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
@@ -29,6 +33,7 @@ from scripts.model2.live_dashboard import run_live_dashboard
 from scripts.model2.live_execute import run_live_execute
 from scripts.model2.live_reconcile import run_live_reconcile
 from scripts.model2.migrate import run_up
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
@@ -384,6 +389,10 @@ def run_go_live_preflight(
         env_updates["M2_MAX_MARGIN_PER_POSITION_USD"] = str(max_margin)
         env_updates["M2_MAX_SIGNAL_AGE_MINUTES"] = str(max_age)
         env_updates["M2_SYMBOL_COOLDOWN_MINUTES"] = str(cooldown)
+        env_updates["M2_SHORT_ONLY"] = "true" if M2_SHORT_ONLY else "false"
+        env_updates["M2_CANARY_DB_PATH"] = str(M2_CANARY_DB_PATH)
+        env_updates["M2_CANARY_LEVERAGE"] = str(M2_CANARY_LEVERAGE)
+        env_updates["M2_FUNDING_RATE_MAX_FOR_SHORT"] = str(M2_FUNDING_RATE_MAX_FOR_SHORT)
 
         if apply_fixes:
             env_fix_info = _update_env_file(resolved_env_file, env_updates)
@@ -427,6 +436,8 @@ def run_go_live_preflight(
                 _to_positive_float(env_values.get("M2_MAX_MARGIN_PER_POSITION_USD", ""), -1.0) > 0,
                 _to_positive_int(env_values.get("M2_MAX_SIGNAL_AGE_MINUTES", ""), -1) > 0,
                 _to_positive_int(env_values.get("M2_SYMBOL_COOLDOWN_MINUTES", ""), -1) > 0,
+                _to_positive_int(env_values.get("M2_CANARY_LEVERAGE", ""), -1) > 0,
+                _to_positive_float(env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT", ""), -1.0) > 0,
             )
         )
         add_check(
@@ -438,6 +449,9 @@ def run_go_live_preflight(
                 "M2_MAX_MARGIN_PER_POSITION_USD": env_values.get("M2_MAX_MARGIN_PER_POSITION_USD"),
                 "M2_MAX_SIGNAL_AGE_MINUTES": env_values.get("M2_MAX_SIGNAL_AGE_MINUTES"),
                 "M2_SYMBOL_COOLDOWN_MINUTES": env_values.get("M2_SYMBOL_COOLDOWN_MINUTES"),
+                "M2_SHORT_ONLY": env_values.get("M2_SHORT_ONLY"),
+                "M2_CANARY_LEVERAGE": env_values.get("M2_CANARY_LEVERAGE"),
+                "M2_FUNDING_RATE_MAX_FOR_SHORT": env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT"),
             },
             error=None if risk_ok else "One or more risk limits are missing/invalid.",
         )
@@ -473,6 +487,15 @@ def run_go_live_preflight(
                 "symbol_cooldown_minutes": _to_positive_int(
                     env_values.get("M2_SYMBOL_COOLDOWN_MINUTES", ""),
                     M2_SYMBOL_COOLDOWN_MINUTES,
+                ),
+                "short_only": str(env_values.get("M2_SHORT_ONLY", str(M2_SHORT_ONLY))).strip().lower() in {"1", "true", "yes", "on"},
+                "funding_rate_max_for_short": _to_positive_float(
+                    env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT", ""),
+                    M2_FUNDING_RATE_MAX_FOR_SHORT,
+                ),
+                "leverage": _to_positive_int(
+                    env_values.get("M2_CANARY_LEVERAGE", ""),
+                    M2_CANARY_LEVERAGE,
                 ),
             }
             execute_action = "python scripts/model2/live_execute.py --timeframe H4 --execution-mode shadow"
@@ -618,7 +641,7 @@ def run_go_live_preflight(
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_go_live_preflight_{run_id}.json"
-    output_file.write_text(json.dumps({**summary, "output_file": str(output_file)}, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, {**summary, "output_file": str(output_file)}, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 

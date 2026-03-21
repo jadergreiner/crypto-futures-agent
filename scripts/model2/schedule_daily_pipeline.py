@@ -18,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.model2.daily_pipeline import DEFAULT_OUTPUT_DIR, run_daily_pipeline
+from scripts.model2.io_utils import atomic_write_json
 
 try:
     from config.settings import DB_PATH, MODEL2_DB_PATH
@@ -116,7 +117,7 @@ def _write_summary(output_dir: Path, summary: dict[str, Any]) -> Path:
     output_file = output_dir / f"model2_daily_schedule_{run_id}.json"
     summary_with_output = dict(summary)
     summary_with_output["output_file"] = str(output_file)
-    output_file.write_text(json.dumps(summary_with_output, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary_with_output, ensure_ascii=True, indent=2)
     return output_file
 
 

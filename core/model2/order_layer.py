@@ -56,6 +56,7 @@ def evaluate_signal_for_order_layer(
     order_input: OrderLayerInput,
     *,
     authorized_symbols: Collection[str] | None = None,
+    short_only: bool = False,
 ) -> OrderLayerDecision:
     """Evaluate CREATED technical signal for order-layer consumption."""
 
@@ -84,6 +85,15 @@ def evaluate_signal_for_order_layer(
             should_transition=True,
             target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
             reason="unsupported_signal_side",
+            rule_id=M2_007_1_RULE_ID,
+            details={"signal_side": order_input.signal_side},
+        )
+
+    if short_only and order_input.signal_side != "SHORT":
+        return OrderLayerDecision(
+            should_transition=True,
+            target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+            reason="short_only_enforced",
             rule_id=M2_007_1_RULE_ID,
             details={"signal_side": order_input.signal_side},
         )

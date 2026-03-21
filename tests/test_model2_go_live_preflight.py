@@ -2,6 +2,7 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
+from config.settings import M2_MAX_DAILY_ENTRIES
 from scripts.model2.go_live_preflight import run_go_live_preflight
 
 
@@ -186,7 +187,7 @@ def test_env_auto_fix_updates_required_keys_and_creates_backup(tmp_path: Path) -
     env_text = env_file.read_text(encoding="utf-8")
     assert "M2_EXECUTION_MODE=shadow" in env_text
     assert "M2_LIVE_SYMBOLS=ETHUSDT" in env_text
-    assert "M2_MAX_DAILY_ENTRIES=10" in env_text
+    assert f"M2_MAX_DAILY_ENTRIES={M2_MAX_DAILY_ENTRIES}" in env_text
     assert (tmp_path / ".env.bak").exists()
 
 

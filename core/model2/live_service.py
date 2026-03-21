@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from typing import Any
 
+import numpy as np
+
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
+from .rl_model_loader import RLModelLoader
 from .live_exchange import Model2LiveExchange
 from .live_execution import (
     LiveExecutionConfig,
@@ -39,16 +43,19 @@ class Model2LiveExecutionService:
         self.repository = repository
         self.config = config
         self.exchange = exchange
+        self._rl_loader = RLModelLoader()
 
     @staticmethod
     def build_config(
         *,
         execution_mode: str,
         live_symbols: tuple[str, ...],
+        short_only: bool,
         max_daily_entries: int,
         max_margin_per_position_usd: float,
         max_signal_age_ms: int,
         symbol_cooldown_ms: int,
+        funding_rate_max_for_short: float,
         leverage: int | None = None,
         authorized_symbols: tuple[str, ...] | None = None,
     ) -> LiveExecutionConfig:
@@ -56,10 +63,12 @@ class Model2LiveExecutionService:
             execution_mode=str(execution_mode).strip().lower(),
             live_symbols=tuple(symbol.upper() for symbol in live_symbols),
             authorized_symbols=authorized_symbols or tuple(sorted(AUTHORIZED_SYMBOLS)),
+            short_only=bool(short_only),
             max_daily_entries=int(max_daily_entries),
             max_margin_per_position_usd=float(max_margin_per_position_usd),
             max_signal_age_ms=int(max_signal_age_ms),
             symbol_cooldown_ms=int(symbol_cooldown_ms),
+            funding_rate_max_for_short=float(funding_rate_max_for_short),
             leverage=int(leverage or EXECUTION_CONFIG.get("leverage", 10)),
         )
 
@@ -68,10 +77,115 @@ class Model2LiveExecutionService:
             raise RuntimeError("Live exchange is required when execution_mode=live.")
         return self.exchange
 
+    @staticmethod
+    def _safe_json_dict(raw: Any) -> dict[str, Any]:
+        if isinstance(raw, dict):
+            return raw
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                return parsed if isinstance(parsed, dict) else {}
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    @staticmethod
+    def _lookup_nested(payload: dict[str, Any], *path: str) -> Any:
+        current: Any = payload
+        for key in path:
+            if not isinstance(current, dict):
+                return None
+            current = current.get(key)
+        return current
+
+    @staticmethod
+    def _to_float(value: Any) -> float | None:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _extract_funding_and_basis(self, candidate: dict[str, Any]) -> tuple[float | None, float | None]:
+        payload = self._safe_json_dict(candidate.get("payload_json"))
+        funding = self._to_float(payload.get("funding_rate"))
+        if funding is None:
+            funding = self._to_float(self._lookup_nested(payload, "market_context", "funding_rate"))
+        if funding is None:
+            funding = self.repository.get_latest_funding_rate(symbol=str(candidate["symbol"]))
+
+        basis = self._to_float(payload.get("basis"))
+        if basis is None:
+            basis = self._to_float(self._lookup_nested(payload, "market_context", "basis"))
+        if basis is None:
+            basis = self.repository.get_latest_basis_value(symbol=str(candidate["symbol"]))
+        return funding, basis
+
+    def _compute_bbapt_context(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
+        payload = self._safe_json_dict(execution.get("payload_json"))
+        signal_side = str(execution.get("signal_side") or "")
+        entry_price = self._to_float(execution.get("entry_price")) or 0.0
+        stop_loss = self._to_float(execution.get("stop_loss")) or 0.0
+        take_profit = self._to_float(execution.get("take_profit")) or 0.0
+
+        risk_distance = abs(stop_loss - entry_price)
+        reward_distance = abs(entry_price - take_profit)
+        rr_ratio = reward_distance / risk_distance if risk_distance > 0 else 0.0
+        funding = self._to_float(payload.get("funding_rate"))
+        if funding is None:
+            funding = self._to_float(self._lookup_nested(payload, "market_context", "funding_rate"))
+        basis = self._to_float(payload.get("basis"))
+        if basis is None:
+            basis = self._to_float(self._lookup_nested(payload, "market_context", "basis"))
+
+        feature_vector = [
+            float(entry_price),
+            float(stop_loss),
+            float(take_profit),
+            float(rr_ratio),
+            float(funding or 0.0),
+            float(basis or 0.0),
+        ]
+        confidence, action = self._rl_loader.predict_confidence(
+            features=np.array(feature_vector, dtype=float),
+            signal_side=signal_side,
+        )
+
+        market_regime = str(self._lookup_nested(payload, "market_context", "market_regime") or payload.get("market_regime") or "RISK_ON").upper()
+        perf = self.repository.get_live_performance_snapshot(
+            execution_mode=self.config.execution_mode,
+            limit=20,
+        )
+        loss_streak = int(perf.get("loss_streak", 0.0))
+        failure_ratio = float(perf.get("recent_failure_ratio", 0.0))
+
+        factor = 1.0
+        if market_regime in {"RISK_OFF", "NEUTRAL", "NEUTRO"}:
+            factor *= 0.8
+        if loss_streak > 0:
+            factor *= max(0.7, 1.0 - (0.1 * min(loss_streak, 3)))
+        if failure_ratio >= 0.40:
+            factor *= 0.8
+        factor = min(1.0, max(0.5, factor))
+
+        return {
+            "rl_confidence": float(confidence),
+            "rl_action": str(action),
+            "rl_fallback": bool(self._rl_loader.is_fallback),
+            "rl_fallback_reason": self._rl_loader.fallback_reason,
+            "market_regime": market_regime,
+            "loss_streak": loss_streak,
+            "recent_failure_ratio": failure_ratio,
+            "bbapt_factor": float(factor),
+            "computed_at": int(now_ms),
+        }
+
     def _build_gate_input(self, candidate: dict[str, Any], now_ms: int) -> LiveExecutionGateInput:
         exchange = self.exchange if self.config.execution_mode == "live" else None
         position = exchange.get_open_position(str(candidate["symbol"])) if exchange else None
         available_balance = exchange.get_available_balance() if exchange else None
+        funding_rate, basis_value = self._extract_funding_and_basis(candidate)
 
         return LiveExecutionGateInput(
             technical_signal_id=int(candidate["id"]),
@@ -81,6 +195,10 @@ class Model2LiveExecutionService:
             signal_side=str(candidate["signal_side"]),
             technical_signal_status=str(candidate["status"]),
             signal_timestamp=int(candidate["signal_timestamp"]),
+            short_only=bool(self.config.short_only),
+            funding_rate=funding_rate,
+            basis_value=basis_value,
+            funding_rate_max_for_short=float(self.config.funding_rate_max_for_short),
             execution_mode=self.config.execution_mode,
             live_symbols=self.config.live_symbols,
             authorized_symbols=self.config.authorized_symbols,
@@ -275,6 +393,7 @@ class Model2LiveExecutionService:
         exchange = self._ensure_live_exchange()
         signal_side = str(execution["signal_side"])
         symbol = str(execution["symbol"])
+        current_status = str(execution.get("status") or SIGNAL_EXECUTION_STATUS_ENTRY_FILLED)
         protection_state = exchange.get_protection_state(symbol=symbol, signal_side=signal_side)
         sl_order = protection_state.get("sl_order_id")
         tp_order = protection_state.get("tp_order_id")
@@ -292,18 +411,18 @@ class Model2LiveExecutionService:
                 if pos is not None:
                     break
         if pos is None:
-            # record a reconciliation note and mark as failed to avoid reduce-only rejections
-            self._record_reconcile_note(int(execution.get("id") or 0), now_ms, {"reason": "no_open_position_before_protection", "symbol": symbol})
-            failed = self.repository.mark_signal_execution_failed(
-                execution_id=int(execution["id"]),
-                now_ms=now_ms,
-                reason="protection_not_armed_no_open_position",
-                rule_id=M2_009_4_RULE_ID,
-                metadata={
+            # No position visible yet: keep lifecycle at ENTRY_FILLED/PROTECTED and retry on reconcile.
+            self._record_reconcile_note(
+                int(execution.get("id") or 0),
+                now_ms,
+                {
+                    "reason": "no_open_position_before_protection",
+                    "symbol": symbol,
+                    "action": "defer_retry",
                     "protection_state": protection_state,
                 },
             )
-            return {"status": failed.current_status, "reason": failed.reason}
+            return {"status": current_status, "reason": "protection_deferred_no_open_position"}
 
         if not protection_state.get("has_sl"):
             sl_response, sl_errors = self._place_protective_order_with_retry(
@@ -352,35 +471,22 @@ class Model2LiveExecutionService:
                 "take_profit_order_id": final_state.get("tp_order_id") or tp_order,
             }
 
-        current_position = exchange.get_open_position(symbol)
-        emergency_quantity = float(
-            (current_position or {}).get("position_size_qty")
-            or execution.get("filled_qty")
-            or execution.get("requested_qty")
-            or 0.0
-        )
-        close_response = None
-        if emergency_quantity > 0:
-            close_response = exchange.close_position_market(
-                symbol=symbol,
-                signal_side=signal_side,
-                quantity=emergency_quantity,
-            )
-        failed = self.repository.mark_signal_execution_failed(
-            execution_id=int(execution["id"]),
-            now_ms=now_ms,
-            reason="protection_not_armed",
-            rule_id=M2_009_4_RULE_ID,
-            metadata={
-                "emergency_close_response": close_response,
+        # Protection is best-effort right after fill and should not block acceptance.
+        # Keep current status and rely on reconcile retries with full audit trail.
+        self._record_reconcile_note(
+            int(execution.get("id") or 0),
+            now_ms,
+            {
+                "reason": "protection_not_armed",
+                "symbol": symbol,
+                "action": "defer_retry",
                 "protection_state": final_state,
                 "protection_errors": protection_errors,
             },
         )
         return {
-            "status": failed.current_status,
-            "reason": failed.reason,
-            "emergency_close_response": close_response,
+            "status": current_status,
+            "reason": "protection_not_armed_deferred",
         }
 
     def _execute_ready_signal(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
@@ -391,11 +497,45 @@ class Model2LiveExecutionService:
                 "reason": "shadow_mode_no_order_sent",
             }
 
+        if self.config.short_only and str(execution.get("signal_side") or "").upper() != "SHORT":
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="short_only_enforced",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"signal_side": execution.get("signal_side")},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+
         exchange = self._ensure_live_exchange()
+        bbapt = self._compute_bbapt_context(execution, now_ms=now_ms)
+        if bbapt["rl_confidence"] < 0.50:
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="rl_confidence_below_threshold",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"bbapt": bbapt},
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+                "bbapt": bbapt,
+            }
+
+        effective_margin = max(
+            0.01,
+            float(self.config.max_margin_per_position_usd) * float(bbapt["bbapt_factor"]),
+        )
         quantity = exchange.calculate_entry_quantity(
             symbol=str(execution["symbol"]),
             entry_price=float(execution["entry_price"]),
-            margin_usd=self.config.max_margin_per_position_usd,
+            margin_usd=effective_margin,
             leverage=self.config.leverage,
         )
         if quantity <= 0:
@@ -404,7 +544,11 @@ class Model2LiveExecutionService:
                 now_ms=now_ms,
                 reason="invalid_requested_quantity",
                 rule_id=M2_009_3_RULE_ID,
-                metadata={"entry_price": float(execution["entry_price"])},
+                metadata={
+                    "entry_price": float(execution["entry_price"]),
+                    "effective_margin_usd": effective_margin,
+                    "bbapt": bbapt,
+                },
             )
             return {
                 "execution_id": int(execution["id"]),
@@ -432,7 +576,11 @@ class Model2LiveExecutionService:
                 now_ms=now_ms,
                 reason="exchange_error",
                 rule_id=M2_009_3_RULE_ID,
-                metadata={"error": str(exc)},
+                metadata={
+                    "error": str(exc),
+                    "effective_margin_usd": effective_margin,
+                    "bbapt": bbapt,
+                },
             )
             return {
                 "execution_id": int(execution["id"]),
@@ -446,7 +594,11 @@ class Model2LiveExecutionService:
             exchange_order_id=str(order_response.get("orderId") or order_response.get("order_id") or ""),
             client_order_id=client_order_id,
             rule_id=M2_009_3_RULE_ID,
-            metadata={"order_response": order_response},
+            metadata={
+                "order_response": order_response,
+                "effective_margin_usd": effective_margin,
+                "bbapt": bbapt,
+            },
         )
 
         # Após envio, aguardar e tentar obter confirmação de fill/posição.
@@ -511,6 +663,7 @@ class Model2LiveExecutionService:
             metadata = {"order_response": order_response}
             if last_remote_order is not None:
                 metadata["remote_order"] = last_remote_order
+            metadata["bbapt"] = bbapt
             return {
                 "execution_id": int(execution["id"]),
                 "status": entry_sent.current_status,
@@ -527,7 +680,12 @@ class Model2LiveExecutionService:
             filled_qty=float(filled_qty),
             filled_price=float(filled_price),
             rule_id=M2_009_3_RULE_ID,
-            metadata={"order_response": order_response, "remote_order": last_remote_order},
+            metadata={
+                "order_response": order_response,
+                "remote_order": last_remote_order,
+                "effective_margin_usd": effective_margin,
+                "bbapt": bbapt,
+            },
         )
         refreshed_execution = self.repository.get_signal_execution(int(execution["id"])) or execution
         protection = self._arm_protection(refreshed_execution, now_ms=now_ms)
@@ -537,6 +695,7 @@ class Model2LiveExecutionService:
             "entry_filled_status": filled.current_status,
             "status": protection["status"],
             "reason": protection["reason"],
+            "bbapt": bbapt,
         }
 
     def run_execute(

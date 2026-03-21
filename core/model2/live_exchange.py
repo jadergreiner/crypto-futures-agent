@@ -287,153 +287,64 @@ class Model2LiveExchange:
         close_side = "SELL" if str(signal_side).upper() == "LONG" else "BUY"
         normalized_trigger = self._normalize_trigger_price(symbol, trigger_price, close_side)
         rest_api = self._client.rest_api
-        # Try algo/conditional order first (preferred)
-        try:
-            response = rest_api.new_algo_order(
-                algo_type="CONDITIONAL",
-                symbol=symbol,
-                side=close_side,
-                type=order_type,
-                trigger_price=normalized_trigger,
-                close_position="true",
-                working_type="MARK_PRICE",
-                recv_window=self._recv_window,
-            )
-            return self._extract_data(response) or {}
-        except Exception:
-            # Fall back to standard/new_order variants with common parameter names
-            # Prefer snake_case `close_position` to request a close-all protection
-            candidates = [
-                {
-                    "type": order_type,
-                    "symbol": symbol,
-                    "side": close_side,
-                    "stop_price": normalized_trigger,
-                    "close_position": "true",
-                    "recv_window": self._recv_window,
-                },
-                {
-                    "type": order_type,
-                    "symbol": symbol,
-                    "side": close_side,
-                    "stopPrice": normalized_trigger,
-                    "closePosition": "true",
-                    "recv_window": self._recv_window,
-                },
-                {
-                    "type": order_type,
-                    "symbol": symbol,
-                    "side": close_side,
-                    "stop_price": normalized_trigger,
-                    "reduce_only": "true",
-                    "recv_window": self._recv_window,
-                },
-                {
-                    "type": "STOP_MARKET",
-                    "symbol": symbol,
-                    "side": close_side,
-                    "stopPrice": normalized_trigger,
-                    "reduceOnly": True,
-                    "recv_window": self._recv_window,
-                },
-            ]
-            last_exc = None
-            for kwargs in candidates:
-                try:
-                    method = getattr(rest_api, "new_order", None)
-                    if not callable(method):
-                        continue
-                    sig = None
-                    try:
-                        sig = inspect.signature(method)
-                        sig_params = set(sig.parameters.keys())
-                    except Exception:
-                        sig_params = None
+        last_exc: Exception | None = None
 
-                    # conceptual mapping of common parameter names to try
-                    field_candidates = {
-                        "type": ["type", "orderType", "order_type"],
-                        "symbol": ["symbol"],
-                        "side": ["side"],
-                        # map conceptual stopPrice to common SDK params including 'price'
-                        "stopPrice": ["stopPrice", "stop_price", "stopPriceValue", "price"],
-                        "close_position": ["close_position", "closePosition", "closePositionFlag"],
-                        "reduceOnly": ["reduce_only", "reduceOnly", "reduceOnlyFlag"],
-                        "recv_window": ["recv_window", "recvWindow", "recvWindowMs"],
-                    }
+        # Preferred path: conditional algo order with explicit close/reduce flags.
+        algo_method = getattr(rest_api, "new_algo_order", None)
+        if callable(algo_method):
+            try:
+                response = algo_method(
+                    algo_type="CONDITIONAL",
+                    symbol=symbol,
+                    side=close_side,
+                    type=order_type,
+                    trigger_price=normalized_trigger,
+                    close_position="true",
+                    reduce_only="true",
+                    working_type="MARK_PRICE",
+                    recv_window=self._recv_window,
+                )
+                return self._extract_data(response) or {}
+            except Exception as exc:
+                last_exc = exc
 
-                    # If we cannot inspect the SDK method signature, skip this candidate
-                    # to avoid blindly passing parameters that may be interpreted as MARKET.
-                    if sig_params is None:
-                        continue
+        # Safe fallback: regular conditional order with reduce_only only.
+        # Never degrade into a plain market order here.
+        order_method = getattr(rest_api, "new_order", None)
+        if callable(order_method):
+            try:
+                response = order_method(
+                    symbol=symbol,
+                    side=close_side,
+                    type=order_type,
+                    price=normalized_trigger,
+                    reduce_only="true",
+                    recv_window=self._recv_window,
+                )
+                return self._extract_data(response) or {}
+            except Exception as exc:
+                last_exc = exc
 
-                    call_kwargs = {}
-                    # for each conceptual field, pick the first name present in signature
-                    for concept, name_opts in field_candidates.items():
-                        for opt in name_opts:
-                            if opt in sig_params and concept in kwargs and kwargs.get(concept) is not None:
-                                call_kwargs[opt] = kwargs.get(concept)
-                                break
-                    # also allow direct passthrough of literal keys present in signature
-                    for k, v in kwargs.items():
-                        if k in sig_params and v is not None:
-                            call_kwargs[k] = v
+            try:
+                position = self.get_open_position(symbol)
+                qty = float((position or {}).get("position_size_qty") or 0.0)
+                if qty > 0:
+                    response = order_method(
+                        symbol=symbol,
+                        side=close_side,
+                        type=order_type,
+                        quantity=float(qty),
+                        price=normalized_trigger,
+                        reduce_only="true",
+                        recv_window=self._recv_window,
+                    )
+                    return self._extract_data(response) or {}
+            except Exception as exc:
+                last_exc = exc
 
-                    # Safety: for protective orders, require either a stop/trigger price
-                    # or an explicit close/reduce flag before calling generic/new_order.
-                    protective_types = {"STOP_MARKET", "TAKE_PROFIT_MARKET"}
-                    if str(order_type).upper() in protective_types:
-                        has_stop_price = any(name in call_kwargs for name in ("stopPrice", "stop_price", "price", "trigger_price"))
-                        has_close_flag = any(name in call_kwargs for name in ("close_position", "closePosition", "reduce_only", "reduceOnly"))
-                        # try to set close flag if SDK supports it
-                        if not has_close_flag and sig_params is not None:
-                            for opt in ("closePosition", "close_position", "reduceOnly", "reduce_only"):
-                                if opt in sig_params:
-                                    call_kwargs[opt] = "true"
-                                    has_close_flag = True
-                                    break
-                        # if neither stop price nor close flag present, skip this candidate
-                        if not has_stop_price and not has_close_flag:
-                            continue
-
-                    # ensure quantity is provided when SDK requires it (reduce-only orders)
-                    qty_needed = None
-                    try:
-                        pos = self.get_open_position(symbol)
-                        qty_needed = float((pos or {}).get("position_size_qty") or 0.0)
-                    except Exception:
-                        qty_needed = None
-
-                    if sig_params is not None and "quantity" in sig_params and "quantity" not in call_kwargs:
-                        if qty_needed and qty_needed > 0:
-                            call_kwargs["quantity"] = qty_needed
-                        else:
-                            # cannot place reduce-only/order requiring quantity without a known open position
-                            raise RuntimeError("no_open_position_for_protective_order")
-
-                    if not call_kwargs:
-                        # nothing to call with
-                        continue
-
-                    resp = method(**call_kwargs)
-                    return self._extract_data(resp) or {}
-                except Exception as exc:
-                    last_exc = exc
-                    continue
-            # If all fallbacks failed, raise the last exception to be handled upstream
-            if last_exc:
-                # As a final fallback, attempt to close position at market (emergency close)
-                try:
-                    position = self.get_open_position(symbol)
-                    qty = float((position or {}).get("position_size_qty") or 0.0)
-                    if qty and qty > 0:
-                        close_resp = self.close_position_market(symbol=symbol, signal_side=signal_side, quantity=qty)
-                        return self._extract_data(close_resp) or {}
-                except Exception:
-                    pass
-                # if emergency close not possible, re-raise the original exception
-                raise last_exc
-            return {}
+        if last_exc is not None:
+            raise last_exc
+        raise RuntimeError("protective_order_not_supported_by_sdk")
 
     @staticmethod
     def is_existing_protection_error(error: Exception) -> bool:
@@ -687,16 +598,35 @@ class Model2LiveExchange:
         method = getattr(rest_api, "new_order", None)
         if not callable(method):
             # fallback: try direct call and let exception propagate
-            response = rest_api.new_order(symbol=symbol, side=close_side, type="MARKET", quantity=float(quantity), recv_window=self._recv_window)
+            response = rest_api.new_order(
+                symbol=symbol,
+                side=close_side,
+                type="MARKET",
+                quantity=float(quantity),
+                reduce_only="true",
+                recv_window=self._recv_window,
+            )
             return self._extract_data(response) or {}
 
-        # Try multiple candidate parameter sets to handle SDK/exchange variations
+        # Safety-first: do not send plain market close without reduce_only.
         candidates = [
-            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "close_position": True, "recv_window": self._recv_window},
-            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "closePosition": True, "recv_window": self._recv_window},
-            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "reduce_only": True, "recv_window": self._recv_window},
-            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "reduceOnly": True, "recv_window": self._recv_window},
-            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "recv_window": self._recv_window},
+            {
+                "symbol": symbol,
+                "side": close_side,
+                "type": "MARKET",
+                "quantity": float(quantity),
+                "reduce_only": "true",
+                "position_side": str(signal_side).upper(),
+                "recv_window": self._recv_window,
+            },
+            {
+                "symbol": symbol,
+                "side": close_side,
+                "type": "MARKET",
+                "quantity": float(quantity),
+                "reduce_only": "true",
+                "recv_window": self._recv_window,
+            },
         ]
 
         last_exc = None
@@ -723,11 +653,9 @@ class Model2LiveExchange:
                 resp = method(**call_kwargs)
                 return self._extract_data(resp) or {}
             except Exception as exc:
-                # If reduce-only rejected, try next candidate without reduce_only
                 last_exc = exc
                 continue
 
-        # If all candidates failed, re-raise last exception to be handled upstream
         if last_exc:
             raise last_exc
-        return {}
+        raise RuntimeError("close_position_market_not_supported_by_sdk")

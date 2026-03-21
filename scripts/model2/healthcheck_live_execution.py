@@ -16,6 +16,8 @@ if str(REPO_ROOT) not in sys.path:
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
+from scripts.model2.io_utils import atomic_write_json
+
 
 def _utc_now_ms() -> int:
     return int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -144,7 +146,7 @@ def run_live_healthcheck(
     output_file = resolved_output_dir / f"model2_live_healthcheck_{run_id}.json"
     summary_with_output = dict(summary)
     summary_with_output["output_file"] = str(output_file)
-    output_file.write_text(json.dumps(summary_with_output, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary_with_output, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 

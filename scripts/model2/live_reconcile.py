@@ -15,18 +15,42 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import (
+    M2_CANARY_LEVERAGE,
     M2_EXECUTION_MODE,
+    M2_FUNDING_RATE_MAX_FOR_SHORT,
     M2_LIVE_SYMBOLS,
     M2_MAX_DAILY_ENTRIES,
     M2_MAX_MARGIN_PER_POSITION_USD,
     M2_MAX_SIGNAL_AGE_MINUTES,
+    M2_SHORT_ONLY,
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
 from core.model2 import Model2LiveExchange, Model2LiveExecutionService, Model2ThesisRepository
 from data.binance_client import create_binance_client
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
+
+
+class _NoopExchange:
+    def get_open_position(self, symbol: str) -> dict[str, Any] | None:
+        return None
+
+    def get_protection_state(self, *, symbol: str, signal_side: str) -> dict[str, Any]:
+        return {"has_sl": True, "has_tp": True, "sl_order_id": None, "tp_order_id": None}
+
+    def place_protective_order(self, *, symbol: str, signal_side: str, trigger_price: float, order_type: str) -> dict[str, Any]:
+        return {"algoId": None}
+
+    def extract_order_identifier(self, order: dict[str, Any]) -> str | None:
+        return None
+
+    def is_existing_protection_error(self, error: Exception) -> bool:
+        return False
+
+    def close_position_market(self, *, symbol: str, signal_side: str, quantity: float) -> dict[str, Any]:
+        return {"orderId": None}
 
 
 def _utc_now_ms() -> int:
@@ -73,6 +97,9 @@ def run_live_reconcile(
     max_margin_per_position_usd: float,
     max_signal_age_minutes: int,
     symbol_cooldown_minutes: int,
+    short_only: bool = False,
+    funding_rate_max_for_short: float = 0.0005,
+    leverage: int | None = None,
     exchange: Model2LiveExchange | None = None,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -84,13 +111,19 @@ def run_live_reconcile(
     config = Model2LiveExecutionService.build_config(
         execution_mode=execution_mode,
         live_symbols=live_symbols,
+        short_only=bool(short_only),
         max_daily_entries=max_daily_entries,
         max_margin_per_position_usd=max_margin_per_position_usd,
         max_signal_age_ms=int(max_signal_age_minutes) * 60_000,
         symbol_cooldown_ms=int(symbol_cooldown_minutes) * 60_000,
+        funding_rate_max_for_short=float(funding_rate_max_for_short),
+        leverage=leverage,
     )
     if exchange is None:
-        exchange = Model2LiveExchange(create_binance_client(mode="live"))
+        if config.execution_mode == "live":
+            exchange = Model2LiveExchange(create_binance_client(mode="live"))
+        else:
+            exchange = _NoopExchange()  # type: ignore[assignment]
 
     service = Model2LiveExecutionService(
         repository=Model2ThesisRepository(str(resolved_model2_db)),
@@ -118,11 +151,14 @@ def run_live_reconcile(
             "timeframe": timeframe,
             "limit": int(limit),
         },
+        "short_only": bool(config.short_only),
+        "funding_rate_max_for_short": float(config.funding_rate_max_for_short),
+        "leverage": int(config.leverage),
         "reconciled": reconcile_result["reconciled"],
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_live_reconcile_{run_id}.json"
-    output_file.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 
@@ -145,6 +181,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-margin-per-position-usd", type=float, default=M2_MAX_MARGIN_PER_POSITION_USD)
     parser.add_argument("--max-signal-age-minutes", type=int, default=M2_MAX_SIGNAL_AGE_MINUTES)
     parser.add_argument("--symbol-cooldown-minutes", type=int, default=M2_SYMBOL_COOLDOWN_MINUTES)
+    parser.add_argument("--short-only", action="store_true", default=M2_SHORT_ONLY)
+    parser.add_argument("--funding-rate-max-for-short", type=float, default=M2_FUNDING_RATE_MAX_FOR_SHORT)
+    parser.add_argument("--leverage", type=int, default=M2_CANARY_LEVERAGE)
     return parser.parse_args()
 
 
@@ -163,6 +202,9 @@ def main() -> int:
         max_margin_per_position_usd=float(args.max_margin_per_position_usd),
         max_signal_age_minutes=int(args.max_signal_age_minutes),
         symbol_cooldown_minutes=int(args.symbol_cooldown_minutes),
+        short_only=bool(args.short_only),
+        funding_rate_max_for_short=float(args.funding_rate_max_for_short),
+        leverage=int(args.leverage),
     )
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0

@@ -32,9 +32,15 @@ if exist "config\symbols_extended.py" (
 
 for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_EXECUTION_MODE; print(M2_EXECUTION_MODE)"`) do set "M2_MODE=%%i"
 for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_LIVE_SYMBOLS; print(','.join(M2_LIVE_SYMBOLS))"`) do set "M2_SYMBOLS=%%i"
+for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_SHORT_ONLY; print('1' if M2_SHORT_ONLY else '0')"`) do set "M2_SHORT_ONLY=%%i"
+for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_CANARY_LEVERAGE; print(M2_CANARY_LEVERAGE)"`) do set "M2_LEVERAGE=%%i"
+for /f "usebackq delims=" %%i in (`python -c "from config.settings import M2_FUNDING_RATE_MAX_FOR_SHORT; print(M2_FUNDING_RATE_MAX_FOR_SHORT)"`) do set "M2_FUNDING_MAX=%%i"
 
 if "!M2_SYMBOLS!"=="" set "M2_SYMBOLS=BTCUSDT"
 if "!M2_MODE!"=="" set "M2_MODE=shadow"
+if "!M2_SHORT_ONLY!"=="" set "M2_SHORT_ONLY=0"
+if "!M2_LEVERAGE!"=="" set "M2_LEVERAGE=3"
+if "!M2_FUNDING_MAX!"=="" set "M2_FUNDING_MAX=0.0005"
 if "%M2_LOOP_SECONDS%"=="" set "M2_LOOP_SECONDS=300"
 if "%M2_RUN_ONCE%"=="" set "M2_RUN_ONCE=0"
 
@@ -45,6 +51,8 @@ echo  Data Cache: !DATA_STRATEGY!
 echo  Symbols Mode: !SYMBOLS_MODE!
 echo  M2 Mode: !M2_MODE!
 echo  M2 Symbols: !M2_SYMBOLS!
+echo  M2 Short Only: !M2_SHORT_ONLY!
+echo  M2 Leverage: !M2_LEVERAGE!
 echo  M2 Loop Seconds: !M2_LOOP_SECONDS!
 echo ========================================
 echo.
@@ -54,6 +62,8 @@ set "LOG_FILE=logs/startup_log.txt"
     echo [INFO] Agent startup at %date% %time%
     echo   M2 Mode: !M2_MODE!
     echo   M2 Symbols: !M2_SYMBOLS!
+    echo   M2 Short Only: !M2_SHORT_ONLY!
+    echo   M2 Leverage: !M2_LEVERAGE!
     echo   Loop Seconds: !M2_LOOP_SECONDS!
     echo ----------------------------------------
 ) >> %LOG_FILE%
@@ -111,7 +121,9 @@ python scripts/model2/print_cycle_summary.py sync logs\m2_tmp.json
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
 python scripts/model2/print_cycle_summary.py pipeline logs\m2_tmp.json
 
-python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log
+set "M2_SHORT_ONLY_ARG="
+if "!M2_SHORT_ONLY!"=="1" set "M2_SHORT_ONLY_ARG=--short-only"
+python scripts/model2/live_cycle.py --timeframe H4 --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! !M2_SHORT_ONLY_ARG! --leverage !M2_LEVERAGE! --funding-rate-max-for-short !M2_FUNDING_MAX! >logs\m2_tmp.json 2>>logs\m2_cycle.log
 python scripts/model2/print_cycle_summary.py live logs\m2_tmp.json
 
 python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >logs\m2_tmp.json 2>>logs\m2_cycle.log

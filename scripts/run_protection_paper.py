@@ -74,10 +74,12 @@ if __name__ == "__main__":
     config = Model2LiveExecutionService.build_config(
         execution_mode="live",
         live_symbols=(exec_row["symbol"],),
+        short_only=False,
         max_daily_entries=10,
         max_margin_per_position_usd=10.0,
         max_signal_age_ms=24 * 60 * 60 * 1000,
         symbol_cooldown_ms=0,
+        funding_rate_max_for_short=0.0005,
         leverage=10,
     )
 

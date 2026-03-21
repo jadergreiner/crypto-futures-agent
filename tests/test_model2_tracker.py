@@ -12,7 +12,12 @@ from scripts.model2.migrate import run_up
 from scripts.model2.track import run_tracking
 
 
-def _build_detection_result(rejection_ts: int = 1_700_000_000_000) -> DetectionResult:
+def _build_detection_result(
+    rejection_ts: int = 1_700_000_000_000,
+    *,
+    symbol: str = "BTCUSDT",
+    side: str = "SHORT",
+) -> DetectionResult:
     metadata = {
         "rule_id": M2_002_RULE_ID,
         "rule_version": "1.0.0",
@@ -43,9 +48,9 @@ def _build_detection_result(rejection_ts: int = 1_700_000_000_000) -> DetectionR
     }
     return DetectionResult(
         detected=True,
-        symbol="BTCUSDT",
+        symbol=symbol,
         timeframe="H4",
-        side="SHORT",
+        side=side,
         thesis_type=M2_002_THESIS_TYPE,
         zone_low=100.0,
         zone_high=110.0,
@@ -176,3 +181,48 @@ def test_track_runner_transitions_identified_candidates(tmp_path: Path) -> None:
     assert output_file.exists()
     persisted_summary = json.loads(output_file.read_text(encoding="utf-8"))
     assert persisted_summary["transitioned_now"] == 1
+
+
+def test_track_runner_short_only_skips_long_candidates(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    output_dir = tmp_path / "results" / "model2" / "runtime"
+    run_up(db_path=db_path, output_dir=output_dir)
+    repository = Model2ThesisRepository(str(db_path))
+
+    short_created = repository.create_initial_thesis(
+        _build_detection_result(rejection_ts=1_700_000_010_000, symbol="BTCUSDT", side="SHORT"),
+        now_ms=1_700_000_020_000,
+    )
+    long_created = repository.create_initial_thesis(
+        _build_detection_result(rejection_ts=1_700_000_011_000, symbol="ETHUSDT", side="LONG"),
+        now_ms=1_700_000_021_000,
+    )
+
+    summary = run_tracking(
+        model2_db_path=db_path,
+        symbol=None,
+        timeframe="H4",
+        limit=50,
+        dry_run=False,
+        short_only=True,
+        output_dir=output_dir,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["identified_candidates"] == 2
+    assert summary["eligible_candidates"] == 1
+    assert summary["skipped_short_only"] == 1
+    assert summary["transitioned_now"] == 1
+
+    with sqlite3.connect(db_path) as conn:
+        short_status = conn.execute(
+            "SELECT status FROM opportunities WHERE id = ?",
+            (short_created.opportunity_id,),
+        ).fetchone()[0]
+        long_status = conn.execute(
+            "SELECT status FROM opportunities WHERE id = ?",
+            (long_created.opportunity_id,),
+        ).fetchone()[0]
+
+    assert short_status == "MONITORANDO"
+    assert long_status == "IDENTIFICADA"

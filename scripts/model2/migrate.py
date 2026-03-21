@@ -11,12 +11,18 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.model2.io_utils import atomic_write_json
+
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -87,7 +93,7 @@ def _write_summary(output_dir: Path, summary: Dict[str, object]) -> Path:
     output_file = output_dir / f"model2_migrate_{run_id}.json"
     summary_with_output = dict(summary)
     summary_with_output["output_file"] = str(output_file)
-    output_file.write_text(json.dumps(summary_with_output, indent=2), encoding="utf-8")
+    atomic_write_json(output_file, summary_with_output, ensure_ascii=True, indent=2)
     return output_file
 
 

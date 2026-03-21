@@ -14,12 +14,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from config.settings import MODEL2_DB_PATH
+from config.settings import MODEL2_DB_PATH, M2_SHORT_ONLY
 from core.model2 import (
     Model2ThesisRepository,
     OrderLayerInput,
     evaluate_signal_for_order_layer,
 )
+from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -84,6 +85,7 @@ def run_order_layer(
     limit: int,
     dry_run: bool,
     output_dir: str | Path,
+    short_only: bool = False,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
@@ -113,7 +115,10 @@ def run_order_layer(
         }
 
         if dry_run:
-            decision = evaluate_signal_for_order_layer(_build_order_input(candidate, _utc_now_ms()))
+            decision = evaluate_signal_for_order_layer(
+                _build_order_input(candidate, _utc_now_ms()),
+                short_only=bool(short_only),
+            )
             item["result"] = "DRY_RUN"
             item["decision_reason"] = decision.reason
             item["target_status"] = decision.target_status
@@ -123,6 +128,7 @@ def run_order_layer(
         result = repository.consume_created_signal_for_order_layer(
             signal_id=int(candidate["id"]),
             now_ms=_utc_now_ms(),
+            short_only=bool(short_only),
         )
         item["result"] = result.reason
         item["to_status"] = result.current_status
@@ -145,6 +151,7 @@ def run_order_layer(
             "symbol": symbol,
             "timeframe": timeframe,
             "limit": limit,
+            "short_only": bool(short_only),
         },
         "eligible_created_signals": len(candidates),
         "consumed_now": consumed_now,
@@ -155,7 +162,7 @@ def run_order_layer(
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_file = resolved_output_dir / f"model2_order_layer_{run_id}.json"
-    output_file.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    atomic_write_json(output_file, summary, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
     return summary
 
@@ -189,6 +196,12 @@ def _parse_args() -> argparse.Namespace:
         help="Evaluate decisions without persisting status changes in technical_signals.",
     )
     parser.add_argument(
+        "--short-only",
+        action="store_true",
+        default=M2_SHORT_ONLY,
+        help="Force order-layer cancellation for non-SHORT signals.",
+    )
+    parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory used for order-layer run summaries.",
@@ -204,6 +217,7 @@ def main() -> int:
         timeframe=args.timeframe,
         limit=args.limit,
         dry_run=bool(args.dry_run),
+        short_only=bool(args.short_only),
         output_dir=args.output_dir,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=True))
