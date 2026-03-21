@@ -23,6 +23,28 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-020] Atualizar copilot-instructions conforme arquitetura nova
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Copilot instructions | .github/copilot-instructions.md | Adicionar arquivos de camadas, tabelas DB, modos e comandos M2 |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-020] |
+
+#### Observacoes
+
+- Adicionadas referencias de arquivos reais para cada camada operacional.
+- Adicionadas tabelas canonicas M2 (`model_decisions`, `signal_executions`, etc.).
+- Adicionados modos de operacao (`backtest`, `shadow`, `live`).
+- Adicionados comandos M2 na secao Build and Test.
+- Adicionada regra de idempotencia por `decision_id`.
+
+---
+
 ### [SYNC-019] Revisao cirurgica do PRD para coerencia model-driven
 
 **Data/Hora**: 2026-03-21 UTC
