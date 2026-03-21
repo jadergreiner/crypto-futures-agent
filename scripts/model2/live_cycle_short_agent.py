@@ -101,14 +101,14 @@ def _print_ux_cycle_summary(summary: dict[str, Any]) -> None:
     symbol_label = ",".join(str(symbol) for symbol in symbols) if symbols else "-"
 
     stages = summary.get("stages") if isinstance(summary.get("stages"), dict) else {}
-    sync_h4 = stages.get("sync_h4", {}) if isinstance(stages, dict) else {}
+    sync_primary = stages.get("sync_tf", stages.get("sync_h4", {})) if isinstance(stages, dict) else {}
     sync_m5 = stages.get("sync_m5", {}) if isinstance(stages, dict) else {}
     pipeline = stages.get("daily_pipeline", {}) if isinstance(stages, dict) else {}
     live = stages.get("live_cycle", {}) if isinstance(stages, dict) else {}
     persist = stages.get("persist_training", {}) if isinstance(stages, dict) else {}
     health = stages.get("healthcheck", {}) if isinstance(stages, dict) else {}
 
-    sync_h4_inserted = _to_int(sync_h4.get("candles_persisted"), 0)
+    sync_primary_inserted = _to_int(sync_primary.get("candles_persisted"), 0)
     sync_m5_inserted = _to_int(sync_m5.get("candles_persisted"), 0)
 
     pipeline_errors = pipeline.get("stage_errors") if isinstance(pipeline, dict) else []
@@ -130,14 +130,16 @@ def _print_ux_cycle_summary(summary: dict[str, Any]) -> None:
     health_status = str(health.get("status") or "skipped").lower() if isinstance(health, dict) else "skipped"
     health_violations = len(health.get("violations", [])) if isinstance(health, dict) and isinstance(health.get("violations"), list) else 0
 
-    print(f"[SHORT-CYCLE] {timestamp} | cycle={cycle_index} | status={status} | mode={mode} | symbols={symbol_label}")
+    print(f"[SHORT-CYCLE] {timestamp} | cycle={cycle_index} | status={status} | mode={mode} | symbols={symbol_label}", flush=True)
     print(
-        f"[STAGES] sync_h4={sync_h4_inserted} candles | sync_m5={sync_m5_inserted} candles | "
-        f"pipeline_errors={pipeline_error_count} | staged={staged_count} | ready_processed={processed_ready_count}"
+        f"[STAGES] sync_tf={sync_primary_inserted} candles | sync_m5={sync_m5_inserted} candles | "
+        f"pipeline_errors={pipeline_error_count} | staged={staged_count} | ready_processed={processed_ready_count}",
+        flush=True,
     )
     print(
         f"[RISK] blocked={blocked_count} | failed={failed_count} | unprotected_filled={unprotected_count} | "
-        f"episodes_inserted={episodes_inserted} | health={health_status}({health_violations})"
+        f"episodes_inserted={episodes_inserted} | health={health_status}({health_violations})",
+        flush=True,
     )
 
     stage_errors = summary.get("stage_errors")
@@ -148,8 +150,26 @@ def _print_ux_cycle_summary(summary: dict[str, Any]) -> None:
 
     output_file = summary.get("output_file")
     if output_file:
-        print(f"[ARTIFACT] {output_file}")
-    print("")
+        print(f"[ARTIFACT] {output_file}", flush=True)
+    print("", flush=True)
+
+
+def _print_stage_update(*, cycle_index: int, stage: str, event: str, elapsed_ms: int | None = None, error: str | None = None) -> None:
+    now_label = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    if event == "start":
+        print(f"[PROGRESS] {now_label} | cycle={cycle_index} | stage={stage} | status=RUNNING", flush=True)
+        return
+    if event == "ok":
+        elapsed = int(elapsed_ms or 0)
+        print(f"[PROGRESS] {now_label} | cycle={cycle_index} | stage={stage} | status=OK | elapsed_ms={elapsed}", flush=True)
+        return
+    if event == "error":
+        elapsed = int(elapsed_ms or 0)
+        print(
+            f"[PROGRESS] {now_label} | cycle={cycle_index} | stage={stage} | status=ERROR | elapsed_ms={elapsed} | error={error}",
+            flush=True,
+        )
+        return
 
 
 def run_short_agent_cycle(
@@ -180,6 +200,7 @@ def run_short_agent_cycle(
     max_unprotected_filled: int,
     max_stale_entry_sent: int,
     max_position_mismatches: int,
+    progress_callback: Callable[[str, str, int | None, str | None], None] | None = None,
 ) -> dict[str, Any]:
     resolved_source_db = _resolve_repo_path(source_db_path)
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -194,7 +215,7 @@ def run_short_agent_cycle(
 
     stage_definitions: list[tuple[str, Callable[..., dict[str, Any]], dict[str, Any]]] = [
         (
-            "sync_h4",
+            "sync_tf",
             run_sync_market_context,
             {
                 "source_db_path": resolved_source_db,
@@ -290,6 +311,8 @@ def run_short_agent_cycle(
 
     cycle_started = perf_counter()
     for stage_name, stage_callable, stage_kwargs in stage_definitions:
+        if progress_callback is not None:
+            progress_callback(stage_name, "start", None, None)
         summary, error = _run_stage(
             stage_name=stage_name,
             stage_callable=stage_callable,
@@ -297,10 +320,14 @@ def run_short_agent_cycle(
         )
         if summary is not None:
             stage_summaries[stage_name] = summary
+            if progress_callback is not None:
+                progress_callback(stage_name, "ok", int(summary.get("stage_elapsed_ms", 0)), None)
             continue
 
         assert error is not None
         stage_errors.append(error)
+        if progress_callback is not None:
+            progress_callback(stage_name, "error", int(error.get("elapsed_ms", 0)), str(error.get("error")))
         if not continue_on_error:
             break
 
@@ -345,7 +372,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model2-db-path", default=DEFAULT_MODEL2_SHORT_DB_PATH)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--symbol", action="append", default=[])
-    parser.add_argument("--timeframe", default="H4", choices=("D1", "H4", "H1"))
+    parser.add_argument("--timeframe", default="H1", choices=("D1", "H4", "H1"))
     parser.add_argument("--execution-mode", default=M2_EXECUTION_MODE)
     parser.add_argument("--loop-seconds", type=int, default=300)
     parser.add_argument("--run-once", action="store_true")
@@ -388,6 +415,12 @@ def main() -> int:
 
     while True:
         cycle_index += 1
+        if not bool(args.json_stdout):
+            now_label = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            print(
+                f"[SHORT-CYCLE] {now_label} | cycle={cycle_index} | status=RUNNING | mode={args.execution_mode} | symbols={','.join(symbols)}",
+                flush=True,
+            )
         try:
             summary = run_short_agent_cycle(
                 source_db_path=args.source_db_path,
@@ -416,6 +449,17 @@ def main() -> int:
                 max_unprotected_filled=int(args.max_unprotected_filled),
                 max_stale_entry_sent=int(args.max_stale_entry_sent),
                 max_position_mismatches=int(args.max_position_mismatches),
+                progress_callback=(
+                    (lambda stage, event, elapsed_ms, error: _print_stage_update(
+                        cycle_index=cycle_index,
+                        stage=stage,
+                        event=event,
+                        elapsed_ms=elapsed_ms,
+                        error=error,
+                    ))
+                    if not bool(args.json_stdout)
+                    else None
+                ),
             )
         except Exception as exc:  # pragma: no cover - top-level safety
             summary = {

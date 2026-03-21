@@ -23,6 +23,7 @@ if "%SHORT_OUTPUT_DIR%"=="" set "SHORT_OUTPUT_DIR=results/model2_short/runtime"
 if "%SHORT_LOOP_SECONDS%"=="" set "SHORT_LOOP_SECONDS=300"
 if "%SHORT_RUN_ONCE%"=="" set "SHORT_RUN_ONCE=0"
 if "%SHORT_EXECUTION_MODE%"=="" set "SHORT_EXECUTION_MODE=live"
+if "%SHORT_TIMEFRAME%"=="" set "SHORT_TIMEFRAME=H1"
 if "%SHORT_MARGIN_USD%"=="" set "SHORT_MARGIN_USD=1.0"
 if "%SHORT_LEVERAGE%"=="" set "SHORT_LEVERAGE=3"
 if "%SHORT_FUNDING_MAX%"=="" set "SHORT_FUNDING_MAX=0.0005"
@@ -37,6 +38,7 @@ echo  Short Agent Isolado
 echo  DB: %SHORT_MODEL2_DB_PATH%
 echo  Output: %SHORT_OUTPUT_DIR%
 echo  Mode: %SHORT_EXECUTION_MODE%
+echo  Timeframe: %SHORT_TIMEFRAME%
 echo  Loop Seconds: %SHORT_LOOP_SECONDS%
 echo  Run Once: %SHORT_RUN_ONCE%
 echo  Log To File: %SHORT_LOG_TO_FILE%
@@ -55,10 +57,11 @@ if not "%SHORT_SYMBOLS%"=="" (
 
 if "%SHORT_LOG_TO_FILE%"=="1" (
     echo [INFO] Saida redirecionada para %SHORT_LOG_FILE%
-    python scripts/model2/live_cycle_short_agent.py ^
+    python -u scripts/model2/live_cycle_short_agent.py ^
       --source-db-path db/crypto_agent.db ^
       --model2-db-path %SHORT_MODEL2_DB_PATH% ^
       --output-dir %SHORT_OUTPUT_DIR% ^
+      --timeframe %SHORT_TIMEFRAME% ^
       --execution-mode %SHORT_EXECUTION_MODE% ^
       --loop-seconds %SHORT_LOOP_SECONDS% ^
       --max-margin-per-position-usd %SHORT_MARGIN_USD% ^
@@ -68,17 +71,18 @@ if "%SHORT_LOG_TO_FILE%"=="1" (
       !SYMBOL_ARGS! 1>>%SHORT_LOG_FILE% 2>&1
 ) else (
     echo [INFO] Saida UX no terminal (tempo real^)
-    python scripts/model2/live_cycle_short_agent.py ^
+    python -u scripts/model2/live_cycle_short_agent.py ^
       --source-db-path db/crypto_agent.db ^
       --model2-db-path %SHORT_MODEL2_DB_PATH% ^
       --output-dir %SHORT_OUTPUT_DIR% ^
+      --timeframe %SHORT_TIMEFRAME% ^
       --execution-mode %SHORT_EXECUTION_MODE% ^
       --loop-seconds %SHORT_LOOP_SECONDS% ^
       --max-margin-per-position-usd %SHORT_MARGIN_USD% ^
       --leverage %SHORT_LEVERAGE% ^
       --funding-rate-max-for-short %SHORT_FUNDING_MAX% ^
       !RUN_ONCE_ARG! ^
-      !SYMBOL_ARGS! 2>nul
+      !SYMBOL_ARGS! 2>&1
 )
 
 set "RC=%errorlevel%"
