@@ -23,6 +23,30 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-014] Prompts de teste e customizacoes para Copilot
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Instrucoes do Workspace | .github/copilot-instructions.md | Consolidacao no template oficial |
+| Guia Raiz | README.md | Secoes com prompts e customizacoes recomendadas |
+| PRD | docs/PRD.md | Nova secao 12: operacao com Copilot |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-014] |
+
+#### Observacoes
+
+- Objetivo: facilitar validacao das instrucoes do workspace apos /init.
+- Mantido principio de referencia central sem duplicar regras operacionais.
+
+#### Proximos Passos
+
+1. Executar os prompts sugeridos em sessao real.
+2. Criar customizacoes por area (core/model2 e docs) conforme demanda.
+
 ### [SYNC-013] M2-019 - Correção sizing / notional + proteção de execução
 
 **Data/Hora**: 2026-03-20 UTC

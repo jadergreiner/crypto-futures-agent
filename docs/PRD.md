@@ -27,6 +27,7 @@ criptomoedas na Binance
 - [9. Riscos e Mitigacoes](#9-riscos-e-mitigacoes)
 - [10. Release Atual, Backlog Prioritario e Go No-Go](#10-release-atual-backlog-prioritario-e-go-no-go)
 - [11. Glossario](#11-glossario)
+- [12. Operacao com Copilot](#12-operacao-com-copilot)
 
 ---
 
@@ -438,3 +439,35 @@ Antes de qualquer ampliacao de uso em `live`, os itens abaixo devem estar satisf
 
 *Documento mestre do produto. Toda alteracao de escopo, requisito ou
 criterio operacional deve ser feita aqui primeiro.*
+
+---
+
+## 12. Operacao com Copilot
+
+Esta secao lista prompts e customizacoes recomendadas para acelerar a
+operacao do projeto com assistentes locais.
+
+### 12.1 Prompts recomendados para teste
+
+1. Mapeie a proxima tarefa seguindo BACKLOG, TRACKER e ROADMAP e
+  proponha um plano de execucao.
+2. Implemente a task X com mudanca minima, rode pytest -q tests/ e
+  atualize docs/SYNCHRONIZATION.md se necessario.
+3. Revise esta alteracao com foco em risco operacional e regressao de
+  comportamento.
+4. Atualize docs/BACKLOG.md e sincronize docs/TRACKER.md e
+  docs/SYNCHRONIZATION.md.
+
+### 12.2 Customizacoes recomendadas
+
+1. /create-instruction model2-live applyTo core/model2/**
+  Uso pratico: reforcar protecoes, reconciliacao e fail-closed no fluxo
+  live.
+2. /create-instruction docs-sync applyTo docs/**
+  Uso pratico: reforcar limite de 80 colunas e trilha em
+  docs/SYNCHRONIZATION.md.
+3. /create-skill m2-incident-response
+  Uso pratico: padronizar coleta de evidencias e mitigacao durante
+  incidentes.
+4. /create-prompt preflight-live-check
+  Uso pratico: checklist rapido antes de promover de shadow para live.

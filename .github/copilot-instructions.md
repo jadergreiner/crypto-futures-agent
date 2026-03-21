@@ -1,225 +1,76 @@
-# Instruções para o GitHub Copilot
-
-Orientações para mudanças no repositório `crypto-futures-agent`.
-
-## Princípios Essenciais
-
-- **Segurança operacional**: Nunca remover controles de risco existentes.
-- **Previsibilidade**: Mudanças pequenas, focadas, compatíveis com estilo.
-- **Rastreabilidade**: Todas as decisões críticas devem ser auditáveis.
-- **Português**: Código, docs, logs em português (termos técnicos excetuados).
-
-## Stack
-
-- **Linguagem**: Python
-- **Módulos críticos**: `agent/` (RL), `execution/` (ordens), `data/` (Binance),
-  `risk/` (controles), `backtest/` (F-12), `tests/`
-- **Modo compatibilidade**: `paper` e `live` preservados
-
----
-
-## Como identificar a próxima tarefa
-
-**FONTE ÚNICA DE VERDADE: [docs/BACKLOG.md](../docs/BACKLOG.md)**
-
-Quando você receber qualquer pedido sobre próxima task, prioridade ou o que
-fazer a seguir, leia **imediatamente**:
-
-1. **[docs/BACKLOG.md](../docs/BACKLOG.md)** — Todas as tarefas, sprints, status
-2. **[docs/TRACKER.md](../docs/TRACKER.md)** — Tabela compacta (visual rápida)
-3. **[docs/ROADMAP.md](../docs/ROADMAP.md)** — Visão estratégica (contexto)
-4. **GitHub Issues** — Detalhes executáveis de tarefas abertas
-
-Documentos **deletados** (consolidados em BACKLOG.md):
-- ❌ `docs/STATUS_ENTREGAS.md` (redundante)
-- ❌ `docs/PLANO_DE_SPRINTS_MVP_NOW.md` (obsoleto)
-- ❌ `backlog/SPRINT_BACKLOG_21FEV_OPERACIONALIZACAO.md` (histórico)
-- ❌ `backlog/TASKS_TRACKER_REALTIME.md` (histórico)
-
----
-
-## Regras Críticas
-
-### 1. Português Obrigatório
-
-- Diálogos, comentários, logs, docs: **SEMPRE português**
-- Exceção: APIs, bibliotecas, termos propriedade
-
-### 2. Commits ASCII, Max 72 Chars
-
-- Padrão: `[TAG] Descricao breve em portugues`
-- Tags: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`
-- Apenas ASCII (0-127), sem caracteres corrompidos
-
-### 3. Markdown Lint: Max 80 Chars
-
-- Usar `markdownlint *.md docs/*.md`
-- Sem linhas > 80 caracteres, UTF-8 válido
-- Títulos descritivos, blocos com linguagem (` ```python `)
-
-## Regras de Domínio (Trading/Risk)
-
-**Invioláveis:**
-
-- Nunca desabilitar validações de risco (sizing, alavancagem, stop, liquidação).
-- Alterações em reward/risk devem: manter segurança por padrão + fallback
-  conservador + auditoria.
-- Em dúvida: bloquear operação, não assumir risco.
-
-## Sincronização Obrigatória
-
-Toda mudança em código → sincronizar documentação. Checklist mínimo:
-
-- [ ] Código funcional + testes passam (`pytest -q`)
-- [ ] Docs dependentes atualizadas (ref: `docs/SYNCHRONIZATION.md`)
-- [ ] Commit message com tag (`[SYNC]`, `[FEAT]`, etc.)
-
-**Dependências principais:**
-
-- `config/symbols.py` → `README.md`, `playbooks/__init__.py`,
-  `docs/SYNCHRONIZATION.md`
-- `docs/*` → sempre registrar em `docs/SYNCHRONIZATION.md`
-- `README.md` versão → `docs/CHANGELOG.md`, `docs/ROADMAP.md`
-
-## O Que Evitar
-
-- Não criar features "nice-to-have" sem solicitação.
-- Não alterar arquitetura para resolver problema local.
-- Não deixar documentação desatualizada.
-
----
-
-## Hierarquia de Documentação
-
-O repositório possui **duas camadas** de documentação que convivem sem
-conflito:
-
-### Camada 1 — Core Docs Estratégicos (Decision #3, 22 FEV)
-
-Documentos de governança, histórico e arquitetura. São a fonte de verdade
-para decisões passadas, requisitos e lições aprendidas.
-
-1. **[docs/RELEASES.md](../docs/RELEASES.md)** — Versões, deliverables, status
-2. **[docs/ROADMAP.md](../docs/ROADMAP.md)** — Timeline, milestones, v0.3→v1.0
-3. **[docs/FEATURES.md](../docs/FEATURES.md)** — Feature list, F-01→F-ML3
-4. **[docs/TRACKER.md](../docs/TRACKER.md)** — Sprint tracker, backlog
-5. **[docs/USER_STORIES.md](../docs/USER_STORIES.md)** — US-01→US-05, critérios
-6. **[docs/LESSONS_LEARNED.md](../docs/LESSONS_LEARNED.md)** — Insights
-7. **[docs/STATUS_ATUAL.md](../docs/STATUS_ATUAL.md)** — Dashboard go-live
-8. **[docs/DECISIONS.md](../docs/DECISIONS.md)** — Histórico decisões board
-9. **[docs/USER_MANUAL.md](../docs/USER_MANUAL.md)** — Onboarding, operação
-10. **[docs/SYNCHRONIZATION.md](../docs/SYNCHRONIZATION.md)** — Audit trail
-
-### Camada 2 — Docs de Execução/Visibilidade (MVP NOW)
-
-Documentos operacionais para acompanhamento diário do MVP. São atualizados
-com mais frequência e servem como visibilidade para o usuário único.
-
-Futura consolidação planejada: STATUS_ENTREGAS → STATUS_ATUAL,
-PLANO_DE_SPRINTS → TRACKER, CRITERIOS → USER_STORIES/USER_MANUAL,
-RUNBOOK → USER_MANUAL, CHANGELOG → RELEASES.
-
-| Documento | Propósito |
-| --------- | --------- |
-| [docs/STATUS_ENTREGAS.md](../docs/STATUS_ENTREGAS.md) | **Fonte da verdade** para status das entregas do ROADMAP |
-| [docs/PLANO_DE_SPRINTS_MVP_NOW.md](../docs/PLANO_DE_SPRINTS_MVP_NOW.md) | Sprint corrente e itens NOW |
-| [docs/CRITERIOS_DE_ACEITE_MVP.md](../docs/CRITERIOS_DE_ACEITE_MVP.md) | Critérios de aceite MVP |
-| [docs/RUNBOOK_OPERACIONAL.md](../docs/RUNBOOK_OPERACIONAL.md) | Runbook operacional |
-| [docs/CHANGELOG.md](../docs/CHANGELOG.md) | Registro de mudanças |
-
-**Regra de convivência:** Ao atualizar qualquer doc da Camada 2, verifique se
-há informação relevante que deve ser propagada para a Camada 1 (ex.: decisão
-nova → DECISIONS.md, feature concluída → FEATURES.md).
-
-### Camada 3 — Documentação Técnica (28 FEV 2026)
-
-Documentação de referência técnica para arquitetura, decisões de design e
-implementação. Estrutura C4 Model + ADR + OpenAPI.
-
-1. **[docs/C4_MODEL.md](../docs/C4_MODEL.md)** — 4 níveis de arquitetura:
-   Context (usuários) → Containers (tech stack) → Components (módulos) →
-   Code (classes). Inclui diagramas ASCII e decision matrix.
-
-2. **[docs/ADR_INDEX.md](../docs/ADR_INDEX.md)** — 7 Architecture Decision
-   Records (ADR-001 a ADR-007) com Status, Champion, Contexto, Decisão,
-   Consequências e Alternativas consideradas.
-
-3. **[docs/OPENAPI_SPEC.md](../docs/OPENAPI_SPEC.md)** — Especificação
-   OpenAPI 3.0.0 para REST API futura (12 endpoints, autenticação API key,
-   rate limiting 1000 req/min).
-
-4. **[docs/IMPACT_README.md](../docs/IMPACT_README.md)** — Guia prático de
-   setup (venv, deps), testes (unit/integration/backtest), modos paper/live,
-   monitoramento e deployment (Linux systemd + Docker futuro).
-
----
-
-## Sincronização Manual via Copilot (Gatilho)
-
-O processo de sincronização de docs é manual e acionado pelo usuário via
-Copilot no VS Code. A política completa está em:
-
-`prompts/board_16_members_data.json` → campo `docs_sync_policy`
-
-**Prompt de gatilho** (campo `sync_trigger_prompt`):
-
-> Sincronize os docs oficiais do projeto. Para cada arquivo em official_docs:
-> (1) verifique se a seção Links Rápidos existe e está completa conforme a
-> matriz cross_links; (2) atualize docs/STATUS_ENTREGAS.md com o status atual
-> dos itens NOW do ROADMAP (Sprint, Issue, PR, Evidência, Status); (3) atualize
-> o bloco Execução / Visibilidade em docs/ROADMAP.md com sprint atual, data de
-> hoje e progresso NOW contando itens concluídos/total; (4) registre o sync em
-> docs/SYNCHRONIZATION.md com tag [SYNC] e timestamp. Mantenha todo o
-> conteúdo em Português.
-
-**Não usar GitHub Actions como gatilho.** O gatilho é exclusivamente manual
-via Copilot.
-
----
-
-## Bootstrap rápido para agentes
-
-Use estas instruções quando for iniciar trabalho no repositório ou configurar
-um agente localmente. Mantém foco nas tarefas mais comuns e evita duplicação
-de conteúdo já presente em `docs/`.
-
-- **Configurar ambiente (Windows):** executar `setup.bat` na raiz.
-- **Instalar dependências de teste:** `pip install -r requirements-test.txt`.
-- **Rodar suíte de testes:** `pytest -q tests/`.
-- **Executar em modo paper (dev):** `python main.py --mode paper` ou `make paper`.
-- **Verificação rápida de docs:** `markdownlint docs/*.md`.
-
-Exemplo de prompt para agentes (usar em PT-BR):
-
-> "Sincronize os docs oficiais do projeto: verifique Links Rápidos em `docs/`,
-> atualize `docs/STATUS_ENTREGAS.md` com o sprint atual e registre o sync em
-> `docs/SYNCHRONIZATION.md` com tag [SYNC]."
-
-Mantemos o princípio "Link, não duplicar": sempre referencie `docs/` ao
-trabalhar com política, backlog e trackers.
-
----
-
-## Protocolo [SYNC] — Obrigatório
-
-Todo commit que altera docs deve incluir:
-
-- Tag `[SYNC]` na mensagem
-- Referência aos docs impactados (Camada 1 e/ou Camada 2)
-- Atualização em `docs/SYNCHRONIZATION.md`
-
-Exemplo:
-
-```text
-[SYNC] Atualizado STATUS_ENTREGAS.md sprint 2 + ROADMAP.md progresso NOW
-```
-
----
-
-## Detalhes: Referência em BEST_PRACTICES.md
-
-Para mais contexto:
-
-- **Padrões**: Log, estilo código, testes → `BEST_PRACTICES.md`
-- **Sincronização**: Matriz de dependências, histórico → `docs/SYNCHRONIZATION.md`
-- **Decisões**: Phase 3 gates, opções PPO → `docs/DECISIONS.md`
+# Project Guidelines
+
+Instrucoes para agentes no repositorio `crypto-futures-agent`.
+
+## Code Style
+
+- Idioma padrao: Portugues (pt-BR) em codigo, comentarios, logs e docs.
+- Excecoes: nomes de API, bibliotecas e termos tecnicos consolidados.
+- Mudancas devem ser pequenas, focadas e compativeis com o estilo existente.
+- Manter UTF-8 valido em arquivos texto.
+- Para markdown em `docs/`, respeitar limite de 80 colunas.
+
+## Architecture
+
+- Linguagem principal: Python.
+- Arquitetura operacional: Modelo 2.0 em 5 camadas.
+- Scanner: `core/model2/scanner.py` e `scripts/model2/scan.py`.
+- Rastreador/validador: `core/model2/validator.py` e
+  `core/model2/resolver.py`.
+- Ponte de sinal: `core/model2/signal_bridge.py` e
+  `core/model2/signal_adapter.py`.
+- Camada de ordem: `core/model2/order_layer.py`.
+- Execucao live: `core/model2/live_execution.py`,
+  `core/model2/live_service.py` e `core/model2/live_exchange.py`.
+- Bancos: `db/crypto_agent.db` (legado) e `db/modelo2.db` (canonico M2).
+
+## Build and Test
+
+- Setup (Windows): `setup.bat`.
+- Setup alternativo: `make setup`.
+- Modo paper: `python main.py --mode paper` ou `make paper`.
+- Modo live: `python main.py --mode live` ou `make live`.
+- Inicializacao de dados: `python main.py --setup` ou `make db`.
+- Treino RL: `python main.py --train` ou `make train`.
+- Testes: `pytest -q tests/`.
+- Teste de sincronizacao de docs: `pytest -q tests/test_docs_model2_sync.py`.
+- Lint de docs: `markdownlint docs/*.md`.
+- Tipagem (arquivos alterados): `mypy --strict`.
+
+## Conventions
+
+- Regras de risco sao inviolaveis.
+- Nunca desabilitar `risk/risk_gate.py` ou `risk/circuit_breaker.py`.
+- Em duvida operacional, bloquear operacao em vez de assumir risco.
+- Commits: `[TAG] Descricao breve em portugues` (ASCII, max 72 chars).
+- Tags aceitas: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`.
+- Alterou docs: registrar sincronizacao em `docs/SYNCHRONIZATION.md`.
+- Alterou `config/symbols.py`: sincronizar `README.md`,
+  `playbooks/__init__.py` e `docs/SYNCHRONIZATION.md`.
+
+## Task Source of Truth
+
+Ao pedir "proxima tarefa", prioridade ou planejamento:
+
+1. Ler `docs/BACKLOG.md`.
+2. Conferir `docs/TRACKER.md`.
+3. Complementar com `docs/ROADMAP.md`.
+4. Se necessario, cruzar com GitHub Issues abertas.
+
+## Common Pitfalls
+
+- Pre-commit bloqueia docs fora do padrao de markdown (principalmente MD013).
+- Evitar versionar artefatos temporarios e backups de banco.
+- Nao alterar arquitetura global para resolver problema local.
+- Nao deixar mudanca de codigo sem atualizacao dos docs dependentes.
+
+## Referencias (Link, nao duplicar)
+
+- Visao geral: `README.md`.
+- Arquitetura alvo: `docs/ARQUITETURA_ALVO.md`.
+- Regras de negocio: `docs/REGRAS_DE_NEGOCIO.md`.
+- Modelagem de dados: `docs/MODELAGEM_DE_DADOS.md`.
+- Decisoes de arquitetura: `docs/ADRS.md`.
+- Roadmap e prioridades: `docs/BACKLOG.md`.
+- Trilhas de sincronizacao: `docs/SYNCHRONIZATION.md`.
+- Operacao do M2: `docs/RUNBOOK_M2_OPERACAO.md`.
