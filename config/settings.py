@@ -8,7 +8,7 @@ from typing import Iterable, List
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
