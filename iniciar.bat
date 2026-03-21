@@ -35,8 +35,9 @@ echo.
 
 set "LOG_FILE=logs/startup_log.txt"
 if not exist "logs" mkdir logs
+call :GET_BRT_TIMESTAMP
 (
-    echo [INFO] Agent startup at %date% %time%
+    echo [INFO] Agent startup at !TS_BRT! BRT
     echo   M2 Mode: !M2_MODE!
     echo   M2 Symbols: !M2_SYMBOLS!
     echo ----------------------------------------
@@ -68,23 +69,61 @@ for %%S in (!M2_SYMBOLS:,= !) do (
 
 set PYTHONIOENCODING=utf-8
 echo.
-echo [INFO] Iniciando ciclo M2 model-driven (modo: !M2_MODE!). Ctrl+C para parar.
-echo [INFO] Log: logs\m2_cycle.log
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [INFO] Iniciando ciclo M2 model-driven (modo: !M2_MODE!). Ctrl+C para parar.
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [INFO] Iniciando ciclo M2 model-driven (modo: !M2_MODE!). Ctrl+C para parar.
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [INFO] Log: logs\m2_cycle.log
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [INFO] Log: logs\m2_cycle.log
 
 :M2_LOOP
 echo.
-echo [M2] Pipeline diario...
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [M2] Pipeline diario...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Pipeline diario...
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> logs\m2_cycle.log 2>&1
 
-echo [M2] Ciclo live...
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [M2] Ciclo live...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Ciclo live...
 python scripts/model2/live_cycle.py --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! >> logs\m2_cycle.log 2>&1
 
-echo [M2] Healthcheck...
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [M2] Healthcheck...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Healthcheck...
 python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime >> logs\m2_cycle.log 2>&1
 
-echo [M2] Ciclo concluido. Aguardando !M2_LOOP_SECONDS!s...
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [M2] Status por simbolo...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Status por simbolo...
+python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 20 !PIPELINE_SYMBOL_ARGS! > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
+if exist logs\m2_cycle_status.tmp (
+    for /f "usebackq delims=" %%L in ("logs\m2_cycle_status.tmp") do (
+        call :GET_BRT_TIMESTAMP
+        echo [!TS_BRT! BRT] [M2][SYM] %%L
+        >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2][SYM] %%L
+    )
+    del /q logs\m2_cycle_status.tmp >nul 2>&1
+)
+
+call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP_PLUS_SECONDS !M2_LOOP_SECONDS!
+echo [!TS_BRT! BRT] [M2] Ciclo concluido. Aguardando !M2_LOOP_SECONDS!s... Proximo ciclo as !TS_BRT_PLUS! BRT.
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Ciclo concluido. Aguardando !M2_LOOP_SECONDS!s... Proximo ciclo as !TS_BRT_PLUS! BRT.
 timeout /t !M2_LOOP_SECONDS! /nobreak >nul 2>&1
 goto M2_LOOP
+
+:GET_BRT_TIMESTAMP
+set "TS_BRT="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "$tz='E. South America Standard Time'; [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), $tz).ToString('yyyy-MM-dd HH:mm:ss')"`) do set "TS_BRT=%%i"
+if "!TS_BRT!"=="" set "TS_BRT=%date% %time%"
+exit /b 0
+
+:GET_BRT_TIMESTAMP_PLUS_SECONDS
+set "TS_BRT_PLUS="
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "$tz='E. South America Standard Time'; [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date).AddSeconds(%~1), $tz).ToString('yyyy-MM-dd HH:mm:ss')"`) do set "TS_BRT_PLUS=%%i"
+if "!TS_BRT_PLUS!"=="" set "TS_BRT_PLUS=!TS_BRT!"
+exit /b 0
 
 :END
 echo.
