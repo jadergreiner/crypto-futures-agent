@@ -52,8 +52,22 @@ def _resolve_repo_path(value: str | Path) -> Path:
 
 
 def _normalize_symbols(symbols: list[str] | tuple[str, ...] | None) -> list[str]:
+    """Normaliza simbolos e expande placeholders como M2_SYMBOLS:, M2_LIVE_SYMBOLS:, etc."""
     source = list(symbols or ())
-    normalized = [str(symbol).strip().upper() for symbol in source if str(symbol).strip()]
+    fallback_list = list(M2_LIVE_SYMBOLS) if M2_LIVE_SYMBOLS else list(DEFAULT_SHORT_SYMBOLS)
+    placeholder_tokens = {"M2_SYMBOLS", "M2_SYMBOLS:", "M2_LIVE_SYMBOLS", "M2_LIVE_SYMBOLS:", "ALL_SYMBOLS", "ALL_SYMBOLS:"}
+
+    normalized: list[str] = []
+    for token in source:
+        symbol = str(token).strip().upper()
+        if not symbol:
+            continue
+        if symbol in placeholder_tokens:
+            # Expandir placeholder com fallback
+            normalized.extend([str(s).strip().upper() for s in fallback_list if str(s).strip()])
+        else:
+            normalized.append(symbol)
+
     if normalized:
         return list(dict.fromkeys(normalized))
     if M2_LIVE_SYMBOLS:
