@@ -1,11 +1,11 @@
 # PRD - crypto-futures-agent
 
 **Produto:** Agente especialista em posicoes short de futuros de
-criptomoedas na Binance  
-**Versao do Documento:** 1.0  
-**Versao do Produto:** 0.1.0  
-**Data:** 2026-03-21  
-**Autor:** Arquiteto de Solucoes Senior  
+criptomoedas na Binance
+**Versao do Documento:** 1.0
+**Versao do Produto:** 0.1.0
+**Data:** 2026-03-21
+**Autor:** Arquiteto de Solucoes Senior
 **Status:** FONTE DA VERDADE
 
 > Este documento substitui `docs/prd_short.md` e
@@ -34,24 +34,24 @@ criptomoedas na Binance
 ## 1. Visao do Produto
 
 O **crypto-futures-agent** e um agente autonomo especializado em
-**posicoes short** para contratos perpetuos de criptomoedas na Binance
-Futures. O produto identifica, avalia, admite e executa oportunidades de
-venda em ativos de alta liquidez, combinando:
+decisao model-driven para contratos perpetuos de criptomoedas na Binance
+Futures. O produto observa o mercado, decide abrir ordem ou aguardar e
+executa com rastreabilidade ponta a ponta, combinando:
 
-- pipeline operacional M2 com rastreabilidade ponta a ponta;
+- inferencia direta de decisao pelo modelo;
 - contexto de mercado enriquecido com funding, basis e dados multi-timeframe;
 - controles de risco fail-closed;
-- camadas de ML e RL usadas para ranking, calibracao e promocao gradual.
+- aprendizado continuo com episodios e rewards.
 
 ### 1.1 Escopo operacional atual
 
 | Dimensao | Posicao atual do projeto |
 | --- | --- |
 | Mercado | Binance USD-M Futures |
-| Direcao operacional | Short-only em `live` |
+| Direcao operacional | Decidida pelo modelo em `live` |
 | Modos suportados | `backtest`, `shadow`, `live` |
 | Banco principal | `db/modelo2.db` |
-| Agente dedicado | ciclo short com runtime proprio e artefatos operacionais |
+| Agente dedicado | runtime model-driven com inferencia e reconciliacao |
 | Usuario alvo | operacao single-user, conta propria |
 | Promocao de mudancas | `shadow` antes de qualquer promocao para `live` |
 
@@ -59,11 +59,11 @@ venda em ativos de alta liquidez, combinando:
 
 | Diferencial | Beneficio entregue |
 | --- | --- |
-| Especializacao em short | captura movimentos de queda com regras especificas de futures |
+| Decisao direta pelo modelo | elimina dependencia de regras estrategicas externas |
 | Gate de funding e basis | evita shorts caros ou estruturalmente desfavoraveis |
-| Pipeline auditavel | cada oportunidade, sinal, execucao e bloqueio deixa trilha persistida |
+| Pipeline auditavel | cada decisao, execucao e bloqueio deixa trilha persistida |
 | Risco no caminho critico | stop, limites, circuit breaker e preflight nao sao opcionais |
-| Evolucao assistida por modelos | ML e RL entram por validacao gradual, sem romper o baseline operacional |
+| Aprendizado continuo | aprende operando e tambem quando escolhe aguardar |
 
 ---
 
@@ -71,10 +71,10 @@ venda em ativos de alta liquidez, combinando:
 
 | Dor do operador | Solucao do produto |
 | --- | --- |
-| Ficar exposto apenas a altas e perder movimentos fortes de queda | o agente opera vendido de forma sistematica, com foco em setups short |
+| Perder timing em mudancas de regime | o modelo observa estado de mercado e decide em tempo de execucao |
 | Ser liquidado ou sofrer perdas desproporcionais em futures | o pipeline aplica limites de exposicao, stop obrigatorio, hard caps e circuit breaker |
-| Entrar vendido em contexto caro ou desfavoravel | funding e basis sao avaliados antes da execucao |
-| Ter bom backtest e mau desempenho ao vivo | a promocao exige validacao em `shadow`, healthcheck e gate de risco de modelo |
+| Operar em contexto caro ou desfavoravel | funding, basis e risco sao aplicados como envelope de seguranca |
+| Ter bom backtest e mau desempenho ao vivo | promocao exige validacao em `shadow`, preflight e gate de risco de modelo |
 | Nao conseguir explicar por que uma operacao entrou ou foi bloqueada | toda decisao gera motivo, status e timestamps em banco e artefatos operacionais |
 
 ---
@@ -85,10 +85,10 @@ venda em ativos de alta liquidez, combinando:
 
 | ID | Objetivo |
 | --- | --- |
-| OBJ-01 | Operar quedas do mercado de criptofuturos com preservacao de capital como restricao primaria |
-| OBJ-02 | Manter uma esteira short-only segura, auditavel e repetivel em `shadow` e `live` |
-| OBJ-03 | Incorporar ML/RL como camada de inteligencia validada, e nao como atalho operacional |
-| OBJ-04 | Reduzir falsos positivos e custos de short com gates especificos de futures |
+| OBJ-01 | Operar criptofuturos com decisao direta do modelo e preservacao de capital como restricao primaria |
+| OBJ-02 | Manter uma esteira model-driven segura, auditavel e repetivel em `shadow` e `live` |
+| OBJ-03 | Tornar o modelo a fonte unica de decisao de trade, com guard-rails inviolaveis |
+| OBJ-04 | Reduzir falsos positivos, sobre-operacao e custo operacional com aprendizado continuo |
 | OBJ-05 | Centralizar o contrato do produto em um unico PRD |
 
 ### 3.2 KPIs de trading e risco
@@ -163,12 +163,12 @@ venda em ativos de alta liquidez, combinando:
 
 | Camada | Papel no produto | Status |
 | --- | --- | --- |
-| M2 deterministico | identifica, valida e materializa sinais tecnicos | Ativa |
-| Short rules-based | baseline de execucao live | Ativa |
-| LSTM + XGBoost | ranking e previsao de queda/volatilidade | Piloto |
-| PPO/A2C | calibracao, confianca e priorizacao | Piloto |
-| Modelos por simbolo | especializacao por ativo | Backlog prioritario |
-| DRL comportamental / regime-aware | extensao de pesquisa | Futuro |
+| State builder | consolida contexto de mercado para inferencia | Ativa |
+| Policy model | decide OPEN_LONG/OPEN_SHORT/HOLD/REDUCE/CLOSE | Em ativacao |
+| Safety envelope | aplica risk_gate e circuit_breaker | Ativa |
+| Execucao/reconciliacao | envia ordens e valida estado real | Ativa |
+| Learning loop | persiste episodios e rewards para retreino | Em ativacao |
+| Promocao governada | gate GO/NO-GO e rollback de modelo | Em ativacao |
 
 ### 5.4 Fora de escopo na release atual
 
@@ -207,44 +207,42 @@ venda em ativos de alta liquidez, combinando:
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
-| RF-M2-001 | O scanner deve detectar oportunidades short em OHLCV multi-timeframe e persistir em `opportunities` | P0 |
-| RF-M2-002 | O rastreador deve mover a tese por estados auditaveis ate `VALIDADA`, `INVALIDADA` ou `EXPIRADA` | P0 |
-| RF-M2-003 | Toda transicao deve gerar evento com motivo e timestamp em `opportunity_events` | P0 |
-| RF-M2-004 | Teses validadas devem gerar `technical_signals` padronizados e idempotentes | P0 |
-| RF-M2-005 | Sinais devem carregar lado, preco de entrada, stop, alvo, simbolo, timeframe e referencia da tese | P0 |
+| RF-M2-001 | O runtime deve executar inferencia direta do modelo para decidir abrir ordem, reduzir, fechar ou aguardar | P0 |
+| RF-M2-002 | A decisao deve usar estado de mercado consolidado e contexto de risco operacional | P0 |
+| RF-M2-003 | Toda decisao deve gerar evento com motivo, confianca e timestamp auditavel | P0 |
+| RF-M2-004 | O sistema deve garantir idempotencia da decisao para evitar ordens duplicadas | P0 |
+| RF-M2-005 | A acao `HOLD` deve ser tratada como decisao valida e persistida | P0 |
 
 ### 6.4 Camada preditiva
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
-| RF-PR-001 | O produto deve suportar um modelo hibrido LSTM + XGBoost para prever probabilidade de queda e qualidade do contexto short | P1 |
-| RF-PR-002 | As entradas do modelo devem aceitar OHLCV, indicadores tecnicos, funding, open interest e features enriquecidas | P1 |
-| RF-PR-003 | A camada preditiva deve operar primeiro em `shadow` antes de qualquer promocao operacional | P0 |
-| RF-PR-004 | O produto deve manter fallback para baseline rules-based quando o modelo nao estiver disponivel ou aprovado | P0 |
+| RF-PR-001 | O produto deve suportar modelo de politica para decisao direta de trade em tempo de execucao | P0 |
+| RF-PR-002 | As entradas do modelo devem aceitar OHLCV, indicadores tecnicos, funding, open interest e features enriquecidas | P0 |
+| RF-PR-003 | O modelo deve operar primeiro em `shadow` antes de qualquer promocao operacional | P0 |
+| RF-PR-004 | Em indisponibilidade do modelo, o sistema deve entrar em modo seguro sem decisao de trade automatica | P0 |
 
 ### 6.5 Camada RL
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
-| RF-RL-001 | O produto deve suportar agente PPO/A2C para ranking, confianca ou acao sugerida sobre sinais short | P1 |
-| RF-RL-002 | O reward deve considerar P&L liquido, custo de funding e permanencia em contexto desfavoravel | P1 |
-| RF-RL-003 | O ambiente de treino deve suportar validacao walk-forward e comparacao contra o baseline operacional | P1 |
-| RF-RL-004 | Deve haver suporte a modelos por simbolo como extensao prioritaria | P2 |
-| RF-RL-005 | O sistema deve operar em modo degradado quando checkpoint ou features RL nao estiverem disponiveis | P0 |
+| RF-RL-001 | O produto deve persistir episodios completos de decisao para aprendizado continuo | P0 |
+| RF-RL-002 | O reward deve considerar P&L liquido, custo operacional e decisao de nao operar (`HOLD`) | P0 |
+| RF-RL-003 | O ambiente de treino deve suportar validacao walk-forward e comparacao contra baseline em shadow | P1 |
+| RF-RL-004 | O sistema deve suportar retreino automatico governado com promocao controlada | P1 |
+| RF-RL-005 | O sistema deve operar em modo seguro quando modelo/checkpoint estiver indisponivel | P0 |
 
-### 6.6 Risco e gates short-only
+### 6.6 Risco e gates operacionais
 
 | ID | Descricao | Prioridade |
 | --- | --- | --- |
-| RF-RK-001 | O rollout live deve operar em modo short-only por padrao | P0 |
-| RF-RK-002 | Sinais `LONG` devem ser bloqueados quando o modo short-only estiver ativo | P0 |
-| RF-RK-003 | Shorts devem ser bloqueados quando o funding rate exceder o limite configurado | P0 |
-| RF-RK-004 | Shorts devem ser bloqueados quando a basis estiver negativa ou desfavoravel | P0 |
-| RF-RK-005 | Toda entrada deve possuir stop loss obrigatorio | P0 |
-| RF-RK-006 | O sizing deve respeitar saldo disponivel, distancia ate o stop, margem maxima por posicao e risco maximo por trade | P0 |
-| RF-RK-007 | O sistema deve impor limite diario de entradas e cooldown por simbolo | P0 |
-| RF-RK-008 | O circuit breaker deve acionar `HALT` automatico ao atingir o limite de perda configurado | P0 |
-| RF-RK-009 | O sistema deve suportar gate de risco de modelo, incluindo rejeicao por overfitting e kill switch por divergencia em `shadow` | P1 |
+| RF-RK-001 | O rollout live deve manter envelope de risco ativo em todos os caminhos | P0 |
+| RF-RK-002 | Toda entrada deve possuir protecao obrigatoria validada apos fill | P0 |
+| RF-RK-003 | O sizing deve respeitar saldo disponivel, margem por posicao e risco maximo por trade | P0 |
+| RF-RK-004 | O sistema deve impor limite diario de entradas e cooldown por simbolo | P0 |
+| RF-RK-005 | O circuit breaker deve acionar `HALT` automatico ao atingir limite de perda | P0 |
+| RF-RK-006 | O sistema deve suportar gate de risco de modelo e bloqueio por evidencia insuficiente | P1 |
+| RF-RK-007 | Em duvida operacional, o sistema deve bloquear operacao (fail-safe) | P0 |
 
 ### 6.7 Execucao e reconciliacao
 
@@ -316,26 +314,23 @@ venda em ativos de alta liquidez, combinando:
 
 ```text
 +----------------------------------------------------+
-| Orquestracao do Ciclo Short                        |
+| Orquestracao do Ciclo Model-Driven                 |
 | live_cycle_short_agent / live_cycle                |
 +----------------------------------------------------+
 | Contexto de Mercado e Features                     |
 | OHLCV + funding + basis + multi-timeframe          |
 +----------------------------------------------------+
-| Pipeline M2                                        |
-| opportunities -> validation -> technical_signals   |
+| Inferencia de Decisao                              |
+| action = OPEN_LONG|OPEN_SHORT|HOLD|REDUCE|CLOSE   |
 +----------------------------------------------------+
-| Camada Preditiva                                   |
-| LSTM + XGBoost (piloto / shadow)                   |
-+----------------------------------------------------+
-| Camada RL                                          |
-| PPO/A2C para ranking e confianca                   |
-+----------------------------------------------------+
-| Risco e Gates de Admissao                          |
-| short-only, funding, basis, margem, cooldown       |
+| Safety Envelope                                    |
+| risk_gate + circuit_breaker + preflight            |
 +----------------------------------------------------+
 | Execucao e Reconciliacao Binance                   |
-| shadow/live, protecao, sync                        |
+| live_service + live_exchange                       |
++----------------------------------------------------+
+| Learning Loop                                      |
+| episodios + rewards + retreino governado           |
 +----------------------------------------------------+
 | Persistencia e Observabilidade                     |
 | modelo2.db, eventos, healthcheck, artefatos JSON   |
@@ -346,12 +341,12 @@ venda em ativos de alta liquidez, combinando:
 
 | Tema | Decisao |
 | --- | --- |
-| Direcao operacional | short-only em `live` |
+| Direcao operacional | decidida pelo modelo em tempo de execucao |
 | Promocao | `shadow` obrigatorio antes de `live` |
 | Banco canonico | `db/modelo2.db` |
-| Persistencia operacional | tabelas dedicadas para oportunidades, sinais, execucoes e eventos |
-| Gating de futures | funding, basis, margem, cooldown, idade do sinal e preflight no caminho critico |
-| Agente dedicado | ciclo short com runtime e artefatos operacionais proprios |
+| Persistencia operacional | tabelas de decisoes, execucoes, eventos, episodios e rewards |
+| Envelope de seguranca | risk gate, circuit breaker e preflight no caminho critico |
+| Agente dedicado | ciclo model-driven com inferencia e reconciliacao |
 
 ### 8.3 Stack
 
@@ -372,10 +367,10 @@ venda em ativos de alta liquidez, combinando:
 
 | ID | Risco | Severidade | Mitigacao |
 | --- | --- | --- | --- |
-| R-01 | Funding e basis desfavoraveis degradarem o short | Alta | gates especificos antes da execucao |
+| R-01 | Modelo operar em contexto desfavoravel | Alta | envelope de risco + bloqueio fail-safe |
 | R-02 | Posicao entrar sem protecao confirmada | Alta | retry, reconciliacao e healthcheck |
 | R-03 | Overfitting ou leak de validacao nos modelos | Alta | walk-forward, gate de risco de modelo e shadow obrigatorio |
-| R-04 | Drift de mercado degradar ML/RL | Alta | fallback rules-based, monitoramento e retreino controlado |
+| R-04 | Drift de mercado degradar a politica do modelo | Alta | monitoramento, retreino governado e rollback |
 | R-05 | API Binance falhar em momento critico | Alta | retry com backoff, reconciliacao e artefatos operacionais |
 | R-06 | Lock ou gargalo de concorrencia no SQLite | Media | idempotencia, WAL e trilha de migracao futura |
 | R-07 | Divergencia entre documento e produto | Media | manter apenas este PRD como contrato ativo |
@@ -386,24 +381,25 @@ venda em ativos de alta liquidez, combinando:
 
 ### 10.1 Release atual
 
-A release atual do produto e um **agente short-only para Binance Futures**, com:
+A release atual do produto e um **agente model-driven para Binance Futures**,
+com:
 
-- pipeline M2 auditavel;
-- gates de funding e basis no caminho de admissao;
+- decisao direta do modelo para abrir ordem ou aguardar;
+- envelope de seguranca no caminho critico;
 - execucao segregada em `shadow` e `live`;
 - protecao obrigatoria;
 - preflight e healthcheck operacionais;
-- trilha pronta para ML e RL com promocao gradual.
+- trilha pronta para aprendizado continuo e promocao gradual.
 
 ### 10.2 Backlog prioritario
 
 | Prioridade | Item |
 | --- | --- |
-| P1 | consolidar camada LSTM + XGBoost em `shadow` com metricas de promocao |
-| P1 | validar PPO/A2C sobre baseline short com comparacao estatistica |
-| P1 | ativar gate de risco de modelo com criterio formal de overfitting |
-| P1 | ampliar enriquecimento com open interest e features de regime |
-| P2 | modelos dedicados por simbolo |
+| P1 | consolidar decisao unica do modelo em `shadow` com metricas de promocao |
+| P1 | persistir episodios e rewards para operar e nao operar |
+| P1 | ativar retreino automatico governado com rollback |
+| P1 | reforcar gate de risco de modelo com criterio formal de bloqueio |
+| P2 | especializacao de modelos por simbolo |
 | P2 | migracao para PostgreSQL quando o volume operacional justificar |
 
 ### 10.3 Go/No-Go para capital real
@@ -424,13 +420,13 @@ Antes de qualquer ampliacao de uso em `live`, os itens abaixo devem estar satisf
 
 | Termo | Definicao |
 | --- | --- |
-| Short-only | politica operacional que permite apenas sinais `SHORT` em `live` |
+| Model-driven | arquitetura em que o modelo decide abrir, reduzir, fechar ou aguardar |
 | Funding rate | taxa periodica dos contratos perpetuos que afeta o custo da posicao |
 | Basis | diferenca entre preco futuro e spot usada como gate de contexto |
 | `shadow` | execucao operacional sem envio de ordens reais |
 | `live` | execucao operacional com envio real de ordens |
-| Tese | hipotese operacional com entrada, alvo, stop e criterio de validacao |
-| M2 | pipeline operacional que materializa oportunidade, validacao, sinal e execucao |
+| Tese (legado) | conceito do fluxo deterministico anterior, em desativacao |
+| M2 | pipeline operacional do produto com inferencia, execucao e reconciliacao |
 | Audit trail | trilha completa de eventos, estados e motivos persistidos |
 | Walk-forward | validacao temporal sem contaminacao entre treino e teste |
 | Drift | mudanca de regime que degrada a qualidade do modelo |

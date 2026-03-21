@@ -23,6 +23,55 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-017] Normalizacao de docs para estado atual model-driven
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Arquitetura alvo | docs/ARQUITETURA_ALVO.md | Reescrita para fluxo model-driven atual |
+| Regras de negocio | docs/REGRAS_DE_NEGOCIO.md | Regras vigentes sem contexto historico |
+| Modelagem de dados | docs/MODELAGEM_DE_DADOS.md | Entidades atuais de decisao, execucao e episodio |
+| Runbook operacional | docs/RUNBOOK_M2_OPERACAO.md | Operacao atual em preflight, execucao e reconciliacao |
+| ADRs | docs/ADRS.md | Decisoes arquiteturais vigentes consolidadas |
+| PRD | docs/PRD.md | Alinhamento final com arquitetura model-driven |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-017] |
+
+#### Observacoes
+
+- Conteudo historico foi removido dos docs principais.
+- Documentos passam a refletir o estado atual do projeto.
+
+#### Proximos Passos
+
+1. Ajustar implementacao de codigo conforme M2-020 em sequencia.
+2. Atualizar docs conforme cada tarefa for concluida.
+
+### [SYNC-016] PRD alinhado para arquitetura model-driven
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| PRD | docs/PRD.md | Atualizacao de escopo, requisitos e arquitetura para decisao direta do modelo |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-016] |
+
+#### Observacoes
+
+- Mantidos titulos e estrutura original do PRD.
+- Fluxo atualizado para model-driven com envelope de seguranca inviolavel.
+
+#### Proximos Passos
+
+1. Refletir implementacao gradual do M2-020 no codigo.
+2. Atualizar PRD conforme conclusao de cada tarefa model-driven.
+
 ### [SYNC-015] Backlog model-driven sem sprints/datas
 
 **Data/Hora**: 2026-03-21 UTC

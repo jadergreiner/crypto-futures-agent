@@ -1,609 +1,74 @@
-# Runbook - Operacao M2 (Daily Pipeline e Live)
+# Runbook - Operacao M2 (Model-Driven)
 
 ## Objetivo
 
-Padronizar a operacao do Modelo 2.0 em dois trilhos:
+Padronizar a operacao atual do Modelo 2.0 em arquitetura model-driven.
 
-1. Pipeline diario de tese/sinal.
-2. Execucao real nativa live/shadow.
+## Modo de operacao
 
-## Escopo
+1. `backtest`: validacao offline da politica.
+2. `shadow`: decisao do modelo sem ordem real.
+3. `live`: decisao do modelo com ordem real e safety envelope.
 
-Cobertura deste runbook:
+## Checklist pre-live
 
-1. M2-008.1, M2-008.2 e M2-008.3.
-2. M2-009, M2-010, M2-011 e M2-012.
+1. Preflight sem erro bloqueante.
+2. `risk_gate` e `circuit_breaker` ativos.
+3. Reconciliacao operacional saudavel.
+4. Nenhuma posicao sem protecao.
+5. Evidencia minima de auditoria disponivel.
 
-Componentes do pipeline diario:
-
-1. `scripts/model2/daily_pipeline.py`
-2. `scripts/model2/schedule_daily_pipeline.py`
-3. `scripts/model2/healthcheck_daily_schedule.py`
-
-Componentes do live:
-
-1. `scripts/model2/live_execute.py`
-2. `scripts/model2/live_reconcile.py`
-3. `scripts/model2/live_dashboard.py`
-4. `scripts/model2/healthcheck_live_execution.py`
-5. `scripts/model2/live_cycle.py`
-6. `scripts/model2/go_live_preflight.py`
-7. `iniciar.bat` (entry point unificado Windows)
-
-Artefatos esperados em `results/model2/runtime/`:
-
-1. `model2_daily_pipeline_*.json`
-2. `model2_daily_schedule_*.json`
-3. `model2_daily_healthcheck_*.json`
-4. `model2_live_execute_*.json`
-5. `model2_live_reconcile_*.json`
-6. `model2_live_dashboard_*.json`
-7. `model2_live_healthcheck_*.json`
-8. `model2_go_live_preflight_*.json`
-
-## Pre-flight do live
-
-Comando oficial de preflight (Windows, auto-fix por padrao):
+Comando de preflight:
 
 ```bash
 python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
-
-```python
-
-Modo validacao somente (sem auto-fix):
-
-```bash
-python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT --no-apply
-
 ```
 
-Comportamento esperado:
+## Fluxo operacional
 
-1. Valida os 10 itens do checklist de go-live da Fase 2.
-2. Emite `model2_go_live_preflight_*.json` em `results/model2/runtime/`.
-3. Retorna exit code `0` quando `status=ok` e `1` quando `status=alert`.
-4. Mantem `next_actions` com itens manuais pendentes (ex.: revisao final do runbook).
+1. Construir estado de mercado.
+2. Inferir acao do modelo.
+3. Validar safety envelope.
+4. Executar acao permitida.
+5. Reconciliar estado com exchange.
+6. Persistir decisao, eventos e episodio.
 
-## Runner de aceite canario (primeiro ENTRY_FILLED short)
+## Operacao de monitoramento
 
-Comando recomendado para validar o aceite E2E em base canario limpa:
+Monitorar continuamente:
 
-```bash
-python scripts/model2/canary_first_fill.py --execution-mode live --injection-enabled
+1. latencia de inferencia;
+2. taxa de bloqueio por risco;
+3. divergencia banco x exchange;
+4. posicoes sem protecao;
+5. falhas de idempotencia.
 
-```python
+## Resposta a incidente
 
-Validacoes automáticas do runner:
+Quando detectar risco critico:
 
-1. Existe `signal_executions` em `live + SHORT + ENTRY_FILLED` com `exchange_order_id`.
-2. Analise persistida em `opportunities` e `opportunity_events`.
-3. Leverage efetiva aderente ao perfil canario (`M2_CANARY_LEVERAGE`).
+1. bloquear novas entradas;
+2. preservar evidencias;
+3. reconciliar posicoes e ordens;
+4. aplicar mitigacao fail-safe;
+5. registrar trilha de incidente.
 
-## Operacao do daemon de coleta de features (Fases D.2-D.3)
+Referencia de playbook:
 
-O enriquecimento de episodios com dados de mercado (taxas de financiamento,
-interesse aberto) requer um daemon background coletando dados da API.
+1. `.github/skills/m2-incident-response/SKILL.md`
 
-### Inicie o daemon de funding rates
+## Retreino governado
 
-```bash
-python scripts/model2/daemon_funding_rates.py --symbols BTCUSDT,ETHUSDT --interval 30
+1. Coletar episodios em producao.
+2. Treinar fora do runtime live.
+3. Validar candidato com gate GO/NO-GO.
+4. Promover somente quando aprovado.
+5. Reverter para versao anterior se degradar.
 
-```
+## Criterios de operacao saudavel
 
-Parametros:
-
-```python
---symbols        Lista de pares separados por vírgula (default: BTCUSDT,ETHUSDT)
---interval       Intervalo de coleta em segundos (default: 30)
---max-age-hours  Descarta dados com mais de X horas (default: 24)
---db-path        Caminho do banco de dados (default: db/modelo2.db)
-
-```
-
-Comportamento esperado:
-
-```txt
-[INFO] Daemon iniciado: BTCUSDT, ETHUSDT
-[INFO] Coleta a cada 30s
-[INFO] 2026-03-14 10:30:45 | BTCUSDT: FR=0.000315 (bullish), OI=+2.1% (accum)
-[INFO] 2026-03-14 10:31:15 | ETHUSDT: FR=-0.000041 (bearish), OI=-0.8% (dist)
-
-```
-
-Parar o daemon:
-
-```bash
-# (Ctrl+C na terminal ou kill o processo)
-kill -TERM $(pgrep -f "daemon_funding_rates")
-
-```bash
-
-Monitorar coleta:
-
-```bash
-sqlite3 db/modelo2.db "SELECT COUNT(*), MAX(timestamp) FROM funding_rates_api;"
-
-```
-
-Esperado: >= 1000 registros/dia por par, com `MAX(timestamp)` recente.
-
-### Verificar features enriquecidas em episodios
-
-Uma vez com daemon rodando e pipeline executando (ver proxima secao):
-
-```bash
-sqlite3 db/modelo2.db \
-  "SELECT COUNT(*), COUNT(CASE WHEN features_json LIKE '%funding%' THEN 1 END) \
-   FROM training_episodes;"
-
-```sql
-
-Interpretacao:
-
-- Primeira coluna: total de episodios.
-- Segunda coluna: quantos com features de funding enriquecidas.
-- Esperado >= 90% de episodios enriquecidos.
-
-Se < 90%, o daemon nao conectou a tempo. Verifique:
-
-1. Daemon esta rodando? `ps aux | grep daemon_funding_rates`
-2. API Binance acessivel? `curl https://fapi.binance.com/fapi/v1/fundingRate`
-3. Banco com permissoes? `ls -l db/modelo2.db`
-
-## Operacao diaria do pipeline
-
-### 1) Execucao do scheduler (once)
-
-Comando recomendado para infraestrutura:
-
-```bash
-python scripts/model2/schedule_daily_pipeline.py --once --timeframe H4
-
-```
-
-### 2) Healthcheck pos-execucao
-
-```bash
-python scripts/model2/healthcheck_daily_schedule.py --runtime-dir results/model2/runtime --timezone UTC --require-today --expected-status ok
-
-```python
-
-Interpretacao:
-
-1. Exit `0`: operacao saudavel.
-2. Exit `1`: alerta operacional.
-
-## Operacao via iniciar.bat (estado atual)
-
-No ambiente Windows, o entry point operacional recomendado e `iniciar.bat`.
-
-1. Opcao `1`: fluxo legado (`menu.py`).
-2. Opcao `2`: fluxo M2 continuo, executando por ciclo:
-   - `daily_pipeline` (gera/atualiza sinais)
-   - `live_cycle` (execucao/reconcile/dashboard)
-   - `healthcheck_live_execution` (gate de saude)
-3. O loop repete ate interrupcao manual (`Ctrl+C`).
-4. Parametros operacionais:
-   - `M2_LOOP_SECONDS` (default `300`)
-   - `M2_RUN_ONCE=1` (executa apenas um ciclo)
-
-## Operacao de treinamento do modelo PPO
-
-### Fase 1: Coleta de episodios (continua no pipeline)
-
-A cada ciclo do pipeline, automaticamente:
-
-```bash
-python scripts/model2/daily_pipeline.py --once
-
-```
-
-1. Coleta contexto de mercado (OHLCV, indicadores, estruturas).
-2. Cria episodio com label `context` (amostra neutra para dataset).
-3. Persiste em `training_episodes` da `db/modelo2.db`.
-
-**Crescimento esperado:** ~8 episodios/ciclo × 288 ciclos/dia = 2.3k episodios/dia
-
-### Fase 2: Treinamento incremental (semanal)
-
-Quando tiver >= 500 episodios acumulados:
-
-```bash
-python scripts/model2/train_ppo_incremental.py --timesteps 500000 --device cuda
-
-```python
-
-Parametros principais:
-
-```
-
---timesteps       Numero de timesteps de treinamento (default: 500000)
---learning-rate   Taxa de aprendizado PPO (default: 1e-4)
---batch-size      Tamanho do batch (default: 128)
---device          CPU ou CUDA (default: CPU, mais lento)
---checkpoint-path Caminho do checkpoint anterior (para fine-tune)
-
-```txt
-
-Comportamento esperado:
-
-```
-
-[INFO] Carregando episodios...
-  Total: 547 episodios
-  Timeframe H4: 287
-  Timeframe M5: 260
-  Simbolos: 6 unicos
-
-[INFO] Preparando dataset...
-  Amostras: 547
-  Shape observacao: (547, 5)
-  Shape recompensa: (547,)
-  Media de recompensa: 0.08
-
-[INFO] Iniciando treinamento PPO...
-  Batch size: 128
-  Learning rate: 0.0001
-  Epochs: 10
-  Entropy coeff: 0.01
-
-[INFO] Marcos de convergencia:
-  Dia 1: Sharpe = 0.4 (baseline)
-  Dia 2: Sharpe = 0.7 (melhoria)
-  Dia 3: Sharpe = 1.0+ (pronto para producao)
-
-[INFO] Salvando checkpoint...
-  Arquivo: checkpoints/ppo_training/ppo_model.pkl
-  Metadata: checkpoints/ppo_training/ppo_training_metadata_*.json
-
-```json
-
-Verificar convergencia:
-
-```bash
-cat results/model2/training_metrics_*.json | jq '.sharpe_ratio'
-
-```
-
-Se `sharpe_ratio < 0.5`, nao usar modelo em producao. Reexperimentar com parametros.
-
-### Fase 2.5: Monitoramento de Correlacoes (D.4)
-
-Opcionalmente, analise a correlacao entre sentimento de taxas de financiamento
-e performance de RL:
-
-```bash
-python scripts/model2/phase_d4_correlation_analysis.py --db-path db/modelo2.db --output-dir results/model2/analysis/
-
-```python
-
-Interprete o resultado em `phase_d4_correlation_*.json`:
-
-```json
-{
-  "fr_sentiment_vs_label": {
-    "pearson_r": 0.2738,
-    "p_value": 0.0058,
-    "verdict": "SIGNIFICANTE (fraco positivo)",
-    "win_rate_by_sentiment": {
-      "bullish": 0.2581,    // 25.81% ganho
-      "neutral": 0.3714,    // 37.14% ganho
-      "bearish": 0.0        // 0% ganho - SINAL FORTE DE PERDA!
-    }
-  }
-}
-
-```
-
-Acao recomendada:
-
-1. Se `bearish` win_rate < 10%: Considere rejeitar sinais com FR extremamente
-   bearish.
-2. Se `bullish` win_rate > median+10%: Aumentar reward para sinais bullish.
-3. Executar `phase_d4_...` toda semana para monitorar drift de correlacao.
-
-### Fase 2.6: Treinamento com Politica LSTM (Fases E.1-E.3)
-
-O treinamento PPO customizado para comparar desempenho já está implementado
-(a partir de 15 MAR 2026). Para utilizar a nova política LSTM contra o
-baseline MLP, utilize o script `train_ppo_lstm.py`.
-
-```bash
-# Treinar com rede MLP (Baseline Backward Compatible)
-python scripts/model2/train_ppo_lstm.py --policy mlp --timesteps 50000
-
-# Treinar usando arquitetura LSTM com histórico temporal
-python scripts/model2/train_ppo_lstm.py --policy lstm --timesteps 50000
-
-```python
-
-Este script encapsula de maneira transparente o `LSTMSignalEnvironment`,
-configurando `seq_len=10`, a rede customizada de Extração de Features,
-além de instanciar corretamente a `LSTMPolicy` do agente.
-
-Pode-se verificar os modelos salvos em `checkpoints/ppo_training/lstm` ou
-`checkpoints/ppo_training/mlp` gerados pela rotina.
-
-### Fase 3: Validacao shadow (48-72h)
-
-Uma vez com modelo pronto (`sharpe_ratio >= 0.5`):
-
-```bash
-M2_EXECUTION_MODE=shadow python scripts/model2/daily_pipeline.py --once
-python scripts/model2/live_cycle.py
-
-```
-
-Monitorar:
-
-1. Taxa de sinais com RL enhancement (esperado: >= 60%)
-2. Divergencias entre RL prediction vs resultado real
-3. Latencias do pipeline (esperado: < 5s)
-
-Comando de inspecao:
-
-```bash
-cat results/model2/signal_enhancement_report_*.json | jq '.total_signals_enhanced_percent'
-
-```bash
-
-### Operacao formal da janela M2-016.2 (72h)
-
-Fluxo recomendado para consolidar a validacao com checkpoints de 12h:
-
-```bash
-python scripts/model2/m2_016_2_validation_window.py start --execution-mode live --duration-hours 72 --checkpoint-hours 12
-
-```
-
-Checkpoint operacional (executar a cada 12h):
-
-```bash
-python scripts/model2/m2_016_2_validation_window.py checkpoint
-
-```python
-
-Encerramento com comparativo RL vs baseline:
-
-```bash
-python scripts/model2/m2_016_2_validation_window.py finalize
-
-```
-
-Artefatos gerados:
-
-1. `results/model2/runtime/model2_m2_016_2_window_*.json`
-2. `results/model2/runtime/model2_m2_016_2_checkpoint_*.json`
-3. `results/model2/runtime/model2_m2_016_2_final_*.json`
-4. `results/model2/analysis/model2_m2_016_2_report_*.json`
-
-Regras de resposta a incidente durante a janela:
-
-1. `enhancement_rate_percent < 60`: congelar expansao live e abrir fine-tune.
-2. Divergencia proxy crescente em 2 checkpoints consecutivos:
-   incidentar e rastrear `run_id`.
-3. Qualquer `healthcheck` com violacao: tratar como P1 operacional.
-
-### Fase 4: Fine-tune iterativo (opcional)
-
-Se observar problemas em shadow:
-
-```bash
-python scripts/model2/train_ppo_incremental.py --timesteps 100000 --checkpoint-path checkpoints/ppo_training/ppo_model.pkl
-
-```python
-
-Opcoes de ajuste:
-
-1. **Taxa de confianca baixa**: Aumentar `learning_rate` ou coletar mais dados.
-2. **Overfitting**: Reduzir `batch_size` ou aumentar `entropy_coeff`.
-3. **Divergencia vs manual**: Revisar features em `scripts/model2/rl_signal_generation.py`.
-
-## Operacao do live
-
-### 1) Ciclo manual recomendado
-
-Staging e entrada:
-
-```bash
-python scripts/model2/live_execute.py --timeframe H4 --execution-mode shadow
-
-```
-
-Reconciliacao:
-
-```bash
-python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode live
-
-```python
-
-Dashboard:
-
-```bash
-python scripts/model2/live_dashboard.py --retention-days 30
-
-```
-
-Healthcheck:
-
-```bash
-python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime --max-age-hours 2 --max-unprotected-filled 0 --max-stale-entry-sent 0 --max-position-mismatches 0
-
-```python
-
-### 2) Ciclo combinado
-
-```bash
-python scripts/model2/live_cycle.py --timeframe H4 --execution-mode shadow
-
-```
-
-### 3) Sequencia de rollout
-
-1. Rodar em `shadow`.
-2. Validar `model2_live_dashboard_*.json` e `model2_live_healthcheck_*.json`.
-3. Ativar `M2_EXECUTION_MODE=live` com whitelist restrita.
-4. Ampliar `M2_LIVE_SYMBOLS` progressivamente.
-
-## Agendamento recomendado
-
-### Linux (cron)
-
-Exemplo diario em UTC:
-
-```bash
-5 0 * * * cd /path/repo && python scripts/model2/schedule_daily_pipeline.py --once --timeframe H4 >> logs/model2_schedule.log 2>&1
-10 0 * * * cd /path/repo && python scripts/model2/healthcheck_daily_schedule.py --runtime-dir results/model2/runtime --timezone UTC --require-today --expected-status ok >> logs/model2_healthcheck.log 2>&1
-
-```python
-
-Exemplo de loop live curto:
-
-```bash
-*/5 * * * * cd /path/repo && python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode live >> logs/model2_live_reconcile.log 2>&1
-*/10 * * * * cd /path/repo && python scripts/model2/live_dashboard.py >> logs/model2_live_dashboard.log 2>&1
-*/10 * * * * cd /path/repo && python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime >> logs/model2_live_healthcheck.log 2>&1
-
-```
-
-### Windows (Task Scheduler)
-
-Criar tarefas separadas:
-
-1. `schedule_daily_pipeline.py --once --timeframe H4`
-2. `healthcheck_daily_schedule.py --runtime-dir results/model2/runtime`
-   `--timezone UTC --require-today --expected-status ok`
-3. `live_reconcile.py --timeframe H4 --execution-mode live`
-4. `live_dashboard.py`
-5. `healthcheck_live_execution.py --runtime-dir results/model2/runtime`
-
-## Sinais de incidente
-
-Alertar quando qualquer condicao ocorrer:
-
-1. Nao existe `model2_daily_schedule_*.json` do dia.
-2. `status` do ultimo schedule diferente de `ok`.
-3. Ultimo dashboard live acima do limite de recencia.
-4. `unprotected_filled_count > 0`.
-5. `stale_entry_sent_count > 0`.
-6. `open_position_mismatches_count > 0`.
-
-## Resposta a incidentes
-
-### Incidente A: sem execucao no dia
-
-1. Verificar logs do host (cron/Task Scheduler).
-2. Executar manualmente:
-
-```bash
-python scripts/model2/schedule_daily_pipeline.py --once --timeframe H4
-
-```python
-
-1. Reexecutar o healthcheck diario.
-
-### Incidente B: entrada enviada e fill nao reconciliado
-
-1. Abrir o ultimo `model2_live_reconcile_*.json`.
-2. Confirmar se a execucao esta em `ENTRY_SENT`.
-3. Validar ordem/posicao na exchange.
-4. Reexecutar:
-
-```bash
-python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode live
-
-```
-
-### Incidente C: posicao sem protecao
-
-1. Abrir o ultimo `model2_live_dashboard_*.json`.
-2. Confirmar `unprotected_filled_count`.
-3. Executar reconciliacao imediatamente.
-4. Se a protecao nao puder ser recriada, encerrar a posicao manualmente
-   e abrir incidente.
-
-### Incidente D: divergencia Binance x banco
-
-1. Revisar `model2_live_dashboard_*.json` e `model2_live_healthcheck_*.json`.
-2. Conferir `signal_executions` e `signal_execution_events` no banco.
-3. Conferir ordens abertas, protecoes e posicoes na exchange.
-4. Reexecutar `live_reconcile.py`.
-5. Se persistir, congelar o rollout (`M2_EXECUTION_MODE=shadow`) ate correção.
-
-## Evidencias minimas por dia
-
-1. `model2_daily_schedule_*.json` com `status=ok`.
-2. `model2_daily_healthcheck_*.json` com `status=ok`.
-3. `model2_live_dashboard_*.json` atualizado.
-4. `model2_live_healthcheck_*.json` com `status=ok`.
-5. Logs do host sem falhas criticas.
-
-## Atualizacao do loop via iniciar.bat (2026-03-14)
-
-No ambiente Windows, opcao `2` do `iniciar.bat` executa por ciclo:
-
-1. `sync_market_context` H4 para `M2_SYMBOLS`.
-2. `sync_market_context` M5 para `M2_SYMBOLS`.
-3. `daily_pipeline` H4 para `M2_SYMBOLS`.
-4. `live_cycle` H4 para `M2_SYMBOLS`.
-5. `persist_training_episodes` (dataset incremental).
-6. `healthcheck_live_execution`.
-
-Observacoes operacionais:
-
-1. `M2_LIVE_SYMBOLS` define a fonte unica `M2_SYMBOLS` e filtra igualmente coleta/pipeline/live.
-2. Deduplicacao de candle e aplicada por (`symbol`, `timestamp`).
-3. O resumo do sync publica `candles_duplicated_skipped` por ciclo.
-
-Artefatos adicionais em `results/model2/runtime/`:
-
-1. `model2_market_context_*.json`
-2. `model2_training_episodes_*.json`
-3. `model2_training_episodes_*.jsonl`
-4. `model2_training_episodes_cursor.json`
-
-5. `model2_training_episodes_cursor.json`
-
----
-
-## Fase 4: O Go-Live (Execução Manual de Produção)
-
-A etapa final do modelo 2.0 (live mode) envolve habilitar as chaves de API
-reais da Binance para o agente comecar a operar ativamente no mercado em
-sua sessao de terminal.
-
-**Pré-requisitos de Produção:**
-
-1. Verifique .env:
-   `nv
-   M2_EXECUTION_MODE=live
-   BINANCE_API_KEY=sua_live_key
-   BINANCE_API_SECRET=sua_live_secret
-   `
-
-**Operacionalizando o Agente:**
-Abra seu terminal preferido (CMD ou PowerShell) na pasta do repositório:
-`cmd
-cd C:\repo\crypto-futures-agent
-iniciar.bat
-`
-Ao ver o menu principal, tecle 2 e pressione ENTER para
-**iniciar o Pipeline Completo Hibrido** e deixe a janela executando.
-
-Enquanto a janela estiver aberta, o agente executara a captura por
-`sync_market_context`, atualizara o modelo dinamicamente e submetera logs
-em stdout (Terminal) continuamente.
-
----
-> **Dica - Modo Avançado (Opcional)**
->
-> Caso no futuro voce deseje rodar o robo blindado em plano de fundo
-> (*Windows Daemon*) sem um terminal aberto, preparamos as ferramentas
-> necessarias:
->
-> 1. Baixe o [NSSM](http://nssm.cc/) (win64) e mova para %WINDIR%\System32\nssm.exe.
-> 2. Execute deploy\install_windows_service.bat como Administrador na raiz do projeto.
-> 3. Controle a execucao pelos comandos:
->    `sc start CryptoFuturesAgentM2` e `sc stop CryptoFuturesAgentM2`.
-> 4. Monitore as predições abrindo o arquivo logs\daemon_live_stdout.log.
+1. Sem erro bloqueante no preflight.
+2. Sem execucao duplicada para mesma decisao.
+3. Sem posicao aberta sem protecao.
+4. Reconciliacao atualizada e auditavel.
+5. Logs e artefatos JSON parseaveis.
