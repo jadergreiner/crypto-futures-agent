@@ -23,6 +23,29 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-015] Backlog model-driven sem sprints/datas
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | Inclusao da iniciativa M2-020 em modo sequencial |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-015] |
+
+#### Observacoes
+
+- Planejamento estruturado sem sprints, sem datas limite e sem blocos.
+- Execucao prevista em sequencia linear por criterios de aceite.
+- `docs/TRACKER.md` nao existe no workspace atual (somente arquivo arquivado).
+
+#### Proximos Passos
+
+1. Executar tarefas M2-020.1 em diante em ordem sequencial.
+2. Atualizar status no backlog ao concluir cada tarefa.
+
 ### [SYNC-014] Prompts de teste e customizacoes para Copilot
 
 **Data/Hora**: 2026-03-21 UTC

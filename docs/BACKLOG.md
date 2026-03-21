@@ -1004,7 +1004,197 @@ Evidencias (Fase E.8 EM PROGRESSO — 2026-03-15):
 4. Checkpoints esperados:
    `checkpoints/ppo_training/{mlp,lstm}/optuna/ppo_{type}_e8_optuna.zip`
 5. Commit: 20fc4ca + 1f8b0c8 [FEAT] BLID-066 com [FIX] glob pattern
-6. Timeline: ~20-30 min para completar treinos (em andamento)
+
+## INICIATIVA M2-020 - Arquitetura Model-Driven de Decisao
+
+Objetivo: migrar do fluxo de tese/oportunidade/sinal para decisao direta do
+modelo sobre abrir ordem ou aguardar, mantendo somente guard-rails de
+seguranca operacional.
+
+### TAREFA M2-020.1 - Definir contrato unico de decisao do modelo
+
+Status: BACKLOG
+Entrega:
+
+1. Especificar entrada e saida da decisao do modelo.
+2. Definir acoes: OPEN_LONG, OPEN_SHORT, HOLD, REDUCE, CLOSE.
+3. Definir campos obrigatorios: confidence, size_fraction, sl, tp, reason.
+
+Critérios de aceite:
+
+1. Contrato documentado e validado por testes.
+2. Payload invalido gera erro explicito e bloqueio seguro.
+
+### TAREFA M2-020.2 - Criar camada de inferencia desacoplada
+
+Status: BACKLOG
+Entrega:
+
+1. Implementar servico de inferencia independente da tese.
+2. Isolar versao de modelo, latencia e metadados de decisao.
+
+Critérios de aceite:
+
+1. Decisao operacional nasce da inferencia do modelo.
+2. Logs incluem model_version e tempo de inferencia.
+
+### TAREFA M2-020.3 - Consolidar state builder de mercado
+
+Status: BACKLOG
+Entrega:
+
+1. Consolidar estado unico para inferencia em tempo real.
+2. Incluir contexto de posicao e risco no estado.
+
+Critérios de aceite:
+
+1. Estado completo e serializavel.
+2. Falta de campo critico bloqueia fluxo com fail-safe.
+
+### TAREFA M2-020.4 - Integrar decisao ao orquestrador de execucao
+
+Status: BACKLOG
+Entrega:
+
+1. Substituir origem de decisao atual pelo contrato do modelo.
+2. Permitir acao HOLD sem erro e sem ordem.
+
+Critérios de aceite:
+
+1. Ordem nasce apenas de decisao do modelo.
+2. Fluxo nao depende de tese/oportunidade para abrir ordem.
+
+### TAREFA M2-020.5 - Manter guard-rails sem estrategia externa
+
+Status: BACKLOG
+Entrega:
+
+1. Preservar risk_gate e circuit_breaker no caminho critico.
+2. Remover regras estrategicas externas de direcao/entrada.
+
+Critérios de aceite:
+
+1. Guard-rails ativos em todos os caminhos live.
+2. Regras externas nao definem direcao de trade.
+
+### TAREFA M2-020.6 - Persistir episodios completos de aprendizado
+
+Status: BACKLOG
+Entrega:
+
+1. Persistir estado, acao, reward e proximo estado.
+2. Persistir decisoes HOLD e eventos de nao entrada.
+
+Critérios de aceite:
+
+1. Episodios salvos com idempotencia.
+2. Auditoria inclui execution_id/symbol quando aplicavel.
+
+### TAREFA M2-020.7 - Definir reward para operar e nao operar
+
+Status: BACKLOG
+Entrega:
+
+1. Modelar reward de PnL liquido e custo operacional.
+2. Modelar reward para HOLD (evitou perda x perdeu oportunidade).
+
+Critérios de aceite:
+
+1. Reward reproduzivel em replay.
+2. Penalidade para overtrading e risco excessivo definida.
+
+### TAREFA M2-020.8 - Reforcar reconciliacao model-driven
+
+Status: BACKLOG
+Entrega:
+
+1. Reconciliar decisao do modelo com estado real da exchange.
+2. Registrar divergencias criticas como bloqueantes.
+
+Critérios de aceite:
+
+1. Divergencias banco vs exchange detectadas e auditadas.
+2. Nao existe transicao final sem reconciliacao minima.
+
+### TAREFA M2-020.9 - Rodar shadow como decisor unico
+
+Status: BACKLOG
+Entrega:
+
+1. Operar em shadow com modelo decidindo sozinho.
+2. Registrar comparativo de decisoes e resultados.
+
+Critérios de aceite:
+
+1. Shadow gera decisoes completas para todos os sinais.
+2. Sem fallback estrategico antigo na decisao.
+
+### TAREFA M2-020.10 - Habilitar retreino automatico governado
+
+Status: BACKLOG
+Entrega:
+
+1. Coleta continua de episodios para treino.
+2. Treino em ambiente separado do runtime live.
+3. Promocao com gate e rollback.
+
+Critérios de aceite:
+
+1. Nova versao so promove com criterio de qualidade.
+2. Rollback automatico funcional.
+
+### TAREFA M2-020.11 - Definir gate de promocao GO/NO-GO
+
+Status: BACKLOG
+Entrega:
+
+1. Definir criterios minimos de risco, estabilidade e consistencia.
+2. Bloquear promocao com evidencia insuficiente.
+
+Critérios de aceite:
+
+1. Decisao GO/NO-GO rastreavel.
+2. Falha em criterio retorna NO_GO automaticamente.
+
+### TAREFA M2-020.12 - Migrar live para decisao unica do modelo
+
+Status: BACKLOG
+Entrega:
+
+1. Tornar modelo a fonte unica de decisao em live.
+2. Preservar envelope de seguranca e reconciliacao.
+
+Critérios de aceite:
+
+1. Fluxo live nao depende de tese/oportunidade para decidir entrada.
+2. Protecao pos-fill e fail-safe permanecem ativos.
+
+### TAREFA M2-020.13 - Desativar estrategia legada
+
+Status: BACKLOG
+Entrega:
+
+1. Remover acoplamentos legados de estrategia deterministica.
+2. Manter compatibilidade operacional de observabilidade.
+
+Critérios de aceite:
+
+1. Nao ha caminho estrategico antigo interferindo na decisao live.
+2. Regressao funcional ausente em testes relevantes.
+
+### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
+
+Status: BACKLOG
+Entrega:
+
+1. Atualizar docs tecnicos e runbook para fluxo model-driven.
+2. Atualizar trilha de sincronizacao documental.
+
+Critérios de aceite:
+
+1. Arquitetura, regras e operacao estao consistentes entre docs.
+2. Fontes de verdade do M2 refletem decisao direta do modelo.
+3. Timeline: ~20-30 min para completar treinos (em andamento)
 
 Proximas Fases:
 
