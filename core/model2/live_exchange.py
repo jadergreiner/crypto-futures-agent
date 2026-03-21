@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import inspect
 from decimal import Decimal
 from typing import Any
 
@@ -192,7 +193,7 @@ class Model2LiveExchange:
 
     def list_open_positions(self, symbol: str | None = None) -> list[dict[str, Any]]:
         try:
-            response = self._client.rest_api.position_information_v2(symbol=symbol)
+            response = self._client.rest_api.position_information_v2(symbol=symbol, recv_window=self._recv_window)
             data = self._extract_data(response)
         except Exception as exc:
             logger.warning("Failed to list open positions for %s: %s", symbol, exc)
@@ -285,17 +286,136 @@ class Model2LiveExchange:
     ) -> dict[str, Any]:
         close_side = "SELL" if str(signal_side).upper() == "LONG" else "BUY"
         normalized_trigger = self._normalize_trigger_price(symbol, trigger_price, close_side)
-        response = self._client.rest_api.new_algo_order(
-            algo_type="CONDITIONAL",
-            symbol=symbol,
-            side=close_side,
-            type=order_type,
-            trigger_price=normalized_trigger,
-            close_position="true",
-            working_type="MARK_PRICE",
-            recv_window=self._recv_window,
-        )
-        return self._extract_data(response) or {}
+        rest_api = self._client.rest_api
+        # Try algo/conditional order first (preferred)
+        try:
+            response = rest_api.new_algo_order(
+                algo_type="CONDITIONAL",
+                symbol=symbol,
+                side=close_side,
+                type=order_type,
+                trigger_price=normalized_trigger,
+                close_position="true",
+                working_type="MARK_PRICE",
+                recv_window=self._recv_window,
+            )
+            return self._extract_data(response) or {}
+        except Exception:
+            # Fall back to standard/new_order variants with common parameter names
+            # Prefer snake_case `close_position` to request a close-all protection
+            candidates = [
+                {
+                    "type": order_type,
+                    "symbol": symbol,
+                    "side": close_side,
+                    "stop_price": normalized_trigger,
+                    "close_position": "true",
+                    "recv_window": self._recv_window,
+                },
+                {
+                    "type": order_type,
+                    "symbol": symbol,
+                    "side": close_side,
+                    "stopPrice": normalized_trigger,
+                    "closePosition": "true",
+                    "recv_window": self._recv_window,
+                },
+                {
+                    "type": order_type,
+                    "symbol": symbol,
+                    "side": close_side,
+                    "stop_price": normalized_trigger,
+                    "reduce_only": "true",
+                    "recv_window": self._recv_window,
+                },
+                {
+                    "type": "STOP_MARKET",
+                    "symbol": symbol,
+                    "side": close_side,
+                    "stopPrice": normalized_trigger,
+                    "reduceOnly": True,
+                    "recv_window": self._recv_window,
+                },
+            ]
+            last_exc = None
+            for kwargs in candidates:
+                try:
+                    method = getattr(rest_api, "new_order", None)
+                    if not callable(method):
+                        continue
+                    sig = None
+                    try:
+                        sig = inspect.signature(method)
+                        sig_params = set(sig.parameters.keys())
+                    except Exception:
+                        sig_params = None
+
+                    # conceptual mapping of common parameter names to try
+                    field_candidates = {
+                        "type": ["type", "orderType", "order_type"],
+                        "symbol": ["symbol"],
+                        "side": ["side"],
+                        # map conceptual stopPrice to common SDK params including 'price'
+                        "stopPrice": ["stopPrice", "stop_price", "stopPriceValue", "price"],
+                        "close_position": ["close_position", "closePosition", "closePositionFlag"],
+                        "reduceOnly": ["reduce_only", "reduceOnly", "reduceOnlyFlag"],
+                        "recv_window": ["recv_window", "recvWindow", "recvWindowMs"],
+                    }
+
+                    call_kwargs = {}
+                    if sig_params is None:
+                        # no signature info; fallback to passing only non-None kwargs
+                        call_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+                    else:
+                        # for each conceptual field, pick the first name present in signature
+                        for concept, name_opts in field_candidates.items():
+                            for opt in name_opts:
+                                if opt in sig_params and concept in kwargs and kwargs.get(concept) is not None:
+                                    call_kwargs[opt] = kwargs.get(concept)
+                                    break
+                        # also allow direct passthrough of literal keys present in signature
+                        for k, v in kwargs.items():
+                            if k in sig_params and v is not None:
+                                call_kwargs[k] = v
+
+                    # ensure quantity is provided when SDK requires it (reduce-only orders)
+                    qty_needed = None
+                    try:
+                        pos = self.get_open_position(symbol)
+                        qty_needed = float((pos or {}).get("position_size_qty") or 0.0)
+                    except Exception:
+                        qty_needed = None
+
+                    if sig_params is not None and "quantity" in sig_params and "quantity" not in call_kwargs:
+                        if qty_needed and qty_needed > 0:
+                            call_kwargs["quantity"] = qty_needed
+                        else:
+                            # cannot place reduce-only/order requiring quantity without a known open position
+                            raise RuntimeError("no_open_position_for_protective_order")
+
+                    if not call_kwargs:
+                        # nothing to call with
+                        continue
+
+                    resp = method(**call_kwargs)
+                    return self._extract_data(resp) or {}
+                except Exception as exc:
+                    last_exc = exc
+                    continue
+            # If all fallbacks failed, raise the last exception to be handled upstream
+            if last_exc:
+                # As a final fallback, attempt to close position at market (emergency close)
+                try:
+                    position = self.get_open_position(symbol)
+                    qty = float((position or {}).get("position_size_qty") or 0.0)
+                    if qty and qty > 0:
+                        close_resp = self.close_position_market(symbol=symbol, signal_side=signal_side, quantity=qty)
+                        return self._extract_data(close_resp) or {}
+                except Exception:
+                    pass
+                # if emergency close not possible, re-raise the original exception
+                raise last_exc
+            return {}
 
     @staticmethod
     def is_existing_protection_error(error: Exception) -> bool:
@@ -336,6 +456,10 @@ class Model2LiveExchange:
                 response = method(**kwargs)
                 payload = self._extract_data(response)
                 orders = self._flatten_order_payload(payload)
+                try:
+                    orders = [self._annotate_fill_fields(o) if isinstance(o, dict) else o for o in orders]
+                except Exception:
+                    pass
                 return [
                     order
                     for order in orders
@@ -361,6 +485,10 @@ class Model2LiveExchange:
                 response = method(**kwargs)
                 payload = self._extract_data(response)
                 orders = self._flatten_order_payload(payload)
+                try:
+                    orders = [self._annotate_fill_fields(o) if isinstance(o, dict) else o for o in orders]
+                except Exception:
+                    pass
                 return [
                     order
                     for order in orders
@@ -369,6 +497,130 @@ class Model2LiveExchange:
             except Exception:
                 continue
         return []
+
+    def query_order(self, symbol: str, order_id: str | int) -> dict[str, Any] | None:
+        """Robust query for a single order across multiple SDK method variants.
+
+        Tries a list of candidate REST methods with different parameter names and
+        types. If no direct method succeeds, falls back to listing open orders
+        and searching for a matching id.
+        """
+        rest_api = self._client.rest_api
+        cand_order_id = order_id
+        # try integer conversion where sensible
+        try:
+            cand_order_id_int = int(order_id)
+        except Exception:
+            cand_order_id_int = None
+
+        candidates = [
+            ("query_order", {"symbol": symbol, "orderId": cand_order_id_int}),
+            ("query_order", {"symbol": symbol, "order_id": str(order_id)}),
+            ("order_status", {"symbol": symbol, "orderId": cand_order_id_int}),
+            ("order_status", {"symbol": symbol, "order_id": str(order_id)}),
+            ("get_order", {"symbol": symbol, "orderId": cand_order_id_int}),
+            ("get_order", {"symbol": symbol, "order_id": str(order_id)}),
+            ("query_current_all_open_orders", {"symbol": symbol}),
+            ("current_all_open_orders", {"symbol": symbol}),
+        ]
+
+        for method_name, kwargs in candidates:
+            method = getattr(rest_api, method_name, None)
+            if not callable(method):
+                continue
+            try:
+                # filter out None values from kwargs to avoid SDK signature errors
+                call_kwargs = {k: v for k, v in (kwargs or {}).items() if v is not None}
+                response = method(**call_kwargs)
+                payload = self._extract_data(response)
+                # annotate payload with normalized fill fields when possible
+                try:
+                    if isinstance(payload, dict):
+                        payload = self._annotate_fill_fields(payload)
+                    elif isinstance(payload, list):
+                        payload = [self._annotate_fill_fields(item) if isinstance(item, dict) else item for item in payload]
+                except Exception:
+                    # best-effort, ignore annotation failures
+                    pass
+                # If the API returned a single order dict, try to normalize and return
+                if isinstance(payload, dict):
+                    # direct match by id
+                    for key in ("orderId", "order_id", "algoId", "algo_id", "clientOrderId", "client_order_id"):
+                        val = payload.get(key)
+                        if val is not None and str(val) == str(order_id):
+                            return payload
+                    # if it's a single dict but not matching id, return it anyway
+                    return payload
+                # if list, search for matching id
+                if isinstance(payload, list):
+                    for item in payload:
+                        for key in ("orderId", "order_id", "algoId", "algo_id", "clientOrderId", "client_order_id"):
+                            val = item.get(key)
+                            if val is not None and str(val) == str(order_id):
+                                return item
+                    # if not matched, continue trying other methods
+            except Exception:
+                continue
+
+        # Fallback: enumerate open orders and try to find by id
+        try:
+            open_orders = self._list_open_standard_orders(symbol) or []
+            for ord_item in open_orders:
+                for key in ("orderId", "order_id", "algoId", "algo_id", "clientOrderId", "client_order_id"):
+                    val = ord_item.get(key)
+                    if val is not None and str(val) == str(order_id):
+                        return ord_item
+        except Exception:
+            pass
+
+        return None
+
+    def _annotate_fill_fields(self, order: dict[str, Any]) -> dict[str, Any]:
+        """Best-effort: add normalized `filled_qty` and `filled_price` keys to an order dict.
+
+        This does not change original keys; it only appends normalized convenience fields.
+        """
+        if not isinstance(order, dict):
+            return order
+
+        qty_keys = (
+            "executedQty",
+            "executed_qty",
+            "cumQty",
+            "cum_qty",
+            "filledQty",
+            "filled_qty",
+            "cumQuote",
+            "cum_quote",
+        )
+        price_keys = ("avgPrice", "avg_price", "price", "avgPricePerUnit", "avg_price_per_unit")
+
+        filled_qty = None
+        for k in qty_keys:
+            try:
+                if k in order and order.get(k) is not None:
+                    val = float(order.get(k))
+                    if val > 0:
+                        filled_qty = val
+                        break
+            except Exception:
+                continue
+
+        filled_price = None
+        for k in price_keys:
+            try:
+                if k in order and order.get(k) is not None:
+                    val = float(order.get(k))
+                    if val > 0:
+                        filled_price = val
+                        break
+            except Exception:
+                continue
+
+        # attach normalized fields
+        order["filled_qty"] = filled_qty
+        order["filled_price"] = filled_price
+        return order
 
     @staticmethod
     def extract_order_identifier(order: dict[str, Any]) -> str | None:
@@ -413,12 +665,51 @@ class Model2LiveExchange:
 
     def close_position_market(self, *, symbol: str, signal_side: str, quantity: float) -> dict[str, Any]:
         close_side = "SELL" if str(signal_side).upper() == "LONG" else "BUY"
-        response = self._client.rest_api.new_order(
-            symbol=symbol,
-            side=close_side,
-            type="MARKET",
-            quantity=float(quantity),
-            reduce_only=True,
-            recv_window=self._recv_window,
-        )
-        return self._extract_data(response) or {}
+        rest_api = self._client.rest_api
+        method = getattr(rest_api, "new_order", None)
+        if not callable(method):
+            # fallback: try direct call and let exception propagate
+            response = rest_api.new_order(symbol=symbol, side=close_side, type="MARKET", quantity=float(quantity), recv_window=self._recv_window)
+            return self._extract_data(response) or {}
+
+        # Try multiple candidate parameter sets to handle SDK/exchange variations
+        candidates = [
+            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "close_position": True, "recv_window": self._recv_window},
+            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "closePosition": True, "recv_window": self._recv_window},
+            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "reduce_only": True, "recv_window": self._recv_window},
+            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "reduceOnly": True, "recv_window": self._recv_window},
+            {"symbol": symbol, "side": close_side, "type": "MARKET", "quantity": float(quantity), "recv_window": self._recv_window},
+        ]
+
+        last_exc = None
+        try:
+            sig = inspect.signature(method)
+            sig_params = set(sig.parameters.keys())
+        except Exception:
+            sig_params = None
+
+        for kwargs in candidates:
+            try:
+                call_kwargs = {}
+                if sig_params is None:
+                    call_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+                else:
+                    # map only parameters supported by the SDK method signature
+                    for k, v in kwargs.items():
+                        if k in sig_params and v is not None:
+                            call_kwargs[k] = v
+
+                if not call_kwargs:
+                    continue
+
+                resp = method(**call_kwargs)
+                return self._extract_data(resp) or {}
+            except Exception as exc:
+                # If reduce-only rejected, try next candidate without reduce_only
+                last_exc = exc
+                continue
+
+        # If all candidates failed, re-raise last exception to be handled upstream
+        if last_exc:
+            raise last_exc
+        return {}

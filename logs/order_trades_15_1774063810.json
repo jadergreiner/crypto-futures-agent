@@ -1,0 +1,31 @@
+{
+  "query_order": {
+    "orderId": 724246767,
+    "symbol": "FLUXUSDT",
+    "status": "FILLED",
+    "clientOrderId": "m2live_15_efa874a370aa4fee",
+    "price": "0.0000000",
+    "avgPrice": "0.0523318",
+    "origQty": "1906",
+    "executedQty": "1906",
+    "cumQuote": "99.7443200",
+    "timeInForce": "GTC",
+    "type": "MARKET",
+    "reduceOnly": false,
+    "closePosition": false,
+    "side": "BUY",
+    "positionSide": "BOTH",
+    "stopPrice": "0.0000000",
+    "workingType": "CONTRACT_PRICE",
+    "priceProtect": false,
+    "origType": "MARKET",
+    "priceMatch": "NONE",
+    "selfTradePreventionMode": "EXPIRE_MAKER",
+    "goodTillDate": 0,
+    "time": 1774059929894,
+    "updateTime": 1774059929894,
+    "filled_qty": 1906.0,
+    "filled_price": 0.0523318
+  },
+  "all_orders": [
+    

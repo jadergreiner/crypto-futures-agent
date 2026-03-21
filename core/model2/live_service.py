@@ -155,8 +155,32 @@ class Model2LiveExecutionService:
         *,
         fallback_position: dict[str, Any] | None,
     ) -> tuple[float | None, float | None]:
-        raw_qty = order_response.get("executedQty") or order_response.get("executed_qty")
-        raw_price = order_response.get("avgPrice") or order_response.get("avg_price") or order_response.get("price")
+        # support many possible SDK field names for executed quantity
+        qty_keys = (
+            "executedQty",
+            "executed_qty",
+            "cumQty",
+            "cum_qty",
+            "filledQty",
+            "filled_qty",
+            "cumQuote",
+            "cum_quote",
+        )
+        price_keys = ("avgPrice", "avg_price", "price", "avgPricePerUnit", "avg_price_per_unit")
+
+        raw_qty = None
+        raw_price = None
+        for k in qty_keys:
+            if k in (order_response or {}):
+                raw_qty = order_response.get(k)
+                if raw_qty is not None:
+                    break
+        for k in price_keys:
+            if k in (order_response or {}):
+                raw_price = order_response.get(k)
+                if raw_price is not None:
+                    break
+
         try:
             filled_qty = float(raw_qty) if raw_qty is not None and float(raw_qty) > 0 else None
         except (TypeError, ValueError):
@@ -166,11 +190,49 @@ class Model2LiveExecutionService:
         except (TypeError, ValueError):
             filled_price = None
 
+        # If basic extraction failed, try to query the exchange for the order
+        if (filled_qty is None or filled_price is None) and isinstance(order_response, dict):
+            # prefer explicit order id fields
+            order_id = (
+                order_response.get("orderId")
+                or order_response.get("order_id")
+                or order_response.get("orderIdStr")
+                or order_response.get("clientOrderId")
+                or order_response.get("client_order_id")
+            )
+            try:
+                if order_id and self.exchange is not None:
+                    remote = self.exchange.query_order(symbol=self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol"), order_id=order_id)
+                    if remote:
+                        for k in qty_keys:
+                            if k in remote and remote.get(k) is not None:
+                                try:
+                                    filled_qty = float(remote.get(k)) if float(remote.get(k)) > 0 else filled_qty
+                                    break
+                                except Exception:
+                                    continue
+                        for k in price_keys:
+                            if k in remote and remote.get(k) is not None:
+                                try:
+                                    filled_price = float(remote.get(k)) if float(remote.get(k)) > 0 else filled_price
+                                    break
+                                except Exception:
+                                    continue
+            except Exception:
+                # ignore query failures here and fallback to position
+                pass
+
         if fallback_position is not None:
             if filled_qty is None:
-                filled_qty = float(fallback_position.get("position_size_qty") or 0) or None
+                try:
+                    filled_qty = float(fallback_position.get("position_size_qty") or 0) or None
+                except Exception:
+                    filled_qty = None
             if filled_price is None:
-                filled_price = float(fallback_position.get("entry_price") or 0) or None
+                try:
+                    filled_price = float(fallback_position.get("entry_price") or 0) or None
+                except Exception:
+                    filled_price = None
         return filled_qty, filled_price
 
     def _place_protective_order_with_retry(
@@ -218,6 +280,30 @@ class Model2LiveExecutionService:
         tp_order = protection_state.get("tp_order_id")
         protection_was_missing = not (protection_state.get("has_sl") and protection_state.get("has_tp"))
         protection_errors: list[dict[str, str]] = []
+
+        # Ensure there is an open position before attempting reduce-only protections.
+        # Sometimes the exchange reports fills but the position is not yet visible;
+        # retry a couple times with a short delay before giving up.
+        pos = exchange.get_open_position(symbol)
+        if pos is None:
+            for attempt in range(2):
+                time.sleep(1.0)
+                pos = exchange.get_open_position(symbol)
+                if pos is not None:
+                    break
+        if pos is None:
+            # record a reconciliation note and mark as failed to avoid reduce-only rejections
+            self._record_reconcile_note(int(execution.get("id") or 0), now_ms, {"reason": "no_open_position_before_protection", "symbol": symbol})
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="protection_not_armed_no_open_position",
+                rule_id=M2_009_4_RULE_ID,
+                metadata={
+                    "protection_state": protection_state,
+                },
+            )
+            return {"status": failed.current_status, "reason": failed.reason}
 
         if not protection_state.get("has_sl"):
             sl_response, sl_errors = self._place_protective_order_with_retry(
