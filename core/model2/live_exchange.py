@@ -362,21 +362,39 @@ class Model2LiveExchange:
                         "recv_window": ["recv_window", "recvWindow", "recvWindowMs"],
                     }
 
-                    call_kwargs = {}
+                    # If we cannot inspect the SDK method signature, skip this candidate
+                    # to avoid blindly passing parameters that may be interpreted as MARKET.
                     if sig_params is None:
-                        # no signature info; fallback to passing only non-None kwargs
-                        call_kwargs = {k: v for k, v in kwargs.items() if v is not None}
-                    else:
-                        # for each conceptual field, pick the first name present in signature
-                        for concept, name_opts in field_candidates.items():
-                            for opt in name_opts:
-                                if opt in sig_params and concept in kwargs and kwargs.get(concept) is not None:
-                                    call_kwargs[opt] = kwargs.get(concept)
+                        continue
+
+                    call_kwargs = {}
+                    # for each conceptual field, pick the first name present in signature
+                    for concept, name_opts in field_candidates.items():
+                        for opt in name_opts:
+                            if opt in sig_params and concept in kwargs and kwargs.get(concept) is not None:
+                                call_kwargs[opt] = kwargs.get(concept)
+                                break
+                    # also allow direct passthrough of literal keys present in signature
+                    for k, v in kwargs.items():
+                        if k in sig_params and v is not None:
+                            call_kwargs[k] = v
+
+                    # Safety: for protective orders, require either a stop/trigger price
+                    # or an explicit close/reduce flag before calling generic/new_order.
+                    protective_types = {"STOP_MARKET", "TAKE_PROFIT_MARKET"}
+                    if str(order_type).upper() in protective_types:
+                        has_stop_price = any(name in call_kwargs for name in ("stopPrice", "stop_price", "price", "trigger_price"))
+                        has_close_flag = any(name in call_kwargs for name in ("close_position", "closePosition", "reduce_only", "reduceOnly"))
+                        # try to set close flag if SDK supports it
+                        if not has_close_flag and sig_params is not None:
+                            for opt in ("closePosition", "close_position", "reduceOnly", "reduce_only"):
+                                if opt in sig_params:
+                                    call_kwargs[opt] = "true"
+                                    has_close_flag = True
                                     break
-                        # also allow direct passthrough of literal keys present in signature
-                        for k, v in kwargs.items():
-                            if k in sig_params and v is not None:
-                                call_kwargs[k] = v
+                        # if neither stop price nor close flag present, skip this candidate
+                        if not has_stop_price and not has_close_flag:
+                            continue
 
                     # ensure quantity is provided when SDK requires it (reduce-only orders)
                     qty_needed = None

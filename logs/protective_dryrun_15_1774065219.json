@@ -1,0 +1,77 @@
+{
+  "execution_id": 15,
+  "symbol": "FLUXUSDT",
+  "constructed": {
+    "STOP_MARKET": [
+      {
+        "type": "STOP_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stop_price": 0.05192,
+        "close_position": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "STOP_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stopPrice": 0.05192,
+        "closePosition": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "STOP_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stop_price": 0.05192,
+        "reduce_only": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "STOP_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stopPrice": 0.05192,
+        "reduceOnly": true,
+        "quantity": 1906.0
+      }
+    ],
+    "TAKE_PROFIT_MARKET": [
+      {
+        "type": "TAKE_PROFIT_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stop_price": 0.05349,
+        "close_position": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "TAKE_PROFIT_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stopPrice": 0.05349,
+        "closePosition": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "TAKE_PROFIT_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stop_price": 0.05349,
+        "reduce_only": "true",
+        "quantity": 1906.0
+      },
+      {
+        "type": "STOP_MARKET",
+        "symbol": "FLUXUSDT",
+        "side": "SELL",
+        "stopPrice": 0.05349,
+        "reduceOnly": true,
+        "quantity": 1906.0
+      }
+    ]
+  },
+  "meta": {
+    "timestamp": "20260321T005339Z"
+  }
+}

@@ -399,6 +399,32 @@ Entrega:
    e `filled_price`. [OK]
 3. Garantir idempotencia por `technical_signal_id` sem ordem duplicada. [OK]
 
+#### INCIDENTE - Discrepância margem/exposição (2026-03-21)
+
+Resumo: durante execução live para `execution_id=15` foi enviada ordem com
+`margin_usd=10` e `leverage=10`, resultando em exposição de **100 USD**.
+O comportamento do cálculo está correto segundo a fórmula atual
+(`exposure = margin_usd * leverage`), porém o esperado era **1 USD** de
+margin (exposição alvo 10 USD). A discrepância pode ter origem em: (a) valor
+de `max_margin_per_position_usd` configurado em `EXECUTION_CONFIG`; (b) entrada
+manual incorreta de parâmetro; (c) falha de interface do operador.
+
+Evidências:
+
+- Log de evidência salvo: `logs/order_event_15_1774066144.json`
+- Evento de reconciliação inserido em `signal_execution_events` para
+   `execution_id=15` com tipo `RECONCILIATION` e payload relevante.
+- Evento adicional `DISCREPANCY` inserido em `signal_execution_events` com
+   detalhes (`expected_margin_usd=1.0`, `used_margin_usd=10.0`,
+   `used_exposure_usd=100.0`).
+
+Ações recomendadas:
+
+1. Revisar `config/execution_config.py` e variável `max_margin_per_position_usd`.
+2. Validar a origem do parâmetro que iniciou a execução (manual vs gate).
+3. Se necessário, fechar/reduzir a posição (opção manual).
+4. Registrar lição em `docs/LESSONS_LEARNED.md` se for problema de processo.
+
 Evidencias:
 
 1. Abstracao de exchange live: `core/model2/live_exchange.py`.
@@ -716,7 +742,7 @@ Evidencias:
 
 1. Checkpoint PPO treino: `checkpoints/ppo_training/ppo_model.zip`.
 2. Metricas de treinamento: `results/model2/training_metrics_*.json`
-   + log `logs/ppo_training_real.log`.
+   - log `logs/ppo_training_real.log`.
 3. Comparacao deterministica vs RL:
    `results/model2/signal_enhancement_report_*.json`.
 4. Atualizacao: `docs/RL_SIGNAL_GENERATION.md` com dados empíricos.
@@ -826,7 +852,7 @@ Entrega atual (Fases E.1 + Documentação):
 6. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
 7. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
 8. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment
-   + LSTM). [OK]
+   - LSTM). [OK]
 9. REGRAS_DE_NEGOCIO.md atualizado (RN-007, RN-008, RN-009). [OK]
 10. MODELAGEM_DE_DADOS.md atualizado (funding_rates_api,
     open_interest_api). [OK]
@@ -846,10 +872,10 @@ Evidencias (Fase E.1 + Documentação concluídas):
 4. Novo CHANGELOG: `docs/CHANGELOG.md`
 5. Audit trail sincronização: `docs/SYNCHRONIZATION.md`
 6. Commits sync:
-   + eae8d20: 4 docs (CRITICAL+HIGH)
-   + 7064e13: 2 docs (MEDIUM)
-   + 3dc6f79: 2 docs (LOW) + CHANGELOG
-   + 367aa73: SYNCHRONIZATION.md
+   - eae8d20: 4 docs (CRITICAL+HIGH)
+   - 7064e13: 2 docs (MEDIUM)
+   - 3dc6f79: 2 docs (LOW) + CHANGELOG
+   - 367aa73: SYNCHRONIZATION.md
 
 Entrega atual (Fase D.5):
 
@@ -982,8 +1008,8 @@ Evidencias (Fase E.8 EM PROGRESSO — 2026-03-15):
 
 Proximas Fases:
 
-+ Ensemble voting entre MLP e LSTM para robustez.
-+ Status: EM PROGRESSO (2026-03-15)
+- Ensemble voting entre MLP e LSTM para robustez.
+- Status: EM PROGRESSO (2026-03-15)
 
 ### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
 
@@ -1023,14 +1049,14 @@ Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
 Evidencias (Fase E.10 — BLID-068 EM PROGRESSO):
 
 1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
-   + EnsembleSignalGenerator class (soft+hard voting)
-   + Confidence scoring (consenso + pesos)
-   + Fallback gracioso
-   + Stats + logging
+   - EnsembleSignalGenerator class (soft+hard voting)
+   - Confidence scoring (consenso + pesos)
+   - Fallback gracioso
+   - Stats + logging
 2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
-   + Import run_ensemble_signal_generation
-   + Etapa "ensemble_signal_generation" adicionada após RL signals
-   + Configuracao: voting_method='soft', min_confidence=0.6
+   - Import run_ensemble_signal_generation
+   - Etapa "ensemble_signal_generation" adicionada após RL signals
+   - Configuracao: voting_method='soft', min_confidence=0.6
 3. Commit: [FEAT] BLID-068 Integrar votador ensemble no pipeline
 
 Dependências: BLID-067 (E.9 scripts prontos)
@@ -1060,7 +1086,7 @@ Evidencias:
 2. Playbook: `playbooks/flux_playbook.py` — FLUXPlaybook (4 metodos)
 3. Registro: `playbooks/__init__.py` — import + **all** atualizados
 4. Bug fix: `scripts/model2/binance_funding_daemon.py`
-   + SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
+   - SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
 5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
 6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
 
@@ -1075,14 +1101,14 @@ validar o ciclo ponta-a-ponta no testnet e promover para producao.
 
 Contexto:
 
-+ `core/model2/live_exchange.py` — adapter completo (394 linhas):
+- `core/model2/live_exchange.py` — adapter completo (394 linhas):
   `place_market_entry`, `place_protective_order`, `get_available_balance`,
   `list_open_positions`, `get_protection_state`, `close_position_market`,
   precisao automatica via `exchange_information()`.
-+ `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
-+ `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
+- `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
+- `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
   `create_binance_client(mode="live")` quando `execution_mode == "live"`.
-+ O pipeline roda em shadow por padrao; trocar para live so requer
+- O pipeline roda em shadow por padrao; trocar para live so requer
   `M2_EXECUTION_MODE=live` no `.env`.
 
 ### TAREFA M2-018.1 - Validacao do ciclo shadow ponta-a-ponta
@@ -1163,9 +1189,9 @@ Scanner SMC -> Bridge -> persist_episodes -> train_entry_agents
 
 Regras inviolaveis:
 
-+ Fallback conservador quando modelo nao existe ou confianca baixa
-+ risk_gate.py e circuit_breaker.py permanecem ativos na execucao
-+ Novos stages com continue_on_error=True
+- Fallback conservador quando modelo nao existe ou confianca baixa
+- risk_gate.py e circuit_breaker.py permanecem ativos na execucao
+- Novos stages com continue_on_error=True
 
 ### TAREFA M2-019.1 - EntryDecisionEnv: environment de decisao de entrada
 

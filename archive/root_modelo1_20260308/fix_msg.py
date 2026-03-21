@@ -36,7 +36,7 @@ conversions_accents = {
     "ÃƒÂ©": "e",   # Ã© corrupted
     "ÃƒÂº": "u",   # u corrupted
     "Ãƒ": "",     # A mal codificado
-    "Ã¢â‚¬"": "-",  # em dash
+    "â€”": "-",    # em dash (corruption variant)
     "Ã¢â‚¬": "",    # corruption marker
     "Ã¢Å“â€¦": "",   # checkmark
     "Ã”": "",     # corruption

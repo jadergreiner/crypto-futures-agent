@@ -51,15 +51,27 @@ signal_side = execution['signal_side']
 
 print('Checking open position for', symbol)
 pos = None
-try:
-    pos = exchange.get_open_position(symbol)
-    print('Open position:', pos)
-except Exception as e:
-    print('Error fetching open position:', e)
+# Polling configuration (seconds) - can be overridden via env
+POLL_TIMEOUT_SEC = int(os.getenv('POLL_TIMEOUT_SEC', '60'))
+POLL_INTERVAL_SEC = int(os.getenv('POLL_INTERVAL_SEC', '5'))
+start = time.time()
+while True:
+    try:
+        pos = exchange.get_open_position(symbol)
+        print('Open position:', pos)
+    except Exception as e:
+        print('Error fetching open position:', e)
+        pos = None
 
-if not pos:
-    print('No open position detected; aborting to avoid reduce-only rejects')
-    raise SystemExit(0)
+    if pos:
+        break
+
+    elapsed = time.time() - start
+    if elapsed >= POLL_TIMEOUT_SEC:
+        print(f'No open position detected within {POLL_TIMEOUT_SEC}s; aborting to avoid reduce-only rejects')
+        raise SystemExit(0)
+
+    time.sleep(POLL_INTERVAL_SEC)
 
 # Attempt to place SL and TP via place_protective_order
 results = {}

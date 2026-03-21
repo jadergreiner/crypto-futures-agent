@@ -449,26 +449,85 @@ class Model2LiveExecutionService:
             metadata={"order_response": order_response},
         )
 
-        current_position = exchange.get_open_position(str(execution["symbol"]))
-        filled_qty, filled_price = self._extract_fill_from_order_response(
-            order_response,
-            fallback_position=current_position,
-        )
+        # Após envio, aguardar e tentar obter confirmação de fill/posição.
+        # Estratégia: 1) checar posição aberta; 2) tentar extrair do order_response;
+        # 3) consultar a ordem no exchange via `query_order` e re-extrair; 4) repetir polling curto.
+        POLL_RETRIES = 5
+        POLL_DELAY_S = 1.0
+        filled_qty = None
+        filled_price = None
+        last_remote_order = None
+
+        for attempt in range(POLL_RETRIES):
+            current_position = exchange.get_open_position(str(execution["symbol"]))
+            # try to extract from current position first
+            if current_position is not None:
+                try:
+                    filled_qty = float((current_position.get("position_size_qty") or 0) or 0) or None
+                except Exception:
+                    filled_qty = None
+                try:
+                    filled_price = float((current_position.get("entry_price") or 0) or 0) or None
+                except Exception:
+                    filled_price = None
+
+            # if still missing, try to extract from immediate order response
+            if (filled_qty is None or filled_price is None) and isinstance(order_response, dict):
+                q_filled, q_price = self._extract_fill_from_order_response(order_response, fallback_position=current_position)
+                if q_filled is not None:
+                    filled_qty = filled_qty or q_filled
+                if q_price is not None:
+                    filled_price = filled_price or q_price
+
+            # if still missing, try remote query by order id
+            if (filled_qty is None or filled_price is None) and isinstance(order_response, dict):
+                order_id = (
+                    order_response.get("orderId")
+                    or order_response.get("order_id")
+                    or order_response.get("clientOrderId")
+                    or order_response.get("client_order_id")
+                )
+                try:
+                    if order_id and self.exchange is not None:
+                        last_remote_order = self.exchange.query_order(symbol=self.exchange._safe_get(order_response, ["symbol"]) or order_response.get("symbol"), order_id=order_id)
+                        if last_remote_order:
+                            q_filled, q_price = self._extract_fill_from_order_response(last_remote_order, fallback_position=current_position)
+                            if q_filled is not None:
+                                filled_qty = filled_qty or q_filled
+                            if q_price is not None:
+                                filled_price = filled_price or q_price
+                except Exception:
+                    pass
+
+            if filled_qty is not None and filled_price is not None:
+                break
+
+            # wait before next attempt
+            time.sleep(POLL_DELAY_S)
+
+        # Se não conseguimos extrair fill após polling, retornar estado ENTRY_SENT para re-tentativa posterior
         if filled_qty is None or filled_price is None:
+            # atualizar metadata com última ordem remota, se houver
+            metadata = {"order_response": order_response}
+            if last_remote_order is not None:
+                metadata["remote_order"] = last_remote_order
             return {
                 "execution_id": int(execution["id"]),
                 "status": entry_sent.current_status,
                 "reason": entry_sent.reason,
                 "exchange_order_id": order_response.get("orderId") or order_response.get("order_id"),
+                "note": "awaiting_fill_after_send",
+                "metadata": metadata,
             }
 
+        # Persistir fill e armar proteções
         filled = self.repository.mark_signal_execution_entry_filled(
             execution_id=int(execution["id"]),
             now_ms=now_ms,
             filled_qty=float(filled_qty),
             filled_price=float(filled_price),
             rule_id=M2_009_3_RULE_ID,
-            metadata={"order_response": order_response},
+            metadata={"order_response": order_response, "remote_order": last_remote_order},
         )
         refreshed_execution = self.repository.get_signal_execution(int(execution["id"])) or execution
         protection = self._arm_protection(refreshed_execution, now_ms=now_ms)

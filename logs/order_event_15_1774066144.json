@@ -1,0 +1,41 @@
+{
+  "note": "manual_record_exchange_evidence",
+  "open_position": {
+    "direction": "LONG",
+    "entry_price": 0.0521350234497,
+    "leverage": 10,
+    "margin_type": "cross",
+    "mark_price": 0.05203,
+    "position_size_qty": 1919.0,
+    "symbol": "FLUXUSDT"
+  },
+  "order_id": 724279751,
+  "order_response": {
+    "avgPrice": "0.0521350",
+    "clientOrderId": "ad_hoc_1774065923_cfcbb9d6",
+    "closePosition": false,
+    "cumQuote": "100.0471100",
+    "executedQty": "1919",
+    "filled_price": 0.052135,
+    "filled_qty": 1919.0,
+    "goodTillDate": 0,
+    "orderId": 724279751,
+    "origQty": "1919",
+    "origType": "MARKET",
+    "positionSide": "BOTH",
+    "price": "0.0000000",
+    "priceMatch": "NONE",
+    "priceProtect": false,
+    "reduceOnly": false,
+    "selfTradePreventionMode": "EXPIRE_MAKER",
+    "side": "BUY",
+    "status": "FILLED",
+    "stopPrice": "0.0000000",
+    "symbol": "FLUXUSDT",
+    "time": 1774065923826,
+    "timeInForce": "GTC",
+    "type": "MARKET",
+    "updateTime": 1774065923826,
+    "workingType": "CONTRACT_PRICE"
+  }
+}
