@@ -47,6 +47,13 @@ Implementacao vigente do ponto de inferencia desacoplado:
 1. `core/model2/model_inference_service.py`
 2. Contrato de decisao: `core/model2/model_decision.py`
 
+Implementacao de RL por simbolo (Iniciativa M2-019):
+
+1. `agent/entry_decision_env.py` — Gym.Env para decisao de entrada
+2. Environment action space: NEUTRAL(0), LONG(1), SHORT(2)
+3. Environment observation space: 36 features normalizadas
+4. Reward retroativo: outcome real de execucao de sinal
+
 Entradas:
 
 1. Estado de mercado consolidado.

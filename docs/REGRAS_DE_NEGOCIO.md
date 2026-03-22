@@ -96,3 +96,17 @@ Quando alertas operacionais estiverem habilitados, o preflight deve validar
 credenciais minimas de notificacao antes de liberar live.
 
 Sem credenciais validas, resultado obrigatorio: NO_GO.
+
+### RN-014 - RL Decision per Symbol (M2-019)
+
+Modelos RL individuais por simbolo fornecem decisao de entrada em paralelo
+ao scanner SMC.
+
+Regras de integracao:
+
+1. Se modelo nao existe: fallback para decisao deterministico
+2. Se confianca < threshold (0.55): passa adiante (conservador)
+3. Se acao NEUTRAL com confianca >= threshold: cancela entrada com motivo
+4. Se acao alinhada com direcao SMC: enriquece signal_execution
+5. Se acao contradiz direcao SMC: cancela com motivo auditavel
+6. Todos os casos registram episodio para retreino continuo

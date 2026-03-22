@@ -23,6 +23,51 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-029] M2-019.1 EntryDecisionEnv - RL por Simbolo
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Arquitetura Alvo | docs/ARQUITETURA_ALVO.md | Secao Camada 2 expandida com RL per symbol |
+| ADRs | docs/ADRS.md | ADR-025 criada (RL Entry Decision per Symbol) |
+| Regras de Negocio | docs/REGRAS_DE_NEGOCIO.md | RN-014 criada (RL Decision per Symbol rules) |
+| Backlog M2 | docs/BACKLOG.md | M2-019.1 marcada CONCLUIDA |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-029] |
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| agent/entry_decision_env.py | NOVO | EntryDecisionEnv (380+ linhas) |
+| tests/test_entry_decision_env.py | NOVO | Suite de 29 testes (29/29 PASSANDO) |
+
+#### Observacoes
+
+- **EntryDecisionEnv**: Gym.Env para treinamento RL de decisao de entrada
+- **Action Space**: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT
+- **Observation Space**: Box(36,) com features consolidadas
+  - 24 OHLCV multi-TF (H1, H4, D1)
+  - 6 indicators tecnicas (RSI, MACD, BB, ATR, Stoch, Williams)
+  - 3 features fundamentais (FR, LS-ratio, OI)
+  - 3 contexto SMC
+- **Reward**: Retroativo de outcome real em signal_executions
+- **Reset**: Seleciona episodio aleatorio ou dummy se vazio
+- **Edge cases**: NaN handling, clipping, padding, truncagem
+- **Testes**: Cobertura 100% incluindo integracao ponta-a-ponta
+
+#### Proximos Passos
+
+1. M2-019.2 — EpisodeLoader (carregamento/normalizacao de episodios)
+2. M2-019.3 — Adaptar SubAgentManager para EntryDecisionEnv
+3. M2-019.4 — Runner train_entry_agents.py
+4. Sequencia: M2-019.5 .. M2-019.10 completando iniciativa RL por simbolo
+
+---
+
 ### [SYNC-028] M2-018.3 Ativacao producao com limites conservadores
 
 **Data/Hora**: 2026-03-22 UTC

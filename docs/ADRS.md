@@ -72,3 +72,38 @@ Toda decisao, transicao e mitigacao relevante deve gerar trilha com:
 2. status;
 3. motivo;
 4. metadados operacionais.
+
+## ADR-025 - RL Decision per Symbol (M2-019)
+
+**Status:** ACEITO
+
+Decisao de entrada nascera em modelos RL individuais por simbolo
+(M2-019), ao inves de dependencia exclusiva no scanner SMC.
+
+Arquitetura:
+
+1. Gym.Env customizado para cada simbolo (`EntryDecisionEnv`)
+2. Action space: NEUTRAL(0), LONG(1), SHORT(2)
+3. Observation: 36 features consolidadas (OHLCV + indicators + funding)
+4. Reward: retroativo de outcome real em signal_executions
+5. Environment fallback: episodio dummy com reward=0 quando sem dados
+
+Beneficios:
+
+1. Decisao de entrada totalmente data-driven
+2. Aprendizado continuo com dados de operacao real
+3. Fallback seguro quando modelo indisponivel
+4. Auditoria completa via logging de episodios
+
+Restrições:
+
+1. Model nao ativa: fallback gracioso sem entrada
+2. Confidence baixa: passagem adiante (conservador)
+3. Contradic ao com direcao SMC: cancelamento auditavel
+
+Componentes:
+
+1. `agent/entry_decision_env.py` — Environment Gym
+2. `agent/episode_loader.py` — Carregamento de episodios (futura)
+3. `scripts/model2/train_entry_agents.py` — Treino diario (futura)
+4. `scripts/model2/entry_rl_filter.py` — Filter stage (futura)

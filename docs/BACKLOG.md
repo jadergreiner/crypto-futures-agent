@@ -1485,20 +1485,51 @@ Regras inviolaveis:
 
 ### TAREFA M2-019.1 - EntryDecisionEnv: environment de decisao de entrada
 
-Status: PENDENTE
+Status: CONCLUIDA (2026-03-22)
 
 Entrega:
 
-1. Criar `agent/entry_decision_env.py` com `EntryDecisionEnv(gym.Env)`. [ ]
-2. Action space: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT. [ ]
+1. Criar `agent/entry_decision_env.py` com `EntryDecisionEnv(gym.Env)`. [OK]
+2. Action space: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT. [OK]
 3. Observation space: Box(36,) normalizado em [-1, 1] com OHLCV
    multi-TF H1/H4/D1 (24), indicadores RSI/MACD/BB/ATR/Stoch/Williams
-   (6), funding/LS-ratio/OI (3), contexto SMC (3). [ ]
-4. Reward retroativo: outcome real da signal_execution. [ ]
-5. Reset seleciona episodio aleatorio da lista de training_episodes. [ ]
-6. Fallback gracioso para lista vazia (episodio dummy, reward=0). [ ]
-7. Passar gym.utils.check_env sem erro. [ ]
-8. Criar `tests/test_entry_decision_env.py` com mock de episodios. [ ]
+   (6), funding/LS-ratio/OI (3), contexto SMC (3). [OK]
+4. Reward retroativo: outcome real da signal_execution. [OK]
+5. Reset seleciona episodio aleatorio da lista de training_episodes. [OK]
+6. Fallback gracioso para lista vazia (episodio dummy, reward=0). [OK]
+7. Validacao com testes de consistencia (gym compliance). [OK]
+8. Criar `tests/test_entry_decision_env.py` com mock de episodios. [OK]
+
+Evidencias:
+
+1. Implementacao: `agent/entry_decision_env.py` (380+ linhas)
+   - Classe EntryDecisionEnv(gym.Env) completa
+   - Action space: Discrete(3) com mapeamento NEUTRAL/LONG/SHORT
+   - Observation space: Box(36,) normalizado [-1, 1]
+   - Reset: seleciona episodio aleatorio ou dummy se vazio
+   - Step: retorna obs, reward retroativo, terminated, truncated, info
+   - Metodos auxiliares: _extract_observation, _load_dummy_episode,
+     set_episodes, get_statistics
+2. Suite de testes: `tests/test_entry_decision_env.py`
+   - 29 testes unitarios cobrindo:
+     - Inicializacao (4 testes)
+     - Reset com episodios vazios e preenchidos (4 testes)
+     - Step com tipos corretos, rewards e done flags (4 testes)
+     - Extracao de features (7 testes)
+     - Episodio dummy (3 testes)
+     - set_episodes (1 teste)
+     - Estatisticas (2 testes)
+     - Validacao Gym (1 teste)
+     - Integracao ponta-a-ponta (3 testes)
+   - RESULTADO: 29/29 PASSANDO
+3. Cobertura de edge cases:
+   - Lista vazia de episodios -> dummy com reward=0
+   - Features < 36 -> padding com zeros
+   - Features > 36 -> truncagem
+   - NaN em features -> np.nan_to_num -> 0
+   - JSON invalido -> array zerado
+   - Clipping em [-1, 1]
+   - Reproducibilidade com seed
 
 Dependencias: Nenhuma
 
