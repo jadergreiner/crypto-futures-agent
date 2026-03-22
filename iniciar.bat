@@ -5,6 +5,9 @@ REM ============================================================================
 
 setlocal enabledelayedexpansion
 
+REM Ativar UTF-8 para suportar caracteres especiais nos logs
+chcp 65001 > nul 2>&1
+
 if not exist "venv" (
     echo [ERRO] Ambiente virtual nao encontrado!
     echo Execute setup.bat primeiro para configurar o ambiente.
