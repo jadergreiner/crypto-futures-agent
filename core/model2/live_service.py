@@ -111,7 +111,7 @@ class Model2LiveExecutionService:
             last_train, pending = collect_training_info(self._db_path)
 
             # Coletar posicao aberta
-            pos_info = collect_position_info(symbol, self.exchange)
+            pos_info = collect_position_info(symbol, exchange_client=self.exchange)
 
             # Montar report
             now = datetime.now(timezone.utc)
