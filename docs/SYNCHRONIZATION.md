@@ -23,6 +23,37 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-026] P0 runtime/preflight com alertas e reconciliacao critica
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Inferencia | core/model2/model_inference_service.py | Gate de competencia e fallback fail-safe |
+| Preflight | scripts/model2/go_live_preflight.py | Check de inferencia e prontidao de alertas |
+| Live alerts | notifications/model2_live_alerts.py | Publisher de alertas criticos para runtime |
+| Live service | core/model2/live_service.py | Alertas de risco/protecao/reconciliacao |
+| Reconciliacao | core/model2/live_service.py | Divergencia critica gera `FAILED` auditavel |
+| Testes | tests/test_model2_*.py | Cobertura de inferencia, preflight e live |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Regras de negocio | docs/REGRAS_DE_NEGOCIO.md | RN-007 refinada + RN-013 adicionada |
+| Arquitetura alvo | docs/ARQUITETURA_ALVO.md | Preflight com alertas e reconciliacao critica |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-026] |
+
+#### Observacoes
+
+- `risk_gate` e `circuit_breaker` permanecem no caminho critico de execucao.
+- Em incerteza operacional relevante, o fluxo permanece fail-safe.
+- Reconciliacao com estado divergente agora falha de forma explicita
+   (`FAILED`) com evento auditavel e alerta operacional.
+
 ### [SYNC-025] Refinar M2-020.5 com guard-rails no caminho critico
 
 **Data/Hora**: 2026-03-21 UTC

@@ -52,7 +52,8 @@ O sistema nao pode gerar ordem duplicada para a mesma decisao efetiva.
 ### RN-007 - Reconciliacao obrigatoria
 
 Estados de banco e exchange devem ser reconciliados continuamente.
-Divergencias criticas devem gerar bloqueio e evento auditavel.
+Divergencias criticas devem gerar falha segura (`FAILED`) e evento
+auditavel.
 
 ### RN-008 - Auditoria obrigatoria
 
@@ -88,3 +89,10 @@ Retreino pode ser automatico, mas com governanca:
 
 Promocao de modelo exige decisao GO/NO-GO baseada em evidencia.
 Sem criterio atendido, resultado obrigatorio: NO_GO.
+
+### RN-013 - Prontidao de alertas operacionais
+
+Quando alertas operacionais estiverem habilitados, o preflight deve validar
+credenciais minimas de notificacao antes de liberar live.
+
+Sem credenciais validas, resultado obrigatorio: NO_GO.

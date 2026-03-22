@@ -8,6 +8,7 @@ import uuid
 from typing import Any
 
 import numpy as np
+from notifications.model2_live_alerts import Model2LiveAlertPublisher
 from risk.circuit_breaker import CircuitBreaker, CircuitBreakerState
 from risk.risk_gate import RiskGate, RiskGateStatus
 
@@ -60,6 +61,7 @@ class Model2LiveExecutionService:
         exchange: Model2LiveExchange | None = None,
         risk_gate: RiskGate | None = None,
         circuit_breaker: CircuitBreaker | None = None,
+        alert_publisher: Model2LiveAlertPublisher | None = None,
     ) -> None:
         self.repository = repository
         self.config = config
@@ -69,6 +71,14 @@ class Model2LiveExecutionService:
         self._guardrail_balance_initialized = False
         self._rl_loader = RLModelLoader()
         self._inference_service = ModelInferenceService()
+        self._alert_publisher = alert_publisher or Model2LiveAlertPublisher()
+
+    def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
+        try:
+            self._alert_publisher.publish_critical(event_type, details)
+        except Exception:
+            # Alertas nunca podem interromper o fluxo principal.
+            return
 
     @staticmethod
     def build_config(
@@ -337,6 +347,15 @@ class Model2LiveExecutionService:
                 rule_id=M2_009_3_RULE_ID,
                 metadata={"guardrails": guardrail_state},
             )
+            self._emit_operational_alert(
+                "risk_gate_state_unavailable",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "guardrails": guardrail_state,
+                },
+            )
             return {
                 "execution_id": int(execution["id"]),
                 "status": failed.current_status,
@@ -350,6 +369,15 @@ class Model2LiveExecutionService:
                 reason="risk_gate_blocked",
                 rule_id=M2_009_3_RULE_ID,
                 metadata={"guardrails": guardrail_state},
+            )
+            self._emit_operational_alert(
+                "risk_gate_blocked",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "guardrails": guardrail_state,
+                },
             )
             return {
                 "execution_id": int(execution["id"]),
@@ -365,6 +393,15 @@ class Model2LiveExecutionService:
                 rule_id=M2_009_3_RULE_ID,
                 metadata={"guardrails": guardrail_state},
             )
+            self._emit_operational_alert(
+                "circuit_breaker_state_unavailable",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "guardrails": guardrail_state,
+                },
+            )
             return {
                 "execution_id": int(execution["id"]),
                 "status": failed.current_status,
@@ -378,6 +415,15 @@ class Model2LiveExecutionService:
                 reason="circuit_breaker_blocked",
                 rule_id=M2_009_3_RULE_ID,
                 metadata={"guardrails": guardrail_state},
+            )
+            self._emit_operational_alert(
+                "circuit_breaker_blocked",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "guardrails": guardrail_state,
+                },
             )
             return {
                 "execution_id": int(execution["id"]),
@@ -839,6 +885,15 @@ class Model2LiveExecutionService:
                     "protection_state": protection_state,
                 },
             )
+            self._emit_operational_alert(
+                "protection_deferred_no_open_position",
+                {
+                    "execution_id": int(execution.get("id") or 0),
+                    "symbol": symbol,
+                    "signal_side": signal_side,
+                    "status": current_status,
+                },
+            )
             return {"status": current_status, "reason": "protection_deferred_no_open_position"}
 
         if not protection_state.get("has_sl"):
@@ -897,6 +952,17 @@ class Model2LiveExecutionService:
                 "reason": "protection_not_armed",
                 "symbol": symbol,
                 "action": "defer_retry",
+                "protection_state": final_state,
+                "protection_errors": protection_errors,
+            },
+        )
+        self._emit_operational_alert(
+            "protection_not_armed",
+            {
+                "execution_id": int(execution.get("id") or 0),
+                "symbol": symbol,
+                "signal_side": signal_side,
+                "status": current_status,
                 "protection_state": final_state,
                 "protection_errors": protection_errors,
             },
@@ -1001,6 +1067,15 @@ class Model2LiveExecutionService:
                     "error": str(exc),
                     "effective_margin_usd": effective_margin,
                     "bbapt": bbapt,
+                },
+            )
+            self._emit_operational_alert(
+                "exchange_error",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "error": str(exc),
                 },
             )
             return {
@@ -1163,6 +1238,47 @@ class Model2LiveExecutionService:
             payload=payload,
         )
 
+    def _mark_reconciliation_divergence(
+        self,
+        *,
+        execution: dict[str, Any],
+        now_ms: int,
+        reason: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        execution_id = int(execution["id"])
+        status_before = str(execution.get("status") or "")
+        event_payload = {
+            "result": "critical_divergence",
+            "reason": reason,
+            "status_before": status_before,
+            **metadata,
+        }
+        self._record_reconcile_note(execution_id, now_ms=now_ms, payload=event_payload)
+
+        failed = self.repository.mark_signal_execution_failed(
+            execution_id=execution_id,
+            now_ms=now_ms,
+            reason=reason,
+            rule_id=M2_010_1_RULE_ID,
+            metadata=event_payload,
+        )
+        self._emit_operational_alert(
+            "reconciliation_critical_divergence",
+            {
+                "execution_id": execution_id,
+                "symbol": str(execution.get("symbol") or ""),
+                "status_before": status_before,
+                "reason": failed.reason,
+                "metadata": metadata,
+            },
+        )
+        return {
+            "execution_id": execution_id,
+            "status": failed.current_status,
+            "reason": failed.reason,
+        }
+
     def _reconcile_single_execution(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
         execution_id = int(execution["id"])
@@ -1204,6 +1320,15 @@ class Model2LiveExecutionService:
                         rule_id=M2_010_1_RULE_ID,
                         metadata={"entry_sent_at": execution.get("entry_sent_at")},
                     )
+                    self._emit_operational_alert(
+                        "entry_fill_timeout",
+                        {
+                            "execution_id": execution_id,
+                            "symbol": symbol,
+                            "reason": failed.reason,
+                            "entry_sent_at": execution.get("entry_sent_at"),
+                        },
+                    )
                     return {
                         "execution_id": execution_id,
                         "status": failed.current_status,
@@ -1234,19 +1359,16 @@ class Model2LiveExecutionService:
 
         if execution["status"] == SIGNAL_EXECUTION_STATUS_ENTRY_FILLED:
             if position is None:
-                exited = self.repository.mark_signal_execution_exited(
-                    execution_id=execution_id,
+                return self._mark_reconciliation_divergence(
+                    execution=execution,
                     now_ms=now_ms,
-                    exit_reason="position_closed_before_protection",
-                    rule_id=M2_010_1_RULE_ID,
-                    exit_price=None,
-                    metadata={"source": "reconcile_missing_position"},
+                    reason="reconciliation_divergence_entry_filled_without_position",
+                    metadata={
+                        "source": "reconcile_missing_position",
+                        "symbol": symbol,
+                        "signal_side": signal_side,
+                    },
                 )
-                return {
-                    "execution_id": execution_id,
-                    "status": exited.current_status,
-                    "reason": exited.reason,
-                }
             protection = self._arm_protection(execution, now_ms=now_ms)
             return {
                 "execution_id": execution_id,
@@ -1256,19 +1378,16 @@ class Model2LiveExecutionService:
 
         if execution["status"] == SIGNAL_EXECUTION_STATUS_PROTECTED:
             if position is None:
-                exited = self.repository.mark_signal_execution_exited(
-                    execution_id=execution_id,
+                return self._mark_reconciliation_divergence(
+                    execution=execution,
                     now_ms=now_ms,
-                    exit_reason="exchange_position_closed",
-                    rule_id=M2_010_1_RULE_ID,
-                    exit_price=None,
-                    metadata={"source": "reconcile_protected_missing_position"},
+                    reason="reconciliation_divergence_protected_without_position",
+                    metadata={
+                        "source": "reconcile_protected_missing_position",
+                        "symbol": symbol,
+                        "signal_side": signal_side,
+                    },
                 )
-                return {
-                    "execution_id": execution_id,
-                    "status": exited.current_status,
-                    "reason": exited.reason,
-                }
 
             protection = exchange.get_protection_state(symbol=symbol, signal_side=signal_side)
             if protection.get("has_sl") and protection.get("has_tp"):

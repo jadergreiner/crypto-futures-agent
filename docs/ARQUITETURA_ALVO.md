@@ -63,7 +63,7 @@ Responsavel por seguranca operacional obrigatoria:
 
 1. `risk/risk_gate.py`
 2. `risk/circuit_breaker.py`
-3. Validacoes de preflight do live.
+3. Validacoes de preflight do live, incluindo prontidao de alertas.
 
 Comportamento:
 
@@ -77,6 +77,7 @@ Responsavel por:
 1. Traduzir acao do modelo em ordem.
 2. Confirmar fill e armar protecao obrigatoria.
 3. Reconciliar banco com exchange.
+4. Marcar divergencia critica como `FAILED` com alerta e auditoria.
 
 Componentes referencia:
 

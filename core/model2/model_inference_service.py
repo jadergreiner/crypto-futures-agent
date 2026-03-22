@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 from .model_decision import (
     ACTION_OPEN_LONG,
@@ -87,17 +87,60 @@ class ModelInferenceService:
         *,
         provider: InferenceProvider | None = None,
         model_version: str = DEFAULT_MODEL_VERSION,
+        competence_checker: Callable[[str], bool] | None = None,
     ) -> None:
         self._provider = provider or TechnicalSignalInferenceProvider()
         self._model_version = str(model_version)
+        self._competence_checker = competence_checker
 
     @property
     def model_version(self) -> str:
         return self._model_version
 
+    def is_model_competent(self) -> tuple[bool, str]:
+        if not self._model_version.strip():
+            return False, "model_version_missing"
+
+        if not callable(getattr(self._provider, "infer", None)):
+            return False, "provider_infer_unavailable"
+
+        if self._competence_checker is not None:
+            try:
+                if not bool(self._competence_checker(self._model_version)):
+                    return False, "competence_checker_rejected"
+            except Exception:
+                return False, "competence_checker_error"
+
+        return True, "ok"
+
     def infer(self, model_input: ModelDecisionInput) -> InferenceServiceResult:
+        competent, competence_reason = self.is_model_competent()
+        if not competent:
+            return InferenceServiceResult(
+                accepted=False,
+                decision=None,
+                model_version=self._model_version,
+                inference_latency_ms=0,
+                reason="model_incompetent",
+                rule_id=M2_020_2_RULE_ID,
+                details={"competence_reason": competence_reason},
+            )
+
         started = time.perf_counter()
-        raw_payload = self._provider.infer(model_input)
+        try:
+            raw_payload = self._provider.infer(model_input)
+        except Exception as exc:
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            return InferenceServiceResult(
+                accepted=False,
+                decision=None,
+                model_version=self._model_version,
+                inference_latency_ms=max(0, elapsed_ms),
+                reason="inference_provider_error",
+                rule_id=M2_020_2_RULE_ID,
+                details={"error": str(exc)},
+            )
+
         elapsed_ms = int((time.perf_counter() - started) * 1000)
 
         outcome = evaluate_model_decision_payload(model_input, raw_payload)

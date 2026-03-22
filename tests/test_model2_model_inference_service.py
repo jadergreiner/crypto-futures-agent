@@ -62,3 +62,32 @@ def test_model_inference_service_rejects_invalid_provider_payload() -> None:
     assert result.accepted is False
     assert result.decision is None
     assert result.reason == "invalid_model_decision_payload"
+
+
+def test_model_inference_service_blocks_when_competence_checker_rejects() -> None:
+    service = ModelInferenceService(
+        provider=_FakeProvider(),
+        model_version="m2-vtest",
+        competence_checker=lambda _version: False,
+    )
+
+    result = service.infer(_base_input())
+
+    assert result.accepted is False
+    assert result.decision is None
+    assert result.reason == "model_incompetent"
+    assert result.details.get("competence_reason") == "competence_checker_rejected"
+
+
+def test_model_inference_service_returns_fail_safe_when_provider_raises() -> None:
+    class _ErrorProvider:
+        def infer(self, model_input: ModelDecisionInput) -> Mapping[str, Any]:
+            raise RuntimeError("provider_down")
+
+    service = ModelInferenceService(provider=_ErrorProvider(), model_version="m2-vtest")
+    result = service.infer(_base_input())
+
+    assert result.accepted is False
+    assert result.decision is None
+    assert result.reason == "inference_provider_error"
+    assert result.details.get("error") == "provider_down"

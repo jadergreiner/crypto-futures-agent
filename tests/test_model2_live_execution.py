@@ -517,6 +517,42 @@ def test_run_live_execute_revalidates_guardrails_before_market_order(tmp_path: P
     assert row == ("FAILED", "risk_gate_blocked")
 
 
+def test_run_live_execute_emits_alert_when_risk_gate_blocks(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _create_consumed_signal(db_path)
+    exchange = SequencedBalanceExchange([100.0, 100.0, 96.8], protection_works=True)
+    captured: list[tuple[str, dict]] = []
+
+    def _capture_alert(self, event_type: str, details: dict) -> bool:
+        captured.append((event_type, details))
+        return True
+
+    monkeypatch.setattr(
+        "core.model2.live_service.Model2LiveAlertPublisher.publish_critical",
+        _capture_alert,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+        risk_gate=RiskGate(),
+        circuit_breaker=CircuitBreaker(),
+    )
+
+    assert summary["processed_ready"][0]["reason"] == "risk_gate_blocked"
+    assert any(event == "risk_gate_blocked" for event, _ in captured)
+
+
 def test_run_live_execute_is_idempotent_for_same_consumed_signal(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _, signal_id = _create_consumed_signal(db_path)
@@ -684,6 +720,40 @@ def test_run_live_execute_protection_failure_is_deferred_without_failing_entry(t
     assert row == ("ENTRY_FILLED", None, None, None)
 
 
+def test_run_live_execute_emits_alert_when_protection_is_not_armed(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _create_consumed_signal(db_path)
+    exchange = FakeExchange(available_balance=100.0, protection_works=False)
+    captured: list[tuple[str, dict]] = []
+
+    def _capture_alert(self, event_type: str, details: dict) -> bool:
+        captured.append((event_type, details))
+        return True
+
+    monkeypatch.setattr(
+        "core.model2.live_service.Model2LiveAlertPublisher.publish_critical",
+        _capture_alert,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert summary["processed_ready"][0]["reason"] == "protection_not_armed_deferred"
+    assert any(event == "protection_not_armed" for event, _ in captured)
+
+
 def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     repository, signal_id = _create_consumed_signal(db_path)
@@ -737,11 +807,64 @@ def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Pa
         symbol_cooldown_minutes=240,
         exchange=exchange,
     )
-    assert second_reconcile["reconciled"][0]["status"] == "EXITED"
+    assert second_reconcile["reconciled"][0]["status"] == "FAILED"
+    assert second_reconcile["reconciled"][0]["reason"] == "reconciliation_divergence_protected_without_position"
 
     execution = repository.list_signal_executions(limit=10)[0]
     assert int(execution["technical_signal_id"]) == signal_id
-    assert execution["status"] == "EXITED"
+    assert execution["status"] == "FAILED"
+
+
+def test_live_reconcile_emits_alert_for_critical_divergence(tmp_path: Path, monkeypatch) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _repository, _signal_id = _create_consumed_signal(db_path)
+    exchange = FakeExchange(available_balance=100.0, protection_works=True)
+    captured: list[tuple[str, dict]] = []
+
+    def _capture_alert(self, event_type: str, details: dict) -> bool:
+        captured.append((event_type, details))
+        return True
+
+    monkeypatch.setattr(
+        "core.model2.live_service.Model2LiveAlertPublisher.publish_critical",
+        _capture_alert,
+    )
+
+    execute_summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+    assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
+
+    exchange.positions.pop("BTCUSDT", None)
+    reconcile_summary = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert reconcile_summary["reconciled"][0]["status"] == "FAILED"
+    assert reconcile_summary["reconciled"][0]["reason"] == "reconciliation_divergence_protected_without_position"
+    assert any(event == "reconciliation_critical_divergence" for event, _ in captured)
 
 
 def _forced_action_result(action: str) -> "InferenceServiceResult":

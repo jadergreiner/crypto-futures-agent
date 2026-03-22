@@ -242,6 +242,61 @@ def _check_guardrails_functional() -> dict[str, Any]:
     return {"ok": rg_ok and cb_ok, "details": details}
 
 
+def _check_model_inference_functional() -> dict[str, Any]:
+    """Valida disponibilidade e competencia minima do servico de inferencia."""
+    details: dict[str, Any] = {}
+    try:
+        from core.model2.model_inference_service import ModelInferenceService
+
+        service = ModelInferenceService()
+        competent, reason = service.is_model_competent()
+        details = {
+            "instantiated": True,
+            "model_version": service.model_version,
+            "competent": bool(competent),
+            "reason": str(reason),
+        }
+        return {"ok": bool(competent), "details": details}
+    except Exception as exc:
+        details = {
+            "instantiated": False,
+            "competent": False,
+            "reason": "inference_service_unavailable",
+            "error": str(exc),
+        }
+        return {"ok": False, "details": details}
+
+
+def _check_operational_alerts_ready(env_values: dict[str, str]) -> dict[str, Any]:
+    """Valida prontidao minima de alertas operacionais para live."""
+    raw_enabled = str(env_values.get("M2_ALERTS_ENABLED", "false")).strip().lower()
+    enabled = raw_enabled in {"1", "true", "yes", "on"}
+    bot_token = str(env_values.get("TELEGRAM_BOT_TOKEN", "")).strip()
+    chat_id = str(env_values.get("TELEGRAM_CHAT_ID", "")).strip()
+
+    if not enabled:
+        return {
+            "ok": True,
+            "details": {
+                "enabled": False,
+                "reason": "alerts_disabled",
+                "telegram_bot_token_configured": bool(bot_token),
+                "telegram_chat_id_configured": bool(chat_id),
+            },
+        }
+
+    configured = bool(bot_token) and bool(chat_id)
+    return {
+        "ok": configured,
+        "details": {
+            "enabled": True,
+            "reason": "ok" if configured else "alerts_enabled_missing_telegram_credentials",
+            "telegram_bot_token_configured": bool(bot_token),
+            "telegram_chat_id_configured": bool(chat_id),
+        },
+    }
+
+
 def run_go_live_preflight(
     *,
     model2_db_path: str | Path,
@@ -485,7 +540,11 @@ def run_go_live_preflight(
         # Verificar que guard-rails podem ser instanciados e estao funcionais (M2-020.5)
         guardrails_check = _check_guardrails_functional()
         guardrails_ok = bool(guardrails_check["ok"])
-        check6_ok = risk_ok and guardrails_ok
+        inference_check = _check_model_inference_functional()
+        inference_ok = bool(inference_check["ok"])
+        alerts_check = _check_operational_alerts_ready(env_values)
+        alerts_ok = bool(alerts_check["ok"])
+        check6_ok = risk_ok and guardrails_ok and inference_ok and alerts_ok
         add_check(
             check_id="6",
             description="Validar limites de risco e guard-rails ativos (M2-020.5).",
@@ -499,13 +558,23 @@ def run_go_live_preflight(
                 "M2_CANARY_LEVERAGE": env_values.get("M2_CANARY_LEVERAGE"),
                 "M2_FUNDING_RATE_MAX_FOR_SHORT": env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT"),
                 "guardrails": guardrails_check["details"],
+                "model_inference": inference_check["details"],
+                "operational_alerts": alerts_check["details"],
             },
             error=(
                 None if check6_ok
                 else (
                     "Guard-rails nao funcionais (risk_gate/circuit_breaker)."
                     if not guardrails_ok
-                    else "One or more risk limits are missing/invalid."
+                    else (
+                        "Servico de inferencia indisponivel/incompetente."
+                        if not inference_ok
+                        else (
+                            "Alertas operacionais habilitados sem credenciais Telegram."
+                            if not alerts_ok
+                            else "One or more risk limits are missing/invalid."
+                        )
+                    )
                 )
             ),
         )

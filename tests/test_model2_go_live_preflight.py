@@ -4,7 +4,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from config.settings import M2_MAX_DAILY_ENTRIES
-from scripts.model2.go_live_preflight import _check_guardrails_functional, run_go_live_preflight
+from scripts.model2.go_live_preflight import (
+    _check_guardrails_functional,
+    _check_model_inference_functional,
+    run_go_live_preflight,
+)
 
 
 def _ok_summary(output_file: Path) -> dict:
@@ -296,5 +300,48 @@ def test_preflight_check6_includes_guardrails_evidence(tmp_path: Path) -> None:
     check6 = next(item for item in summary["checks"] if item["id"] == "6")
     assert check6["status"] == "ok"
     assert "guardrails" in check6["evidence"]
+    assert "model_inference" in check6["evidence"]
+    assert "operational_alerts" in check6["evidence"]
     assert check6["evidence"]["guardrails"]["risk_gate"]["instantiated"] is True
     assert check6["evidence"]["guardrails"]["circuit_breaker"]["instantiated"] is True
+    assert check6["evidence"]["model_inference"]["instantiated"] is True
+    assert check6["evidence"]["model_inference"]["competent"] is True
+    assert check6["evidence"]["operational_alerts"]["enabled"] is False
+
+
+def test_check_model_inference_functional_returns_ok() -> None:
+    result = _check_model_inference_functional()
+    assert result["ok"] is True
+    assert result["details"]["instantiated"] is True
+    assert result["details"]["competent"] is True
+
+
+def test_preflight_check6_blocks_when_alerts_enabled_without_telegram_credentials(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "M2_ALERTS_ENABLED=true\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check6 = next(item for item in summary["checks"] if item["id"] == "6")
+    assert check6["status"] == "alert"
+    assert check6["evidence"]["operational_alerts"]["enabled"] is True
+    assert check6["evidence"]["operational_alerts"]["telegram_bot_token_configured"] is False
+    assert check6["evidence"]["operational_alerts"]["telegram_chat_id_configured"] is False
