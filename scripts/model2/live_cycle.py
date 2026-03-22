@@ -26,6 +26,7 @@ from config.settings import (
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
+from core.model2.cycle_report import format_cycle_summary
 from scripts.model2.live_dashboard import run_live_dashboard
 from scripts.model2.live_execute import run_live_execute
 from scripts.model2.live_reconcile import run_live_reconcile
@@ -102,6 +103,26 @@ def run_live_cycle(
     }
 
 
+def render_live_cycle_summary(
+    run_id: str,
+    execution_mode: str,
+    summary: dict[str, Any],
+    output_dir: str | Path,
+) -> str:
+    """Renderizar summary do ciclo live em formato estruturado."""
+    try:
+        return format_cycle_summary(
+            run_id=run_id,
+            execution_mode=execution_mode,
+            execute_summary=summary.get("execute", {}),
+            reconcile_summary=summary.get("reconcile", {}),
+            dashboard_summary=summary.get("dashboard", {}),
+            output_dir=Path(output_dir),
+        )
+    except Exception as exc:
+        return f"{exc}"
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Model 2.0 live cycle runner")
     parser.add_argument("--model2-db-path", default=MODEL2_DB_PATH)
@@ -141,6 +162,15 @@ def main() -> int:
             funding_rate_max_for_short=float(args.funding_rate_max_for_short),
             leverage=int(args.leverage),
         )
+        # Renderizar summary estruturado
+        structured_output = render_live_cycle_summary(
+            run_id=summary.get("run_id", ""),
+            execution_mode=summary.get("execution_mode", ""),
+            summary=summary,
+            output_dir=args.output_dir,
+        )
+        if structured_output:
+            print(structured_output, flush=True)
     except Exception as exc:
         tb = traceback.format_exc()
         summary = {
