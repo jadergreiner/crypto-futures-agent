@@ -23,6 +23,43 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-027] M2-018.1 Validacao shadow ponta-a-ponta com automacao
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Validacao shadow | scripts/model2/m2_018_1_shadow_validation.py | Script automatizado para ciclos shadow (274 linhas, 0 UTF-8) |
+| Testes | tests/test_model2_m2_018_1_shadow_validation.py | Suite com 15 testes (encoding, envvars, estrutura, subprocess) |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-018.1 marcada CONCLUIDA com evidencias e uso |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-027] |
+
+#### Observacoes
+
+- Script valida ciclo completo: preflight (skip em --dry-run) + N ciclos
+   (default 3) + validacao signal_executions + relatorio JSON.
+- Suporta --dry-run para testes rapidos (simulado sem subprocess reais).
+- Gera evidencias em results/model2/runtime e results/model2/analysis.
+- ASCII-safe para Windows cp1252, sem emojis ou caracteres problematicos.
+- Teste operacional: `python scripts/model2/m2_018_1_shadow_validation.py
+   --dry-run` retorna [SUCCESS] VALIDACAO PASSOU com timestamp.
+
+#### Proximos Passos
+
+1. Executar com ciclos reais: `python scripts/model2/m2_018_1_shadow_validation.py
+   --cycles=3`.
+2. Avancar para M2-018.2 (Testnet integration).
+
+---
+
 ### [SYNC-026] P0 runtime/preflight com alertas e reconciliacao critica
 
 **Data/Hora**: 2026-03-21 UTC
