@@ -298,6 +298,26 @@ if gate_input.recent_entries_today >= gate_input.max_daily_entries:
 
 ---
 
+### [SYNC-034] BLID-072 - Iniciar captura contínua de episódios
+
+**Data/Hora**: 2026-03-21 UTC
+**Status**: EM ANDAMENTO
+
+#### Arquivos Impactados
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Status da BLID-072 alterado para "In Progress" |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-034] |
+
+#### Descricao
+
+Iniciada a execução da tarefa BLID-072 para garantir a captura contínua
+de episódios e recompensas. O agente foi ativado em modo `live` e o
+processo está rodando em segundo plano.
+
+---
+
 ### [SYNC-033] BLID-072 - Captura continua de episodios e rewards
 
 **Data/Hora**: 2026-03-22 UTC
