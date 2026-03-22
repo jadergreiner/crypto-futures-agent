@@ -32,7 +32,7 @@ a diversas situações de mercado e coletar rewards reais.
 
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
 
-Status: Backlog
+Status: In Progress
 
 Sprint: S-2
 Prioridade: P0
