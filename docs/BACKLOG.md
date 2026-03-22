@@ -26,6 +26,45 @@ a diversas situações de mercado e coletar rewards reais.
 
 ---
 
+## FILA ABERTA PARA PRIORIZACAO DO PO
+
+Objetivo: destacar apenas itens ainda abertos, sem misturar backlog ativo
+com historico de entregas concluidas.
+
+Em progresso:
+
+- M2-016.2 - Validacao shadow/live com RL enhancement.
+   Dependencia minima: janela operacional de 72h + coleta de metricas.
+   Impacto: validar RL em operacao antes de ampliar promocao.
+- M2-016.3 - Melhorias de features e reward engineering.
+   Dependencia minima: concluir Fase E em treino e comparativos.
+   Impacto: melhorar qualidade de decisao e base de retreino.
+
+Pendencias operacionais:
+
+- BLID-075 - Concluir onboarding operacional de FLUXUSDT.
+   Dependencia minima: FLUXUSDT habilitado no pipeline RL.
+   Impacto: fechar onboarding com treino e validacao ponta a ponta.
+- M2-018.2 - Testes de integracao com Binance Testnet.
+   Dependencia minima: chaves testnet e simbolo live controlado.
+   Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
+
+Backlog estruturado para priorizacao:
+
+- M2-019.3 a M2-019.10 - RL por simbolo como decisor de entrada.
+   Dependencia minima: M2-019.1 e M2-019.2 concluidas.
+   Impacto: inserir treino e filtro RL no pipeline diario.
+- M2-020.6 a M2-020.14 - Arquitetura model-driven de decisao.
+   Dependencia minima: M2-020.1 a M2-020.5 concluidas.
+   Impacto: fechar episodios, reward, reconciliacao e promocao GO/NO-GO.
+
+Observacao de organizacao:
+
+- Itens concluidos com subtarefas ainda pendentes devem gerar nova tarefa
+   rastreavel em vez de manter pendencia escondida em checklist concluido.
+
+---
+
 ## Prioridade P0 (iniciar agora)
 
 ## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)
@@ -1520,8 +1559,6 @@ Entrega:
 4. Corrigir bug SYMBOLS_ENABLED -> ALL_SYMBOLS no daemon de funding. [OK]
 5. Criar testes de integracao tests/test_fluxusdt_integration.py
    (41 testes). [OK]
-6. Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados. [PENDENTE]
-7. Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run. [PENDENTE]
 
 Evidencias:
 
@@ -1532,6 +1569,34 @@ Evidencias:
    - SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
 5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
 6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
+
+### TAREFA BLID-075 - Concluir onboarding operacional de FLUXUSDT
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Formalizar o fechamento operacional do onboarding de FLUXUSDT no pipeline
+RL, separando as pendencias remanescentes da entrega tecnica ja concluida
+em M2-017.1.
+
+Critérios de Aceite:
+
+- [ ] Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados
+- [ ] Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run
+- [ ] Registrar evidencias operacionais e resultado no backlog
+
+Dependencias:
+
+- M2-017.1 concluida
+- Janela minima com episodios validados para FLUXUSDT
+
+Impacto:
+
+- Fecha o onboarding do simbolo com rastreabilidade operacional
+- Evita pendencias escondidas em item marcado como concluido
 
 ---
 

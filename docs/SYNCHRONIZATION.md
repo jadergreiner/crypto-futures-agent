@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-046] Organizacao do backlog aberto e extracao do BLID-075
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Adicionada fila aberta para priorizacao do PO |
+| Backlog | docs/BACKLOG.md | Extraida pendencia oculta de FLUXUSDT para BLID-075 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-046 adicionado |
+
+#### Impacto
+
+- Itens abertos ficam visiveis no topo do backlog para leitura rapida
+- Pendencias de FLUXUSDT deixam de ficar escondidas em item concluido
+- Backlog fica pronto para o PO priorizar sem reclassificacao ampla
+
+---
+
 ### [SYNC-045] Criacao dos Agentes Software Engineer (Stage 5) e Tech Lead (Stage 6)
 
 **Data/Hora**: 2026-03-22 UTC
