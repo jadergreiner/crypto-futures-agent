@@ -23,6 +23,51 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-036] BLID-074 - Suite oficial focada em model-driven
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| tests/conftest.py | REFACTOR | Filtro de coleta para suite model-driven |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-074 marcada como CONCLUIDA |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-036] |
+
+#### Impacto
+
+- Escopo de testes reduzido para contratos, estados e fluxos M2.
+- Suite legada continua disponivel por override `PYTEST_INCLUDE_LEGACY=1`.
+- Sem mudanca de arquitetura, schema ou regra de negocio.
+
+---
+
+### [SYNC-035] BLID-074 - Refatoracao da suite de testes model-driven
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-074 criada em Prioridade P0 |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-035] |
+
+#### Impacto
+
+- Escopo restrito ao backlog oficial.
+- Sem mudanca de arquitetura, schema ou regra de negocio.
+
+---
+
 ### [SYNC-032] BLID-073 - Completação Observabilidade do Ciclo M2
 
 **Data/Hora**: 2026-03-22 12:57 UTC

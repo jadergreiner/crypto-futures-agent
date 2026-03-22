@@ -11,9 +11,58 @@ Fornece fixtures compartilhadas para testes de TASK-005:
 import pytest
 import tempfile
 import json
+import os
+import fnmatch
 from pathlib import Path
 from typing import Dict, Any, Tuple
 import numpy as np
+
+
+# BLID-074: suite oficial com foco model-driven (Modelo 2.0).
+MODEL_DRIVEN_TEST_PATTERNS = (
+    "test_model2_state_contract.py",
+    "test_model2_transition_suite.py",
+    "test_model2_scanner_detector.py",
+    "test_model2_tracker.py",
+    "test_model2_validator.py",
+    "test_model2_resolver.py",
+    "test_model2_validation_flow.py",
+    "test_model2_resolution_flow.py",
+    "test_model2_thesis_repository.py",
+    "test_model2_signal_bridge.py",
+    "test_model2_bridge_flow.py",
+    "test_model2_order_layer.py",
+    "test_model2_order_layer_flow.py",
+    "test_model2_model_decision.py",
+    "test_model2_model_inference_service.py",
+    "test_cycle_report.py",
+    "test_docs_model2_sync.py",
+)
+
+
+def _is_model_driven_test(file_name: str) -> bool:
+    return any(
+        fnmatch.fnmatch(file_name, pattern)
+        for pattern in MODEL_DRIVEN_TEST_PATTERNS
+    )
+
+
+def pytest_ignore_collect(collection_path, config):
+    """Ignora testes fora do escopo model-driven por padrao.
+
+    Para incluir suites legadas, exporte PYTEST_INCLUDE_LEGACY=1.
+    """
+    if os.getenv("PYTEST_INCLUDE_LEGACY") == "1":
+        return False
+
+    path = Path(str(collection_path))
+    if path.suffix != ".py" or path.parent.name != "tests":
+        return False
+
+    if path.name in {"conftest.py", "__init__.py"}:
+        return False
+
+    return not _is_model_driven_test(path.name)
 
 
 class MockCryptoFuturesEnv:

@@ -28,6 +28,60 @@ a diversas situações de mercado e coletar rewards reais.
 
 ## Prioridade P0 (iniciar agora)
 
+## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)
+
+### TAREFA BLID-074 - Refatorar suite para foco model-driven
+
+Status: CONCLUIDA (2026-03-22)
+
+Sprint: S-2
+Prioridade: P0
+
+Descricao:
+Refatorar a suite de testes para reduzir custo de desenvolvimento,
+descontinuando testes legados pesados e mantendo apenas a cobertura
+relacionada a arquitetura model-driven do Modelo 2.0.
+
+Criterios de Aceite:
+
+- [x] Mapear testes legados pesados e classificar por aderencia ao modelo
+- [x] Manter somente suites de contratos, estados e fluxos model-driven
+- [x] Remover ou mover para legado testes fora do escopo model-driven
+- [x] Garantir `pytest -q tests/` verde apos a refatoracao
+- [x] Atualizar `docs/SYNCHRONIZATION.md` com trilha auditavel
+
+Dependencias:
+
+- `tests/` com cobertura minima dos fluxos M2
+- Risk gate ativo (nao desabilitar) — `risk/risk_gate.py`
+
+Impacto Arquitetural:
+
+- ARQUITETURA_ALVO.md: Nao altera camadas, ajusta estrategia de validacao
+- REGRAS_DE_NEGOCIO.md: Nao altera regra, preserva fail-safe
+
+Entrega:
+
+1. Classificacao da suite em model-driven e legado pesado. [OK]
+2. Coleta padrao do pytest restrita a suite model-driven. [OK]
+3. Override opcional para legado com `PYTEST_INCLUDE_LEGACY=1`. [OK]
+
+Classificacao da Suite:
+
+- Model-driven (oficial): contratos, estados e fluxos M2
+   (`tests/test_model2_*` da allowlist em `tests/conftest.py`),
+   `tests/test_cycle_report.py` e `tests/test_docs_model2_sync.py`.
+- Legado pesado (fora da coleta padrao): suites de backtest, SMC legado,
+   integrações antigas e regressões históricas fora do contrato M2 atual.
+
+Evidencias:
+
+1. Filtro de coleta model-driven: `tests/conftest.py`.
+2. Suites mantidas no escopo: contratos, estados e fluxos M2 definidos em
+   `tests/conftest.py`, mais `tests/test_cycle_report.py` e
+   `tests/test_docs_model2_sync.py`.
+3. Escopo oficial da suite: `tests/`.
+
 ## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
 
 ### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
@@ -1573,7 +1627,7 @@ Evidencias:
 2. Fase 1 (Estreia Conservadora) com limites: USD 1.0 por posicao, 3
    entradas/dia, 3 simbolos verificados.
 3. Fases 2 e 3 (Ramp-up e Pleno) com criterios de promocao e reversao.
-4. Comando pre-live: `python scripts/model2/go_live_preflight.py`.
+4. Comando pre-live: python scripts/model2/go_live_preflight.py.
 
 ---
 
