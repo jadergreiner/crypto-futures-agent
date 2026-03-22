@@ -68,8 +68,21 @@ class RateLimitManager:
         Adiciona timestamp ao histórico de requisições.
         """
         current_time = time.time()
+        self._refresh_window(current_time)
         self._request_timestamps.append(current_time)
         self._request_count_in_window += 1
+
+    def _refresh_window(self, current_time: float) -> None:
+        """Atualiza a janela deslizante e limpa estado expirado."""
+        if (datetime.now() - self._window_start).total_seconds() > self.window_size_seconds:
+            self._window_start = datetime.now()
+            self._request_count_in_window = 0
+            self._request_timestamps.clear()
+            return
+
+        cutoff_time = current_time - self.window_size_seconds
+        while self._request_timestamps and self._request_timestamps[0] < cutoff_time:
+            self._request_timestamps.popleft()
 
     def is_rate_limited(self) -> bool:
         """
@@ -80,11 +93,7 @@ class RateLimitManager:
         """
         # Limpar timestamps antigos (> 60s)
         current_time = time.time()
-        cutoff_time = current_time - self.window_size_seconds
-
-        # Remover requisições antigas da janela
-        while self._request_timestamps and self._request_timestamps[0] < cutoff_time:
-            self._request_timestamps.popleft()
+        self._refresh_window(current_time)
 
         # Verificar se reached limit
         current_requests = len(self._request_timestamps)
@@ -106,10 +115,7 @@ class RateLimitManager:
         """
         # Limpar timestamps antigos
         current_time = time.time()
-        cutoff_time = current_time - self.window_size_seconds
-
-        while self._request_timestamps and self._request_timestamps[0] < cutoff_time:
-            self._request_timestamps.popleft()
+        self._refresh_window(current_time)
 
         return len(self._request_timestamps)
 

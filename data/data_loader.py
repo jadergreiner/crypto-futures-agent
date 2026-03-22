@@ -73,6 +73,49 @@ class DataLoader:
         finally:
             conn.close()
 
+    @staticmethod
+    def _timeframe_minutes(timeframe: str) -> int:
+        """Retorna a cadência esperada em minutos para o timeframe."""
+        mapping = {
+            'M1': 1,
+            'M5': 5,
+            'H1': 60,
+            'H4': 240,
+            'D1': 1440,
+        }
+        return mapping.get(str(timeframe).upper(), 60)
+
+    def _resolve_query_range(
+        self,
+        conn: sqlite3.Connection,
+        table_name: str,
+        symbol: str,
+        start_ts: int,
+        end_ts: int,
+    ) -> tuple[int, int]:
+        """Resolve janela efetiva de consulta com fallback para faixa disponível."""
+        row = conn.execute(
+            f"SELECT MIN(timestamp), MAX(timestamp) FROM {table_name} WHERE symbol = ?",
+            (symbol,),
+        ).fetchone()
+        available_start, available_end = row if row else (None, None)
+
+        if available_start is None or available_end is None:
+            return start_ts, end_ts
+
+        if start_ts <= available_end and end_ts >= available_start:
+            return max(start_ts, available_start), min(end_ts, available_end)
+
+        requested_duration = max(end_ts - start_ts, 0)
+        if end_ts < available_start:
+            fallback_start = available_start
+            fallback_end = min(available_start + requested_duration, available_end)
+            return fallback_start, fallback_end
+
+        fallback_end = available_end
+        fallback_start = max(available_end - requested_duration, available_start)
+        return fallback_start, fallback_end
+
     def load_training_data(
         self,
         symbol: str,
@@ -101,10 +144,19 @@ class DataLoader:
             end_ts = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp() * 1000)
 
             table_name = f"ohlcv_{timeframe.lower()}"
+            gap_threshold_minutes = self._timeframe_minutes(timeframe) * 1.5
 
             logger.info(f"[DataLoader.load] Carregando {symbol} {timeframe}: {start_date} → {end_date}")
 
             with self.get_connection() as conn:
+                effective_start_ts, effective_end_ts = self._resolve_query_range(
+                    conn,
+                    table_name,
+                    symbol,
+                    start_ts,
+                    end_ts,
+                )
+
                 # Query otimizada com índices
                 query = f"""
                 SELECT
@@ -125,7 +177,7 @@ class DataLoader:
                 df = pd.read_sql_query(
                     query,
                     conn,
-                    params=(symbol, start_ts, end_ts)
+                    params=(symbol, effective_start_ts, effective_end_ts)
                 )
 
             if df.empty:
@@ -144,11 +196,14 @@ class DataLoader:
             df['timestamp_dt'] = pd.to_datetime(df['timestamp'], unit='ms')
             df['gap_minutes'] = df['timestamp_dt'].diff().dt.total_seconds() / 60
 
-            gaps = df[df['gap_minutes'] > 15]
+            gaps = df[df['gap_minutes'] > gap_threshold_minutes]
             if not gaps.empty:
-                logger.warning(f"[DataLoader.load] {symbol}: {len(gaps)} gaps detectados (> 15 min)")
+                logger.warning(
+                    f"[DataLoader.load] {symbol}: {len(gaps)} gaps detectados "
+                    f"(> {gap_threshold_minutes:.0f} min)"
+                )
                 # Remove períodos com gaps longos
-                df = df[df['gap_minutes'].fillna(0) <= 15]
+                df = df[df['gap_minutes'].fillna(0) <= gap_threshold_minutes]
 
             # 3. Valida NaN e inf
             numeric_cols = ['open', 'high', 'low', 'close', 'volume']
@@ -175,6 +230,7 @@ class DataLoader:
             df['timestamp_dt'] = pd.to_datetime(df['timestamp'], unit='ms')
             df = df.set_index('timestamp_dt')
             df.index.name = 'timestamp'
+            df = df.drop(columns=['timestamp'])
 
             logger.info(f"[DataLoader.load] {symbol}: {len(df)} candles validados")
 
@@ -394,6 +450,9 @@ class DataLoader:
 
         # Bloco 8: Multi-timeframe (1)
         features.extend([0.0] * 1)  # Placeholder
+
+        # Bloco 9: Reserva/compatibilidade (16)
+        features.extend([0.0] * 16)
 
         return np.array(features[:104], dtype=np.float32)
 

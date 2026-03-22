@@ -11,14 +11,19 @@ logger = logging.getLogger(__name__)
 
 # Constantes de reward
 PNL_SCALE = 10.0          # Fator de escala do PnL realizado
+PNL_AMPLIFICATION_FACTOR = PNL_SCALE  # Alias retroativo usado em testes antigos
 R_BONUS_THRESHOLD_HIGH = 3.0  # Threshold para bonus alto de R-multiple
 R_BONUS_THRESHOLD_LOW = 2.0   # Threshold para bonus baixo de R-multiple
-R_BONUS_HIGH = 1.0        # Bonus para R > 3.0
-R_BONUS_LOW = 0.5          # Bonus para R > 2.0
+R_BONUS_HIGH = 0.5        # Bonus para R > 3.0
+R_BONUS_LOW = 0.2         # Bonus para R > 2.0
 HOLD_BASE_BONUS = 0.05    # Bonus base por step segurando posição lucrativa
 HOLD_SCALING = 0.1         # Fator de escala proporcional ao lucro
 HOLD_LOSS_PENALTY = -0.02  # Penalidade por segurar posição perdedora
 INVALID_ACTION_PENALTY = -0.5  # Penalidade por ação inválida (inclui CLOSE prematuro)
+UNREALIZED_PNL_FACTOR = 0.2
+INACTIVITY_THRESHOLD = 15
+INACTIVITY_PENALTY_RATE = 0.015
+INACTIVITY_MAX_PENALTY_STEPS = 20
 
 # Constantes para recompensa por "ficar fora do mercado"
 OUT_OF_MARKET_THRESHOLD_DD = 2.0  # Drawdown % acima do qual fica fora é recompensado
@@ -38,15 +43,23 @@ class RewardCalculator:
     2. r_hold_bonus: Incentivo assimétrico para manter posições lucrativas
     3. r_invalid_action: Penalidade por ações inválidas
     4. r_out_of_market: Recompensa por ficar fora em condições ruins (NOVO)
+
+    Compatibilidade retroativa:
+    - r_unrealized: recompensa por lucro/prejuízo não realizado
+    - r_inactivity: penalidade por inatividade prolongada
+    - r_exit_quality: qualidade da saída baseada em R-multiple
     """
 
     def __init__(self):
         """Inicializa reward calculator com componente de "out of market"."""
         self.weights = {
             'r_pnl': 1.0,
-            'r_hold_bonus': 1.0,
+            'r_hold_bonus': 0.8,
             'r_invalid_action': 1.0,
-            'r_out_of_market': 1.0  # NOVO: Apendre a ficar fora prudentemente
+            'r_out_of_market': 1.0,
+            'r_unrealized': 0.3,
+            'r_inactivity': 0.3,
+            'r_exit_quality': 1.0,
         }
         logger.info("Reward Calculator initialized (Round 5 - com aprendizado de 'ficar fora')")
 
@@ -74,13 +87,16 @@ class RewardCalculator:
             'r_pnl': 0.0,
             'r_hold_bonus': 0.0,
             'r_invalid_action': 0.0,
-            'r_out_of_market': 0.0
+            'r_out_of_market': 0.0,
+            'r_unrealized': 0.0,
+            'r_inactivity': 0.0,
+            'r_exit_quality': 0.0,
         }
 
         # Componente 1: PnL realizado (apenas quando trade é fechado)
         if trade_result:
             pnl_pct = trade_result.get('pnl_pct', 0)
-            components['r_pnl'] = pnl_pct * PNL_SCALE
+            components['r_pnl'] = pnl_pct * PNL_AMPLIFICATION_FACTOR
 
             # Bonus para R-multiples altos (incentiva deixar lucros correr)
             r_multiple = trade_result.get('r_multiple', 0)
@@ -88,6 +104,14 @@ class RewardCalculator:
                 components['r_pnl'] += R_BONUS_HIGH
             elif r_multiple > R_BONUS_THRESHOLD_LOW:
                 components['r_pnl'] += R_BONUS_LOW
+
+            exit_reason = str(trade_result.get('exit_reason', '')).strip().lower()
+            if exit_reason == 'stop_loss':
+                components['r_exit_quality'] = 0.0
+            elif exit_reason == 'manual_close' and r_multiple < 0:
+                components['r_exit_quality'] = r_multiple * 0.3
+            elif r_multiple >= 1.0:
+                components['r_exit_quality'] = min(r_multiple * 0.5, 3.0)
 
         # Componente 2: Hold bonus assimétrico
         if position_state and position_state.get('has_position', False):
@@ -99,9 +123,20 @@ class RewardCalculator:
                 components['r_hold_bonus'] = HOLD_BASE_BONUS + pnl_pct * HOLD_SCALING
                 if momentum > 0:
                     components['r_hold_bonus'] += momentum * 0.05  # Bonus extra se momentum positivo
-            elif pnl_pct < -2.0:
-                # Penalidade leve por segurar posição muito perdedora
-                components['r_hold_bonus'] = HOLD_LOSS_PENALTY
+            elif pnl_pct <= -0.5:
+                # Penalidade proporcional para segurar posição perdedora relevante.
+                components['r_hold_bonus'] = HOLD_LOSS_PENALTY * abs(pnl_pct)
+
+            components['r_unrealized'] = pnl_pct * UNREALIZED_PNL_FACTOR
+
+        flat_steps_value = flat_steps
+        if position_state:
+            flat_steps_value = int(position_state.get('flat_steps', flat_steps_value) or 0)
+
+        if not (position_state and position_state.get('has_position', False)):
+            excess_steps = max(flat_steps_value - INACTIVITY_THRESHOLD, 0)
+            capped_steps = min(excess_steps, INACTIVITY_MAX_PENALTY_STEPS)
+            components['r_inactivity'] = -INACTIVITY_PENALTY_RATE * capped_steps
 
         # Componente 3: Ação inválida (inclui tentativa de CLOSE prematuro)
         if not action_valid:
@@ -148,7 +183,10 @@ class RewardCalculator:
         logger.debug(f"Reward calculated: total={total_reward:.4f}, "
                     f"pnl={components['r_pnl']:.2f}, "
                     f"hold={components['r_hold_bonus']:.3f}, "
-                    f"out_of_market={components['r_out_of_market']:.3f}")
+                    f"out_of_market={components['r_out_of_market']:.3f}, "
+                    f"unrealized={components['r_unrealized']:.3f}, "
+                    f"inactivity={components['r_inactivity']:.3f}, "
+                    f"exit_quality={components['r_exit_quality']:.3f}")
 
         return result
 

@@ -73,6 +73,8 @@ BINANCE_TESTNET_WS_URL = "wss://stream.binancefuture.com"
 
 # Database Configuration
 DB_PATH = "db/crypto_agent.db"
+# Compatibilidade retroativa para módulos e testes legados.
+DATABASE_PATH = DB_PATH
 MODEL2_DB_PATH = os.getenv("MODEL2_DB_PATH", "db/modelo2.db")
 M2_CANARY_DB_PATH = os.getenv("M2_CANARY_DB_PATH", "db/modelo2_canary.db")
 M2_EXECUTION_MODE = os.getenv("M2_EXECUTION_MODE", "shadow").strip().lower()

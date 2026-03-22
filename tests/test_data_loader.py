@@ -245,10 +245,10 @@ class TestDataLoaderIntegration:
         train_scaled = scaler.fit_transform(df_train[['close', 'volume']])
         val_scaled = scaler.transform(df_val[['close', 'volume']])  # Sem re-fit
 
-        # Validar: mean(train_scaled) ≈ 0
-        train_mean = train_scaled.mean(axis=0)
-        assert np.allclose(train_mean, 0, atol=0.01), \
-            f"Train mean não ≈ 0: {train_mean}"
+        # RobustScaler centraliza pela mediana, não pela média.
+        train_median = np.median(train_scaled, axis=0)
+        assert np.allclose(train_median, 0, atol=0.01), \
+            f"Train median não ≈ 0: {train_median}"
 
         # Validar: val não foi usado para fit
         val_mean = val_scaled.mean(axis=0)
@@ -256,7 +256,7 @@ class TestDataLoaderIntegration:
         assert not np.allclose(val_mean, 0, atol=0.01) or np.allclose(val_mean, 0, atol=0.01), \
             "Validação sem fit completada"
 
-        print(f"✅ TEST 6 PASSED: RobustScaler por símbolo OK, train_mean={train_mean}")
+        print(f"✅ TEST 6 PASSED: RobustScaler por símbolo OK, train_median={train_median}")
 
 
 class TestDataValidationUtility:

@@ -270,7 +270,6 @@ class BinanceCollector:
 
         logger.debug(f"Fetched {len(df)} {interval} candles for {symbol}")
         return df
-
     def _parse_klines(self, raw_data: Any, symbol: str) -> pd.DataFrame:
         """
         Parse klines data from SDK response to DataFrame.
@@ -494,3 +493,7 @@ class BinanceCollector:
             logger.debug("Data validation passed")
 
         return is_valid, issues
+
+
+# Alias retroativo esperado por testes e integrações legadas.
+Collector = BinanceCollector
