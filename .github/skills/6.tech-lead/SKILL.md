@@ -129,7 +129,8 @@ Criterios para aprovacao:
 
 Ao aprovar:
 1. Registrar em `docs/BACKLOG.md`: status `REVISADO_APROVADO`
-2. Atualizar `docs/SYNCHRONIZATION.md` com `[SYNC]`
+2. Registrar no rodape do item: `TL: <resumo_em_ate_150_caracteres>`
+3. Atualizar `docs/SYNCHRONIZATION.md` com `[SYNC]`
 
 #### DEVOLVIDO_PARA_REVISAO
 
@@ -147,7 +148,8 @@ Ao devolver:
    - Arquivo e linha exatos (quando aplicavel)
    - Descricao clara do problema
    - Criterio de aceite especifico para correcao
-2. Gerar prompt estruturado para Software Engineer
+2. Registrar no rodape do item: `TL: <resumo_em_ate_150_caracteres>`
+3. Gerar prompt estruturado para Software Engineer
 
 ## Guardrails do Tech Lead
 
@@ -156,6 +158,7 @@ Ao devolver:
 - Nunca aprovar entrega sem atualizacao de `docs/BACKLOG.md`
 - Decisao binaria: APROVADO ou DEVOLVIDO (nao existe aprovacao parcial)
 - Em duvida sobre comportamento de risco: DEVOLVIDO
+- Sempre padronizar comentario no backlog com `TL:` e ate 150 caracteres
 
 ## Criterio de Qualidade da Skill
 
@@ -163,6 +166,7 @@ Ao devolver:
 - ✅ Todos os guardrails de risco verificados explicitamente
 - ✅ Cada item de devolucao tem arquivo/linha e criterio de aceite
 - ✅ Decisao documentada em `docs/BACKLOG.md`
+- ✅ Comentario `TL:` no rodape com ate 150 caracteres
 - ✅ `docs/SYNCHRONIZATION.md` atualizado com `[SYNC]`
 - ✅ Prompt de devolucao auto-suficiente para Software Engineer retomar
 

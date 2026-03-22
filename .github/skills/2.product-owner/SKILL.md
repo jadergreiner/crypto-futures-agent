@@ -47,11 +47,28 @@ Escala 1-5 para Valor, Urgencia, Reducao de Risco e Esforco.
 - Se criterio de aceite estiver vago, reduzir urgencia em 1 ponto.
 - Em empate: maior reducao de risco, depois menor esforco, depois maior
   alinhamento ao objetivo atual.
+- Ao priorizar, atualizar no backlog o status exato: `Em analise`.
+- No rodape do item, registrar `PO: <resumo>` com ate 150 caracteres.
+
+## Template de Comentario PO
+
+Usar formato fixo no rodape do item priorizado:
+
+```text
+PO: <resumo_em_ate_150_caracteres>
+```
+
+Validacao minima antes da saida:
+1. Status aplicado no item: `Em analise` (exato, sem acento).
+2. Comentario iniciado por `PO:`.
+3. Tamanho maximo de 150 caracteres no resumo.
 
 ## Saida
 
 A resposta final deve ser somente um prompt acionavel para o agente
 `3.solution-architect`, sem prefacio adicional, no formato abaixo.
+
+Bloco padrao canonico: ver `.github/skills/2.product-owner/templates.md`.
 
 ```text
 Voce e o agente 3.solution-architect desta task.
@@ -62,6 +79,8 @@ Contexto de priorizacao do PO:
 - Titulo do item: <titulo>
 - Objetivo de negocio: <resultado esperado>
 - Justificativa de prioridade: <valor, urgencia, risco e esforco>
+- Status aplicado no backlog: Em analise
+- Comentario PO (<=150): PO: <resumo>
 
 Escopo para refinamento tecnico:
 - Escopo fechado (entra): <lista objetiva>
@@ -91,3 +110,5 @@ Sua tarefa como Arquiteto de Solucoes:
 - Nunca inventar item fora de `docs/BACKLOG.md`.
 - Nunca recomendar item bloqueado sem alternativa executavel.
 - Em duvida sobre risco operacional, retornar `NO_GO`.
+- Nunca usar variante de status diferente de `Em analise`.
+- Nunca exceder 150 caracteres no comentario `PO:`.

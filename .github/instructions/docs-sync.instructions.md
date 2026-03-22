@@ -20,7 +20,9 @@ Ao editar qualquer arquivo em `docs/**`, verificar e aplicar:
    houver alteracao de conteudo oficial.
 3. Se houver impacto em backlog/prioridades, sincronizar com
    `docs/BACKLOG.md` e `docs/PRD.md` quando houver impacto real.
-4. Se mudar regra de negocio, arquitetura ou schema, refletir nos docs fonte:
+4. Em fluxos de priorizacao do PO, validar consistencia do status no backlog:
+   usar exatamente `Em analise` (sem acento e sem variacoes).
+5. Se mudar regra de negocio, arquitetura ou schema, refletir nos docs fonte:
    `docs/REGRAS_DE_NEGOCIO.md`, `docs/ARQUITETURA_ALVO.md` e
    `docs/MODELAGEM_DE_DADOS.md`.
 
@@ -37,6 +39,8 @@ Ao editar qualquer arquivo em `docs/**`, verificar e aplicar:
 - Executar lint de docs: `markdownlint docs/*.md`.
 - Executar teste de sincronizacao: `pytest -q tests/test_docs_model2_sync.py`.
 - Confirmar que a mudanca ficou registrada no audit trail quando aplicavel.
+- Se houve priorizacao PO, conferir status literal `Em analise` em
+   `docs/BACKLOG.md`.
 
 ## Guardrails
 

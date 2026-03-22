@@ -9,17 +9,42 @@ Este arquivo documenta todos os agentes customizados disponíveis no projeto cry
 
 ## Agentes Disponíveis
 
-### 1. Agent: Product Owner (`.github/skills/2.product-owner/SKILL.md`)
+### 1. Agent: Backlog Development (`.github/agents/1.backlog-development.agent.md` + `.github/skills/1.backlog-development/SKILL.md`)
+
+**Descrição**
+Abre o workflow de desenvolvimento organizando e saneando o backlog.
+Estrutura itens no `docs/BACKLOG.md` para que o Product Owner possa priorizar.
+Não gera prompt executável para o próximo agente.
+Não emite recomendação de prioridade; apenas organiza o backlog.
+
+**Entrada**
+- Demanda bruta, bug, melhoria ou ajuste de prioridade/status
+- Referência de BLID, sprint ou iniciativa (quando existir)
+
+**Saída**
+- Backlog atualizado e rastreável em `docs/BACKLOG.md`
+- Resumo curto com backlog pronto para priorização do PO
+
+**Acionamento**
+- Via slash command `/backlog-development` ou invocação direta
+- User-invocable: ✅ Sim
+
+---
+
+### 2. Agent: Product Owner (`.github/agents/2.product-owner.agent.md` + `.github/skills/2.product-owner/SKILL.md`)
 
 **Descrição**
 Prioriza itens do backlog com score simples. Transforma demanda bruta em
 handoff estruturado para o Solution Architect.
+Ao finalizar, marca o item em `Em analise` no backlog e registra comentario
+`PO:` com resumo de ate 150 caracteres.
 
 **Entrada**
 - Lista de issues/backlog
 - Critérios de priorização (impacto, risco, dependências)
 
 **Saída**
+- Atualizacao de `docs/BACKLOG.md` no item priorizado (`Em analise` + `PO:`)
 - Prompt executável para Solution Architect
 
 **Acionamento**
@@ -28,17 +53,20 @@ handoff estruturado para o Solution Architect.
 
 ---
 
-### 2. Agent: Solution Architect (`.github/skills/3.solution-architect/SKILL.md`)
+### 3. Agent: Solution Architect (`.github/agents/3.solution-architect.agent.md` + `.github/skills/3.solution-architect/SKILL.md`)
 
 **Descrição**
 Refina demanda do PO em requisitos técnicos, arquitetura, modelagem de dados
 e plano de entrega. Emite handoff estruturado para QA-TDD.
+Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
+`SA:` com resumo de ate 150 caracteres.
 
 **Entrada**
 - Handoff do Product Owner com objetivo, escopo, restrições
 - Referência de backlog (opcional)
 
 **Saída**
+- Atualizacao de `docs/BACKLOG.md` no item analisado (`Em analise` + `SA:`)
 - Prompt executável para QA-TDD
 
 **Acionamento**
@@ -53,7 +81,7 @@ e plano de entrega. Emite handoff estruturado para QA-TDD.
 
 ---
 
-### 3. Agent: QA - TDD (`.github/agents/4.qa-tdd.agent.md` + `.github/skills/4.qa-tdd/SKILL.md`)
+### 4. Agent: QA - TDD (`.github/agents/4.qa-tdd.agent.md` + `.github/skills/4.qa-tdd/SKILL.md`)
 
 **Descrição**
 Escreve testes unitários orientados a requisitos (Red Phase), atualiza backlog
@@ -93,7 +121,7 @@ e gera prompt executável para Software Engineer implementar com TDD.
 
 ---
 
-### 4. Agent: Software Engineer (`.github/agents/5.software-engineer.agent.md` + `.github/skills/5.software-engineer/SKILL.md`)
+### 5. Agent: Software Engineer (`.github/agents/5.software-engineer.agent.md` + `.github/skills/5.software-engineer/SKILL.md`)
 
 **Descrição**
 Implementa código Python orientado a testes (TDD Green-Refactor), modelagem
@@ -129,7 +157,7 @@ de banco de dados (DBA) e calibração de modelos ML. Atualiza backlog para
 
 ---
 
-### 5. Agent: Tech Lead (`.github/agents/6.tech-lead.agent.md` + `.github/skills/6.tech-lead/SKILL.md`)
+### 6. Agent: Tech Lead (`.github/agents/6.tech-lead.agent.md` + `.github/skills/6.tech-lead/SKILL.md`)
 
 **Descrição**
 Realiza code review da entrega do Software Engineer. Verifica cobertura de
@@ -142,8 +170,9 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 - Guardrails verificados e pontos de atenção
 
 **Saída**
-- APROVADO: atualiza backlog para `REVISADO_APROVADO` + comunicado final
-- DEVOLVIDO: prompt estruturado para Software Engineer com itens detalhados
+- APROVADO: atualiza backlog para `REVISADO_APROVADO` + `TL:` + comunicado final
+- DEVOLVIDO: registra `TL:` e gera prompt estruturado para Software Engineer
+     com itens detalhados
 
 **Acionamento**
 - Invocado automaticamente pelo Software Engineer
@@ -165,7 +194,7 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 
 ---
 
-### 6. Agent: QA-Live (Futura — Stage 8)
+### 7. Agent: QA-Live (Futura — Stage 8)
 
 **Status**: Planejado
 **Descrição**: Validará qualidade, risco e decidirá GO/NO-GO para live
@@ -177,7 +206,13 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 ## Workflow Integrado
 
 ```
-Product Owner
+Backlog Development
+    │
+    ├─→ [/backlog-development] Organiza docs/BACKLOG.md
+    │
+    └─→ Backlog pronto para priorizacao
+         │
+         ├─→ Product Owner
     │
     ├─→ [/product-owner] Prioriza backlog
     │
@@ -222,6 +257,7 @@ Product Owner
 ### Via Slash Command
 
 ```text
+/backlog-development <demanda bruta, ajuste de BLID, status ou sprint>
 /product-owner <contexto ou paste de issue>
 /solution-architect <paste do handoff do PO>
 /qa-tdd <paste do handoff do SA>
@@ -288,5 +324,5 @@ resultado = runSubagent(
 ---
 
 **Última atualização**: 2026-03-22
-**Alterações mais recentes**: Criação de agentes Software Engineer (stage 5)
-e Tech Lead (stage 6) com skills, fluxo de code review e loop de revisão.
+**Alterações mais recentes**: Inclusão do agente Backlog Development (stage 1)
+como início do workflow, preparando `docs/BACKLOG.md` para priorização do PO.

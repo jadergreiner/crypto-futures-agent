@@ -51,7 +51,22 @@ Se a entrada estiver incompleta, operar em modo conservador:
 4. Mapear impacto de dados: entidades, tabelas, campos, migracoes e contratos.
 5. Definir plano incremental de entrega com fatias pequenas e testaveis.
 6. Identificar riscos e controles (tecnico, operacional e regressao).
-7. Emitir prompt unico e acionavel para o agente `4.qa-tdd`.
+7. Manter item em `Em analise` no backlog e registrar `SA: <resumo>`.
+8. Emitir prompt unico e acionavel para o agente `4.qa-tdd`.
+
+## Atualizacao de Backlog (Obrigatoria)
+
+Ao finalizar a analise tecnica:
+
+1. Manter o item analisado com status literal `Em analise`.
+2. Registrar no rodape do item: `SA: <resumo_em_ate_150_caracteres>`.
+
+Validacao minima:
+- Status escrito exatamente como `Em analise`.
+- Comentario iniciado por `SA:`.
+- Resumo com no maximo 150 caracteres.
+
+Template canonico: ver `.github/skills/3.solution-architect/templates.md`.
 
 ## Guardrails
 
@@ -60,11 +75,15 @@ Se a entrada estiver incompleta, operar em modo conservador:
 - Em ambiguidade operacional, escolher fail-safe.
 - Nao inventar arquitetura global nova para resolver problema local.
 - Nao assumir schema/tabela sem evidencia em docs ou codigo existente.
+- Nao usar variante de status diferente de `Em analise`.
+- Nao exceder 150 caracteres no comentario `SA:`.
 
 ## Saida Obrigatoria
 
 A resposta final deve ser somente um prompt para o agente `4.qa-tdd`,
 sem prefacio adicional, no formato abaixo.
+
+Bloco padrao canonico: ver `.github/skills/3.solution-architect/templates.md`.
 
 ```text
 Voce e o agente 4.qa-tdd desta task.

@@ -62,6 +62,48 @@ def test_concluded_backlog_tasks_have_existing_evidence_paths() -> None:
             )
 
 
+def test_backlog_status_em_analise_is_literal_and_consistent() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    status_lines = re.findall(r"^Status:\s*(.+)$", text, flags=re.MULTILINE)
+    assert status_lines, "No Status lines found in docs/BACKLOG.md"
+
+    for status in status_lines:
+        normalized = status.strip()
+        is_em_analise_variant = bool(re.match(r"(?i)^em\s*an[aá]lise$", normalized))
+        if not is_em_analise_variant:
+            continue
+
+        assert normalized == "Em analise", (
+            "Invalid status variant in docs/BACKLOG.md: "
+            f"'{normalized}'. Use exactly 'Em analise'."
+        )
+
+
+def test_backlog_sa_comment_limit_when_status_is_em_analise() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    blocks = _task_blocks(text)
+    assert blocks, "No task blocks found in docs/BACKLOG.md"
+
+    for task_name, block in blocks:
+        status_match = re.search(r"^Status:\s*(.+)$", block, flags=re.MULTILINE)
+        if status_match is None:
+            continue
+
+        status = status_match.group(1).strip()
+        if status != "Em analise":
+            continue
+
+        sa_match = re.search(r"^SA:\s*(.+)$", block, flags=re.MULTILINE)
+        if sa_match is None:
+            continue
+
+        sa_summary = sa_match.group(1).strip()
+        assert len(sa_summary) <= 150, (
+            "SA comment exceeds 150 characters in task "
+            f"'{task_name}': {len(sa_summary)}"
+        )
+
+
 def test_m2_006_subtasks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-006 - Ponte de Sinal" in text
