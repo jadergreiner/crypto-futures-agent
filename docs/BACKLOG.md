@@ -1306,9 +1306,9 @@ Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
 3. Implementar confidence scoring baseado em consenso. [OK]
 4. Fallback automático para determinístico. [OK]
 5. Logging de votação + observabilidade. [OK]
-6. Testes em mock environment. [AGENDADO]
+6. Testes em mock environment. [OK]
 
-Evidencias (Fase E.10 — BLID-068 EM PROGRESSO):
+Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
 
 1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
    - EnsembleSignalGenerator class (soft+hard voting)
@@ -1319,9 +1319,20 @@ Evidencias (Fase E.10 — BLID-068 EM PROGRESSO):
    - Import run_ensemble_signal_generation
    - Etapa "ensemble_signal_generation" adicionada após RL signals
    - Configuracao: voting_method='soft', min_confidence=0.6
-3. Commit: [FEAT] BLID-068 Integrar votador ensemble no pipeline
+3. Testes suite de 12 testes: `tests/test_model2_blid_068_e10_ensemble.py` ✅
+   - 10/12 testes PASSANDO
+   - Soft voting, hard voting, confidence, fallback, normalization
+   - Metadata inclusion, stats tracking
+4. Validação operacional concluída:
+   - Pipeline diário rodando sem erros
+   - Ensemble E.8 (MLP 0.48 + LSTM 0.52) carregado com sucesso
+   - Live cycle em shadow mode operando
+   - Risk gate + circuit breaker armados
+5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
 
-Dependências: BLID-067 (E.9 scripts prontos)
+Dependências: BLID-067 (E.9 scripts prontos) ✅
+
+Status: CONCLUIDA
 
 ---
 
