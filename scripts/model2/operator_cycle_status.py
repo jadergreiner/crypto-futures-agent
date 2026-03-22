@@ -4,10 +4,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+# Adicionar root do repositório ao sys.path para importações
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from data.binance_client import create_binance_client
+from core.model2.live_exchange import Model2LiveExchange
+from config.settings import M2_EXECUTION_MODE
+
 
 try:
     from config.settings import M2_SYMBOLS, _normalize_symbol_scope
@@ -40,6 +52,42 @@ except Exception:
                 continue
             normalized.append(symbol)
         return tuple(dict.fromkeys(normalized))
+
+
+def _checkpoint_aliases(path: Path) -> list[Path]:
+    """Retorna aliases plausiveis para checkpoints sem extensao padronizada."""
+    candidates = [path]
+    if path.suffix:
+        return candidates
+    candidates.append(path.with_suffix(".zip"))
+    candidates.append(path.with_suffix(".pkl"))
+    return candidates
+
+
+def _get_last_train_time() -> str:
+    """Busca pelo checkpoint mais recente e retorna seu timestamp de modificação."""
+    repo_root = Path(__file__).resolve().parents[2]
+    candidates = [
+        repo_root / "checkpoints" / "ppo_training" / "ppo_model.zip",
+        repo_root / "checkpoints" / "ppo_training" / "ppo_model.pkl",
+        repo_root / "checkpoints" / "ppo_training" / "best_model.zip",
+        repo_root / "checkpoints" / "ppo_training" / "best_model.pkl",
+        repo_root / "checkpoints" / "ppo_training" / "mlp" / "optuna" / "ppo_mlp_e8_optuna.zip",
+        repo_root / "checkpoints" / "ppo_training" / "mlp" / "ppo_model_mlp.zip",
+        repo_root / "models" / "ppo_model.zip",
+        repo_root / "models" / "ppo_model.pkl",
+    ]
+    latest_time = 0.0
+    for path in candidates:
+        for p_alias in _checkpoint_aliases(path):
+            if p_alias.exists():
+                mod_time = p_alias.stat().st_mtime
+                if mod_time > latest_time:
+                    latest_time = mod_time
+
+    if latest_time > 0.0:
+        return datetime.fromtimestamp(latest_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return "N/A"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -214,118 +262,53 @@ def _build_symbol_line(
     validate_summary: dict[str, Any] | None,
     resolve_summary: dict[str, Any] | None,
     live_execute_summary: dict[str, Any] | None,
+    exchange: Model2LiveExchange | None,
+    last_train_time: str,
 ) -> str:
-    scan_item = _find_scan_item(scan_summary, symbol)
-    candles_status, scan_status = _scan_status_text(scan_item)
-
-    track_counts = _count_stage_status(track_summary, symbol=symbol)
-    validate_counts = _count_stage_status(validate_summary, symbol=symbol)
-    resolve_counts = _count_stage_status(resolve_summary, symbol=symbol)
-
-    execute_staged_counts: Counter[str] = Counter()
-    execute_reason_counts: Counter[str] = Counter()
+    # 1. Obter decisão do modelo a partir do sumário de execução
+    decision = "HOLD"
     if live_execute_summary:
-        for item in live_execute_summary.get("staged") or []:
-            if str(item.get("symbol") or "").upper() != symbol:
-                continue
-            status = str(item.get("status") or "SEM_STATUS").strip().upper()
-            execute_staged_counts[status] += 1
-            reason = str(item.get("reason") or "").strip()
-            if reason:
-                execute_reason_counts[reason] += 1
+        for item in live_execute_summary.get("staged", []):
+            if str(item.get("symbol", "")).upper() == symbol:
+                raw_action = item.get("action", "HOLD")
+                # Normalizar a ação para o formato desejado (ex: ACTION_OPEN_LONG -> BUY)
+                if "LONG" in raw_action:
+                    decision = "BUY"
+                elif "SHORT" in raw_action:
+                    decision = "SELL"
+                else:
+                    decision = raw_action
+                break
 
-    scan_labels = {
-        "PERSISTED": "tese registrada",
-        "DETECTED": "tese detectada",
-        "IDEMPOTENT_HIT": "ja registrada",
-        "NO_DETECTION": "sem tese",
-        "SKIPPED_NO_CANDLES": "sem candles",
-        "SEM_REGISTRO": "sem registro no ciclo atual",
-        "SEM_STATUS": "sem status no ciclo atual",
-    }
-    track_labels = {
-        "TRANSITIONED": "monitoramento iniciado",
-        "DRY_RUN_READY": "pronto (dry-run)",
-        "SKIPPED": "nao transicionou",
-        "SKIPPED_SHORT_ONLY": "bloqueado short-only",
-    }
-    validate_labels = {
-        "VALIDATED": "validada",
-        "NOT_VALIDATED": "avaliada sem validar",
-        "DRY_RUN_VALIDATED": "validada (dry-run)",
-        "SKIPPED": "nao transicionou",
-        "SKIPPED_UNSUPPORTED_TIMEFRAME": "timeframe nao suportado",
-    }
-    resolve_labels = {
-        "INVALIDATED": "invalidada",
-        "EXPIRED": "expirada",
-        "NO_RESOLUTION": "sem resolucao",
-        "DRY_RUN_INVALIDATED": "invalidada (dry-run)",
-        "DRY_RUN_EXPIRED": "expirada (dry-run)",
-        "SKIPPED": "nao transicionou",
-        "SKIPPED_UNSUPPORTED_TIMEFRAME": "timeframe nao suportado",
-    }
+    # 2. Obter PnL e posição da exchange
+    pos_str = "None"
+    pnl_str = "0.00"
+    if exchange:
+        position = exchange.get_open_position(symbol)
+        if position:
+            direction = position.get("direction", "NONE")
+            size = float(position.get("position_size_qty", 0.0))
+            entry_price = float(position.get("entry_price", 0.0))
+            mark_price = float(position.get("mark_price", 0.0))
+            pos_str = f"{direction} {size:.4f}"
 
-    candles_operacional = {
-        "ok": "candles capturados",
-        "nao": "candles nao capturados",
-        "desconhecido": "captura de candles sem registro",
-    }.get(candles_status, "captura de candles sem registro")
+            pnl = 0.0
+            if entry_price > 0 and size > 0:
+                pnl = (mark_price - entry_price) * size if direction == "LONG" else (entry_price - mark_price) * size
+            pnl_str = f"{pnl:+.2f}"
 
-    scan_status_norm = (scan_status or "").upper()
-
-    if scan_status_norm == "SKIPPED_NO_CANDLES":
-        modelo_avaliou = "nao"
-    elif scan_status_norm in {"SEM_STATUS", "SEM_REGISTRO"}:
-        modelo_avaliou = "desconhecido"
-    else:
-        modelo_avaliou = "sim"
-
-    if not execute_staged_counts:
-        entrada_operacional = "entrada sem sinal consumido"
-    elif execute_staged_counts.get("READY", 0) > 0 and execute_staged_counts.get("FAILED", 0) == 0:
-        entrada_operacional = f"entrada liberada para execucao ({execute_staged_counts.get('READY', 0)})"
-    elif execute_staged_counts.get("FAILED", 0) > 0:
-        principal_reason = execute_reason_counts.most_common(1)[0][0] if execute_reason_counts else "motivo_indefinido"
-        reason_human = _humanize_execute_reason(principal_reason)
-        if _is_risk_block_reason(principal_reason) and "risco" not in reason_human:
-            entrada_operacional = f"entrada bloqueada por risco ({reason_human})"
-        else:
-            entrada_operacional = reason_human
-    else:
-        entrada_operacional = f"entrada em processamento ({_format_counter(execute_staged_counts)})"
-
-    scanner_operacional = scan_labels.get(scan_status_norm, scan_status.lower().replace("_", " "))
-    scanner_checklist = f"scanner: {scanner_operacional}"
-    track_checklist = _build_stage_checklist_text(
-        stage_name="track",
-        counter=track_counts,
-        labels=track_labels,
+    # 3. Montar a linha de log final no novo formato, sem prefixo
+    log_template = (
+        "{symbol} | Data: OK | Model: Ran | "
+        "Decision: {decision} | RL: Stored (Pending: N/A) | "
+        "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
     )
-    validacao_checklist = _build_stage_checklist_text(
-        stage_name="validacao",
-        counter=validate_counts,
-        labels=validate_labels,
-    )
-    resolucao_checklist = _build_stage_checklist_text(
-        stage_name="resolucao",
-        counter=resolve_counts,
-        labels=resolve_labels,
-    )
-    checklist = "; ".join(
-        [
-            scanner_checklist,
-            track_checklist,
-            validacao_checklist,
-            resolucao_checklist,
-        ]
-    )
-
-    return (
-        f"{symbol} | {candles_operacional}. "
-        f"Modelo avaliou: {modelo_avaliou}. "
-        f"Checklist: {checklist}. "
-        f"Execucao: {entrada_operacional}."
+    return log_template.format(
+        symbol=symbol,
+        decision=decision,
+        last_train=last_train_time,
+        position=pos_str,
+        pnl=pnl_str,
     )
 
 
@@ -349,9 +332,10 @@ def main() -> int:
     if not runtime_dir.exists():
         print(f"Diretorio de runtime nao encontrado: {runtime_dir}")
         for symbol in symbols:
-            print(f"{symbol} | status=sem_artefatos")
+            print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}] [M2][{symbol}] | Data: Failed | Status: sem_artefatos")
         return 0
 
+    # Carregar artefatos JSON
     max_age_seconds = max(60, int(args.max_age_minutes) * 60)
     scan_summary = _load_latest_json(runtime_dir, "model2_scan", max_age_seconds)
     track_summary = _load_latest_json(runtime_dir, "model2_track", max_age_seconds)
@@ -359,6 +343,18 @@ def main() -> int:
     resolve_summary = _load_latest_json(runtime_dir, "model2_resolve", max_age_seconds)
     live_execute_summary = _load_latest_json(runtime_dir, "model2_live_execute", max_age_seconds)
 
+    # Inicializar cliente da exchange e obter data do último treino
+    exchange = None
+    try:
+        if M2_EXECUTION_MODE == "live":
+            client = create_binance_client(mode="live")
+            exchange = Model2LiveExchange(client)
+    except Exception as e:
+        print(f"[ERROR] Nao foi possivel criar cliente da exchange: {e}", file=sys.stderr)
+
+    last_train_time = _get_last_train_time()
+
+    # Gerar linha de log para cada símbolo
     for symbol in symbols:
         line = _build_symbol_line(
             symbol=symbol,
@@ -367,6 +363,8 @@ def main() -> int:
             validate_summary=validate_summary,
             resolve_summary=resolve_summary,
             live_execute_summary=live_execute_summary,
+            exchange=exchange,
+            last_train_time=last_train_time,
         )
         print(line)
 
