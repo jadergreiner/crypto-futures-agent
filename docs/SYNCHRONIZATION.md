@@ -23,6 +23,74 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-031] operator_cycle_status.py - Integração cycle_report.py
+
+**Data/Hora**: 2026-03-22 09:45 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| scripts/model2/operator_cycle_status.py | REFACTOR | Integração de SymbolReport e format_symbol_report() |
+| iniciar.bat | FIX | Ativação de UTF-8 para caracteres especiais |
+
+#### Detalhes
+
+- **operator_cycle_status.py**: Refatorada função `_build_symbol_line()`
+  - Antes: Output com formato antigo (uma linha simples por símbolo)
+  - Depois: Output com novo formato estruturado (bloco formatado por símbolo)
+  - Fallback: Mantém compatibilidade em caso de erro
+  - Features: Coleta de candles, decisão, episódio, treino, posição
+
+- **iniciar.bat**: Adicionado `chcp 65001` para suportar UTF-8
+  - Caracteres especiais renderizados corretamente (─, ✓, 🔴, ░)
+  - Compatível com novo formato de relatórios
+
+#### Impacto em iniciar.bat
+
+O script `iniciar.bat` agora exibe o novo padrão estruturado:
+
+```
+────────────────────────────────────────────────
+  BTCUSDT | H4 | 2026-03-22 12:42:02 [SHADOW]
+────────────────────────────────────────────────
+  Candles  : 0 capturados (ultimo: N/A) ✓
+  Decisao  : 🔴 OPEN_SHORT (confianca: N/A)
+  Episodio : N/A nao persistido | reward: +0.0000
+  Treino   : ultimo: 2026-03-15 17:22:40 | pendentes: 0/100 [░░░░░░░░░░]
+  Posicao  : SEM POSICAO
+────────────────────────────────────────────────
+```
+
+Versus o padrão antigo (antes):
+
+```
+BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | Last Train: 2026-03-15 17:22:40 | Position: None | PnL: 0.00
+```
+
+#### Validacoes
+
+- ✓ pytest tests/test_cycle_report.py: 15/15 PASSANDO
+- ✓ Compilação de operator_cycle_status.py: OK
+- ✓ Imports: OK
+- ✓ Teste de ponta-a-ponta: OK (novo formato exibido)
+- ✓ UTF-8: Renderizado corretamente
+- ✓ Git push: CONCLUIDO (2 commits enviados)
+
+#### Commits
+
+1. `[SYNC] Integrar cycle_report em operator_cycle_status.py para novo padrao`
+2. `[FIX] Ativar UTF-8 em iniciar.bat para caracteres especiais nos logs`
+
+#### Proximos Passos
+
+- Monitorar logs de iniciar.bat em produção
+- Se novos campos forem necessários, estender SymbolReport.dataclass
+- Considerar versionar formato de log para rastreabilidade histórica
+
+---
+
 ### [SYNC-030] M2-011 BLID-073 - Nova Estrutura de Mensagem do Ciclo
 
 **Data/Hora**: 2026-03-22 UTC
