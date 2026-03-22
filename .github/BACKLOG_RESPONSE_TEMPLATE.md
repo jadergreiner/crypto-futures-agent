@@ -6,8 +6,8 @@ use este formato com dados atuais dos docs oficiais.
 ## BACKLOG PRIORIZADO ATUAL
 
 - Fonte principal: `docs/BACKLOG.md`
-- Fonte complementar: `docs/TRACKER.md` (se existir)
-- Contexto: `docs/ROADMAP.md` e `docs/SYNCHRONIZATION.md`
+- Fonte complementar: `docs/PRD.md`
+- Contexto: `docs/SYNCHRONIZATION.md`
 
 ### 1. Prioridade atual
 

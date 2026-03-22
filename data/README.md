@@ -1,7 +1,7 @@
 # 📊 Pipeline de Dados — Crypto Futures Agent
 
-**Versão:** 1.0.0  
-**Última atualização:** 22 de fevereiro de 2026  
+**Versão:** 1.0.0
+**Última atualização:** 22 de fevereiro de 2026
 **Responsável:** Data (#11) | Doc Advocate (#17)
 
 ---
@@ -28,11 +28,11 @@ backtesting e suporte à decisão de trading em tempo real.
 ```python
 class BinanceDataCollector:
     """Coleta dados OHLCV da Binance REST API com rate limiting"""
-    
+
     def __init__(self, api_key, api_secret):
         self.client = binance_client(api_key, api_secret)
         self.rate_limiter = RateLimitManager(1200)  # max req/min
-    
+
     def fetch_ohlcv(self, symbol, interval="4h", limit=250):
         """Busca OHLCV com retry automático"""
         # Rate-limited
@@ -208,7 +208,7 @@ Todos os itens abaixo devem estar **✅ PRONTO** para passar no Gate 1:
 
 ## 🔗 Documentação Relacionada
 
-- [ROADMAP.md](../docs/ROADMAP.md) — S2-0 Data Strategy no contexto geral
+- [PRD.md](../docs/PRD.md) — contexto geral de produto e prioridades
 - [CRITERIOS_DE_ACEITE_MVP.md](../docs/CRITERIOS_DE_ACEITE_MVP.md) — S2-0 Gates
 - [STATUS_ENTREGAS.md](../docs/STATUS_ENTREGAS.md) — Sprint 2 status
 - [Issue #60](https://github.com/crypto-futures-agent/issues/60) — Detalhes técnicos

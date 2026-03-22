@@ -23,6 +23,124 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-038] Remover referencias antigas a TRACKER e ROADMAP
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| README raiz | README.md | Prompts atualizados para fontes de verdade reais |
+| PRD | docs/PRD.md | Exemplos ajustados para eliminar TRACKER e ROADMAP |
+
+#### Impacto
+
+- Menos ruido de contexto em prompts de orientacao
+- Exemplos alinhados aos arquivos que existem no repositorio
+
+### [SYNC-039] Remover referencias ativas restantes a ROADMAP
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Template backlog | .github/BACKLOG_RESPONSE_TEMPLATE.md | Contexto alterado de ROADMAP para PRD |
+| Instrucoes backlog | .github/copilot-backlog-instructions.md | Fonte 3 alterada para PRD |
+| Indice de prioridade | .github/PRIORITY_INDEX.md | Fonte 3 alterada para PRD |
+| Prompt auxiliar | prompts/solicita_task.md | Fontes reais substituem ROADMAP e docs obsoletos |
+| README de dados | data/README.md | Link trocado de ROADMAP para PRD |
+| README de backtest | backtest/README.md | Referencia antiga removida |
+
+#### Impacto
+
+- Menos ruido de contexto em arquivos de apoio ao agente
+- Menos referencias a docs inexistentes no workspace ativo
+
+### [SYNC-040] Limpar ROADMAP residual em prompt JSON ativo
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Prompt de board | prompts/board_16_members_data.json | Referencias a ROADMAP trocadas por PRD |
+
+#### Impacto
+
+- Prompt ativo deixa de apontar para `docs/ROADMAP.md`
+- Menor ruido de contexto em artefatos auxiliares do agente
+
+### [SYNC-041] Remover referencias ativas a TRACKER
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Template backlog | .github/BACKLOG_RESPONSE_TEMPLATE.md | Fonte complementar trocada de TRACKER para PRD |
+| Instrucoes backlog | .github/copilot-backlog-instructions.md | Ordem de leitura remove TRACKER |
+| Indice de prioridade | .github/PRIORITY_INDEX.md | Ordem de consulta remove TRACKER |
+| Docs sync | .github/instructions/docs-sync.instructions.md | Checklist usa BACKLOG e PRD |
+| Prompt de board | prompts/board_16_members_data.json | Core docs trocam TRACKER por BACKLOG |
+
+#### Impacto
+
+- Menos referencias a docs inexistentes no workspace ativo
+- Menor ruido de contexto em templates e instrucoes do agente
+
+### [SYNC-042] Limpar TRACKER residual em prompt de consolidacao
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Prompt de consolidacao | prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md | Referencias a TRACKER trocadas por BACKLOG |
+
+#### Impacto
+
+- Menor ruido de contexto em prompt auxiliar legado
+- Nenhuma referencia operacional restante a `docs/TRACKER.md`
+
+### [SYNC-037] Consolidar skills em workflow unico
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| .github/skills/README.md | NOVO | Indice unico do workflow de skills |
+| .github/skills/3.data-analysis/SKILL.md | REFACTOR | Skill reduzida para leitura minima |
+| .github/skills/4.performance-review/SKILL.md | REFACTOR | Skill reduzida para diagnostico curto |
+| .github/skills/5.symbol-onboarding/SKILL.md | REFACTOR | Checklist minimo de onboarding |
+| .github/skills/8.commit/SKILL.md | MOVE | Skill migrada de .claude para .github |
+| .github/skills/9.close/SKILL.md | MOVE | Skill migrada de .claude para .github |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Runbook M2 | docs/RUNBOOK_M2_OPERACAO.md | Referencia atualizada para skill numerada |
+
+#### Impacto
+
+- Skills ativas centralizadas em `.github/skills`
+- Workflow numerado reduz carga cognitiva
+- `SKILL.md` principais ficaram mais curtos e baratos em tokens
+
 ### [SYNC-036] BLID-074 - Suite oficial focada em model-driven
 
 **Data/Hora**: 2026-03-22 UTC

@@ -19,7 +19,7 @@ Ao editar qualquer arquivo em `docs/**`, verificar e aplicar:
 2. Registrar mudanca em `docs/SYNCHRONIZATION.md` com tag `[SYNC]` quando
    houver alteracao de conteudo oficial.
 3. Se houver impacto em backlog/prioridades, sincronizar com
-   `docs/BACKLOG.md` e `docs/TRACKER.md` (quando existir no workspace).
+   `docs/BACKLOG.md` e `docs/PRD.md` quando houver impacto real.
 4. Se mudar regra de negocio, arquitetura ou schema, refletir nos docs fonte:
    `docs/REGRAS_DE_NEGOCIO.md`, `docs/ARQUITETURA_ALVO.md` e
    `docs/MODELAGEM_DE_DADOS.md`.

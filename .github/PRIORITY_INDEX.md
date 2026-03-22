@@ -8,9 +8,8 @@ Status: ATIVO
 Consultar nesta ordem:
 
 1. `docs/BACKLOG.md`
-2. `docs/TRACKER.md` (se existir)
-3. `docs/ROADMAP.md`
-4. `docs/SYNCHRONIZATION.md`
+2. `docs/PRD.md`
+3. `docs/SYNCHRONIZATION.md`
 
 ## Regras
 

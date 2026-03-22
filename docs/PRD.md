@@ -445,14 +445,14 @@ operacao do projeto com assistentes locais.
 
 ### 12.1 Prompts recomendados para teste
 
-1. Mapeie a proxima tarefa seguindo BACKLOG, TRACKER e ROADMAP e
-  proponha um plano de execucao.
+1. Mapeie a proxima tarefa seguindo BACKLOG, PRD, ARQUITETURA e
+  REGRAS DE NEGOCIO e proponha um plano de execucao.
 2. Implemente a task X com mudanca minima, rode pytest -q tests/ e
   atualize docs/SYNCHRONIZATION.md se necessario.
 3. Revise esta alteracao com foco em risco operacional e regressao de
   comportamento.
-4. Atualize docs/BACKLOG.md e sincronize docs/TRACKER.md e
-  docs/SYNCHRONIZATION.md.
+4. Atualize docs/BACKLOG.md e sincronize docs/PRD.md, quando houver
+  impacto real, e docs/SYNCHRONIZATION.md.
 
 ### 12.2 Customizacoes recomendadas
 

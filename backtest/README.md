@@ -48,7 +48,7 @@ de 60 símbolos crypto (BTC, ETH, ALT coins) da Binance Futures.
 - ✅ Diretórios criados: `backtest/{core,data,strategies,validation,tests,logs}/`
 - ✅ `__init__.py` + skeleton exports
 - ✅ STATUS_ENTREGAS.md § S2-3 atualizado
-- ✅ ROADMAP.md § Execução/Visibilidade atualizado
+- ✅ PRD.md e SYNCHRONIZATION.md alinhados ao kickoff
 - ✅ SYNCHRONIZATION.md § [SYNC] kickoff registrado
 
 ### 🔄 Próximos Passos (23-24 FEV)
@@ -87,7 +87,7 @@ Todas as 6 métricas devem passar seus respectivos gates para liberação ao liv
 
 ### 1️⃣ Sharpe Ratio — Retorno Ajustado por Risco (Gate: ≥ 0.80)
 
-**O que mede:** Quanto retorno obtém por unidade de risco (volatilidade).  
+**O que mede:** Quanto retorno obtém por unidade de risco (volatilidade).
 **Fórmula:** `(Retorno Anual - Taxa Livre de Risco) / Volatilidade`
 
 ```python
@@ -107,7 +107,7 @@ sharpe = calc.calculate_sharpe_ratio(risk_free_rate=0.02)
 
 ### 2️⃣ Max Drawdown — Maior Queda (Gate: ≤ 12%)
 
-**O que mede:** Maior queda pico-a-vale da equity curve (drawdown máximo).  
+**O que mede:** Maior queda pico-a-vale da equity curve (drawdown máximo).
 **Fórmula:** `(Pico - Vale) / Pico`
 
 ```python
@@ -124,7 +124,7 @@ max_dd = calc.calculate_max_drawdown()
 
 ### 3️⃣ Win Rate — Taxa de Vitória (Gate: ≥ 45%)
 
-**O que mede:** Porcentagem de trades lucrativos.  
+**O que mede:** Porcentagem de trades lucrativos.
 **Fórmula:** `Trades Lucrativos / Total de Trades`
 
 ```python
@@ -141,7 +141,7 @@ wr = calc.calculate_win_rate()
 
 ### 4️⃣ Profit Factor — Ganhos vs Perdas (Gate: ≥ 1.5)
 
-**O que mede:** Razão entre soma de ganhos e soma de perdas absolutas.  
+**O que mede:** Razão entre soma de ganhos e soma de perdas absolutas.
 **Fórmula:** `Soma Ganhos / Soma Perdas (abs)`
 
 ```python
@@ -159,7 +159,7 @@ pf = calc.calculate_profit_factor()
 
 ### 5️⃣ Consecutive Losses — Max Streak de Perdas (Gate: ≤ 5)
 
-**O que mede:** Maior sequência de trades perdedores consecutivos.  
+**O que mede:** Maior sequência de trades perdedores consecutivos.
 **Relevância:** Indicador de ruin (psychological ou material).
 
 ```python

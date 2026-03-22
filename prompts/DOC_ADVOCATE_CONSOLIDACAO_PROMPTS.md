@@ -1,8 +1,8 @@
 # 📋 ANÁLISE DE CONSOLIDAÇÃO — Pasta `/prompts`
 
-**Data:** 22 FEV 2026 16:00 UTC  
-**Responsável:** Doc Advocate  
-**Objetivo:** Unificar 19 arquivos de prompts nos 10 core docs (Decision #3)  
+**Data:** 22 FEV 2026 16:00 UTC
+**Responsável:** Doc Advocate
+**Objetivo:** Unificar 19 arquivos de prompts nos 10 core docs (Decision #3)
 **Status:** ✅ ANÁLISE COMPLETA
 
 ---
@@ -34,7 +34,7 @@
 | `REUNIAO_HEAD_OPERADOR.md` | [A] | Ata de reunião operador; consolidar em DECISIONS.md |
 | `reuniao_setup.md` | [A] | Setup de reunião (template); em BEST_PRACTICES.md |
 | `reuniao.md` | [A] | Template reunião genérico; em BEST_PRACTICES.md |
-| `TASK-005_DELIVERY_SUMMARY.txt` | [A] | Arquivo TXT dated; conteúdo em TRACKER.md |
+| `TASK-005_DELIVERY_SUMMARY.txt` | [A] | Arquivo TXT dated; conteudo em BACKLOG.md |
 | `TASK-005_DAILY_EXECUTION_CHECKLIST.md` | [A] | Checklist diário; conteúdo em SYNCHRONIZATION.md |
 
 ---
@@ -45,9 +45,9 @@
 |:---|:---|:---|:---|
 | `prompt_master.md` | [BEST_PRACTICES.md](../docs/BEST_PRACTICES.md) | Seção "Protocolo de Board Interativo" | Template para reuniões board |
 | `relatorio_executivo.md` | [USER_MANUAL.md](../docs/USER_MANUAL.md) | Seção "9. Operações: Relatórios Executivos" | Guia geração de relatórios diários |
-| `TASK-005_EXECUTIVE_SUMMARY.md` | [TRACKER.md](../docs/TRACKER.md) | Seção "TASK-005: Resumo Executivo" | Especificação PPO training |
+| `TASK-005_EXECUTIVE_SUMMARY.md` | [BACKLOG.md](../docs/BACKLOG.md) | Seção "TASK-005: Resumo Executivo" | Especificacao PPO training |
 | `TASK-005_ML_THEORY_GUIDE.md` | [FEATURES.md](../docs/FEATURES.md) | Seção "F-ML1: Teoria PPO Training" | Referência técnica ML |
-| `TASK-005_SWE_COORDINATION_PLAN.md` | [TRACKER.md](../docs/TRACKER.md) | Seção "TASK-005: Plano SWE" | Timeline e milestones implementação |
+| `TASK-005_SWE_COORDINATION_PLAN.md` | [BACKLOG.md](../docs/BACKLOG.md) | Seção "TASK-005: Plano SWE" | Timeline e milestones implementacao |
 | `TASK-005_SPECIFICATION_PACKAGE_README.md` | [SYNCHRONIZATION.md](../docs/SYNCHRONIZATION.md) | Seção "TASK-005: Especificação" | Pacote entregável PPO |
 
 ---
@@ -57,7 +57,7 @@
 | Arquivo | Ação | Novo Local | Motivo |
 |:---|:---|:---|:---|
 | `TASK-005_ML_SPECIFICATION_PLAN.json` | **ARQUIVAR** | `backlog/archive/TASK-005_ML_SPEC_20FEV.json` | Especificação concluída; guardar histórico |
-| `TASK-005_STATUS_MANIFEST.json` | **MOVER** | `backlog/TASK-005_STATUS_MANIFEST.json` | Tracker status (atual) |
+| `TASK-005_STATUS_MANIFEST.json` | **MOVER** | `backlog/TASK-005_STATUS_MANIFEST.json` | Status atual de backlog |
 
 ---
 
@@ -111,7 +111,7 @@
 
 **Ação:** Doc Advocate consolida e adiciona exemplos reais.
 
-#### 1.3 → `docs/TRACKER.md`
+#### 1.3 -> `docs/BACKLOG.md`
 
 **Adicionar seção:**
 
@@ -211,7 +211,7 @@ rm prompts/TASK-005_DAILY_EXECUTION_CHECKLIST.md
 ### **Fase 4: Validação & Commit (8h)**
 
 1. ✅ Markdown lint em docs atualizados (max 80 chars, UTF-8)
-2. ✅ Validar links cruzados (TRACKER → FEATURES → BEST_PRACTICES)
+2. ✅ Validar links cruzados (BACKLOG -> FEATURES -> BEST_PRACTICES)
 3. ✅ Verificar que board_16_members_data.json funciona após consolidação
 4. ✅ Atualizar STATUS_ATUAL.md com nova estrutura
 5. ✅ Atualizar SYNCHRONIZATION.md com histórico mudanças
@@ -247,7 +247,7 @@ rm prompts/TASK-005_DAILY_EXECUTION_CHECKLIST.md
 
 ## ✅ CHECKLIST DE IMPLEMENTAÇÃO
 
-- [ ] **Fase 1:** Consolidar em BEST_PRACTICES.md, USER_MANUAL.md, TRACKER.md, FEATURES.md, SYNCHRONIZATION.md
+- [ ] **Fase 1:** Consolidar em BEST_PRACTICES.md, USER_MANUAL.md, BACKLOG.md, FEATURES.md, SYNCHRONIZATION.md
 - [ ] **Fase 2:** Arquivar TASK-005_ML_SPECIFICATION_PLAN.json; mover TASK-005_STATUS_MANIFEST.json
 - [ ] **Fase 3:** Deletar 10 prompts obsoletos
 - [ ] **Fase 4:** Validação markdown lint + links
@@ -271,7 +271,7 @@ rm prompts/TASK-005_DAILY_EXECUTION_CHECKLIST.md
 
 ---
 
-**Prepared by:** Doc Advocate  
-**For:** Elo (Facilitador), Product, Dev Team  
+**Prepared by:** Doc Advocate
+**For:** Elo (Facilitador), Product, Dev Team
 **Deadline:** 23 FEV 2026 (antes de TASK-005 QA)
 

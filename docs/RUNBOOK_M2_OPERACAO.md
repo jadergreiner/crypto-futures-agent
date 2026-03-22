@@ -55,7 +55,7 @@ Quando detectar risco critico:
 
 Referencia de playbook:
 
-1. `.github/skills/m2-incident-response/SKILL.md`
+1. `.github/skills/6.m2-incident-response/SKILL.md`
 
 ## Retreino governado
 

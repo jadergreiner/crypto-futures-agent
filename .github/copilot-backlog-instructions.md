@@ -9,9 +9,8 @@ Status: ATIVO
 Fonte de verdade obrigatoria:
 
 1. `docs/BACKLOG.md`
-2. `docs/TRACKER.md` (se existir)
-3. `docs/ROADMAP.md`
-4. `docs/SYNCHRONIZATION.md` (para contexto de mudancas recentes)
+2. `docs/PRD.md`
+3. `docs/SYNCHRONIZATION.md` (para contexto de mudancas recentes)
 
 ## Regras de resposta
 

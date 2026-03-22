@@ -240,7 +240,7 @@
       "email": "product@crypto-futures-agent.local",
       "voto": null,
       "doc_guidelines": {
-        "fonte_verdade": "Manter USER_MANUAL.md, USER_STORIES.md, ROADMAP.md sincronizados",
+        "fonte_verdade": "Manter USER_MANUAL.md, USER_STORIES.md, PRD.md sincronizados",
         "protocolo_sync": "[SYNC] em commits produto e docs. Ex: [SYNC] USER_STORIES atualizado com US-05",
         "consolidar_em": "USER_MANUAL.md (não criar GUIA_*.md novos)",
         "nao_fazer": "NÃO deixar USER_STORIES desatualizado. NÃO criar docs fora dos 10 core."
@@ -317,9 +317,9 @@
         "CRITICAL": "Decision #3 Aprovada: 10 CORE DOCS OFICIAIS APENAS",
         "core_docs": [
           "RELEASES.md (versões e entregas)",
-          "ROADMAP.md (planejamento futuro)",
+          "PRD.md (direcionamento e prioridades)",
           "FEATURES.md (funcionalidades do sistema)",
-          "TRACKER.md (sprints e backlog)",
+          "BACKLOG.md (tarefas, sprints e backlog)",
           "USER_STORIES.md (requisitos de usuário)",
           "LESSONS_LEARNED.md (insights e lições)",
           "STATUS_ATUAL.md (dashboard go-live)",
@@ -507,7 +507,7 @@
     "version": "1.0.0",
     "source_of_truth": "docs/STATUS_ENTREGAS.md",
     "official_docs": [
-      "docs/ROADMAP.md",
+      "docs/PRD.md",
       "docs/STATUS_ENTREGAS.md",
       "docs/PLANO_DE_SPRINTS_MVP_NOW.md",
       "docs/CRITERIOS_DE_ACEITE_MVP.md",
@@ -515,7 +515,7 @@
       "docs/CHANGELOG.md"
     ],
     "cross_links": {
-      "docs/ROADMAP.md": [
+      "docs/PRD.md": [
         "docs/STATUS_ENTREGAS.md",
         "docs/PLANO_DE_SPRINTS_MVP_NOW.md",
         "docs/CRITERIOS_DE_ACEITE_MVP.md",
@@ -523,41 +523,41 @@
         "docs/CHANGELOG.md"
       ],
       "docs/STATUS_ENTREGAS.md": [
-        "docs/ROADMAP.md",
+        "docs/PRD.md",
         "docs/PLANO_DE_SPRINTS_MVP_NOW.md",
         "docs/CRITERIOS_DE_ACEITE_MVP.md",
         "docs/RUNBOOK_OPERACIONAL.md",
         "docs/CHANGELOG.md"
       ],
       "docs/PLANO_DE_SPRINTS_MVP_NOW.md": [
-        "docs/ROADMAP.md",
+        "docs/PRD.md",
         "docs/STATUS_ENTREGAS.md",
         "docs/CRITERIOS_DE_ACEITE_MVP.md",
         "docs/CHANGELOG.md"
       ],
       "docs/CRITERIOS_DE_ACEITE_MVP.md": [
-        "docs/ROADMAP.md",
+        "docs/PRD.md",
         "docs/STATUS_ENTREGAS.md",
         "docs/PLANO_DE_SPRINTS_MVP_NOW.md",
         "docs/RUNBOOK_OPERACIONAL.md"
       ],
       "docs/RUNBOOK_OPERACIONAL.md": [
-        "docs/ROADMAP.md",
+        "docs/PRD.md",
         "docs/STATUS_ENTREGAS.md",
         "docs/CRITERIOS_DE_ACEITE_MVP.md"
       ],
       "docs/CHANGELOG.md": [
-        "docs/ROADMAP.md",
+        "docs/PRD.md",
         "docs/STATUS_ENTREGAS.md"
       ]
     },
     "roadmap_awareness": {
-      "descricao": "Inserir/atualizar em docs/ROADMAP.md um bloco curto chamado Execução / Visibilidade contendo links para os docs oficiais, sprint atual, data da última atualização (extraída de STATUS_ENTREGAS.md) e resumo do progresso do NOW (itens concluídos/total). Não alterar as seções estratégicas existentes.",
+      "descricao": "Inserir ou atualizar em docs/PRD.md um bloco curto de contexto operacional contendo links para os docs oficiais, sprint atual, data da ultima atualizacao extraida de STATUS_ENTREGAS.md e resumo do progresso atual. Nao alterar as secoes estrategicas existentes.",
       "campo_sprint_atual": "Sprint atual: <valor>",
       "campo_data_atualizacao": "Ultima atualizacao: <YYYY-MM-DD>",
-      "campo_progresso_now": "Progresso NOW: <X concluidos de Y itens>"
+      "campo_progresso_now": "Progresso atual: <X concluidos de Y itens>"
     },
-    "sync_trigger_prompt": "Sincronize os docs oficiais do projeto. Para cada arquivo em official_docs: (1) verifique se a seção Links Rápidos existe e está completa conforme a matriz cross_links; (2) atualize docs/STATUS_ENTREGAS.md com o status atual dos itens NOW do ROADMAP (Sprint, Issue, PR, Evidência, Status); (3) atualize o bloco Execução / Visibilidade em docs/ROADMAP.md com sprint atual, data de hoje e progresso NOW contando itens concluídos/total; (4) registre o sync em docs/SYNCHRONIZATION.md com tag [SYNC] e timestamp. Mantenha todo o conteúdo em Português."
+    "sync_trigger_prompt": "Sincronize os docs oficiais do projeto. Para cada arquivo em official_docs: (1) verifique se a secao Links Rapidos existe e esta completa conforme a matriz cross_links; (2) atualize docs/STATUS_ENTREGAS.md com o status atual dos itens prioritarios em execucao; (3) atualize docs/PRD.md com contexto operacional objetivo quando houver impacto real; (4) registre o sync em docs/SYNCHRONIZATION.md com tag [SYNC] e timestamp. Mantenha todo o conteudo em Portugues."
   },
   "gates_s2_0": {
     "version": "1.0.0",

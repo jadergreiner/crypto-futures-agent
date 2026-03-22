@@ -110,15 +110,15 @@ Este projeto e experimental e requer uso responsavel.
 
 Use estes prompts para validar rapidamente as instrucoes do workspace:
 
-1. Mapeie a proxima tarefa seguindo BACKLOG, TRACKER, ARQUITETURA,
- MODELAGEM DE DADOS, ADRs, REGRAS DE NEGOCIO, DIAGRAMAS e PRD e
+1. Mapeie a proxima tarefa seguindo BACKLOG, PRD, ARQUITETURA,
+ MODELAGEM DE DADOS, ADRs, REGRAS DE NEGOCIO e DIAGRAMAS e
  proponha um plano de execucao.
 2. Implemente a task X com mudanca minima, rode pytest -q tests/ e
  atualize docs/SYNCHRONIZATION.md se necessario.
 3. Revise esta alteracao com foco em risco operacional e regressao de
  comportamento.
-4. Atualize docs/BACKLOG.md e sincronize docs/TRACKER.md e
- docs/SYNCHRONIZATION.md.
+4. Atualize docs/BACKLOG.md e sincronize docs/PRD.md, quando houver
+ impacto real, e docs/SYNCHRONIZATION.md.
 
 ## Sugestoes de Customizacoes
 
