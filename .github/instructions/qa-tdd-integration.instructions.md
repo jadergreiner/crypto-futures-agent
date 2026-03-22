@@ -15,51 +15,65 @@ um **prompt único e executável** para o agente QA-TDD.
 
 ## Formato de Entrega (Obrigatório)
 
-O prompt final do SA deve seguir **exatamente** este formato:
+O prompt final do SA deve seguir **exatamente** o formato compacto abaixo.
+Este arquivo é a fonte canônica do contrato SA -> QA-TDD.
+
+### Contrato Compacto (Canônico)
+
+Limites por campo:
+- `id`: até 20 chars
+- `objetivo`: até 200 chars
+- `escopo_in`: até 3 itens
+- `escopo_out`: até 3 itens
+- `requisitos`: 3 a 6 itens testáveis
+- `componentes`: até 8 itens
+- `criterios_aceite`: 2 a 6 checkboxes
+
+Formato obrigatório:
 
 ```text
-Voce e o agente QA-TDD desta task.
+Voce e o agente 4.qa-tdd desta task.
 
 Contexto da demanda:
-- ID/Referencia: <BLID ou referencia>
-- Objetivo de negocio: <objetivo>
-- Escopo fechado: <o que entra>
-- Fora de escopo: <o que nao entra>
+- id: <BLID ou referencia>
+- objetivo: <ate 200 chars>
+- escopo_in: <item1>; <item2>; <item3>
+- escopo_out: <item1>; <item2>; <item3>
 
 Requisitos refinados:
-1. <requisito funcional verificavel>
-2. <requisito funcional verificavel>
-3. <requisito nao funcional verificavel>
+1. <requisito testavel>
+2. <requisito testavel>
+3. <requisito testavel>
 
 Arquitetura e integracao:
-- Componentes afetados: <arquivos/modulos>
-- Pontos de extensao: <funcoes/classes/interfaces>
-- Invariantes obrigatorios: <risk_gate, circuit_breaker, decision_id>
+- componentes: <arquivos/modulos>
+- extensoes: <funcoes/classes/interfaces>
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
 
 Modelagem de dados:
-- Entidades/tabelas afetadas: <lista>
-- Alteracoes de schema/contrato: <se houver>
-- Compatibilidade retroativa: <sim/nao + condicao>
+- entidades: <lista>
+- schema: <sem_alteracao | descricao curta>
+- compatibilidade: <sim/nao + condicao>
 
 Plano de implementacao orientado a testes:
-1. Escreva primeiro os testes que falham para <comportamento A>.
-2. Implemente o minimo para passar os testes de <comportamento A>.
-3. Repita ciclo TDD para <comportamento B>.
-4. Refatore mantendo todos os testes verdes.
+1. RED para <comportamento A>
+2. GREEN minimo para <comportamento A>
+3. RED/GREEN para <comportamento B>
+4. REFACTOR mantendo verde
 
 Suite de testes minima obrigatoria:
-- Unitarios: <casos>
-- Integracao: <casos>
-- Regressao/risk: <casos>
+- unitarios: <casos>
+- integracao: <casos>
+- regressao_risco: <casos>
 
 Criterios de aceite objetivos:
 - [ ] <criterio mensuravel 1>
 - [ ] <criterio mensuravel 2>
-- [ ] Nenhuma quebra de guardrails de risco.
+- [ ] Guardrails de risco preservados.
 
 Comandos de validacao:
-- `pytest -q tests/`
-- `mypy --strict <modulos alterados>`
+- pytest -q tests/
+- mypy --strict <modulos alterados>
 
 Entregaveis esperados:
 - Lista de arquivos alterados
@@ -91,58 +105,56 @@ O handoff é considerado **bem-formado** quando:
 - ✅ Critério de aceite é objetivo e mensurável
 - ✅ Formato segue **exatamente** o template acima
 
-## Exemplo de Handoff Bem-Formado
+## Exemplo Compacto
 
 ```text
-Voce e o agente QA-TDD desta task.
+Voce e o agente 4.qa-tdd desta task.
 
 Contexto da demanda:
-- ID/Referencia: BLID-042
-- Objetivo de negocio: Implementar validação de decision_id em OrderLayer
-  para garantir idempotência de entrada
-- Escopo fechado: OrderLayer.validate_decision_id(), novo campo em OrderRequest
-- Fora de escopo: Migração de dados históricos, relatório de duplicatas
+- id: BLID-042
+- objetivo: validar decision_id no OrderLayer para garantir idempotencia
+- escopo_in: OrderLayer.validate_decision_id; OrderRequest.decision_id
+- escopo_out: migracao historica; relatorio retroativo
 
 Requisitos refinados:
-1. OrderLayer.admit() deve rejeitar signal sem decision_id (validação)
-2. OrderLayer.admit() deve permitir signal com decision_id válido (idempotência)
-3. OrderLayer deve logar rejeição com motivo detalhado (observabilidade)
+1. rejeitar signal sem decision_id
+2. aceitar signal com decision_id valido
+3. registrar motivo de rejeicao em log
 
 Arquitetura e integracao:
-- Componentes afetados: core/model2/order_layer.py, core/model2/signal_adapter.py
-- Pontos de extensao: OrderLayer.validate_decision_id() (novo método)
-- Invariantes obrigatorios: risk_gate ATIVO | circuit_breaker ATIVO | decision_id IDEMPOTENTE
+- componentes: core/model2/order_layer.py; core/model2/signal_adapter.py
+- extensoes: OrderLayer.validate_decision_id
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
 
 Modelagem de dados:
-- Entidades/tabelas afetadas: technical_signals (nova coluna decision_id)
-- Alteracoes de schema/contrato: ADD COLUMN decision_id VARCHAR(255) UNIQUE
-- Compatibilidade retroativa: SIM - registo novo, legacy pode ser null
+- entidades: technical_signals
+- schema: coluna decision_id unica
+- compatibilidade: sim; legado pode ser nulo
 
 Plano de implementacao orientado a testes:
-1. Escreva primeiro os testes que falham para: rejeição de signal sem decision_id
-2. Implemente o minimo: OrderLayer.admit() + validação decision_id
-3. Repita ciclo TDD para: idempotência (retry com mesmo decision_id)
-4. Refatore: extrair validação para método isolado, melhorar logs
+1. RED para rejeicao sem decision_id
+2. GREEN minimo para validacao
+3. RED/GREEN para retry idempotente
+4. REFACTOR com logs claros
 
 Suite de testes minima obrigatoria:
-- Unitarios: test_admit_rejects_no_decision_id, test_admit_accepts_valid_id, test_admit_idempotent_retry
-- Integracao: test_order_layer_signal_adapter_contract, test_db_decision_id_unique
-- Regressao/risk: test_risk_gate_not_mocked, test_circuit_breaker_still_fires
+- unitarios: 3 casos
+- integracao: 2 casos
+- regressao_risco: 2 casos
 
 Criterios de aceite objetivos:
-- [ ] Todos 7 testes em tests/test_order_layer.py passam (GREEN)
-- [ ] 100% do código novo coberto por testes
-- [ ] mypy --strict core/model2/order_layer.py sem erros
-- [ ] Nenhuma quebra de guardrails de risco
+- [ ] 7 testes verdes em tests/test_order_layer.py
+- [ ] mypy --strict sem erros no modulo alterado
+- [ ] Guardrails de risco preservados
 
 Comandos de validacao:
 - pytest -q tests/test_order_layer.py
 - mypy --strict core/model2/order_layer.py
 
 Entregaveis esperados:
-- tests/test_order_layer.py (nova suite)
-- core/model2/order_layer.py (modificado com validate_decision_id)
-- db/migration_YYYYMMDD_add_decision_id.sql (ou scripts/migrate.py)
+- Lista de arquivos alterados
+- Resumo de risco de regressao
+- Evidencia de testes executados e resultado
 ```
 
 ## Integração no Workflow
@@ -159,7 +171,8 @@ Product Owner (prioritiza)
                                └─→ QA-Live (valida e promove)
 ```
 
-Cada estágio emite um **prompt único e executável** para o próximo.
+Cada estágio de entrega tecnica (2 a 8) emite um
+**prompt único e executável** para o próximo.
 Nenhum stage emite output ambíguo ou requer clarificações.
 
 ## Templates de Referência
@@ -167,4 +180,4 @@ Nenhum stage emite output ambíguo ou requer clarificações.
 - **SA Output Template**: Veja seção "Formato de Entrega" acima
 - **QA-TDD Output Template**: Veja `.github/skills/4.qa-tdd/SKILL.md`
 
-Sempre validar que o handoff segue o template antes de pdir que QA-TDD processe.
+Sempre validar que o handoff segue o template antes de pedir que QA-TDD processe.

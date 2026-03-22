@@ -170,7 +170,8 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 - Guardrails verificados e pontos de atenção
 
 **Saída**
-- APROVADO: atualiza backlog para `REVISADO_APROVADO` + `TL:` + comunicado final
+- APROVADO: atualiza backlog para `REVISADO_APROVADO` + `TL:`
+     e gera prompt para Doc Advocate
 - DEVOLVIDO: registra `TL:` e gera prompt estruturado para Software Engineer
      com itens detalhados
 
@@ -185,6 +186,7 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 3. Revisar testes: cobertura, estrutura AAA, determinismo
 4. Verificar conformidade com `docs/REGRAS_DE_NEGOCIO.md`
 5. Atualizar `docs/BACKLOG.md` com decisão final
+6. Em caso APROVADO, emitir prompt executável para `7.doc-advocate`
 
 **Guardrails**
 - Decisão binária: APROVADO ou DEVOLVIDO (sem aprovação parcial)
@@ -194,7 +196,67 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 
 ---
 
-### 7. Agent: QA-Live (Futura — Stage 8)
+### 7. Agent: Doc Advocate (`.github/agents/7.doc-advocate.agent.md` + `.github/skills/7.doc-advocate/SKILL.md`)
+
+**Descrição**
+Guardião da governança de documentação em `docs/` na etapa final.
+É acionado somente após aprovação do Tech Lead para revisar e atualizar
+docs existentes sem criar documentação nova.
+
+**Entrada**
+- Prompt estruturado do Tech Lead com decisão `APROVADO`
+- Lista de impactos documentais da task
+- Evidências mínimas da implementação aprovada
+
+**Saída**
+- Revisão/atualização de docs existentes em `docs/`
+- Registro `[SYNC]` em `docs/SYNCHRONIZATION.md`
+- Relatório executivo acionável para o agente `8.project-manager`
+
+**Acionamento**
+- Invocado automaticamente pelo Tech Lead quando APROVADO
+- Via slash command `/doc-advocate` ou invocação direta
+- User-invocable: ✅ Sim
+
+**Guardrails**
+- Não criar novos arquivos em `docs/`
+- Não executar etapa final de docs sem aprovação do Tech Lead
+- Em ambiguidade documental, ser conservador e registrar pendência
+
+---
+
+### 8. Agent: Project Manager (`.github/agents/8.project-manager.agent.md` + `.github/skills/8.project-manager/SKILL.md`)
+
+**Descrição**
+Valida a atividade ponta-a-ponta e decide o `ACEITE` final para fechamento.
+Executa ajustes finais quando necessário, atualiza backlog para `CONCLUIDO`,
+realiza commit/push para `main` e garante árvore local limpa.
+
+**Entrada**
+- Relatório executivo do Doc Advocate
+- Evidências de documentação sincronizada
+- Status atual da atividade no backlog
+
+**Saída**
+- Decisão final: `ACEITE` ou `DEVOLVER_PARA_AJUSTE`
+- Backlog atualizado para `CONCLUIDO` (quando ACEITE)
+- Commit e push para `main`
+- Confirmação de árvore local limpa
+
+**Acionamento**
+- Invocado automaticamente pelo Doc Advocate
+- Via slash command `/project-manager` ou invocação direta
+- User-invocable: ✅ Sim
+
+**Guardrails**
+- Não emitir ACEITE sem validar trilha completa da demanda
+- Não fechar atividade sem atualizar backlog para `CONCLUIDO`
+- Não encerrar com árvore local suja
+- Em dúvida de conformidade: DEVOLVER para ajuste
+
+---
+
+### 9. Agent: QA-Live (Futura — Stage 9)
 
 **Status**: Planejado
 **Descrição**: Validará qualidade, risco e decidirá GO/NO-GO para live
@@ -242,10 +304,24 @@ Backlog Development
                              │              │
                              │              ├─→ [/tech-lead] Code Review
                              │              ├─→ APROVADO → BACKLOG: REVISADO_APROVADO
+                             │              ├─→ Emite prompt para Doc Advocate
                              │              │
                              │              └─→ DEVOLVIDO → Prompt para Software Engineer
                              │                   │
                              │                   └─→ (loop de revisão)
+                             │
+                             └─→ Doc Advocate
+                                  │
+                                  ├─→ [/doc-advocate] Governança final de docs
+                                  ├─→ Atualiza docs existentes + [SYNC]
+                                  └─→ Emite relatório executivo para Project Manager
+                             │
+                             └─→ Project Manager
+                                  │
+                                  ├─→ [/project-manager] Decisão final de ACEITE
+                                  ├─→ Atualiza docs/BACKLOG.md para CONCLUIDO
+                                  ├─→ Commit + push para main
+                                  └─→ Garante árvore local limpa
                              │
                              └─→ QA-Live (FUTURO)
                                   │
@@ -263,6 +339,8 @@ Backlog Development
 /qa-tdd <paste do handoff do SA>
 /software-engineer <paste do prompt do QA-TDD>
 /tech-lead <paste do prompt do Software Engineer>
+/doc-advocate <paste do APROVADO do Tech Lead>
+/project-manager <paste do relatorio executivo do Doc Advocate>
 ```
 
 ### Via Subagent (Programaticamente)
@@ -287,6 +365,18 @@ resultado = runSubagent(
     agentName="6.tech-lead",
     prompt="Aqui vai o prompt do Software Engineer com evidencias...",
     description="Code review da implementacao de feature X"
+)
+
+resultado = runSubagent(
+     agentName="7.doc-advocate",
+     prompt="Aqui vai o APROVADO do Tech Lead com impactos de docs...",
+     description="Governanca final de docs da feature X"
+)
+
+resultado = runSubagent(
+     agentName="8.project-manager",
+     prompt="Aqui vai o relatorio executivo do Doc Advocate...",
+     description="Aceite final e fechamento da feature X"
 )
 ```
 
@@ -324,5 +414,6 @@ resultado = runSubagent(
 ---
 
 **Última atualização**: 2026-03-22
-**Alterações mais recentes**: Inclusão do agente Backlog Development (stage 1)
-como início do workflow, preparando `docs/BACKLOG.md` para priorização do PO.
+**Alterações mais recentes**: Doc Advocate passou a emitir relatório executivo
+para novo agente Project Manager (stage 8), responsável por aceite final,
+fechamento no backlog e publicação em main com árvore limpa.

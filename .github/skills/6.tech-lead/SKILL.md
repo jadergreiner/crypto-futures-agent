@@ -16,7 +16,7 @@ metadata:
     - cobertura-testes
     - guardrails-risco
     - aprovacao-ou-devolucao
-    - handoff-merge-ou-software-engineer
+    - handoff-doc-advocate-ou-software-engineer
 user-invocable: true
 ---
 
@@ -39,13 +39,37 @@ Prompt estruturado do Software Engineer contendo:
 - Pontos de atencao para revisao
 - Checklist de aceite objetivo
 
+## Contrato Compacto TL -> DA
+
+Campos obrigatorios no handoff APROVADO:
+- `id` (ate 20 chars)
+- `decisao=APROVADO`
+- `status_backlog=REVISADO_APROVADO`
+- `resumo_tecnico` (ate 300 chars)
+- `docs_impactadas` (1 a 8)
+- `evidencias` (ate 8 linhas)
+- `guardrails` (risk_gate, circuit_breaker, decision_id)
+- `pendencias` (Nenhuma ou ate 4)
+
+Gate de tamanho:
+- limite de payload TL -> DA: 1800 chars
+- se exceder: resumir secoes narrativas e manter so campos obrigatorios
+
+Checklist de rejeicao (payload invalido):
+- [ ] Campo obrigatorio ausente
+- [ ] `decisao` diferente de `APROVADO`
+- [ ] `status_backlog` diferente de `REVISADO_APROVADO`
+- [ ] Guardrails ausentes no campo `guardrails`
+- [ ] Payload acima de 1800 chars
+- [ ] Lista `docs_impactadas` fora de 1..8
+
 ## Leitura Minima
 
 1. Ler `docs/BACKLOG.md` para verificar estado atual do item.
 2. Ler codigo alterado dos modulos listados pelo Software Engineer.
 3. Ler suite de testes correspondente em `tests/`.
 4. Ler `docs/REGRAS_DE_NEGOCIO.md` para validar regras de transicao.
-5. Verificar `docs/SYNCHRONIZATION.md` para confirmar atualizacao.
+5. Verificar impacto documental reportado para handoff ao Doc Advocate.
 
 ## Fluxo de Revisao
 
@@ -125,12 +149,12 @@ Criterios para aprovacao:
 - Todos os guardrails de risco ativos
 - Codigo segue convencoes do projeto
 - 100% dos requisitos cobertos por testes
-- Documentacao atualizada (BACKLOG + SYNCHRONIZATION)
+- BACKLOG atualizado e handoff documental preparado para Doc Advocate
 
 Ao aprovar:
 1. Registrar em `docs/BACKLOG.md`: status `REVISADO_APROVADO`
 2. Registrar no rodape do item: `TL: <resumo_em_ate_150_caracteres>`
-3. Atualizar `docs/SYNCHRONIZATION.md` com `[SYNC]`
+3. Gerar prompt executavel para o agente `7.doc-advocate`
 
 #### DEVOLVIDO_PARA_REVISAO
 
@@ -167,7 +191,7 @@ Ao devolver:
 - ✅ Cada item de devolucao tem arquivo/linha e criterio de aceite
 - ✅ Decisao documentada em `docs/BACKLOG.md`
 - ✅ Comentario `TL:` no rodape com ate 150 caracteres
-- ✅ `docs/SYNCHRONIZATION.md` atualizado com `[SYNC]`
+- ✅ Prompt executavel para `7.doc-advocate` em caso APROVADO
 - ✅ Prompt de devolucao auto-suficiente para Software Engineer retomar
 
 ## Saida Obrigatoria
@@ -197,7 +221,8 @@ CHECKLIST DE ACEITE
 - [x] mypy --strict sem erros nos modulos alterados
 - [x] Sem regressoes na suite completa
 - [x] Codigo segue convencoes do projeto
-- [x] Documentacao atualizada (BACKLOG + SYNCHRONIZATION)
+- [x] Backlog atualizado para REVISADO_APROVADO
+- [x] Handoff documental preparado para o agente 7.doc-advocate
 - [x] Guardrails de risco ativos em todos os caminhos
 
 OBSERVACOES DA REVISAO (opcional)
@@ -205,6 +230,23 @@ OBSERVACOES DA REVISAO (opcional)
 
 STATUS FINAL NO BACKLOG
 docs/BACKLOG.md → REVISADO_APROVADO
+
+PROMPT EXECUTAVEL PARA DOC ADVOCATE
+Voce e o agente 7.doc-advocate desta task.
+
+Handoff:
+- id: <BLID-XXX>
+- decisao: APROVADO
+- status_backlog: REVISADO_APROVADO
+- resumo_tecnico: <ate 300 chars>
+- docs_impactadas: <doc1>; <doc2>
+- evidencias: <pytest>; <mypy>; <cobertura opcional>
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
+- pendencias: <Nenhuma|lista curta>
+
+Gate_payload:
+- tamanho_chars: <N>
+- limite_chars: 1800
 
 ═══════════════════════════════════════════════════════════════════
 ```

@@ -117,7 +117,7 @@ Se incompleto, operar em modo conservador:
 
 1. **Registrar em `docs/BACKLOG.md`**
    - Item: `[BLID] <titulo da task>`
-   - Status: mude de `EM_DESIGN_TESTES` → `TESTES_PRONTOS`
+   - Status: mude para `TESTES_PRONTOS`
    - Adicione linha:
      ```
      - Testes em: `tests/test_<modulo>.py`
@@ -164,96 +164,52 @@ Se incompleto, operar em modo conservador:
 ## Saída Obrigatória
 
 A resposta final deve ser **apenas um prompt para o agente 5.software-engineer**,
-sem prefácio adicional, contendo exatamente:
+sem prefácio adicional, no formato compacto abaixo.
 
 ```text
 Voce e o agente 5.software-engineer desta task.
 
-═══════════════════════════════════════════════════════════════════
+Contexto:
+- id: <BLID-XXX>
+- objetivo: <ate 200 chars>
+- escopo_in: <ate 3 itens>
+- escopo_out: <ate 3 itens>
 
-CONTEXTO DA TASK
+Suite RED:
+- arquivo: tests/test_<modulo>.py
+- codigo: <codigo completo dos testes>
 
-ID/Referencia: <BLID-XXX ou referencia>
-Objetivo de negocio: <objetivo>
-Escopo fechado: <o que entra>
-Fora de escopo: <o que nao entra>
+Mapeamento requisito -> teste:
+1. <requisito testavel> -> test_<funcao>_<caso>()
+2. <requisito testavel> -> test_<funcao>_<caso>()
+3. <requisito testavel> -> test_<funcao>_<caso>()
 
-═══════════════════════════════════════════════════════════════════
+Guardrails obrigatorios:
+- risk_gate=ATIVO
+- circuit_breaker=ATIVO
+- decision_id=IDEMPOTENTE
 
-SUITE DE TESTES (RED PHASE - TESTES QUE FALHAM INICIALMENTE)
+Plano Green/Refactor:
+1. GREEN minimo para todos os testes da suite
+2. REFACTOR mantendo testes verdes
+3. Validacao final sem regressao
 
-Arquivo: tests/test_<modulo>.py
+Checklist de aceite:
+- [ ] Suite da task passa
+- [ ] mypy --strict sem erros
+- [ ] Sem mock de risk_gate/circuit_breaker
+- [ ] Backlog em IMPLEMENTADO apos entrega
 
-<CÓDIGO COMPLETO DOS TESTES AQUI - PRONTO PARA EXECUTAR>
-
-═══════════════════════════════════════════════════════════════════
-
-REQUISITOS A IMPLEMENTAR (Mapeamento Testes → Requisitos)
-
-1. <Requisito funcional verificavel> ← test_<funcao>_<caso>()
-2. <Requisito funcional verificavel> ← test_<funcao>_<caso>()
-3. <Requisito nao funcional verificavel> ← test_<funcao>_<caso>()
-
-═══════════════════════════════════════════════════════════════════
-
-GUARDRAILS & INVARIANTES OBRIGATORIOS
-
-- Componentes afetados: <arquivos/modulos>
-- Pontos de extensao: <funcoes/classes/interfaces>
-- Invariantes: risk_gate ATIVO | circuit_breaker ATIVO | decision_id IDEMPOTENTE
-- Compatibilidade retroativa: <sim/nao + mitigacao>
-
-═══════════════════════════════════════════════════════════════════
-
-PLANO GREEN-REFACTOR (Ciclo TDD)
-
-1. Fazer testes passarem (GREEN):
-   - Implemente <funcao> em <arquivo> com minimo necessario
-   - Rode: pytest -q tests/test_<modulo>.py
-   - Todos os testes devem passar
-
-2. Refatore mantendo testes verdes (REFACTOR):
-   - Optimize <aspecto> sem quebrar contrato
-   - Rode: pytest -q tests/test_<modulo>.py
-   - Rode: mypy --strict <modulo>
-
-3. Valide sem regressao:
-   - Rode: pytest -q tests/
-   - Rode: mypy --strict <modulos alterados>
-
-═══════════════════════════════════════════════════════════════════
-
-CHECKLIST DE ACEITE OBJETIVOS
-
-- [ ] Todos os testes em `tests/test_<modulo>.py` passam (GREEN)
-- [ ] Nenhum teste mockeia risk_gate ou circuit_breaker
-- [ ] decision_id preserva idempotencia conforme requisito
-- [ ] Cobertura: 100% das funcoes publicas testadas
-- [ ] mypy --strict sem erros em modulos alterados
-- [ ] docs/BACKLOG.md atualizado para IMPLEMENTADO
-- [ ] docs/SYNCHRONIZATION.md registra mudanca com [SYNC]
-
-═══════════════════════════════════════════════════════════════════
-
-COMANDOS DE VALIDACAO
-
-# Testes unitarios (devem passar)
-pytest -q tests/test_<modulo>.py
-
-# Tipos (deve passar sem erros)
-mypy --strict <modulo>.py
-
-# Suite completa (deve passar; nao regressoes esperadas)
-pytest -q tests/
-
-# Marcar como concluido no backlog
-# Editar docs/BACKLOG.md: mude status para IMPLEMENTADO
-
-═══════════════════════════════════════════════════════════════════
+Comandos de validacao:
+- pytest -q tests/test_<modulo>.py
+- mypy --strict <modulos alterados>
+- pytest -q tests/
 ```
 
-Entrega sem prefacio, apenas o prompt acima.
-```
+Limites de tamanho recomendados:
+- contexto total: ate 600 chars
+- mapeamento: 3 a 6 requisitos
+- checklist: 4 a 8 itens
 
 ## Referência de Fixtures
 

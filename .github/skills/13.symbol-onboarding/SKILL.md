@@ -1,57 +1,31 @@
 ---
 name: 13.symbol-onboarding
 description: |
-  Adiciona ou audita simbolo no M2 com checklist minimo e rastreavel.
-  Foca em config, playbook, testes e validacao shadow.
+  Alias compacto para 6.symbol-onboarding.
 metadata:
   workflow-track: apoio
   workflow-order: 3
   workflow-stage: 13
   focus:
-    - checklist-minimo
-    - acao-direta
-    - auditabilidade
+    - alias-compacto
 user-invocable: true
 ---
 
-# Skill: symbol-onboarding
+# Skill: symbol-onboarding (alias)
 
 ## Objetivo
 
-Adicionar ou validar um simbolo no pipeline M2 sem abrir leitura ampla.
+Reduzir duplicacao de contexto mantendo compatibilidade de invocacao.
 
-## Leitura Minima
+Esta skill e um alias para:
+- `.github/skills/6.symbol-onboarding/SKILL.md`
 
-1. `config/symbols.py`
-2. `playbooks/__init__.py`
-3. um playbook existente em `playbooks/`
-4. um teste de integracao existente em `tests/`
+Regras:
+1. Reutilizar integralmente o contrato da skill canonica.
+2. Nao manter checklist paralelo neste arquivo.
+3. Em caso de divergencia, prevalece a skill canonica.
 
-## Checklist Obrigatorio
+Saida esperada:
+- status de onboarding/auditoria do simbolo
+- riscos residuais para shadow/live
 
-1. Registrar o simbolo em `config/symbols.py` com campos obrigatorios.
-2. Criar playbook especifico em `playbooks/`.
-3. Registrar import e `__all__` em `playbooks/__init__.py`.
-4. Criar teste de integracao para o simbolo.
-
-## Checklist Opcional
-
-1. Sincronizar OHLCV historico.
-2. Rodar `scan`, `track` e `validate` em `shadow`.
-3. Incluir em `M2_LIVE_SYMBOLS` so depois de validar dados e testes.
-4. Rodar treino se o caso exigir.
-
-## Guardrails
-
-- Nao rodar live sem confirmar `M2_EXECUTION_MODE=shadow` primeiro.
-- Nao mexer em `core/model2/` sem sintoma concreto.
-- Se `config/symbols.py` mudar, sincronizar `README.md` e
-  `playbooks/__init__.py`.
-- Minimo de treino: 500 candles H4.
-
-## Saida
-
-- simbolo
-- itens obrigatorios concluidos ou pendentes
-- testes rodados
-- risco residual para shadow ou live

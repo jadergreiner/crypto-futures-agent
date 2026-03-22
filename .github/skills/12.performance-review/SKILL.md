@@ -1,67 +1,30 @@
 ---
 name: 12.performance-review
 description: |
-  Revisa reward, Sharpe e degradacao por janela temporal.
-  Emite diagnostico curto com severidade e acao recomendada.
+  Alias compacto para 5.performance-review.
 metadata:
   workflow-track: apoio
   workflow-order: 2
   workflow-stage: 12
   focus:
-    - janela-temporal
-    - thresholds-objetivos
-    - saida-curta
+    - alias-compacto
 user-invocable: true
 ---
 
-# Skill: performance-review
+# Skill: performance-review (alias)
 
 ## Objetivo
 
-Avaliar reward, Sharpe e performance live ou shadow sem abrir analise ampla.
+Reduzir duplicacao de contexto mantendo compatibilidade de invocacao.
 
-## Janelas Padrao
+Esta skill e um alias para:
+- `.github/skills/5.performance-review/SKILL.md`
 
-- reward RL: ultimos 100 episodios
-- tendencia de treino: ultimas 500 epocas
-- live ou shadow: ultimos 14 dias
-- walk-forward: ultimos 30 dias
+Regras:
+1. Reutilizar integralmente o contrato da skill canonica.
+2. Nao manter thresholds paralelos neste arquivo.
+3. Em caso de divergencia, prevalece a skill canonica.
 
-Se o usuario nao definir janela, usar as janelas acima.
-
-## Leitura Minima
-
-1. Banco de treino: `rl_episodes`, `rl_training_log`.
-2. Convergencia: `agent/convergence_monitor.py`,
-   `logs/training_metrics/metrics.csv`.
-3. Backtest: `backtest/backtest_metrics.py`, `backtest/walk_forward.py`.
-4. Live ou shadow: `monitoring/performance.py`, `signal_executions`.
-5. Configs so para comparar thresholds: `config/ppo_config.py`,
-   `config/risk_params.py`.
-
-## Thresholds Minimos
-
-- Reward: queda > 20% vs baseline = `CRITICO`.
-- Plateau > 100 episodios = `MODERADO`.
-- Sharpe < 0.5 = `CRITICO`.
-- Sharpe entre 0.5 e 0.99 = `MODERADO`.
-- Sharpe >= 1.0 = `OK`.
-- Drawdown total > 15% = bloqueio.
-- Win rate < 45% = alerta.
-
-## Guardrails
-
-- Nao propor retreino sem degradacao confirmada.
-- Nao usar win rate isolado para decidir mudanca de modelo.
-- Em modo live, Sharpe < 1.0 exige escalacao antes de ajuste.
-- Nunca desabilitar `risk_gate.py` ou `circuit_breaker.py`.
-
-## Saida
-
-- janela analisada
-- metricas principais
-- severidade
-- causa provavel
-- acao recomendada
-
-Limite alvo: 8-12 linhas.
+Saida esperada:
+- diagnostico curto por janela
+- severidade e acao recomendada

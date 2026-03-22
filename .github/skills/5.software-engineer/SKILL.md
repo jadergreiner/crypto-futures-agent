@@ -177,7 +177,7 @@ Apos cada refatoracao:
 pytest -q tests/test_<modulo>.py   # deve continuar passando
 ```
 
-### Fase 4: Atualizar Backlog e Documentacao
+### Fase 4: Atualizar Backlog e Preparar Handoff Documental
 
 1. **Registrar em `docs/BACKLOG.md`**
    - Status: `EM_DESENVOLVIMENTO` → `IMPLEMENTADO`
@@ -188,14 +188,15 @@ pytest -q tests/test_<modulo>.py   # deve continuar passando
      - Arquivos alterados: <lista de arquivos>
      ```
 
-2. **Atualizar `docs/SYNCHRONIZATION.md`**
-   - Registrar com tag `[SYNC]`
-   - Formato: `SW-ENG: Implementacao BLID-XXX — <descricao curta>`
+2. **Mapear impacto documental para o Tech Lead**
+  - Listar docs existentes potencialmente impactadas
+  - Nao criar docs novas nesta etapa
 
-3. **Atualizar docs dependentes** (se escopo exigir)
+3. **Preparar handoff para governanca final** (se escopo exigir)
    - `docs/ARQUITETURA_ALVO.md` se schema ou fluxo mudou
    - `docs/REGRAS_DE_NEGOCIO.md` se regras foram refinadas
    - `README.md` se configuracao ou comandos mudaram
+  - A revisao/atualizacao final e responsabilidade do Doc Advocate
 
 ## Guardrails Inviolaveis
 
@@ -228,116 +229,61 @@ pytest -q tests/test_<modulo>.py   # deve continuar passando
 - ✅ `risk_gate` e `circuit_breaker` ativos em todos os caminhos
 - ✅ `decision_id` idempotente preservado
 - ✅ BACKLOG atualizado para `IMPLEMENTADO` com evidencias
-- ✅ `docs/SYNCHRONIZATION.md` atualizado com `[SYNC]`
+- ✅ Impacto documental listado para handoff do Tech Lead
 - ✅ Prompt para Tech Lead e auto-suficiente e completo
 
 ## Saida Obrigatoria
 
 A resposta final deve ser **apenas um prompt para o agente 6.tech-lead**,
-sem prefacio adicional, contendo exatamente:
+sem prefacio adicional, no formato compacto abaixo.
 
 ```text
 Voce e o agente 6.tech-lead desta task.
 
-═══════════════════════════════════════════════════════════════════
+Contexto:
+- id: <BLID-XXX>
+- objetivo: <ate 200 chars>
+- status_backlog: IMPLEMENTADO
 
-CONTEXTO DA ENTREGA
+Evidencias:
+- pytest_task: <N passed, N failed>
+- pytest_suite: <N passed, N failed>
+- mypy_strict: <success|falha>
+- cobertura: <percentual opcional>
 
-ID/Referencia: <BLID-XXX ou referencia>
-Objetivo de negocio: <objetivo>
-Desenvolvedor: Software Engineer
-Status no Backlog: IMPLEMENTADO
+Arquivos alterados:
+- <arquivo> -> <descricao curta>
+- <arquivo> -> <descricao curta>
 
-═══════════════════════════════════════════════════════════════════
+Mapeamento requisito -> codigo -> teste:
+1. <requisito> -> <arquivo:funcao> -> test_<nome>()
+2. <requisito> -> <arquivo:funcao> -> test_<nome>()
 
-EVIDENCIAS DE IMPLEMENTACAO
+Guardrails:
+- risk_gate=ATIVO
+- circuit_breaker=ATIVO
+- decision_id=IDEMPOTENTE
 
-Suite de testes executada:
-  Arquivo: tests/test_<modulo>.py
-  Resultado: <N> passed, 0 failed, 0 error
-  Comando: pytest -q tests/test_<modulo>.py
+Pontos de atencao:
+- <item de revisao ou "Nenhum">
 
-Validacao de tipos:
-  Resultado: mypy --strict <modulo>.py — Success: no issues found
+Checklist de aceite TL:
+- [ ] Testes da task verdes
+- [ ] mypy --strict sem erro
+- [ ] Sem regressao na suite
+- [ ] Guardrails preservados
 
-Suite completa (regressao):
-  Resultado: <N> passed, 0 failed
-  Comando: pytest -q tests/
+Comandos para reproducao TL:
+- pytest -q tests/test_<modulo>.py
+- mypy --strict <modulos alterados>
+- pytest -q tests/
 
-Cobertura de testes:
-  Percentual: <N>%
-  Modulos cobertos: <lista>
-
-═══════════════════════════════════════════════════════════════════
-
-ARQUIVOS ALTERADOS
-
-- <arquivo1.py> — <descricao da alteracao>
-- <arquivo2.py> — <descricao da alteracao>
-- <tests/test_modulo.py> — suite de testes (referencia)
-- <docs/BACKLOG.md> — status atualizado para IMPLEMENTADO
-
-═══════════════════════════════════════════════════════════════════
-
-REQUISITOS IMPLEMENTADOS (Mapeamento Testes → Codigo)
-
-1. <Requisito> ← test_<funcao>_<caso>() → implementado em <arquivo:linha>
-2. <Requisito> ← test_<funcao>_<caso>() → implementado em <arquivo:linha>
-3. <Requisito> ← test_<funcao>_<caso>() → implementado em <arquivo:linha>
-
-═══════════════════════════════════════════════════════════════════
-
-GUARDRAILS VERIFICADOS
-
-- risk_gate: ATIVO em todos os caminhos de execucao ✅
-- circuit_breaker: ATIVO em todos os caminhos de execucao ✅
-- decision_id: idempotencia preservada ✅
-- Compatibilidade retroativa: <sim/nao + descricao>
-- Migracoes de schema: <nenhuma | aplicadas via migrate.py up>
-
-═══════════════════════════════════════════════════════════════════
-
-PONTOS DE ATENCAO PARA REVISAO
-
-<Lista de decisoes de design que merecem revisao especifica, trade-offs
-feitos, areas de incerteza. Se nao houver, escrever "Nenhum.">
-
-═══════════════════════════════════════════════════════════════════
-
-CHECKLIST DE ACEITE PARA TECH LEAD
-
-- [ ] Todos os testes passam (GREEN confirmado)
-- [ ] Nenhum teste mockeia risk_gate ou circuit_breaker
-- [ ] decision_id preserva idempotencia
-- [ ] mypy --strict sem erros nos modulos alterados
-- [ ] Sem regressoes na suite completa
-- [ ] Codigo segue convencoes do projeto (pt-BR, logging, sem print debug)
-- [ ] Documentacao atualizada (BACKLOG + SYNCHRONIZATION)
-- [ ] Guardrails de risco ativos em todos os caminhos
-
-═══════════════════════════════════════════════════════════════════
-
-COMANDOS DE VALIDACAO PARA TECH LEAD
-
-# Reproduzir testes localmente
-pytest -q tests/test_<modulo>.py
-
-# Validar tipos
-mypy --strict <modulo>.py
-
-# Suite completa (sem regressoes)
-pytest -q tests/
-
-═══════════════════════════════════════════════════════════════════
-
-DECISAO ESPERADA DO TECH LEAD
-
-Opcao A — APROVADO:
-  Confirmar aceite e registrar em docs/BACKLOG.md como REVISADO_APROVADO.
-
-Opcao B — DEVOLVIDO_PARA_REVISAO:
-  Listar itens especificos que precisam correcao com descricao clara.
-  Retornar prompt estruturado para Software Engineer com itens pendentes.
-
-═══════════════════════════════════════════════════════════════════
+Decisao esperada:
+- APROVADO -> handoff para 7.doc-advocate
+- DEVOLVIDO_PARA_REVISAO -> retorno para 5.software-engineer
 ```
+
+Limites de tamanho recomendados:
+- contexto: ate 500 chars
+- evidencias: ate 8 linhas
+- mapeamento: 2 a 8 requisitos

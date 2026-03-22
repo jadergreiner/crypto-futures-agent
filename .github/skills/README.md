@@ -17,8 +17,8 @@ Este indice usa dois campos diferentes:
   implementacao.
 5. WF-05 | `5.software-engineer` — implementar GREEN/REFACTOR com evidencias.
 6. WF-06 | `6.tech-lead` — revisar entrega e decidir APROVADO ou DEVOLVIDO.
-7. WF-07 | `9.commit` — validar qualidade, commitar e fazer push.
-8. WF-08 | `10.close` — encerrar a sessao com custo minimo.
+7. WF-07 | `7.doc-advocate` — revisar e sincronizar docs apos APROVADO.
+8. WF-08 | `8.project-manager` — validar aceite e fechar em main.
 
 ## Skills de Apoio (Uso Sob Demanda)
 
@@ -30,6 +30,8 @@ Este indice usa dois campos diferentes:
   fail-safe.
 5. AUX-05 | `8.live-release-readiness` — decidir GO, GO_COM_RESTRICOES
   ou NO_GO.
+6. AUX-06 | `9.commit` — uso complementar de commit/push fora do fluxo principal.
+7. AUX-07 | `10.close` — encerramento leve de sessao quando aplicavel.
 
 ## Encadeamento Recomendado
 
@@ -43,8 +45,8 @@ Mapeamento rapido:
 - WF-04: `4.qa-tdd`
 - WF-05: `5.software-engineer`
 - WF-06: `6.tech-lead`
-- WF-07: `9.commit`
-- WF-08: `10.close`
+- WF-07: `7.doc-advocate`
+- WF-08: `8.project-manager`
 
 ## Regras
 
