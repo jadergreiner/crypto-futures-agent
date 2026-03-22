@@ -68,6 +68,54 @@ toda vez que mudanças significativas são feitas no código:
 
 ---
 
+### [SYNC-030] M2-019.2 EpisodeLoader - Carregamento e Normalizacao
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog M2 | docs/BACKLOG.md | M2-019.2 marcada CONCLUIDA com 8/8 entregas |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-030] |
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| agent/episode_loader.py | NOVO | EpisodeLoader com 310+ linhas |
+| tests/test_model2_m2_019_2_episode_loader.py | NOVO | Suite de 23 testes (23/23 PASSANDO) |
+
+#### Observacoes
+
+- **EpisodeNormalizer**: Normaliza features para [-1, 1] com bounds empiricos
+  - Suporta 26 features mapeadas em 36-float array
+  - Tratamento robusto de NaN, infinito, valores ausentes
+  - Clipping automatico e fallback conservador
+- **load_episodes()**: Carregador com filtro por symbol e timeframe
+  - Conecta ao banco modelo2.db
+  - Descartar label='pending' (sem outcome real)
+  - Retorna List[Dict] ou [] quando < min_episodes
+- **validate_episodes()**: Validador de lista carregada
+  - Verifica length=36 para cada episodio
+  - Valida bounds [-1, 1] para cada float
+- **Testes**: 23 testes cobrindo
+  - Normalizacao individual: 11 testes (min/max/NaN/inf/None)
+  - Carregamento: 8 testes (empty/insufficient/filters/normalization)
+  - Validacao: 4 testes (empty/bad_features/bad_bounds/NaN)
+- **Integracao**: Compativel com EntryDecisionEnv e pipeline RL
+- **Banco**: Usa training_episodes table criada dinamicamente por persist_training_episodes.py
+
+#### Proximos Passos
+
+1. M2-019.3 — Adaptar SubAgentManager para EntryDecisionEnv
+2. M2-019.4 — Runner train_entry_agents.py
+3. M2-019.5 — EntryRLFilter stage integrado ao daily_pipeline
+4. Sequencia: M2-019.6 .. M2-019.10 completando iniciativa
+
+---
+
 ### [SYNC-028] M2-018.3 Ativacao producao com limites conservadores
 
 **Data/Hora**: 2026-03-22 UTC

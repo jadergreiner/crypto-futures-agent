@@ -1537,21 +1537,36 @@ Dependencias: Nenhuma
 
 ### TAREFA M2-019.2 - EpisodeLoader: carregamento e normalizacao de episodios
 
-Status: PENDENTE
+Status: CONCLUIDA (2026-03-22)
 
 Entrega:
 
 1. Criar `agent/episode_loader.py` com load_episodes(db_path, symbol,
-   timeframe, min_episodes=20). [ ]
-2. Conectar ao banco `modelo2.db`, filtrar por symbol e timeframe. [ ]
-3. Descartar episodios com label=pending (sem outcome real). [ ]
-4. Parsear features_json e mapear para vetor de 36 features. [ ]
-5. Normalizar cada feature para [-1, 1] com limites empiricos. [ ]
-6. Campos ausentes tornam-se 0.0 (np.nan_to_num). [ ]
-7. Retornar List[Dict] ou [] quando insuficiente. [ ]
-8. Testar com banco in-memory e episodios sinteticos. [ ]
+   timeframe, min_episodes=20). [OK]
+2. Conectar ao banco `modelo2.db`, filtrar por symbol e timeframe. [OK]
+3. Descartar episodios com label=pending (sem outcome real). [OK]
+4. Parsear features_json e mapear para vetor de 36 features. [OK]
+5. Normalizar cada feature para [-1, 1] com limites empiricos. [OK]
+6. Campos ausentes tornam-se 0.0 (np.nan_to_num). [OK]
+7. Retornar List[Dict] ou [] quando insuficiente. [OK]
+8. Testar com banco in-memory e episodios sinteticos. [OK]
 
-Dependencias: M2-019.1
+Evidencias:
+
+1. Modulo canonico: `agent/episode_loader.py` (310+ linhas)
+   - Classe EpisodeNormalizer com normalizacao de features
+   - Funcao load_episodes() com filtro por symbol/timeframe
+   - Funcao validate_episodes() para validacao de lista
+   - Tratamento de NaN, infinito, valores ausentes
+   - Fallback gracioso para dados incompletos
+2. Suite de testes: `tests/test_model2_m2_019_2_episode_loader.py`
+   - 23 testes unitarios PASSANDO
+   - Testes com banco in-memory SQLite
+   - Cobertura de edge cases (NaN, infinito, dict parcial, etc)
+3. Teste de importacao: modulo importa sem erros
+4. Integracao com M2-019.1: CompleteEntryDecisionEnv pode usar load_episodes()
+
+Dependencias: M2-019.1 [OK]
 
 ---
 
