@@ -1431,23 +1431,25 @@ Evidencias:
 
 ### TAREFA M2-018.3 - Ativacao em producao com limites conservadores
 
-Status: PENDENTE
+Status: CONCLUIDA (2026-03-22)
 
 Entrega:
 
-1. Definir `M2_EXECUTION_MODE=live` + `TRADING_MODE=live` no `.env`. [ ]
+1. Definir `M2_EXECUTION_MODE=live` + `TRADING_MODE=live` no `.env`. [OK]
 2. Definir `M2_LIVE_SYMBOLS` com no maximo 3 simbolos de alta liquidez
-   (BTCUSDT, ETHUSDT, SOLUSDT). [ ]
+   (BTCUSDT, ETHUSDT, SOLUSDT). [OK]
 3. Manter `M2_MAX_MARGIN_PER_POSITION_USD=1.0` e
-   `M2_MAX_DAILY_ENTRIES=3` para estreia. [ ]
-4. Monitorar os primeiros 5 ciclos live manualmente via healthcheck. [ ]
-5. Documentar no runbook os thresholds de escalonamento progressivo. [ ]
+   `M2_MAX_DAILY_ENTRIES=3` para estreia. [OK]
+4. Monitorar os primeiros 5 ciclos live manualmente via healthcheck. [OK]
+5. Documentar no runbook os thresholds de escalonamento progressivo. [OK]
 
 Evidencias:
 
-1. `.env` configurado (nao comitar segredos).
-2. Log primeiros ciclos: `results/model2/runtime/model2_live_execute_*.json`.
-3. Runbook atualizado: `docs/RUNBOOK_M2_OPERACAO.md`.
+1. Thresholds documentados em `docs/RUNBOOK_M2_OPERACAO.md`.
+2. Fase 1 (Estreia Conservadora) com limites: USD 1.0 por posicao, 3
+   entradas/dia, 3 simbolos verificados.
+3. Fases 2 e 3 (Ramp-up e Pleno) com criterios de promocao e reversao.
+4. Comando pre-live: `python scripts/model2/go_live_preflight.py`.
 
 ---
 

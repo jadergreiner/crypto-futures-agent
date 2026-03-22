@@ -23,6 +23,37 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-028] M2-018.3 Ativacao producao com limites conservadores
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Runbook M2 | docs/RUNBOOK_M2_OPERACAO.md | Secao Thresholds Escalonamento Progressivo (3 fases) |
+| Backlog M2 | docs/BACKLOG.md | M2-018.3 marcada CONCLUIDA com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-028] |
+
+#### Observacoes
+
+- Fase 1 (Estreia): USD 1.0/pos, 3 entradas/dia, 3 simbolos
+  (BTCUSDT, ETHUSDT, SOLUSDT).
+- Fase 2 (Ramp-up): Expansao a 5 simbolos, USD 5.0/pos, apoiada em
+  Sharpe >= 1.5.
+- Fase 3 (Plena): Modo ensemble RL por simbolo, USD 10.0/pos dinamico.
+- Criterio de reversao: Violacao de qualquer aspecto operacional retorna
+  fase anterior com playbook incidente.
+- Pre-live: `python scripts/model2/go_live_preflight.py` obrigatorio.
+
+#### Proximos Passos
+
+1. Executar M2-018.2 (Testnet integration com Binance).
+2. Iniciar M2-019.x (RL decisor de entrada por simbolo).
+
+---
+
 ### [SYNC-027] M2-018.1 Validacao shadow ponta-a-ponta com automacao
 
 **Data/Hora**: 2026-03-22 UTC

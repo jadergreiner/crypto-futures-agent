@@ -72,3 +72,32 @@ Referencia de playbook:
 3. Sem posicao aberta sem protecao.
 4. Reconciliacao atualizada e auditavel.
 5. Logs e artefatos JSON parseaveis.
+
+## Thresholds de Escalonamento Progressivo (M2-018.3)
+
+Fase 1 — Estreia Conservadora (Ciclos 1-5):
+
+- **M2_EXECUTION_MODE**: live
+- **M2_LIVE_SYMBOLS**: BTCUSDT, ETHUSDT, SOLUSDT (3 pares)
+- **M2_MAX_MARGIN_PER_POSITION_USD**: 1.0 (risk floor)
+- **M2_MAX_DAILY_ENTRIES**: 3 (protetor de overtrading)
+- **TRADING_MODE**: live (com orders reais)
+- Checklist: preflight OK, healthcheck sem erro, sem posicoes
+  abertas sem stop
+
+Fase 2 — Ramp-Up Gradual (Ciclos 6-20):
+
+- Expandir para 5 simbolos (adicionar BNBUSDT, XRPUSDT)
+- M2_MAX_MARGIN_PER_POSITION_USD: 5.0 (2% do capital tipo)
+- M2_MAX_DAILY_ENTRIES: 5
+- Criterio de aprovacao: Sharpe >= 1.5, drawdown < 10%
+
+Fase 3 — Producao Plena (Ciclos 21+):
+
+- Habilitar modo ensemble (modelo RL por simbolo)
+- M2_MAX_MARGIN_PER_POSITION_USD: 10.0 (4% do capital)
+- M2_MAX_DAILY_ENTRIES: 10 (dinamico por volatilidade)
+- Gate de promocao: lucro consecutivo, reconciliacao perfeita
+
+**Reversao de Fase**: Se qualquer criterio violar, retornar para
+Fase 1 imediatamente com playbook de incidente
