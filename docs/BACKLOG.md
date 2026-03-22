@@ -28,6 +28,56 @@ a diversas situações de mercado e coletar rewards reais.
 
 ## Prioridade P0 (iniciar agora)
 
+## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
+
+### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
+
+Status: Planned
+
+Sprint: S-2
+Prioridade: M (Média)
+
+Descrição:
+Migrar a estrutura de mensagem de status do ciclo M2 para padrão aderente
+à arquitetura model-driven. A mensagem atual mistura conceitos antigos
+(scanner/resolver/bridge) que não fazem sentido para operador.
+
+Contexto:
+
+- Logs atuais são densos e técnicos
+- Operador precisa ver: dados frescos → decisão → episódio → treino →
+  posição
+
+Solução:
+
+1. Criar módulo `core/model2/cycle_report.py` com dataclass `SymbolReport`
+2. Implementar formatadores visuais (blocos ASCII claros)
+3. Integrar em `scripts/model2/live_cycle.py` (substituir logs antigos)
+4. Adicionar coleta de info de treino + posições na Binance
+
+Critérios de Aceite:
+
+- [ ] Módulo `core/model2/cycle_report.py` criado e testado
+- [ ] Integração em `live_cycle.py`
+- [ ] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`)
+- [ ] Testes: pytest -q tests/test_cycle_report.py >= 70%
+- [ ] Execução com iniciar.bat opcao 1 (shadow mode)
+- [ ] docs/SYNCHRONIZATION.md registrado
+- [ ] Markdown lint passou
+
+Dependencias:
+
+- BLID-072 (captura continua de episodios)
+- Risk gate ativo
+
+Impacto Arquitetural:
+
+- ARQUITETURA_ALVO.md: Adicionar Camada 5 (Observabilidade)
+- MODELAGEM_DE_DADOS.md: Novo schema (rl_training_log, rl_episodes)
+- (Nenhum conflito com ADRS ativos)
+
+---
+
 ## INICIATIVA M2-010 - Captura Contínua de Episódios (BLID-072)
 
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards

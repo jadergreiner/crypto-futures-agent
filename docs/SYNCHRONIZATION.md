@@ -23,6 +23,42 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-030] M2-011 BLID-073 - Nova Estrutura de Mensagem do Ciclo
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-073 criada (Observabilidade ciclo M2) |
+| Arquitetura Alvo | docs/ARQUITETURA_ALVO.md | Camada 6 adicionada (Obs e Reporting) |
+| Modelagem Dados | docs/MODELAGEM_DE_DADOS.md | Entidades rl_training_log e rl_episodes |
+| Audit Trail | docs/SYNCHRONIZATION.md | Registro [SYNC-030] |
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| core/model2/cycle_report.py | NOVO | Modulo de formatacao (420+ linhas) |
+
+#### Detalhes
+
+- **cycle_report.py**: Centraliza coleta e formatacao de mensagem de ciclo
+- **SymbolReport**: Dataclass com todas as metricas por simbolo
+- **Helpers**: `collect_training_info()`, `collect_position_info()`, formatadores
+- **Formatacao**: Blocos ASCII claros, ícones de decisão, barra de progresso
+
+#### Observacoes
+
+- Modulo pronto para integração em `scripts/model2/live_cycle.py`
+- Coleta segura de treino/posição com fallback
+- Compatível com ARQUITETURA_ALVO.md (Camada 6)
+- Sem dependências de novos pacotes (Python stdlib only)
+
+---
+
 ### [SYNC-029] M2-019.1 EntryDecisionEnv - RL por Simbolo
 
 **Data/Hora**: 2026-03-22 UTC

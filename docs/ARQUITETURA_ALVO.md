@@ -107,6 +107,30 @@ Persistencia de decisao no estado atual:
 1. Tabela `model_decisions` para trilha da inferencia.
 2. Vinculo opcional `signal_executions.decision_id` para correlacao.
 
+## Camada 6 - Observabilidade e Reporting
+
+Responsavel por:
+
+1. Consolidar e formatar status do ciclo de forma clara e auditavel.
+2. Comunicar decisao + reward + treino + posicao aberta ao operador.
+3. Coletar metricas de execucao (latencia, precisao, P&L).
+
+Componentes:
+
+1. `core/model2/cycle_report.py` — Modulo de formatacao de relatorios
+2. `SymbolReport` — Dataclass com metricas do ciclo por simbolo
+3. `format_symbol_report()` — Bloco ASCII legivel
+4. `format_cycle_summary()` — Resumo do ciclo com N simbolos
+
+Dados coletados por simbolo:
+
+1. Candles capturados (count, timestamp do ultimo)
+2. Decisao do modelo (acao, confianca, dados frescos?)
+3. Episodio persistido (ID, reward, status)
+4. Treino (ultima data, episodios pendentes, progresso)
+5. Posicao aberta (side, qty, entry, mark, PnL%, PnL USD)
+6. Modo de execucao (shadow/live)
+
 ## Fluxo operacional atual
 
 1. Construir estado de mercado.

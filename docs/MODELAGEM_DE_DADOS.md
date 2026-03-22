@@ -111,6 +111,51 @@ Campos minimos:
 6. `rollback_version` (TEXT, nulo permitido)
 7. `created_at` (UTC ms)
 
+## 6) rl_training_log
+
+Registro de treino RL para coleta de metricas operacionais.
+
+Campos:
+
+1. `id` (PK)
+2. `episodes_used` (INTEGER)
+3. `avg_reward` (REAL, nulo permitido)
+4. `completed_at` (TEXT ISO 8601 ou UTC ms)
+5. `model_version` (TEXT, nulo permitido)
+
+Uso:
+
+1. Consultado por `cycle_report.collect_training_info()` para descobrir
+   ultimo treino e episodios pendentes.
+
+Indice:
+
+1. `(completed_at DESC)` para busca rápida do último treino.
+
+## 7) rl_episodes
+
+Episódios de aprendizado RL capturados durante execução.
+
+Campos:
+
+1. `id` (PK)
+2. `symbol` (TEXT)
+3. `decision` (TEXT: OPEN_LONG|OPEN_SHORT|HOLD|REDUCE|CLOSE)
+4. `reward` (REAL)
+5. `state_json` (TEXT, nulo permitido)
+6. `outcome_json` (TEXT, nulo permitido)
+7. `created_at` (TEXT ISO 8601 ou UTC ms)
+
+Uso:
+
+1. Consultado por `cycle_report.collect_training_info()` para contar
+   episódios pendentes desde o último treino.
+
+Indice:
+
+1. `(symbol, created_at DESC)` para busca por símbolo e tempo.
+2. `(created_at)` para query de episódios pendentes pós-treino.
+
 ## Integridade obrigatoria
 
 1. UTC ms em todos os timestamps.
