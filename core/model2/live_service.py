@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 import uuid
 from datetime import datetime, timezone
@@ -14,6 +15,12 @@ from risk.circuit_breaker import CircuitBreaker, CircuitBreakerState
 from risk.risk_gate import RiskGate, RiskGateStatus
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
+from .cycle_report import (
+    SymbolReport,
+    format_symbol_report,
+    collect_training_info,
+    collect_position_info,
+)
 from .rl_model_loader import RLModelLoader
 from .live_exchange import Model2LiveExchange
 from .live_execution import (
@@ -78,6 +85,11 @@ class Model2LiveExecutionService:
             self._last_train_time = datetime.fromtimestamp(
                 self._rl_loader.checkpoint_timestamp, tz=timezone.utc
             ).strftime("%Y-%m-%d %H:%M:%S")
+        # Config para busca de dados de treino (BD)
+        self._db_path = getattr(
+            config, "db_path",
+            "db/modelo2.db"
+        )
 
     def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
         try:
@@ -89,29 +101,86 @@ class Model2LiveExecutionService:
     def _log_operational_status(
         self,
         symbol: str,
-        decision: str,
+        decision: ModelDecision,
+        candles_count: int = 0,
+        last_candle_time: str = "",
     ) -> None:
-        """Formats and prints the operational status log line."""
+        """Formata status operacional usando novo padrao cycle_report."""
+        try:
+            # Coletar dados de treino
+            last_train, pending = collect_training_info(self._db_path)
+
+            # Coletar posicao aberta
+            pos_info = collect_position_info(symbol, self.exchange)
+
+            # Montar report
+            now = datetime.now(timezone.utc)
+            timeframe = "H4"  # padrao para M2
+            execution_mode = "live" if self.config.execution_mode == "live" else "shadow"
+
+            report = SymbolReport(
+                symbol=symbol,
+                timeframe=timeframe,
+                timestamp=now.strftime("%Y-%m-%d %H:%M:%S"),
+                candles_count=candles_count,
+                last_candle_time=last_candle_time,
+                decision=decision.action,
+                confidence=decision.confidence,
+                decision_fresh=True,
+                episode_id=None,  # sera preenchido apos execucao
+                episode_persisted=False,
+                reward=0.0,
+                last_train_time=last_train,
+                pending_episodes=pending,
+                has_position=bool(pos_info["has_position"]),
+                position_side=str(pos_info.get("position_side", "")),
+                position_qty=float(pos_info.get("position_qty", 0.0)),
+                position_entry_price=float(pos_info.get("position_entry_price", 0.0)),
+                position_mark_price=float(pos_info.get("position_mark_price", 0.0)),
+                position_pnl_pct=float(pos_info.get("position_pnl_pct", 0.0)),
+                position_pnl_usd=float(pos_info.get("position_pnl_usd", 0.0)),
+                execution_mode=execution_mode,
+            )
+
+            # Exibir relatorio formatado
+            output = format_symbol_report(report)
+            print(output, flush=True)
+
+        except Exception as exc:
+            # Fallback seguro para log antigo se houver erro
+            logger = logging.getLogger(__name__)
+            logger.warning("Falha ao formatar novo status: %s. Usando fallback.", exc)
+            self._log_operational_status_fallback(symbol, decision)
+
+    def _log_operational_status_fallback(
+        self,
+        symbol: str,
+        decision: ModelDecision,
+    ) -> None:
+        """Fallback para log antigo se novo formato falhar."""
         now = datetime.now(timezone.utc)
         pos_str = "None"
         pnl_str = "0.00"
 
         if self.exchange:
-            position = self.exchange.get_open_position(symbol)
-            if position:
-                direction = position.get("direction", "NONE")
-                size = position.get("position_size_qty", 0.0)
-                entry_price = position.get("entry_price", 0.0)
-                mark_price = position.get("mark_price", 0.0)
-                pos_str = f"{direction} {size:.4f}"
+            try:
+                position = self.exchange.get_open_position(symbol)
+                if position:
+                    direction = position.get("direction", "NONE")
+                    size = position.get("position_size_qty", 0.0)
+                    entry_price = position.get("entry_price", 0.0)
+                    mark_price = position.get("mark_price", 0.0)
+                    pos_str = f"{direction} {size:.4f}"
 
-                pnl = 0.0
-                if entry_price > 0 and size > 0:
-                    if direction == "LONG":
-                        pnl = (mark_price - entry_price) * size
-                    elif direction == "SHORT":
-                        pnl = (entry_price - mark_price) * size
-                pnl_str = f"{pnl:+.2f}"
+                    pnl = 0.0
+                    if entry_price > 0 and size > 0:
+                        if direction == "LONG":
+                            pnl = (mark_price - entry_price) * size
+                        elif direction == "SHORT":
+                            pnl = (entry_price - mark_price) * size
+                    pnl_str = f"{pnl:+.2f}"
+            except Exception:
+                pass
 
         log_template = (
             "[{timestamp}] [M2][{symbol}] | Data: OK | Model: Ran | "
@@ -121,7 +190,7 @@ class Model2LiveExecutionService:
         log_line = log_template.format(
             timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
             symbol=symbol,
-            decision=decision,
+            decision=decision.action,
             last_train=self._last_train_time,
             position=pos_str,
             pnl=pnl_str,
@@ -612,12 +681,14 @@ class Model2LiveExecutionService:
                     },
                 )
 
-            # >>> Início da instrumentação de log customizado
+            # >>> Início da instrumentacao de log customizado
             self._log_operational_status(
                 symbol=str(candidate["symbol"]),
-                decision=str(inferred_decision.action),
+                decision=inferred_decision,
+                candles_count=0,
+                last_candle_time="",
             )
-            # <<< Fim da instrumentação
+            # <<< Fim da instrumentacao
 
             gate_input: LiveExecutionGateInput | None = None
             created_decision = self.repository.create_model_decision(
