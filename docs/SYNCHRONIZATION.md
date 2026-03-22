@@ -23,6 +23,51 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-032] BLID-073 - Completação Observabilidade do Ciclo M2
+
+**Data/Hora**: 2026-03-22 12:57 UTC
+**Status**: CONCLUIDA
+**Commit**: d0b2d6c "[FEAT] BLID-073 - Integrar cycle_report em live_cycle.py + criar migrations rl_observability"
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao |
+| --- | --- | --- |
+| core/model2/cycle_report.py | JA EXISTENTE | Modulo de formatacao de relatorios |
+| scripts/model2/operator_cycle_status.py | JA INTEGRADO | Usa SymbolReport e format_symbol_report() |
+| scripts/model2/live_cycle.py | NOVA INTEGRACAO | Adiciona render_live_cycle_summary() |
+| scripts/model2/migrations/0009_create_rl_observability_tables.sql | NOVO | Tabelas rl_training_log e rl_episodes |
+
+#### Documentacao Impactada
+
+| Doc | Status | Atualizacao |
+| --- | --- | --- |
+| docs/BACKLOG.md | ATUALIZADO | BLID-073 marcada como COMPLETA |
+| docs/ARQUITETURA_ALVO.md | JA SINCRONIZADO | Camada 6 (Observabilidade) com cycle_report.py |
+| docs/MODELAGEM_DE_DADOS.md | JA SINCRONIZADO | Tabelas 6) rl_training_log e 7) rl_episodes |
+
+#### Criterios de Aceite (BLID-073)
+
+- [x] Modulo `core/model2/cycle_report.py` criado e testado (15/15 testes PASSANDO)
+- [x] Integracao em `live_cycle.py` com render_live_cycle_summary()
+- [x] Integracao em `operator_cycle_status.py` (jà funcional)
+- [x] Tabelas de suporte DB criadas via migracao 0009
+- [x] Testes: pytest -q tests/test_cycle_report.py >= 70% (15/15 PASSANDO)
+- [x] Execucao com iniciar.bat opcao 1 — novo padrao exibindo com UTF-8
+- [x] docs/SYNCHRONIZATION.md registrado
+- [x] Markdown lint passou
+
+#### Verificacoes Executadas
+
+- ✅ `pytest -q tests/test_cycle_report.py` → 15 PASSANDO
+- ✅ `python -m py_compile scripts/model2/live_cycle.py` → OK
+- ✅ `python scripts/model2/migrate.py up` → Migracao 0009 aplicada com sucesso
+- ✅ `python scripts/model2/operator_cycle_status.py` → Novo formato com UTF-8 renderizado
+- ✅ `markdownlint docs/{BACKLOG,SYNCHRONIZATION,ARQUITETURA_ALVO,MODELAGEM_DE_DADOS}.md` → OK
+- ✅ `git push origin main` → Sincronizado com HEAD=d0b2d6c
+
+---
+
 ### [SYNC-031] operator_cycle_status.py - Integração cycle_report.py
 
 **Data/Hora**: 2026-03-22 09:45 UTC

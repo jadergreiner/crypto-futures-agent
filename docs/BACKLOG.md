@@ -32,7 +32,7 @@ a diversas situações de mercado e coletar rewards reais.
 
 ### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
 
-Status: Planned
+Status: ✅ COMPLETA
 
 Sprint: S-2
 Prioridade: M (Média)
@@ -57,13 +57,13 @@ Solução:
 
 Critérios de Aceite:
 
-- [ ] Módulo `core/model2/cycle_report.py` criado e testado
-- [ ] Integração em `live_cycle.py`
-- [ ] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`)
-- [ ] Testes: pytest -q tests/test_cycle_report.py >= 70%
-- [ ] Execução com iniciar.bat opcao 1 (shadow mode)
-- [ ] docs/SYNCHRONIZATION.md registrado
-- [ ] Markdown lint passou
+- [x] Módulo `core/model2/cycle_report.py` criado e testado
+- [x] Integração em `live_cycle.py` + `operator_cycle_status.py`
+- [x] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`) — migração 0009
+- [x] Testes: pytest -q tests/test_cycle_report.py >= 70% (15/15 PASSANDO)
+- [x] Execução com iniciar.bat opcao 1 (shadow mode) — novo padrão exibindo
+- [x] docs/SYNCHRONIZATION.md registrado ([SYNC-031])
+- [x] Markdown lint passou
 
 Dependencias:
 
