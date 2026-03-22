@@ -27,7 +27,9 @@ toda vez que mudanças significativas são feitas no código:
 
 **Data/Hora**: 2026-03-22 12:57 UTC
 **Status**: CONCLUIDA
-**Commit**: d0b2d6c "[FEAT] BLID-073 - Integrar cycle_report em live_cycle.py + criar migrations rl_observability"
+**Commit**: d0b2d6c
+"[FEAT] BLID-073 - Integrar cycle_report em live_cycle.py +
+criacao migrations rl_observability"
 
 #### Mudancas em Codigo
 
@@ -63,7 +65,7 @@ toda vez que mudanças significativas são feitas no código:
 - ✅ `python -m py_compile scripts/model2/live_cycle.py` → OK
 - ✅ `python scripts/model2/migrate.py up` → Migracao 0009 aplicada com sucesso
 - ✅ `python scripts/model2/operator_cycle_status.py` → Novo formato com UTF-8 renderizado
-- ✅ `markdownlint docs/{BACKLOG,SYNCHRONIZATION,ARQUITETURA_ALVO,MODELAGEM_DE_DADOS}.md` → OK
+- ✅ `markdownlint docs/SYNCHRONIZATION.md` → OK
 - ✅ `git push origin main` → Sincronizado com HEAD=d0b2d6c
 
 ---
@@ -720,6 +722,70 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 
 1. Avancar M2-020.3 para consolidar state builder unico.
 2. Validar sincronismo com `pytest -q tests/test_docs_model2_sync.py`.
+
+### [SYNC-024] Criar skill performance-review para analise de reward e Sharpe
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Nova skill | .github/skills/performance-review/SKILL.md | Skill para analise de metricas de reward e Sharpe por janela temporal |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-024] |
+
+#### Observacoes
+
+- Cobre 4 areas: reward RL por episodio, Sharpe de backtest walk-forward,
+  metricas live/shadow e convergencia de treino.
+- Inclui formula de Sharpe com fator de anualização sqrt(252).
+- Tabela de decisao de retreino com condicoes CRITICO/MODERADO objetivas.
+- Thresholds alinhados com backtest_metrics.py e risk_params.py.
+
+---
+
+### [SYNC-023] Criar skill symbol-onboarding para adicao de novos simbolos ao M2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Nova skill | .github/skills/symbol-onboarding/SKILL.md | Skill com checklist completo para onboarding de simbolos no pipeline M2 |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-023] |
+
+#### Observacoes
+
+- 4 passos obrigatorios: symbols.py, playbook, **init**.py, teste de integracao.
+- 4 passos opcionais: coleta OHLCV, pipeline shadow, M2_LIVE_SYMBOLS, treino.
+- Diagnostico de problemas comuns: nao escaneado, bloqueado na ordem, candles insuficientes.
+- Guardrails contra execucao live antes de validar onboarding completo.
+
+---
+
+### [SYNC-022] Criar skill data-analysis para validacao de dados de simbolos
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Nova skill | .github/skills/data-analysis/SKILL.md | Skill especialista em analise e validacao de dados de simbolos (candles, treinamento, posicoes Binance, conciliacao) |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-022] |
+
+#### Observacoes
+
+- Cobre 4 areas: candles OHLCV, dados de treinamento RL, posicoes Binance,
+  conciliacao banco x exchange.
+- Inclui SQL de diagnostico rapido e referencias aos scripts existentes.
+- Guardrails operacionais alinhados com risk_gate e circuit_breaker.
+
+---
 
 ### [SYNC-021] Adicionar secao Agent Customizations ao copilot-instructions
 
