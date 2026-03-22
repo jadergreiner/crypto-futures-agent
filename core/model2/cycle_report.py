@@ -10,7 +10,8 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional, Sequence
+from zoneinfo import ZoneInfo
+from typing import Any, Optional, Sequence, cast
 
 logger = logging.getLogger(__name__)
 
@@ -132,10 +133,11 @@ def format_cycle_summary(
     next_cycle_time: str,
 ) -> str:
     """Formata resumo completo do ciclo com todos os simbolos."""
+    now_sp = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
     header = (
         f"\n{'=' * 48}\n"
         f"  CICLO #{cycle_number} | "
-        f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+        f"{now_sp.strftime('%Y-%m-%d %H:%M:%S %Z')}\n"
         f"{'=' * 48}"
     )
 
@@ -217,12 +219,12 @@ def collect_training_info(
 def collect_position_info(
     symbol: str,
     exchange_client: object | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Coleta posicao aberta na Binance para o simbolo.
 
     Retorna dict com campos do SymbolReport (position_*).
     """
-    info: dict = {
+    info: dict[str, Any] = {
         "has_position": False,
         "position_side": "",
         "position_qty": 0.0,
@@ -267,11 +269,11 @@ def collect_position_info(
 
 def _fetch_positions(
     client: object, symbol: str
-) -> list:
+) -> list[dict[str, Any]]:
     """Abstrai busca de posicoes em diferentes clientes."""
     # ccxt
     if hasattr(client, "fetch_positions"):
-        raw = client.fetch_positions([symbol])
+        raw = cast(list[dict[str, Any]], client.fetch_positions([symbol]))
         return [
             {
                 "positionAmt": p.get("contracts", 0)
@@ -284,10 +286,13 @@ def _fetch_positions(
         ]
     # binance-connector / client.futures_position_information
     if hasattr(client, "futures_position_information"):
-        return client.futures_position_information(symbol=symbol)
+        return cast(
+            list[dict[str, Any]],
+            client.futures_position_information(symbol=symbol),
+        )
     # fallback: client generico com get_position
     if hasattr(client, "get_position"):
-        return [client.get_position(symbol)]
+        return [cast(dict[str, Any], client.get_position(symbol))]
     return []
 
 

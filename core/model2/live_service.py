@@ -7,6 +7,7 @@ import logging
 import time
 import uuid
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Any
 
 import numpy as np
@@ -74,7 +75,7 @@ class Model2LiveExecutionService:
         self.repository = repository
         self.config = config
         self.exchange = exchange
-        self._risk_gate = risk_gate or RiskGate()
+        self._risk_gate = risk_gate or RiskGate()  # type: ignore[no-untyped-call]
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
         self._guardrail_balance_initialized = False
         self._rl_loader = RLModelLoader()
@@ -114,14 +115,14 @@ class Model2LiveExecutionService:
             pos_info = collect_position_info(symbol, exchange_client=self.exchange)
 
             # Montar report
-            now = datetime.now(timezone.utc)
+            now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
             timeframe = "H4"  # padrao para M2
             execution_mode = "live" if self.config.execution_mode == "live" else "shadow"
 
             report = SymbolReport(
                 symbol=symbol,
                 timeframe=timeframe,
-                timestamp=now.strftime("%Y-%m-%d %H:%M:%S"),
+                timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
                 candles_count=candles_count,
                 last_candle_time=last_candle_time,
                 decision=decision.action,
@@ -158,7 +159,7 @@ class Model2LiveExecutionService:
         decision: ModelDecision,
     ) -> None:
         """Fallback para log antigo se novo formato falhar."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
         pos_str = "None"
         pnl_str = "0.00"
 
