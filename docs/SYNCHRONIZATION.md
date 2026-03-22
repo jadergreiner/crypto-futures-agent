@@ -23,6 +23,67 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-044] Criação do Agente QA-TDD (Stage 4) - Workflow TDD Centralizado
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Tipo |
+| --- | --- | --- |
+| Agent | .github/agents/4.qa-tdd.agent.md | CREATE |
+| Skill | .github/skills/4.qa-tdd/SKILL.md | CREATE |
+| README | .github/skills/4.qa-tdd/README.md | CREATE |
+| Exemplo Testes | .github/skills/4.qa-tdd/examples/test_order_layer.py | CREATE |
+| Exemplo Prompt | .github/skills/4.qa-tdd/examples/prompt_output_example.md | CREATE |
+| Fixtures | .github/skills/4.qa-tdd/fixtures/conftest.py | CREATE |
+| Checklist | .github/skills/4.qa-tdd/CHECKLIST.md | CREATE |
+| Integração | .github/instructions/qa-tdd-integration.instructions.md | CREATE |
+| Registro | AGENTS.md | CREATE |
+
+#### Mudancas de Documentacao Existente
+
+Nenhuma (docs/SYNCHRONIZATION.md atualizado apenas).
+
+#### Impacto
+
+- **Novo stage (4)**: PO → SA → **QA-TDD** → SE → QA-Live
+- **Ciclo TDD formalizado**: Red → Green → Refactor
+- **Handoff estruturado**: SA emite prompt para QA-TDD
+- **Guardrails forte**: risk_gate e circuit_breaker nunca mockados
+- **Backlog auto-sync**: QA-TDD registra suite em docs/BACKLOG.md
+- **Prompt auto-suficiente**: SE tem tudo que precisa, TDD completo
+
+#### Integração no Workflow
+
+```
+PO → SA → QA-TDD (NEW) → SE → QA-Live
+```
+
+1. **Product Owner**: Prioriza backlog (skill 2.product-owner)
+2. **Solution Architect**: Refina requisitos (skill 3.solution-architect)
+3. **QA-TDD** (NEW): Escreve testes RED (skill 4.qa-tdd)
+4. **Software Engineer**: Implementa GREEN+REFACTOR (skill 5 - futuro)
+5. **QA-Live**: Decisão GO/NO-GO (skill 8 - futuro)
+
+#### Guardrails Implementados
+
+✅ Nunca mockear `risk/risk_gate.py` ou `risk/circuit_breaker.py`
+✅ Preservar idempotência por `decision_id` em decisão e execução
+✅ Estrutura AAA obrigatória: Arrange → Act → Assert
+✅ Nomenclatura: `test_<funcionalidade>_<condicao>_<resultado>`
+✅ Cobertura mínima: unitários + integração + regressão/risk
+✅ Testes inicialmente FALHAM (RED phase) — não passar por acaso
+
+#### Próximas Ações
+
+1. Solution Architect começa emitindo handoff estruturado para QA-TDD
+2. Adicionar estágio 5 (Software Engineer) com skill correspondente
+3. Adicionar estágio 8 (QA-Live) com skill correspondente
+
+---
+
 ### [SYNC-043] BLID-072 - Captura Continua de Episodios Implementada
 
 **Data/Hora**: 2026-03-22 UTC
