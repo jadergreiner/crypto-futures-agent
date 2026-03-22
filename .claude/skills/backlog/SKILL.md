@@ -16,17 +16,27 @@ metadata:
 
 Gerenciar backlog com contexto minimo e saida curta.
 
+Meta de custo: minimizar leitura e escrita sem perder rastreabilidade.
+
 ## Modo Economico
 
 Regra principal: ler apenas o necessario para cumprir o pedido.
 
-1. Sempre ler `docs/BACKLOG.md`.
-2. Ler `docs/PRD.md` apenas se o pedido mexer em escopo, prioridade
-   macro, roadmap ou iniciativa.
-3. Ler docs arquiteturais apenas se a mudanca alterar arquitetura,
-   schema, fluxo ou regra oficial.
-4. Ler `docs/SYNCHRONIZATION.md` apenas quando for registrar sync ou
-   checar trilha de auditoria.
+1. Buscar primeiro no backlog por chave (BLID, iniciativa, sprint, status).
+2. Ler apenas o bloco alvo em `docs/BACKLOG.md` (janela local), nao o arquivo
+  inteiro, quando o pedido for pontual.
+3. Ler `docs/PRD.md` apenas se o pedido mexer em escopo, prioridade
+  macro, roadmap ou iniciativa.
+4. Ler docs arquiteturais apenas se a mudanca alterar arquitetura,
+  schema, fluxo ou regra oficial.
+5. Ler `docs/SYNCHRONIZATION.md` apenas quando for registrar sync.
+
+Politica de leitura por tipo:
+
+- Consulta de status: 1 busca + 1 leitura local.
+- Atualizacao de item existente: 1 busca + 1 leitura local + edicao.
+- Criacao de item novo: 1 busca de numeracao BLID + 1 leitura da secao alvo.
+- Sync de docs: ler apenas arquivos realmente impactados.
 
 Evitar:
 
@@ -46,6 +56,12 @@ Evitar:
    doc oficial.
 7. Responder de forma curta com resultado, impacto e pendencias reais.
 
+Atalho para consultas simples:
+
+1. Identificar entidade alvo (BLID, sprint, iniciativa).
+2. Ler so o bloco da entidade.
+3. Responder em ate 5 linhas.
+
 ## Regras de Escrita
 
 - `docs/BACKLOG.md` e a fonte de verdade para tarefas e status.
@@ -61,6 +77,18 @@ Evitar:
   `docs/BACKLOG.md` ou outra doc oficial.
 - Atualizar `docs/PRD.md` apenas se houver impacto real em escopo.
 - Nao sincronizar por reflexo: se um arquivo nao foi impactado, nao citar.
+
+Regra de custo:
+
+- Se a mudanca ficou restrita ao backlog e nao mudou escopo/arquitetura,
+  sincronizar apenas `docs/SYNCHRONIZATION.md`.
+
+## Formato de Resposta
+
+- Consulta: ate 5 linhas.
+- Criacao/atualizacao: ate 8 linhas.
+- Sincronizacao: ate 6 linhas.
+- Nao gerar tabela ou diff longo sem pedido explicito.
 
 ## Template Minimo
 

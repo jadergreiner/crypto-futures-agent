@@ -20,6 +20,8 @@ user-invocable: true
 
 Gerenciar backlog com contexto minimo e acao direta.
 
+Meta de custo: minimizar leitura e escrita sem perder rastreabilidade.
+
 Use esta skill para:
 
 - criar task nova em docs/BACKLOG.md
@@ -34,14 +36,23 @@ Regra principal: ler apenas o necessario para cumprir o pedido.
 
 Ordem de leitura:
 
-1. Sempre ler docs/BACKLOG.md.
-2. Ler docs/PRD.md apenas se o pedido mexer em escopo, prioridade,
-   roadmap de produto ou iniciativa.
-3. Ler docs/ARQUITETURA_ALVO.md, docs/ADRS.md, docs/DIAGRAMAS.md,
-   docs/MODELAGEM_DE_DADOS.md e docs/REGRAS_DE_NEGOCIO.md apenas se a
-   mudanca alterar arquitetura, schema, fluxo ou regra oficial.
-4. Ler docs/SYNCHRONIZATION.md apenas quando for registrar sync ou checar
-   trilha de auditoria.
+1. Buscar primeiro no backlog por chave (BLID, iniciativa, sprint, status).
+2. Ler apenas o bloco alvo em docs/BACKLOG.md (janela local), nao o arquivo
+  inteiro, quando o pedido for pontual.
+3. Ler docs/PRD.md apenas se o pedido alterar escopo, prioridade macro,
+  roadmap ou iniciativa.
+4. Ler docs/ARQUITETURA_ALVO.md e docs/ADRS.md apenas se a mudanca alterar
+  camada, contrato, fluxo ou decisao arquitetural.
+5. Ler docs/MODELAGEM_DE_DADOS.md e docs/REGRAS_DE_NEGOCIO.md apenas se
+  houver mudanca de schema ou regra oficial.
+6. Ler docs/SYNCHRONIZATION.md somente para registrar sync.
+
+Politica de leitura por tipo:
+
+- Consulta de status: 1 busca + 1 leitura local.
+- Atualizacao de item existente: 1 busca + 1 leitura local + edicao.
+- Criacao de item novo: 1 busca de numeracao BLID + 1 leitura da secao alvo.
+- Sync de docs: ler apenas arquivos realmente impactados.
 
 Evitar:
 
@@ -64,6 +75,12 @@ Evitar:
    oficial.
 7. Responder de forma curta com resultado, impacto e pendencias reais.
 
+Atalho para consultas simples:
+
+1. Identificar entidade alvo (BLID, sprint, iniciativa).
+2. Ler so o bloco da entidade.
+3. Responder em ate 5 linhas.
+
 ## Regras de Escrita
 
 - docs/BACKLOG.md e a fonte de verdade para tarefas e status.
@@ -72,6 +89,7 @@ Evitar:
 - Ao criar BLID, usar o maior numero existente + 1.
 - Manter texto em portugues.
 - Se o usuario pedir commit, usar ASCII puro e no maximo 72 caracteres.
+- Preservar a estrutura existente do backlog; evitar reformatar secoes antigas.
 
 ## Sincronizacao Minima
 
@@ -88,6 +106,11 @@ Sincronizar apenas quando houver impacto real:
 - docs/SYNCHRONIZATION.md: houve alteracao em doc oficial ou backlog oficial.
 
 Nao sincronizar por reflexo. Se um arquivo nao foi impactado, nao citar.
+
+Regra de custo:
+
+- Se a mudanca ficou restrita ao backlog e nao mudou escopo/arquitetura,
+  sincronizar apenas docs/SYNCHRONIZATION.md.
 
 ## Guardrails
 
@@ -124,6 +147,7 @@ Para economizar tokens, use saida curta por tipo de tarefa.
 - resumo direto
 - no maximo 3 bloqueadores ou riscos
 - proximos passos so se agregarem valor
+- limite alvo: ate 5 linhas
 
 ### Criacao ou atualizacao
 
@@ -131,12 +155,14 @@ Para economizar tokens, use saida curta por tipo de tarefa.
 - campos mudados
 - dependencias ou impactos reais
 - docs sincronizados, se houve
+- limite alvo: ate 8 linhas
 
 ### Sincronizacao
 
 - arquivos alterados
 - motivo objetivo
 - pendencia residual, se existir
+- limite alvo: ate 6 linhas
 
 Nao gerar tabelas, grafos ASCII ou diff textual longo sem pedido explicito.
 
@@ -182,6 +208,7 @@ frente ao PRD atual
 Uma skill mais previsivel e barata em tokens:
 
 - menos arquivos lidos por padrao
+- leitura local por bloco ao inves de arquivo inteiro
 - menos texto repetido
 - menos perguntas desnecessarias
 - mais aderencia ao backlog real do repositorio
