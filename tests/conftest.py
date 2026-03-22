@@ -37,6 +37,7 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_model_inference_service.py",
     "test_cycle_report.py",
     "test_docs_model2_sync.py",
+    "test_model2_blid_072_persist_episodes.py",
 )
 
 

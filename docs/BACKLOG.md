@@ -136,7 +136,7 @@ Impacto Arquitetural:
 
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
 
-Status: In Progress
+Status: CONCLUIDA (2026-03-22)
 
 Sprint: S-2
 Prioridade: P0
@@ -149,12 +149,12 @@ modo live e confirmar que episodios e rewards sao persistidos em DB.
 
 Critérios de Aceite:
 
-- [ ] Processo live captura candles atualizados por simbolo
-- [ ] Episodios com fill sao persistidos em `training_episodes`
-- [ ] Rewards calculados e persistidos para cada episodio
-- [ ] `iniciar.bat` opcao 1 inicia agente e mostra status OK
-- [ ] Testes de integracao basicos rodando (smoke)
-- [ ] Documentacao atualizada: `docs/SYNCHRONIZATION.md`
+- [x] Processo live captura candles atualizados por simbolo
+- [x] Episodios com fill sao persistidos em `training_episodes`
+- [x] Rewards calculados e persistidos para cada episodio
+- [x] `iniciar.bat` opcao 1 inicia agente e mostra status OK
+- [x] Testes de integracao basicos rodando (smoke)
+- [x] Documentacao atualizada: `docs/SYNCHRONIZATION.md`
 
 Dependencias:
 

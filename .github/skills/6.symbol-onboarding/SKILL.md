@@ -1,10 +1,10 @@
 ---
-name: symbol-onboarding
+name: 6.symbol-onboarding
 description: |
   Adiciona ou audita simbolo no M2 com checklist minimo e rastreavel.
   Foca em config, playbook, testes e validacao shadow.
 metadata:
-  workflow-stage: 5
+  workflow-stage: 6
   focus:
     - checklist-minimo
     - acao-direta

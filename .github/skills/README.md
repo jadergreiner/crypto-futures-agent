@@ -6,13 +6,14 @@ Workflow unico das skills do workspace, em ordem de uso mais provavel.
 
 1. `1.backlog-development` — criar, atualizar ou sincronizar backlog.
 2. `2.product-owner` — escolher o proximo item ou pacote.
-3. `3.data-analysis` — validar dados, banco, exchange e conciliacao.
-4. `4.performance-review` — revisar reward, Sharpe e degradacao.
-5. `5.symbol-onboarding` — adicionar ou auditar simbolo no pipeline M2.
-6. `6.m2-incident-response` — conter e reconciliar incidente fail-safe.
-7. `7.live-release-readiness` — decidir GO, GO_COM_RESTRICOES ou NO_GO.
-8. `8.commit` — validar qualidade, commitar e fazer push.
-9. `9.close` — encerrar a sessao com custo minimo.
+3. `3.solution-architect` — refinar demanda do PO em prompt para QA-TDD.
+4. `4.data-analysis` — validar dados, banco, exchange e conciliacao.
+5. `5.performance-review` — revisar reward, Sharpe e degradacao.
+6. `6.symbol-onboarding` — adicionar ou auditar simbolo no pipeline M2.
+7. `7.m2-incident-response` — conter e reconciliar incidente fail-safe.
+8. `8.live-release-readiness` — decidir GO, GO_COM_RESTRICOES ou NO_GO.
+9. `9.commit` — validar qualidade, commitar e fazer push.
+10. `10.close` — encerrar a sessao com custo minimo.
 
 ## Regras
 

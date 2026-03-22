@@ -1,10 +1,10 @@
 ---
-name: data-analysis
+name: 4.data-analysis
 description: |
   Diagnostica candles, treino, posicoes e conciliacao com evidencia minima.
   Prioriza scripts de diagnostico e leitura localizada.
 metadata:
-  workflow-stage: 3
+  workflow-stage: 4
   focus:
     - evidencias-objetivas
     - leitura-minima

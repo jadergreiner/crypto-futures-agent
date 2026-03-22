@@ -1,10 +1,10 @@
 ---
-name: commit
+name: 9.commit
 description: |
   Valida qualidade, faz commit e push com leitura minima.
   Roda pytest uma vez e mypy so nos modulos alterados.
 metadata:
-  workflow-stage: 8
+  workflow-stage: 9
   focus:
     - commit
     - qualidade

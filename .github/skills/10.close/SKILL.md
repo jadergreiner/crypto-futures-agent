@@ -1,10 +1,10 @@
 ---
-name: close
+name: 10.close
 description: |
    Fecha a sessao com custo minimo.
    Se houver alteracoes, delega para commit; se estiver limpo, so resume.
 metadata:
-   workflow-stage: 9
+   workflow-stage: 10
    focus:
       - fechamento
       - delegacao

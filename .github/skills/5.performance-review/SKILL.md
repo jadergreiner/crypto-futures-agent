@@ -1,10 +1,10 @@
 ---
-name: performance-review
+name: 5.performance-review
 description: |
   Revisa reward, Sharpe e degradacao por janela temporal.
   Emite diagnostico curto com severidade e acao recomendada.
 metadata:
-  workflow-stage: 4
+  workflow-stage: 5
   focus:
     - janela-temporal
     - thresholds-objetivos

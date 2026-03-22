@@ -1,10 +1,10 @@
 ---
-name: live-release-readiness
+name: 8.live-release-readiness
 description: |
   Decide GO, GO_COM_RESTRICOES ou NO_GO para promocao a live.
   Usa evidencias minimas, guardrails de risco e resposta curta.
 metadata:
-  workflow-stage: 7
+  workflow-stage: 8
   focus:
     - go-no-go
     - seguranca-operacional

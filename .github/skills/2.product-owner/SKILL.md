@@ -1,14 +1,14 @@
 ---
-name: product-owner
+name: 2.product-owner
 description: |
   Prioriza o proximo item ou pacote do backlog com score simples.
-  Entrega handoff curto e acionavel para execucao tecnica.
+  Entrega prompt acionavel para o agente Arquiteto de Solucoes.
 metadata:
   workflow-stage: 2
   focus:
     - priorizacao
     - valor
-    - handoff-curto
+    - handoff-arquiteto
 user-invocable: true
 ---
 
@@ -50,13 +50,41 @@ Escala 1-5 para Valor, Urgencia, Reducao de Risco e Esforco.
 
 ## Saida
 
-Responder sempre com:
+A resposta final deve ser somente um prompt acionavel para o agente
+`3.solution-architect`, sem prefacio adicional, no formato abaixo.
 
-- `DECISAO_PO: GO | GO_COM_RESTRICOES | NO_GO`
-- item escolhido com ID, titulo, score e classe
-- justificativa curta para valor, urgencia, risco e esforco
-- pacote minimo recomendado
-- proximo passo do refinamento tecnico
+```text
+Voce e o agente 3.solution-architect desta task.
+
+Contexto de priorizacao do PO:
+- DECISAO_PO: <GO | GO_COM_RESTRICOES | NO_GO>
+- Referencia do backlog: <BLID/ID>
+- Titulo do item: <titulo>
+- Objetivo de negocio: <resultado esperado>
+- Justificativa de prioridade: <valor, urgencia, risco e esforco>
+
+Escopo para refinamento tecnico:
+- Escopo fechado (entra): <lista objetiva>
+- Fora de escopo (nao entra): <lista objetiva>
+- Restricoes: <prazo, compliance, dependencia, custo>
+- Premissas do PO: <premissas validas>
+
+Criterios de sucesso orientados a produto:
+1. <criterio mensuravel 1>
+2. <criterio mensuravel 2>
+3. <criterio mensuravel 3>
+
+Riscos e guardrails obrigatorios:
+- Risco operacional principal: <descricao>
+- Controles obrigatorios: manter risk_gate e circuit_breaker ativos.
+- Em duvida operacional: fail-safe.
+
+Sua tarefa como Arquiteto de Solucoes:
+1. Refinar requisitos funcionais e nao funcionais verificaveis.
+2. Revisar aderencia arquitetural e pontos de extensao.
+3. Revisar impacto de modelagem de dados e contratos.
+4. Gerar prompt final acionavel para o agente QA-TDD.
+```
 
 ## Guardrails
 

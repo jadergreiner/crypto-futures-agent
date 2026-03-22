@@ -23,6 +23,28 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-043] BLID-072 - Captura Continua de Episodios Implementada
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Ciclo principal | iniciar.bat | Chamada persist_training_episodes entre live_cycle e healthcheck |
+| Suite de testes | tests/test_model2_blid_072_persist_episodes.py | 18 testes novos (unit + integracao) |
+| Allowlist de testes | tests/conftest.py | Novo arquivo adicionado em MODEL_DRIVEN_TEST_PATTERNS |
+| Backlog | docs/BACKLOG.md | BLID-072 marcado CONCLUIDA, criterios [x] |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-043 adicionado |
+
+#### Impacto
+
+- Episodios com fill persistidos em training_episodes por ciclo live
+- Rewards calculados (win/loss/breakeven/pending) para retroalimentar treino RL
+- Idempotencia garantida via INSERT OR IGNORE + cursor incremental
+- 116 testes passando sem regressoes
+
 ### [SYNC-038] Remover referencias antigas a TRACKER e ROADMAP
 
 **Data/Hora**: 2026-03-22 UTC

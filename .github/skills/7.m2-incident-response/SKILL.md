@@ -1,10 +1,10 @@
 ---
-name: m2-incident-response
+name: 7.m2-incident-response
 description: |
   Contem e reconcilia incidentes do Modelo 2.0 em modo fail-safe.
   Prioriza risco atual, evidencias minimas e correcao localizada.
 metadata:
-  workflow-stage: 6
+  workflow-stage: 7
   focus:
     - fail-safe
     - leitura-minima
