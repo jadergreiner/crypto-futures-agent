@@ -2,10 +2,10 @@
 
 ## 1. Executivo
 
-**Data/Hora Ciclo**: 2026-03-21 22:49:30 BRT  
-**Status Geral**: ✅ **OPERACIONAL - COMPLIANT**  
-**Veredicto**: **GO** para continuar em Fase 1  
-**Risk Posture**: Conservador (conforme esperado)  
+**Data/Hora Ciclo**: 2026-03-21 22:49:30 BRT
+**Status Geral**: ✅ **OPERACIONAL - COMPLIANT**
+**Veredicto**: **GO** para continuar em Fase 1
+**Risk Posture**: Conservador (conforme esperado)
 **Confiança**: Alta (95%)
 
 ---
@@ -102,29 +102,29 @@
 ## 4. Análise de Estados por Símbolo
 
 ### BTCUSDT
-**Estado**: entrada_sem_sinal_consumido  
-**Análise**: 
+**Estado**: entrada_sem_sinal_consumido
+**Análise**:
 - Oportunidade identificada no scanner
 - Em rastreamento, validação em progresso
 - Sinal técnico ainda não consumido pela camada de ordem
 - **Status de Conformidade**: ✅ Normal para Fase 1
 
 ### ETHUSDT
-**Estado**: entrada_ignorada_sinal_ja_processado  
+**Estado**: entrada_ignorada_sinal_ja_processado
 **Análise**:
 - Sinal foi consumido anteriormente
 - Sistema detectou duplicação e ignorou corretamente
 - **Status de Conformidade**: ✅ Idempotência funcionando
 
 ### BNBUSDT
-**Estado**: entrada_ignorada_sinal_ja_processado  
+**Estado**: entrada_ignorada_sinal_ja_processado
 **Análise**:
 - Sem oportunidade identificada pelo scanner
 - Sinal anterior já processado e ignorado
 - **Status de Conformidade**: ✅ HOLD respeitado
 
 ### SOLUSDT
-**Estado**: entrada_em_processamento_BLOCKED=1  
+**Estado**: entrada_em_processamento_BLOCKED=1
 **Análise**:
 - Oportunidade identificada
 - Risk gate bloqueando execução
@@ -132,7 +132,7 @@
 - **Status de Conformidade**: ✅ Fail-safe funcionando
 
 ### XRPUSDT
-**Estado**: entrada_em_processamento_BLOCKED=1  
+**Estado**: entrada_em_processamento_BLOCKED=1
 **Análise**:
 - Oportunidade identificada
 - Risk gate bloqueando execução
@@ -140,7 +140,7 @@
 - **Status de Conformidade**: ✅ Fail-safe funcionando
 
 ### FLUXUSDT
-**Estado**: entrada_ignorada_sinal_ja_processado (track: bloqueado_short_only=1)  
+**Estado**: entrada_ignorada_sinal_ja_processado (track: bloqueado_short_only=1)
 **Análise**:
 - Scanner bloqueou short (1 bloqueio)
 - Sinal anterior já processado
@@ -226,13 +226,13 @@
 ## 9. Evidências
 
 - Arquivo de análise: `logs/m2_cycle_analysis_20260321_224930.json`
-- Referências: 
+- Referências:
   - docs/REGRAS_DE_NEGOCIO.md
   - docs/RUNBOOK_M2_OPERACAO.md
   - .github/instructions/model2-live.instructions.md
 
-**Validação Executada**: 2026-03-21 (tempo real)  
-**Validador**: Agent Copilot (Autonomous)  
+**Validação Executada**: 2026-03-21 (tempo real)
+**Validador**: Agent Copilot (Autonomous)
 **Confiança**: 95%
 
 ---

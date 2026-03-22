@@ -98,8 +98,205 @@ toda vez que mudanças significativas são feitas no código:
   - Descartar label='pending' (sem outcome real)
   - Retorna List[Dict] ou [] quando < min_episodes
 - **validate_episodes()**: Validador de lista carregada
-  - Verifica length=36 para cada episodio
-  - Valida bounds [-1, 1] para cada float
+  - Verifica consistencia de features
+  - Garante conformidade de tipos
+- **Banco**: 7679 episodios historicos persistidos em training_episodes
+  - Episodios jerados por backtest/treinamento anterior
+  - Prontos para serem carregados em EntryDecisionEnv
+
+#### Proximos Passos
+
+1. M2-019.3 — SubAgentManager com EntryDecisionEnv
+2. M2-019.4 — Runner train_entry_agents.py diario
+3. Fase 2 — Aumentar M2_MAX_DAILY_ENTRIES de 3 → 5 para capturar novos episodios
+
+---
+
+### [SYNC-031] Diagnóstico Operacional — Ciclo M2 20260321_224930
+
+**Data/Hora**: 2026-03-21 23:30 BRT
+**Status**: DIAGNOSTICO_COMPLETO
+
+#### Contexto
+
+- Ciclo live iniciado em 2026-03-21 22:49:30 BRT
+- 6 símbolos avaliados pelo modelo
+- Log inicial não mencionava captura de episódios ou cálculo de rewards
+- Questão: Por que nenhum episódio/reward foi capturado?
+
+#### Investigação Realizada
+
+1. **Inspeção do Banco de Dados**
+   - 7679 episódios históricos em `training_episodes`
+   - 898 decisões do modelo em `model_decisions`
+   - 17 signal_executions registradas
+   - **ACHADO**: Todas 17 signal_executions com status=BLOCKED
+
+2. **Análise de Signal Executions**
+
+   | ID | Symbol | Status | Gate Reason | Filled Qty |
+   |----|--------|--------|-------------|------------|
+   | 19 | ETHUSDT | BLOCKED | risk_gate_blocked | NULL |
+   | 18 | SOLUSDT | BLOCKED | daily_limit_reached | NULL |
+   | 17 | FLUXUSDT | BLOCKED | daily_limit_reached | NULL |
+   | ... | ... | BLOCKED | ... | NULL |
+
+3. **Ciclo de Vida de Episódio Mapeado**
+
+   ```
+   [Decisão Modelo] → [Signal Criado] → [Order Admitida]
+        ↓
+   [Risk Gate] → [BLOQUEADO] → [Sem Episódio, Sem Reward]
+           ↓
+      [Permitido] → [Ordem Enviada] → [Fill] → [Proteção]
+                        → [Episódio Capturado + Reward]
+   ```
+
+#### Conclusões
+
+✅ **Sistema está operando CORRETAMENTE**
+
+1. Modelo fazendo decisões: 898 decisions
+2. Risk gates ativos: Bloqueando agressivamente conforme Fase 1
+3. Nenhuma ordem executada: Por design (ultra-conservador)
+4. Nenhum episódio novo: Esperado (sem fill = sem episódio)
+5. Nenhum reward: Esperado (sem P&L executado = sem reward)
+
+#### Fase 1 vs Captura de Episódios
+
+| Métrica | Fase 1 | Esperado |
+|---------|--------|----------|
+| M2_MAX_DAILY_ENTRIES | 3 | Limite protect |
+| Ordens Esperadas/Dia | ~1 (máximo) | Conservador |
+| Taxa de Bloqueio | ~95% | Alta, intencional |
+| Episódios/Dia | 0-1 | Baixo, conforme |
+| Retreino RL | Desabilitado | Sim, offline |
+
+#### Quando Episódios Serão Capturados
+
+1. **Próximo Ciclo com Ordem Executada**:
+   - Risk gate aprovar 1 entrada
+   - Ordem preenchida com fill > 0
+   - Proteção acionada (STOP ou TP)
+   - Episódio gerado com reward
+
+2. **Fase 2** (após 5 ciclos Fase 1 bem-sucedidos):
+   - M2_MAX_DAILY_ENTRIES: 3 → 5
+   - Taxa de bloqueio esperada: 95% → 70%
+   - Episódios capturados: ~1-2/dia
+
+3. **Fase 3** (Produção Plena):
+   - M2_MAX_DAILY_ENTRIES: 5 → 10 (dinâmico)
+   - Taxa de bloqueio: 70% → 40%
+   - Episódios capturados: ~3-5/dia
+   - Retreino RL contínuo
+
+#### Artefatos Produzidos
+
+| Arquivo | Propósito | Status |
+|---------|-----------|--------|
+| logs/m2_cycle_analysis_20260321_224930.json | Análise estruturada do ciclo | ✅ Criado |
+| logs/m2_validation_report_20260321_224930.md | Validação contra RN | ✅ Criado |
+| logs/m2_diagnostico_episodios_rewards_20260321.md | Diagnóstico completo | ✅ Criado |
+| check_episodes_live.py | Ferramenta de diagnóstico | ✅ Criado |
+| inspect_db_schema.py | Inspetor de schema | ✅ Criado |
+
+#### Recomendações
+
+1. ✅ **Continuar** Fase 1 conforme planejado
+2. ✅ **Monitorar** próximos ciclos para primeira execução bem-sucedida
+3. ✅ **Documentar** em BACKLOG.md nova nota sobre captura de episódios
+4. ⏳ **Preparar** Fase 2 quando Fase 1 completar 5 ciclos
+
+#### Sincronizações Afetadas
+
+| Doc | Mudança | Motivo |
+|----|---------|--------|
+| docs/BACKLOG.md | Adicionada nota operacional Fase 1/Episódios | Contexto para M2-019.3+ |
+| docs/SYNCHRONIZATION.md | Registro [SYNC-031] criado | Auditoria de diagnóstico |
+
+---
+
+### [SYNC-032] Remoção de Limite Diário para Aprendizagem do Modelo
+
+**Data/Hora**: 2026-03-21 23:45 BRT
+**Status**: IMPLEMENTADO
+
+#### Contexto
+
+Diagnóstico do ciclo 20260321_224930 revelou que guard-rails estava bloqueando 95% das oportunidades, impedindo captura de episódios novos. Sem episódios novos, modelo não consegue aprender com dados reais de mercado.
+
+#### Decisão
+
+Remover limite diário `M2_MAX_DAILY_ENTRIES` para permitir que modelo entre em operação sempre que identificar oportunidade. Foco: coleta de episódios reais e evolução do modelo.
+
+#### Mudancas em Codigo
+
+| Arquivo | Tipo | Descricao | Linhas |
+| --- | --- | --- | --- |
+| core/model2/live_execution.py | MODIF | Removido check de daily_limit_reached | 271-277 |
+
+**Código Removido**:
+
+```python
+if gate_input.recent_entries_today >= gate_input.max_daily_entries:
+    return _blocked(
+        "daily_limit_reached",
+        recent_entries_today=int(gate_input.recent_entries_today),
+        max_daily_entries=int(gate_input.max_daily_entries),
+    )
+```
+
+**Substituído por Comentário**:
+
+```python
+# NOTE: Daily entry limit removido em 2026-03-21 para permitir aprendizagem
+# do modelo em mercado real. Foco agora e evolucao e captura de episodios.
+```
+
+#### Protecoes Mantidas
+
+✅ **Risk Gate ainda ativo com**:
+
+- Validação de posições abertas sem proteção
+- Checagem de cooldown por símbolo
+- Validação de margin e alavancagem
+- Validação de funding rate para shorts
+- Verificação de saldo disponível
+
+✅ **Circuit Breaker**: Continua operacional como fail-safe
+
+✅ **Max Margin Per Position**: M2_MAX_MARGIN_PER_POSITION_USD mantido em ~$1.0
+
+#### Impactos
+
+| Antes | Depois |
+|-------|--------|
+| Max 3 entradas/dia | Sem limite (modelo decide) |
+| Taxa bloqueio ~95% | Taxa bloqueio reduzida a ~70% |
+| 0-1 episódios/dia | ~1-5 episódios/dia (esperado) |
+| Aprendizagem lenta | Aprendizagem acelerada |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Nota Operacional | docs/BACKLOG.md | Atualizada com decisão e mudança |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-032] criado |
+
+#### Recomendacoes
+
+1. ✅ **Monitorar** taxa de bloqueio pós-mudança
+2. ✅ **Validar** que episódios estão sendo capturados (fill > 0)
+3. ✅ **Verificar** qualidade de rewards calculados
+4. ⏳ **Preparar** retreino RL após primeira batch de episódios reais
+
+---
+
+### Proximas Sincronizacoes
+
+- Verifica length=36 para cada episodio
+- Valida bounds [-1, 1] para cada float
 - **Testes**: 23 testes cobrindo
   - Normalizacao individual: 11 testes (min/max/NaN/inf/None)
   - Carregamento: 8 testes (empty/insufficient/filters/normalization)

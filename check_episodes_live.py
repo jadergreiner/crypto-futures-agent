@@ -11,17 +11,17 @@ def check_episodes():
     if not DB_PATH.exists():
         print(f"❌ Banco não encontrado: {DB_PATH}")
         return
-    
+
     conn = sqlite3.connect(str(DB_PATH))
     c = conn.cursor()
-    
+
     # Verificar tabelas
     c.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
     tables = [row[0] for row in c.fetchall()]
     print(f"\n📊 Tabelas encontradas ({len(tables)}):")
     for table in tables:
         print(f"  - {table}")
-    
+
     # Verificar episódios
     try:
         c.execute("SELECT COUNT(*) FROM training_episodes;")
@@ -30,7 +30,7 @@ def check_episodes():
     except Exception as e:
         print(f"\n❌ Erro ao contar episódios: {e}")
         total_episodes = 0
-    
+
     # Episódios por símbolo
     if total_episodes > 0:
         try:
@@ -45,7 +45,7 @@ def check_episodes():
                 print(f"  - {symbol}: {count}")
         except Exception as e:
             print(f"❌ Erro: {e}")
-    
+
         # Rewards capturados
         try:
             c.execute("SELECT COUNT(*) FROM training_episodes WHERE reward IS NOT NULL;")
@@ -53,7 +53,7 @@ def check_episodes():
             print(f"\n💰 Episódios com Reward: {episodes_with_reward} / {total_episodes}")
         except Exception as e:
             print(f"⚠️ Erro ao verificar rewards: {e}")
-    
+
     # Verificar signal_executions
     try:
         c.execute("SELECT COUNT(*) FROM signal_executions;")
@@ -61,7 +61,7 @@ def check_episodes():
         print(f"\n📋 Total de signal_executions: {total_executions}")
     except Exception as e:
         print(f"⚠️ signal_executions não encontrado: {e}")
-    
+
     # Verificar signal_execution_events
     try:
         c.execute("SELECT COUNT(*) FROM signal_execution_events;")
@@ -69,13 +69,13 @@ def check_episodes():
         print(f"📋 Total de signal_execution_events: {total_events}")
     except Exception as e:
         print(f"⚠️ signal_execution_events não encontrado: {e}")
-    
+
     # Verificar model_decisions (decisões do modelo)
     try:
         c.execute("SELECT COUNT(*) FROM model_decisions;")
         total_decisions = c.fetchone()[0]
         print(f"\n🎯 Total de decisões do modelo: {total_decisions}")
-        
+
         if total_decisions > 0:
             c.execute("""
                 SELECT action, COUNT(*) as count
@@ -88,7 +88,7 @@ def check_episodes():
                 print(f"   - {action}: {count}")
     except Exception as e:
         print(f"⚠️ model_decisions não encontrado: {e}")
-    
+
     conn.close()
 
 if __name__ == "__main__":

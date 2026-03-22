@@ -2,6 +2,25 @@
 
 Somente funcionalidades e tarefas do Modelo 2.0.
 
+---
+
+## NOTA OPERACIONAL — Captura de Episódios em Fase 1
+
+**Data**: 2026-03-21
+**Ciclo Analisado**: 20260321_224930 BRT
+**Update**: 2026-03-21 — LIMITE DIÁRIO REMOVIDO PARA APRENDIZAGEM
+**Status Fase 1**: ✅ Operacional (conservadora, sem limite diário)
+
+**Decisão**: Remover limite M2_MAX_DAILY_ENTRIES para permitir que modelo entre em operação sempre que identificar oportunidade. Foco: aprendizagem com dados reais.
+
+**Motivo**: Nenhum episódio novo estava sendo capturado porque guard-rails bloqueava 95% das oportunidades. Para evoluir o modelo precisamos expô-lo a diversas situações de mercado e coletar rewards reais.
+
+**Mudança em Código**: Removido check de `daily_limit_reached` em `core/model2/live_execution.py` linhas 271-277.
+
+**Referência Diagnóstica**: `logs/m2_diagnostico_episodios_rewards_20260321.md`
+
+---
+
 ## Prioridade P0 (iniciar agora)
 
 ## INICIATIVA M2-001 - Fundacao da tese

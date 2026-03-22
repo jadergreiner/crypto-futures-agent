@@ -229,7 +229,7 @@ Quando primeira ordem for executada com fill > 0:
 - Schema do banco: Verificado via inspect_db_schema.py
 - Configuração Fase 1: docs/RUNBOOK_M2_OPERACAO.md (Thresholds de Escalonamento)
 
-**Diagnóstico Executado**: 2026-03-21  
+**Diagnóstico Executado**: 2026-03-21
 **Resultado**: ✅ **OPERACIONAL E CONFORME ESPECIFICAÇÃO**
 
 ---

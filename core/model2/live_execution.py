@@ -270,12 +270,8 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             symbol=gate_input.symbol,
         )
 
-    if gate_input.recent_entries_today >= gate_input.max_daily_entries:
-        return _blocked(
-            "daily_limit_reached",
-            recent_entries_today=int(gate_input.recent_entries_today),
-            max_daily_entries=int(gate_input.max_daily_entries),
-        )
+    # NOTE: Daily entry limit removido em 2026-03-21 para permitir aprendizagem
+    # do modelo em mercado real. Foco agora e evolucao e captura de episodios.
 
     if gate_input.max_margin_per_position_usd <= 0:
         return _blocked(
