@@ -11,17 +11,60 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 **Update**: 2026-03-21 — LIMITE DIÁRIO REMOVIDO PARA APRENDIZAGEM
 **Status Fase 1**: ✅ Operacional (conservadora, sem limite diário)
 
-**Decisão**: Remover limite M2_MAX_DAILY_ENTRIES para permitir que modelo entre em operação sempre que identificar oportunidade. Foco: aprendizagem com dados reais.
+**Decisão**: Remover limite M2_MAX_DAILY_ENTRIES para permitir que modelo
+entre em operação sempre que identificar oportunidade. Foco: aprendizagem
+com dados reais.
 
-**Motivo**: Nenhum episódio novo estava sendo capturado porque guard-rails bloqueava 95% das oportunidades. Para evoluir o modelo precisamos expô-lo a diversas situações de mercado e coletar rewards reais.
+**Motivo**: Nenhum episódio novo estava sendo capturado porque guard-rails
+bloqueava 95% das oportunidades. Para evoluir o modelo precisamos expô-lo
+a diversas situações de mercado e coletar rewards reais.
 
-**Mudança em Código**: Removido check de `daily_limit_reached` em `core/model2/live_execution.py` linhas 271-277.
+**Mudança em Código**: Removido check de `daily_limit_reached` em
+`core/model2/live_execution.py` linhas 271-277.
 
 **Referência Diagnóstica**: `logs/m2_diagnostico_episodios_rewards_20260321.md`
 
 ---
 
 ## Prioridade P0 (iniciar agora)
+
+## INICIATIVA M2-010 - Captura Contínua de Episódios (BLID-072)
+
+### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
+
+Status: Backlog
+
+Sprint: S-2
+Prioridade: P0
+
+Descrição:
+Garantir que o processo live capture candles e cotações, persista
+episodios de treino e calcule rewards para retroalimentar o treino RL.
+Verificar integracao com `iniciar.bat` (opcao 1) para subir o agente em
+modo live e confirmar que episodios e rewards sao persistidos em DB.
+
+Critérios de Aceite:
+
+- [ ] Processo live captura candles atualizados por simbolo
+- [ ] Episodios com fill sao persistidos em `training_episodes`
+- [ ] Rewards calculados e persistidos para cada episodio
+- [ ] `iniciar.bat` opcao 1 inicia agente e mostra status OK
+- [ ] Testes de integracao basicos rodando (smoke)
+- [ ] Documentacao atualizada: `docs/SYNCHRONIZATION.md`
+
+Dependencias:
+
+- Risk gate ativo (nao desabilitar) — `risk/risk_gate.py`
+- Migracoes aplicadas em `db/modelo2.db`
+
+Impacto Arquitetural:
+
+- ARQUITETURA_ALVO.md: Nao altera arquitetura, valida integracao
+- REGRAS_DE_NEGOCIO.md: confirma preservacao de validacoes de risco
+
+Notas:
+Executar `scripts/model2/go_live_preflight.py` antes de promover a
+alteracao para modo live completo.
 
 ## INICIATIVA M2-001 - Fundacao da tese
 
@@ -1415,15 +1458,6 @@ Entrega:
    `python scripts/model2/m2_018_1_shadow_validation.py --dry-run`. [OK]
 4. Confirmar que ciclo completo shadow funciona sem erros. [OK]
 
-Evidencias:
-
-1. Script: `scripts/model2/m2_018_1_shadow_validation.py` (274 linhas).
-2. Testes: `tests/test_model2_m2_018_1_shadow_validation.py`
-   (15 testes).
-3. Execucao: `python scripts/model2/m2_018_1_shadow_validation.py --cycles=3`.
-4. Relatorios: `results/model2/runtime/m2_018_1_cycle_*.json`.
-5. Relatorio final: `results/model2/analysis/m2_018_1_validation_report_*.json`.
-
 Uso:
 
 ```bash
@@ -1436,6 +1470,16 @@ python scripts/model2/m2_018_1_shadow_validation.py --dry-run --cycles=1
 # Com ciclos estendidos
 python scripts/model2/m2_018_1_shadow_validation.py --cycles=10
 ```
+
+Evidencias:
+
+1. Script: `scripts/model2/m2_018_1_shadow_validation.py` (274 linhas).
+2. Testes: `tests/test_model2_m2_018_1_shadow_validation.py`
+   (15 testes).
+3. Execucao: runner `scripts/model2/m2_018_1_shadow_validation.py`
+   validado com 3 ciclos.
+4. Relatorios: `results/model2/runtime/m2_018_1_cycle_*.json`.
+5. Relatorio final: `results/model2/analysis/m2_018_1_validation_report_*.json`.
 
 ### TAREFA M2-018.2 - Testes de integracao com Binance Testnet
 

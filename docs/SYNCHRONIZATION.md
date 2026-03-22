@@ -135,7 +135,7 @@ toda vez que mudanças significativas são feitas no código:
 2. **Análise de Signal Executions**
 
    | ID | Symbol | Status | Gate Reason | Filled Qty |
-   |----|--------|--------|-------------|------------|
+   | --- | --- | --- | --- | --- |
    | 19 | ETHUSDT | BLOCKED | risk_gate_blocked | NULL |
    | 18 | SOLUSDT | BLOCKED | daily_limit_reached | NULL |
    | 17 | FLUXUSDT | BLOCKED | daily_limit_reached | NULL |
@@ -165,7 +165,7 @@ toda vez que mudanças significativas são feitas no código:
 #### Fase 1 vs Captura de Episódios
 
 | Métrica | Fase 1 | Esperado |
-|---------|--------|----------|
+| --- | --- | --- |
 | M2_MAX_DAILY_ENTRIES | 3 | Limite protect |
 | Ordens Esperadas/Dia | ~1 (máximo) | Conservador |
 | Taxa de Bloqueio | ~95% | Alta, intencional |
@@ -194,7 +194,7 @@ toda vez que mudanças significativas são feitas no código:
 #### Artefatos Produzidos
 
 | Arquivo | Propósito | Status |
-|---------|-----------|--------|
+| --- | --- | --- |
 | logs/m2_cycle_analysis_20260321_224930.json | Análise estruturada do ciclo | ✅ Criado |
 | logs/m2_validation_report_20260321_224930.md | Validação contra RN | ✅ Criado |
 | logs/m2_diagnostico_episodios_rewards_20260321.md | Diagnóstico completo | ✅ Criado |
@@ -211,7 +211,7 @@ toda vez que mudanças significativas são feitas no código:
 #### Sincronizações Afetadas
 
 | Doc | Mudança | Motivo |
-|----|---------|--------|
+| --- | --- | --- |
 | docs/BACKLOG.md | Adicionada nota operacional Fase 1/Episódios | Contexto para M2-019.3+ |
 | docs/SYNCHRONIZATION.md | Registro [SYNC-031] criado | Auditoria de diagnóstico |
 
@@ -224,11 +224,16 @@ toda vez que mudanças significativas são feitas no código:
 
 #### Contexto
 
-Diagnóstico do ciclo 20260321_224930 revelou que guard-rails estava bloqueando 95% das oportunidades, impedindo captura de episódios novos. Sem episódios novos, modelo não consegue aprender com dados reais de mercado.
+Diagnóstico do ciclo 20260321_224930 revelou que guard-rails estava
+bloqueando 95% das oportunidades, impedindo captura de episódios novos.
+Sem episódios novos, modelo não consegue aprender com dados reais de
+mercado.
 
 #### Decisão
 
-Remover limite diário `M2_MAX_DAILY_ENTRIES` para permitir que modelo entre em operação sempre que identificar oportunidade. Foco: coleta de episódios reais e evolução do modelo.
+Remover limite diário `M2_MAX_DAILY_ENTRIES` para permitir que modelo
+entre em operação sempre que identificar oportunidade. Foco: coleta de
+episódios reais e evolução do modelo.
 
 #### Mudancas em Codigo
 
@@ -271,7 +276,7 @@ if gate_input.recent_entries_today >= gate_input.max_daily_entries:
 #### Impactos
 
 | Antes | Depois |
-|-------|--------|
+| --- | --- |
 | Max 3 entradas/dia | Sem limite (modelo decide) |
 | Taxa bloqueio ~95% | Taxa bloqueio reduzida a ~70% |
 | 0-1 episódios/dia | ~1-5 episódios/dia (esperado) |
@@ -290,6 +295,32 @@ if gate_input.recent_entries_today >= gate_input.max_daily_entries:
 2. ✅ **Validar** que episódios estão sendo capturados (fill > 0)
 3. ✅ **Verificar** qualidade de rewards calculados
 4. ⏳ **Preparar** retreino RL após primeira batch de episódios reais
+
+---
+
+### [SYNC-033] BLID-072 - Captura continua de episodios e rewards
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: PROPOSTA
+
+#### Arquivos Impactados
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Adicionada BLID-072 (captura episodios) |
+| Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-033] |
+
+#### Descricao
+
+Proposta para validar que o pipeline live captura candles em tempo
+real, persiste episodios de treino e calcula rewards, e que `iniciar.bat`
+opcao 1 sobe o agente em modo live para validacao operacional.
+
+#### Proximos Passos
+
+1. Confirmar proposta e atualizar `docs/BACKLOG.md` com BLID-072.
+2. Executar `scripts/model2/go_live_preflight.py` e testes smoke.
+3. Registrar com commit tag `[SYNC]` apos validacao.
 
 ---
 
