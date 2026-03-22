@@ -48,6 +48,21 @@ Pendencias operacionais:
 - BLID-076 - Hardening de reconciliacao e cobertura de aceite M2-018.2.
    Dependencia minima: M2-018.2 implementada e suite baseline verde.
    Impacto: reduzir falso EXITED e fechar lacunas de robustez operacional.
+- BLID-077 - Padronizar horario de Brasilia no log `[SYM]` do iniciar.bat.
+   Dependencia minima: formato atual do log reproduzivel em shadow/live.
+   Impacto: melhorar leitura operacional e remover ambiguidade de timezone.
+- BLID-078 - Corrigir regressao na captura de candles por simbolo.
+   Dependencia minima: evidencia reproduzivel do contador zerado em ciclo M2.
+   Impacto: restaurar dados frescos para decisao, episodio e observabilidade.
+- BLID-079 - Corrigir confianca `N/A` na linha de decisao `[SYM]`.
+   Dependencia minima: evidencia reproduzivel de decisao com confianca ausente.
+   Impacto: restaurar leitura operacional da qualidade da inferencia.
+- BLID-080 - Corrigir episodio `N/A` nao persistido no ciclo M2.
+   Dependencia minima: evidencia reproduzivel de episodio ausente no log.
+   Impacto: restaurar rastreabilidade de aprendizado e reward por ciclo.
+- BLID-081 - Corrigir rotina de treino incremental nao ocorrendo.
+   Dependencia minima: evidencia reproduzivel de treino estagnado no log.
+   Impacto: restaurar atualizacao incremental do modelo e evitar retreino stale.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -172,6 +187,105 @@ Impacto Arquitetural:
 - MODELAGEM_DE_DADOS.md: Novo schema (rl_training_log, rl_episodes)
 - (Nenhum conflito com ADRS ativos)
 
+### TAREFA BLID-077 - Padronizar horario de Brasilia no log `[SYM]`
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Padronizar a exibicao do horario de Brasilia no log de `iniciar.bat`
+para linhas `[SYM]`, deixando explicito o timestamp apos o simbolo e
+eliminando ambiguidade entre horario local e horario da exchange.
+
+Criterios de Aceite:
+
+- [ ] Linha `[SYM]` exibe horario apos o simbolo com timezone de Brasilia
+   identificado de forma explicita.
+- [ ] Formato fica consistente em execucao `shadow` e `live`.
+- [ ] Evidencia do novo padrao fica registrada no backlog ou log operacional.
+
+Dependencias:
+
+- BLID-073 concluida
+- Fluxo atual do `iniciar.bat` reproduzivel com linha `[SYM]`
+
+Impacto:
+
+- Melhora leitura operacional durante acompanhamento do ciclo M2
+- Reduz interpretacao incorreta de timestamps em monitoracao manual
+
+### TAREFA BLID-079 - Corrigir confianca `N/A` na linha de decisao `[SYM]`
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Corrigir a exibicao da confianca na linha `Decisao` do log `[M2][SYM]`,
+eliminando o valor `N/A` quando a inferencia retornar uma acao operacional
+como `OPEN_SHORT` ou equivalente.
+
+Evidencia minima:
+
+- 2026-03-22 18:18:18 BRT - `[M2][SYM]   Decisao  : 🔴 OPEN_SHORT
+   (confianca: N/A)`
+
+Criterios de Aceite:
+
+- [ ] Linha `Decisao` passa a exibir confianca numerica valida quando houver
+   acao inferida pelo modelo.
+- [ ] Formato fica consistente entre `shadow` e `live` para a mesma decisao.
+- [ ] Evidencia do novo padrao fica registrada no backlog ou log operacional.
+
+Dependencias:
+
+- BLID-073 concluida
+- Contrato de decisao model-driven disponivel no fluxo atual
+
+Impacto:
+
+- Restaura leitura operacional da qualidade da inferencia do modelo
+- Reduz ambiguidade ao avaliar se a acao foi emitida com confianca suficiente
+
+### TAREFA BLID-081 - Corrigir rotina de treino incremental nao ocorrendo
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Corrigir a rotina de treino incremental quando a linha `Treino` do log
+`[M2][SYM]` indicar ultimo treino defasado e nenhuma fila pendente sendo
+consumida, caracterizando estagnacao do retreino operacional.
+
+Evidencia minima:
+
+- 2026-03-22 18:18:21 BRT - `[M2][SYM]   Treino   : ultimo:
+   2026-03-15 17:22:40 | pendentes: 0/100 [░░░░░░░░░░]`
+
+Criterios de Aceite:
+
+- [ ] Rotina incremental volta a atualizar o timestamp de ultimo treino em
+   janela operacional valida.
+- [ ] Contador `pendentes` reflete backlog real de treino e avanca quando
+   houver episodios elegiveis.
+- [ ] Evidencia do retreino ou do bloqueio explicito fica registrada no
+   backlog ou log operacional.
+
+Dependencias:
+
+- Fluxo atual do `iniciar.bat` reproduzivel com linha `[M2][SYM]`
+- Episodios elegiveis disponiveis para treino incremental
+
+Impacto:
+
+- Restaura atualizacao incremental do modelo com rastreabilidade operacional
+- Reduz risco de operar com modelo defasado sem sinalizacao explicita
+
 ---
 
 ## INICIATIVA M2-010 - Captura Contínua de Episódios (BLID-072)
@@ -217,6 +331,76 @@ Evidencias:
 - Diagnostico de episodios: `check_episodes_live.py`.
 - Banco canonico M2: `db/modelo2.db`.
 - Suite de testes: `tests/test_docs_model2_sync.py`.
+
+### TAREFA BLID-078 - Corrigir regressao na captura de candles por simbolo
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Corrigir a regressao em que o log `[M2][SYM]` mostra `Candles  : 0
+capturados (ultimo: N/A)`, indicando ausencia de candles frescos no ciclo
+operacional e risco de degradacao na decisao model-driven.
+
+Evidencia minima:
+
+- 2026-03-22 18:18:20 BRT - `[M2][SYM]   Candles  : 0 capturados
+   (ultimo: N/A) ✓`
+
+Criterios de Aceite:
+
+- [ ] Fluxo volta a capturar candles por simbolo com contador maior que zero
+   em ciclo operacional valido.
+- [ ] Campo `ultimo` deixa de retornar `N/A` quando houver contexto fresco.
+- [ ] Evidencia de validacao fica registrada no backlog ou log operacional.
+
+Dependencias:
+
+- BLID-072 concluida
+- Fluxo atual do `iniciar.bat` reproduzivel com linha `[M2][SYM]`
+
+Impacto:
+
+- Restaura insumo minimo para decisao, episodio e monitoracao do ciclo M2
+- Evita operar ou diagnosticar o ciclo com contexto de mercado ausente
+
+### TAREFA BLID-080 - Corrigir episodio `N/A` nao persistido no ciclo M2
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Corrigir a regressao em que o log `[M2][SYM]` indica `Episodio : N/A nao
+persistido | reward: +0.0000`, sinalizando que o ciclo nao esta gravando o
+episodio esperado para aprendizado e auditoria operacional.
+
+Evidencia minima:
+
+- 2026-03-22 18:18:16 BRT - `[M2][SYM]   Episodio : N/A nao persistido |
+   reward: +0.0000`
+
+Criterios de Aceite:
+
+- [ ] Ciclo volta a persistir episodio valido quando houver decisao e
+   contexto operacional elegiveis.
+- [ ] Linha `Episodio` deixa de exibir `N/A nao persistido` em caso valido.
+- [ ] Reward registrado fica associado ao episodio persistido ou a motivo
+   explicito de nao geracao.
+- [ ] Evidencia de validacao fica registrada no backlog ou log operacional.
+
+Dependencias:
+
+- BLID-072 concluida
+- Fluxo atual do `iniciar.bat` reproduzivel com linha `[M2][SYM]`
+
+Impacto:
+
+- Restaura rastreabilidade de aprendizado e auditoria por episodio no M2
+- Evita ciclos com reward isolado sem persistencia auditavel do episodio
 
 ### TAREFA M2-001.1 - Criar esquema de oportunidades
 

@@ -23,6 +23,106 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-057] Inclusao do BLID-081 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-081 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-081 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-057 adicionado |
+
+#### Impacto
+
+- Estagnacao do treino incremental vira backlog rastreavel para priorizacao
+- PO recebe item com evidencia minima e impacto operacional explicitos
+
+---
+
+### [SYNC-056] Inclusao do BLID-080 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-080 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-080 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-056 adicionado |
+
+#### Impacto
+
+- Regressao de persistencia de episodio vira backlog rastreavel
+- PO recebe item com evidencia minima e impacto operacional explicitos
+
+---
+
+### [SYNC-055] Inclusao do BLID-079 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-079 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-079 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-055 adicionado |
+
+#### Impacto
+
+- Lacuna de confianca na decisao vira backlog rastreavel para priorizacao
+- PO recebe item com evidencia minima e impacto operacional explicitos
+
+---
+
+### [SYNC-054] Inclusao do BLID-078 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-078 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-078 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-054 adicionado |
+
+#### Impacto
+
+- Regressao de captura de candles vira backlog rastreavel para priorizacao
+- PO recebe item com evidencia minima, impacto e dependencia explicitos
+
+---
+
+### [SYNC-053] Inclusao do BLID-077 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-077 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-077 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-053 adicionado |
+
+#### Impacto
+
+- Padrao de timezone em log operacional vira backlog rastreavel
+- PO recebe item pronto para priorizacao sem ambiguidade de escopo
+
+---
+
 ### [SYNC-052] Decisao Tech Lead da tarefa M2-018.2
 
 **Data/Hora**: 2026-03-22 UTC
