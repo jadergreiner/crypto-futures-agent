@@ -10,7 +10,7 @@ CREATE TABLE rl_training_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_rl_training_log_completed_at_desc 
+CREATE INDEX idx_rl_training_log_completed_at_desc
     ON rl_training_log (completed_at DESC);
 
 CREATE TABLE rl_episodes (
