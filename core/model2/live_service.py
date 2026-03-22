@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
@@ -72,6 +73,11 @@ class Model2LiveExecutionService:
         self._rl_loader = RLModelLoader()
         self._inference_service = ModelInferenceService()
         self._alert_publisher = alert_publisher or Model2LiveAlertPublisher()
+        self._last_train_time = "N/A"
+        if self._rl_loader.checkpoint_timestamp:
+            self._last_train_time = datetime.fromtimestamp(
+                self._rl_loader.checkpoint_timestamp, tz=timezone.utc
+            ).strftime("%Y-%m-%d %H:%M:%S")
 
     def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
         try:
@@ -79,6 +85,48 @@ class Model2LiveExecutionService:
         except Exception:
             # Alertas nunca podem interromper o fluxo principal.
             return
+
+    def _log_operational_status(
+        self,
+        symbol: str,
+        decision: str,
+    ) -> None:
+        """Formats and prints the operational status log line."""
+        now = datetime.now(timezone.utc)
+        pos_str = "None"
+        pnl_str = "0.00"
+
+        if self.exchange:
+            position = self.exchange.get_open_position(symbol)
+            if position:
+                direction = position.get("direction", "NONE")
+                size = position.get("position_size_qty", 0.0)
+                entry_price = position.get("entry_price", 0.0)
+                mark_price = position.get("mark_price", 0.0)
+                pos_str = f"{direction} {size:.4f}"
+
+                pnl = 0.0
+                if entry_price > 0 and size > 0:
+                    if direction == "LONG":
+                        pnl = (mark_price - entry_price) * size
+                    elif direction == "SHORT":
+                        pnl = (entry_price - mark_price) * size
+                pnl_str = f"{pnl:+.2f}"
+
+        log_template = (
+            "[{timestamp}] [M2][{symbol}] | Data: OK | Model: Ran | "
+            "Decision: {decision} | RL: Stored (Pending: N/A) | "
+            "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
+        )
+        log_line = log_template.format(
+            timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            symbol=symbol,
+            decision=decision,
+            last_train=self._last_train_time,
+            position=pos_str,
+            pnl=pnl_str,
+        )
+        print(log_line)
 
     @staticmethod
     def build_config(
@@ -562,6 +610,13 @@ class Model2LiveExecutionService:
                         "fallback_from_inference_error": dict(inference.details if inference is not None else {}),
                     },
                 )
+
+            # >>> Início da instrumentação de log customizado
+            self._log_operational_status(
+                symbol=str(candidate["symbol"]),
+                decision=str(inferred_decision.action),
+            )
+            # <<< Fim da instrumentação
 
             gate_input: LiveExecutionGateInput | None = None
             created_decision = self.repository.create_model_decision(

@@ -64,6 +64,7 @@ class RLModelLoader:
         self._checkpoint_path: Path | None = (
             Path(checkpoint_path) if checkpoint_path else None
         )
+        self._checkpoint_timestamp: float | None = None
         self._load()
 
     # ------------------------------------------------------------------
@@ -79,6 +80,11 @@ class RLModelLoader:
     def fallback_reason(self) -> str:
         """Motivo pelo qual o fallback foi ativado."""
         return self._fallback_reason
+
+    @property
+    def checkpoint_timestamp(self) -> float | None:
+        """Timestamp de modificação do arquivo de checkpoint carregado."""
+        return self._checkpoint_timestamp
 
     # ------------------------------------------------------------------
     # Carregamento
@@ -101,6 +107,7 @@ class RLModelLoader:
             from stable_baselines3 import PPO  # type: ignore[import]
 
             self._model = PPO.load(str(path))
+            self._checkpoint_timestamp = path.stat().st_mtime
             logger.info("[RL] Modelo PPO carregado: %s", path)
         except Exception as exc:
             self._activate_fallback(f"erro ao carregar checkpoint: {exc}")
