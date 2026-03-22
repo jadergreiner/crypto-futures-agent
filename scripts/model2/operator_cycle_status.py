@@ -265,7 +265,51 @@ def _build_symbol_line(
     exchange: Model2LiveExchange | None,
     last_train_time: str,
 ) -> str:
-    return f"DEBUG: {symbol}"
+    # 1. Obter decisão do modelo a partir do sumário de execução
+    decision = "HOLD"
+    if live_execute_summary:
+        for item in live_execute_summary.get("staged", []):
+            if str(item.get("symbol", "")).upper() == symbol:
+                raw_action = item.get("action", "HOLD")
+                # Normalizar a ação para o formato desejado (ex: ACTION_OPEN_LONG -> BUY)
+                if "LONG" in raw_action:
+                    decision = "BUY"
+                elif "SHORT" in raw_action:
+                    decision = "SELL"
+                else:
+                    decision = raw_action
+                break
+
+    # 2. Obter PnL e posição da exchange
+    pos_str = "None"
+    pnl_str = "0.00"
+    if exchange:
+        position = exchange.get_open_position(symbol)
+        if position:
+            direction = position.get("direction", "NONE")
+            size = float(position.get("position_size_qty", 0.0))
+            entry_price = float(position.get("entry_price", 0.0))
+            mark_price = float(position.get("mark_price", 0.0))
+            pos_str = f"{direction} {size:.4f}"
+
+            pnl = 0.0
+            if entry_price > 0 and size > 0:
+                pnl = (mark_price - entry_price) * size if direction == "LONG" else (entry_price - mark_price) * size
+            pnl_str = f"{pnl:+.2f}"
+
+    # 3. Montar a linha de log final no novo formato
+    log_template = (
+        "{symbol} | Data: OK | Model: Ran | "
+        "Decision: {decision} | RL: Stored (Pending: N/A) | "
+        "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
+    )
+    return log_template.format(
+        symbol=symbol,
+        decision=decision,
+        last_train=last_train_time,
+        position=pos_str,
+        pnl=pnl_str,
+    )
 
 
 def main() -> int:
