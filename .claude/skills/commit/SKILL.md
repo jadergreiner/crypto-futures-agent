@@ -1,39 +1,41 @@
 ---
 name: commit
 description: |
-  Executa o ciclo completo de qualidade e commit: roda testes, mypy strict,
-  faz git add -A, gera mensagem de commit em portugues e faz push.
-  Use quando quiser commitar e publicar as alteracoes atuais.
+  Executa qualidade e commit com saida curta.
+  Roda pytest -q, mypy nos modulos alterados, depois add, commit e push.
+metadata:
+  focus:
+    - economia-de-tokens
+    - commit
+    - qualidade
 ---
 
 # Skill: Commit & Push
 
-## Passos
+## Objetivo
 
-1. Rodar testes: `pytest -q`
-   - Se falhar: corrigir os erros antes de prosseguir.
+Publicar alteracoes com minimo de leitura, minimo de repeticao e sem
+omitir validacao obrigatoria.
 
-2. Rodar mypy: `mypy --strict` nos modulos alterados
-   - Se falhar: corrigir os erros antes de prosseguir.
+## Fluxo Economico
 
-3. Checar arquivos alterados: `git diff --stat` e `git status`
+1. Checar `git status` e os arquivos alterados.
+2. Rodar `pytest -q` uma vez.
+3. Rodar `mypy --strict` apenas nos modulos Python alterados.
+4. Se `docs/` mudou, garantir atualizacao de
+   `docs/SYNCHRONIZATION.md` antes do commit.
+5. Fazer `git add -A`.
+6. Gerar mensagem no formato
+   `[TAG] Descricao breve em portugues ASCII puro (max 72 chars)`.
+7. Criar o commit.
+8. Fazer push para a branch atual.
 
-4. Fazer stage de tudo: `git add -A`
-   - Inclui arquivos novos, modificados e deletados — sem perguntar.
-
-5. Gerar mensagem de commit seguindo o padrao:
-   `[TAG] Descricao breve em portugues ASCII puro (max 72 chars)`
-   - Tags validas: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`
-   - Sem acentos, sem emojis, apenas ASCII 0-127.
-
-6. Criar o commit.
-
-7. Fazer push para a branch atual.
-
-## Regras
+## Guardrails
 
 - Nunca usar `--no-verify` ou pular hooks.
-- Nunca commitar sem testes e mypy passando.
-- Sempre incluir arquivos deletados no stage.
-- Se `docs/` foi alterado, atualizar `docs/SYNCHRONIZATION.md` com tag
-  `[SYNC]` antes do commit.
+- Nunca commitar com testes ou mypy falhando.
+- Sempre incluir arquivos novos, modificados e deletados no stage.
+- Nao imprimir logs longos sem necessidade; resumir apenas falhas,
+  arquivos afetados e acao corretiva.
+- Nao pedir confirmacao para incluir deletados: usar `git add -A`.
+- Tags validas: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`.

@@ -1,34 +1,25 @@
 ---
 name: m2-incident-response
 description: |
-  Playbook para incidentes de execucao do Modelo 2.0.
-  Use para: coleta de evidencias, mitigacao fail-safe, reconciliacao e
-  registro auditavel em docs.
-applyTo:
-  - core/model2/**
-  - scripts/model2/**
-  - risk/**
-  - logs/**
-  - docs/RUNBOOK_M2_OPERACAO.md
-  - docs/SYNCHRONIZATION.md
-keywords:
-  - incidente
-  - live
-  - execucao
-  - protecao
-  - reconciliacao
-  - fail-safe
-  - auditoria
-  - modelo2
+  Responde incidentes do Modelo 2.0 com mitigacao fail-safe.
+  Prioriza evidencia minima e reconciliacao auditavel.
+metadata:
+  tags:
+    - incidente
+    - live
+    - reconciliacao
+  focus:
+    - economia-de-tokens
+    - fail-safe
+    - causa-raiz-minima
 ---
 
 # Skill: M2 Incident Response
 
 ## Objetivo
 
-Aplicar um fluxo padrao para responder incidentes de execucao no Modelo 2.0,
-com prioridade para seguranca operacional, preservacao de capital e trilha de
-auditoria.
+Responder incidentes de execucao no Modelo 2.0 com prioridade para
+seguranca operacional, preservacao de capital e trilha de auditoria.
 
 ## Quando usar
 
@@ -40,6 +31,28 @@ Use este skill quando houver sinais como:
 - fill sem atualizacao de `signal_executions`;
 - comportamento inesperado em `live_service` ou `live_exchange`.
 
+## Modo Economico
+
+Regra principal: conter risco primeiro e investigar depois, lendo apenas
+o necessario para reconciliar o estado.
+
+Ordem de leitura:
+
+1. Ler a evidencia mais direta do incidente: logs, execution_id,
+  order_id, posicao, erro ou diff citado.
+2. Ler banco, exchange e eventos apenas no intervalo e simbolo afetados.
+3. Ler `core/model2/**`, `scripts/model2/**` ou `risk/**` apenas no
+  caminho de execucao relacionado ao sintoma.
+4. Ler `docs/RUNBOOK_M2_OPERACAO.md` e `docs/SYNCHRONIZATION.md`
+  apenas se houver mudanca de processo, doc ou necessidade de auditoria.
+
+Evitar:
+
+- abrir varredura ampla do sistema antes de conter risco
+- reler modulos inteiros sem correlacao com o sintoma
+- gerar narrativa longa quando bastam evidencias e decisao
+- propor mudanca arquitetural ampla para defeito localizado
+
 ## Principios
 
 - Seguranca antes de performance.
@@ -47,122 +60,70 @@ Use este skill quando houver sinais como:
 - Nunca desabilitar `risk/risk_gate.py` ou `risk/circuit_breaker.py`.
 - Registrar o que foi observado, decidido e executado.
 
-## Workflow de Resposta
+## Fluxo Operacional
 
-### Passo 1 - Classificar severidade
+1. Classificar severidade e escopo minimo: simbolo, execution_id,
+  componente e janela UTC.
+2. Conter risco imediato antes de aprofundar diagnostico.
+3. Coletar evidencias minimas para reconciliar banco, exchange e logs.
+4. Manter fluxo bloqueado se houver divergencia critica.
+5. Corrigir a causa raiz com mudanca minima e localizada.
+6. Validar o fluxo seguro e registrar apenas o que for necessario.
 
-Classificar o incidente em uma das categorias:
+## Severidade
 
 - `SEV-1`: risco imediato de perda relevante ou posicao desprotegida.
 - `SEV-2`: risco moderado com impacto operacional parcial.
 - `SEV-3`: anomalia sem risco imediato, mas com necessidade de correcao.
 
-Saida esperada:
+## Evidencia Minima
 
-- severidade;
-- componente afetado;
-- simbolo e execution_id (quando houver).
+- severidade
+- componente afetado
+- simbolo e `execution_id`, quando houver
+- order_id(s) de entrada e protecao, quando houver
+- status de posicao, SL/TP e sequencia de eventos
+- janela UTC do incidente
 
-### Passo 2 - Conter e mitigar risco imediato
+## Guardrails
 
-Aplicar mitigacao fail-safe antes de investigar detalhes:
+- Se houver ambiguidade de estado, manter bloqueio ate reconciliacao.
+- Nunca liberar fluxo com posicao potencialmente desprotegida.
+- Nunca desabilitar validacoes de risco para "destravar" incidente.
+- Priorizar retries, idempotencia e conciliacao antes de qualquer bypass.
 
-- interromper novas entradas no fluxo afetado;
-- priorizar armamento de protecao para posicoes abertas;
-- evitar qualquer fallback permissivo para ordem de mercado de protecao.
+## Formato de Resposta
 
-Se houver ambiguidade de estado, manter bloqueio ate reconciliacao.
+Para economizar tokens, responder em bloco curto:
 
-### Passo 3 - Coletar evidencias minimas
+- Severidade
+- Escopo
+- Evidencias
+- Mitigacao imediata
+- Divergencia reconciliada ou pendente
+- Causa raiz provavel
+- Correcao aplicada ou proposta
+- Validacao
+- Follow-up, se existir
 
-Coletar e preservar artefatos para diagnostico:
+Nao gerar relatorio longo se o caso couber em 10-14 linhas.
 
-- estado da execucao em banco (`signal_executions`, eventos relacionados);
-- ordens/fills/posicao no exchange;
-- logs operacionais no intervalo do incidente;
-- payloads de request/response relevantes (sem expor segredo).
-
-Checklist de evidencias:
-
-- execution_id e symbol;
-- order_id(s) de entrada/protecao;
-- status de SL/TP;
-- horario UTC e sequencia de eventos.
-
-### Passo 4 - Reconciliar estado
-
-Comparar estado esperado vs estado observado:
-
-- banco indica `ENTRY_FILLED`, exchange sem posicao;
-- posicao aberta, banco sem protecao armada;
-- ordem existe no exchange, mas nao em metadata/evento.
-
-Regra de decisao:
-
-- se houver divergencia critica, manter fluxo bloqueado;
-- somente liberar fluxo apos estado consistente e auditado.
-
-### Passo 5 - Corrigir causa raiz
-
-Aplicar correcao minima e localizada, com foco em:
-
-- idempotencia (evitar duplicidade);
-- retries com backoff para falhas transientes;
-- validacao de parametros de protecao antes de envio;
-- atualizacao de eventos com `reason`, `status`, `metadata` e timestamp.
-
-Evitar mudancas arquiteturais amplas para corrigir problema local.
-
-### Passo 6 - Validar e registrar
-
-Antes de encerrar incidente:
-
-- validar comportamento corrigido com teste(s) relevante(s);
-- validar fluxo seguro (sem posicao desprotegida);
-- registrar resultado em `docs/SYNCHRONIZATION.md` quando houver alteracao de
-  docs/processo;
-- registrar licao operacional em runbook quando aplicavel.
-
-## Criterios de Conclusao
-
-Considerar incidente encerrado apenas quando:
-
-- risco imediato foi mitigado;
-- estado banco/exchange esta reconciliado;
-- evidencia minima foi preservada;
-- acao corretiva foi aplicada e validada;
-- registro operacional foi atualizado.
-
-## Template de Relatorio de Incidente
+## Template Curto
 
 ```markdown
-## Incidente M2 - Resumo
-
 - Severidade: SEV-X
 - Componente: core/model2/<arquivo>
 - Symbol: <SYMBOL>
 - Execution ID: <ID>
 - Janela UTC: <inicio> -> <fim>
-
-### Evidencias
 - Exchange: <ordens/posicao>
 - Banco: <execucao/eventos>
 - Logs: <arquivos>
-
-### Mitigacao Imediata
 - <acao 1>
 - <acao 2>
-
-### Causa Raiz
 - <descricao objetiva>
-
-### Correcao Aplicada
 - <mudanca minima>
-
-### Validacao
 - <teste/check>
-
-### Follow-up
 - <acao futura>
 ```
 

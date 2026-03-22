@@ -1,10 +1,8 @@
 ---
 name: backlog-development
 description: |
-  Use para criar, atualizar e consultar itens em docs/BACKLOG.md com
-  leitura minima, sincronizacao objetiva e foco em economia de tokens.
-  Consulte docs/PRD.md e docs arquiteturais apenas quando houver impacto
-  real em escopo, arquitetura, dados ou regras de negocio.
+  Gerencia docs/BACKLOG.md com leitura minima e sync objetivo.
+  Consulte docs de produto e arquitetura so quando houver impacto real.
 metadata:
   tags:
     - backlog

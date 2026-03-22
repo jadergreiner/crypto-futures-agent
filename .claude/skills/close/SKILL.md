@@ -1,38 +1,36 @@
 ---
 name: close
 description: |
-  Executa o processo de fechamento da sessao de desenvolvimento:
-  garante que tudo esta testado, commitado e pushado.
-  Use ao final de cada sessao de trabalho.
+   Fecha a sessao com custo minimo de contexto.
+   Se houver alteracoes, reutiliza commit; se estiver limpo, resume o estado.
+metadata:
+  focus:
+    - economia-de-tokens
+    - fechamento
+    - delegacao
 ---
 
 # Skill: Fechamento de Sessao
 
-## Passos
+## Objetivo
 
-1. **Verificar estado do repositorio**: `git status`
-   - Ha arquivos nao commitados? Continuar.
-   - Tudo limpo? Pular para passo 5.
+Encerrar a sessao sem duplicar checklist e sem reler contexto desnecessario.
 
-2. **Rodar testes**: `pytest -q`
-   - Se falhar: corrigir antes de prosseguir.
+## Fluxo Economico
 
-3. **Rodar mypy**: `mypy --strict` nos modulos alterados
-   - Se falhar: corrigir antes de prosseguir.
+1. Rodar `git status`.
+2. Se o repositorio estiver limpo, responder apenas com estado limpo e
+   pendencias reais da sessao, se existirem.
+3. Se houver alteracoes, executar a skill `commit` em vez de repetir o
+   fluxo completo aqui.
+4. Entregar resumo curto com:
+   - grupos de arquivos alterados
+   - status de `pytest -q` e `mypy --strict`
+   - commit/push realizados ou motivo do bloqueio
 
-4. **Commitar tudo**: `git add -A` + commit com mensagem adequada
-   - Seguir padrao `[TAG] Descricao ASCII puro max 72 chars`.
-   - Se `docs/` foi alterado, atualizar `docs/SYNCHRONIZATION.md` primeiro.
-
-5. **Push**: enviar para a branch atual.
-
-6. **Relatorio de fechamento**: listar o que foi feito na sessao:
-   - Arquivos alterados
-   - Testes passando
-   - Commits realizados
-
-## Regras
+## Guardrails
 
 - Nunca fechar sessao com testes falhando.
-- Nunca fechar sessao com arquivos nao commitados (salvo intencional).
-- Se houver tarefas pendentes, listar para a proxima sessao.
+- Nunca duplicar o passo a passo da skill `commit`.
+- Nao gerar inventario longo de arquivos se um resumo por area basta.
+- Se houver pendencias, listar apenas as relevantes para a proxima sessao.

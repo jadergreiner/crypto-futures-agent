@@ -1,31 +1,25 @@
 ---
 name: live-release-readiness
 description: |
-  Workflow de readiness para promover execucao do Modelo 2.0 para live.
-  Use para: validar ambiente, risco, reconciliacao, evidencias e emitir
-  decisao GO/NO-GO auditavel.
-applyTo:
-  - scripts/model2/go_live_preflight.py
-  - core/model2/**
-  - risk/**
-  - docs/RUNBOOK_M2_OPERACAO.md
-  - docs/SYNCHRONIZATION.md
-keywords:
-  - preflight
-  - go-no-go
-  - live
-  - readiness
-  - risco
-  - reconciliacao
-  - release
+  Decide readiness do Modelo 2.0 para live com evidencias minimas.
+  Emite GO, GO_COM_RESTRICOES ou NO_GO sem analise desnecessaria.
+metadata:
+  tags:
+    - live
+    - readiness
+    - go-no-go
+  focus:
+    - economia-de-tokens
+    - evidencias-objetivas
+    - seguranca-operacional
 ---
 
 # Skill: Live Release Readiness
 
 ## Objetivo
 
-Executar um workflow padrao para decidir se o ambiente esta apto para
-promocao de `shadow` para `live` no Modelo 2.0.
+Decidir se o ambiente esta apto para promocao de `shadow` para `live`
+com base em evidencias minimas e criterio auditavel.
 
 ## Quando usar
 
@@ -36,92 +30,77 @@ Use este skill quando houver:
 - incidente anterior que exige nova validacao;
 - duvida operacional sobre GO/NO-GO.
 
-## Workflow
+## Modo Economico
 
-### Passo 1 - Coletar contexto
+Regra principal: ler apenas o necessario para decidir.
 
-Coletar entradas:
+Ordem de leitura:
 
-- simbolo(s) alvo;
-- janela UTC de validacao;
-- mudancas recentes (codigo/config/docs);
-- evidencias disponiveis (logs, testes, preflight).
+1. Ler a evidência mais direta do pedido: preflight, testes, diff,
+  logs ou configuracao citada pelo usuario.
+2. Ler `scripts/model2/go_live_preflight.py`, `risk/risk_gate.py` e
+  `risk/circuit_breaker.py` apenas se a decisao depender da logica.
+3. Ler `core/model2/**` apenas no trecho afetado por mudanca recente,
+  incidente ou duvida especifica.
+4. Ler `docs/RUNBOOK_M2_OPERACAO.md` e `docs/SYNCHRONIZATION.md`
+  apenas se o pedido exigir validar processo ou registrar sync.
 
-Se houver lacuna critica de contexto, marcar como risco bloqueante.
+Evitar:
 
-### Passo 2 - Validar ambiente
+- reler modulos inteiros sem indicio concreto
+- repetir checklist completa no texto final
+- abrir investigacao ampla quando falta so uma evidencia objetiva
+- recomendar live sem preflight ou evidencias minimas
 
-Checklist:
+## Fluxo Operacional
 
-- configuracoes criticas presentes;
-- modo de execucao coerente;
-- pre-condicoes de operacao live atendidas.
+1. Definir escopo: simbolo, janela UTC, ambiente e mudancas recentes.
+2. Marcar lacunas criticas como risco bloqueante, sem prolongar leitura.
+3. Validar ambiente e pre-condicoes live.
+4. Confirmar guardrails de risco e protecao obrigatoria.
+5. Verificar reconciliacao e idempotencia apenas no caminho afetado.
+6. Classificar a decisao: `GO`, `GO_COM_RESTRICOES` ou `NO_GO`.
+7. Responder com evidencias, riscos reais e acoes T+0/T+1.
 
-### Passo 3 - Validar risco e protecao
+## Criterios Minimos
 
-Checklist:
+- Preflight coerente com o modo live.
+- `risk_gate` e `circuit_breaker` ativos.
+- Sem divergencia critica banco vs exchange sem mitigacao.
+- Trilha de eventos suficiente para auditoria.
+- Nenhum risco bloqueante sem plano de contencao.
 
-- `risk_gate` e `circuit_breaker` ativos;
-- fluxo de protecao obrigatoria apos fill viavel;
-- nenhum bypass de seguranca em caminho critico.
+## Regra de Decisao
 
-### Passo 4 - Validar reconciliacao e idempotencia
+- `GO`: sem bloqueante e com evidencia suficiente.
+- `GO_COM_RESTRICOES`: sem bloqueante critico, mas com limite operacional
+  explicito.
+- `NO_GO`: risco bloqueante, evidencia insuficiente ou protecao incerta.
 
-Checklist:
+## Formato de Resposta
 
-- sem divergencia critica banco vs exchange sem mitigacao;
-- estrategia de idempotencia preservada;
-- trilha de eventos suficiente para auditoria.
+Para economizar tokens, responder em bloco curto.
 
-### Passo 5 - Decidir GO/NO-GO
+- Escopo
+- Evidencias
+- Riscos bloqueantes
+- Riscos nao bloqueantes
+- Decisao
+- Acoes T+0
+- Acoes T+1
 
-Classificar resultado:
+Nao gerar relatorio longo se a decisao couber em 8-12 linhas.
 
-- `GO`: sem bloqueante;
-- `GO_COM_RESTRICOES`: sem bloqueante critico, mas com limites operacionais;
-- `NO_GO`: qualquer risco bloqueante ou evidencia insuficiente.
-
-### Passo 6 - Plano de acao
-
-Definir:
-
-- acoes imediatas (T+0);
-- monitoramento curto prazo (T+1);
-- criterios objetivos para reavaliar liberacao.
-
-## Criterios de conclusao
-
-Readiness concluido quando:
-
-- decisao GO/NO-GO esta justificada por evidencias;
-- riscos bloqueantes estao explicitados;
-- proximo passo operacional esta claro e rastreavel.
-
-## Template de saida
+## Template Curto
 
 ```markdown
-## Live Readiness Report
-
 - Escopo: <symbol/all>
 - Janela UTC: <inicio-fim>
-- Mudancas recentes: <resumo>
-
-### Evidencias
 - <item 1>
 - <item 2>
-
-### Riscos Bloqueantes
 - <lista>
-
-### Riscos Nao Bloqueantes
 - <lista>
-
-### Decisao
 - GO | GO_COM_RESTRICOES | NO_GO
-
-### Acoes T+0
 - <acao>
-
-### Acoes T+1
 - <acao>
 ```
