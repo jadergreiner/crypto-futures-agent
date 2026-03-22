@@ -126,7 +126,7 @@ class Model2LiveExecutionService:
             position=pos_str,
             pnl=pnl_str,
         )
-        print(log_line)
+        print(log_line, flush=True)
 
     @staticmethod
     def build_config(
@@ -490,6 +490,7 @@ class Model2LiveExecutionService:
         now_ms: int,
     ) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
+        print("[DEBUG] Staging candidates...", flush=True)
         for candidate in self.repository.list_consumed_technical_signals(
             symbol=symbol,
             timeframe=timeframe,
