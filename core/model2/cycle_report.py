@@ -70,6 +70,11 @@ def format_symbol_report(r: SymbolReport) -> str:
         f" (ultimo: {r.last_candle_time or 'N/A'})"
     )
     fresh_tag = " ✓" if r.decision_fresh else " ⚠"
+    candle_status = (
+        f"Candle Atualizado: {r.last_candle_time or 'N/A'}"
+        if r.decision_fresh
+        else "stale: sem candle atualizado"
+    )
 
     # Linha de decisao
     conf_str = f"{r.confidence:.0%}" if r.confidence else "N/A"
@@ -117,7 +122,7 @@ def format_symbol_report(r: SymbolReport) -> str:
         sep,
         f"  {r.symbol} | {r.timeframe} | {r.timestamp} {mode_tag}",
         sep,
-        f"  Candles  : {candle_info}{fresh_tag}",
+        f"  Candles  : {candle_info}{fresh_tag} | {candle_status}",
         f"  Decisao  : {decision_line}",
         f"  Episodio : {episode_line}",
         f"  Treino   : {train_line}",

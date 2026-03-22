@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 # Adicionar root do repositório ao sys.path para importações
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -138,7 +138,10 @@ def _load_latest_json(runtime_dir: Path, prefix: str, max_age_seconds: int) -> d
         return None
 
     try:
-        return json.loads(newest.read_text(encoding="utf-8"))
+        payload = json.loads(newest.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            return None
+        return cast(dict[str, Any], payload)
     except (OSError, json.JSONDecodeError):
         return None
 
@@ -148,8 +151,10 @@ def _find_scan_item(scan_summary: dict[str, Any] | None, symbol: str) -> dict[st
         return None
     items = scan_summary.get("items") or []
     for item in items:
+        if not isinstance(item, dict):
+            continue
         if str(item.get("symbol") or "").upper() == symbol:
-            return item
+            return cast(dict[str, Any], item)
     return None
 
 
@@ -348,7 +353,9 @@ def _build_symbol_line(
             last_candle_time=last_candle_time,
             decision=decision,
             confidence=confidence,
-            decision_fresh=True,
+            decision_fresh=bool(
+                candles_count > 0 and str(last_candle_time).strip()
+            ),
             episode_id=None,
             episode_persisted=False,
             reward=0.0,

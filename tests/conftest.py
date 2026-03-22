@@ -39,6 +39,7 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_docs_model2_sync.py",
     "test_model2_blid_072_persist_episodes.py",
     "test_model2_blid_078_080_cycle_capture.py",
+    "test_model2_blid_082_candle_status.py",
 )
 
 

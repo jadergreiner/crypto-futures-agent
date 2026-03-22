@@ -63,6 +63,9 @@ Pendencias operacionais:
 - BLID-081 - Corrigir rotina de treino incremental nao ocorrendo.
    Dependencia minima: evidencia reproduzivel de treino estagnado no log.
    Impacto: restaurar atualizacao incremental do modelo e evitar retreino stale.
+- BLID-082 - Corrigir ausencia de mensagem de Candle Atualizado no live.
+   Dependencia minima: evidencia reproduzivel no log `[M2][SYM]` em modo live.
+   Impacto: restaurar observabilidade do dado fresco por simbolo no ciclo M2.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -285,6 +288,74 @@ Impacto:
 
 - Restaura atualizacao incremental do modelo com rastreabilidade operacional
 - Reduz risco de operar com modelo defasado sem sinalizacao explicita
+
+### TAREFA BLID-082 - Corrigir ausencia de Candle Atualizado no log `[SYM]`
+
+Status: CONCLUIDO
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Corrigir a mensagem operacional quando o ciclo live segue sem informacao de
+`Candle Atualizado` no bloco `[M2][SYM]`, apesar do fluxo reportar simbolo e
+timeframe, para evitar leitura incompleta de frescor do dado.
+
+Evidencia minima:
+
+- Janela: ciclo live de 2026-03-22 19:01:40 ate 19:03:56 BRT.
+- Metrica observada: `Candles  : 0 capturados (ultimo: N/A) ✓`.
+- Log de referencia: `[M2][SYM]   BTCUSDT | H4 | 2026-03-22 22:03:53 [LIVE]`.
+
+Criterios de Aceite:
+
+- [ ] Linha de status passa a exibir `Candle Atualizado` com timestamp valido
+   quando houver candle fresco para o simbolo.
+- [ ] Quando nao houver candle fresco, a mensagem explicita estado stale sem
+   marcar sucesso ambiguo.
+- [ ] Evidencia da correcao fica registrada no backlog ou em log operacional.
+
+Dependencias:
+
+- BLID-073 concluida
+- BLID-078 concluida
+- Fluxo atual do `iniciar.bat` reproduzivel em modo live
+
+Impacto:
+
+- Restaura leitura operacional do frescor de mercado por simbolo
+- Reduz risco de decisao com contexto incompleto e status enganoso
+
+PO: Priorizar Candle Atualizado no [SYM] para restaurar leitura de dado
+fresco e evitar status de sucesso ambiguo no live.
+
+SA: Definir contrato [SYM] para candle fresco vs stale com fail-safe,
+sem mudar schema e com compatibilidade live/shadow.
+
+QA: Suite RED BLID-082 pronta (8 casos): 5 falhas cobrindo Candle
+Atualizado/stale e paridade shadow/live no [SYM].
+
+SE: GREEN concluido com contrato explicito de Candle Atualizado/stale,
+frescor deterministico no operator e fallback seguro preservado.
+
+TL: Revisao aprovada; contrato Candle Atualizado/stale validado com
+regressao verde e guardrails preservados.
+
+DOC: Governanca final concluida com sync registrado e docs
+consistentes para fechamento do BLID-082.
+
+PM: ACEITE final aprovado; fechamento ponta-a-ponta concluido e pronto
+para publicacao em main.
+
+Evidencias de implementacao:
+
+1. `pytest -q tests/test_model2_blid_082_candle_status.py
+   tests/test_model2_blid_078_080_cycle_capture.py tests/test_cycle_report.py`
+   -> 28 passed.
+2. `mypy --strict --follow-imports skip core/model2/cycle_report.py
+   core/model2/live_service.py scripts/model2/operator_cycle_status.py
+   tests/test_model2_blid_082_candle_status.py` -> Success.
+3. `pytest -q tests/` -> 131 passed.
 
 ---
 

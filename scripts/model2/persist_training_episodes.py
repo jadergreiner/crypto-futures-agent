@@ -368,7 +368,7 @@ def run_persist_training_episodes(
                     "objective": "support_training_dataset_with_cycle_state",
                 },
             }
-            
+
             # Enriquecer features de contexto também
             try:
                 enriched_features = FeatureEnricher.enrich_features(
@@ -393,7 +393,7 @@ def run_persist_training_episodes(
                 except Exception:
                     # Graceful fallback
                     pass
-            
+
             model2_conn.execute(
                 """
                 INSERT OR IGNORE INTO training_episodes (

@@ -23,6 +23,168 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-072] Aceite Project Manager do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-082 atualizado para CONCLUIDO |
+| Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-072 adicionado |
+
+#### Impacto
+
+- Fechamento ponta-a-ponta concluido com aceite formal do BLID-082.
+- Trilha finalizada para publicacao em `main`.
+
+### [SYNC-071] Governanca Doc Advocate do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario DOC registrado no BLID-082 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-071 adicionado |
+
+#### Impacto
+
+- Governanca documental final concluida para o BLID-082.
+- Handoff Doc Advocate -> Project Manager fica rastreavel.
+
+### [SYNC-070] Decisao Tech Lead do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-082 atualizado para REVISADO_APROVADO |
+| Backlog | docs/BACKLOG.md | Comentario TL registrado no item |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-070 adicionado |
+
+#### Impacto
+
+- Revisao tecnica confirmou criterios de aceite atendidos para BLID-082.
+- Handoff TL -> Doc Advocate fica rastreavel para governanca final.
+
+### [SYNC-069] Implementacao GREEN do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status por simbolo | core/model2/cycle_report.py | Linha Candles com contrato explicito fresco/stale |
+| Status por simbolo | scripts/model2/operator_cycle_status.py | Regra de frescor deterministica (nao fixa) |
+| Suite RED | tests/test_model2_blid_082_candle_status.py | Tipagem strict e cobertura RED->GREEN |
+| Allowlist | tests/conftest.py | Suite BLID-082 mantida na coleta model-driven |
+| Backlog | docs/BACKLOG.md | BLID-082 atualizado para IMPLEMENTADO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-069 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_blid_082_candle_status.py`
+   `tests/test_model2_blid_078_080_cycle_capture.py`
+   `tests/test_cycle_report.py` -> 28 passed
+- `mypy --strict --follow-imports skip core/model2/cycle_report.py`
+   `core/model2/live_service.py scripts/model2/operator_cycle_status.py`
+   `tests/test_model2_blid_082_candle_status.py` -> Success
+- `pytest -q tests/` -> 131 passed
+
+#### Impacto
+
+- Log operacional passa a distinguir candle fresco de estado stale sem
+   sucesso ambiguo.
+- Compatibilidade shadow/live preservada com fail-safe ativo.
+
+### [SYNC-068] QA-TDD RED do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Suite RED | tests/test_model2_blid_082_candle_status.py | Nova suite RED para contrato Candle Atualizado/stale |
+| Allowlist | tests/conftest.py | BLID-082 adicionado na suite model-driven |
+| Backlog | docs/BACKLOG.md | BLID-082 atualizado para TESTES_PRONTOS |
+| Backlog | docs/BACKLOG.md | Comentario QA registrado no item |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-068 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_blid_082_candle_status.py` -> 5 failed, 3 passed
+
+#### Impacto
+
+- QA-TDD formaliza regressao do status de candles no bloco `M2/SYM`.
+- Handoff para Software Engineer fica rastreavel com suite RED pronta.
+
+### [SYNC-067] Handoff SA do BLID-082 para QA-TDD
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario SA adicionado no BLID-082 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-067 adicionado |
+
+#### Impacto
+
+- Requisitos tecnicos para status de candle fresco/stale ficam rastreaveis.
+- Handoff SA -> QA-TDD formalizado para o BLID-082.
+
+### [SYNC-066] Priorizacao PO do BLID-082
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-082 atualizado para Em analise |
+| Backlog | docs/BACKLOG.md | Comentario PO adicionado no item |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-066 adicionado |
+
+#### Impacto
+
+- Priorizacao formal do incidente de observabilidade no ciclo live.
+- Handoff PO -> Solution Architect fica rastreavel para BLID-082.
+
+### [SYNC-065] Inclusao do BLID-082 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-082 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-082 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-065 adicionado |
+
+#### Impacto
+
+- Falha de observabilidade de candle atualizado vira backlog rastreavel.
+- PO recebe item com evidencia minima, janela e impacto operacional.
+
 ### [SYNC-064] Aceite Project Manager do pacote BLID-078/080
 
 **Data/Hora**: 2026-03-22 UTC
