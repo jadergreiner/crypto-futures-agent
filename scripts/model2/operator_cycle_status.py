@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Resumo operacional por simbolo para cada ciclo M2."""
 
 from __future__ import annotations
@@ -467,7 +469,7 @@ def main() -> int:
             exchange=exchange,
             last_train_time=last_train_time,
         )
-        print(line)
+        print(line, flush=True)
 
     return 0
 
