@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O skill **QA-TDD** implementa o ciclo Red-Green-Refactor com foco em testes
+O skill **4.qa-tdd** implementa o ciclo Red-Green-Refactor com foco em testes
 unitários orientados a requisitos. Ele é acionado automaticamente pelo
 Solution Architect ou pode ser invocado diretamente.
 
@@ -22,7 +22,9 @@ Solution Architect ou pode ser invocado diretamente.
 ## Entrada & Saída
 
 ### Entrada
+
 Prompt estruturado do Solution Architect contendo:
+
 - ID/Referencia da task
 - Requisitos funcionais/não-funcionais verificáveis
 - Componentes/módulos/arquivos afetados
@@ -30,6 +32,7 @@ Prompt estruturado do Solution Architect contendo:
 - Plano incremental de entrega
 
 ### Saída
+
 1. Suite de testes unitários (RED phase — testes que falham)
 2. Atualização de `docs/BACKLOG.md` com status `TESTES_PRONTOS`
 3. Prompt executável para Software Engineer contendo:
@@ -54,7 +57,7 @@ Prompt estruturado do Solution Architect contendo:
 Cole o prompt do Solution Architect. Exemplo:
 
 ```text
-Voce e o agente QA-TDD desta task.
+Voce e o agente 4.qa-tdd desta task.
 
 Contexto da demanda:
 - ID/Referencia: BLID-042
@@ -69,7 +72,7 @@ O skill vai:
 1. ✅ Analisar requisitos
 2. ✅ Escrever testes que falham (RED phase)
 3. ✅ Atualizar `docs/BACKLOG.md`
-4. ✅ Emitir prompt para Software Engineer
+4. ✅ Emitir prompt para 5.software-engineer
 
 ## Padrões de Teste
 

@@ -83,7 +83,7 @@ Sua tarefa como Arquiteto de Solucoes:
 1. Refinar requisitos funcionais e nao funcionais verificaveis.
 2. Revisar aderencia arquitetural e pontos de extensao.
 3. Revisar impacto de modelagem de dados e contratos.
-4. Gerar prompt final acionavel para o agente QA-TDD.
+4. Gerar prompt final acionavel para o agente `4.qa-tdd`.
 ```
 
 ## Guardrails

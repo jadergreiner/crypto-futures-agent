@@ -8,6 +8,8 @@ description: |
   Use quando: receber prompt do Software Engineer com evidencias de
   implementacao para revisao e decisao GO/DEVOLVIDO.
 metadata:
+  workflow-track: principal
+  workflow-order: 6
   workflow-stage: 6
   focus:
     - code-review
@@ -210,7 +212,7 @@ DECISAO: DEVOLVIDO_PARA_REVISAO
 
 ═══════════════════════════════════════════════════════════════════
 
-Voce e o agente Software Engineer desta task.
+Voce e o agente 5.software-engineer desta task.
 
 REVISAO — ID/Referencia: <BLID-XXX>
 Tech Lead: <identificacao>

@@ -7,6 +7,8 @@ description: |
   em fase RED. Atualiza backlog para Em Desenvolvimento e gera prompt
   executavel para Tech Lead realizar code review.
 metadata:
+  workflow-track: principal
+  workflow-order: 5
   workflow-stage: 5
   focus:
     - implementacao-tdd-green-refactor
@@ -231,11 +233,11 @@ pytest -q tests/test_<modulo>.py   # deve continuar passando
 
 ## Saida Obrigatoria
 
-A resposta final deve ser **apenas um prompt para o agente Tech Lead**,
+A resposta final deve ser **apenas um prompt para o agente 6.tech-lead**,
 sem prefacio adicional, contendo exatamente:
 
 ```text
-Voce e o agente Tech Lead desta task.
+Voce e o agente 6.tech-lead desta task.
 
 ═══════════════════════════════════════════════════════════════════
 

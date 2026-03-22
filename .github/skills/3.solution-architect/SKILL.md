@@ -3,7 +3,7 @@ name: 3.solution-architect
 description: |
   Refina uma demanda vinda do Product Owner em requisitos tecnicos,
   arquitetura, modelagem de dados e plano de entrega.
-  Entrega obrigatoriamente um prompt acionavel para o proximo agente QA-TDD.
+  Entrega obrigatoriamente um prompt acionavel para o proximo agente 4.qa-tdd.
 metadata:
   workflow-stage: 3
   focus:
@@ -51,7 +51,7 @@ Se a entrada estiver incompleta, operar em modo conservador:
 4. Mapear impacto de dados: entidades, tabelas, campos, migracoes e contratos.
 5. Definir plano incremental de entrega com fatias pequenas e testaveis.
 6. Identificar riscos e controles (tecnico, operacional e regressao).
-7. Emitir prompt unico e acionavel para o agente QA-TDD.
+7. Emitir prompt unico e acionavel para o agente `4.qa-tdd`.
 
 ## Guardrails
 
@@ -63,11 +63,11 @@ Se a entrada estiver incompleta, operar em modo conservador:
 
 ## Saida Obrigatoria
 
-A resposta final deve ser somente um prompt para o agente QA-TDD,
+A resposta final deve ser somente um prompt para o agente `4.qa-tdd`,
 sem prefacio adicional, no formato abaixo.
 
 ```text
-Voce e o agente QA-TDD desta task.
+Voce e o agente 4.qa-tdd desta task.
 
 Contexto da demanda:
 - ID/Referencia: <BLID ou referencia>

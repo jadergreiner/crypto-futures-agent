@@ -236,7 +236,7 @@ Product Owner
 from tools import runSubagent
 
 resultado = runSubagent(
-    agentName="qa-tdd",
+    agentName="4.qa-tdd",
     prompt="Aqui vai o prompt do Solution Architect...",
     description="Escrever testes para feature X"
 )

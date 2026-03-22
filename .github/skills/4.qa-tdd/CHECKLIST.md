@@ -149,7 +149,7 @@ Antes de emitir, validar:
 ## Exemplo de Prompt Bem Formado
 
 ```text
-Voce e o agente Software Engineer desta task.
+Voce e o agente 5.software-engineer desta task.
 
 ═══════════════════════════════════════════════════════════════════
 
@@ -186,7 +186,7 @@ REQUISITOS A IMPLEMENTAR (Mapeamento Testes → Requisitos)
 - [ ] Prompt é entregue como **texto puro** (não markdown block com ```):
 
 ```text
-Voce e o agente Software Engineer...
+Voce e o agente 5.software-engineer...
 ```
 
 #### ❌ Evitar:

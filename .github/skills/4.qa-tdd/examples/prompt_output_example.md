@@ -1,12 +1,12 @@
 # Exemplo: Prompt de Saída do QA-TDD para Software Engineer
 
-Este arquivo demonstra o **formato exato** do prompt que o agente QA-TDD emite
+Este arquivo demonstra o **formato exato** do prompt que o agente 4.qa-tdd emite
 para o Software Engineer após completar a escrita de testes.
 
 ---
 
 ```text
-Voce e o agente Software Engineer desta task.
+Voce e o agente 5.software-engineer desta task.
 
 ═══════════════════════════════════════════════════════════════════
 
@@ -247,6 +247,6 @@ git commit -m "[FEAT] Implementar validacao de decision_id em OrderLayer para id
 
 ---
 
-**Saída gerada por**: Agente QA-TDD
+**Saída gerada por**: Agente 4.qa-tdd
 **Data**: 2026-03-22
 **BLID Alvo**: BLID-042

@@ -5,12 +5,14 @@ description: |
   e gera prompt executável para Software Engineer implementar com TDD.
   Use quando: receber demanda refinada do arquiteto de soluções.
 metadata:
-  workflow-stage: 4
-  focus:
-    - escrita-testes-red-phase
-    - validacao-requisitos
-    - atualizacao-backlog
-    - handoff-software-engineer
+   workflow-track: principal
+   workflow-order: 4
+   workflow-stage: 4
+   focus:
+      - escrita-testes-red-phase
+      - validacao-requisitos
+      - atualizacao-backlog
+      - handoff-software-engineer
 user-invocable: true
 ---
 
@@ -161,11 +163,11 @@ Se incompleto, operar em modo conservador:
 
 ## Saída Obrigatória
 
-A resposta final deve ser **apenas um prompt para Software Engineer**,
+A resposta final deve ser **apenas um prompt para o agente 5.software-engineer**,
 sem prefácio adicional, contendo exatamente:
 
 ```text
-Voce e o agente Software Engineer desta task.
+Voce e o agente 5.software-engineer desta task.
 
 ═══════════════════════════════════════════════════════════════════
 
