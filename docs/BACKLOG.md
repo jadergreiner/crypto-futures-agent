@@ -334,7 +334,7 @@ Evidencias:
 
 ### TAREFA BLID-078 - Corrigir regressao na captura de candles por simbolo
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -351,10 +351,10 @@ Evidencia minima:
 
 Criterios de Aceite:
 
-- [ ] Fluxo volta a capturar candles por simbolo com contador maior que zero
+- [x] Fluxo volta a capturar candles por simbolo com contador maior que zero
    em ciclo operacional valido.
-- [ ] Campo `ultimo` deixa de retornar `N/A` quando houver contexto fresco.
-- [ ] Evidencia de validacao fica registrada no backlog ou log operacional.
+- [x] Campo `ultimo` deixa de retornar `N/A` quando houver contexto fresco.
+- [x] Evidencia de validacao fica registrada no backlog ou log operacional.
 
 Dependencias:
 
@@ -366,9 +366,34 @@ Impacto:
 - Restaura insumo minimo para decisao, episodio e monitoracao do ciclo M2
 - Evita operar ou diagnosticar o ciclo com contexto de mercado ausente
 
+PO: Priorizar restauracao da captura de candles para reativar contexto
+minimo do ciclo e destravar validacao de episodio no M2.
+
+SA: Fechar coleta de candles no log com fonte real do scan e fail-safe em
+dados stale, sem alterar schema.
+
+QA: Suite RED criada para exigir contexto nao fresco sem candles e
+captura real por simbolo no status operacional.
+
+SE: GREEN iniciado para derivar frescor de candles e refletir episodio
+persistido no report operacional.
+
+SE: GREEN concluido com contexto minimo derivado do sinal consumido e
+frescor explicito no report quando o sinal estiver stale.
+
+Evidencias de implementacao:
+
+1. `pytest -q tests/test_model2_blid_078_080_cycle_capture.py` -> 5 passed.
+2. `pytest -q tests/test_cycle_report.py tests/test_model2_blid_072_persist_episodes.py`
+   -> 33 passed.
+3. `pytest -q tests/` -> 123 passed.
+4. `mypy --strict --follow-imports skip core/model2/live_service.py
+   scripts/model2/persist_training_episodes.py
+   tests/test_model2_blid_078_080_cycle_capture.py` -> Success.
+
 ### TAREFA BLID-080 - Corrigir episodio `N/A` nao persistido no ciclo M2
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -385,12 +410,12 @@ Evidencia minima:
 
 Criterios de Aceite:
 
-- [ ] Ciclo volta a persistir episodio valido quando houver decisao e
+- [x] Ciclo volta a persistir episodio valido quando houver decisao e
    contexto operacional elegiveis.
-- [ ] Linha `Episodio` deixa de exibir `N/A nao persistido` em caso valido.
-- [ ] Reward registrado fica associado ao episodio persistido ou a motivo
+- [x] Linha `Episodio` deixa de exibir `N/A nao persistido` em caso valido.
+- [x] Reward registrado fica associado ao episodio persistido ou a motivo
    explicito de nao geracao.
-- [ ] Evidencia de validacao fica registrada no backlog ou log operacional.
+- [x] Evidencia de validacao fica registrada no backlog ou log operacional.
 
 Dependencias:
 
@@ -401,6 +426,38 @@ Impacto:
 
 - Restaura rastreabilidade de aprendizado e auditoria por episodio no M2
 - Evita ciclos com reward isolado sem persistencia auditavel do episodio
+
+PO: Priorizar persistencia de episodio apos restaurar captura para retomar
+aprendizado auditavel e reward rastreavel no ciclo M2.
+
+SA: Validar persistencia por execucao elegivel e refletir episodio/reward no
+status sem criar tabela ou contrato novo.
+
+QA: Suite RED em `tests/test_model2_blid_078_080_cycle_capture.py`.
+Cobertura: 5 testes (3 RED esperados, 2 de contrato). Validacao: `pytest -q
+tests/test_model2_blid_078_080_cycle_capture.py`.
+
+SE: GREEN iniciado para expor snapshot por simbolo em persistencia e usar
+ultimo episodio auditavel no status.
+
+SE: GREEN concluido com snapshot `latest_execution_episode_by_symbol` no
+summary e leitura do ultimo episodio persistido no live_service.
+
+Arquivos alterados:
+
+1. `core/model2/live_service.py`
+2. `scripts/model2/persist_training_episodes.py`
+3. `tests/test_model2_blid_078_080_cycle_capture.py`
+4. `tests/conftest.py`
+
+TL: Aprovado pacote BLID-078/080; criterios atendidos, guardrails
+preservados e regressao inexistente na suite oficial.
+
+DOC: Governanca final concluida; backlog e trilha SYNC alinhados ao
+pacote BLID-078/080 sem impacto adicional em arquitetura ou schema.
+
+PM: ACEITE final emitido; backlog concluido com validacoes reproduzidas,
+sync documental fechado e pacote pronto para publicacao em main.
 
 ### TAREFA M2-001.1 - Criar esquema de oportunidades
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import time
 import uuid
 from datetime import datetime, timezone
@@ -75,7 +76,7 @@ class Model2LiveExecutionService:
         self.repository = repository
         self.config = config
         self.exchange = exchange
-        self._risk_gate = risk_gate or RiskGate()  # type: ignore[no-untyped-call]
+        self._risk_gate = risk_gate or RiskGate()
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
         self._guardrail_balance_initialized = False
         self._rl_loader = RLModelLoader()
@@ -105,6 +106,8 @@ class Model2LiveExecutionService:
         decision: ModelDecision,
         candles_count: int = 0,
         last_candle_time: str = "",
+        decision_fresh: bool | None = None,
+        timeframe: str = "H4",
     ) -> None:
         """Formata status operacional usando novo padrao cycle_report."""
         try:
@@ -113,10 +116,18 @@ class Model2LiveExecutionService:
 
             # Coletar posicao aberta
             pos_info = collect_position_info(symbol, exchange_client=self.exchange)
+            latest_episode = self._load_latest_execution_episode(
+                symbol=symbol,
+                timeframe=timeframe,
+            )
+            report_decision_fresh = (
+                decision_fresh
+                if decision_fresh is not None
+                else bool(candles_count > 0 and str(last_candle_time).strip())
+            )
 
             # Montar report
             now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
-            timeframe = "H4"  # padrao para M2
             execution_mode = "live" if self.config.execution_mode == "live" else "shadow"
 
             report = SymbolReport(
@@ -127,10 +138,18 @@ class Model2LiveExecutionService:
                 last_candle_time=last_candle_time,
                 decision=decision.action,
                 confidence=decision.confidence,
-                decision_fresh=True,
-                episode_id=None,  # sera preenchido apos execucao
-                episode_persisted=False,
-                reward=0.0,
+                decision_fresh=report_decision_fresh,
+                episode_id=(
+                    int(latest_episode["episode_id"])
+                    if latest_episode is not None
+                    else None
+                ),
+                episode_persisted=latest_episode is not None,
+                reward=(
+                    float(latest_episode["reward"])
+                    if latest_episode is not None
+                    else 0.0
+                ),
                 last_train_time=last_train,
                 pending_episodes=pending,
                 has_position=bool(pos_info["has_position"]),
@@ -152,6 +171,61 @@ class Model2LiveExecutionService:
             logger = logging.getLogger(__name__)
             logger.warning("Falha ao formatar novo status: %s. Usando fallback.", exc)
             self._log_operational_status_fallback(symbol, decision)
+
+    def _load_latest_execution_episode(
+        self,
+        *,
+        symbol: str,
+        timeframe: str,
+    ) -> dict[str, float | int] | None:
+        """Busca o ultimo episodio persistido de execucao por simbolo."""
+        try:
+            with sqlite3.connect(self._db_path, timeout=5) as conn:
+                row = conn.execute(
+                    """
+                    SELECT id, execution_id, reward_proxy
+                    FROM training_episodes
+                    WHERE symbol = ?
+                      AND timeframe = ?
+                      AND execution_id > 0
+                    ORDER BY event_timestamp DESC, id DESC
+                    LIMIT 1
+                    """,
+                    (symbol, timeframe),
+                ).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        except Exception:
+            return None
+
+        if row is None:
+            return None
+
+        reward_value = float(row[2]) if row[2] is not None else 0.0
+        return {
+            "episode_id": int(row[0]),
+            "execution_id": int(row[1]),
+            "reward": reward_value,
+        }
+
+    @staticmethod
+    def _resolve_operational_candle_context(
+        candidate: dict[str, Any],
+        *,
+        signal_age_ms: int,
+        max_signal_age_ms: int,
+    ) -> tuple[int, str, bool]:
+        """Deriva contexto minimo de candle a partir do sinal consumido."""
+        signal_timestamp = int(candidate.get("signal_timestamp") or 0)
+        if signal_timestamp <= 0:
+            return 0, "", False
+
+        last_candle_time = datetime.fromtimestamp(
+            signal_timestamp / 1000,
+            tz=timezone.utc,
+        ).strftime("%Y-%m-%d %H:%M UTC")
+        is_fresh = int(signal_age_ms) <= int(max_signal_age_ms)
+        return 1, last_candle_time, is_fresh
 
     def _log_operational_status_fallback(
         self,
@@ -683,11 +757,20 @@ class Model2LiveExecutionService:
                 )
 
             # >>> Início da instrumentacao de log customizado
+            candles_count, last_candle_time, decision_fresh = (
+                self._resolve_operational_candle_context(
+                    candidate,
+                    signal_age_ms=int(source_gate_input.signal_age_ms),
+                    max_signal_age_ms=int(self.config.max_signal_age_ms),
+                )
+            )
             self._log_operational_status(
                 symbol=str(candidate["symbol"]),
                 decision=inferred_decision,
-                candles_count=0,
-                last_candle_time="",
+                candles_count=candles_count,
+                last_candle_time=last_candle_time,
+                decision_fresh=decision_fresh,
+                timeframe=str(candidate.get("timeframe") or "H4"),
             )
             # <<< Fim da instrumentacao
 

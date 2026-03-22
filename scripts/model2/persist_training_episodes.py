@@ -143,6 +143,39 @@ def _save_cursor(cursor_file: Path, updated_at_ms: int) -> None:
     cursor_file.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
 
 
+def _latest_execution_episode_by_symbol(
+    conn: sqlite3.Connection,
+    *,
+    symbols: list[str],
+    timeframe: str,
+) -> dict[str, dict[str, Any]]:
+    snapshots: dict[str, dict[str, Any]] = {}
+    for symbol in symbols:
+        row = conn.execute(
+            """
+            SELECT episode_key, execution_id, label, reward_proxy, status, event_timestamp
+            FROM training_episodes
+            WHERE symbol = ?
+              AND timeframe = ?
+              AND execution_id > 0
+            ORDER BY event_timestamp DESC, id DESC
+            LIMIT 1
+            """,
+            (symbol, timeframe),
+        ).fetchone()
+        if row is None:
+            continue
+        snapshots[str(symbol)] = {
+            "episode_key": str(row[0]),
+            "execution_id": int(row[1]),
+            "label": str(row[2]),
+            "reward_proxy": (float(row[3]) if row[3] is not None else None),
+            "status": str(row[4]),
+            "event_timestamp": int(row[5]),
+        }
+    return snapshots
+
+
 def run_persist_training_episodes(
     *,
     source_db_path: str | Path,
@@ -167,6 +200,7 @@ def run_persist_training_episodes(
     now_ms = _utc_now_ms()
     cursor_file = resolved_output_dir / "model2_training_episodes_cursor.json"
     last_cursor_ms = _load_cursor(cursor_file)
+    latest_execution_episode_by_symbol: dict[str, dict[str, Any]] = {}
 
     with sqlite3.connect(resolved_source_db) as source_conn, sqlite3.connect(resolved_model2_db) as model2_conn:
         source_conn.row_factory = sqlite3.Row
@@ -396,6 +430,11 @@ def run_persist_training_episodes(
             context_episodes += 1
 
         model2_conn.commit()
+        latest_execution_episode_by_symbol = _latest_execution_episode_by_symbol(
+            model2_conn,
+            symbols=symbol_filter,
+            timeframe=timeframe,
+        )
 
     jsonl_path.write_text("\n".join(jsonl_lines) + ("\n" if jsonl_lines else ""), encoding="utf-8")
     if execution_rows:
@@ -413,6 +452,7 @@ def run_persist_training_episodes(
         "cursor_end_ms": int(max_seen_updated_at) if execution_rows else int(last_cursor_ms),
         "execution_episodes_persisted": int(inserted_rows),
         "context_episodes_persisted": int(context_episodes),
+        "latest_execution_episode_by_symbol": latest_execution_episode_by_symbol,
         "jsonl_file": str(jsonl_path),
         "cursor_file": str(cursor_file),
     }

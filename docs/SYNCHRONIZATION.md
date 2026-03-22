@@ -23,6 +23,161 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-064] Aceite Project Manager do pacote BLID-078/080
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para CONCLUIDO |
+| Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-064 adicionado |
+
+#### Impacto
+
+- Fechamento ponta-a-ponta concluido com aceite formal do pacote.
+- Trilha de workflow finalizada para publicacao em `main`.
+
+---
+
+### [SYNC-063] Governanca Doc Advocate do pacote BLID-078/080
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario DOC registrado no pacote BLID-078/080 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-063 adicionado |
+
+#### Impacto
+
+- Governanca documental final concluida para o pacote aprovado.
+- Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
+
+---
+
+### [SYNC-062] Decisao Tech Lead do pacote BLID-078 e BLID-080
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para REVISADO_APROVADO |
+| Backlog | docs/BACKLOG.md | Comentario TL registrado no pacote |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-062 adicionado |
+
+#### Impacto
+
+- Revisao tecnica concluiu que os criterios de aceite foram atendidos.
+- Pacote segue para governanca documental com handoff TL -> Doc Advocate.
+
+---
+
+### [SYNC-061] Implementacao GREEN do pacote de captura M2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status live | core/model2/live_service.py | Candles e episodio agora refletem contexto auditavel |
+| Persistencia | scripts/model2/persist_training_episodes.py | Summary exposto com snapshot por simbolo |
+| Suite RED | tests/test_model2_blid_078_080_cycle_capture.py | Suite ficou verde |
+| Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para IMPLEMENTADO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-061 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_blid_078_080_cycle_capture.py` -> 5 passed
+- `pytest -q tests/` -> 123 passed
+- `mypy --strict --follow-imports skip core/model2/live_service.py`
+- `scripts/model2/persist_training_episodes.py`
+- `tests/test_model2_blid_078_080_cycle_capture.py`
+   -> Success
+
+#### Impacto
+
+- O status operacional deixa de marcar contexto fresco sem candle valido.
+- O ultimo episodio persistido passa a aparecer no report e no summary
+   por simbolo sem alterar schema.
+
+---
+
+### [SYNC-060] QA-TDD RED do pacote de captura M2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Suite RED | tests/test_model2_blid_078_080_cycle_capture.py | Nova suite RED para BLID-078 e BLID-080 |
+| Allowlist | tests/conftest.py | Novo arquivo adicionado na suite model-driven |
+| Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para TESTES_PRONTOS |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-060 adicionado |
+
+#### Impacto
+
+- QA-TDD formaliza gaps reproduziveis em telemetria de candles e
+   episodio persistido no status operacional.
+- Handoff para Software Engineer fica rastreavel com suite RED pronta.
+
+---
+
+### [SYNC-059] Handoff SA do pacote de captura M2 para QA-TDD
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentarios SA adicionados em BLID-078 e BLID-080 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-059 adicionado |
+
+#### Impacto
+
+- Escopo tecnico fechado para corrigir telemetria de candles e
+   persistencia auditavel de episodios sem ampliar arquitetura.
+- Handoff SA -> QA-TDD fica rastreavel para o pacote BLID-078 + BLID-080.
+
+---
+
+### [SYNC-058] Priorizacao PO do pacote de captura M2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 marcados como Em analise |
+| Backlog | docs/BACKLOG.md | Comentarios PO adicionados no rodape |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-058 adicionado |
+
+#### Impacto
+
+- Prioriza restauracao do contexto minimo do ciclo antes de ajustes
+   derivados de observabilidade e treino.
+- Mantem handoff PO -> Solution Architect rastreavel para o pacote de
+   captura operacional M2.
+
+---
+
 ### [SYNC-057] Inclusao do BLID-081 no backlog
 
 **Data/Hora**: 2026-03-22 UTC
