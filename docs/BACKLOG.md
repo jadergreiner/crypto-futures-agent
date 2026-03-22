@@ -45,6 +45,9 @@ Pendencias operacionais:
 - BLID-075 - Concluir onboarding operacional de FLUXUSDT.
    Dependencia minima: FLUXUSDT habilitado no pipeline RL.
    Impacto: fechar onboarding com treino e validacao ponta a ponta.
+- BLID-076 - Hardening de reconciliacao e cobertura de aceite M2-018.2.
+   Dependencia minima: M2-018.2 implementada e suite baseline verde.
+   Impacto: reduzir falso EXITED e fechar lacunas de robustez operacional.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -1598,6 +1601,37 @@ Impacto:
 - Fecha o onboarding do simbolo com rastreabilidade operacional
 - Evita pendencias escondidas em item marcado como concluido
 
+### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Mitigar risco comportamental na reconciliacao live e fechar lacunas de
+testes para criterios de aceite/robustez da M2-018.2.
+
+Criterios de Aceite:
+
+- [ ] Evitar transicao imediata para `EXITED` em ausencia transitoria de
+   posicao (confirmacao adicional ou janela de verificacao).
+- [ ] Adicionar teste dedicado de healthcheck pos-ciclo para M2-018.2 sem
+   divergencias criticas.
+- [ ] Adicionar teste de nao-regressao do preflight para modo diferente de
+   `paper` sem bloqueio indevido por credenciais testnet.
+- [ ] Manter guardrails (`risk_gate`, `circuit_breaker`) ativos e sem bypass.
+
+Dependencias:
+
+- M2-018.2 implementada
+- Suite baseline (`pytest -q tests/`) verde
+
+Impacto:
+
+- Reduz risco de falso positivo de saida (`EXITED`) por atraso da exchange
+- Aumenta robustez de aceite operacional em reconciliacao e preflight
+
 ---
 
 ## INICIATIVA M2-018 - Ativacao do modo live na Binance
@@ -1656,7 +1690,7 @@ Evidencias:
 
 ### TAREFA M2-018.2 - Testes de integracao com Binance Testnet
 
-Status: PENDENTE
+Status: REVISADO_APROVADO (2026-03-22)
 
 Entrega:
 
@@ -1675,6 +1709,49 @@ Evidencias:
 1. Log do ciclo: `results/model2/runtime/model2_live_execute_*.json`.
 2. Snapshot: `signal_executions` com `status=PROTECTED` + `status=EXITED`.
 3. Healthcheck: `results/model2/runtime/model2_healthcheck_*.json`.
+
+PO: Priorizar validacao testnet para reduzir risco operacional e fechar
+laco de reconciliacao antes de ampliar live.
+
+SA: Escopo fechado para validar ciclo testnet com PROTECTED->EXITED,
+healthcheck limpo e fail-safe em qualquer divergencia.
+
+QA: Suite RED criada e validada; gaps confirmados em reconciliacao para
+EXITED e preflight de credenciais testnet.
+
+SE: Implementacao GREEN iniciada para transicao PROTECTED->EXITED em
+fechamento externo e gate de credenciais testnet no preflight.
+
+SE: Implementacao GREEN concluida com reconciliacao para EXITED e gate
+de credenciais em `TRADING_MODE=paper`.
+
+Evidencias de implementacao (GREEN):
+
+1. `pytest -q tests/test_model2_m2_018_2_testnet_integration.py` -> PASS.
+2. `pytest -q tests/test_model2_live_execution.py
+   tests/test_model2_go_live_preflight.py` -> PASS.
+3. `pytest -q tests/` -> 118 passed.
+4. Reconciliacao `PROTECTED` sem posicao agora finaliza em `EXITED`
+   com `reason=external_close_detected`.
+5. Preflight bloqueia `TRADING_MODE=paper` sem
+   `BINANCE_API_KEY`/`BINANCE_API_SECRET`.
+
+Observacao operacional:
+
+- Validacao com fill real em testnet depende de credenciais reais no `.env`
+  e execucao operacional fora da suite local.
+
+TL: Entrega aprovada; risco residual e lacunas de robustez foram
+decompostos no BLID-076 para hardening posterior.
+
+Suite QA-TDD (RED):
+
+1. Arquivo: `tests/test_model2_m2_018_2_testnet_integration.py`.
+2. Execucao: `pytest -q tests/test_model2_m2_018_2_testnet_integration.py`.
+3. Resultado: 2 failed, 2 passed (estado RED confirmado).
+4. Falha 1: fechamento externo retorna `FAILED`, esperado `EXITED`.
+5. Falha 2: preflight nao bloqueia ausencia de
+   `BINANCE_API_KEY`/`BINANCE_API_SECRET` em `TRADING_MODE=paper`.
 
 ### TAREFA M2-018.3 - Ativacao em producao com limites conservadores
 

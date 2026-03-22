@@ -23,6 +23,140 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-052] Decisao Tech Lead da tarefa M2-018.2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | M2-018.2 atualizada para REVISADO_APROVADO |
+| Backlog | docs/BACKLOG.md | Comentario TL adicionado no item |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-052 adicionado |
+
+#### Impacto
+
+- Fechamento formal da revisao Tech Lead para a M2-018.2
+- Itens nao bloqueantes seguem rastreados no BLID-076
+
+---
+
+### [SYNC-051] Inclusao do BLID-076 no backlog
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Novo item BLID-076 adicionado |
+| Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-076 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-051 adicionado |
+
+#### Impacto
+
+- Risco de reconciliacao da M2-018.2 fica rastreavel em tarefa dedicada
+- Lacunas de cobertura viram backlog acionavel para priorizacao do PO
+
+---
+
+### [SYNC-050] Implementacao GREEN da tarefa M2-018.2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Testes
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Reconciliacao live | core/model2/live_service.py | `PROTECTED` sem posicao agora transiciona para `EXITED` |
+| Preflight | scripts/model2/go_live_preflight.py | Gate de credenciais em `TRADING_MODE=paper` |
+| Testes live | tests/test_model2_live_execution.py | Contrato atualizado para `external_close_detected` |
+| Testes M2-018.2 | tests/test_model2_m2_018_2_testnet_integration.py | Suite RED->GREEN da demanda |
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | M2-018.2 atualizada para IMPLEMENTADO com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-050 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_m2_018_2_testnet_integration.py` PASS
+- `pytest -q tests/` PASS (118 passed)
+
+#### Impacto
+
+- Fechamento externo de posicao protegida deixa de cair em falha critica
+   e passa a finalizar ciclo como `EXITED` com auditoria.
+- Preflight reforca fail-safe ao bloquear modo paper sem credenciais
+   minimas de testnet.
+
+---
+
+### [SYNC-049] QA-TDD RED da tarefa M2-018.2
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | M2-018.2 atualizado para TESTES_PRONTOS (RED) |
+| Backlog | docs/BACKLOG.md | Evidencias da suite QA-TDD adicionadas |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-049 adicionado |
+
+#### Impacto
+
+- Handoff QA-TDD pronto para Software Engineer com gaps reproduziveis
+- Rastreabilidade completa de requisitos -> testes -> estado RED
+
+---
+
+### [SYNC-048] Handoff SA da tarefa M2-018.2 para QA-TDD
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario SA adicionado em M2-018.2 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-048 adicionado |
+
+#### Impacto
+
+- Escopo tecnico fechado para testes orientados a risco e reconciliacao
+- Handoff SA -> QA-TDD com rastreabilidade no backlog
+
+---
+
+### [SYNC-047] Priorizacao PO do pacote M2-018.2 para testnet
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | M2-018.2 marcado como Em analise |
+| Backlog | docs/BACKLOG.md | Comentario PO adicionado no rodape |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-047 adicionado |
+
+#### Impacto
+
+- Prioriza validacao testnet para reduzir risco operacional imediato
+- Mantem rastreabilidade do handoff PO -> Solution Architect
+
+---
+
 ### [SYNC-046] Organizacao do backlog aberto e extracao do BLID-075
 
 **Data/Hora**: 2026-03-22 UTC

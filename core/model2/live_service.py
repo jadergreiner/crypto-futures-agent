@@ -1406,6 +1406,36 @@ class Model2LiveExecutionService:
             "reason": failed.reason,
         }
 
+    def _mark_external_close_exit(
+        self,
+        *,
+        execution: dict[str, Any],
+        now_ms: int,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        execution_id = int(execution["id"])
+        status_before = str(execution.get("status") or "")
+        event_payload = {
+            "result": "external_close_detected",
+            "status_before": status_before,
+            **metadata,
+        }
+        self._record_reconcile_note(execution_id, now_ms=now_ms, payload=event_payload)
+
+        exited = self.repository.mark_signal_execution_exited(
+            execution_id=execution_id,
+            now_ms=now_ms,
+            exit_reason="external_close_detected",
+            rule_id=M2_010_1_RULE_ID,
+            exit_price=None,
+            metadata=event_payload,
+        )
+        return {
+            "execution_id": execution_id,
+            "status": exited.current_status,
+            "reason": exited.reason,
+        }
+
     def _reconcile_single_execution(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
         execution_id = int(execution["id"])
@@ -1505,12 +1535,11 @@ class Model2LiveExecutionService:
 
         if execution["status"] == SIGNAL_EXECUTION_STATUS_PROTECTED:
             if position is None:
-                return self._mark_reconciliation_divergence(
+                return self._mark_external_close_exit(
                     execution=execution,
                     now_ms=now_ms,
-                    reason="reconciliation_divergence_protected_without_position",
                     metadata={
-                        "source": "reconcile_protected_missing_position",
+                        "source": "reconcile_protected_external_close",
                         "symbol": symbol,
                         "signal_side": signal_side,
                     },

@@ -807,15 +807,15 @@ def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Pa
         symbol_cooldown_minutes=240,
         exchange=exchange,
     )
-    assert second_reconcile["reconciled"][0]["status"] == "FAILED"
-    assert second_reconcile["reconciled"][0]["reason"] == "reconciliation_divergence_protected_without_position"
+    assert second_reconcile["reconciled"][0]["status"] == "EXITED"
+    assert second_reconcile["reconciled"][0]["reason"] == "external_close_detected"
 
     execution = repository.list_signal_executions(limit=10)[0]
     assert int(execution["technical_signal_id"]) == signal_id
-    assert execution["status"] == "FAILED"
+    assert execution["status"] == "EXITED"
 
 
-def test_live_reconcile_emits_alert_for_critical_divergence(tmp_path: Path, monkeypatch) -> None:
+def test_live_reconcile_external_close_does_not_emit_critical_alert(tmp_path: Path, monkeypatch) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _repository, _signal_id = _create_consumed_signal(db_path)
     exchange = FakeExchange(available_balance=100.0, protection_works=True)
@@ -862,9 +862,9 @@ def test_live_reconcile_emits_alert_for_critical_divergence(tmp_path: Path, monk
         exchange=exchange,
     )
 
-    assert reconcile_summary["reconciled"][0]["status"] == "FAILED"
-    assert reconcile_summary["reconciled"][0]["reason"] == "reconciliation_divergence_protected_without_position"
-    assert any(event == "reconciliation_critical_divergence" for event, _ in captured)
+    assert reconcile_summary["reconciled"][0]["status"] == "EXITED"
+    assert reconcile_summary["reconciled"][0]["reason"] == "external_close_detected"
+    assert not any(event == "reconciliation_critical_divergence" for event, _ in captured)
 
 
 def _forced_action_result(action: str) -> "InferenceServiceResult":

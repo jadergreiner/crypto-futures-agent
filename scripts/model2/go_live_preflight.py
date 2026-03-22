@@ -297,6 +297,37 @@ def _check_operational_alerts_ready(env_values: dict[str, str]) -> dict[str, Any
     }
 
 
+def _check_testnet_credentials_ready(env_values: dict[str, str]) -> dict[str, Any]:
+    """Valida credenciais minimas para testnet quando TRADING_MODE=paper."""
+    trading_mode = str(env_values.get("TRADING_MODE", "")).strip().lower()
+    api_key = str(env_values.get("BINANCE_API_KEY", "")).strip()
+    api_secret = str(env_values.get("BINANCE_API_SECRET", "")).strip()
+
+    if trading_mode != "paper":
+        return {
+            "ok": True,
+            "details": {
+                "trading_mode": trading_mode or "undefined",
+                "requires_testnet_credentials": False,
+                "binance_api_key_configured": bool(api_key),
+                "binance_api_secret_configured": bool(api_secret),
+                "reason": "not_paper_mode",
+            },
+        }
+
+    configured = bool(api_key) and bool(api_secret)
+    return {
+        "ok": configured,
+        "details": {
+            "trading_mode": "paper",
+            "requires_testnet_credentials": True,
+            "binance_api_key_configured": bool(api_key),
+            "binance_api_secret_configured": bool(api_secret),
+            "reason": "ok" if configured else "missing_testnet_credentials",
+        },
+    }
+
+
 def run_go_live_preflight(
     *,
     model2_db_path: str | Path,
@@ -544,7 +575,9 @@ def run_go_live_preflight(
         inference_ok = bool(inference_check["ok"])
         alerts_check = _check_operational_alerts_ready(env_values)
         alerts_ok = bool(alerts_check["ok"])
-        check6_ok = risk_ok and guardrails_ok and inference_ok and alerts_ok
+        testnet_credentials_check = _check_testnet_credentials_ready(env_values)
+        testnet_credentials_ok = bool(testnet_credentials_check["ok"])
+        check6_ok = risk_ok and guardrails_ok and inference_ok and alerts_ok and testnet_credentials_ok
         add_check(
             check_id="6",
             description="Validar limites de risco e guard-rails ativos (M2-020.5).",
@@ -560,6 +593,7 @@ def run_go_live_preflight(
                 "guardrails": guardrails_check["details"],
                 "model_inference": inference_check["details"],
                 "operational_alerts": alerts_check["details"],
+                "testnet_credentials": testnet_credentials_check["details"],
             },
             error=(
                 None if check6_ok
@@ -572,7 +606,11 @@ def run_go_live_preflight(
                         else (
                             "Alertas operacionais habilitados sem credenciais Telegram."
                             if not alerts_ok
-                            else "One or more risk limits are missing/invalid."
+                            else (
+                                "TRADING_MODE=paper exige BINANCE_API_KEY e BINANCE_API_SECRET."
+                                if not testnet_credentials_ok
+                                else "One or more risk limits are missing/invalid."
+                            )
                         )
                     )
                 )
