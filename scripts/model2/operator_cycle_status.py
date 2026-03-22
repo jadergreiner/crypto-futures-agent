@@ -18,6 +18,12 @@ if str(REPO_ROOT) not in sys.path:
 
 from data.binance_client import create_binance_client
 from core.model2.live_exchange import Model2LiveExchange
+from core.model2.cycle_report import (
+    SymbolReport,
+    format_symbol_report,
+    collect_training_info,
+    collect_position_info,
+)
 from config.settings import M2_EXECUTION_MODE
 
 
@@ -265,51 +271,146 @@ def _build_symbol_line(
     exchange: Model2LiveExchange | None,
     last_train_time: str,
 ) -> str:
-    # 1. Obter decisão do modelo a partir do sumário de execução
-    decision = "HOLD"
-    if live_execute_summary:
-        for item in live_execute_summary.get("staged", []):
-            if str(item.get("symbol", "")).upper() == symbol:
-                raw_action = item.get("action", "HOLD")
-                # Normalizar a ação para o formato desejado (ex: ACTION_OPEN_LONG -> BUY)
-                if "LONG" in raw_action:
-                    decision = "BUY"
-                elif "SHORT" in raw_action:
-                    decision = "SELL"
-                else:
-                    decision = raw_action
-                break
+    """Constrói relatório de símbolo usando novo padrão cycle_report."""
+    try:
+        # Obter decisão do modelo a partir do sumário de execução
+        decision = "HOLD"
+        confidence = 0.0
+        if live_execute_summary:
+            for item in live_execute_summary.get("staged", []):
+                if str(item.get("symbol", "")).upper() == symbol:
+                    raw_action = item.get("action", "HOLD")
+                    confidence = float(item.get("confidence", 0.0))
+                    # Normalizar a ação para o formato desejado
+                    if "LONG" in raw_action:
+                        decision = "OPEN_LONG"
+                    elif "SHORT" in raw_action:
+                        decision = "OPEN_SHORT"
+                    else:
+                        decision = raw_action
+                    break
 
-    # 2. Obter PnL e posição da exchange
-    pos_str = "None"
-    pnl_str = "0.00"
-    if exchange:
-        position = exchange.get_open_position(symbol)
-        if position:
-            direction = position.get("direction", "NONE")
-            size = float(position.get("position_size_qty", 0.0))
-            entry_price = float(position.get("entry_price", 0.0))
-            mark_price = float(position.get("mark_price", 0.0))
-            pos_str = f"{direction} {size:.4f}"
+        # Obter PnL e posição da exchange
+        has_position = False
+        position_side = ""
+        position_qty = 0.0
+        position_entry_price = 0.0
+        position_mark_price = 0.0
+        position_pnl_pct = 0.0
+        position_pnl_usd = 0.0
 
-            pnl = 0.0
-            if entry_price > 0 and size > 0:
-                pnl = (mark_price - entry_price) * size if direction == "LONG" else (entry_price - mark_price) * size
-            pnl_str = f"{pnl:+.2f}"
+        if exchange:
+            try:
+                position = exchange.get_open_position(symbol)
+                if position:
+                    has_position = True
+                    position_side = position.get("direction", "").upper()
+                    position_qty = float(position.get("position_size_qty", 0.0))
+                    position_entry_price = float(position.get("entry_price", 0.0))
+                    position_mark_price = float(position.get("mark_price", 0.0))
 
-    # 3. Montar a linha de log final no novo formato
-    log_template = (
-        "{symbol} | Data: OK | Model: Ran | "
-        "Decision: {decision} | RL: Stored (Pending: N/A) | "
-        "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
-    )
-    return log_template.format(
-        symbol=symbol,
-        decision=decision,
-        last_train=last_train_time,
-        position=pos_str,
-        pnl=pnl_str,
-    )
+                    if position_entry_price > 0 and position_qty > 0:
+                        if position_side == "LONG":
+                            pnl_usd = (position_mark_price - position_entry_price) * position_qty
+                        elif position_side == "SHORT":
+                            pnl_usd = (position_entry_price - position_mark_price) * position_qty
+                        else:
+                            pnl_usd = 0.0
+
+                        position_pnl_usd = pnl_usd
+                        position_pnl_pct = (pnl_usd / (position_entry_price * position_qty)) * 100 if position_entry_price > 0 else 0.0
+            except Exception:
+                # Se falhar ao consultar posição, continua com valores defaults
+                pass
+
+        # Obter dados de candles
+        candles_count = 0
+        last_candle_time = ""
+        if scan_summary:
+            items = scan_summary.get("symbols", {})
+            if symbol in items:
+                sym_data = items[symbol]
+                candles_count = int(sym_data.get("candles_count", 0))
+                last_candle_time = sym_data.get("last_candle_time", "")
+
+        # Montar SymbolReport e formatar
+        now = datetime.now(timezone.utc)
+        timeframe = "H4"
+        execution_mode = "live" if M2_EXECUTION_MODE == "live" else "shadow"
+
+        report = SymbolReport(
+            symbol=symbol,
+            timeframe=timeframe,
+            timestamp=now.strftime("%Y-%m-%d %H:%M:%S"),
+            candles_count=candles_count,
+            last_candle_time=last_candle_time,
+            decision=decision,
+            confidence=confidence,
+            decision_fresh=True,
+            episode_id=None,
+            episode_persisted=False,
+            reward=0.0,
+            last_train_time=last_train_time,
+            pending_episodes=0,
+            has_position=has_position,
+            position_side=position_side,
+            position_qty=position_qty,
+            position_entry_price=position_entry_price,
+            position_mark_price=position_mark_price,
+            position_pnl_pct=position_pnl_pct,
+            position_pnl_usd=position_pnl_usd,
+            execution_mode=execution_mode,
+        )
+
+        # Retornar relatório formatado
+        return format_symbol_report(report)
+
+    except Exception as exc:
+        # Fallback seguro se novo formato falhar
+        decision = "HOLD"
+        if live_execute_summary:
+            for item in live_execute_summary.get("staged", []):
+                if str(item.get("symbol", "")).upper() == symbol:
+                    raw_action = item.get("action", "HOLD")
+                    if "LONG" in raw_action:
+                        decision = "BUY"
+                    elif "SHORT" in raw_action:
+                        decision = "SELL"
+                    else:
+                        decision = raw_action
+                    break
+
+        pos_str = "None"
+        pnl_str = "0.00"
+        if exchange:
+            try:
+                position = exchange.get_open_position(symbol)
+                if position:
+                    direction = position.get("direction", "NONE")
+                    size = float(position.get("position_size_qty", 0.0))
+                    entry_price = float(position.get("entry_price", 0.0))
+                    mark_price = float(position.get("mark_price", 0.0))
+                    pos_str = f"{direction} {size:.4f}"
+
+                    pnl = 0.0
+                    if entry_price > 0 and size > 0:
+                        pnl = (mark_price - entry_price) * size if direction == "LONG" else (entry_price - mark_price) * size
+                    pnl_str = f"{pnl:+.2f}"
+            except Exception:
+                pass
+
+        log_template = (
+            "{symbol} | Data: OK | Model: Ran | "
+            "Decision: {decision} | RL: Stored (Pending: N/A) | "
+            "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
+        )
+        return log_template.format(
+            symbol=symbol,
+            decision=decision,
+            last_train=last_train_time,
+            position=pos_str,
+            pnl=pnl_str,
+        )
 
 
 def main() -> int:
