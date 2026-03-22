@@ -7,6 +7,7 @@ from config.settings import M2_MAX_DAILY_ENTRIES
 from scripts.model2.go_live_preflight import (
     _check_guardrails_functional,
     _check_model_inference_functional,
+    _check_testnet_credentials_ready,
     run_go_live_preflight,
 )
 
@@ -345,3 +346,11 @@ def test_preflight_check6_blocks_when_alerts_enabled_without_telegram_credential
     assert check6["evidence"]["operational_alerts"]["enabled"] is True
     assert check6["evidence"]["operational_alerts"]["telegram_bot_token_configured"] is False
     assert check6["evidence"]["operational_alerts"]["telegram_chat_id_configured"] is False
+
+
+def test_preflight_modo_live_nao_exige_testnet_credentials() -> None:
+    result = _check_testnet_credentials_ready({"TRADING_MODE": "live"})
+
+    assert result["ok"] is True
+    assert result["details"]["requires_testnet_credentials"] is False
+    assert result["details"]["reason"] == "not_paper_mode"

@@ -2,6 +2,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 from core.model2.model_decision import (
     ACTION_CLOSE,
@@ -793,6 +794,10 @@ def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Pa
     assert reconcile_summary["reconciled"][0]["reason"] == "protection_armed"
 
     exchange.positions.pop("BTCUSDT", None)
+    from core.model2 import live_service as live_service_module
+
+    live_service_module.time.sleep = lambda _: None
+
     second_reconcile = run_live_reconcile(
         model2_db_path=db_path,
         symbol="BTCUSDT",
@@ -807,8 +812,26 @@ def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Pa
         symbol_cooldown_minutes=240,
         exchange=exchange,
     )
-    assert second_reconcile["reconciled"][0]["status"] == "EXITED"
-    assert second_reconcile["reconciled"][0]["reason"] == "external_close_detected"
+
+    assert second_reconcile["reconciled"][0]["status"] == "PROTECTED"
+    assert second_reconcile["reconciled"][0]["reason"] != "external_close_detected"
+
+    third_reconcile = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+    assert third_reconcile["reconciled"][0]["status"] == "EXITED"
+    assert third_reconcile["reconciled"][0]["reason"] == "external_close_detected"
 
     execution = repository.list_signal_executions(limit=10)[0]
     assert int(execution["technical_signal_id"]) == signal_id
@@ -847,6 +870,10 @@ def test_live_reconcile_external_close_does_not_emit_critical_alert(tmp_path: Pa
     assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
 
     exchange.positions.pop("BTCUSDT", None)
+    from core.model2 import live_service as live_service_module
+
+    live_service_module.time.sleep = lambda _: None
+
     reconcile_summary = run_live_reconcile(
         model2_db_path=db_path,
         symbol="BTCUSDT",
@@ -862,9 +889,139 @@ def test_live_reconcile_external_close_does_not_emit_critical_alert(tmp_path: Pa
         exchange=exchange,
     )
 
-    assert reconcile_summary["reconciled"][0]["status"] == "EXITED"
-    assert reconcile_summary["reconciled"][0]["reason"] == "external_close_detected"
+    assert reconcile_summary["reconciled"][0]["status"] == "PROTECTED"
+    assert reconcile_summary["reconciled"][0]["reason"] != "external_close_detected"
+
+    second_reconcile = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert second_reconcile["reconciled"][0]["status"] == "EXITED"
+    assert second_reconcile["reconciled"][0]["reason"] == "external_close_detected"
     assert not any(event == "reconciliation_critical_divergence" for event, _ in captured)
+
+
+def test_log_operational_status_redispara_treino_incremental_apos_termino_sem_duplicar_concorrencia(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    from core.model2.live_service import Model2LiveExecutionService
+
+    class ProcessoFake:
+        def __init__(self, pid: int) -> None:
+            self.pid = pid
+            self.returncode: int | None = None
+
+        def poll(self) -> int | None:
+            return self.returncode
+
+    processos: list[ProcessoFake] = []
+    comandos: list[tuple[object, ...]] = []
+
+    def _capture_subprocess(*args, **kwargs):
+        comandos.append(args)
+        processo = ProcessoFake(pid=1234 + len(processos))
+        processos.append(processo)
+        return processo
+
+    monkeypatch.setattr(
+        "core.model2.live_service.collect_training_info",
+        lambda db_path: ("2026-03-15 17:22:40", 100),
+    )
+    monkeypatch.setattr(
+        "core.model2.live_service.collect_position_info",
+        lambda symbol, exchange_client=None: {
+            "has_position": False,
+            "position_side": "",
+            "position_qty": 0.0,
+            "position_entry_price": 0.0,
+            "position_mark_price": 0.0,
+            "position_pnl_pct": 0.0,
+            "position_pnl_usd": 0.0,
+        },
+    )
+    monkeypatch.setattr(
+        "core.model2.live_service.format_symbol_report",
+        lambda report: "ok",
+    )
+    monkeypatch.setattr(
+        "core.model2.live_service.subprocess",
+        SimpleNamespace(Popen=_capture_subprocess, run=_capture_subprocess),
+        raising=False,
+    )
+
+    service = Model2LiveExecutionService(
+        repository=SimpleNamespace(),
+        config=SimpleNamespace(execution_mode="shadow", db_path=str(tmp_path / "modelo2.db")),
+    )
+
+    service._log_operational_status(
+        "BTCUSDT",
+        ModelDecision(
+            action=ACTION_HOLD,
+            confidence=0.5,
+            size_fraction=0.0,
+            sl_target=None,
+            tp_target=None,
+            reason_code="test",
+            decision_timestamp=1_700_000_000_000,
+            symbol="BTCUSDT",
+            model_version="m2-inference-v1",
+            metadata={},
+        ),
+    )
+
+    assert len(processos) == 1
+
+    service._log_operational_status(
+        "BTCUSDT",
+        ModelDecision(
+            action=ACTION_HOLD,
+            confidence=0.5,
+            size_fraction=0.0,
+            sl_target=None,
+            tp_target=None,
+            reason_code="test",
+            decision_timestamp=1_700_000_000_000,
+            symbol="BTCUSDT",
+            model_version="m2-inference-v1",
+            metadata={},
+        ),
+    )
+
+    assert len(processos) == 1
+
+    processos[0].returncode = 0
+
+    service._log_operational_status(
+        "BTCUSDT",
+        ModelDecision(
+            action=ACTION_HOLD,
+            confidence=0.5,
+            size_fraction=0.0,
+            sl_target=None,
+            tp_target=None,
+            reason_code="test",
+            decision_timestamp=1_700_000_000_000,
+            symbol="BTCUSDT",
+            model_version="m2-inference-v1",
+            metadata={},
+        ),
+    )
+
+    assert len(processos) == 2
+    assert comandos[0] == comandos[1]
 
 
 def _forced_action_result(action: str) -> "InferenceServiceResult":

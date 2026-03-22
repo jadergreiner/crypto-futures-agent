@@ -290,45 +290,45 @@ class PPOTrainer:
             # Criar environment simples baseado em dados históricos
             class HistoricalDataEnv(gym.Env):
                 """Environment que simula trading com dados históricos."""
-                
+
                 def __init__(self, observations, rewards, max_steps=1000):
                     self.observations = observations
                     self.rewards = rewards
                     self.max_steps = max_steps
                     self.current_step = 0
                     self.episode_rewards = []
-                    
+
                     # Spaces: obs é [close, volume, rsi, position, pnl]
                     self.observation_space = Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32)
                     self.action_space = Discrete(3)  # 0: HOLD, 1: BUY, 2: SELL
-                    
+
                     self.metadata = {"render_modes": []}
-                
+
                 def reset(self, seed=None):
                     super().reset(seed=seed)
                     self.current_step = 0
                     self.episode_rewards = []
-                    
+
                     # Iniciar com primeira observação
-                    idx = np.random.randint(0, len(self.observations) - self.max_steps 
+                    idx = np.random.randint(0, len(self.observations) - self.max_steps
                                            if len(self.observations) > self.max_steps else 1)
                     self.start_idx = idx
                     self.current_step = 0
-                    
+
                     return self.observations[idx], {}
-                
+
                 def step(self, action):
                     self.current_step += 1
-                    
+
                     # Índice relativo ao episódio
                     idx = min(self.start_idx + self.current_step, len(self.observations) - 1)
-                    
+
                     # Reward baseado nos dados históricos
                     if idx < len(self.rewards):
                         base_reward = self.rewards[idx]
                     else:
                         base_reward = 0.0
-                    
+
                     # Bônus/penalidade por ação
                     action_bonus = 0.0
                     if action == 1:  # BUY quando reward alto
@@ -341,20 +341,20 @@ class PPOTrainer:
                             action_bonus = 0.1
                         else:
                             action_bonus = -0.05
-                    
+
                     reward = base_reward + action_bonus
                     self.episode_rewards.append(reward)
-                    
+
                     terminated = self.current_step >= self.max_steps
                     truncated = idx >= len(self.observations) - 1
-                    
+
                     obs = self.observations[idx] if idx < len(self.observations) else self.observations[-1]
-                    
+
                     return obs, reward, terminated, truncated, {}
-            
+
             # Criar e treinar o modelo
             env = HistoricalDataEnv(self.obs_data, self.rewards_data, max_steps=100)
-            
+
             model = PPO(
                 'MlpPolicy',
                 env,
@@ -370,17 +370,17 @@ class PPOTrainer:
                 seed=42,
                 device='cpu'
             )
-            
+
             logger.info(f"[PPO] Treinando por {timesteps} timesteps...")
             start_time = perf_counter()
             model.learn(total_timesteps=timesteps)
             elapsed = perf_counter() - start_time
-            
+
             # Salvar modelo
             model_path = self.checkpoint_dir / "ppo_model"
             model.save(str(model_path))
             logger.info(f"[PPO] Modelo salvo em {model_path}.zip")
-            
+
             result = {
                 "status": "ok",
                 "timesteps_trained": timesteps,
@@ -406,10 +406,10 @@ class PPOTrainer:
     def _train_ppo_simulated(self, timesteps: int = 10000) -> Dict[str, Any]:
         """
         Fallback: treinamento simulado quando SB3/Gymnasium não disponível.
-        
+
         Args:
             timesteps: Número de timesteps para simular
-            
+
         Returns:
             Resultado simulado do treinamento
         """
@@ -418,12 +418,12 @@ class PPOTrainer:
                 "status": "error",
                 "error": "No training data prepared",
             }
-        
+
         logger.info(f"[PPO] Usando fallback de treinamento simulado com {len(self.obs_data)} samples...")
-        
+
         # Simular treinamento (placeholder para demonstração)
         start_time = perf_counter()
-        
+
         result = {
             "status": "ok",
             "training_mode": "simulated",
@@ -434,9 +434,9 @@ class PPOTrainer:
             "checkpoint_path": str(self.checkpoint_dir / "ppo_model.pkl"),
             "note": "Treinamento simulado (SB3/Gymnasium não disponível)",
         }
-        
+
         logger.info(f"[PPO] Treinamento simulado completado")
-        
+
         return result
 
     def save_checkpoint_with_metadata(self) -> Dict[str, Any]:
@@ -471,6 +471,36 @@ class PPOTrainer:
             return {
                 "status": "error",
                 "error": str(e),
+            }
+
+    def record_training_log(self, *, episodes_used: int, status: str) -> Dict[str, Any]:
+        """Registra conclusao de treino em rl_training_log."""
+        try:
+            completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            with sqlite3.connect(str(self.model2_db_path)) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO rl_training_log (completed_at, episodes_used, status)
+                    VALUES (?, ?, ?)
+                    """,
+                    (completed_at, int(episodes_used), str(status)),
+                )
+                conn.commit()
+            return {
+                "status": "ok",
+                "completed_at": completed_at,
+                "episodes_used": int(episodes_used),
+                "training_status": str(status),
+            }
+        except sqlite3.OperationalError as exc:
+            return {
+                "status": "error",
+                "error": f"rl_training_log indisponivel: {exc}",
+            }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "error": str(exc),
             }
 
 
@@ -555,6 +585,14 @@ def main():
     if train_result.get('status') == 'error':
         pipeline_result['status'] = 'partial'
         logger.warning("[PPO] Treinamento não disponível mas pipeline prossegue com fallback")
+    else:
+        episodes_used = int(train_result.get("episodes_used") or 0)
+        training_status = str(train_result.get("status") or "ok")
+        log_result = trainer.record_training_log(
+            episodes_used=episodes_used,
+            status=training_status,
+        )
+        pipeline_result['stages']['training_log'] = log_result
 
     # Stage 4: Save checkpoint
     save_result = trainer.save_checkpoint_with_metadata()

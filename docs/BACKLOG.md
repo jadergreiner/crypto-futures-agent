@@ -221,7 +221,7 @@ Impacto:
 
 ### TAREFA BLID-079 - Corrigir confianca `N/A` na linha de decisao `[SYM]`
 
-Status: BACKLOG
+Status: IMPLEMENTADO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -253,9 +253,24 @@ Impacto:
 - Restaura leitura operacional da qualidade da inferencia do modelo
 - Reduz ambiguidade ao avaliar se a acao foi emitida com confianca suficiente
 
+PO: Priorizar BLID-079: restaurar confiança na decisão [SYM] para
+observabilidade da inferência em shadow e live.
+
+SA: Fix em `cycle_report.py` L80: `if r.confidence` ->
+`if r.confidence is not None`; 0.0 e falsy, sem mudar schema.
+
+QA: Suite RED em `tests/test_cycle_report.py` cobre `confidence=0.0`,
+paridade shadow/live e regressao `None -> N/A`.
+
+SE: Inicio implementacao SPRINT-BLID-081+079+M2-019.3+019.4+076 em
+2026-03-22.
+
+SE: `confidence=0.0` formatado como `0%` com paridade shadow/live validada
+por `tests/test_cycle_report.py`.
+
 ### TAREFA BLID-081 - Corrigir rotina de treino incremental nao ocorrendo
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -288,6 +303,42 @@ Impacto:
 
 - Restaura atualizacao incremental do modelo com rastreabilidade operacional
 - Reduz risco de operar com modelo defasado sem sinalizacao explicita
+
+PO: Priorizar BLID-081: modelo stale desde 15/03; restaurar treino
+incremental e crítico para qualidade das decisoes.
+
+SA: 3 raizes: `collect_training_info` le `rl_episodes` (tabela errada);
+`train_ppo_incremental` nao escreve `rl_training_log`; ciclo nao
+dispara treino.
+
+QA: Suite RED em `tests/test_cycle_report.py` e
+`tests/test_model2_live_execution.py` cobre tabela correta,
+`rl_training_log`, barra proporcional e gatilho em subprocesso.
+
+SE: `collect_training_info` ajustado para `training_episodes` elegiveis,
+`train_ppo_incremental.py` registra `rl_training_log` e trigger incremental
+em subprocesso validado em `tests/test_model2_live_execution.py`.
+
+TL: DEVOLVIDO - trigger incremental trava apos 1 execucao; flag
+`_incremental_training_running` nunca volta a `False`.
+
+SE: Retomada da revisao em 2026-03-22 para vincular o trigger incremental
+ao estado real do subprocesso e liberar re-disparo sem concorrencia.
+
+SE: `live_service.py` agora bloqueia apenas enquanto o subprocesso de
+treino incremental estiver ativo e volta a disparar apos termino real;
+validado por `pytest -q tests/test_model2_live_execution.py` (18 passed),
+`pytest -q tests/` (200 passed) e `mypy --strict --follow-imports=skip
+core/model2/live_service.py` (Success).
+
+TL: APROVADO - trigger incremental ligado ao estado real do subprocesso,
+com re-disparo apos termino e sem duplicidade concorrente.
+
+DOC: Governanca final concluida para BLID-081; backlog e trilha [SYNC]
+alinhados para handoff executivo ao Project Manager.
+
+PM: ACEITE final aprovado; BLID-081 concluida com trilha ponta-a-ponta
+validada e pronta para publicacao em main.
 
 ### TAREFA BLID-082 - Corrigir ausencia de Candle Atualizado no log `[SYM]`
 
@@ -1915,7 +1966,7 @@ Impacto:
 
 ### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
 
-Status: BACKLOG
+Status: IMPLEMENTADO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -1943,6 +1994,21 @@ Impacto:
 
 - Reduz risco de falso positivo de saida (`EXITED`) por atraso da exchange
 - Aumenta robustez de aceite operacional em reconciliacao e preflight
+
+PO: Priorizar BLID-076: evitar falso `EXITED` por atraso da exchange e
+fechar lacunas de robustez apos aprovacao do M2-018.2.
+
+SA: Adicionar contagem de confirmacoes (N=2) antes de `EXITED` em
+`_reconcile_single_execution`; testes healthcheck e preflight.
+
+QA: Suite RED em `tests/test_model2_live_execution.py`,
+`tests/test_model2_go_live_preflight.py` e
+`tests/test_model2_m2_018_2_testnet_integration.py` cobre confirmacao
+minima, healthcheck pos-ciclo e preflight nao-paper.
+
+SE: Reconciliacao `PROTECTED` agora confirma ausencia em 2 checks com
+espera e trilha auditavel antes de `EXITED`; preflight nao-paper mantido
+sem bloqueio por credenciais testnet.
 
 ---
 
@@ -2197,7 +2263,7 @@ Dependencias: M2-019.1 [OK]
 
 ### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
 
-Status: PENDENTE
+Status: IMPLEMENTADO
 
 Entrega:
 
@@ -2214,11 +2280,26 @@ Entrega:
 
 Dependencias: M2-019.1, M2-019.2
 
+PO: Priorizar M2-019.3: M2-019.1 e M2-019.2 concluidos;
+`SubAgentManager` habilita pipeline RL por simbolo (M2-019.4/.5).
+
+SA: Adicionar `train_entry_agent(symbol, episodes, steps)` e
+`predict_entry(symbol, obs)->Tuple[int,float]`; modelo entry salvo como
+`{sym}_entry_ppo.zip`.
+
+QA: Suite RED em `tests/test_model2_m2_019_3_sub_agent_manager.py`
+cobre treino com `EntryDecisionEnv`, fallback NEUTRAL,
+persistencia `_entry_ppo.zip` e `load_all()`.
+
+SE: `SubAgentManager` implementa `self._entry_agents`,
+`train_entry_agent(...)`, `predict_entry(...) -> tuple[int, float]`,
+fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
+
 ---
 
 ### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
 
-Status: PENDENTE
+Status: IMPLEMENTADO
 
 Entrega:
 
@@ -2232,6 +2313,22 @@ Entrega:
 7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
 
 Dependencias: M2-019.2, M2-019.3
+
+PO: Priorizar M2-019.4: runner de treino diario por simbolo apos
+M2-019.3; viabiliza filtro RL no pipeline operacional.
+
+SA: Novo `train_entry_agents.py`; loop por simbolo com
+`EpisodeLoader+train_entry_agent`; skip `< 20` eps; `dry_run` sem
+salvar; JSON em `results/`.
+
+QA: Suite RED em `tests/test_model2_m2_019_4_train_entry_agents.py`
+cobre skip `< 20`, treino `>= 20`, `dry_run`, JSON por simbolo e
+`continue_on_error=True`.
+
+SE: API `run_train_entry_agents(...)` exposta para uso programatico,
+carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
+`dry_run`, grava JSON em `results/model2/runtime/` e suporta
+`continue_on_error=True`.
 
 ---
 

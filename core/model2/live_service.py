@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import subprocess
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 from notifications.model2_live_alerts import Model2LiveAlertPublisher
@@ -60,6 +63,11 @@ _PROTECTION_MAX_RETRIES = 3
 _PROTECTION_RETRY_BASE_DELAY_S = 1.0
 
 
+class _IncrementalTrainingProcess(Protocol):
+    def poll(self) -> int | None:
+        ...
+
+
 class Model2LiveExecutionService:
     """Coordinates live/shadow entry, protection and reconciliation."""
 
@@ -82,16 +90,60 @@ class Model2LiveExecutionService:
         self._rl_loader = RLModelLoader()
         self._inference_service = ModelInferenceService()
         self._alert_publisher = alert_publisher or Model2LiveAlertPublisher()
+        self._incremental_training_process: _IncrementalTrainingProcess | None = None
         self._last_train_time = "N/A"
         if self._rl_loader.checkpoint_timestamp:
             self._last_train_time = datetime.fromtimestamp(
                 self._rl_loader.checkpoint_timestamp, tz=timezone.utc
             ).strftime("%Y-%m-%d %H:%M:%S")
         # Config para busca de dados de treino (BD)
-        self._db_path = getattr(
-            config, "db_path",
-            "db/modelo2.db"
+        self._db_path = str(
+            getattr(config, "db_path", "")
+            or getattr(repository, "db_path", "db/modelo2.db")
         )
+        self._repo_root = Path(__file__).resolve().parents[2]
+
+    def _resolve_repository_db_path(self) -> str:
+        candidate = getattr(self.repository, "db_path", None)
+        if isinstance(candidate, (str, Path)) and str(candidate).strip():
+            return str(candidate)
+        return str(self._db_path)
+
+    def _incremental_training_is_running(self) -> bool:
+        process = self._incremental_training_process
+        if process is None:
+            return False
+        if process.poll() is None:
+            return True
+        self._incremental_training_process = None
+        return False
+
+    def _trigger_incremental_training_if_needed(
+        self,
+        *,
+        pending_episodes: int,
+        retrain_threshold: int,
+        timeframe: str,
+    ) -> None:
+        """Dispara retreino incremental em subprocesso isolado quando backlog atinge limiar."""
+        if self.config.execution_mode == "live":
+            return
+        if retrain_threshold <= 0:
+            return
+        if pending_episodes < retrain_threshold:
+            return
+        if self._incremental_training_is_running():
+            return
+
+        command = [
+            sys.executable,
+            str(self._repo_root / "scripts" / "model2" / "train_ppo_incremental.py"),
+            "--model2-db-path",
+            str(self._db_path),
+            "--timeframe",
+            str(timeframe),
+        ]
+        self._incremental_training_process = subprocess.Popen(command)
 
     def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
         try:
@@ -162,6 +214,16 @@ class Model2LiveExecutionService:
                 execution_mode=execution_mode,
             )
 
+            try:
+                self._trigger_incremental_training_if_needed(
+                    pending_episodes=int(pending),
+                    retrain_threshold=int(report.retrain_threshold),
+                    timeframe=timeframe,
+                )
+            except Exception as exc:
+                logger = logging.getLogger(__name__)
+                logger.warning("Falha ao disparar treino incremental: %s", exc)
+
             # Exibir relatorio formatado
             output = format_symbol_report(report)
             print(output, flush=True)
@@ -180,7 +242,7 @@ class Model2LiveExecutionService:
     ) -> dict[str, float | int] | None:
         """Busca o ultimo episodio persistido de execucao por simbolo."""
         try:
-            with sqlite3.connect(self._db_path, timeout=5) as conn:
+            with sqlite3.connect(self._resolve_repository_db_path(), timeout=5) as conn:
                 row = conn.execute(
                     """
                     SELECT id, execution_id, reward_proxy
@@ -1520,6 +1582,73 @@ class Model2LiveExecutionService:
             "reason": exited.reason,
         }
 
+    def _confirm_position_absent(
+        self,
+        *,
+        execution_id: int,
+        symbol: str,
+        signal_side: str,
+        position: dict[str, Any] | None,
+        now_ms: int,
+        required_checks: int = 2,
+        wait_seconds: float = 1.0,
+    ) -> bool:
+        """Confirma ausencia de posicao com janela minima para evitar falso EXITED."""
+        if position is not None:
+            self._record_reconcile_note(
+                execution_id,
+                now_ms=now_ms,
+                payload={
+                    "result": "position_absence_check",
+                    "symbol": symbol,
+                    "signal_side": signal_side,
+                    "position_absent": False,
+                    "consecutive_absence_checks": 0,
+                    "required_checks": required_checks,
+                },
+            )
+            return False
+
+        checks = self._count_confirmed_absence_checks(execution_id=execution_id) + 1
+        self._record_reconcile_note(
+            execution_id,
+            now_ms=now_ms,
+            payload={
+                "result": "position_absence_check",
+                "symbol": symbol,
+                "signal_side": signal_side,
+                "position_absent": True,
+                "consecutive_absence_checks": checks,
+                "required_checks": required_checks,
+            },
+        )
+
+        if checks < required_checks:
+            time.sleep(wait_seconds)
+            return False
+
+        return True
+
+    def _count_confirmed_absence_checks(self, *, execution_id: int) -> int:
+        """Conta checks de ausencia de posicao ja registrados na trilha de reconciliacao."""
+        try:
+            with sqlite3.connect(self._resolve_repository_db_path(), timeout=5) as conn:
+                row = conn.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM signal_execution_events
+                    WHERE signal_execution_id = ?
+                      AND event_type = 'RECONCILIATION'
+                      AND COALESCE(payload_json, '') LIKE '%position_absence_check%'
+                    """,
+                    (int(execution_id),),
+                ).fetchone()
+            if row is None:
+                return 0
+            return int(row[0])
+        except Exception:
+            return 0
+
     def _reconcile_single_execution(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
         execution_id = int(execution["id"])
@@ -1619,6 +1748,19 @@ class Model2LiveExecutionService:
 
         if execution["status"] == SIGNAL_EXECUTION_STATUS_PROTECTED:
             if position is None:
+                confirmed_absence = self._confirm_position_absent(
+                    execution_id=execution_id,
+                    symbol=symbol,
+                    signal_side=signal_side,
+                    position=position,
+                    now_ms=now_ms,
+                )
+                if not confirmed_absence:
+                    return {
+                        "execution_id": execution_id,
+                        "status": execution["status"],
+                        "reason": "awaiting_position_absence_confirmation",
+                    }
                 return self._mark_external_close_exit(
                     execution=execution,
                     now_ms=now_ms,

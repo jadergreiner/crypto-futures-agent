@@ -4,13 +4,14 @@ Cada símbolo tem seu próprio modelo PPO treinado com dados específicos.
 """
 
 import logging
-import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import json
 from pathlib import Path
+import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+from .entry_decision_env import EntryDecisionEnv
 from .signal_environment import SignalReplayEnv
 from .signal_reward import SignalRewardCalculator
 
@@ -36,50 +37,51 @@ MIN_TRADES_FOR_TRAINING = 20
 class SubAgentManager:
     """
     Gerencia sub-agentes especializados por símbolo.
-    
+
     Cada símbolo tem seu próprio modelo PPO treinado com dados específicos
     daquele ativo. Isso permite especialização e melhor performance, já que
     nem tudo que funciona para um símbolo funciona para outro.
     """
-    
+
     def __init__(self, base_dir: str = "models/sub_agents"):
         """
         Inicializa gerenciador de sub-agentes.
-        
+
         Args:
             base_dir: Diretório base para salvar/carregar sub-agentes
         """
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.agents: Dict[str, PPO] = {}  # Dict[symbol, PPO]
+        self._entry_agents: Dict[str, PPO] = {}
         self.agent_stats: Dict[str, Dict[str, Any]] = {}  # Stats por símbolo
         self.reward_calculator = SignalRewardCalculator()
-        
+
         logger.info(f"SubAgentManager inicializado, base_dir={base_dir}")
-        
+
         # Carregar agentes existentes
         self.load_all()
-    
+
     def get_or_create_agent(self, symbol: str) -> PPO:
         """
         Retorna o sub-agente do símbolo. Cria se não existir.
-        
+
         Args:
             symbol: Símbolo do ativo (ex: BTCUSDT)
-            
+
         Returns:
             Instância do modelo PPO para o símbolo
         """
         if symbol in self.agents:
             return self.agents[symbol]
-        
+
         logger.info(f"Criando novo sub-agente para {symbol}")
-        
+
         # Criar environment dummy para inicializar o agente
         # (será substituído por environment real durante treino)
         dummy_env = self._create_dummy_env()
-        
+
         # Criar modelo PPO com configurações padrão
         agent = PPO(
             policy='MlpPolicy',
@@ -94,9 +96,9 @@ class SubAgentManager:
             ent_coef=DEFAULT_SUB_AGENT_CONFIG['ent_coef'],
             verbose=DEFAULT_SUB_AGENT_CONFIG['verbose']
         )
-        
+
         self.agents[symbol] = agent
-        
+
         # Inicializar stats
         self.agent_stats[symbol] = {
             'trades_trained': 0,
@@ -105,21 +107,21 @@ class SubAgentManager:
             'win_rate': 0.0,
             'avg_r_multiple': 0.0
         }
-        
+
         return agent
-    
-    def train_agent(self, symbol: str, signals: List[Dict[str, Any]], 
+
+    def train_agent(self, symbol: str, signals: List[Dict[str, Any]],
                    evolutions: Dict[int, List[Dict[str, Any]]],
                    total_timesteps: int = 10000) -> Dict[str, Any]:
         """
         Treina o sub-agente do símbolo com dados reais acumulados.
-        
+
         Args:
             symbol: Símbolo do ativo
             signals: Lista de sinais com outcomes preenchidos
             evolutions: Dicionário {signal_id: [snapshots]} com evoluções
             total_timesteps: Número de timesteps para treino
-            
+
         Returns:
             Dicionário com estatísticas do treino
         """
@@ -131,39 +133,39 @@ class SubAgentManager:
                 'reason': 'insufficient_trades',
                 'trades_available': len(signals)
             }
-        
+
         logger.info(f"Iniciando treino de sub-agente {symbol} com {len(signals)} sinais")
-        
+
         # Obter ou criar agente
         agent = self.get_or_create_agent(symbol)
-        
+
         # Criar environment de replay com os sinais
         env = SignalReplayEnv(signals=signals, evolutions_dict=evolutions)
         vec_env = DummyVecEnv([lambda: env])
-        
+
         # Atualizar environment do agente
         agent.set_env(vec_env)
-        
+
         # Treinar
         try:
             agent.learn(total_timesteps=total_timesteps, reset_num_timesteps=False)
-            
+
             # Atualizar stats
             self.agent_stats[symbol]['trades_trained'] = len(signals)
             self.agent_stats[symbol]['total_steps'] += total_timesteps
             self.agent_stats[symbol]['last_training'] = self._get_timestamp()
-            
+
             # Calcular estatísticas dos sinais
             wins = sum(1 for s in signals if s.get('outcome_label') == 'win')
             self.agent_stats[symbol]['win_rate'] = wins / len(signals) if signals else 0.0
-            
+
             avg_r = sum(s.get('r_multiple', 0.0) for s in signals) / len(signals) if signals else 0.0
             self.agent_stats[symbol]['avg_r_multiple'] = avg_r
-            
+
             logger.info(f"Treino concluído para {symbol}: "
                        f"win_rate={self.agent_stats[symbol]['win_rate']:.2%}, "
                        f"avg_r={avg_r:.2f}")
-            
+
             return {
                 'success': True,
                 'trades_trained': len(signals),
@@ -171,7 +173,7 @@ class SubAgentManager:
                 'win_rate': self.agent_stats[symbol]['win_rate'],
                 'avg_r_multiple': avg_r
             }
-            
+
         except Exception as e:
             logger.error(f"Erro ao treinar sub-agente {symbol}: {e}")
             return {
@@ -179,53 +181,53 @@ class SubAgentManager:
                 'reason': 'training_error',
                 'error': str(e)
             }
-    
+
     def evaluate_signal_quality(self, symbol: str, signal_context: Dict[str, Any]) -> float:
         """
         Usa o sub-agente para avaliar qualidade de um novo sinal.
-        
+
         Args:
             symbol: Símbolo do ativo
             signal_context: Contexto do sinal (indicadores, SMC, sentimento, etc)
-            
+
         Returns:
             Score de qualidade (0.0 a 1.0)
         """
         if symbol not in self.agents:
             logger.warning(f"Sub-agente para {symbol} não existe. Retornando score neutro.")
             return 0.5
-        
+
         agent = self.agents[symbol]
-        
+
         try:
             # Construir observação a partir do contexto
             obs = self._build_observation_from_context(signal_context)
-            
+
             # Obter ação e valor estimado do agente
             action, _states = agent.predict(obs, deterministic=True)
-            
+
             # Usar value function como proxy de qualidade
             # (valores altos = agente espera bom resultado)
             value = agent.policy.predict_values(obs)
-            
+
             # Normalizar para [0, 1]
             quality_score = self._normalize_value_to_score(value)
-            
+
             logger.debug(f"Qualidade de sinal {symbol}: {quality_score:.2f}")
-            
+
             return quality_score
-            
+
         except Exception as e:
             logger.error(f"Erro ao avaliar sinal {symbol}: {e}")
             return 0.5
-    
+
     def get_agent_stats(self, symbol: str) -> Dict[str, Any]:
         """
         Retorna estatísticas do sub-agente (trades, win_rate, etc).
-        
+
         Args:
             symbol: Símbolo do ativo
-            
+
         Returns:
             Dicionário com estatísticas
         """
@@ -238,12 +240,93 @@ class SubAgentManager:
                 'win_rate': 0.0,
                 'avg_r_multiple': 0.0
             }
-        
+
         return {
             'exists': True,
             **self.agent_stats[symbol]
         }
-    
+
+    def train_entry_agent(
+        self,
+        symbol: str,
+        episodes: List[Dict[str, Any]],
+        total_timesteps: int = 10000,
+    ) -> Dict[str, Any]:
+        """Treina agente de entrada dedicado usando EntryDecisionEnv."""
+        if len(episodes) < MIN_TRADES_FOR_TRAINING:
+            return {
+                'success': False,
+                'reason': 'insufficient_episodes',
+                'episodes_available': len(episodes),
+            }
+
+        try:
+            env = EntryDecisionEnv(episodes=episodes, symbol=symbol)
+            vec_env = DummyVecEnv([lambda: env])
+
+            if symbol in self._entry_agents:
+                entry_agent = self._entry_agents[symbol]
+                entry_agent.set_env(vec_env)
+            else:
+                entry_agent = PPO(
+                    policy='MlpPolicy',
+                    env=vec_env,
+                    learning_rate=DEFAULT_SUB_AGENT_CONFIG['learning_rate'],
+                    n_steps=DEFAULT_SUB_AGENT_CONFIG['n_steps'],
+                    batch_size=DEFAULT_SUB_AGENT_CONFIG['batch_size'],
+                    n_epochs=DEFAULT_SUB_AGENT_CONFIG['n_epochs'],
+                    gamma=DEFAULT_SUB_AGENT_CONFIG['gamma'],
+                    gae_lambda=DEFAULT_SUB_AGENT_CONFIG['gae_lambda'],
+                    clip_range=DEFAULT_SUB_AGENT_CONFIG['clip_range'],
+                    ent_coef=DEFAULT_SUB_AGENT_CONFIG['ent_coef'],
+                    verbose=DEFAULT_SUB_AGENT_CONFIG['verbose'],
+                )
+
+            entry_agent.learn(total_timesteps=total_timesteps, reset_num_timesteps=False)
+            self._entry_agents[symbol] = entry_agent
+
+            return {
+                'success': True,
+                'symbol': symbol,
+                'episodes_used': len(episodes),
+                'total_timesteps': total_timesteps,
+            }
+        except Exception as exc:
+            logger.error("Erro ao treinar entry agent %s: %s", symbol, exc)
+            return {
+                'success': False,
+                'reason': 'training_error',
+                'error': str(exc),
+            }
+
+    def predict_entry(self, symbol: str, observation: List[float]) -> Tuple[int, float]:
+        """Prediz acao de entrada com fallback conservador obrigatorio."""
+        entry_agent = self._entry_agents.get(symbol)
+        if entry_agent is None:
+            return 0, 0.0
+
+        try:
+            obs = np.asarray(observation, dtype=np.float32)
+            action_raw, _ = entry_agent.predict(obs, deterministic=True)
+            action = int(action_raw)
+            if action not in (0, 1, 2):
+                action = 0
+
+            confidence = 0.0
+            try:
+                value = entry_agent.policy.predict_values(obs)
+                if isinstance(value, np.ndarray):
+                    confidence = float(np.clip(value.mean(), 0.0, 1.0))
+                else:
+                    confidence = float(max(0.0, min(1.0, float(value))))
+            except Exception:
+                confidence = 0.0
+
+            return action, confidence
+        except Exception as exc:
+            logger.error("Erro em predict_entry(%s): %s", symbol, exc)
+            return 0, 0.0
+
     def save_all(self) -> None:
         """Salva todos os sub-agentes e suas estatísticas."""
         for symbol, agent in self.agents.items():
@@ -251,35 +334,51 @@ class SubAgentManager:
                 # Salvar modelo
                 model_path = self.base_dir / f"{symbol}_ppo.zip"
                 agent.save(str(model_path))
-                
+
                 # Salvar stats
                 stats_path = self.base_dir / f"{symbol}_stats.json"
                 with open(stats_path, 'w') as f:
                     json.dump(self.agent_stats.get(symbol, {}), f, indent=2)
-                
+
                 logger.debug(f"Sub-agente {symbol} salvo em {model_path}")
-                
+
             except Exception as e:
                 logger.error(f"Erro ao salvar sub-agente {symbol}: {e}")
-        
+
+        for symbol, entry_agent in self._entry_agents.items():
+            try:
+                entry_model_path = self.base_dir / f"{symbol}_entry_ppo.zip"
+                entry_agent.save(str(entry_model_path))
+            except Exception as e:
+                logger.error(f"Erro ao salvar entry-agent {symbol}: {e}")
+
         logger.info(f"Todos os sub-agentes salvos em {self.base_dir}")
-    
+
     def load_all(self) -> None:
         """Carrega todos os sub-agentes salvos."""
         if not self.base_dir.exists():
             logger.info("Diretório de sub-agentes não existe ainda")
             return
-        
+
         model_files = list(self.base_dir.glob("*_ppo.zip"))
-        
+
         for model_path in model_files:
             try:
-                symbol = model_path.stem.replace('_ppo', '')
-                
+                model_stem = model_path.stem
+
+                if model_stem.endswith('_entry_ppo'):
+                    symbol = model_stem.replace('_entry_ppo', '')
+                    entry_agent = PPO.load(str(model_path))
+                    self._entry_agents[symbol] = entry_agent
+                    logger.info(f"Entry-agent {symbol} carregado de {model_path}")
+                    continue
+
+                symbol = model_stem.replace('_ppo', '')
+
                 # Carregar modelo
                 agent = PPO.load(str(model_path))
                 self.agents[symbol] = agent
-                
+
                 # Carregar stats
                 stats_path = self.base_dir / f"{symbol}_stats.json"
                 if stats_path.exists():
@@ -293,21 +392,25 @@ class SubAgentManager:
                         'win_rate': 0.0,
                         'avg_r_multiple': 0.0
                     }
-                
+
                 logger.info(f"Sub-agente {symbol} carregado de {model_path}")
-                
+
             except Exception as e:
                 logger.error(f"Erro ao carregar sub-agente de {model_path}: {e}")
-        
-        if self.agents:
-            logger.info(f"{len(self.agents)} sub-agentes carregados")
+
+        if self.agents or self._entry_agents:
+            logger.info(
+                "%s sub-agentes de gestao e %s de entrada carregados",
+                len(self.agents),
+                len(self._entry_agents),
+            )
         else:
             logger.info("Nenhum sub-agente encontrado")
-    
+
     def _create_dummy_env(self) -> SignalReplayEnv:
         """
         Cria environment dummy para inicialização de agente.
-        
+
         Returns:
             SignalReplayEnv vazio
         """
@@ -324,16 +427,16 @@ class SubAgentManager:
             'r_multiple': 0.0,
             'outcome_label': 'breakeven'
         }
-        
+
         return SignalReplayEnv(signals=[dummy_signal], evolutions_dict={0: []})
-    
+
     def _build_observation_from_context(self, context: Dict[str, Any]) -> Any:
         """
         Constrói observação a partir do contexto do sinal.
-        
+
         Args:
             context: Dicionário com indicadores, SMC, sentimento, etc
-            
+
         Returns:
             Observação no formato esperado pelo modelo
         """
@@ -357,17 +460,17 @@ class SubAgentManager:
             context.get('long_short_ratio', 1.0) - 1.0,
             0.0, 0.0, 0.0, 0.0, 0.0  # Momentum features (não disponíveis)
         ]
-        
+
         import numpy as np
         return np.array(obs, dtype=np.float32)
-    
+
     def _normalize_value_to_score(self, value: float) -> float:
         """
         Normaliza value function para score [0, 1].
-        
+
         Args:
             value: Valor da value function
-            
+
         Returns:
             Score normalizado
         """
@@ -376,7 +479,7 @@ class SubAgentManager:
         import numpy as np
         normalized = (np.clip(value, -5, 5) + 5) / 10
         return float(normalized)
-    
+
     def _get_timestamp(self) -> int:
         """Retorna timestamp atual em milissegundos."""
         from datetime import datetime

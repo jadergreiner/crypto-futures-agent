@@ -4,6 +4,8 @@ from pathlib import Path
 
 from core.model2.repository import Model2ThesisRepository
 from core.model2.scanner import DetectionResult, M2_002_RULE_ID, M2_002_THESIS_TYPE
+from scripts.model2.healthcheck_live_execution import run_live_healthcheck
+from scripts.model2.live_dashboard import run_live_dashboard
 from scripts.model2.go_live_preflight import run_go_live_preflight
 from scripts.model2.live_execute import run_live_execute
 from scripts.model2.live_reconcile import run_live_reconcile
@@ -195,7 +197,7 @@ def test_m2_018_2_live_cycle_registers_protected_execution(tmp_path: Path) -> No
 
 
 def test_m2_018_2_reconcile_external_close_marks_exited(tmp_path: Path) -> None:
-    """Requisito R2 (RED): fechamento externo deve resultar em status EXITED."""
+    """Requisito R2 (RED): EXITED exige ausencia confirmada em 2 checks."""
     db_path = _prepare_model2_db(tmp_path)
     repository, signal_id = _create_consumed_signal(db_path, symbol="BNBUSDT")
     exchange = FakeExchangeTestnet(available_balance=100.0, protection_works=True)
@@ -217,6 +219,10 @@ def test_m2_018_2_reconcile_external_close_marks_exited(tmp_path: Path) -> None:
     assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
 
     exchange.positions.pop("BNBUSDT", None)
+    from core.model2 import live_service as live_service_module
+
+    live_service_module.time.sleep = lambda _: None
+
     reconcile_summary = run_live_reconcile(
         model2_db_path=db_path,
         symbol="BNBUSDT",
@@ -232,12 +238,111 @@ def test_m2_018_2_reconcile_external_close_marks_exited(tmp_path: Path) -> None:
         exchange=exchange,
     )
 
-    assert reconcile_summary["reconciled"][0]["status"] == "EXITED"
-    assert reconcile_summary["reconciled"][0]["reason"] == "external_close_detected"
+    assert reconcile_summary["reconciled"][0]["status"] == "PROTECTED"
+    assert reconcile_summary["reconciled"][0]["reason"] != "external_close_detected"
+
+    second_reconcile = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol="BNBUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert second_reconcile["reconciled"][0]["status"] == "EXITED"
+    assert second_reconcile["reconciled"][0]["reason"] == "external_close_detected"
 
     execution = repository.list_signal_executions(limit=10)[0]
     assert int(execution["technical_signal_id"]) == signal_id
     assert execution["status"] == "EXITED"
+
+
+def test_m2_018_2_healthcheck_pos_ciclo_sem_divergencias_criticas(
+    tmp_path: Path,
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _repository, _signal_id = _create_consumed_signal(db_path, symbol="BNBUSDT")
+    exchange = FakeExchangeTestnet(available_balance=100.0, protection_works=True)
+
+    execute_summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BNBUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
+
+    dashboard_summary = run_live_dashboard(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results" / "model2" / "runtime",
+        retention_days=30,
+    )
+
+    healthcheck_summary = run_live_healthcheck(
+        runtime_dir=tmp_path / "results" / "model2" / "runtime",
+        output_dir=tmp_path / "results" / "model2" / "runtime",
+        max_age_hours=2,
+        max_unprotected_filled=0,
+        max_stale_entry_sent=0,
+        max_position_mismatches=0,
+        alert_command=None,
+    )
+
+    assert dashboard_summary["status"] == "ok"
+    assert healthcheck_summary["status"] == "ok"
+
+
+def test_m2_018_2_preflight_modo_live_nao_exige_credenciais_testnet(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=live\n"
+        "M2_EXECUTION_MODE=live\n"
+        "M2_LIVE_SYMBOLS=BNBUSDT\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BNBUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_ok,
+        live_execute_fn=_stub_ok,
+        live_reconcile_fn=_stub_ok,
+        live_dashboard_fn=_stub_ok,
+        live_healthcheck_fn=_stub_ok,
+    )
+
+    credential_alerts = [
+        item
+        for item in summary["checks"]
+        if "BINANCE_API_KEY" in str(item.get("error", ""))
+        or "BINANCE_API_SECRET" in str(item.get("error", ""))
+    ]
+
+    assert credential_alerts == []
 
 
 def test_m2_018_2_preflight_requires_testnet_credentials_when_paper_mode(tmp_path: Path) -> None:

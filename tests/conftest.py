@@ -40,6 +40,12 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_blid_072_persist_episodes.py",
     "test_model2_blid_078_080_cycle_capture.py",
     "test_model2_blid_082_candle_status.py",
+    "test_model2_live_execution.py",
+    "test_model2_go_live_preflight.py",
+    "test_model2_m2_018_2_testnet_integration.py",
+    "test_model2_m2_019_3_sub_agent_manager.py",
+    "test_model2_m2_019_4_train_entry_agents.py",
+    "test_sub_agent_manager.py",
 )
 
 

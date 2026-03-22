@@ -23,6 +23,151 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-077] Aceite Project Manager do BLID-081
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-081 atualizado para CONCLUIDO |
+| Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-077 adicionado |
+
+#### Impacto
+
+- Fechamento ponta-a-ponta concluido com aceite formal do BLID-081.
+- Trilha finalizada para publicacao em `main`.
+
+### [SYNC-076] Governanca Doc Advocate do BLID-081
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario DOC registrado no BLID-081 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-076 adicionado |
+
+#### Impacto
+
+- Governanca documental final concluida para BLID-081 aprovado pelo TL.
+- Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
+
+### [SYNC-075] Tech Lead devolve pacote BLID-081/079/076 + M2-019.3/.4
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Revisao TL | docs/BACKLOG.md | Registro `TL:` de devolucao por bloqueio em BLID-081 |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-075 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_cycle_report.py`
+   `tests/test_model2_m2_019_3_sub_agent_manager.py`
+   `tests/test_model2_m2_019_4_train_entry_agents.py`
+   `tests/test_model2_live_execution.py`
+   `tests/test_model2_go_live_preflight.py`
+   `tests/test_model2_m2_018_2_testnet_integration.py`
+   -> 71 passed
+- `pytest -q tests/` -> 200 passed
+- `mypy --strict --follow-imports=skip core/model2/cycle_report.py`
+   `agent/sub_agent_manager.py`
+   `scripts/model2/train_entry_agents.py`
+   `core/model2/live_service.py`
+   -> Success
+
+#### Impacto
+
+- Pacote volta para revisao porque o retreino incremental so pode disparar
+   uma vez por processo do servico.
+- Guardrails de risco seguem ativos; bloqueio e funcional, nao de seguranca.
+
+### [SYNC-074] Implementacao GREEN do pacote BLID-081/079/076 + M2-019.3/.4
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Observabilidade de treino | core/model2/cycle_report.py | Pendencias via `training_episodes` elegiveis + confianca `0.0 -> 0%` |
+| Treino incremental | scripts/model2/train_ppo_incremental.py | Registro em `rl_training_log` apos treino bem-sucedido |
+| Execucao/reconciliacao live | core/model2/live_service.py | Trigger incremental em subprocesso e confirmacao N=2 antes de `EXITED` |
+| Subagente de entrada | agent/sub_agent_manager.py | `train_entry_agent`, `predict_entry`, fallback e persistencia `_entry_ppo.zip` |
+| Runner diario | scripts/model2/train_entry_agents.py | API `run_train_entry_agents(...)` com JSON por simbolo, dry-run e continue_on_error |
+| Backlog | docs/BACKLOG.md | Itens BLID-079/081/076 e M2-019.3/.4 atualizados para IMPLEMENTADO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-074 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_cycle_report.py`
+   `tests/test_model2_m2_019_3_sub_agent_manager.py`
+   `tests/test_model2_m2_019_4_train_entry_agents.py`
+   `tests/test_model2_live_execution.py`
+   `tests/test_model2_go_live_preflight.py`
+   `tests/test_model2_m2_018_2_testnet_integration.py`
+   -> 71 passed
+- `pytest -q tests/` -> 200 passed
+- `mypy --strict --follow-imports=skip core/model2/cycle_report.py`
+   `agent/sub_agent_manager.py`
+   `scripts/model2/train_entry_agents.py`
+   `core/model2/live_service.py`
+   -> Success
+
+#### Impacto
+
+- Regressao de confianca e retreino incremental resolvidas sem alteracao de schema.
+- Reconciliacao `EXITED` endurecida contra ausencia transitoria de posicao.
+- Pipeline de RL por simbolo habilitado para treino de entrada diario.
+
+### [SYNC-073] QA-TDD RED do pacote BLID-081/079/076 + M2-019.3/.4
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Suite RED | tests/test_cycle_report.py | BLID-081 e BLID-079 |
+| Suite RED | tests/test_model2_live_execution.py | BLID-081 e BLID-076 |
+| Suite RED | tests/test_model2_go_live_preflight.py | nao-paper ok |
+| Suite RED | tests/test_model2_m2_018_2_testnet_integration.py | confirmacao + healthcheck |
+| Suite RED | tests/test_model2_m2_019_3_sub_agent_manager.py | nova suite M2-019.3 |
+| Suite RED | tests/test_model2_m2_019_4_train_entry_agents.py | nova suite M2-019.4 |
+| Allowlist | tests/conftest.py | suites novas no escopo oficial |
+| Backlog | docs/BACKLOG.md | itens atualizados para TESTES_PRONTOS |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-073 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_cycle_report.py`
+   `tests/test_model2_m2_019_3_sub_agent_manager.py`
+   `tests/test_model2_m2_019_4_train_entry_agents.py`
+   `tests/test_model2_live_execution.py`
+   `tests/test_model2_go_live_preflight.py`
+   `tests/test_model2_m2_018_2_testnet_integration.py`
+   -> 20 failed, 51 passed (RED esperado)
+- `pytest -q tests/test_model2_m2_019_4_train_entry_agents.py`
+   -> 5 failed (RED esperado; API `run_train_entry_agents` ausente)
+
+#### Impacto
+
+- Regresses criticas de treino/confianca ficam reproduziveis por teste.
+- Hardening de reconciliacao agora tem contrato RED rastreavel.
+- Handoff para Software Engineer fica auto-suficiente para GREEN.
+
 ### [SYNC-072] Aceite Project Manager do BLID-082
 
 **Data/Hora**: 2026-03-22 UTC

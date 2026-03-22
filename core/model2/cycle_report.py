@@ -33,7 +33,7 @@ class SymbolReport:
 
     # Decisao do modelo
     decision: str = "INDEFINIDA"
-    confidence: float = 0.0
+    confidence: float | None = 0.0
     decision_fresh: bool = False  # modelo usou dados atualizados?
 
     # Episodio/Reward
@@ -77,7 +77,7 @@ def format_symbol_report(r: SymbolReport) -> str:
     )
 
     # Linha de decisao
-    conf_str = f"{r.confidence:.0%}" if r.confidence else "N/A"
+    conf_str = f"{r.confidence:.0%}" if r.confidence is not None else "N/A"
     decision_line = f"{icon} {r.decision} (confianca: {conf_str})"
 
     # Linha de episodio/reward
@@ -206,8 +206,9 @@ def collect_training_info(
         # Episodios pendentes (apos ultimo treino)
         try:
             row = conn.execute(
-                "SELECT COUNT(*) FROM rl_episodes "
-                "WHERE created_at > COALESCE("
+                "SELECT COUNT(*) FROM training_episodes "
+                "WHERE LOWER(COALESCE(status, '')) != 'pending' "
+                "  AND created_at > COALESCE("
                 "  (SELECT MAX(completed_at) FROM rl_training_log), "
                 "  '1970-01-01')"
             ).fetchone()
