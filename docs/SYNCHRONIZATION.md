@@ -23,6 +23,59 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-045] Criacao dos Agentes Software Engineer (Stage 5) e Tech Lead (Stage 6)
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Tipo |
+| --- | --- | --- |
+| Agent | .github/agents/5.software-engineer.agent.md | CREATE |
+| Skill | .github/skills/5.software-engineer/SKILL.md | CREATE |
+| Agent | .github/agents/6.tech-lead.agent.md | CREATE |
+| Skill | .github/skills/6.tech-lead/SKILL.md | CREATE |
+| Registro | AGENTS.md | UPDATE |
+
+#### Mudancas de Documentacao Existente
+
+- AGENTS.md: entradas de Software Engineer e Tech Lead expandidas
+  (de "Futuro/Planejado" para documentacao completa com guardrails)
+- AGENTS.md: workflow integrado, slash commands e exemplos atualizados
+
+#### Impacto
+
+- **Stage 5 (Software Engineer)**: QA-TDD agora emite handoff para SE
+- **Stage 6 (Tech Lead)**: SE emite handoff para TL com evidencias
+- **Loop de revisao**: TL pode DEVOLVER para SE com itens especificos
+- **Ciclo TDD completo**: Red (QA) → Green+Refactor (SE) → Review (TL)
+- **Backlog auto-sync**: SE atualiza EM_DESENVOLVIMENTO e IMPLEMENTADO;
+  TL atualiza REVISADO_APROVADO
+
+#### Workflow Atualizado
+
+```
+PO → SA → QA-TDD → Software Engineer → Tech Lead
+                                            ↓         ↑
+                                        APROVADO  DEVOLVIDO (loop)
+```
+
+#### Guardrails Implementados
+
+✅ SE nunca desabilita `risk_gate` ou `circuit_breaker`
+✅ TL nunca aprova entrega com guardrail ausente
+✅ TL sempre reproduz testes localmente antes de aprovar
+✅ Decisao binaria: APROVADO ou DEVOLVIDO (sem aprovacao parcial)
+✅ `decision_id` idempotencia preservada em todas as implementacoes
+✅ `mypy --strict` zero erros obrigatorio antes de handoff para TL
+
+#### Proximas Acoes
+
+1. Adicionar estágio 8 (QA-Live) com skill correspondente
+
+---
+
 ### [SYNC-044] Criação do Agente QA-TDD (Stage 4) - Workflow TDD Centralizado
 
 **Data/Hora**: 2026-03-22 UTC

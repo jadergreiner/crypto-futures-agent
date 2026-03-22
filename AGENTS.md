@@ -93,20 +93,83 @@ e gera prompt executável para Software Engineer implementar com TDD.
 
 ---
 
-### 4. Agent: Software Engineer (Futura — Stage 5)
+### 4. Agent: Software Engineer (`.github/agents/5.software-engineer.agent.md` + `.github/skills/5.software-engineer/SKILL.md`)
 
-**Status**: Planejado
-**Descrição**: Implementará código conforme TDD (Red → Green → Refactor)
-**Entrada**: Prompt do QA-TDD
-**Saída**: Código implementado + evidência de testes verdes
+**Descrição**
+Implementa código Python orientado a testes (TDD Green-Refactor), modelagem
+de banco de dados (DBA) e calibração de modelos ML. Atualiza backlog para
+`EM_DESENVOLVIMENTO` ao iniciar e para `IMPLEMENTADO` ao concluir.
+
+**Entrada**
+- Prompt estruturado do QA-TDD com suite de testes em fase RED
+- Requisitos mapeados para testes
+- Guardrails e invariantes obrigatórios
+- Plano Green-Refactor
+
+**Saída**
+- Código implementado com todos os testes passando (GREEN)
+- Atualização de `docs/BACKLOG.md` (EM_DESENVOLVIMENTO → IMPLEMENTADO)
+- Prompt executável para Tech Lead
+
+**Acionamento**
+- Invocado automaticamente pelo QA-TDD
+- Via slash command `/software-engineer` ou invocação direta
+- User-invocable: ✅ Sim
+
+**Perfis de Expertise**
+- DBA: migrações de schema, modelagem `modelo2.db`/`crypto_agent.db`
+- Engenheiro Python: tipagem estrita, `mypy --strict`, padrões M2
+- Engenheiro ML: treino PPO, Optuna, validação Sharpe/win-rate/drawdown
+
+**Guardrails**
+- Nunca desabilitar `risk_gate` ou `circuit_breaker`
+- Preservar `decision_id` idempotência
+- `mypy --strict` zero erros nos módulos alterados
+- Sem credenciais ou hardcode de valores fora de `config/`
 
 ---
 
-### 5. Agent: QA-Live (Futura — Stage 8)
+### 5. Agent: Tech Lead (`.github/agents/6.tech-lead.agent.md` + `.github/skills/6.tech-lead/SKILL.md`)
+
+**Descrição**
+Realiza code review da entrega do Software Engineer. Verifica cobertura de
+testes, qualidade de código, guardrails de risco e conformidade com requisitos.
+Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
+
+**Entrada**
+- Prompt estruturado do Software Engineer com evidências de implementação
+- Lista de arquivos alterados e mapeamento requisito → código → teste
+- Guardrails verificados e pontos de atenção
+
+**Saída**
+- APROVADO: atualiza backlog para `REVISADO_APROVADO` + comunicado final
+- DEVOLVIDO: prompt estruturado para Software Engineer com itens detalhados
+
+**Acionamento**
+- Invocado automaticamente pelo Software Engineer
+- Via slash command `/tech-lead` ou invocação direta
+- User-invocable: ✅ Sim
+
+**Responsabilidades**
+1. Reproduzir testes localmente (não confiar só no relatório)
+2. Revisar código: qualidade, segurança, guardrails de risco
+3. Revisar testes: cobertura, estrutura AAA, determinismo
+4. Verificar conformidade com `docs/REGRAS_DE_NEGOCIO.md`
+5. Atualizar `docs/BACKLOG.md` com decisão final
+
+**Guardrails**
+- Decisão binária: APROVADO ou DEVOLVIDO (sem aprovação parcial)
+- Guardrail ausente → DEVOLVIDO automático
+- Nunca aprovar sem reprodução local dos testes
+- Fail-safe: em dúvida sobre risco → DEVOLVIDO
+
+---
+
+### 6. Agent: QA-Live (Futura — Stage 8)
 
 **Status**: Planejado
 **Descrição**: Validará qualidade, risco e decidirá GO/NO-GO para live
-**Entrada**: Relatório do engenheiro de software
+**Entrada**: Relatório aprovado pelo Tech Lead
 **Saída**: Decisão GO | GO_COM_RESTRICOES | NO_GO
 
 ---
@@ -133,14 +196,25 @@ Product Owner
                         │
                         └─→ Emite prompt para Software Engineer
                              │
-                             ├─→ Software Engineer (FUTURO)
+                             ├─→ Software Engineer
+                             │    │
+                             │    ├─→ [/software-engineer] Implementa (GREEN → REFACTOR)
+                             │    ├─→ Atualiza docs/BACKLOG.md (EM_DESENVOLVIMENTO)
+                             │    │
+                             │    └─→ Emite prompt para Tech Lead
+                             │         │
+                             │         ├─→ Tech Lead
+                             │              │
+                             │              ├─→ [/tech-lead] Code Review
+                             │              ├─→ APROVADO → BACKLOG: REVISADO_APROVADO
+                             │              │
+                             │              └─→ DEVOLVIDO → Prompt para Software Engineer
+                             │                   │
+                             │                   └─→ (loop de revisão)
+                             │
+                             └─→ QA-Live (FUTURO)
                                   │
-                                  ├─→ Implementa (GREEN → REFACTOR)
-                                  └─→ Evidência de testes verdes
-                                       │
-                                       └─→ QA-Live (FUTURO)
-                                            │
-                                            └─→ Decisão GO/NO-GO
+                                  └─→ Decisão GO/NO-GO
 ```
 
 ## Como Invocar um Agente
@@ -151,6 +225,8 @@ Product Owner
 /product-owner <contexto ou paste de issue>
 /solution-architect <paste do handoff do PO>
 /qa-tdd <paste do handoff do SA>
+/software-engineer <paste do prompt do QA-TDD>
+/tech-lead <paste do prompt do Software Engineer>
 ```
 
 ### Via Subagent (Programaticamente)
@@ -163,6 +239,18 @@ resultado = runSubagent(
     agentName="qa-tdd",
     prompt="Aqui vai o prompt do Solution Architect...",
     description="Escrever testes para feature X"
+)
+
+resultado = runSubagent(
+    agentName="5.software-engineer",
+    prompt="Aqui vai o prompt do QA-TDD com suite RED...",
+    description="Implementar feature X com TDD Green-Refactor"
+)
+
+resultado = runSubagent(
+    agentName="6.tech-lead",
+    prompt="Aqui vai o prompt do Software Engineer com evidencias...",
+    description="Code review da implementacao de feature X"
 )
 ```
 
@@ -200,4 +288,5 @@ resultado = runSubagent(
 ---
 
 **Última atualização**: 2026-03-22
-**Alterações mais recentes**: Criação de agente QA-TDD (stage 4) com integrações.
+**Alterações mais recentes**: Criação de agentes Software Engineer (stage 5)
+e Tech Lead (stage 6) com skills, fluxo de code review e loop de revisão.

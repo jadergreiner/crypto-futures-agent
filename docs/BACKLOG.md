@@ -170,7 +170,11 @@ Notas:
 Executar `scripts/model2/go_live_preflight.py` antes de promover a
 alteracao para modo live completo.
 
-## INICIATIVA M2-001 - Fundacao da tese
+Evidencias:
+
+- Diagnostico de episodios: `check_episodes_live.py`.
+- Banco canonico M2: `db/modelo2.db`.
+- Suite de testes: `tests/test_docs_model2_sync.py`.
 
 ### TAREFA M2-001.1 - Criar esquema de oportunidades
 
