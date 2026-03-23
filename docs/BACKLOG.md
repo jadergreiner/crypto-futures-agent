@@ -94,9 +94,19 @@ Observacao de organizacao:
 
 ## PACOTE M2-024 - Hardening de decisao e execucao live
 
+**Status**: Em analise
+**Prioridade**: 1 (Risco operacional bloqueador)
+**Sprint**: A definir
+**Decisão PO**: 2026-03-23 11:00 BRT
+
 Objetivo:
 Criar trilha de 15 tarefas para reduzir risco operacional, reforcar
 idempotencia por decision_id e aumentar auditabilidade ponta a ponta.
+
+PO: Reduzir falhas silenciosas, garantir idempotência, auditabilidade e
+fail-safe invioláveis em execução live. Bloqueador crítico para expansão.
+Pacote priorizado com 15 tarefas estruturadas em dependências lineares.
+Handoff para 3.solution-architect enviado com contexto, escopo e guardrails.
 
 ### TAREFA M2-024.1 - Contrato unico de decisao operacional
 
@@ -320,6 +330,238 @@ pacote para manter governanca documental auditavel.
 Dependencias:
 
 - M2-024.1 a M2-024.14
+
+## PACOTE M2-025 - Confiabilidade de dados e treino no ciclo M2
+
+Objetivo:
+Criar trilha de 15 tarefas para estabilizar captura de dados, treino
+incremental e observabilidade operacional com foco em fail-safe.
+
+### TAREFA M2-025.1 - Contrato de frescor de candle por simbolo
+
+Status: IMPLEMENTADO
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Definir contrato unico para classificar candle como fresco, stale ou ausente,
+com regras explicitas para shadow e live.
+
+Dependencias:
+
+- BLID-082 concluida
+
+PO: Priorizar M2-025.1 para padronizar frescor de candle e reduzir bloqueios
+silenciosos no ciclo M2.
+
+SA: Formalizar candle_state e freshness_reason por timestamp/janela,
+paridade shadow/live e fail-safe, sem schema novo.
+
+QA: Suite RED em tests/test_model2_m2_025_1_candle_freshness_contract.py
+com 11 casos; 10 failed, 1 passed; mypy --strict OK.
+
+SE: Inicio Green-Refactor da M2-025.1 em 2026-03-23; foco em contrato
+canonico de frescor, paridade shadow/live e fail-safe sem schema novo.
+
+SE: GREEN concluido com helper canonico em cycle_report, propagacao do
+contrato em live_service/operator e compatibilidade retroativa com BLID-082.
+
+Evidencias RED:
+
+1. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
+   -> 10 failed, 1 passed.
+2. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
+   tests/test_model2_m2_025_1_candle_freshness_contract.py -> Success.
+
+Evidencias de implementacao:
+
+1. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_model2_blid_082_candle_status.py -> 19 passed.
+2. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_cycle_report.py tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_model2_blid_082_candle_status.py -> 44 passed.
+3. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
+   core/model2/cycle_report.py core/model2/live_service.py
+   scripts/model2/operator_cycle_status.py
+   tests/test_model2_m2_025_1_candle_freshness_contract.py -> Success.
+4. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q tests/
+   -> 278 passed.
+
+### TAREFA M2-025.2 - Normalizar timezone de evento no pipeline
+
+Status: BACKLOG
+
+Descricao:
+Padronizar timezone de eventos operacionais para Brasilia na exibicao e UTC
+na persistencia, evitando ambiguidades de auditoria.
+
+Dependencias:
+
+- M2-025.1
+
+### TAREFA M2-025.3 - Detector de lacuna de candles por janela
+
+Status: BACKLOG
+
+Descricao:
+Implementar detector de lacunas por simbolo e timeframe com alerta objetivo
+quando houver janela sem atualizacao.
+
+Dependencias:
+
+- M2-025.1
+
+### TAREFA M2-025.4 - Guardrail de treino com dados minimos
+
+Status: BACKLOG
+
+Descricao:
+Bloquear treino incremental quando dados minimos nao forem atendidos,
+registrando reason_code e acao recomendada.
+
+Dependencias:
+
+- M2-025.3
+
+### TAREFA M2-025.5 - Idempotencia de episodios por decision_id
+
+Status: BACKLOG
+
+Descricao:
+Reforcar idempotencia da gravacao de episodios para impedir duplicidade em
+concorrencia ou reprocessamento.
+
+Dependencias:
+
+- M2-024.3
+
+### TAREFA M2-025.6 - Correlacao episodio treino e execucao
+
+Status: BACKLOG
+
+Descricao:
+Garantir correlacao auditavel entre episodio, treino incremental e execucao,
+incluindo chaves de rastreio por ciclo.
+
+Dependencias:
+
+- M2-025.5
+
+### TAREFA M2-025.7 - Retry seguro para leitura de mercado
+
+Status: BACKLOG
+
+Descricao:
+Adicionar retry com budget para falhas transitorias na leitura de mercado,
+com fallback conservador quando exceder limite.
+
+Dependencias:
+
+- M2-025.3
+
+### TAREFA M2-025.8 - Timeout de coleta por etapa critica
+
+Status: BACKLOG
+
+Descricao:
+Definir timeout padrao para coleta, validacao e consolidacao de dados com
+telemetria de expiracao.
+
+Dependencias:
+
+- M2-025.7
+
+### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
+
+Status: BACKLOG
+
+Descricao:
+Acionar circuit breaker quando estado stale persistir acima da janela segura,
+evitando decisao com contexto degradado.
+
+Dependencias:
+
+- M2-025.1
+- M2-025.8
+
+### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
+
+Status: BACKLOG
+
+Descricao:
+Consolidar snapshot por ciclo com candle, decisao, episodio e treino para
+suporte operacional e investigacao rapida.
+
+Dependencias:
+
+- M2-025.6
+
+### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
+
+Status: BACKLOG
+
+Descricao:
+Criar suite RED cobrindo frescor de candle, lacuna por janela e fail-safe em
+ausencia de dados.
+
+Dependencias:
+
+- M2-025.1
+- M2-025.3
+
+### TAREFA M2-025.12 - Regressao de treino incremental em carga
+
+Status: BACKLOG
+
+Descricao:
+Adicionar regressao com carga moderada para validar estabilidade do treino
+incremental sem concorrencia indevida.
+
+Dependencias:
+
+- M2-025.4
+- M2-025.6
+
+### TAREFA M2-025.13 - Integracao testnet para dados e treino
+
+Status: BACKLOG
+
+Descricao:
+Executar fluxo em testnet validando captura, decisao, episodio e treino com
+evidencias por simbolo.
+
+Dependencias:
+
+- M2-018.2
+- M2-025.12
+
+### TAREFA M2-025.14 - Preflight de consistencia de dados M2
+
+Status: BACKLOG
+
+Descricao:
+Expandir preflight para checar consistencia minima de dados, episodio e
+treino antes de qualquer live.
+
+Dependencias:
+
+- M2-025.1
+- M2-025.4
+
+### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
+
+Status: BACKLOG
+
+Descricao:
+Sincronizar arquitetura, regras, runbook e trilha SYNC ao concluir o pacote,
+mantendo governanca documental auditavel.
+
+Dependencias:
+
+- M2-025.1 a M2-025.14
 
 ---
 

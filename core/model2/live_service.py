@@ -22,9 +22,10 @@ from risk.risk_gate import RiskGate, RiskGateStatus
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from .cycle_report import (
     SymbolReport,
-    format_symbol_report,
     collect_training_info,
     collect_position_info,
+    format_symbol_report,
+    resolve_candle_freshness_contract,
 )
 from .rl_model_loader import RLModelLoader
 from .live_exchange import Model2LiveExchange
@@ -339,11 +340,18 @@ class Model2LiveExecutionService:
                 symbol=symbol,
                 timeframe=timeframe,
             )
-            report_decision_fresh = (
-                decision_fresh
-                if decision_fresh is not None
-                else bool(candles_count > 0 and str(last_candle_time).strip())
+            freshness_contract = resolve_candle_freshness_contract(
+                last_candle_time=last_candle_time,
+                signal_age_ms=(0 if decision_fresh else None),
+                max_signal_age_ms=(0 if decision_fresh else 1),
             )
+            if decision_fresh is False and str(last_candle_time).strip():
+                freshness_contract = {
+                    "candle_state": "stale",
+                    "freshness_reason": "outside_window",
+                    "display_time": str(last_candle_time).strip(),
+                    "decision_fresh": False,
+                }
 
             # Montar report
             now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
@@ -355,9 +363,11 @@ class Model2LiveExecutionService:
                 timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
                 candles_count=candles_count,
                 last_candle_time=last_candle_time,
+                candle_state=freshness_contract["candle_state"],
+                freshness_reason=freshness_contract["freshness_reason"],
                 decision=decision.action,
                 confidence=decision.confidence,
-                decision_fresh=report_decision_fresh,
+                decision_fresh=freshness_contract["decision_fresh"],
                 episode_id=(
                     int(latest_episode["episode_id"])
                     if latest_episode is not None

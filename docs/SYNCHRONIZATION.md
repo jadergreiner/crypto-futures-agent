@@ -23,6 +23,191 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-123] Product Owner prioriza Pacote M2-024 — Hardening
+
+**Data/Hora**: 2026-03-23 BRT
+**Status**: EM_ANALISE
+**Agente**: Product Owner (2.product-owner)
+**Decisão**: Pacote M2-024 priorizado com 15 tarefas estruturadas
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status do pacote | docs/BACKLOG.md | Pacote M2-024 marcado `Em analise` + contexto PO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-123 adicionado |
+
+#### Contexto Operacional
+
+- M2-024.1 concluído (APROVADO pelo Tech Lead em 2026-03-23)
+- 15 tarefas mapeadas com dependências lineares
+- Handoff estruturado gerado para 3.solution-architect
+- Guardrails de risco (risk_gate, circuit_breaker, idempotência) confirmados
+
+#### Tarefas do Pacote (Execução futura)
+
+M2-024.1 (✅ CONCLUÍDO) → M2-024.2/3/5/7 (paralelo) → M2-024.4/6/8
+→ M2-024.9/10 → M2-024.11/12/13/14 (paralelo) → M2-024.15 (governança final)
+
+#### Proxima Etapa
+
+Aguardar análise técnica do Solution Architect (3.solution-architect) com:
+
+- Sequenciamento detalhado
+- Modelagem de dados (schema novo em modelo2.db se necessário)
+- Estimativas ajustadas por tarefa
+- Prompt acionável para QA-TDD
+
+### [SYNC-122] Software Engineer implementa GREEN da M2-025.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: IMPLEMENTADO
+**Agente**: Software Engineer (5.software-engineer)
+**Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-025.1 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-122 adicionado |
+
+#### Mudancas Logicas
+
+- core/model2/cycle_report.py: helper canonico de frescor, novos campos
+   em SymbolReport e renderizacao compatível com legado.
+- core/model2/live_service.py: propagacao de candle_state e freshness_reason
+   no report operacional sem afrouxar fail-safe.
+- scripts/model2/operator_cycle_status.py: regra alinhada ao contrato
+   canonico com janela de report conservadora.
+- tests/test_model2_m2_025_1_candle_freshness_contract.py: suite RED->GREEN
+   da task.
+
+#### Evidencias
+
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_model2_blid_082_candle_status.py -> 19 passed.
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_cycle_report.py tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_model2_blid_082_candle_status.py -> 44 passed.
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
+   core/model2/cycle_report.py core/model2/live_service.py
+   scripts/model2/operator_cycle_status.py
+   tests/test_model2_m2_025_1_candle_freshness_contract.py -> Success.
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q tests/
+   -> 278 passed.
+
+#### Impacto
+
+- M2-025.1 pronta para revisao do agente 6.tech-lead.
+- Contrato de frescor ficou auditavel, fail-safe e retrocompativel.
+
+### [SYNC-121] Software Engineer inicia GREEN da M2-025.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: EM_DESENVOLVIMENTO
+**Agente**: Software Engineer (5.software-engineer)
+**Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-025.1 atualizada para `EM_DESENVOLVIMENTO` + comentario `SE:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-121 adicionado |
+
+#### Impacto
+
+- Implementacao GREEN iniciada para contrato canonico de frescor.
+- Escopo restrito a cycle_report, live_service e operator_cycle_status.
+
+### [SYNC-120] QA-TDD prepara suite RED da M2-025.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: TESTES_PRONTOS
+**Agente**: QA-TDD (4.qa-tdd)
+**Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-025.1 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-120 adicionado |
+
+#### Mudancas Logicas
+
+- Suite RED criada em tests/test_model2_m2_025_1_candle_freshness_contract.py.
+- Allowlist model-driven atualizada em tests/conftest.py.
+- Cobertura RED: helper canonico, estados fresh/stale/absent e paridade
+   shadow/live.
+
+#### Evidencias
+
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
+   -> 10 failed, 1 passed.
+- c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
+   tests/test_model2_m2_025_1_candle_freshness_contract.py -> Success.
+
+#### Impacto
+
+- M2-025.1 pronta para implementacao Green-Refactor pelo agente
+   5.software-engineer.
+- Lacunas de contrato ficaram explicitadas sem tocar guardrails de risco.
+
+### [SYNC-119] SA refina M2-025.1 para handoff QA-TDD
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: EM_ANALISE
+**Agente**: Solution Architect (3.solution-architect)
+**Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Handoff tecnico SA | docs/BACKLOG.md | M2-025.1 mantida em `Em analise` + comentario `SA:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-119 adicionado |
+
+#### Mudancas Logicas
+
+- Contrato atual usa `decision_fresh` booleano em cycle_report e operadores.
+- Refinamento proposto introduz estado canonico de frescor derivado por
+   timestamp e janela, com fail-safe e paridade shadow/live.
+- Sem alteracao de schema nesta etapa; foco em contrato, integracao e testes.
+
+#### Impacto
+
+- M2-025.1 pronta para escrita de suite RED pelo agente 4.qa-tdd.
+- Reduz ambiguidade entre candle fresco, stale e ausente no ciclo M2.
+
+### [SYNC-118] Product Owner cria pacote M2-025 (15 tarefas)
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: PRIORIZADO
+**Agente**: Product Owner (2.product-owner)
+**Atividade**: M2-025 - Confiabilidade de dados e treino no ciclo M2
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Novo pacote M2-025 | docs/BACKLOG.md | M2-025.1 a M2-025.15 adicionadas; M2-025.1 em `Em analise` + `PO:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-118 adicionado |
+
+#### Mudancas Logicas
+
+- Pacote M2-025 orientado a confiabilidade de dados e treino incremental.
+- Priorizacao inicial em M2-025.1 para contrato de frescor de candle.
+- Trilha de 15 tarefas com foco em idempotencia, fail-safe e observabilidade.
+
+#### Impacto
+
+- Backlog preparado para handoff ao agente 3.solution-architect.
+- Reduz risco de decisoes com dados stale e treino sem evidencias.
+
 ### [SYNC-117] Project Manager - ACEITE final M2-024.1
 
 **Data/Hora**: 2026-03-23 UTC

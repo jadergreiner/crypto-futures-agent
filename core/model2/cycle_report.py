@@ -8,15 +8,28 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from typing import Any, Optional, Sequence, cast
+from typing import Any, Literal, Optional, Sequence, TypedDict, cast
 
 logger = logging.getLogger(__name__)
 
 # Limite de episodios para disparo de retreino
 RETRAIN_EPISODE_THRESHOLD = 100
+DEFAULT_REPORT_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+
+
+CandleState = Literal["fresh", "stale", "absent"]
+
+
+class CandleFreshnessContract(TypedDict):
+    """Contrato canonico de frescor de candle."""
+
+    candle_state: CandleState
+    freshness_reason: str
+    display_time: str
+    decision_fresh: bool
 
 
 @dataclass
@@ -30,6 +43,8 @@ class SymbolReport:
     # Candles
     candles_count: int = 0
     last_candle_time: str = ""
+    candle_state: str = ""
+    freshness_reason: str = ""
 
     # Decisao do modelo
     decision: str = "INDEFINIDA"
@@ -59,22 +74,67 @@ class SymbolReport:
     execution_mode: str = "shadow"
 
 
+def resolve_candle_freshness_contract(
+    *,
+    last_candle_time: str,
+    signal_age_ms: int | None,
+    max_signal_age_ms: int,
+    now_utc: datetime | None = None,
+) -> CandleFreshnessContract:
+    """Resolve estado canonico de frescor de candle com fail-safe."""
+    normalized_time = str(last_candle_time).strip()
+    if not normalized_time:
+        return {
+            "candle_state": "absent",
+            "freshness_reason": "missing_timestamp",
+            "display_time": "N/A",
+            "decision_fresh": False,
+        }
+
+    parsed_time = _parse_candle_timestamp(normalized_time)
+    if parsed_time is None:
+        return {
+            "candle_state": "absent",
+            "freshness_reason": "invalid_timestamp",
+            "display_time": normalized_time,
+            "decision_fresh": False,
+        }
+
+    age_ms = signal_age_ms
+    if age_ms is None:
+        current_time = now_utc or datetime.now(timezone.utc)
+        age_ms = max(0, int((current_time - parsed_time).total_seconds() * 1000))
+
+    if age_ms <= int(max_signal_age_ms):
+        return {
+            "candle_state": "fresh",
+            "freshness_reason": "within_window",
+            "display_time": normalized_time,
+            "decision_fresh": True,
+        }
+
+    return {
+        "candle_state": "stale",
+        "freshness_reason": "outside_window",
+        "display_time": normalized_time,
+        "decision_fresh": False,
+    }
+
+
 def format_symbol_report(r: SymbolReport) -> str:
     """Formata relatorio de um simbolo em bloco legivel."""
     sep = "─" * 48
     icon = _decision_icon(r.decision)
+
+    freshness = _resolve_report_freshness(r)
 
     # Linha de candles
     candle_info = (
         f"{r.candles_count} capturados"
         f" (ultimo: {r.last_candle_time or 'N/A'})"
     )
-    fresh_tag = " ✓" if r.decision_fresh else " ⚠"
-    candle_status = (
-        f"Candle Atualizado: {r.last_candle_time or 'N/A'}"
-        if r.decision_fresh
-        else "stale: sem candle atualizado"
-    )
+    fresh_tag = " ✓" if freshness["decision_fresh"] else " ⚠"
+    candle_status = _format_candle_status(freshness)
 
     # Linha de decisao
     conf_str = f"{r.confidence:.0%}" if r.confidence is not None else "N/A"
@@ -177,6 +237,73 @@ def format_cycle_summary(
 
     body_parts.append("\n".join(footer_lines))
     return "\n".join(body_parts)
+
+
+def _resolve_report_freshness(r: SymbolReport) -> CandleFreshnessContract:
+    explicit_state = str(getattr(r, "candle_state", "")).strip().lower()
+    explicit_reason = str(getattr(r, "freshness_reason", "")).strip()
+    if explicit_state in {"fresh", "stale", "absent"}:
+        return {
+            "candle_state": cast(CandleState, explicit_state),
+            "freshness_reason": explicit_reason or "legacy_explicit_state",
+            "display_time": r.last_candle_time or "N/A",
+            "decision_fresh": explicit_state == "fresh",
+        }
+
+    if r.decision_fresh:
+        return {
+            "candle_state": "fresh",
+            "freshness_reason": "legacy_decision_fresh",
+            "display_time": r.last_candle_time or "N/A",
+            "decision_fresh": True,
+        }
+
+    if str(r.last_candle_time).strip():
+        return {
+            "candle_state": "stale",
+            "freshness_reason": "legacy_missing_contract",
+            "display_time": r.last_candle_time,
+            "decision_fresh": False,
+        }
+
+    return {
+        "candle_state": "stale",
+        "freshness_reason": "legacy_missing_contract",
+        "display_time": "N/A",
+        "decision_fresh": False,
+    }
+
+
+def _format_candle_status(freshness: CandleFreshnessContract) -> str:
+    if freshness["candle_state"] == "fresh":
+        return f"Candle Atualizado: {freshness['display_time']}"
+    if freshness["candle_state"] == "stale":
+        if freshness["display_time"] != "N/A":
+            return f"stale: ultimo candle em {freshness['display_time']}"
+        return "stale: sem candle atualizado"
+    return "absent: sem candle utilizavel (stale)"
+
+
+def _parse_candle_timestamp(raw_value: str) -> datetime | None:
+    normalized = str(raw_value).strip()
+    if not normalized:
+        return None
+
+    formats = (
+        ("%Y-%m-%d %H:%M:%S UTC", timezone.utc),
+        ("%Y-%m-%d %H:%M UTC", timezone.utc),
+        ("%Y-%m-%d %H:%M:%S BRT", ZoneInfo("America/Sao_Paulo")),
+        ("%Y-%m-%d %H:%M BRT", ZoneInfo("America/Sao_Paulo")),
+        ("%Y-%m-%d %H:%M:%S", timezone.utc),
+        ("%Y-%m-%d %H:%M", timezone.utc),
+    )
+    for fmt, tzinfo in formats:
+        try:
+            parsed = datetime.strptime(normalized, fmt).replace(tzinfo=tzinfo)
+            return parsed.astimezone(timezone.utc)
+        except ValueError:
+            continue
+    return None
 
 
 # Helpers de coleta de dados

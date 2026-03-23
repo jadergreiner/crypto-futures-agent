@@ -51,6 +51,7 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_m2_021_live_hardening_red.py",
     "test_model2_m2_023_1_error_contract.py",
     "test_model2_m2_024_1_decision_contract.py",
+    "test_model2_m2_025_1_candle_freshness_contract.py",
     "test_model2_ohlcv_cache.py",
     "test_sub_agent_manager.py",
 )

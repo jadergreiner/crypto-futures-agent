@@ -11,7 +11,7 @@ import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Iterable, cast
 
 # Adicionar root do repositório ao sys.path para importações
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -21,7 +21,9 @@ if str(REPO_ROOT) not in sys.path:
 from data.binance_client import create_binance_client
 from core.model2.live_exchange import Model2LiveExchange
 from core.model2.cycle_report import (
+    DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
     SymbolReport,
+    resolve_candle_freshness_contract,
     format_symbol_report,
     collect_training_info,
     collect_position_info,
@@ -37,7 +39,7 @@ except Exception:
     def _normalize_symbol_scope(
         raw_value: str | None,
         *,
-        fallback_symbols: tuple[str, ...],
+        fallback_symbols: Iterable[str],
     ) -> tuple[str, ...]:
         fallback_list = [str(symbol).strip().upper() for symbol in fallback_symbols if str(symbol).strip()]
         if raw_value is None:
@@ -344,6 +346,11 @@ def _build_symbol_line(
         now = datetime.now(timezone.utc)
         timeframe = "H4"
         execution_mode = "live" if M2_EXECUTION_MODE == "live" else "shadow"
+        freshness_contract = resolve_candle_freshness_contract(
+            last_candle_time=str(last_candle_time),
+            signal_age_ms=None,
+            max_signal_age_ms=DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
+        )
 
         report = SymbolReport(
             symbol=symbol,
@@ -351,11 +358,11 @@ def _build_symbol_line(
             timestamp=now.strftime("%Y-%m-%d %H:%M:%S"),
             candles_count=candles_count,
             last_candle_time=last_candle_time,
+            candle_state=freshness_contract["candle_state"],
+            freshness_reason=freshness_contract["freshness_reason"],
             decision=decision,
             confidence=confidence,
-            decision_fresh=bool(
-                candles_count > 0 and str(last_candle_time).strip()
-            ),
+            decision_fresh=freshness_contract["decision_fresh"],
             episode_id=None,
             episode_persisted=False,
             reward=0.0,
