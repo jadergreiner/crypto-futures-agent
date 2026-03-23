@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-import pandas as pd
+pd = importlib.import_module("pandas")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -26,6 +27,7 @@ from core.model2 import (
     ResolutionInput,
     evaluate_monitoring_resolution,
 )
+from core.model2.ohlcv_cache import OhlcvCacheProvider, build_cache_key
 from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
@@ -64,7 +66,7 @@ def _ensure_model2_schema(conn: sqlite3.Connection) -> None:
         )
 
 
-def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
+def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: int) -> Any:
     table_name = TIMEFRAME_TO_TABLE[timeframe]
     query = (
         f"SELECT timestamp, open, high, low, close, volume "
@@ -78,6 +80,32 @@ def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: 
     return df.sort_values("timestamp").reset_index(drop=True)
 
 
+def _load_candles_cached(
+    conn: sqlite3.Connection,
+    symbol: str,
+    timeframe: str,
+    limit: int,
+    cache_provider: OhlcvCacheProvider,
+) -> Any:
+    def _loader(target_symbol: str, target_timeframe: str, target_limit: int) -> list[dict[str, Any]]:
+        raw_records = _load_candles(
+            conn=conn,
+            symbol=target_symbol,
+            timeframe=target_timeframe,
+            limit=target_limit,
+        ).to_dict(orient="records")
+        return cast(list[dict[str, Any]], raw_records)
+
+    key = build_cache_key(symbol=symbol, timeframe=timeframe, limit=limit)
+    result = cache_provider.get_many([(symbol, timeframe, limit)], _loader)[key]
+    if not result.candles:
+        return pd.DataFrame()
+    candles_df = pd.DataFrame(result.candles)
+    if "timestamp" in candles_df.columns:
+        candles_df = candles_df.sort_values("timestamp").reset_index(drop=True)
+    return candles_df
+
+
 def run_resolution(
     *,
     source_db_path: str | Path,
@@ -88,6 +116,7 @@ def run_resolution(
     candles_limit: int,
     dry_run: bool,
     output_dir: str | Path,
+    cache_provider: OhlcvCacheProvider | None = None,
 ) -> dict[str, Any]:
     resolved_source_db = _resolve_repo_path(source_db_path)
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -131,6 +160,12 @@ def run_resolution(
                 symbol=str(candidate["symbol"]),
                 timeframe=candidate_timeframe,
                 limit=candles_limit,
+            ) if cache_provider is None else _load_candles_cached(
+                conn=source_conn,
+                symbol=str(candidate["symbol"]),
+                timeframe=candidate_timeframe,
+                limit=candles_limit,
+                cache_provider=cache_provider,
             )
             decision = evaluate_monitoring_resolution(
                 ResolutionInput(
@@ -162,17 +197,19 @@ def run_resolution(
                     invalidated += 1
                     items.append(item)
                     continue
-                result = repository.transition_to_invalidated(
+                invalidation_result = repository.transition_to_invalidated(
                     opportunity_id=int(candidate["id"]),
                     now_ms=_utc_now_ms(),
                     rule_id=M2_003_3_RULE_ID_INVALIDATION,
                     payload=decision.details,
                 )
-                item["status"] = "INVALIDATED" if result.transitioned else "SKIPPED"
-                item["to_status"] = result.current_status
-                item["transition_reason"] = result.reason
+                item["status"] = (
+                    "INVALIDATED" if invalidation_result.transitioned else "SKIPPED"
+                )
+                item["to_status"] = invalidation_result.current_status
+                item["transition_reason"] = invalidation_result.reason
                 items.append(item)
-                if result.transitioned:
+                if invalidation_result.transitioned:
                     invalidated += 1
                 else:
                     skipped += 1
@@ -184,17 +221,17 @@ def run_resolution(
                     expired += 1
                     items.append(item)
                     continue
-                result = repository.transition_to_expired(
+                expiration_result = repository.transition_to_expired(
                     opportunity_id=int(candidate["id"]),
                     now_ms=_utc_now_ms(),
                     rule_id=M2_003_3_RULE_ID_EXPIRATION,
                     payload=decision.details,
                 )
-                item["status"] = "EXPIRED" if result.transitioned else "SKIPPED"
-                item["to_status"] = result.current_status
-                item["transition_reason"] = result.reason
+                item["status"] = "EXPIRED" if expiration_result.transitioned else "SKIPPED"
+                item["to_status"] = expiration_result.current_status
+                item["transition_reason"] = expiration_result.reason
                 items.append(item)
-                if result.transitioned:
+                if expiration_result.transitioned:
                     expired += 1
                 else:
                     skipped += 1

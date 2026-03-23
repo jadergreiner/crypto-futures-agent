@@ -23,6 +23,40 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-098] Software Engineer implementa GREEN da BLID-084
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: IMPLEMENTADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | BLID-084 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-098 adicionado |
+
+#### Mudancas Logicas
+
+- Novo provider de cache: `core/model2/ohlcv_cache.py`.
+- Integracao cache read-through em `scripts/model2/scan.py`,
+   `scripts/model2/validate.py` e `scripts/model2/resolve.py`.
+- Exposicao de `SUMMARY_FIELDS` e `cache_hit_rate` em
+   `scripts/model2/sync_market_context.py`.
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_ohlcv_cache.py` -> 15 passed.
+- `pytest -q tests/test_model2_ohlcv_cache.py
+   tests/test_model2_validation_flow.py
+   tests/test_model2_resolution_flow.py` -> 21 passed.
+- `mypy --strict core/model2/ohlcv_cache.py scripts/model2/scan.py
+   scripts/model2/validate.py scripts/model2/resolve.py
+   scripts/model2/sync_market_context.py` -> Success.
+
+#### Impacto
+
+- BLID-084 pronta para revisao do Tech Lead com suite GREEN e tipagem strict.
+
 ### [SYNC-097] QA-TDD prepara suite RED da BLID-084
 
 **Data/Hora**: 2026-03-23 UTC

@@ -7,7 +7,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -25,6 +25,24 @@ TIMEFRAME_TO_INTERVAL = {
     "H1": "1h",
     "M5": "5m",
 }
+
+SUMMARY_FIELDS = (
+    "status",
+    "run_id",
+    "timestamp_utc_ms",
+    "source_db_path",
+    "timeframe",
+    "interval",
+    "candles_limit",
+    "symbols_requested",
+    "symbols_eligible",
+    "symbols_skipped_invalid",
+    "symbols_synced",
+    "symbols_failed",
+    "candles_persisted",
+    "candles_duplicated_skipped",
+    "cache_hit_rate",
+)
 
 
 def _utc_now_ms() -> int:
@@ -103,7 +121,12 @@ def _get_exchange_valid_symbols(client: Any) -> tuple[set[str], str | None]:
         return set(), str(exc)
 
 
-def _filter_new_candles(db: DatabaseManager, timeframe: str, symbol: str, candles_df):
+def _filter_new_candles(
+    db: DatabaseManager,
+    timeframe: str,
+    symbol: str,
+    candles_df: Any,
+) -> Tuple[Any, int]:
     if candles_df.empty:
         return candles_df, 0
 
@@ -247,6 +270,7 @@ def run_sync_market_context(
         "symbols_failed": failed_symbols,
         "candles_persisted": synced_candles,
         "candles_duplicated_skipped": duplicate_candles,
+        "cache_hit_rate": 0.0,
         "exchange_symbol_filter_error": exchange_error,
         "items": items,
     }

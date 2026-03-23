@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-import pandas as pd
+pd = importlib.import_module("pandas")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -23,6 +24,7 @@ from core.model2 import (
     ValidationInput,
     evaluate_monitoring_validation,
 )
+from core.model2.ohlcv_cache import OhlcvCacheProvider, build_cache_key
 from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
@@ -61,7 +63,7 @@ def _ensure_model2_schema(conn: sqlite3.Connection) -> None:
         )
 
 
-def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: int) -> pd.DataFrame:
+def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: int) -> Any:
     table_name = TIMEFRAME_TO_TABLE[timeframe]
     query = (
         f"SELECT timestamp, open, high, low, close, volume "
@@ -75,6 +77,32 @@ def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: 
     return df.sort_values("timestamp").reset_index(drop=True)
 
 
+def _load_candles_cached(
+    conn: sqlite3.Connection,
+    symbol: str,
+    timeframe: str,
+    limit: int,
+    cache_provider: OhlcvCacheProvider,
+) -> Any:
+    def _loader(target_symbol: str, target_timeframe: str, target_limit: int) -> list[dict[str, Any]]:
+        raw_records = _load_candles(
+            conn=conn,
+            symbol=target_symbol,
+            timeframe=target_timeframe,
+            limit=target_limit,
+        ).to_dict(orient="records")
+        return cast(list[dict[str, Any]], raw_records)
+
+    key = build_cache_key(symbol=symbol, timeframe=timeframe, limit=limit)
+    result = cache_provider.get_many([(symbol, timeframe, limit)], _loader)[key]
+    if not result.candles:
+        return pd.DataFrame()
+    candles_df = pd.DataFrame(result.candles)
+    if "timestamp" in candles_df.columns:
+        candles_df = candles_df.sort_values("timestamp").reset_index(drop=True)
+    return candles_df
+
+
 def run_validation(
     *,
     source_db_path: str | Path,
@@ -85,6 +113,7 @@ def run_validation(
     candles_limit: int,
     dry_run: bool,
     output_dir: str | Path,
+    cache_provider: OhlcvCacheProvider | None = None,
 ) -> dict[str, Any]:
     resolved_source_db = _resolve_repo_path(source_db_path)
     resolved_model2_db = _resolve_repo_path(model2_db_path)
@@ -133,6 +162,12 @@ def run_validation(
                 symbol=str(candidate["symbol"]),
                 timeframe=candidate_timeframe,
                 limit=candles_limit,
+            ) if cache_provider is None else _load_candles_cached(
+                conn=source_conn,
+                symbol=str(candidate["symbol"]),
+                timeframe=candidate_timeframe,
+                limit=candles_limit,
+                cache_provider=cache_provider,
             )
             validation_input = ValidationInput(
                 opportunity_id=int(candidate["id"]),

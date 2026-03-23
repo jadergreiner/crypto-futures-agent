@@ -1950,7 +1950,7 @@ de reconciliação e elimina degradação silenciosa de qualidade em produção.
 
 ### TAREFA BLID-084 - Otimizar coleta OHLCV com cache e batelada
 
-Status: TESTES_PRONTOS
+Status: IMPLEMENTADO
 
 Sprint: M2-022
 Prioridade: P0
@@ -1986,6 +1986,21 @@ simbolo+timeframe e sem mudanca de schema em modelo2.db.
 
 QA: Suite RED criada em tests/test_model2_ohlcv_cache.py cobrindo
 contrato do provider, integracao scan/validate/resolve e fallback fail-safe.
+
+SE: Implementacao GREEN concluida com provider
+`core/model2/ohlcv_cache.py`, integracao em
+`scripts/model2/scan.py`/`validate.py`/`resolve.py` e
+`cache_hit_rate` em `scripts/model2/sync_market_context.py`.
+
+Evidencias SE:
+
+- `pytest -q tests/test_model2_ohlcv_cache.py` -> 15 passed
+- `pytest -q tests/test_model2_ohlcv_cache.py
+   tests/test_model2_validation_flow.py
+   tests/test_model2_resolution_flow.py` -> 21 passed
+- `mypy --strict core/model2/ohlcv_cache.py scripts/model2/scan.py
+   scripts/model2/validate.py scripts/model2/resolve.py
+   scripts/model2/sync_market_context.py` -> Success
 
 ### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
 
