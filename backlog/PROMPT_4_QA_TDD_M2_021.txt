@@ -1,0 +1,96 @@
+Voce e o agente 4.qa-tdd desta task.
+
+Contexto da demanda:
+- id: M2-021-PACOTE
+- objetivo: Endurecer o ciclo live M2 para eliminar duplicidade por
+  decision_id, padronizar reason codes e garantir reconciliacao
+  fail-safe auditavel sob retry, timeout e restart.
+- escopo_in: Idempotencia decisao->admissao->execucao; reason codes +
+  retry/timeout + drift + SLOs; reconciliacao saida externa/cancelamento/
+  partial fills; restart seguro; testnet critica; runbook; rollback preflight
+- escopo_out: Mudanca de estrategia de entrada; refatoracao de
+  arquitetura global; bypass de guardrails de risco
+
+Requisitos refinados:
+1. O fluxo live deve bloquear reprocessamento por decision_id sem gerar
+   nova ordem, novo fill logico ou estado final duplicado, inclusive apos
+   retry e restart.
+2. Todo bloqueio operacional e toda divergencia de reconciliacao deve
+   registrar reason_code, status, timestamp e metadata minima para
+   auditoria deterministica.
+3. Timeout de chamada critica, falha de retry acima do limite e drift de
+   dados relevante devem resultar em bloqueio fail-safe explicito antes
+   de nova admissao.
+4. O ciclo deve medir latencia por etapa (decisao, admissao, envio,
+   reconciliacao), comparar com SLO definido e emitir evento rastreavel
+   em caso de violacao.
+5. Reconciliacao deve convergir com exchange para cenarios de saida
+   externa, cancelamento e partial fills, sem falso estado final de
+   encerramento.
+6. Rollback operacional deve exigir preflight obrigatorio e evidenciar
+   retorno seguro sem romper guardrails nem idempotencia.
+
+Arquitetura e integracao:
+- componentes: core/model2/live_service.py;
+  core/model2/live_execution.py; core/model2/live_exchange.py;
+  core/model2/order_layer.py; core/model2/signal_bridge.py;
+  core/model2/signal_adapter.py;
+  scripts/model2/go_live_preflight.py; risk/risk_gate.py;
+  risk/circuit_breaker.py
+- extensoes: deduplicacao por decision_id em admissao e execucao;
+  catalogo unico de reason_codes; instrumentacao de latencia por etapa;
+  rotina de reidratacao segura pos-restart
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO;
+  decision_id=IDEMPOTENTE
+
+Modelagem de dados:
+- entidades: model_decisions; technical_signals; signal_executions;
+  signal_execution_events
+- schema: migracao aditiva para reason_code e metadados operacionais
+  por evento, sem ruptura de contrato existente
+- compatibilidade: sim; leitura retroativa quando campos novos ausentes
+
+Plano de implementacao orientado a testes:
+1. RED para idempotencia sob retry e restart no fluxo
+   decisao->admissao->execucao
+2. GREEN minimo para bloqueio deterministico por decision_id e
+   reason_code obrigatorio em todo bloqueio
+3. RED/GREEN para drift, timeout, SLO e reconciliacao com saida
+   externa, cancelamento e partial fills
+4. REFACTOR mantendo verde, sem bypass de guardrails e sem ampliar
+   escopo arquitetural
+
+Suite de testes minima obrigatoria:
+- unitarios: deduplicacao por decision_id (retry + restart);
+  taxonomia de reason_code em bloqueios de risco/dados/infra;
+  politica de retry/timeout fail-safe; detector de drift de candles;
+  emissao de evento de violacao de SLO por etapa
+- integracao: fluxo live completo em testnet por criticidade (alto,
+  medio, baixo); reconciliacao em saida externa; cancelamento manual;
+  partial fills; restart com reidratacao sem duplicidade; rollback com
+  preflight obrigatorio
+- regressao_risco: guardrails ativos em todos os caminhos; bloqueio em
+  ambiguidade operacional; proibicao de estado de sucesso sem
+  reconciliacao valida
+
+Criterios de aceite objetivos:
+- [ ] Taxa de eventos operacionais sem reason_code igual a 0% nos
+      cenarios cobertos.
+- [ ] Nenhuma duplicidade de execucao para o mesmo decision_id em
+      retry e restart.
+- [ ] Reconciliacao converge com exchange em saida externa sem falso
+      estado final.
+- [ ] Timeout, drift e inconsistencias nao classificadas resultam em
+      bloqueio fail-safe auditavel.
+- [ ] Guardrails de risco preservados.
+
+Comandos de validacao:
+- pytest -q tests/
+- mypy --strict core/model2/live_service.py
+  core/model2/live_execution.py core/model2/live_exchange.py
+  core/model2/order_layer.py scripts/model2/go_live_preflight.py
+
+Entregaveis esperados:
+- Lista de arquivos alterados
+- Resumo de risco de regressao
+- Evidencia de testes executados e resultado

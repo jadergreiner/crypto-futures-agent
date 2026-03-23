@@ -55,7 +55,7 @@ class RiskMetrics:
 class RiskGate:
     """
     Risk Gate 1.0 — Proteções Invioláveis
-    
+
     Este é um módulo CRÍTICO que:
     - NUNCA pode ser desabilitado
     - SEMPRE valida antes de qualquer ordem
@@ -68,7 +68,7 @@ class RiskGate:
     STOP_LOSS_THRESHOLD = -3.0  # -3% ativa stop loss
     CIRCUIT_BREAKER_THRESHOLD = -3.1  # -3.1% ativa circuit breaker
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializar Risk Gate com proteções armadas."""
         self.status = RiskGateStatus.ACTIVE
         self._portfolio_value = 10000.0  # valor inicial em USDT
@@ -94,11 +94,11 @@ class RiskGate:
     def update_portfolio_value(self, new_value: float) -> None:
         """
         Atualizar valor da carteira.
-        
+
         CRÍTICO: Esta é a métrica usada para calcular drawdown.
         """
         self._portfolio_value = new_value
-        
+
         # Rastrear peak para cálculo correto de drawdown
         if new_value > self._peak_portfolio_value:
             self._peak_portfolio_value = new_value
@@ -116,9 +116,9 @@ class RiskGate:
     ) -> bool:
         """
         Abrir posição.
-        
+
         VALIDA antes de permitir abertura.
-        
+
         Returns:
             True se permitido, False se bloqueado por risk gate
         """
@@ -159,7 +159,7 @@ class RiskGate:
     def check_stop_loss(self) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Verificar se Stop Loss foi acionado.
-        
+
         Returns:
             (triggered: bool, details: dict)
         """
@@ -186,7 +186,7 @@ class RiskGate:
     def check_circuit_breaker(self) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Verificar se Circuit Breaker foi acionado.
-        
+
         Returns:
             (triggered: bool, details: dict)
         """
@@ -214,12 +214,12 @@ class RiskGate:
     def can_execute_order(self, order_type: str = "market") -> bool:
         """
         Validar se ordem pode ser executada.
-        
+
         CRÍTICO: Este check é INVIOLÁVEL.
-        
+
         Args:
             order_type: 'market', 'limit', etc
-            
+
         Returns:
             True se permitido executar
         """
@@ -242,12 +242,12 @@ class RiskGate:
     def close_position_emergency(self) -> bool:
         """
         Fechar posição de emergência (chamado por circuit breaker).
-        
+
         CRÍTICO: Não pode falhar.
         """
         logger.critical("💥 FECHANDO POSIÇÃO DE EMERGÊNCIA")
         self.status = RiskGateStatus.FROZEN
-        
+
         self._log_to_audit(
             event="POSITION_CLOSED_EMERGENCY",
             data={
@@ -285,7 +285,7 @@ class RiskGate:
     def _calculate_drawdown(self) -> float:
         """
         Calcular drawdown em % (sempre negativo).
-        
+
         Formula: ((Current - Peak) / Peak) * 100
         """
         if self._peak_portfolio_value == 0:
@@ -301,7 +301,7 @@ class RiskGate:
     def _log_to_audit(self, event: str, data: Dict[str, Any]) -> None:
         """
         Registrar evento em log de auditoria INVIOLÁVEL.
-        
+
         CRÍTICO: Este log NÃO PODE ser deletado ou modificado.
         """
         audit_entry = {
@@ -324,7 +324,7 @@ _risk_gate_instance: Optional[RiskGate] = None
 def get_risk_gate() -> RiskGate:
     """
     Obter instância global de Risk Gate.
-    
+
     CRÍTICO: Usar sempre esta função para garantir unicidade.
     """
     global _risk_gate_instance
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     gate = get_risk_gate()
     gate.update_portfolio_value(10000.0)
     gate.update_price_feed(50000.0)
-    
+
     # Testar validações
     print(f"✅ Risk Gate inicializado")
     print(f"   Status: {gate.status.value}")

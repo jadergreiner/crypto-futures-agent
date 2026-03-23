@@ -762,7 +762,7 @@ def run_go_live_preflight(
 
             if should_stop:
                 add_check(
-                    check_id="10",
+                    check_id="rollback_preflight",
                     description="Checklist interrompido por fail-fast.",
                     status="skipped",
                 )
@@ -777,7 +777,7 @@ def run_go_live_preflight(
                 if runbook_ok:
                     next_actions.append("Review docs/RUNBOOK_M2_OPERACAO.md before switching M2_EXECUTION_MODE to live.")
                 add_check(
-                    check_id="10",
+                    check_id="rollback_preflight",
                     description="Validar runbook de incidente antes de ativar live.",
                     status="ok" if runbook_ok else "alert",
                     evidence={

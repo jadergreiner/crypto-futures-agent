@@ -5,11 +5,36 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+
+class _ReasonCode(str):
+    """String retrocompativel com alias textual para auditoria."""
+
+    __slots__ = ("_alias_value",)
+    _alias_value: str
+
+    def __new__(cls, raw_value: str, alias_value: str | None = None) -> "_ReasonCode":
+        obj = str.__new__(cls, raw_value)
+        object.__setattr__(obj, "_alias_value", alias_value or raw_value)
+        return obj
+
+    def __str__(self) -> str:
+        return str(self._alias_value)
+
 M2_009_1_RULE_ID = "M2-009.1-RULE-SIGNAL-EXECUTION-LIFECYCLE"
 M2_009_2_RULE_ID = "M2-009.2-RULE-LIVE-GATE"
 M2_009_3_RULE_ID = "M2-009.3-RULE-MARKET-ENTRY"
 M2_009_4_RULE_ID = "M2-009.4-RULE-PROTECTION-FAILSAFE"
 M2_010_1_RULE_ID = "M2-010.1-RULE-LIVE-RECONCILE"
+
+# Catalogo minimo de reason codes para hardening operacional M2-021.
+REASON_CODE_CATALOG: dict[str, str] = {
+    "ready_for_live_execution": "ops.ready_for_live_execution",
+    "ops_ambiguous_state": "ops.ambiguous_state",
+    "risk_gate_blocked": "ops.risk_gate_blocked",
+    "circuit_breaker_blocked": "ops.circuit_breaker_blocked",
+    "signal_expired": "ops.signal_expired",
+    "insufficient_balance": "ops.insufficient_balance",
+}
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"
 ENTRY_ORDER_TYPE_MARKET = "MARKET"
@@ -162,10 +187,11 @@ class LiveExecutionGateDecision:
 
 
 def _blocked(reason: str, **details: Any) -> LiveExecutionGateDecision:
+    alias = REASON_CODE_CATALOG.get(reason)
     return LiveExecutionGateDecision(
         allow_execution=False,
         target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
-        reason=reason,
+        reason=_ReasonCode(reason, alias),
         rule_id=M2_009_2_RULE_ID,
         details=details,
     )
@@ -189,6 +215,12 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
 
     risk_gate_status = str(gate_input.risk_gate_status).strip().lower()
     if risk_gate_status in {"", "unknown", "unavailable"}:
+        if not bool(gate_input.risk_gate_allows_order):
+            return _blocked(
+                "ops_ambiguous_state",
+                risk_gate_status=gate_input.risk_gate_status,
+                risk_gate_drawdown_pct=gate_input.risk_gate_drawdown_pct,
+            )
         return _blocked(
             "risk_gate_state_unavailable",
             risk_gate_status=gate_input.risk_gate_status,
@@ -305,7 +337,10 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
     return LiveExecutionGateDecision(
         allow_execution=True,
         target_status=SIGNAL_EXECUTION_STATUS_READY,
-        reason="ready_for_live_execution",
+        reason=_ReasonCode(
+            "ready_for_live_execution",
+            REASON_CODE_CATALOG.get("ready_for_live_execution"),
+        ),
         rule_id=M2_009_2_RULE_ID,
         details={
             "execution_mode": execution_mode,

@@ -61,6 +61,46 @@ M2_020_5_RULE_ID = "M2-020.5-RULE-GUARDRAILS-ACTIVE"
 
 _PROTECTION_MAX_RETRIES = 3
 _PROTECTION_RETRY_BASE_DELAY_S = 1.0
+FAIL_SAFE_RETRY_TIMEOUT_POLICY: dict[str, float | int | str] = {
+    "policy": "fail_safe",
+    "max_retries": _PROTECTION_MAX_RETRIES,
+    "retry_base_delay_s": _PROTECTION_RETRY_BASE_DELAY_S,
+    "entry_fill_timeout_ms": 30_000,
+}
+
+
+def detect_candle_drift(
+    *,
+    reference_close: float,
+    observed_close: float,
+    threshold_pct: float = 0.01,
+) -> bool:
+    """Detecta drift relevante entre candle de referencia e observado."""
+    if reference_close <= 0:
+        return True
+    delta_pct = abs(float(observed_close) - float(reference_close)) / float(reference_close)
+    return delta_pct >= max(0.0, float(threshold_pct))
+
+
+def emit_stage_slo_violation_event(
+    *,
+    stage: str,
+    latency_ms: int,
+    slo_ms: int,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Emite payload padrao de violacao de SLO por etapa."""
+    payload: dict[str, Any] = {
+        "event_type": "stage_slo_violation",
+        "reason_code": "ops.slo_violation",
+        "status": "alert",
+        "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "stage": str(stage),
+        "latency_ms": int(latency_ms),
+        "slo_ms": int(slo_ms),
+        "metadata": dict(metadata or {}),
+    }
+    return payload
 
 
 class _IncrementalTrainingProcess(Protocol):
@@ -108,6 +148,97 @@ class Model2LiveExecutionService:
         if isinstance(candidate, (str, Path)) and str(candidate).strip():
             return str(candidate)
         return str(self._db_path)
+
+    def enforce_decision_id_idempotency(self, decision_id: int) -> tuple[bool, str]:
+        """Bloqueia reprocessamento quando decision_id ja possui execucao associada."""
+        try:
+            for execution in self.repository.list_signal_executions(limit=5_000):
+                current = int(execution.get("decision_id") or 0)
+                if current == int(decision_id):
+                    return False, "duplicate_decision_id_blocked"
+        except Exception:
+            return False, "idempotency_check_failed"
+        return True, "ok"
+
+    def rehydrate_runtime_state(self, *, symbol: str | None = None) -> dict[str, Any]:
+        """Reidrata estado minimo de execucoes ativas para restart seguro."""
+        active_statuses = (
+            SIGNAL_EXECUTION_STATUS_READY,
+            SIGNAL_EXECUTION_STATUS_ENTRY_SENT,
+            SIGNAL_EXECUTION_STATUS_ENTRY_FILLED,
+            SIGNAL_EXECUTION_STATUS_PROTECTED,
+        )
+        executions = self.repository.list_signal_executions(
+            statuses=active_statuses,
+            execution_mode=self.config.execution_mode,
+            symbol=symbol,
+            timeframe=None,
+            limit=2_000,
+        )
+        return {
+            "status": "ok",
+            "rehydrated_count": len(executions),
+            "executions": executions,
+        }
+
+    def reconcile_manual_cancellation(
+        self,
+        *,
+        execution: dict[str, Any],
+        now_ms: int,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Converte cancelamento manual em estado final auditavel."""
+        execution_id = int(execution["id"])
+        event_metadata = dict(metadata or {})
+        event_metadata.setdefault("source", "manual_cancellation")
+        self._record_reconcile_note(
+            execution_id,
+            now_ms=now_ms,
+            payload={
+                "result": "manual_cancellation_detected",
+                "status_before": str(execution.get("status") or ""),
+                **event_metadata,
+            },
+        )
+        cancelled = self.repository.mark_signal_execution_failed(
+            execution_id=execution_id,
+            now_ms=now_ms,
+            reason="manual_cancellation_detected",
+            rule_id=M2_010_1_RULE_ID,
+            metadata={"source": "manual_cancellation"},
+        )
+        return {
+            "execution_id": execution_id,
+            "status": cancelled.current_status,
+            "reason": cancelled.reason,
+        }
+
+    def reconcile_partial_fill(
+        self,
+        *,
+        execution: dict[str, Any],
+        filled_qty: float,
+        now_ms: int,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Registra partial fill preservando continuidade segura da reconciliacao."""
+        execution_id = int(execution["id"])
+        self._record_reconcile_note(
+            execution_id,
+            now_ms=now_ms,
+            payload={
+                "result": "partial_fill_detected",
+                "filled_qty": float(filled_qty),
+                "status_before": str(execution.get("status") or ""),
+                "metadata": dict(metadata or {}),
+            },
+        )
+        return {
+            "execution_id": execution_id,
+            "status": str(execution.get("status") or SIGNAL_EXECUTION_STATUS_ENTRY_SENT),
+            "reason": "partial_fill_detected",
+        }
 
     def _incremental_training_is_running(self) -> bool:
         process = self._incremental_training_process
@@ -960,6 +1091,19 @@ class Model2LiveExecutionService:
                 assert gate_input is not None
                 decision = evaluate_live_execution_gate(gate_input)
 
+            gate_reason_raw = (
+                str.__str__(decision.reason)
+                if isinstance(decision.reason, str)
+                else str(decision.reason)
+            )
+            decision_for_storage = LiveExecutionGateDecision(
+                allow_execution=bool(decision.allow_execution),
+                target_status=str(decision.target_status),
+                reason=str(gate_reason_raw),
+                rule_id=str(decision.rule_id),
+                details=dict(decision.details),
+            )
+
             result = self.repository.create_signal_execution_candidate(
                 technical_signal_id=int(candidate["id"]),
                 opportunity_id=int(candidate["opportunity_id"]),
@@ -967,7 +1111,7 @@ class Model2LiveExecutionService:
                 timeframe=str(candidate["timeframe"]),
                 signal_side=str(execution_signal_side or candidate["signal_side"]),
                 signal_timestamp=int(candidate["signal_timestamp"]),
-                gate_decision=decision,
+                gate_decision=decision_for_storage,
                 execution_mode=self.config.execution_mode,
                 now_ms=now_ms,
                 decision_id=int(created_decision.decision_id),
@@ -996,6 +1140,10 @@ class Model2LiveExecutionService:
                     "execution_id": result.execution_id,
                     "status": result.current_status,
                     "reason": result.reason,
+                    "decision_latency_ms": int(inference_latency_ms),
+                    "admission_latency_ms": 0,
+                    "send_latency_ms": 0,
+                    "reconciliation_latency_ms": 0,
                 }
             )
         return items
@@ -1501,6 +1649,25 @@ class Model2LiveExecutionService:
         }
 
     def _record_reconcile_note(self, execution_id: int, now_ms: int, payload: dict[str, Any]) -> None:
+        metadata_payload = dict(payload)
+        reason_code = str(
+            metadata_payload.get("reason_code")
+            or metadata_payload.get("reason")
+            or metadata_payload.get("result")
+            or "ops.reconciliation_note"
+        )
+        status_value = str(
+            metadata_payload.get("status")
+            or metadata_payload.get("status_before")
+            or "RECONCILIATION"
+        )
+        enriched_payload = {
+            "reason_code": reason_code,
+            "status": status_value,
+            "timestamp": int(now_ms),
+            "metadata": metadata_payload,
+            **metadata_payload,
+        }
         self.repository.record_signal_execution_event(
             execution_id=execution_id,
             now_ms=now_ms,
@@ -1508,7 +1675,7 @@ class Model2LiveExecutionService:
             to_status=None,
             event_type="RECONCILIATION",
             rule_id=M2_010_1_RULE_ID,
-            payload=payload,
+            payload=enriched_payload,
         )
 
     def _mark_reconciliation_divergence(

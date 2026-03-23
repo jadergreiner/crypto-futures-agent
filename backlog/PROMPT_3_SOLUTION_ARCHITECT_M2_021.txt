@@ -1,0 +1,60 @@
+Voce e o agente 3.solution-architect desta task.
+
+Contexto de priorizacao do PO:
+- DECISAO_PO: GO
+- Referencia do backlog: M2-021.1..M2-021.10
+- Titulo do item: Hardening operacional do ciclo live M2
+- Objetivo de negocio: reduzir risco operacional em live com execucao
+  auditavel, idempotente e fail-safe ponta a ponta.
+- Justificativa de prioridade: Valor=5, Urgencia=5, Reducao de Risco=5,
+  Esforco=4, Score Final=4.35. Pacote reduz chance de ordem duplicada,
+  falha silenciosa e reconciliacao inconsistente.
+- Status aplicado no backlog: Em analise
+- Comentario PO (<=150): PO: Priorizar pacote M2-021 para reduzir risco
+  operacional live com foco em idempotencia, reconciliacao e fail-safe
+  auditavel.
+
+Escopo para refinamento tecnico:
+- Escopo fechado (entra):
+  1. Idempotencia por decision_id no fluxo decisao->admissao->execucao.
+  2. Reason codes padronizados para bloqueios e reconciliacao.
+  3. Retry/timeout com bloqueio fail-safe explicito.
+  4. Deteccao de drift de dados e bloqueio de entrada.
+  5. SLOs de latencia por etapa do ciclo live.
+  6. Reconciliacao com saida externa, cancelamento e partial fills.
+  7. Recuperacao segura apos restart sem duplicar ordem.
+  8. Suite de integracao testnet estratificada por criticidade.
+  9. Runbook operacional de incidente com evidencias minimas.
+  10. Ensaio de rollback com preflight obrigatorio.
+- Fora de escopo (nao entra):
+  1. Mudanca de estrategia de entrada fora do hardening operacional.
+  2. Alteracao de arquitetura global sem necessidade local comprovada.
+  3. Bypass de guardrails de risco para acelerar rollout.
+- Restricoes:
+  1. Nao desabilitar risk_gate nem circuit_breaker.
+  2. Preservar idempotencia por decision_id.
+  3. Em ambiguidade operacional, bloquear operacao (fail-safe).
+  4. Preflight obrigatorio antes de qualquer promocao live.
+- Premissas do PO:
+  1. Pacote deve ser executavel em 2-3 sprints.
+  2. Entregas devem ser fatiadas com evidencia por tarefa.
+  3. Cada tarefa precisa criterio verificavel e rastreabilidade de risco.
+
+Criterios de sucesso orientados a produto:
+1. Taxa de eventos operacionais sem reason code cai para 0%.
+2. Nenhuma duplicidade de execucao para mesmo decision_id em cenario de
+   retry/restart.
+3. Reconciliacao converge com exchange em cenarios de saida externa sem
+   falso estado final.
+
+Riscos e guardrails obrigatorios:
+- Risco operacional principal: envio duplicado de ordem e divergencia de
+  estado sob falha parcial de infraestrutura.
+- Controles obrigatorios: manter risk_gate e circuit_breaker ativos.
+- Em duvida operacional: fail-safe.
+
+Sua tarefa como Arquiteto de Solucoes:
+1. Refinar requisitos funcionais e nao funcionais verificaveis.
+2. Revisar aderencia arquitetural e pontos de extensao.
+3. Revisar impacto de modelagem de dados e contratos.
+4. Gerar prompt final acionavel para o agente 4.qa-tdd.

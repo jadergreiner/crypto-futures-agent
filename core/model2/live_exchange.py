@@ -162,18 +162,32 @@ class Model2LiveExchange:
         return default_info
 
     def _round_quantity(self, symbol: str, quantity: float) -> float:
-        precision = self._get_symbol_precision_info(symbol)["quantity_precision"]
-        multiplier = 10 ** precision
-        return math.floor(float(quantity) * multiplier) / multiplier
+        raw_precision = self._get_symbol_precision_info(symbol).get("quantity_precision", 8)
+        precision: int = 8
+        try:
+            precision = int(raw_precision)
+        except (TypeError, ValueError):
+            precision = 8
+        multiplier: int = 10 ** precision
+        rounded = math.floor(float(quantity) * float(multiplier))
+        return float(rounded) / float(multiplier)
 
     def _normalize_trigger_price(self, symbol: str, trigger_price: float, close_side: str) -> float:
         info = self._get_symbol_precision_info(symbol)
-        tick_size = info.get("tick_size")
-        if tick_size:
+        raw_tick_size = info.get("tick_size")
+        try:
+            tick_size = float(raw_tick_size) if raw_tick_size is not None else None
+        except (TypeError, ValueError):
+            tick_size = None
+        if tick_size and tick_size > 0:
             if str(close_side).upper() == "BUY":
                 return math.ceil(float(trigger_price) / tick_size) * tick_size
             return math.floor(float(trigger_price) / tick_size) * tick_size
-        precision = info.get("price_precision", 8)
+        raw_precision = info.get("price_precision", 8)
+        try:
+            precision = int(raw_precision)
+        except (TypeError, ValueError):
+            precision = 8
         return round(float(trigger_price), int(precision))
 
     def get_available_balance(self) -> float | None:
@@ -442,7 +456,7 @@ class Model2LiveExchange:
         except Exception:
             cand_order_id_int = None
 
-        candidates = [
+        candidates: list[tuple[str, dict[str, Any]]] = [
             ("query_order", {"symbol": symbol, "orderId": cand_order_id_int}),
             ("query_order", {"symbol": symbol, "order_id": str(order_id)}),
             ("order_status", {"symbol": symbol, "orderId": cand_order_id_int}),
@@ -483,6 +497,8 @@ class Model2LiveExchange:
                 # if list, search for matching id
                 if isinstance(payload, list):
                     for item in payload:
+                        if not isinstance(item, dict):
+                            continue
                         for key in ("orderId", "order_id", "algoId", "algo_id", "clientOrderId", "client_order_id"):
                             val = item.get(key)
                             if val is not None and str(val) == str(order_id):
@@ -527,8 +543,9 @@ class Model2LiveExchange:
         filled_qty = None
         for k in qty_keys:
             try:
-                if k in order and order.get(k) is not None:
-                    val = float(order.get(k))
+                raw_value = order.get(k)
+                if k in order and raw_value is not None:
+                    val = float(str(raw_value))
                     if val > 0:
                         filled_qty = val
                         break
@@ -538,8 +555,9 @@ class Model2LiveExchange:
         filled_price = None
         for k in price_keys:
             try:
-                if k in order and order.get(k) is not None:
-                    val = float(order.get(k))
+                raw_value = order.get(k)
+                if k in order and raw_value is not None:
+                    val = float(str(raw_value))
                     if val > 0:
                         filled_price = val
                         break

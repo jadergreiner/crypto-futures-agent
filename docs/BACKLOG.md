@@ -82,6 +82,10 @@ Backlog estruturado para priorizacao:
 - M2-020.6 a M2-020.14 - Arquitetura model-driven de decisao.
    Dependencia minima: M2-020.1 a M2-020.5 concluidas.
    Impacto: fechar episodios, reward, reconciliacao e promocao GO/NO-GO.
+- M2-021.1 a M2-021.10 - Hardening operacional do ciclo live M2.
+   Dependencia minima: M2-020.6 a M2-020.14 em trilha de consolidacao.
+   Impacto: reduzir risco operacional com idempotencia, reconciliacao e
+   fail-safe auditavel ponta a ponta.
 
 Observacao de organizacao:
 
@@ -1877,6 +1881,179 @@ Critérios de aceite:
 
 1. Arquitetura, regras e operacao estao consistentes entre docs.
 2. Fontes de verdade do M2 refletem decisao direta do modelo.
+
+## INICIATIVA M2-021 - Hardening Operacional do Live M2
+
+### TAREFA M2-021.1 - Blindar idempotencia por decision_id no live
+
+Status: CONCLUIDO
+Entrega:
+
+1. Garantir deduplicacao por `decision_id` em decisao, admissao e execucao.
+2. Registrar motivo de bloqueio quando houver reprocessamento.
+
+Critérios de aceite:
+
+1. Reenvio da mesma decisao nao cria nova ordem nem novo fill logico.
+2. Auditoria identifica `decision_id` e causa de bloqueio de duplicidade.
+
+PO: Priorizar pacote M2-021 para reduzir risco operacional live com foco
+em idempotencia, reconciliacao e fail-safe auditavel.
+
+SA: Pacote M2-021 validado para hardening live com foco em
+idempotencia decision_id, reason codes, reconciliacao e fail-safe
+testavel por etapa.
+
+QA: Suite RED M2-021 criada em tests/test_model2_m2_021_live_hardening_red.py
+com cobertura de idempotencia, reason_code, retry/timeout, drift, SLO,
+reconciliacao, restart e rollback com preflight.
+
+SE: GREEN M2-021 concluido com 16/16 na suite dedicada,
+234 passed na regressao completa e mypy --strict verde nos modulos alvo.
+
+TL: DEVOLVIDO por mascarar reconciliation_valid=False e risco de falso
+sucesso operacional em validacao de inferencia.
+
+SE: REWORK iniciado para remover coercao silenciosa de
+reconciliation_valid e restaurar fail-safe explicito na inferencia.
+
+SE: REWORK concluido com remocao da mutacao de reconciliation_valid,
+ajuste da regressao fail-safe e validacoes verdes:
+
+- pytest -q tests/test_model2_m2_021_live_hardening_red.py (16 passed)
+- mypy --strict core/model2/model_inference_service.py (success)
+- mypy --strict core/model2/live_service.py
+   core/model2/live_execution.py core/model2/live_exchange.py
+   core/model2/order_layer.py scripts/model2/go_live_preflight.py
+   (success)
+- pytest -q tests/ (234 passed)
+
+TL: APROVADO - coercao silenciosa removida; fail-safe de reconciliacao
+preservado; validacao local completa verde.
+
+DOC: Governanca concluida; backlog e sync alinhados ao rework aprovado,
+sem pendencias documentais para aceite final.
+
+PM: ACEITE final emitido; trilha ponta-a-ponta validada, backlog encerrado
+e liberado para publicacao em main.
+
+### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Definir taxonomia minima de reason codes para gates e reconciliacao.
+2. Expor reason codes em logs operacionais e eventos persistidos.
+
+Critérios de aceite:
+
+1. Todo bloqueio critico possui reason code univoco e rastreavel.
+2. Operacao consegue diferenciar bloqueio de risco, dados e infraestrutura.
+
+### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Definir politica de retry com limites para chamadas criticas.
+2. Bloquear operacao quando timeout exceder janela segura.
+
+Critérios de aceite:
+
+1. Chamadas instaveis nao degradam para envio de ordem sem confirmacao.
+2. Timeout critico dispara bloqueio auditavel e nao silencioso.
+
+### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Comparar frescor e consistencia de candles por simbolo/timeframe.
+2. Sinalizar drift que invalida decisao em curso.
+
+Critérios de aceite:
+
+1. Drift relevante bloqueia admissao de nova entrada em fail-safe.
+2. Evento de drift fica registrado com simbolo, janela e impacto.
+
+### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Medir latencia de decisao, admissao, envio e reconciliacao.
+2. Definir limites operacionais por etapa do ciclo.
+
+Critérios de aceite:
+
+1. SLOs ficam visiveis em log ou relatorio operacional padronizado.
+2. Violacao de SLO gera alerta rastreavel sem interromper auditoria.
+
+### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Testar saida externa, cancelamento manual e partial fills.
+2. Garantir transicao consistente de estado no banco canonico M2.
+
+Critérios de aceite:
+
+1. Estado final converge com exchange sem falso EXITED.
+2. Divergencias criticas viram evento bloqueante ate conciliacao.
+
+### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Reidratar contexto de posicoes, sinais e execucoes pendentes.
+2. Evitar repeticao de envio de ordem apos reinicio.
+
+Critérios de aceite:
+
+1. Restart nao gera ordens duplicadas nem perda de rastreabilidade.
+2. Estado reidratado preserva continuidade do ciclo por simbolo.
+
+### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Estratificar testes de integracao por criticidade de risco operacional.
+2. Cobrir fluxo completo: decisao, ordem, protecoes e reconciliacao.
+
+Critérios de aceite:
+
+1. Suite critica roda de forma deterministica com evidencias minimas.
+2. Falha critica retorna NO_GO para promocao live.
+
+### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Definir passos de contencao, diagnostico e recuperacao.
+2. Incluir checklist minimo de evidencias para decisao GO/NO-GO.
+
+Critérios de aceite:
+
+1. Operacao executa contencao em tempo alvo com trilha auditavel.
+2. Runbook fica consistente com regras de negocio e arquitetura alvo.
+
+### TAREFA M2-021.10 - Ensaiar rollback operacional com preflight
+
+Status: IMPLEMENTADO
+Entrega:
+
+1. Simular promocao e rollback com `go_live_preflight.py` como gate.
+2. Validar retorno seguro para ultima versao estavel.
+
+Critérios de aceite:
+
+1. Rollback executa sem romper reconciliacao e controles de risco.
+2. Evidencia de ensaio fica registrada para auditoria de release.
+
 3. Timeline: ~20-30 min para completar treinos (em andamento)
 
 Proximas Fases:
