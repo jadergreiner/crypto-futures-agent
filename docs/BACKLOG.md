@@ -170,7 +170,7 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-024.2 - Catalogo de reason_code por severidade
 
-Status: BACKLOG
+Status: TESTES_PRONTOS
 
 Descricao:
 Criar catalogo canonico de reason_code com severidade e acao padrao,
@@ -180,9 +180,15 @@ Dependencias:
 
 - M2-024.1
 
+QA: Suite RED criada em tests/test_model2_m2_024_2_reason_code_catalog.py
+com 15 testes; execucao inicial 1 failed, 14 passed validando cobertura
+minima do catalogo. Casos cobrem: validacao de severidade, acao, campos
+obrigatorios, entradas criticas (risk_gate_blocked, circuit_breaker_blocked,
+reconciliation_divergence).
+
 ### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
 
-Status: BACKLOG
+Status: TESTES_PRONTOS
 
 Descricao:
 Fortalecer bloqueio de duplicidade por decision_id no consumo de
@@ -191,6 +197,11 @@ technical_signals para impedir execucao repetida em ciclo concorrente.
 Dependencias:
 
 - M2-024.1
+
+QA: Suite RED criada em tests/test_model2_m2_024_3_idempotence_gate.py
+com 12 testes; execucao inicial 0 failed, 12 passed validando gate de
+idempotencia com memoria. Casos cobrem: entrada nova, duplicacao detectada,
+ausencia decision_id, validacao positivo, paridade shadow/live.
 
 ### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
 
@@ -266,7 +277,7 @@ Dependencias:
 
 ### TAREFA M2-024.10 - Suite RED para contratos de erro e decisao
 
-Status: BACKLOG
+Status: TESTES_PRONTOS
 
 Descricao:
 Criar suite RED focada em contrato de decisao, reason_code e
@@ -275,6 +286,12 @@ idempotencia para guiar implementacao Green-Refactor.
 Dependencias:
 
 - M2-024.1
+
+QA: Suite RED criada em tests/test_model2_m2_024_10_error_contract.py
+com 10 testes; execucao inicial 0 failed, 10 passed validando contrato
+de erro com auditabilidade. Casos cobrem: decision_id, execution_id,
+reason_code, severity, recommended_action; validacao de campos obrigatorios,
+imutabilidade (frozen dataclass), conformidade com catálogo.
 
 ### TAREFA M2-024.11 - Regressao de risco com cenarios de stress
 
