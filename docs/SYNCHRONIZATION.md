@@ -23,6 +23,52 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-100] Doc Advocate conclui governanca BLID-084
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: REVISADO_APROVADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Fechamento DA | docs/BACKLOG.md | BLID-084 com `DOC:` e status `REVISADO_APROVADO` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-100 adicionado |
+
+#### Validacoes
+
+- `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md` -> OK.
+- `pytest -q tests/test_docs_model2_sync.py` -> 12 passed.
+
+#### Impacto
+
+- Pacote documental encerrado e pronto para aceite final do
+   agente 8.project-manager.
+
+### [SYNC-099] Tech Lead aprova BLID-084 para governanca final
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: REVISADO_APROVADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Revisao TL | docs/BACKLOG.md | BLID-084 em `REVISADO_APROVADO` + comentario `TL:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-099 adicionado |
+
+#### Evidencias de Reproducao TL
+
+- `pytest -q tests/test_model2_ohlcv_cache.py` -> 15 passed.
+- `pytest -q tests/` -> 249 passed.
+- `mypy --strict core/model2/ohlcv_cache.py scripts/model2/scan.py
+   scripts/model2/validate.py scripts/model2/resolve.py
+   scripts/model2/sync_market_context.py` -> Success.
+
+#### Impacto
+
+- BLID-084 aprovada para etapa 7.doc-advocate (governanca final de docs).
+
 ### [SYNC-098] Software Engineer implementa GREEN da BLID-084
 
 **Data/Hora**: 2026-03-23 UTC

@@ -261,7 +261,7 @@ Impacto:
 
 ### TAREFA BLID-079 - Corrigir confianca `N/A` na linha de decisao `[SYM]`
 
-Status: IMPLEMENTADO
+Status: REVISADO_APROVADO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -1950,7 +1950,7 @@ de reconciliação e elimina degradação silenciosa de qualidade em produção.
 
 ### TAREFA BLID-084 - Otimizar coleta OHLCV com cache e batelada
 
-Status: IMPLEMENTADO
+Status: REVISADO_APROVADO
 
 Sprint: M2-022
 Prioridade: P0
@@ -2001,6 +2001,12 @@ Evidencias SE:
 - `mypy --strict core/model2/ohlcv_cache.py scripts/model2/scan.py
    scripts/model2/validate.py scripts/model2/resolve.py
    scripts/model2/sync_market_context.py` -> Success
+
+TL: APROVADO - cache OHLCV com integracao scan/validate/resolve,
+suite verde e tipagem strict sem regressao.
+
+DOC: Governanca final de docs concluida para BLID-084 com trilha
+[SYNC] atualizada e handoff executivo pronto ao Project Manager.
 
 ### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
 
