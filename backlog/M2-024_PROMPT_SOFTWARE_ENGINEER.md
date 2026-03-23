@@ -207,3 +207,18 @@ Evidencias: link para commits.
 **Status**: ✅ PRONTO PARA GREEN-REFACTOR  
 **Commit RED**: 473d89e  
 **Próxima Etapa**: 5.software-engineer implementar (GREEN-Refactor)
+
+---
+
+## ⚠️ IMPORTANTE: Código Completo dos Testes
+
+Ver arquivo: [M2-024_PROMPT_SOFTWARE_ENGINEER_COMPLETO.md](M2-024_PROMPT_SOFTWARE_ENGINEER_COMPLETO.md)
+
+Este arquivo contém:
+- **Suite RED Completa** com código de todos os 37 testes (830+ linhas)
+- **Mapeamento requisito → teste** em tabelas detalhadas
+- **Plano GREEN-Refactor** com pseudocódigo
+- **Comandos validação** prontos para executar
+- **Checklist aceite** com todos os critérios objetivos
+
+**Usar este link para acessar a versão completa com código embedded dos testes.**
