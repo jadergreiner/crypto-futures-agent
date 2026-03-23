@@ -92,6 +92,235 @@ Observacao de organizacao:
 - Itens concluidos com subtarefas ainda pendentes devem gerar nova tarefa
    rastreavel em vez de manter pendencia escondida em checklist concluido.
 
+## PACOTE M2-024 - Hardening de decisao e execucao live
+
+Objetivo:
+Criar trilha de 15 tarefas para reduzir risco operacional, reforcar
+idempotencia por decision_id e aumentar auditabilidade ponta a ponta.
+
+### TAREFA M2-024.1 - Contrato unico de decisao operacional
+
+Status: CONCLUIDO
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Padronizar o contrato de decisao entre signal_bridge, order_layer e
+live_execution para evitar divergencia de payload, motivo de bloqueio e
+campos obrigatorios.
+
+Criterios de Aceite:
+
+- [x] Contrato unico definido para decisao valida e bloqueada.
+- [x] Campos obrigatorios validados antes da execucao.
+- [x] Guardrails de risco mantidos ativos em todos os caminhos.
+
+Dependencias:
+
+- M2-023.1 concluida
+
+PO: Priorizar M2-024.1 para unificar contrato de decisao e reduzir falhas
+de integracao entre camadas no ciclo live.
+
+SA: Definir contrato unico com decision_id, reason_code e campos
+obrigatorios; fail-safe em ausencias e sem alteracao de schema.
+
+QA: Suite RED criada em tests/test_model2_m2_024_1_decision_contract.py
+com 8 casos; execucao inicial 7 failed, 1 passed validando gaps de contrato.
+
+SE: Inicio Green-Refactor da M2-024.1 em 2026-03-23; foco em
+validacao de contrato, fail-safe e correlacao decision/execution.
+
+SE: GREEN concluido com validacao estrita opcional no contrato novo e
+compatibilidade retroativa no fluxo legado.
+
+Evidencias de implementacao:
+
+1. pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 8 passed.
+2. pytest -q tests/test_model2_order_layer.py tests/test_model2_live_execution.py
+   -> 22 passed.
+3. mypy --strict core/model2/order_layer.py core/model2/live_execution.py
+   tests/test_model2_m2_024_1_decision_contract.py -> Success.
+4. pytest -q tests/ -> 267 passed.
+
+TL: APROVADO. 8/8 testes reproduzidos, 267 suite verde, mypy clean, guardrails
+ativos, strict_contract retrocompat validado.
+
+DOC: REGRAS_DE_NEGOCIO adicionado RN-016; ARQUITETURA_ALVO atualizada
+extensao M2-024.1; SYNCHRONIZATION atualizado SYNC-116.
+
+PM: ACEITE em 2026-03-23. Trilha completa validada ponta-a-ponta.
+Backlog atualizado para CONCLUIDO. Commit e push realizados.
+
+### TAREFA M2-024.2 - Catalogo de reason_code por severidade
+
+Status: BACKLOG
+
+Descricao:
+Criar catalogo canonico de reason_code com severidade e acao padrao,
+reutilizado por order_layer e live_execution.
+
+Dependencias:
+
+- M2-024.1
+
+### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
+
+Status: BACKLOG
+
+Descricao:
+Fortalecer bloqueio de duplicidade por decision_id no consumo de
+technical_signals para impedir execucao repetida em ciclo concorrente.
+
+Dependencias:
+
+- M2-024.1
+
+### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
+
+Status: BACKLOG
+
+Descricao:
+Implementar retry com budget e backoff para falhas transitorias, com
+cancelamento fail-safe apos limite seguro.
+
+Dependencias:
+
+- M2-024.2
+
+### TAREFA M2-024.5 - Timeout padrao por etapa de execucao
+
+Status: BACKLOG
+
+Descricao:
+Definir timeout objetivo para admissao, envio de ordem e reconciliacao,
+com telemetria de expiracao e motivo padronizado.
+
+Dependencias:
+
+- M2-024.2
+
+### TAREFA M2-024.6 - Telemetria de latencia por simbolo e etapa
+
+Status: BACKLOG
+
+Descricao:
+Registrar latencia por simbolo, etapa e resultado para detectar gargalos
+operacionais sem depender de leitura manual de logs.
+
+Dependencias:
+
+- M2-024.5
+
+### TAREFA M2-024.7 - Circuit breaker por classe de falha
+
+Status: BACKLOG
+
+Descricao:
+Evoluir circuit_breaker para reagir por classe de falha repetida com
+janela deslizante e liberacao controlada.
+
+Dependencias:
+
+- M2-024.2
+
+### TAREFA M2-024.8 - Reconciliacao deterministica de saida externa
+
+Status: BACKLOG
+
+Descricao:
+Padronizar reconciliacao de saida externa para eliminar falso EXITED e
+garantir transicao de estado auditavel.
+
+Dependencias:
+
+- BLID-076
+
+### TAREFA M2-024.9 - Snapshot operacional unico por ciclo
+
+Status: BACKLOG
+
+Descricao:
+Consolidar snapshot unico por ciclo com candle, decisao, episodio,
+execucao e reconciliacao para leitura operacional direta.
+
+Dependencias:
+
+- M2-024.6
+
+### TAREFA M2-024.10 - Suite RED para contratos de erro e decisao
+
+Status: BACKLOG
+
+Descricao:
+Criar suite RED focada em contrato de decisao, reason_code e
+idempotencia para guiar implementacao Green-Refactor.
+
+Dependencias:
+
+- M2-024.1
+
+### TAREFA M2-024.11 - Regressao de risco com cenarios de stress
+
+Status: BACKLOG
+
+Descricao:
+Adicionar regressao com cenarios de stress em live simulado para validar
+risk_gate e circuit_breaker sob carga e falha intermitente.
+
+Dependencias:
+
+- M2-024.7
+
+### TAREFA M2-024.12 - Integracao testnet para fluxo completo
+
+Status: BACKLOG
+
+Descricao:
+Executar fluxo completo em Binance Testnet com evidencias de admissao,
+execucao, protecao e reconciliacao.
+
+Dependencias:
+
+- M2-018.2
+
+### TAREFA M2-024.13 - Gate preflight com contrato de schema M2
+
+Status: BACKLOG
+
+Descricao:
+Ampliar preflight para validar contrato de schema, migracao e campos
+obrigatorios antes de qualquer live.
+
+Dependencias:
+
+- M2-024.1
+
+### TAREFA M2-024.14 - Politica de rollback operacional por severidade
+
+Status: BACKLOG
+
+Descricao:
+Definir politica de rollback por severidade com acoes claras para
+interrupcao, observacao e retomada segura.
+
+Dependencias:
+
+- M2-024.7
+
+### TAREFA M2-024.15 - Governanca de docs e runbook do pacote M2-024
+
+Status: BACKLOG
+
+Descricao:
+Sincronizar arquitetura, regras, runbook e trilha SYNC apos conclusao do
+pacote para manter governanca documental auditavel.
+
+Dependencias:
+
+- M2-024.1 a M2-024.14
+
 ---
 
 ## Prioridade P0 (iniciar agora)

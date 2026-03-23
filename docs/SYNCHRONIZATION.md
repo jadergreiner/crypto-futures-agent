@@ -23,6 +23,188 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-117] Project Manager - ACEITE final M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: CONCLUIDO
+**Agente**: Project Manager (8.project-manager)
+**Atividade**: M2-024.1 - Contrato unico de decisao operacional
+
+**Validacao ponta-a-ponta**: Trilha PO->SA->QA->SE->TL->DOC completa.
+**Decisao**: ACEITE
+**Backlog**: atualizado para CONCLUIDO
+**Publicacao**: commit + push para main
+
+---
+
+### [SYNC-116] Doc Advocate - Governanca final de docs M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: REVISADO_APROVADO
+**Agente**: Doc Advocate (7.doc-advocate)
+**Atividade**: M2-024.1 - Contrato unico de decisao operacional
+
+**Docs revisadas e atualizadas**:
+
+- `docs/REGRAS_DE_NEGOCIO.md`: adicionado RN-016 para strict_contract
+- `docs/ARQUITETURA_ALVO.md`: atualizado contrato unificado de erros
+  com extensao M2-024.1
+
+**Docs sem alteracao necessaria** (nao foram impactadas):
+
+- `docs/PRD.md`: escopo nao alterado
+- `docs/BACKLOG.md`: ja atualizado pelo Tech Lead (REVISADO_APROVADO)
+
+**DOC**: RN-016 criada; ARQUITETURA_ALVO atualizada; sem docs novas.
+
+---
+
+### [SYNC-115] Tech Lead APROVADO para M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: REVISADO_APROVADO
+**Agente**: Tech Lead (6.tech-lead)
+**Atividade**: M2-024.1 - Contrato unico de decisao operacional
+
+**Reproducao local realizada**:
+
+- pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 8 passed
+- pytest -q tests/test_model2_order_layer.py tests/test_model2_live_execution.py
+  -> 22 passed
+- mypy --strict (3 modulos) -> Success
+- pytest -q tests/ -> 267 passed
+
+**Decisao**: APROVADO
+**Guardrails**: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
+
+---
+
+### [SYNC-114] Software Engineer implementa GREEN da M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: IMPLEMENTADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-114 adicionado |
+
+#### Mudancas Logicas
+
+- core/model2/order_layer.py: validacao de contrato novo (decision_id,
+  signal_timestamp e payload.decision_origin) com modo estrito opcional
+  e compatibilidade retroativa.
+- core/model2/live_execution.py: enriquecimento do contrato READY com
+  reason_code/severity/recommended_action + correlacao decision/execution;
+  fail-safe por IDs ausentes quando contrato novo estiver ativo.
+- tests/test_model2_m2_024_1_decision_contract.py: suite RED->GREEN da task.
+
+#### Evidencias
+
+- pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 8 passed.
+- pytest -q tests/test_model2_order_layer.py tests/test_model2_live_execution.py
+  -> 22 passed.
+- mypy --strict core/model2/order_layer.py core/model2/live_execution.py
+  tests/test_model2_m2_024_1_decision_contract.py -> Success.
+- pytest -q tests/ -> 267 passed.
+
+#### Impacto
+
+- M2-024.1 pronta para revisao do agente 6.tech-lead com guardrails
+  preservados e regressao verde.
+
+### [SYNC-113] Software Engineer inicia GREEN da M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: EM_DESENVOLVIMENTO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `EM_DESENVOLVIMENTO` + comentario `SE:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-113 adicionado |
+
+#### Impacto
+
+- Implementacao GREEN iniciada para contrato unico de decisao da M2-024.1.
+
+### [SYNC-112] QA-TDD prepara suite RED da M2-024.1
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: TESTES_PRONTOS
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-112 adicionado |
+
+#### Mudancas Logicas
+
+- Suite RED criada em tests/test_model2_m2_024_1_decision_contract.py.
+- Allowlist model-driven atualizada em tests/conftest.py.
+- Cobertura RED: contrato unico, campos obrigatorios e correlacao IDs.
+
+#### Evidencias
+
+- pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 7 failed, 1 passed.
+- mypy --strict tests/test_model2_m2_024_1_decision_contract.py -> Success.
+
+#### Impacto
+
+- M2-024.1 pronta para implementacao Green-Refactor pelo agente
+   5.software-engineer.
+
+### [SYNC-111] SA refina M2-024.1 para handoff QA-TDD
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: EM_ANALISE
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Handoff tecnico SA | docs/BACKLOG.md | M2-024.1 mantida em `Em analise` + comentario `SA:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-111 adicionado |
+
+#### Mudancas Logicas
+
+- Contrato unico de decisao entre bridge, order_layer e live_execution.
+- Campos obrigatorios e fail-safe por ausencia de payload valido.
+- Sem alteracao de schema nesta etapa; foco em contrato e testes RED.
+
+#### Impacto
+
+- M2-024.1 pronta para escrita de suite RED pelo agente 4.qa-tdd.
+- Reduz ambiguidade de integracao e reforca idempotencia operacional.
+
+### [SYNC-110] Product Owner cria pacote M2-024 (15 tarefas)
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: PRIORIZADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Novo pacote M2-024 | docs/BACKLOG.md | M2-024.1 a M2-024.15 adicionadas; M2-024.1 em `Em analise` + `PO:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-110 adicionado |
+
+#### Mudancas Logicas
+
+- Pacote M2-024 orientado a hardening de decisao, execucao e conciliacao.
+- Priorizacao inicial em M2-024.1 para contrato unico de decisao.
+- Trilho de 15 tarefas com foco em fail-safe, idempotencia e observabilidade.
+
+#### Impacto
+
+- Backlog preparado para handoff ao agente 3.solution-architect.
+- Risco operacional reduzido por padronizacao de contratos entre camadas.
+
 ### [SYNC-109] Project Manager fecha M2-023.1
 
 **Data/Hora**: 2026-03-23 UTC

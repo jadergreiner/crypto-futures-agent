@@ -16,6 +16,9 @@ SUPPORTED_ENTRY_TYPES = frozenset({"MARKET", "LIMIT"})
 REASON_CODE_CATALOG: dict[str, str] = {
     "decision_recorded_no_real_order": "ops.decision_recorded_no_real_order",
     "status_not_created": "ops.status_not_created",
+    "missing_decision_id": "ops.missing_decision_id",
+    "missing_signal_timestamp": "ops.missing_signal_timestamp",
+    "missing_payload_contract": "ops.missing_payload_contract",
     "symbol_not_authorized": "ops.symbol_not_authorized",
     "unsupported_signal_side": "ops.unsupported_signal_side",
     "short_only_enforced": "ops.short_only_enforced",
@@ -81,6 +84,37 @@ def evaluate_signal_for_order_layer(
             reason="status_not_created",
             rule_id=M2_007_1_RULE_ID,
             details={"current_status": order_input.status},
+        )
+
+    decision_origin_key_present = "decision_origin" in order_input.payload
+    strict_contract = order_input.decision_id is not None or decision_origin_key_present
+
+    if strict_contract and (order_input.decision_id is None or int(order_input.decision_id) <= 0):
+        return OrderLayerDecision(
+            should_transition=True,
+            target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+            reason="missing_decision_id",
+            rule_id=M2_007_1_RULE_ID,
+            details={"decision_id": order_input.decision_id},
+        )
+
+    if strict_contract and int(order_input.signal_timestamp) <= 0:
+        return OrderLayerDecision(
+            should_transition=True,
+            target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+            reason="missing_signal_timestamp",
+            rule_id=M2_007_1_RULE_ID,
+            details={"signal_timestamp": order_input.signal_timestamp},
+        )
+
+    decision_origin = str(order_input.payload.get("decision_origin") or "").strip()
+    if strict_contract and not decision_origin:
+        return OrderLayerDecision(
+            should_transition=True,
+            target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+            reason="missing_payload_contract",
+            rule_id=M2_007_1_RULE_ID,
+            details={"required_field": "payload.decision_origin"},
         )
 
     if order_input.symbol not in symbols:

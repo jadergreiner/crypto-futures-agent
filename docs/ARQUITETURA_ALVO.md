@@ -93,13 +93,16 @@ Componentes referencia:
 3. `core/model2/live_execution.py`
 4. `scripts/model2/go_live_preflight.py`
 
-Contrato unificado de erros (M2-023.1):
+Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
 
 - Todo bloqueio ou falha emite `reason_code`, `severity`,
   `recommended_action`, `decision_id` e `execution_id`.
 - Catalogo canonico: `REASON_CODE_CATALOG` em `live_execution.py`.
 - Erros desconhecidos: fallback fail-safe via
   `classify_unknown_execution_error()` com severidade CRITICAL.
+- Validacao de contrato no `order_layer` (M2-024.1): sinais com
+  `decision_id` ou `decision_origin` passam por strict_contract
+  opt-in antes de avançar para execucao live.
 
 ## Camada 5 - Persistencia e Aprendizado Continuo
 

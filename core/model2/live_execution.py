@@ -30,6 +30,7 @@ M2_010_1_RULE_ID = "M2-010.1-RULE-LIVE-RECONCILE"
 REASON_CODE_CATALOG: dict[str, str] = {
     "ready_for_live_execution": "ops.ready_for_live_execution",
     "ops_ambiguous_state": "ops.ambiguous_state",
+    "status_not_consumed": "ops.status_not_consumed",
     "risk_gate_blocked": "ops.risk_gate_blocked",
     "circuit_breaker_blocked": "ops.circuit_breaker_blocked",
     "signal_expired": "ops.signal_expired",
@@ -41,6 +42,7 @@ REASON_CODE_CATALOG: dict[str, str] = {
 REASON_CODE_SEVERITY: dict[str, str] = {
     "ready_for_live_execution": "INFO",
     "ops_ambiguous_state": "HIGH",
+    "status_not_consumed": "HIGH",
     "risk_gate_blocked": "HIGH",
     "circuit_breaker_blocked": "HIGH",
     "signal_expired": "MEDIUM",
@@ -52,6 +54,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
 REASON_CODE_ACTION: dict[str, str] = {
     "ready_for_live_execution": "seguir_fluxo",
     "ops_ambiguous_state": "bloquear_operacao",
+    "status_not_consumed": "bloquear_operacao",
     "risk_gate_blocked": "bloquear_operacao",
     "circuit_breaker_blocked": "bloquear_operacao",
     "signal_expired": "descartar_sinal",
@@ -246,6 +249,23 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
         return _blocked(
             "status_not_consumed",
             current_status=gate_input.technical_signal_status,
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
+        )
+
+    strict_contract = gate_input.decision_id is not None or gate_input.execution_id is not None
+    if strict_contract and (gate_input.decision_id is None or int(gate_input.decision_id) <= 0):
+        return _blocked(
+            "ops_ambiguous_state",
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
+        )
+
+    if strict_contract and (gate_input.execution_id is None or int(gate_input.execution_id) <= 0):
+        return _blocked(
+            "ops_ambiguous_state",
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
         )
 
     risk_gate_status = str(gate_input.risk_gate_status).strip().lower()
@@ -382,6 +402,11 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
         ),
         rule_id=M2_009_2_RULE_ID,
         details={
+            "reason_code": "ready_for_live_execution",
+            "severity": REASON_CODE_SEVERITY.get("ready_for_live_execution", "INFO"),
+            "recommended_action": REASON_CODE_ACTION.get("ready_for_live_execution", "seguir_fluxo"),
+            "decision_id": gate_input.decision_id,
+            "execution_id": gate_input.execution_id,
             "execution_mode": execution_mode,
             "max_margin_per_position_usd": float(gate_input.max_margin_per_position_usd),
             "recent_entries_today": int(gate_input.recent_entries_today),

@@ -79,6 +79,21 @@ Implementacao de referencia: `core/model2/live_execution.py`
 e `core/model2/live_service.py`
 (emit_execution_error_contract_event, classify_unknown_execution_error).
 
+### RN-016 - Contrato de decisao no order_layer (M2-024.1)
+
+Sinais que carregam `decision_id` ou `decision_origin` no payload sao
+sujeitos a validacao estrita antes de avançar para execucao live:
+
+1. `decision_id` presente e maior que zero (correlacao auditavel)
+2. `signal_timestamp` valido (nao zero)
+3. `payload.decision_origin` preenchido (origem da decisao)
+
+Sinais legados sem esses campos passam pela validacao anterior sem
+block (retrocompat). Modo `strict_contract` e opt-in por deteccao.
+
+Implementacao de referencia: `core/model2/order_layer.py`
+(bloco strict_contract em `evaluate_signal_for_order_layer`).
+
 ### RN-009 - Aprendizado continuo
 
 Toda decisao deve gerar episodio de aprendizado, inclusive `HOLD`.
