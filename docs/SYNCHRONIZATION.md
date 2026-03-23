@@ -23,6 +23,44 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-095] Product Owner prioriza pacote M2-022 (10 tarefas)
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: PRIORIZADO
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Novo pacote M2-022 | docs/BACKLOG.md | BLID-084 a M2-022.6 adicionadas, BLID-084 marcada como `Em analise` |
+| Prompt SA | backlog/PROMPT_3_SOLUTION_ARCHITECT_M2_022.txt | Novo arquivo com requisitos de refino para BLID-084 |
+
+#### Mudancas Logicas
+
+- Iniciativa M2-022: Consolidação Operacional e Escalabilidade
+- Objetivo: Reduzir latência de ciclo M2 em 80% + preparar 40+ símbolos
+- 10 tarefas (BLID-084-087, M2-022.1-6) mapeadas com dependências
+- BLID-084 (cache OHLCV) prioritário para handoff ao Solution Architect
+
+#### Dependencias Declaradas
+
+- BLID-084: M2-021 ✓ (idempotência estabelecida)
+- BLID-085: BLID-084 (retry após cache estável)
+- M2-022.2: BLID-081 ✓ (treino incremental restaurado)
+- M2-022.5: BLID-084 + M2-022.2 (teste de carga)
+
+#### Evidencias
+
+- Backlog estruturado com `docs/BACKLOG.md` L1850+
+- Contrato PO: BLID-084 com comentário PO "Reduzir latencia... em 80%"
+- Prompt estruturado para Solution Architect pronto
+
+#### Impacto
+
+- Próximas 2 sprints direcionadas
+- Risco operacional reduzido: cache estável → escalabilidade
+- Foco: throughput e observabilidade em produção
+
 ### [SYNC-094] Project Manager fecha M2-021.1 com ACEITE
 
 **Data/Hora**: 2026-03-23 UTC

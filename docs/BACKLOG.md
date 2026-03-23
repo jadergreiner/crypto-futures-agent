@@ -1920,6 +1920,372 @@ reconciliation_valid e restaurar fail-safe explicito na inferencia.
 SE: REWORK concluido com remocao da mutacao de reconciliation_valid,
 ajuste da regressao fail-safe e validacoes verdes:
 
+- `pytest -q tests/test_model2_m2_021_live_hardening_red.py` → 16 passed
+- `pytest -q tests/` → 234 passed
+- `mypy --strict core/model2/live_execution.py` → Success
+
+TL: APROVADO - idempotencia por decision_id restaurada com fail-safe
+explicito e auditoria completa de reprocessamento.
+
+DOC: Governanca de M2-021 concluida; backlog sincronizado para handoff
+final ao Project Manager.
+
+PM: ACEITE M2-021 aprovado; pacote publicado em main e pronto para proxima
+iniciativa M2-022 (Consolidacao Operacional).
+
+---
+
+## INICIATIVA M2-022 - Consolidacao Operacional e Escalabilidade
+
+**Objetivo Estrategico**: Consolidar estabilidade operacional do ciclo M2 em
+producao, reduzindo latencia, degradacao e pontos de falha silenciosa.Preparar
+arquitetura para múltiplos símbolos em paralelo sem contenção de recursos.
+
+**Horizonte**: 2 sprints (6/4 - 17/4)
+
+**Impacto de Risco**: Reduz MTTR (Mean Time To Repair), evita falsos positivos
+de reconciliação e elimina degradação silenciosa de qualidade em produção.
+
+---
+
+### TAREFA BLID-084 - Otimizar coleta OHLCV com cache e batelada
+
+Status: Em analise
+
+Sprint: M2-022
+Prioridade: P0
+
+Descricao:
+Implementar mecanismo de cache com batelada de candles para reduzir latencia
+de coleta de dados e overhead de API. Resultado: reduzir tempo de ciclo e
+melhorar throughput de decisoes por simbolo.
+
+Criterios de Aceite:
+
+- [ ] Cache OHLCV com TTL configuravel e estrategia de invalidacao.
+- [ ] Batelada de coleta reduz chamadas de API em 60% sem degradar frescor.
+- [ ] Cobertura de testes: `tests/test_model2_ohlcv_cache.py` >= 80%.
+- [ ] Latencia de coleta reduz de ~500ms para <= 100ms (validado em shadow).
+- [ ] Mypy --strict zero erros em modulos alterados.
+
+Dependencias:
+
+- M2-021 concluida (idempotencia estabelecida)
+- Risk gate e circuit_breaker ativos
+
+Impacto Arquitetural:
+
+- ARQUITETURA_ALVO.md: Cache em Camada 1 (Scanner)
+- REGRAS_DE_NEGOCIO.md: Sem alteracao
+
+PO: Reduzir latencia de ciclo M2 em 80% com cache batelado; preparar
+escalabilidade para 40+ simbolos em paralelo sem contenção de API.
+
+### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P0
+
+Descricao:
+Implementar retry com backoff exponencial para operacoes de risco (API calls,
+DB writes, live orders) com circuito inteligente para falhas permanentes.
+
+Criterios de Aceite:
+
+- [ ] Retry com backoff exponencial (1s, 2s, 4s, 8s, max 60s).
+- [ ] Deteccao de falhas permanentes (4xx, 429 permanente, saldo insuficiente).
+- [ ] Circuit breaker para falhas recorrentes evita retry desnecessario.
+- [ ] Cobertura de testes: `tests/test_model2_retry_logic.py` >= 85%.
+- [ ] Mypy --strict zero erros.
+
+Dependencias:
+
+- BLID-084 concluida (cache estavel)
+- Logging estruturado disponivel
+
+Impacto:
+
+- Reduz flakiness operacional em rede instavel
+- Evita cascade failures por retry descontrolado
+
+PO: Priorizar BLID-085 para blindar operacao contra falhas transitoria da
+rede e API, reduzindo paradas silenciosas em producao.
+
+### TAREFA BLID-086 - Metricas de latencia em decisao e execucao
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Adicionar metricas estruturadas de latencia (tempo total, componentes,
+percentis) para rastrear degradacao em tempo real.
+
+Criterios de Aceite:
+
+- [ ] Latencia por etapa: scanner, validador, sinal, admissao, executor.
+- [ ] Percentis P50, P95, P99 armazenados em `rl_metrics` ou equivalente.
+- [ ] Alert automatico quando P95 latencia > 2s ou P99 > 5s.
+- [ ] Dashboard operacional exibe metricas sem latencia adicional > 10ms.
+- [ ] Cobertura: `tests/test_model2_latency_metrics.py` >= 75%.
+
+Dependencias:
+
+- BLID-084 concluida
+- `core/model2/cycle_report.py` estavel
+
+Impacto:
+
+- Observabilidade operacional em tempo real
+- Detect degradacao antes de impactar decisoes
+
+PO: Adicionar metricas de latencia para observabilidade operacional em
+tempo real e deteccao precoce de degradacao.
+
+### TAREFA BLID-087 - Healthcheck operacional para anomalias
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Criar rotina de healthcheck que valida estado esperado da maquina de
+estados M2 em tempo real, detectando:
+
+- Estagnacao de episodios
+- Inconsistencia de timestamps
+- Candles fora de ordem ou com gaps
+- Estado lock permanente
+
+Criterios de Aceite:
+
+- [ ] Healthcheck executa a cada 5 minutos em modo live.
+- [ ] Detecta 5 categorias de anomalia com severity (CRITICAL, HIGH, WARN).
+- [ ] Escreve resultado em tabela `m2_healthchecks` com timestamp e detalhes.
+- [ ] Alert quando severidade >= HIGH.
+- [ ] Cobertura: `tests/test_model2_healthcheck.py` >= 80%.
+
+Dependencias:
+
+- BLID-084 concluida
+- `core/model2/observability.py` operacional
+
+Impacto:
+
+- Early warning para problemas operacionais
+- Reduz MTTR ao alertar degradacao silenciosa
+
+PO: Diagnosticar anomalias operacionais antes de impactarem decisoes com
+healthcheck preditivo integrado ao ciclo M2.
+
+### TAREFA M2-022.1 - Validacao de schema em warm-up
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Adicionar validacao de schema antes de iniciar o ciclo live. Detecta:
+
+- Tabelas ausentes ou corrompidas
+- Colunas faltando ou com tipo errado
+- Foreign keys nao satisfeitas
+- Dados stale ou inconsistentes
+
+Criterios de Aceite:
+
+- [ ] Validacao executa em `go_live_preflight.py` como gate obrigatorio.
+- [ ] Emite relatorio de schema coverage com severidade por violacao.
+- [ ] Bloqueia launch se houver CRITICAL ou HIGH.
+- [ ] Cobertura: `tests/test_model2_schema_validation.py` >= 85%.
+
+Dependencias:
+
+- `scripts/model2/go_live_preflight.py` refatorado
+- Schema M2 estavel
+
+Impacto:
+
+- Evita falhas silenciosas by corrupted schema
+- Reduz MTTR ao detectar inconsistencia em warm-up
+
+PO: Validar schema M2 como gate obrigatorio em go-live, reduzindo risco
+de degradacao por dados inconsistentes.
+
+### TAREFA M2-022.2 - Auditoria de trigger de treino incremental
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P0
+
+Descricao:
+Implementar rastreabilidade completa de quando treino incremental dispara,
+por quem (episodios elegiveis), com que resultado (sucesso/falha) e impacto
+em qualidade de modelo por janela.
+
+Criterios de Aceite:
+
+- [ ] Tabela `rl_training_audit` registra: timestamp, trigger_reason,
+   episodios_count, model_id_antes, model_id_apos, reward_medio_delta.
+- [ ] Valida que treino nao duplica e aguarda termino do subprocesso.
+- [ ] Detecta treino stale (> 6h sem treino em operacao ativa).
+- [ ] Cobertura: `tests/test_model2_training_audit.py` >= 85%.
+
+Dependencias:
+
+- BLID-081 concluida (treino incremental restaurado)
+- `core/model2/live_service.py` operacional
+
+Impacto:
+
+- Rastreabilidade de aprendizado para compliance e debug
+- Deteccao de treino stale antes de decisoes degradadas
+
+PO: Rastrear disparo de treino incremental para auditoria e deteccao de
+stale model, critical para qualidade de decisao em producao.
+
+### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Implementar isolamento de risco por contexto operacional:
+
+- Shadow vs Live
+- Modo paper vs real
+- Limite diario vs continuado
+- Por simbolo vs carteira
+
+Criterios de Aceite:
+
+- [ ] Risk gate valida contexto e aplica limite apropriado.
+- [ ] Transicao de shadow para live nao permite degradacao de proteção.
+- [ ] Contexto falso nao permite acesso a chaves reais.
+- [ ] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
+
+Dependencias:
+
+- M2-021 concluida
+- Risk gate em producao
+
+Impacto:
+
+- Previne accidental live trading em shadow
+- Mantém fail-safe em cada mudança de contexto
+
+PO: Isolamento de risco por contexto para evitar acidentes de transicao
+shadow->live e vulnerabilidades operacionais.
+
+### TAREFA M2-022.4 - Padronizar handling de erros e timeouts
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Criar camada padronizada de error handling com:
+
+- Timeout explicitamente instrumentado
+- Categorias de erro deterministicas (transitorio vs permanente)
+- Code uniformizado para retry, log e fail-safe
+- Correlacao por decision_id e execution_id
+
+Criterios de Aceite:
+
+- [ ] Todas as chamadas API, DB e live têm timeout explícito.
+- [ ] 5 categorias de erro mapeadas e testes verificam comportamento.
+- [ ] Error context preserva decision_id para auditoria.
+- [ ] Cobertura: `tests/test_model2_error_handling.py` >= 85%.
+
+Dependencias:
+
+- BLID-085 concluida (retry logico)
+- Logging estruturado
+
+Impacto:
+
+- Reduz ambiguidade no tratamento de falhas
+- Melhora debugging e auditoria operacional
+
+PO: Padronizar error handling com timeout e categorias para uniformidade
+operacional e auditoria ponta-a-ponta.
+
+### TAREFA M2-022.5 - Teste de carga com multiplos simbolos
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Teste de carga com 40+ simbolos em paralelo para validar:
+
+- Contenção de recursos (CPU, memoria, I/O)
+- Degradação de latência sob carga
+- Correctness de reconciliacao em paralelo
+- Consistencia de episodios e rewards
+
+Criterios de Aceite:
+
+- [ ] Teste com 40 simbolos em paralelo, 5 minutos, shadow mode.
+- [ ] Latencia P95 nao degrada > 50% vs P50 baseline.
+- [ ] Episodios persistidos com success rate >= 99.5%.
+- [ ] SLO de reconciliacao mantido: drift <= 0.01%.
+- [ ] Relatorio: latencia, throughput, erros, memory profile.
+
+Dependencias:
+
+- BLID-084 concluida (cache estavel)
+- M2-022.2 concluida (auditoria de treino)
+
+Impacto:
+
+- Validacao de escalabilidade antes de multi-symbol live
+- Identifica load limit antes de falhas em producao
+
+PO: Teste de carga com 40+ simbolos para validar estabilidade operacional
+e escalabilidade antes de ramp-up em producao.
+
+### TAREFA M2-022.6 - Consolidar documentacao de arquitetura live
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Consolidar e sincronizar documentacao da arquitetura live (M2-021 + M2-022)
+refletindo idempotencia, retry, metricas, healthcheck e escalabilidade.
+
+Criterios de Aceite:
+
+- [ ] ARQUITETURA_ALVO.md atualizado com cache, retry, metricas, healthcheck.
+- [ ] REGRAS_DE_NEGOCIO.md atualizado com regras de isolamento de risco.
+- [ ] Runbook operacional criado com procedimentos de warm-up e escalada.
+- [ ] docs/SYNCHRONIZATION.md registrado com [SYNC] para trilha auditavel.
+
+Dependencias:
+
+- BLID-084 a M2-022.5 concluidas
+
+Impacto:
+
+- Documentacao sincronizada para onboard e operacao
+- Auditoria completa de decisoes arquiteturais vigentes
+
+PO: Consolidar docs de arquitetura para operacao clara e auditavel do
+ciclo M2 hardened com cache, retry e escalabilidade.
+
 - pytest -q tests/test_model2_m2_021_live_hardening_red.py (16 passed)
 - mypy --strict core/model2/model_inference_service.py (success)
 - mypy --strict core/model2/live_service.py

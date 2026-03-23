@@ -1,0 +1,188 @@
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT PARA SOLUÇÃO ARQUITETURAL — INICIATIVA M2-022
+═══════════════════════════════════════════════════════════════════════════════
+
+ENTRADA
+
+Objetivo de Produto (do Product Owner):
+  Reduzir latência de ciclo M2 em 80% com cache batelado e preparar
+  escalabilidade para 40+ símbolos em paralelo sem contenção de API.
+
+Pacote Priorizado: BLID-084 (Cache OHLCV)
+  → Subsequentes: BLID-085, BLID-086, BLID-087, M2-022.1 a M2-022.6
+
+Contexto Operacional:
+  - M2-021 concluído (idempotência por decision_id ✓)
+  - Modelo 2.0 em produção com 10 símbolos atualmente
+  - Ciclo atual ~500ms para coleta OHLCV; alvo <= 100ms
+  - Risk gate e circuit_breaker ativos (invioláveis)
+
+Restrições Obrigatórias:
+  - Nunca desabilitar risk_gate ou circuit_breaker
+  - Preservar idempotência por decision_id em todas as operações
+  - Fail-safe em dúvida operacional
+  - Mypy --strict zero erros em módulos alterados
+
+---
+
+RESPONSABILIDADES DO ARQUITETO DE SOLUÇÕES
+
+[1] Análise Técnica da Demanda
+
+    1.1. Refinar BLID-084 em arquitetura de cache:
+         - Estratégia de cache (in-memory, Redis, ou camada DB)
+         - TTL por símbolos vs global
+         - Invalidação: timeout vs event-driven
+         - Política de warming (pré-carregar em startup)
+         - Fallback quando cache falhar
+
+    1.2. Mapear dependências técnicas:
+         - API de candles atual (origem e formato)
+         - Schema de armazenamento (se precisar mudar)
+         - Impacto em live_execution.py e scanner.py
+         - Pontos de falha potencial (contention, stale cache)
+
+    1.3. Validar cobertura de testes necessária:
+         - Casos: hit, miss, invalidação, warm-up, fallback
+         - Determinismo e ordem de operações
+         - Concorrência (múltiplos workers acessando cache)
+
+[2] Arquitetura de Solução
+
+    2.1. Decisões estruturais para BLID-084:
+         - Localização do código novo: `core/model2/ohlcv_cache.py`?
+         - Integração com `core/model2/scanner.py` (onde atual coleta)
+         - Impacto em `db/modelo2.db` schema (se houver)
+         - Configuração: colocar em `config/` ou `config.py`?
+
+    2.2. Fluxo de dados revisado:
+         - Sinal de entrada (request de candles)
+         - Cache lookup
+         - API fallback se miss
+         - Batch aggregation (agrupa requests de múltiplos símbolos)
+         - Resposta com timestamp e source (cache vs live)
+
+    2.3. Plano de integração com ciclo M2:
+         - Onde entra no pipeline de 5 camadas?
+         - Como se comporta em shadow vs live?
+         - Métrica de cobertura (hit rate, miss rate)?
+
+[3] Modelagem de Dados (se necessário)
+
+    3.1. Schema de suporte de cache (se persistir em DB):
+         - Tabela `ohlcv_cache` com TTL e source
+         - Tabela de auditoria de hits/misses (para M2-022.2?)
+         - Relação com `technical_signals` e episódios
+
+    3.2. Dados mínimos de configuração:
+         - TTL global e por símbolo
+         - Batch size (quantos candles por request)?
+         - Max cache size (limpar por LRU se overflow)?
+
+[4] Plano de Entrega Estruturado
+
+    4.1. Subtarefas técnicas com dependências:
+         - Escrever interface de cache (contrato)
+         - Implementar backend in-memory
+         - Integrar em scanner (substituir coleta antiga)
+         - Adicionar métricas de performance
+         - Testes RED/GREEN/REFACTOR
+
+    4.2. Riscos e mitigações:
+         - Risk: Cache stale prejudicando decisão
+           Mit: Validar TTL e fallback imediato se stale
+         - Risk: Contenção de I/O em warm-up
+           Mit: Warm-up assíncrono em startup
+         - Risk: Memory bleed com cache ilimitado
+           Mit: LRU com hard limit e monitoração
+
+    4.3. Critério de "Pronto para QA-TDD":
+         - Interface de cache definida e documentada
+         - Schema (se houver) migração preparada
+         - Contrato com integração sabido (scanner não quebra)
+         - Riscos mapeados e mitigações rascunhadas
+
+---
+
+ENTREGA ESPERADA
+
+Ao finalizar, o Arquiteto de Soluções deverá emitir:
+
+1. Documento de Requisitos Técnicos (BLID-084):
+   - Arquitetura de cache (tipo, TTL, sem persistência ou com módulo DB nova?)
+   - Interface e contratos de função
+   - Integração em `scanner.py` e `live_execution.py`
+   - Riscos e mitigações
+
+2. Plano de Modelagem de Dados (se necessário novo schema):
+   - Schemas propostos (tabelas, índices, constraints)
+   - Migração SQL preparada
+
+3. Plano de Entrega em Etapas:
+   - Tarefas sequenciais com dependências
+   - Critério de aceite por subtarefa
+   - Riscos de bloqueio identificados
+
+4. Prompt Acionável para QA-TDD:
+   - Suite RED estruturada (testes que falham inicialmente)
+   - Casos de teste mapeados
+   - Guardrails e invariantes (risk_gate, decision_id, fail-safe)
+
+---
+
+CONTEXTO ADICIONAL
+
+Arquitetura Atual (M2):
+  Camada 1 — Scanner: scan.py → opportunities (estado IDENTIFICADA)
+  Camada 2 — Rastreador/Validador: track.py, validate.py, resolve.py
+  Camada 3 — Ponte de Sinal: signal_bridge.py → technical_signals
+  Camada 4 — Admissão: order_layer.py
+  Camada 5 — Execução Live: live_execution.py, live_service.py
+
+Cache BLID-084 fit em Camada 1?
+  → Sim, antes de scanner fazer inferência de candles
+  → Reduz latência e contenção de API
+
+Fontes de Verdade:
+  - docs/ARQUITETURA_ALVO.md (atualizar se arquitetura muda)
+  - docs/REGRAS_DE_NEGOCIO.md (se regras mudam)
+  - docs/SYNCHRONIZATION.md (registrar com [SYNC])
+
+Próximas Tarefas (após BLID-084):
+  → BLID-085: Retry com backoff (depende de BLID-084 estável)
+  → BLID-086: Métricas de latência
+  → M2-022.2: Auditoria de treino incremental
+
+---
+
+GUARDRAILS INVIOLÁVEIS
+
+❌ NÃO fazer:
+  - Desabilitar risk_gate ou circuit_breaker
+  - Quebrar idempotência por decision_id
+  - Alterar schema M2 sem migração preparada
+  - Criar ponto único de falha silenciosa
+
+✅ FAZER:
+  - Falhar-se com segurança (fail-safe)
+  - Deixar auditoria completa (traces por decision_id)
+  - Validar cobertura de teste >= 80%
+  - Manter mypy --strict verde
+
+---
+
+PRÓXIMOS PASSOS (após SA)
+
+1. Solution Architect refina BLID-084 em requisitos técnicos
+2. QA-TDD escreve suite RED de testes
+3. Software Engineer implementa com TDD Green-Refactor
+4. Tech Lead faz code review
+5. Doc Advocate sincroniza documentação
+6. Project Manager valida aceite e publica
+
+Estimativa: 5 dias para BLID-084 (cache); subsequentes em paralelo com
+gate.
+
+═══════════════════════════════════════════════════════════════════════════════
+PRONTO PARA REFINO ARQUITETURAL
+═══════════════════════════════════════════════════════════════════════════════
