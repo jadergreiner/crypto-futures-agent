@@ -8,7 +8,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from time import perf_counter
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -18,12 +18,15 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.model2.bridge import run_bridge
 from scripts.model2.export_dashboard import run_export_dashboard
 from scripts.model2.export_signals import run_export_signals
+from scripts.model2.entry_rl_filter import run_entry_rl_filter
 from scripts.model2.migrate import run_up
 from scripts.model2.order_layer import run_order_layer
+from scripts.model2.persist_training_episodes import run_persist_training_episodes
 from scripts.model2.resolve import run_resolution
 from scripts.model2.scan import run_scan
 from scripts.model2.sync_ohlcv_from_binance import sync_ohlcv_from_binance
 from scripts.model2.track import run_tracking
+from scripts.model2.train_entry_agents import run_train_entry_agents
 from scripts.model2.validate import run_validation
 from scripts.model2.rl_signal_generation_wrapper import run_rl_signal_generation
 from scripts.model2.ensemble_signal_generation_wrapper import run_ensemble_signal_generation
@@ -38,7 +41,11 @@ except Exception:
     MODEL2_DB_PATH = "db/modelo2.db"
     M2_SHORT_ONLY = False
     M2_SYMBOLS = ("BTCUSDT",)
-    def _normalize_symbol_scope(raw_value: str | None, *, fallback_symbols) -> tuple[str, ...]:
+    def _normalize_symbol_scope(
+        raw_value: str | None,
+        *,
+        fallback_symbols: Iterable[str],
+    ) -> tuple[str, ...]:
         """Normaliza lista de simbolos e expande placeholders."""
         fallback_list = [str(s).strip().upper() for s in fallback_symbols if str(s).strip()]
         if raw_value is None:
@@ -207,6 +214,40 @@ def run_daily_pipeline(
         (
             "bridge",
             run_bridge,
+            {
+                "model2_db_path": resolved_model2_db,
+                "symbol": optional_symbol_filter,
+                "timeframe": timeframe,
+                "limit": int(limit),
+                "dry_run": bool(dry_run),
+                "output_dir": resolved_output_dir,
+            },
+        ),
+        (
+            "persist_training_episodes",
+            run_persist_training_episodes,
+            {
+                "source_db_path": resolved_source_db,
+                "model2_db_path": resolved_model2_db,
+                "symbols": symbols_to_use,
+                "timeframe": timeframe,
+                "output_dir": resolved_output_dir,
+            },
+        ),
+        (
+            "train_entry_agents",
+            run_train_entry_agents,
+            {
+                "symbols": symbols_to_use,
+                "db_path": resolved_model2_db,
+                "timeframe": timeframe,
+                "dry_run": bool(dry_run),
+                "continue_on_error": True,
+            },
+        ),
+        (
+            "entry_rl_filter",
+            run_entry_rl_filter,
             {
                 "model2_db_path": resolved_model2_db,
                 "symbol": optional_symbol_filter,

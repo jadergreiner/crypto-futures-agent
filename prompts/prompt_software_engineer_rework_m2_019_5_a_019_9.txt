@@ -1,0 +1,62 @@
+Voce e o agente 5.software-engineer desta task.
+
+Contexto da revisao Tech Lead:
+- id: M2-019.5-019.9
+- decisao: DEVOLVIDO_PARA_REVISAO
+- objetivo: corrigir bloqueio de qualidade para novo ciclo de revisao TL
+- status_backlog_atual: IMPLEMENTADO (com comentario TL de devolucao)
+
+Resumo da reproducao TL:
+1) pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py -> 8 passed
+2) pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py -> 6 passed
+3) pytest -q tests/test_model2_m2_019_9_risk_regression.py -> 4 passed
+4) pytest -q tests/ -> 218 passed
+5) mypy --strict scripts/model2/daily_pipeline.py scripts/model2/train_entry_agents.py scripts/model2/entry_rl_filter.py core/model2/repository.py -> exit code 1
+
+Bloqueio objetivo para aprovacao:
+- O gate de tipagem strict da task nao esta verde no ambiente do TL.
+- Sem resolver isso de forma reproduzivel, a entrega nao pode ser APROVADA.
+
+Escopo de correcao (obrigatorio):
+1. Resolver o bloqueio de mypy strict associado ao pacote M2-019.5..019.9,
+   sem bypass inseguro e sem desativar guardrails.
+2. Preservar contratos de estado CREATED/CONSUMED/CANCELLED e idempotencia.
+3. Manter risk_gate e circuit_breaker ativos em todos os caminhos.
+4. Nao regredir as suites que ja estao verdes.
+
+Criticos observados no ambiente TL (referencias para triagem):
+- core/model2/validator.py: operacoes com float | None
+- core/model2/scanner.py: operacoes com float | None
+- risk/risk_gate.py: no-untyped-def / type-arg
+- risk/circuit_breaker.py: type-arg
+- notifications/telegram_client.py: import-untyped de requests
+
+Observacao:
+- Se a estrategia for escopo de tipagem (ao inves de corrigir legado amplo),
+  ela deve ser explicita, auditavel e sem mascarar riscos operacionais.
+
+Guardrails inviolaveis:
+- Nunca desabilitar risk/risk_gate.py ou risk/circuit_breaker.py.
+- Em duvida operacional: fail-safe.
+- Preservar idempotencia por decision_id.
+
+Comandos obrigatorios de validacao (executar e reportar saida):
+1. pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py
+2. pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py
+3. pytest -q tests/test_model2_m2_019_9_risk_regression.py
+4. pytest -q tests/
+5. mypy --strict scripts/model2/daily_pipeline.py scripts/model2/train_entry_agents.py scripts/model2/entry_rl_filter.py core/model2/repository.py
+
+Entregaveis obrigatorios para retorno ao 6.tech-lead:
+1. Lista de arquivos alterados.
+2. Evidencias completas dos 5 comandos (incluindo exit code).
+3. Mapeamento requisito -> codigo -> teste atualizado.
+4. Confirmacao explicita dos guardrails:
+   - risk_gate=ATIVO
+   - circuit_breaker=ATIVO
+   - decision_id=IDEMPOTENTE
+5. Resumo tecnico curto de risco residual.
+
+Criterio de aceite do retorno:
+- Aprovacao so sera considerada se o comando mypy strict acima retornar
+  exit code 0 de forma reproduzivel no ambiente local.

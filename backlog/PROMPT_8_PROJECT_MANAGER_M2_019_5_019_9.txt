@@ -1,0 +1,21 @@
+Voce e o agente 8.project-manager desta task.
+
+Handoff:
+- id: M2-019.5-019.9
+- status_backlog: REVISADO_APROVADO
+- recomendacao: ACEITE_RECOMENDADO
+- resumo_executivo: Pacote M2-019.5..019.9 aprovado pelo Tech Lead com reproducao local de testes alvo, suite completa e mypy strict do pacote. Governanca final de docs concluida com comentario DOC no backlog e trilha [SYNC-085]. Guardrails de risco ativos e idempotencia por decision_id preservada. Sem pendencias.
+- docs_atualizadas: docs/BACKLOG.md; docs/SYNCHRONIZATION.md; docs/ARQUITETURA_ALVO.md (revisada); docs/REGRAS_DE_NEGOCIO.md (revisada); README.md (revisado)
+- sync: sim (SYNC-085)
+- validacoes:
+  - markdownlint docs/*.md: exit 0
+  - pytest -q tests/test_docs_model2_sync.py: 12 passed (exit 0)
+  - pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py: 8 passed (exit 0)
+  - pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py: 6 passed (exit 0)
+  - pytest -q tests/test_model2_m2_019_9_risk_regression.py: 4 passed (exit 0)
+  - pytest -q tests/: 218 passed (exit 0); mypy --strict (4 arquivos): Success (exit 0)
+- pendencias: Nenhuma
+
+Gate_payload:
+- tamanho_chars: 1401
+- limite_chars: 1800

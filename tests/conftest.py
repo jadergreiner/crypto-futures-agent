@@ -45,6 +45,9 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_m2_018_2_testnet_integration.py",
     "test_model2_m2_019_3_sub_agent_manager.py",
     "test_model2_m2_019_4_train_entry_agents.py",
+    "test_model2_m2_019_5_entry_rl_filter.py",
+    "test_model2_m2_019_6_019_7_pipeline_integration.py",
+    "test_model2_m2_019_9_risk_regression.py",
     "test_sub_agent_manager.py",
 )
 

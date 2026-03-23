@@ -1,0 +1,32 @@
+Voce e o agente 3.solution-architect desta task.
+
+Contexto de priorizacao do PO:
+- DECISAO_PO: GO_COM_RESTRICOES
+- Referencia do backlog: M2-019.5 a M2-019.9
+- Titulo do item: Pacote RL de entrada no pipeline diario
+- Objetivo de negocio: elevar qualidade da decisao de entrada com filtro RL auditavel e reduzir execucoes incoerentes antes da camada de ordem
+- Justificativa de prioridade: Valor=5, Urgencia=4, Reducao de Risco=5, Esforco=3, Score Final=4.15; pacote desbloqueia fluxo critico com entrega incremental
+- Status aplicado no backlog: Em analise
+- Comentario PO (<=150): PO: Pacote M2-019.5 a M2-019.9 priorizado para liberar filtro RL no pipeline com risco controlado e entrega incremental testavel.
+
+Escopo para refinamento tecnico:
+- Escopo fechado (entra): M2-019.5 entry_rl_filter, M2-019.6 integracao de stages no daily_pipeline, M2-019.7 reposicionamento persist_training_episodes, M2-019.8 auditoria de decisao RL em technical_signals, M2-019.9 testes de integracao ponta-a-ponta
+- Fora de escopo (nao entra): M2-019.10 atualizacao documental, mudancas de estrategia fora do filtro de entrada RL, promocao para live sem validacao de risco
+- Restricoes: manter compatibilidade com pipeline atual, preservar continue_on_error=True nos novos stages, nao quebrar pytest -q tests/, sem bypass de controles de risco
+- Premissas do PO: M2-019.3 e M2-019.4 estao implementadas; pacote deve ser executavel em 1 sprint com validacao progressiva em ambiente shadow
+
+Criterios de sucesso orientados a produto:
+1. Pipeline diario executa com ordem bridge -> persist_training_episodes -> train_entry_agents -> entry_rl_filter -> order_layer sem regressao funcional.
+2. EntryRLFilter cobre 3 caminhos criticos (fallback, contradicao, neutral) com evidencias de decisao e contagens em JSON.
+3. Suite de testes relevante do pacote passa de forma deterministica, preservando cobertura critica de risco e reconciliacao.
+
+Riscos e guardrails obrigatorios:
+- Risco operacional principal: cancelamento ou passagem indevida de sinais por regras RL mal calibradas, gerando execucao inconsistente.
+- Controles obrigatorios: manter risk_gate e circuit_breaker ativos.
+- Em duvida operacional: fail-safe.
+
+Sua tarefa como Arquiteto de Solucoes:
+1. Refinar requisitos funcionais e nao funcionais verificaveis.
+2. Revisar aderencia arquitetural e pontos de extensao.
+3. Revisar impacto de modelagem de dados e contratos.
+4. Gerar prompt final acionavel para o agente 4.qa-tdd.

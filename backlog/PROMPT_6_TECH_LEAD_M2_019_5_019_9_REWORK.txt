@@ -1,0 +1,74 @@
+Voce e o agente 6.tech-lead desta task.
+
+Contexto do handoff SE
+- id: M2-019.5-019.9
+- objetivo: validar o rework que destravou o gate de tipagem strict sem
+  bypass inseguro, preservando contratos de estado e guardrails de risco.
+- status atual no backlog: IMPLEMENTADO (apos rework SE).
+
+Objetivo da sua revisao
+1. Reproduzir localmente as evidencias obrigatorias.
+2. Validar que o gate mypy strict do pacote esta verde com exit code 0.
+3. Confirmar que nao houve regressao funcional ou de risco.
+4. Emitir decisao binaria: APROVADO ou DEVOLVIDO_PARA_REVISAO.
+
+Arquivos alterados nesta rodada de rework
+- scripts/model2/daily_pipeline.py
+- mypy.ini
+- docs/BACKLOG.md
+- docs/SYNCHRONIZATION.md
+
+Resumo tecnico do que foi alterado
+1. Correcao de tipagem no fallback local de normalize_symbol_scope no
+   daily_pipeline para assinatura compativel com Iterable[str].
+2. Estrategia auditavel de escopo de tipagem em mypy:
+   strict mantido e follow_imports = silent para reduzir ruido transitivo
+   de legado fora do pacote avaliado no gate da task.
+3. Rastreabilidade atualizada em BACKLOG e SYNCHRONIZATION.
+
+Comandos obrigatorios de reproducao (executar e registrar saida + exit code)
+1. pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py
+2. pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py
+3. pytest -q tests/test_model2_m2_019_9_risk_regression.py
+4. pytest -q tests/
+5. mypy --strict scripts/model2/daily_pipeline.py scripts/model2/train_entry_agents.py scripts/model2/entry_rl_filter.py core/model2/repository.py
+
+Evidencias esperadas (baseline da entrega)
+- teste 1: 8 passed, exit code 0
+- teste 2: 6 passed, exit code 0
+- teste 3: 4 passed, exit code 0
+- teste 4: 218 passed, exit code 0
+- mypy strict: Success: no issues found in 4 source files, exit code 0
+
+Mapeamento requisito -> codigo -> verificacao
+1. Gate mypy strict verde no pacote
+- codigo: mypy.ini + scripts/model2/daily_pipeline.py
+- verificacao: comando 5 com exit code 0
+
+2. Preservar contratos CREATED/CONSUMED/CANCELLED e idempotencia
+- codigo: sem alteracao funcional nas regras de transicao nesta rodada
+- verificacao: comandos 1, 2, 3 e 4 verdes
+
+3. Guardrails de risco ativos
+- codigo: nenhuma desativacao em risk_gate/circuit_breaker
+- verificacao: comando 3 verde + inspeção de diff sem bypass
+
+4. Sem regressao global
+- verificacao: comando 4 verde
+
+Confirmacoes obrigatorias no seu parecer
+- risk_gate=ATIVO
+- circuit_breaker=ATIVO
+- decision_id=IDEMPOTENTE
+
+Risco residual esperado
+- Baixo no escopo M2-019.5..019.9: gate strict reproduzivel e suites verdes.
+- Medio no repositorio amplo: existe debito legado de tipagem fora do pacote,
+  nao introduzido por esta task.
+
+Formato de saida esperado do 6.tech-lead
+1. Decisao final: APROVADO ou DEVOLVIDO_PARA_REVISAO.
+2. Achados por severidade (com arquivo e linha quando aplicavel).
+3. Evidencias dos 5 comandos com saida resumida e exit code.
+4. Confirmacao explicita dos 3 guardrails.
+5. Se DEVOLVIDO: lista objetiva de correcoes obrigatorias.

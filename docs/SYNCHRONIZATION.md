@@ -23,6 +23,212 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-085] Governanca Doc Advocate do pacote M2-019.5..019.9
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Comentario `DOC:` registrado no pacote |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-085 adicionado |
+
+#### Evidencias consolidadas do APROVADO
+
+- `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
+   (`EXIT_CODE=0`)
+- `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+   -> 6 passed (`EXIT_CODE=0`)
+- `pytest -q tests/test_model2_m2_019_9_risk_regression.py` -> 4 passed
+   (`EXIT_CODE=0`)
+- `pytest -q tests/` -> 218 passed (`EXIT_CODE=0`)
+- `mypy --strict scripts/model2/daily_pipeline.py`
+   `scripts/model2/train_entry_agents.py`
+   `scripts/model2/entry_rl_filter.py core/model2/repository.py`
+   -> Success (`EXIT_CODE=0`)
+
+#### Impacto
+
+- Governanca documental final concluida para pacote aprovado pelo TL.
+- Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
+
+### [SYNC-084] Correcao SE do gate mypy M2-019.5..019.9
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Tipagem | scripts/model2/daily_pipeline.py | Assinatura fallback alinhada com config.settings |
+| Qualidade | mypy.ini | Escopo strict com follow_imports=silent auditavel |
+| Backlog | docs/BACKLOG.md | M2-019.5 retornou para IMPLEMENTADO com evidencias |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-084 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
+   (`EXIT_CODE=0`)
+- `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+   -> 6 passed (`EXIT_CODE=0`)
+- `pytest -q tests/test_model2_m2_019_9_risk_regression.py` -> 4 passed
+   (`EXIT_CODE=0`)
+- `pytest -q tests/` -> 218 passed (`EXIT_CODE=0`)
+- `mypy --strict scripts/model2/daily_pipeline.py`
+   `scripts/model2/train_entry_agents.py`
+   `scripts/model2/entry_rl_filter.py core/model2/repository.py`
+   -> Success (`EXIT_CODE=0`)
+
+#### Impacto
+
+- Bloqueio de aprovacao por tipagem strict foi removido de forma reproduzivel.
+- Contratos CREATED/CONSUMED/CANCELLED e guardrails de risco permanecem.
+
+### [SYNC-083] Reabertura SE para destravar mypy M2-019.5..019.9
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | Status M2-019.5 para EM_DESENVOLVIMENTO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-083 adicionado |
+
+#### Impacto
+
+- Pacote volta para fase SE focada em gate de tipagem strict.
+- Sem alteracao de regra de negocio ou guardrails operacionais.
+
+### [SYNC-082] Tech Lead devolve M2-019.5 a M2-019.9
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Revisao TL | docs/BACKLOG.md | Registro `TL:` de devolucao por gate de qualidade |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-082 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
+- `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+   -> 6 passed
+- `pytest -q tests/test_model2_m2_019_9_risk_regression.py` -> 4 passed
+- `pytest -q tests/` -> 218 passed
+- `mypy --strict scripts/model2/daily_pipeline.py`
+   `scripts/model2/train_entry_agents.py`
+   `scripts/model2/entry_rl_filter.py core/model2/repository.py` -> exit 1
+
+#### Impacto
+
+- Pacote manteve regressao funcional zero em testes.
+- Aprovacao TL bloqueada por falha no gate de tipagem strict reportado.
+
+### [SYNC-081] GREEN M2-019.5 a M2-019.9 (filtro RL + pipeline)
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Filtro RL | scripts/model2/entry_rl_filter.py | Novo stage com auditoria RL |
+| Orquestracao | scripts/model2/daily_pipeline.py | Ordem bridge->persist->train->filter->order |
+| Tipagem | core/model2/repository.py | Ajustes strict sem mudar regra de negocio |
+| Empacotamento | `scripts/__init__.py` | Pacote explicito para tooling |
+| Empacotamento | `scripts/model2/__init__.py` | Pacote explicito para tooling |
+| Backlog | docs/BACKLOG.md | M2-019.5 a M2-019.9 em IMPLEMENTADO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-081 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
+- `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+   -> 6 passed
+- `pytest -q tests/test_model2_m2_019_9_risk_regression.py` -> 4 passed
+- `pytest -q tests/` -> 218 passed
+
+#### Impacto
+
+- Filtro RL auditavel passou a atuar antes da camada de ordem.
+- Contratos CREATED/CONSUMED/CANCELLED foram preservados.
+- Guardrails de risco permanecem ativos sem bypass.
+
+### [SYNC-080] QA-TDD RED do pacote M2-019.5 a M2-019.9
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Codigo e Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Suite RED | tests/test_model2_m2_019_5_entry_rl_filter.py | 9 casos unitarios do filtro RL |
+| Suite RED | tests/test_model2_m2_019_6_019_7_pipeline_integration.py | 6 casos de integracao do pipeline |
+| Suite RED | tests/test_model2_m2_019_9_risk_regression.py | 4 casos de regressao de risco |
+| Allowlist | tests/conftest.py | Inclusao das suites M2-019.5 a M2-019.9 |
+| Backlog | docs/BACKLOG.md | Itens M2-019.5 a M2-019.9 em TESTES_PRONTOS |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-080 adicionado |
+
+#### Evidencias
+
+- `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py`
+   `tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+   `tests/test_model2_m2_019_9_risk_regression.py`
+- Resultado esperado desta fase: RED ate implementacao GREEN pelo
+   agente 5.software-engineer.
+
+#### Impacto
+
+- Contrato de integracao do stage `entry_rl_filter` ficou executavel.
+- Ordem obrigatoria `bridge -> persist -> train -> entry_rl_filter ->`
+   `order_layer` ficou coberta por teste deterministico.
+- Guardrails de risco e idempotencia de consumo ganharam cobertura de
+   regressao no pacote M2-019.9.
+
+### [SYNC-079] Detalhamento do BLID-083 para testes por etapa
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-083 detalhado com criterios de aceite |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-079 adicionado |
+
+#### Impacto
+
+- Demanda agora define execucao de testes por etapa sem rodar tudo sempre.
+- Backlog fica pronto para priorizacao do PO com escopo verificavel.
+
+### [SYNC-078] Backlog atualizado com revisao da suite de testes
+
+**Data/Hora**: 2026-03-22 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Backlog | docs/BACKLOG.md | BLID-083 criado na fila aberta do PO |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-078 adicionado |
+
+#### Impacto
+
+- Backlog passa a rastrear a duvida de custo-beneficio da suite de testes.
+- Item fica pronto para priorizacao do PO sem alterar decisoes tecnicas agora.
+
 ### [SYNC-077] Aceite Project Manager do BLID-081
 
 **Data/Hora**: 2026-03-22 UTC

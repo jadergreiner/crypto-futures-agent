@@ -1,0 +1,99 @@
+Voce e o agente 5.software-engineer desta task.
+
+Contexto da task
+- id: M2-019.5-019.9
+- objetivo: integrar filtro RL auditavel antes da camada de ordem, sem
+  regressao do pipeline diario e com validacao deterministica in-memory.
+- escopo_in: M2-019.5, M2-019.6, M2-019.7, M2-019.8, M2-019.9
+- escopo_out: M2-019.10, mudancas de estrategia fora do filtro RL de entrada,
+  promocao live sem validacao de risco.
+
+Estado atual validado por QA-TDD
+- Suite RED criada e integrada na coleta oficial model-driven.
+- Backlog atualizado para TESTES_PRONTOS em M2-019.5 a M2-019.9.
+- Evidencia RED:
+  - ModuleNotFoundError para scripts.model2.entry_rl_filter
+  - daily_pipeline ainda sem os stages persist_training_episodes,
+	 train_entry_agents e entry_rl_filter na ordem obrigatoria
+  - execucao: 13 failed, 5 passed em 24.58s
+
+Arquivos de teste criados nesta fase RED
+- tests/test_model2_m2_019_5_entry_rl_filter.py
+- tests/test_model2_m2_019_6_019_7_pipeline_integration.py
+- tests/test_model2_m2_019_9_risk_regression.py
+
+Requisitos de implementacao (obrigatorios)
+1. Criar scripts/model2/entry_rl_filter.py com funcao publica
+	run_entry_rl_filter(...).
+2. Consumir technical_signals com status CREATED.
+3. Aplicar decisao RL por simbolo com SubAgentManager.predict_entry.
+4. Regras de decisao:
+	- fallback conservador: modelo ausente ou confianca < threshold
+	  => nao cancelar; manter CREATED.
+	- neutral fail-safe: acao NEUTRAL com confianca >= threshold
+	  => CANCELLED com reason rl_entry_neutral.
+	- contradicao fail-safe: acao contraditoria com confianca >= threshold
+	  => CANCELLED com reason rl_entry_contradiction.
+	- match com confianca >= threshold => enriquecer payload e manter CREATED.
+5. Persistir auditoria RL em payload_json de technical_signals sem quebrar
+	schema nem leitura legada, com campos:
+	- decision
+	- confidence
+	- threshold
+	- reason
+	- agent_version
+	- decision_timestamp
+6. Emitir JSON de saida do stage com contagens:
+	- fallback
+	- pass_through
+	- cancelled_neutral
+	- cancelled_contradiction
+	- enriched_match
+	- erro
+7. Reordenar scripts/model2/daily_pipeline.py para:
+	bridge -> persist_training_episodes -> train_entry_agents ->
+	entry_rl_filter -> order_layer
+8. Preservar continue_on_error=True nos novos stages.
+9. Nao quebrar contratos atuais de status CREATED, CONSUMED, CANCELLED.
+
+Guardrails e invariantes inviolaveis
+- risk_gate ATIVO
+- circuit_breaker ATIVO
+- idempotencia por decision_id preservada
+- fail-safe: em ambiguidade operacional, bloquear ou cancelar
+
+Plano Green-Refactor
+1. GREEN minimo
+	- implementar entry_rl_filter e integrar ao pipeline.
+	- fazer update de payload_json com auditoria RL antes da camada de ordem.
+2. GREEN de integracao
+	- ajustar ordem dos stages no run_daily_pipeline.
+	- manter fluxo existente sem regressao de stages atuais.
+3. REFACTOR
+	- isolar mapeamento acao RL -> decisao de status.
+	- centralizar enriquecimento de payload RL.
+	- manter testes deterministas sem dependencia de clock externo.
+
+Checklist de aceite
+- [ ] scripts/model2/entry_rl_filter.py criado e integrado.
+- [ ] Ordem do pipeline obrigatoria implementada.
+- [ ] Auditoria RL persistida em payload_json sem quebra de schema.
+- [ ] Regras fallback, neutral e contradicao implementadas exatamente.
+- [ ] Guardrails de risco preservados.
+- [ ] Suite nova fica verde.
+- [ ] pytest -q tests/ permanece verde.
+
+Comandos de validacao obrigatorios
+1. pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py
+2. pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py
+3. pytest -q tests/test_model2_m2_019_9_risk_regression.py
+4. pytest -q tests/
+5. mypy --strict scripts/model2/daily_pipeline.py
+	scripts/model2/train_entry_agents.py
+	scripts/model2/entry_rl_filter.py
+	core/model2/repository.py
+
+Entregaveis esperados na sua resposta
+1. Lista de arquivos alterados.
+2. Resumo de risco de regressao apos a implementacao.
+3. Evidencia objetiva dos testes executados e resultados.

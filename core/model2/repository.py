@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 from .order_layer import (
     OrderLayerInput,
@@ -202,7 +202,8 @@ class Model2ThesisRepository:
             return payload
         for key, value in updates.items():
             if isinstance(value, Mapping) and isinstance(payload.get(key), Mapping):
-                merged = dict(payload[key])  # type: ignore[index]
+                current_value = payload.get(key)
+                merged = dict(cast(Mapping[str, Any], current_value))
                 merged.update(dict(value))
                 payload[key] = merged
             else:
@@ -296,6 +297,8 @@ class Model2ThesisRepository:
                 metadata_json,
             ),
         )
+        if cursor.lastrowid is None:
+            raise RuntimeError("Falha ao inserir opportunity: lastrowid ausente.")
         return int(cursor.lastrowid)
 
     def _insert_initial_event(
@@ -1065,6 +1068,8 @@ class Model2ThesisRepository:
                         now_ms,
                     ),
                 )
+                if cursor.lastrowid is None:
+                    raise RuntimeError("Falha ao inserir technical_signal: lastrowid ausente.")
                 signal_id = int(cursor.lastrowid)
                 conn.execute("COMMIT")
                 return CreateStandardSignalResult(
@@ -1338,7 +1343,10 @@ class Model2ThesisRepository:
                 if isinstance(last_error, dict):
                     previous_attempts = last_error.get("attempts")
                     try:
-                        attempts = max(1, int(previous_attempts) + 1)
+                        if previous_attempts is None:
+                            attempts = 1
+                        else:
+                            attempts = max(1, int(previous_attempts) + 1)
                     except (TypeError, ValueError):
                         attempts = 1
 

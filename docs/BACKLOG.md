@@ -66,6 +66,10 @@ Pendencias operacionais:
 - BLID-082 - Corrigir ausencia de mensagem de Candle Atualizado no live.
    Dependencia minima: evidencia reproduzivel no log `[M2][SYM]` em modo live.
    Impacto: restaurar observabilidade do dado fresco por simbolo no ciclo M2.
+- BLID-083 - Estratificar suite de testes por etapa do workflow.
+   Dependencia minima: baseline atual de `pytest -q tests/` com 200 testes
+   em 66.99s, mapa de suites por criticidade e risco.
+   Impacto: evitar execucao total em toda etapa sem perder cobertura critica.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -141,6 +145,38 @@ Evidencias:
    `tests/conftest.py`, mais `tests/test_cycle_report.py` e
    `tests/test_docs_model2_sync.py`.
 3. Escopo oficial da suite: `tests/`.
+
+### TAREFA BLID-083 - Estratificar suite de testes por etapa do workflow
+
+Status: BACKLOG
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Definir politica de execucao de testes por etapa do fluxo de agentes
+(`backlog-development`, `product-owner`, `solution-architect`, `qa-tdd`,
+`software-engineer`, `tech-lead`, `doc-advocate`, `project-manager`) para
+evitar rodar a suite completa sempre que nao houver necessidade tecnica.
+
+Criterios de Aceite:
+
+- [ ] Definir matriz minima de testes por etapa com comando objetivo.
+- [ ] Manter gate obrigatorio com contratos M2 e sincronizacao documental.
+- [ ] Separar suites em rapido, completo e regressao para uso operacional.
+- [ ] Garantir que o caminho default local rode menos que o baseline atual
+   (66.99s) sem remover cobertura critica de risco e reconciliacao.
+
+Dependencias:
+
+- Baseline atual validado: `pytest -q tests/` com 200 testes em 66.99s.
+- Contratos M2 oficiais preservados em `tests/conftest.py`.
+- Guardrails ativos: `risk/risk_gate.py` e `risk/circuit_breaker.py`.
+
+Impacto:
+
+- Reduz custo de desenvolvimento em etapas de baixa necessidade de regressao.
+- Mantem seguranca operacional com foco em cobertura critica por contexto.
 
 ## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
 
@@ -2334,7 +2370,7 @@ carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
 
 ### TAREFA M2-019.5 - EntryRLFilter: stage de filtragem por RL no pipeline
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 Entrega:
 
@@ -2354,11 +2390,49 @@ Entrega:
 
 Dependencias: M2-019.3, M2-019.4
 
+PO: Pacote M2-019.5 a M2-019.9 priorizado para liberar filtro RL no pipeline
+com risco controlado e entrega incremental testavel.
+
+SA: Ordem fixa bridge->persist->train->entry_rl_filter->order; decisao RL
+auditavel em technical_signals e suite E2E deterministica.
+
+QA: Suite RED criada com cobertura de fallback, neutral,
+contradicao, enriquecimento de payload auditavel, contagens JSON,
+pipeline em ordem obrigatoria e regressao de risco deterministica.
+
+SE: Inicio em 2026-03-22 e implementacao GREEN concluida para o pacote.
+Evidencias: `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py`
+`tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+`tests/test_model2_m2_019_9_risk_regression.py` e `pytest -q tests/`.
+
+TL: DEVOLVIDO_PARA_REVISAO em 2026-03-22; mypy --strict do pacote
+falhou (exit 1) e bloqueia aprovacao do gate de qualidade.
+
+SE: Reabertura em 2026-03-22 para destravar gate mypy --strict do pacote
+M2-019.5..019.9, mantendo guardrails de risco e contratos de estado.
+
+SE: Correcao concluida em 2026-03-22 com gate de qualidade reproduzivel.
+Evidencias: `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py`
+`tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+`tests/test_model2_m2_019_9_risk_regression.py`, `pytest -q tests/` e
+`mypy --strict scripts/model2/daily_pipeline.py`
+`scripts/model2/train_entry_agents.py scripts/model2/entry_rl_filter.py`
+`core/model2/repository.py` (todos exit code 0).
+
+TL: APROVADO em 2026-03-22; pytest alvo+suite e mypy strict verdes;
+risk_gate/circuit_breaker ativos; decision_id idempotente.
+
+DOC: Governanca final concluida para M2-019.5..019.9; docs oficiais
+revisadas, trilha [SYNC-085] registrada e handoff pronto para PM.
+
+PM: ACEITE final aprovado para M2-019.5..019.9; backlog concluido,
+commit/push em main executados e arvore local limpa.
+
 ---
 
 ### TAREFA M2-019.6 - Integrar novos stages ao daily_pipeline
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 Entrega:
 
@@ -2375,7 +2449,7 @@ Dependencias: M2-019.4, M2-019.5
 
 ### TAREFA M2-019.7 - Mover persist_training_episodes no pipeline
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 Entrega:
 
@@ -2393,7 +2467,7 @@ Dependencias: M2-019.6
 
 ### TAREFA M2-019.8 - Migracao: auditoria de decisao RL em technical_signals
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 Entrega:
 
@@ -2409,7 +2483,7 @@ Dependencias: Paralelo a M2-019.5
 
 ### TAREFA M2-019.9 - Testes de integracao ponta-a-ponta
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 Entrega:
 
