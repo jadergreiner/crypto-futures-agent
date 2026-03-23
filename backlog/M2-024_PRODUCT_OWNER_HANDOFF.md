@@ -1,9 +1,9 @@
 # Handoff — Pacote M2-024: Hardening de Decisão e Execução Live
 
-**Do**: Product Owner (2.product-owner)  
-**Para**: Solution Architect (3.solution-architect)  
-**Data**: 2026-03-23 11:00 BRT  
-**Status**: EM_ANALISE  
+**Do**: Product Owner (2.product-owner)
+**Para**: Solution Architect (3.solution-architect)
+**Data**: 2026-03-23 11:00 BRT
+**Status**: EM_ANALISE
 **Prioridade**: 1 (Bloqueador de Ramp-up)
 
 ---
@@ -169,7 +169,7 @@ Quando receber este handoff, o Solution Architect deve fornecer:
 
 ---
 
-**Status**: EM_ANALISE  
-**Proprietário**: Product Owner (2.product-owner)  
-**Última Atualização**: 2026-03-23 11:00 BRT  
+**Status**: EM_ANALISE
+**Proprietário**: Product Owner (2.product-owner)
+**Última Atualização**: 2026-03-23 11:00 BRT
 **Commit**: b2fd33b ([SYNC] PO prioriza M2-024)
