@@ -23,6 +23,29 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-101] Project Manager fecha BLID-084 com ACEITE
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: CONCLUIDA
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Fechamento PM | docs/BACKLOG.md | BLID-084 atualizada para `CONCLUIDO` + comentario `PM:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-101 adicionado |
+
+#### Evidencias
+
+- `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md` -> OK.
+- `pytest -q tests/test_docs_model2_sync.py` -> 12 passed.
+- `pytest -q tests/` -> 249 passed.
+
+#### Impacto
+
+- Demanda BLID-084 encerrada ponta a ponta e pronta para continuidade
+   do pacote M2-022.
+
 ### [SYNC-100] Doc Advocate conclui governanca BLID-084
 
 **Data/Hora**: 2026-03-23 UTC

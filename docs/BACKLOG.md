@@ -261,7 +261,7 @@ Impacto:
 
 ### TAREFA BLID-079 - Corrigir confianca `N/A` na linha de decisao `[SYM]`
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -2007,6 +2007,9 @@ suite verde e tipagem strict sem regressao.
 
 DOC: Governanca final de docs concluida para BLID-084 com trilha
 [SYNC] atualizada e handoff executivo pronto ao Project Manager.
+
+PM: ACEITE final emitido; BLID-084 encerrada com publicacao em main
+e trilha documental completa.
 
 ### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
 
