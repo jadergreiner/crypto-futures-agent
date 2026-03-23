@@ -64,6 +64,21 @@ Toda decisao e toda mudanca de estado relevante devem registrar:
 3. status
 4. metadados operacionais
 
+### RN-015 - Contrato unico de erros de execucao (M2-023.1)
+
+Todo evento de bloqueio ou falha em execucao live deve carregar:
+
+1. `reason_code`: codigo canonico do catalogo (`REASON_CODE_CATALOG`)
+2. `severity`: nivel de impacto (INFO/MEDIUM/HIGH/CRITICAL)
+3. `recommended_action`: acao operacional recomendada
+4. `decision_id`: correlacao auditavel com a decisao original
+5. `execution_id`: correlacao com a execucao de sinal
+
+Implementacao de referencia: `core/model2/live_execution.py`
+(REASON_CODE_SEVERITY, REASON_CODE_ACTION, campos em LiveExecutionGateInput)
+e `core/model2/live_service.py`
+(emit_execution_error_contract_event, classify_unknown_execution_error).
+
 ### RN-009 - Aprendizado continuo
 
 Toda decisao deve gerar episodio de aprendizado, inclusive `HOLD`.

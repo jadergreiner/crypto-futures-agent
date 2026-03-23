@@ -34,6 +34,30 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "circuit_breaker_blocked": "ops.circuit_breaker_blocked",
     "signal_expired": "ops.signal_expired",
     "insufficient_balance": "ops.insufficient_balance",
+    "timeout": "ops.timeout",
+    "reconciliation_divergence": "ops.reconciliation_divergence",
+}
+
+REASON_CODE_SEVERITY: dict[str, str] = {
+    "ready_for_live_execution": "INFO",
+    "ops_ambiguous_state": "HIGH",
+    "risk_gate_blocked": "HIGH",
+    "circuit_breaker_blocked": "HIGH",
+    "signal_expired": "MEDIUM",
+    "insufficient_balance": "MEDIUM",
+    "timeout": "HIGH",
+    "reconciliation_divergence": "CRITICAL",
+}
+
+REASON_CODE_ACTION: dict[str, str] = {
+    "ready_for_live_execution": "seguir_fluxo",
+    "ops_ambiguous_state": "bloquear_operacao",
+    "risk_gate_blocked": "bloquear_operacao",
+    "circuit_breaker_blocked": "bloquear_operacao",
+    "signal_expired": "descartar_sinal",
+    "insufficient_balance": "ajustar_margem_ou_aguardar",
+    "timeout": "aplicar_retry_controlado",
+    "reconciliation_divergence": "interromper_e_reconciliar",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"
@@ -173,6 +197,8 @@ class LiveExecutionGateInput:
     circuit_breaker_state: str
     circuit_breaker_allows_trading: bool
     circuit_breaker_drawdown_pct: float | None
+    decision_id: int | None = None
+    execution_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -188,12 +214,21 @@ class LiveExecutionGateDecision:
 
 def _blocked(reason: str, **details: Any) -> LiveExecutionGateDecision:
     alias = REASON_CODE_CATALOG.get(reason)
+    detail_payload: dict[str, Any] = dict(details)
+    detail_payload.setdefault("reason_code", reason)
+    detail_payload.setdefault("severity", REASON_CODE_SEVERITY.get(reason, "HIGH"))
+    detail_payload.setdefault(
+        "recommended_action",
+        REASON_CODE_ACTION.get(reason, "bloquear_operacao"),
+    )
+    detail_payload.setdefault("decision_id", details.get("decision_id"))
+    detail_payload.setdefault("execution_id", details.get("execution_id"))
     return LiveExecutionGateDecision(
         allow_execution=False,
         target_status=SIGNAL_EXECUTION_STATUS_BLOCKED,
         reason=_ReasonCode(reason, alias),
         rule_id=M2_009_2_RULE_ID,
-        details=details,
+        details=detail_payload,
     )
 
 
@@ -232,6 +267,8 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             "risk_gate_blocked",
             risk_gate_status=gate_input.risk_gate_status,
             risk_gate_drawdown_pct=gate_input.risk_gate_drawdown_pct,
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
         )
 
     circuit_breaker_state = str(gate_input.circuit_breaker_state).strip().lower()
@@ -247,6 +284,8 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             "circuit_breaker_blocked",
             circuit_breaker_state=gate_input.circuit_breaker_state,
             circuit_breaker_drawdown_pct=gate_input.circuit_breaker_drawdown_pct,
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
         )
 
     if gate_input.signal_side not in {"LONG", "SHORT"}:

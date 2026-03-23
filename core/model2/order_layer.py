@@ -13,6 +13,17 @@ TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"
 TECHNICAL_SIGNAL_STATUS_CANCELLED = "CANCELLED"
 SUPPORTED_ENTRY_TYPES = frozenset({"MARKET", "LIMIT"})
 
+REASON_CODE_CATALOG: dict[str, str] = {
+    "decision_recorded_no_real_order": "ops.decision_recorded_no_real_order",
+    "status_not_created": "ops.status_not_created",
+    "symbol_not_authorized": "ops.symbol_not_authorized",
+    "unsupported_signal_side": "ops.unsupported_signal_side",
+    "short_only_enforced": "ops.short_only_enforced",
+    "unsupported_entry_type": "ops.unsupported_entry_type",
+    "invalid_price_geometry": "ops.invalid_price_geometry",
+    "insufficient_balance": "ops.insufficient_balance",
+}
+
 
 @dataclass(frozen=True)
 class OrderLayerInput:
@@ -31,6 +42,7 @@ class OrderLayerInput:
     signal_timestamp: int
     payload: Mapping[str, Any]
     decision_timestamp: int
+    decision_id: int | None = None
 
 
 @dataclass(frozen=True)

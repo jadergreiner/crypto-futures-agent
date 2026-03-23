@@ -2316,6 +2316,224 @@ Impacto:
 PO: Consolidar docs de arquitetura para operacao clara e auditavel do
 ciclo M2 hardened com cache, retry e escalabilidade.
 
+---
+
+## INICIATIVA M2-023 - Resiliencia de Execucao e Governanca Operacional
+
+**Objetivo Estrategico**: reduzir risco operacional no live M2 com foco em
+consistencia de execucao, observabilidade de falhas e resposta fail-safe.
+
+**Horizonte**: 2 a 3 sprints
+
+### TAREFA M2-023.1 - Contrato unico de erros de execucao
+
+Status: CONCLUIDO
+
+Sprint: M2-023
+Prioridade: P0
+
+Descricao:
+Padronizar contrato de erro para execucao live com reason_code, severidade,
+acao recomendada e correlacao por decision_id.
+
+Criterios de Aceite:
+
+- [ ] Contrato unico aplicado em `live_service`, `live_execution` e order
+   layer.
+- [ ] Eventos de erro persistem reason_code e contexto minimo auditavel.
+- [ ] Regressao cobre timeout, saldo insuficiente e falha de reconciliacao.
+
+Dependencias:
+
+- M2-021 concluida
+- BLID-085 em trilha de consolidacao
+
+PO: Priorizar M2-023.1 para padronizar falhas em execucao live e reduzir
+ambiguidade operacional com fail-safe auditavel.
+
+SA: Unificar contrato de erro em live_service/live_execution/order_layer,
+sem schema novo, com decision_id idempotente e fail-safe de reconciliacao.
+
+QA: Suite RED em `tests/test_model2_m2_023_1_error_contract.py` (10 casos:
+4 unitarios, 3 integracao, 3 regressao_risco). Validacao RED: `pytest -q
+tests/test_model2_m2_023_1_error_contract.py`.
+
+SE: Inicio da implementacao GREEN em 2026-03-23 para unificar contrato de
+erro em live_execution/live_service/order_layer sem alterar schema.
+
+SE: GREEN concluido com contrato padronizado de reason_code/severidade/acao,
+correlacao por decision_id/execution_id e fail-safe para erro desconhecido.
+
+Evidencias de implementacao:
+
+1. `pytest -q tests/test_model2_m2_023_1_error_contract.py` -> 10 passed.
+2. `mypy --strict core/model2/live_execution.py core/model2/live_service.py
+   core/model2/order_layer.py tests/test_model2_m2_023_1_error_contract.py`
+   -> Success.
+3. `pytest -q tests/test_model2_live_gate_short_only.py
+   tests/test_model2_live_execution.py tests/test_model2_order_layer.py`
+   -> 28 passed.
+4. `pytest -q tests/` -> 259 passed.
+
+TL: APROVADO. 10/10 testes GREEN, mypy strict ok, 259 regressao ok, guardrails
+ativos, decision_id idempotente, sem mock de risk_gate/circuit_breaker.
+
+PM: ACEITE final emitido. Task encerrada com commit/push em main e trilha
+documental sincronizada.
+
+### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P0
+
+Descricao:
+Bloquear nova admissao quando drift entre estado local e exchange superar
+limiar seguro em runtime.
+
+Criterios de Aceite:
+
+- [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
+- [ ] Reconciliação explicita motivo e acao de recuperacao.
+- [ ] Suite valida comportamento em shadow e live.
+
+### TAREFA M2-023.3 - Politica de degradacao por latencia
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Definir politica deterministica para degradacao controlada quando latencia
+P95/P99 romper SLO do ciclo.
+
+Criterios de Aceite:
+
+- [ ] Regras de degradacao por faixa de latencia documentadas e testadas.
+- [ ] Estado degradado impede ampliacao de risco no ciclo.
+- [ ] Saida do estado degradado exige janela minima estavel.
+
+### TAREFA M2-023.4 - Snapshot de estado para restart seguro
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Criar snapshot minimo de estado operacional para retomada segura apos restart
+sem duplicar execucao.
+
+Criterios de Aceite:
+
+- [ ] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
+- [ ] Restart reaplica estado sem duplicidade de ordem.
+- [ ] Testes cobrem desligamento abrupto e retomada limpa.
+
+### TAREFA M2-023.5 - Fila priorizada para eventos criticos
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Introduzir fila com prioridade para eventos criticos de risco e reconciliacao,
+evitando starvation por volume de eventos informativos.
+
+Criterios de Aceite:
+
+- [ ] Eventos CRITICAL e HIGH processados antes dos demais.
+- [ ] Ordem de processamento permanece deterministica por prioridade.
+- [ ] Metricas mostram tempo de tratamento por classe.
+
+### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P0
+
+Descricao:
+Registrar trilha completa dos bloqueios do risk gate com contexto minimo,
+decisao aplicada e resultado final.
+
+Criterios de Aceite:
+
+- [ ] Todo bloqueio gera evento com reason_code e parametros de risco.
+- [ ] Consulta por decision_id retorna trilha ponta a ponta.
+- [ ] Nao ha caminho de execucao sem passagem pelo risk gate.
+
+### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Executar validacao cruzada entre sinal tecnico, contexto de mercado e estado
+de posicao imediatamente antes da admissao da ordem.
+
+Criterios de Aceite:
+
+- [ ] Divergencia critica bloqueia admissao com motivo explicito.
+- [ ] Contrato de validacao e deterministico e idempotente.
+- [ ] Cobertura inclui caminhos de contradicao e fallback conservador.
+
+### TAREFA M2-023.8 - Politica de retries orientada a categoria
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Separar retries por categoria de erro para evitar repeticao inutil em falhas
+permanentes e reduzir ruido operacional.
+
+Criterios de Aceite:
+
+- [ ] Categorias transitoria/permanente orientam retries de forma explicita.
+- [ ] Falha permanente interrompe fluxo sem loop de retry.
+- [ ] Relatorio operacional exibe contagem por categoria.
+
+### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Adicionar indicadores de saude para reconciliacao com foco em drift, atraso
+de confirmacao e taxa de ajuste automatico.
+
+Criterios de Aceite:
+
+- [ ] Dashboard exibe drift medio, P95 de confirmacao e taxa de ajuste.
+- [ ] Alertas acionam quando limite seguro for ultrapassado.
+- [ ] Metricas sao consumidas sem aumentar latencia critica.
+
+### TAREFA M2-023.10 - Runbook de contingencia de execucao live
+
+Status: BACKLOG
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Consolidar runbook de contingencia para incidentes de execucao live com
+procedimento de contencao, recuperacao e verificacao pos-incidente.
+
+Criterios de Aceite:
+
+- [ ] Fluxo de resposta define gatilho, acao e criterio de saida.
+- [ ] Checklist de recuperacao inclui preflight e reconciliacao final.
+- [ ] Registro [SYNC] cobre atualizacao de docs operacionais afetadas.
+
 - pytest -q tests/test_model2_m2_021_live_hardening_red.py (16 passed)
 - mypy --strict core/model2/model_inference_service.py (success)
 - mypy --strict core/model2/live_service.py

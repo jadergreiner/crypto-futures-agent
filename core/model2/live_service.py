@@ -160,6 +160,42 @@ class Model2LiveExecutionService:
             return False, "idempotency_check_failed"
         return True, "ok"
 
+    @staticmethod
+    def classify_unknown_execution_error(error: Exception) -> dict[str, Any]:
+        """Classifica erro nao mapeado em contrato fail-safe padrao."""
+        return {
+            "reason_code": "unknown_execution_error",
+            "severity": "CRITICAL",
+            "recommended_action": "bloquear_operacao",
+            "status": "FAILED",
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+        }
+
+    def emit_execution_error_contract_event(
+        self,
+        *,
+        reason_code: str,
+        severity: str,
+        recommended_action: str,
+        decision_id: int | None,
+        execution_id: int | None,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Monta payload de erro padronizado para auditoria operacional."""
+        payload: dict[str, Any] = {
+            "event_type": "execution_error_contract",
+            "status": "FAILED" if str(severity).upper() in {"HIGH", "CRITICAL"} else "BLOCKED",
+            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+            "reason_code": str(reason_code),
+            "severity": str(severity).upper(),
+            "recommended_action": str(recommended_action),
+            "decision_id": decision_id,
+            "execution_id": execution_id,
+            "metadata": dict(metadata or {}),
+        }
+        return payload
+
     def rehydrate_runtime_state(self, *, symbol: str | None = None) -> dict[str, Any]:
         """Reidrata estado minimo de execucoes ativas para restart seguro."""
         active_statuses = (
