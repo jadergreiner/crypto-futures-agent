@@ -23,6 +23,49 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-097] QA-TDD prepara suite RED da BLID-084
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: TESTES_PRONTOS
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Status da task | docs/BACKLOG.md | BLID-084 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
+| Audit trail | docs/SYNCHRONIZATION.md | SYNC-097 adicionado |
+
+#### Mudancas Logicas
+
+- Suite RED adicionada em `tests/test_model2_ohlcv_cache.py`.
+- Allowlist model-driven atualizada em `tests/conftest.py`.
+- Cobertura RED: contrato do provider, integracao e fallback fail-safe.
+
+#### Impacto
+
+- Task BLID-084 pronta para implementacao Green-Refactor pelo Software Engineer.
+
+### [SYNC-096] SA refina BLID-084 para handoff QA-TDD
+
+**Data/Hora**: 2026-03-23 UTC
+**Status**: EM_ANALISE
+
+#### Mudancas em Documentacao
+
+| Componente | Arquivo | Mudanca |
+| --- | --- | --- |
+| Handoff tecnico SA | docs/BACKLOG.md | BLID-084 mantida em `Em analise` + comentario `SA:` |
+
+#### Mudancas Logicas
+
+- Escopo tecnico fechado: cache read-through unico para scan/validate/resolve.
+- Politica: TTL por simbolo+timeframe, fallback fail-safe e sem schema novo.
+- Guardrails preservados: `risk_gate`, `circuit_breaker`, `decision_id`.
+
+#### Impacto
+
+- BLID-084 pronta para escrita de testes RED pelo agente QA-TDD.
+
 ### [SYNC-095] Product Owner prioriza pacote M2-022 (10 tarefas)
 
 **Data/Hora**: 2026-03-23 UTC

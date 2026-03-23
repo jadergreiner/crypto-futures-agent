@@ -49,6 +49,7 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_m2_019_6_019_7_pipeline_integration.py",
     "test_model2_m2_019_9_risk_regression.py",
     "test_model2_m2_021_live_hardening_red.py",
+    "test_model2_ohlcv_cache.py",
     "test_sub_agent_manager.py",
 )
 

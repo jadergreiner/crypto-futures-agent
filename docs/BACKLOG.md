@@ -1950,7 +1950,7 @@ de reconciliação e elimina degradação silenciosa de qualidade em produção.
 
 ### TAREFA BLID-084 - Otimizar coleta OHLCV com cache e batelada
 
-Status: Em analise
+Status: TESTES_PRONTOS
 
 Sprint: M2-022
 Prioridade: P0
@@ -1980,6 +1980,12 @@ Impacto Arquitetural:
 
 PO: Reduzir latencia de ciclo M2 em 80% com cache batelado; preparar
 escalabilidade para 40+ simbolos em paralelo sem contenção de API.
+
+SA: Cache read-through unico para scan/validate/resolve, TTL por
+simbolo+timeframe e sem mudanca de schema em modelo2.db.
+
+QA: Suite RED criada em tests/test_model2_ohlcv_cache.py cobrindo
+contrato do provider, integracao scan/validate/resolve e fallback fail-safe.
 
 ### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
 
