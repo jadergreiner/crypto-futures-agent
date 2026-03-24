@@ -23,6 +23,21 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-131] M2-028 - Promocao GO/NO-GO, Gestao de Risco Avancada e Automacao de Qualidade
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Backlog (1), PO (2), SA (3), QA (4), SE (5), TL (6), DA (7)
+**Impacto**: M2-028.1 implementado; pacote M2-028 registrado
+**Docs afetadas**: BACKLOG.md, ARQUITETURA_ALVO.md, REGRAS_DE_NEGOCIO.md
+**Descricao**: Pacote M2-028 criado com 10 tarefas (GO/NO-GO, sizing dinamico,
+drawdown gate, correlacao portfolio, relatorio diario, alerta degradacao RL,
+benchmark, cobertura testes, governanca). M2-028.1 implementado com
+PromotionEvaluator + frozen PromotionResult em core/model2/promotion_gate.py.
+RN-023 adicionado em REGRAS_DE_NEGOCIO. ARQUITETURA_ALVO atualizada M2-028.1.
+
+---
+
 ### [SYNC-130] M2-027 - Resiliencia e Fail-safe de Pipeline
 
 **Data/Hora**: 2026-03-24 BRT

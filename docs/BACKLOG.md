@@ -958,6 +958,265 @@ Dependencias:
 
 ---
 
+## PACOTE M2-028 - Promocao GO/NO-GO, Gestao de Risco Avancada e Automacao de Qualidade
+
+**Status**: Em analise
+**Prioridade**: 2 (Habilitador critico para expansao live controlada)
+**Sprint**: A definir
+**Decisao PO**: 2026-03-24
+
+Objetivo:
+Criar trilha de 10 tarefas para formalizar o processo de promocao GO/NO-GO entre
+modos shadow/paper/live, aprimorar gestao de risco dinamica e automatizar qualidade
+de codigo com cobertura e benchmarks de performance.
+
+PO: Score 3.35. GO/NO-GO formaliza promocao shadow→live com auditoria. Sizing
+dinamico e drawdown gate reduzem risco sistematico. Handoff para SA.
+
+SA: PromotionEvaluator (frozen dataclass) em core/model2/promotion_gate.py.
+Thresholds em config/risk_params.py. Sem schema novo; audit em opportunity_events.
+Guardrails preservados. Pronto para QA-TDD.
+
+### TAREFA M2-028.1 - Contrato de promocao GO/NO-GO shadow→paper
+
+Status: IMPLEMENTADO
+
+Suite: tests/test_model2_m2_028_1_promotion_gate.py (11 testes, 11 passed GREEN)
+
+SE: GREEN concluido. core/model2/promotion_gate.py criado com PromotionConfig,
+PromotionResult (frozen) e PromotionEvaluator. mypy --strict Success. 278 passed.
+
+Evidencias de implementacao:
+
+1. pytest -q tests/test_model2_m2_028_1_promotion_gate.py -> 11 passed.
+2. mypy --strict core/model2/promotion_gate.py -> Success.
+3. pytest -q tests/ -> 278 passed.
+
+TL: APROVADO. 11/11 testes reproduzidos, mypy clean, 278 suite verde,
+guardrails inalterados, frozen dataclass validado, fail-safe verificado.
+
+DOC: ARQUITETURA_ALVO M2-028.1 adicionado; REGRAS_DE_NEGOCIO RN-023;
+SYNCHRONIZATION SYNC-131 atualizado.
+
+PM: ACEITE 2026-03-24. Trilha completa validada. Backlog CONCLUIDO.
+
+Status: CONCLUIDO
+
+Descricao:
+Definir criterios objetivos e verificaveis para promover o pipeline de shadow
+para paper trading, incluindo thresholds de win-rate, drawdown maximo, volume
+minimo de episodios e conformidade de schema.
+
+Criterios de Aceite:
+
+- [ ] Criterios GO/NO-GO documentados com thresholds numericos verificaveis
+- [ ] Validacao automatica dos criterios antes de qualquer promocao
+- [ ] Resultado de avaliacao persistido em audit trail com timestamp e decisor
+- [ ] Bloqueio de promocao automatico quando criterios nao forem atendidos
+- [ ] Guardrail de risco permanece inviolavel durante avaliacao
+
+Dependencias:
+
+- M2-025.1
+- M2-026.1
+
+### TAREFA M2-028.2 - Contrato de promocao GO/NO-GO paper→live
+
+Status: BACKLOG
+
+Descricao:
+Definir criterios objetivos para promover paper para live, incluindo Sharpe
+minimo, taxa de reconciliacao correta, ausencia de erros criticos e aprovacao
+manual com registro auditavel.
+
+Criterios de Aceite:
+
+- [ ] Criterios GO/NO-GO paper→live com thresholds distintos do shadow→paper
+- [ ] Aprovacao manual obrigatoria registrada com decisor e justificativa
+- [ ] Historico de promovocoes e reversoes em tabela auditavel
+- [ ] Rollback automatico para paper em evento critico pos-promocao
+- [ ] Compatibilidade com go_live_preflight.py
+
+Dependencias:
+
+- M2-028.1
+
+### TAREFA M2-028.3 - Sizing dinamico por volatilidade de simbolo
+
+Status: BACKLOG
+
+Descricao:
+Ajustar tamanho de posicao dinamicamente com base em volatilidade recente
+(ATR normalizado) por simbolo, mantendo risco por trade constante mesmo
+em condicoes de mercado variavel.
+
+Criterios de Aceite:
+
+- [ ] Sizing ajustado inversamente proporcional ao ATR do simbolo
+- [ ] Limite minimo e maximo de posicao configuravel por simbolo
+- [ ] Ajuste registrado em technical_signals com factor e ATR snapshot
+- [ ] Guardrail de tamanho maximo absoluto permanece inviolavel
+- [ ] Sem impacto em modos shadow (apenas informativo)
+
+Dependencias:
+
+- M2-024.1
+- M2-025.1
+
+### TAREFA M2-028.4 - Drawdown diario como gate de admissao
+
+Status: BACKLOG
+
+Descricao:
+Bloquear novas entradas quando drawdown diario acumulado exceder threshold
+configuravel, registrando reason_code e acionando circuit breaker parcial
+ate abertura do proximo dia.
+
+Criterios de Aceite:
+
+- [ ] Drawdown diario calculado por capital inicial do dia com precisao
+- [ ] Gate bloqueia novas admissoes quando threshold excedido
+- [ ] reason_code DAILY_DRAWDOWN_LIMIT registrado em ogni bloqueio
+- [ ] Liberacao automatica na virada do dia UTC+0 e BRT
+- [ ] Compatibilidade com M2-024.7 (circuit breaker por classe)
+
+Dependencias:
+
+- M2-024.2
+- M2-026.1
+
+### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
+
+Status: BACKLOG
+
+Descricao:
+Detectar concentracao excessiva em ativos correlacionados (ex.: BTC/ETH,
+layer-1s) e limitar novas entradas quando correlacao de portfolio exceder
+threshold configuravel para reduzir risco sistematico.
+
+Criterios de Aceite:
+
+- [ ] Matriz de correlacao calculada por janela rolante configuravel
+- [ ] Bloqueio de entrada quando correlacao de portfolio exceder limite
+- [ ] reason_code PORTFOLIO_CORRELATION_LIMIT nos bloqueios
+- [ ] Configuracao de grupos de correlacao em config/risk_params.py
+- [ ] Guardrail nao substitui sizing e drawdown individuais
+
+Dependencias:
+
+- M2-028.3
+- M2-028.4
+
+### TAREFA M2-028.6 - Relatorio diario automatico de performance
+
+Status: BACKLOG
+
+Descricao:
+Gerar relatorio diario consolidado com PnL realizado, episodios capturados,
+win-rate, drawdown maximo, operacoes admitidas/bloqueadas e alertas por
+severidade, persistido em arquivo e exibido no log de encerramento do ciclo.
+
+Criterios de Aceite:
+
+- [ ] Relatorio gerado automaticamente ao encerrar ciclo diario
+- [ ] Campos: PnL, win-rate, episodios, drawdown, admitidas/bloqueadas
+- [ ] Persistido em reports/daily/ com timestamp BRT no nome
+- [ ] Compativel com M2-026.4 (dashboard operacional)
+- [ ] Nenhum dado pessoal ou chave API incluido no relatorio
+
+Dependencias:
+
+- M2-026.4
+- M2-028.4
+
+### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
+
+Status: BACKLOG
+
+Descricao:
+Monitorar metricas de qualidade de inferencia do modelo RL por simbolo e
+emitir alerta quando confianca media cair abaixo de threshold ou taxa de
+acerto por janela regredir, acionando flag de retreino prioritario.
+
+Criterios de Aceite:
+
+- [ ] Confianca media e taxa de acerto monitoradas por simbolo por janela
+- [ ] Alerta emitido com reason_code MODEL_DEGRADATION e simbolo afetado
+- [ ] Flag de retreino prioritario registrado em backlog operacional
+- [ ] Threshold configuravel por simbolo em config/risk_params.py
+- [ ] Alerta nao bloqueia execucao; apenas registra e notifica
+
+Dependencias:
+
+- M2-025.6
+- M2-026.1
+
+### TAREFA M2-028.8 - Benchmark de performance do ciclo M2 por etapa
+
+Status: BACKLOG
+
+Descricao:
+Instrumentar benchmarks automaticos por etapa do pipeline (scan, track,
+validate, signal_bridge, order_layer, live_execution) com comparativo de
+baseline para detectar regressoes de latencia antes de producao.
+
+Criterios de Aceite:
+
+- [ ] Tempo de execucao por etapa medido com percentis p50/p95/p99
+- [ ] Baseline registrado em primeira execucao e comparado nas seguintes
+- [ ] Alerta quando p95 exceder 2x o baseline da etapa
+- [ ] Benchmark executado como parte da suite de testes de integracao
+- [ ] Compativel com telemetria M2-024.6 quando implementada
+
+Dependencias:
+
+- M2-024.6
+- M2-025.8
+
+### TAREFA M2-028.9 - Cobertura minima de testes por modulo critico
+
+Status: BACKLOG
+
+Descricao:
+Definir e enforcar cobertura minima de testes (linha e branch) para modulos
+criticos do pipeline M2 (scanner, validator, signal_bridge, order_layer,
+live_execution, cycle_watchdog), bloqueando CI quando threshold nao atingido.
+
+Criterios de Aceite:
+
+- [ ] Cobertura minima de 80% linha e 70% branch nos modulos criticos
+- [ ] Relatorio de cobertura gerado em htmlcov/ a cada execucao
+- [ ] CI bloqueia merge quando cobertura cair abaixo do minimo
+- [ ] Exclusoes documentadas em .coveragerc com justificativa
+- [ ] Compativel com estratificacao de suite M2-083
+
+Dependencias:
+
+- BLID-083
+
+### TAREFA M2-028.10 - Governanca e runbook do pacote M2-028
+
+Status: BACKLOG
+
+Descricao:
+Sincronizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION apos
+conclusao das 9 tarefas tecnicas, documentar runbook de operacao para
+GO/NO-GO, risco dinamico e automacao de qualidade.
+
+Criterios de Aceite:
+
+- [ ] ARQUITETURA_ALVO.md atualizado com GO/NO-GO, sizing dinamico e benchmark
+- [ ] REGRAS_DE_NEGOCIO.md com regras RN-023 a RN-028 cobrindo invariantes
+- [ ] Runbook de operacao para promocao GO/NO-GO documentado em docs/
+- [ ] SYNCHRONIZATION.md atualizado com trilha SYNC do pacote
+- [ ] markdownlint docs/*.md sem erros
+
+Dependencias:
+
+- M2-028.1 a M2-028.9
+
+---
+
 ## Prioridade P0 (iniciar agora)
 
 ## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)

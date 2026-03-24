@@ -165,6 +165,15 @@ Componentes:
    - Config centralizado em config/logging_retention_policy.yaml
    - Compressão .gz de arquivos antigos
 
+**M2-028.1 (Gate de Promocao GO/NO-GO shadow→paper)**:
+
+1. `core/model2/promotion_gate.py` — contrato de avaliacao de promocao
+   - `PromotionConfig`: thresholds configuráveis (min_win_rate, min_episodes, max_drawdown_pct)
+   - `PromotionResult` (frozen dataclass): decisao GO/NO-GO, reasons,
+     evaluated_at ISO UTC
+   - `PromotionEvaluator`: avalia criterios de forma fail-safe (nunca lanca excecao)
+   - Defaults conservadores: win_rate >= 55%, episodes >= 30, drawdown <= 5%
+
 Dados coletados por simbolo:
 
 1. Candles capturados (count, timestamp do ultimo)

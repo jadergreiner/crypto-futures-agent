@@ -198,6 +198,18 @@ deve ser atomica e reversivel:
    timestamp_utc independente do resultado (committed ou reverted).
 4. Compatibilidade obrigatoria com gate de idempotencia M2-024.3.
 
+### RN-023 - Contrato de Promocao GO/NO-GO shadow→paper (M2-028.1)
+
+A promocao do pipeline de shadow para paper trading requer avaliacao objetiva
+de criterios via `PromotionEvaluator` em `core/model2/promotion_gate.py`:
+
+1. `win_rate` observado >= `min_win_rate` (padrao: 55%).
+2. `episode_count` >= `min_episodes` (padrao: 30 episodios).
+3. `max_drawdown_pct` observado <= `max_drawdown_pct` configurado (padrao: 5%).
+4. Todos os motivos de bloqueio sao acumulados e reportados (nao apenas o primeiro).
+5. `PromotionResult` e imutavel (frozen dataclass) com `evaluated_at` ISO UTC.
+6. `evaluate()` nunca lanca excecao; entrada invalida resulta em NO-GO com reason.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:
