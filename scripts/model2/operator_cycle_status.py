@@ -5,33 +5,44 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
+import sqlite3
 import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, cast
 
-from core.model2.time_utils import now_brt_str, posix_to_brt_str
+# Forçar UTF-8 no stdout para suportar emojis e caracteres Unicode no Windows
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except Exception:
+        pass
 
 # Adicionar root do repositório ao sys.path para importações
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from data.binance_client import create_binance_client
-from core.model2.live_exchange import Model2LiveExchange
+from core.model2.time_utils import now_brt_str, posix_to_brt_str
 from core.model2.cycle_report import (
     DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
     SymbolReport,
-    resolve_candle_freshness_contract,
-    format_symbol_report,
     collect_training_info,
-    collect_position_info,
+    format_symbol_report,
+    resolve_candle_freshness_contract,
 )
 from config.settings import M2_EXECUTION_MODE
 
+try:
+    from data.binance_client import create_binance_client
+    from core.model2.live_exchange import Model2LiveExchange
+    _EXCHANGE_AVAILABLE = True
+except Exception:
+    _EXCHANGE_AVAILABLE = False
 
 try:
     from config.settings import M2_SYMBOLS, _normalize_symbol_scope
@@ -43,16 +54,12 @@ except Exception:
         *,
         fallback_symbols: Iterable[str],
     ) -> tuple[str, ...]:
-        fallback_list = [str(symbol).strip().upper() for symbol in fallback_symbols if str(symbol).strip()]
+        fallback_list = [str(s).strip().upper() for s in fallback_symbols if str(s).strip()]
         if raw_value is None:
             return ()
         placeholder_tokens = {
-            "M2_SYMBOLS",
-            "M2_SYMBOLS:",
-            "M2_LIVE_SYMBOLS",
-            "M2_LIVE_SYMBOLS:",
-            "ALL_SYMBOLS",
-            "ALL_SYMBOLS:",
+            "M2_SYMBOLS", "M2_SYMBOLS:", "M2_LIVE_SYMBOLS", "M2_LIVE_SYMBOLS:",
+            "ALL_SYMBOLS", "ALL_SYMBOLS:",
         }
         normalized: list[str] = []
         for token in str(raw_value).split(","):
@@ -66,81 +73,18 @@ except Exception:
         return tuple(dict.fromkeys(normalized))
 
 
-def _checkpoint_aliases(path: Path) -> list[Path]:
-    """Retorna aliases plausiveis para checkpoints sem extensao padronizada."""
-    candidates = [path]
-    if path.suffix:
-        return candidates
-    candidates.append(path.with_suffix(".zip"))
-    candidates.append(path.with_suffix(".pkl"))
-    return candidates
-
-
-def _get_last_train_time() -> str:
-    """Busca pelo checkpoint mais recente e retorna seu timestamp de modificação."""
-    repo_root = Path(__file__).resolve().parents[2]
-    candidates = [
-        repo_root / "checkpoints" / "ppo_training" / "ppo_model.zip",
-        repo_root / "checkpoints" / "ppo_training" / "ppo_model.pkl",
-        repo_root / "checkpoints" / "ppo_training" / "best_model.zip",
-        repo_root / "checkpoints" / "ppo_training" / "best_model.pkl",
-        repo_root / "checkpoints" / "ppo_training" / "mlp" / "optuna" / "ppo_mlp_e8_optuna.zip",
-        repo_root / "checkpoints" / "ppo_training" / "mlp" / "ppo_model_mlp.zip",
-        repo_root / "models" / "ppo_model.zip",
-        repo_root / "models" / "ppo_model.pkl",
-    ]
-    latest_time = 0.0
-    for path in candidates:
-        for p_alias in _checkpoint_aliases(path):
-            if p_alias.exists():
-                mod_time = p_alias.stat().st_mtime
-                if mod_time > latest_time:
-                    latest_time = mod_time
-
-    if latest_time > 0.0:
-        return posix_to_brt_str(latest_time)
-    return "N/A"
-
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Gera resumo por simbolo a partir dos artefatos do ciclo M2"
-    )
-    parser.add_argument(
-        "--runtime-dir",
-        default="results/model2/runtime",
-        help="Diretorio com artefatos JSON dos scripts model2.",
-    )
-    parser.add_argument(
-        "--symbol",
-        action="append",
-        default=[],
-        help="Simbolo monitorado. Repita a flag para varios simbolos.",
-    )
-    parser.add_argument(
-        "--symbols-csv",
-        default="",
-        help="Lista CSV de simbolos monitorados; placeholders como M2_SYMBOLS: sao expandidos.",
-    )
-    parser.add_argument(
-        "--max-age-minutes",
-        type=int,
-        default=20,
-        help="Idade maxima (min) aceita para considerar artefatos do ciclo.",
-    )
-    return parser.parse_args()
-
+# ---------------------------------------------------------------------------
+# Helpers de artefatos JSON
+# ---------------------------------------------------------------------------
 
 def _load_latest_json(runtime_dir: Path, prefix: str, max_age_seconds: int) -> dict[str, Any] | None:
     files = sorted(runtime_dir.glob(f"{prefix}_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
     if not files:
         return None
-
     newest = files[0]
-    file_age_seconds = (datetime.now(timezone.utc).timestamp() - newest.stat().st_mtime)
-    if file_age_seconds > max_age_seconds:
+    age = (datetime.now(timezone.utc).timestamp() - newest.stat().st_mtime)
+    if age > max_age_seconds:
         return None
-
     try:
         payload = json.loads(newest.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
@@ -150,126 +94,290 @@ def _load_latest_json(runtime_dir: Path, prefix: str, max_age_seconds: int) -> d
         return None
 
 
-def _find_scan_item(scan_summary: dict[str, Any] | None, symbol: str) -> dict[str, Any] | None:
-    if not scan_summary:
-        return None
-    items = scan_summary.get("items") or []
-    for item in items:
-        if not isinstance(item, dict):
+def _load_latest_json_by_timeframe(
+    runtime_dir: Path, prefix: str, timeframe: str, max_age_seconds: int
+) -> dict[str, Any] | None:
+    """Carrega o JSON mais recente de um prefix filtrado pelo timeframe."""
+    files = sorted(runtime_dir.glob(f"{prefix}_*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for f in files:
+        age = (datetime.now(timezone.utc).timestamp() - f.stat().st_mtime)
+        if age > max_age_seconds:
+            break  # Ordenados por mtime, os mais velhos não precisam ser checados
+        try:
+            payload = json.loads(f.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                continue
+            if str(payload.get("timeframe", "")).upper() == timeframe.upper():
+                return cast(dict[str, Any], payload)
+        except (OSError, json.JSONDecodeError):
             continue
-        if str(item.get("symbol") or "").upper() == symbol:
-            return cast(dict[str, Any], item)
     return None
 
 
-def _count_stage_status(
-    stage_summary: dict[str, Any] | None,
+# ---------------------------------------------------------------------------
+# Helpers de checkpoint / último treino
+# ---------------------------------------------------------------------------
+
+def _checkpoint_aliases(path: Path) -> list[Path]:
+    candidates = [path]
+    if path.suffix:
+        return candidates
+    candidates.append(path.with_suffix(".zip"))
+    candidates.append(path.with_suffix(".pkl"))
+    return candidates
+
+
+def _get_last_train_time_from_checkpoint() -> str:
+    """Fallback: mtime do checkpoint mais recente."""
+    candidates = [
+        REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.zip",
+        REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.pkl",
+        REPO_ROOT / "checkpoints" / "ppo_training" / "best_model.zip",
+        REPO_ROOT / "checkpoints" / "ppo_training" / "best_model.pkl",
+        REPO_ROOT / "checkpoints" / "ppo_training" / "mlp" / "optuna" / "ppo_mlp_e8_optuna.zip",
+        REPO_ROOT / "checkpoints" / "ppo_training" / "mlp" / "ppo_model_mlp.zip",
+        REPO_ROOT / "models" / "ppo_model.zip",
+        REPO_ROOT / "models" / "ppo_model.pkl",
+    ]
+    latest_time = 0.0
+    for path in candidates:
+        for alias in _checkpoint_aliases(path):
+            if alias.exists():
+                t = alias.stat().st_mtime
+                if t > latest_time:
+                    latest_time = t
+    return posix_to_brt_str(latest_time) if latest_time > 0.0 else "N/A"
+
+
+# ---------------------------------------------------------------------------
+# Helpers de DB
+# ---------------------------------------------------------------------------
+
+def _get_model2_db_path() -> str:
+    return str(REPO_ROOT / "db" / "modelo2.db")
+
+
+def _query_confidence_from_db(symbol: str, db_path: str) -> float | None:
+    """Busca a confiança da decisão mais recente do modelo para o símbolo."""
+    try:
+        conn = sqlite3.connect(db_path, timeout=5)
+        row = conn.execute(
+            "SELECT confidence FROM model_decisions "
+            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        conn.close()
+        if row and row[0] is not None:
+            return float(row[0])
+    except Exception:
+        pass
+    return None
+
+
+def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]:
+    """Retorna (action, confidence) da decisão mais recente no DB."""
+    try:
+        conn = sqlite3.connect(db_path, timeout=5)
+        row = conn.execute(
+            "SELECT action, confidence FROM model_decisions "
+            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        conn.close()
+        if row:
+            action = str(row[0] or "HOLD")
+            confidence = float(row[1]) if row[1] is not None else 0.0
+            return action, confidence
+    except Exception:
+        pass
+    return "HOLD", 0.0
+
+
+def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, float]:
+    """Retorna (episode_id, persisted, reward) do episodio mais recente do símbolo."""
+    try:
+        conn = sqlite3.connect(db_path, timeout=5)
+        row = conn.execute(
+            "SELECT id, status, reward_proxy FROM training_episodes "
+            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        conn.close()
+        if row:
+            ep_id = int(row[0])
+            persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT")
+            reward = float(row[2]) if row[2] is not None else 0.0
+            return ep_id, persisted, reward
+    except Exception:
+        pass
+    return None, False, 0.0
+
+
+# ---------------------------------------------------------------------------
+# Construção do relatório por símbolo
+# ---------------------------------------------------------------------------
+
+def _get_candle_info_for_timeframe(
+    scan_summary: dict[str, Any] | None, symbol: str
+) -> tuple[int, str]:
+    """Extrai (candles_count, last_candle_time) do sumário de scan para um símbolo."""
+    if not scan_summary:
+        return 0, ""
+    symbols_dict = scan_summary.get("symbols") or {}
+    if isinstance(symbols_dict, dict):
+        sym_data = symbols_dict.get(symbol) or {}
+        if isinstance(sym_data, dict):
+            return (
+                int(sym_data.get("candles_count", 0)),
+                str(sym_data.get("last_candle_time", "")),
+            )
+    # fallback: items lista
+    items = scan_summary.get("items") or []
+    for item in items:
+        if isinstance(item, dict) and str(item.get("symbol", "")).upper() == symbol:
+            return (
+                int(item.get("candles_count", 0)),
+                str(item.get("last_candle_time", "")),
+            )
+    return 0, ""
+
+
+def _build_symbol_report(
     *,
     symbol: str,
-    status_key: str = "status",
-) -> Counter[str]:
-    counter: Counter[str] = Counter()
-    if not stage_summary:
-        return counter
-    items = stage_summary.get("items") or []
-    for item in items:
-        if str(item.get("symbol") or "").upper() != symbol:
-            continue
-        raw_status = str(item.get(status_key) or "SEM_STATUS").strip().upper()
-        counter[raw_status] += 1
-    return counter
-
-
-def _format_counter(counter: Counter[str]) -> str:
-    if not counter:
-        return "sem_eventos"
-    parts = [f"{status}:{counter[status]}" for status in sorted(counter.keys())]
-    return ",".join(parts)
-
-
-def _format_counter_operacional(counter: Counter[str], labels: dict[str, str]) -> str:
-    if not counter:
-        return "sem eventos"
-    parts: list[str] = []
-    for status in sorted(counter.keys()):
-        nome = labels.get(status, status.lower())
-        parts.append(f"{nome}={counter[status]}")
-    return ", ".join(parts)
-
-
-def _build_stage_checklist_text(
-    *,
-    stage_name: str,
-    counter: Counter[str],
-    labels: dict[str, str],
+    scan_h4: dict[str, Any] | None,
+    scan_h1: dict[str, Any] | None,
+    live_execute_summary: dict[str, Any] | None,
+    exchange: Any | None,
+    last_train_time: str,
+    pending_episodes: int,
+    db_path: str,
 ) -> str:
-    if not counter:
-        return f"{stage_name}: sem eventos"
-    return f"{stage_name}: {_format_counter_operacional(counter, labels)}"
+    """Constrói bloco de status rico para um símbolo com H4 + H1."""
+    from core.model2.time_utils import now_brt_str as _now_brt
 
+    sep = "─" * 56
+    mode_tag = f"[{M2_EXECUTION_MODE.upper()}]"
 
-def _is_risk_block_reason(reason: str) -> bool:
-    texto = (reason or "").lower()
-    termos_risco = (
-        "risk",
-        "cooldown",
-        "daily",
-        "funding",
-        "margin",
-        "max_signal_age",
-        "short_only",
-        "symbol_not_allowed",
-        "liquid",
-        "leverage",
+    # --- Candles H4 ---
+    h4_count, h4_time = _get_candle_info_for_timeframe(scan_h4, symbol)
+    # --- Candles H1 ---
+    h1_count, h1_time = _get_candle_info_for_timeframe(scan_h1, symbol)
+
+    def _fmt_candle(count: int, last_time: str, tf: str) -> str:
+        if not last_time:
+            return f"{tf}: stale/absent (sem dados)"
+        contract = resolve_candle_freshness_contract(
+            last_candle_time=last_time,
+            signal_age_ms=None,
+            max_signal_age_ms=DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
+        )
+        state = contract["candle_state"]
+        if state == "fresh":
+            return f"{tf}: {last_time} ({count} candles) [Candle Atualizado ✓]"
+        return f"{tf}: {last_time} ({count} candles) [{state}]"
+
+    candles_line = "  ".join([
+        _fmt_candle(h4_count, h4_time, "H4"),
+        _fmt_candle(h1_count, h1_time, "H1"),
+        "M5: N/A",  # M5 não é rodado no pipeline atual
+    ])
+
+    # --- Decisão e confiança ---
+    # Prioridade: model_decisions DB > live_execute JSON
+    action_db, confidence_db = _query_last_decision_from_db(symbol, db_path)
+    decision = action_db
+    confidence: float = confidence_db
+
+    # Verificar se live_execute traz decisão mais recente
+    if live_execute_summary:
+        for item in live_execute_summary.get("staged", []):
+            if str(item.get("symbol", "")).upper() == symbol:
+                raw_action = str(item.get("action", "HOLD"))
+                if "LONG" in raw_action:
+                    decision = "OPEN_LONG"
+                elif "SHORT" in raw_action:
+                    decision = "OPEN_SHORT"
+                else:
+                    decision = raw_action
+                break
+
+    icons = {"OPEN_LONG": "🟢", "OPEN_SHORT": "🔴", "HOLD": "⏸", "REDUCE": "🟡", "CLOSE": "⛔"}
+    icon = icons.get(decision, "❓")
+    conf_str = f"{confidence:.0%}" if confidence else "N/A"
+    decision_line = f"{icon} {decision} (confianca: {conf_str})"
+
+    # --- Episódio / Reward ---
+    ep_id, ep_persisted, reward = _query_episode_info(symbol, db_path)
+    ep_label = f"#{ep_id}" if ep_id else "N/A"
+    ep_status = "persistido" if ep_persisted else "nao persistido"
+    reward_sign = "+" if reward >= 0 else ""
+    episode_line = f"{ep_label} {ep_status} | reward: {reward_sign}{reward:.4f}"
+
+    # --- Treino ---
+    from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, _progress_bar  # type: ignore[attr-defined]
+    thresh = RETRAIN_EPISODE_THRESHOLD
+    pct = pending_episodes / thresh if thresh > 0 else 0.0
+    bar = _progress_bar(pct, width=10)
+    episodes_restantes = max(0, thresh - pending_episodes)
+    train_line = (
+        f"ultimo: {last_train_time} | "
+        f"pendentes: {pending_episodes}/{thresh} {bar} "
+        f"(faltam {episodes_restantes} para retreino)"
     )
-    return any(t in texto for t in termos_risco)
+
+    # --- Posição Binance ---
+    has_position = False
+    position_line = "SEM POSICAO"
+    if exchange:
+        try:
+            position = exchange.get_open_position(symbol)
+            if position and float(position.get("position_size_qty", 0)) != 0:
+                has_position = True
+                direction = str(position.get("direction", "")).upper()
+                qty = float(position.get("position_size_qty", 0))
+                entry = float(position.get("entry_price", 0))
+                mark = float(position.get("mark_price", 0))
+                margin = float(position.get("initial_margin", position.get("margin", 0)))
+                leverage = position.get("leverage", "N/A")
+
+                if entry > 0 and qty > 0:
+                    if direction == "LONG":
+                        pnl_usd = (mark - entry) * qty
+                    else:
+                        pnl_usd = (entry - mark) * qty
+                    pnl_pct = (pnl_usd / (entry * qty)) * 100 if entry > 0 else 0.0
+                else:
+                    pnl_usd = 0.0
+                    pnl_pct = 0.0
+
+                pnl_sign = "+" if pnl_pct >= 0 else ""
+                usd_sign = "+" if pnl_usd >= 0 else ""
+                position_line = (
+                    f"{direction} {qty} @ {entry:.4f} | mark: {mark:.4f} | "
+                    f"margem: ${margin:.2f} | alavancagem: {leverage}x | "
+                    f"PnL: {pnl_sign}{pnl_pct:.2f}% ({usd_sign}${pnl_usd:.2f})"
+                )
+        except Exception:
+            pass
+
+    lines = [
+        sep,
+        f"  {symbol} | {_now_brt()} {mode_tag}",
+        sep,
+        f"  Candles  : {candles_line}",
+        f"  Decisao  : {decision_line}",
+        f"  Episodio : {episode_line}",
+        f"  Treino   : {train_line}",
+        f"  Posicao  : {position_line}",
+        sep,
+    ]
+    return "\n".join(lines)
 
 
-def _humanize_execute_reason(reason: str) -> str:
-    reason_norm = (reason or "").strip().lower()
-    if not reason_norm:
-        return "motivo nao informado"
-
-    reason_map = {
-        "already_exists": "entrada ignorada: sinal ja processado",
-        "symbol_cooldown_active": "entrada bloqueada: cooldown ativo",
-        "risk_gate_rejected": "entrada bloqueada por risco (risk gate)",
-        "max_daily_entries_reached": "entrada bloqueada: limite diario atingido",
-        "margin_limit_exceeded": "entrada bloqueada por risco: margem acima do limite",
-        "signal_too_old": "entrada bloqueada: sinal expirado",
-        "short_only_enforced": "entrada bloqueada: modo short-only",
-        "symbol_not_allowed": "entrada bloqueada: simbolo fora da lista live",
-        "funding_rate_above_threshold": "entrada bloqueada por risco: funding acima do limite",
-        "insufficient_balance": "entrada bloqueada por risco: saldo insuficiente",
-        "exchange_error": "entrada bloqueada: falha de exchange",
-        "invalid_signal": "entrada ignorada: sinal invalido",
-    }
-    if reason_norm in reason_map:
-        return reason_map[reason_norm]
-
-    if "cooldown" in reason_norm:
-        return "entrada bloqueada: cooldown ativo"
-    if "risk" in reason_norm and "gate" in reason_norm:
-        return "entrada bloqueada por risco (risk gate)"
-    if "risk" in reason_norm:
-        return "entrada bloqueada por risco"
-    if "already" in reason_norm and "exist" in reason_norm:
-        return "entrada ignorada: sinal ja processado"
-
-    return f"entrada bloqueada: {reason_norm}"
-
-
-def _scan_status_text(scan_item: dict[str, Any] | None) -> tuple[str, str]:
-    if not scan_item:
-        return "desconhecido", "sem_registro"
-
-    scan_status = str(scan_item.get("status") or "SEM_STATUS").upper()
-    if scan_status == "SKIPPED_NO_CANDLES":
-        candles_status = "nao"
-    else:
-        candles_status = "ok"
-    return candles_status, scan_status
-
+# ---------------------------------------------------------------------------
+# Alias de compatibilidade com testes legados
+# ---------------------------------------------------------------------------
 
 def _build_symbol_line(
     *,
@@ -279,168 +387,42 @@ def _build_symbol_line(
     validate_summary: dict[str, Any] | None,
     resolve_summary: dict[str, Any] | None,
     live_execute_summary: dict[str, Any] | None,
-    exchange: Model2LiveExchange | None,
+    exchange: Any | None,
     last_train_time: str,
 ) -> str:
-    """Constrói relatório de símbolo usando novo padrão cycle_report."""
-    try:
-        # Obter decisão do modelo a partir do sumário de execução
-        decision = "HOLD"
-        confidence = 0.0
-        if live_execute_summary:
-            for item in live_execute_summary.get("staged", []):
-                if str(item.get("symbol", "")).upper() == symbol:
-                    raw_action = item.get("action", "HOLD")
-                    confidence = float(item.get("confidence", 0.0))
-                    # Normalizar a ação para o formato desejado
-                    if "LONG" in raw_action:
-                        decision = "OPEN_LONG"
-                    elif "SHORT" in raw_action:
-                        decision = "OPEN_SHORT"
-                    else:
-                        decision = raw_action
-                    break
+    """Compatibilidade: mapeia interface legada para _build_symbol_report."""
+    return _build_symbol_report(
+        symbol=symbol,
+        scan_h4=scan_summary,
+        scan_h1=scan_summary,
+        live_execute_summary=live_execute_summary,
+        exchange=exchange,
+        last_train_time=last_train_time,
+        pending_episodes=0,
+        db_path=_get_model2_db_path(),
+    )
 
-        # Obter PnL e posição da exchange
-        has_position = False
-        position_side = ""
-        position_qty = 0.0
-        position_entry_price = 0.0
-        position_mark_price = 0.0
-        position_pnl_pct = 0.0
-        position_pnl_usd = 0.0
 
-        if exchange:
-            try:
-                position = exchange.get_open_position(symbol)
-                if position:
-                    has_position = True
-                    position_side = position.get("direction", "").upper()
-                    position_qty = float(position.get("position_size_qty", 0.0))
-                    position_entry_price = float(position.get("entry_price", 0.0))
-                    position_mark_price = float(position.get("mark_price", 0.0))
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
-                    if position_entry_price > 0 and position_qty > 0:
-                        if position_side == "LONG":
-                            pnl_usd = (position_mark_price - position_entry_price) * position_qty
-                        elif position_side == "SHORT":
-                            pnl_usd = (position_entry_price - position_mark_price) * position_qty
-                        else:
-                            pnl_usd = 0.0
-
-                        position_pnl_usd = pnl_usd
-                        position_pnl_pct = (pnl_usd / (position_entry_price * position_qty)) * 100 if position_entry_price > 0 else 0.0
-            except Exception:
-                # Se falhar ao consultar posição, continua com valores defaults
-                pass
-
-        # Obter dados de candles
-        candles_count = 0
-        last_candle_time = ""
-        if scan_summary:
-            items = scan_summary.get("symbols", {})
-            if symbol in items:
-                sym_data = items[symbol]
-                candles_count = int(sym_data.get("candles_count", 0))
-                last_candle_time = sym_data.get("last_candle_time", "")
-
-        # Montar SymbolReport e formatar
-        timeframe = "H4"
-        execution_mode = "live" if M2_EXECUTION_MODE == "live" else "shadow"
-        freshness_contract = resolve_candle_freshness_contract(
-            last_candle_time=str(last_candle_time),
-            signal_age_ms=None,
-            max_signal_age_ms=DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
-        )
-
-        report = SymbolReport(
-            symbol=symbol,
-            timeframe=timeframe,
-            timestamp=now_brt_str(),
-            candles_count=candles_count,
-            last_candle_time=last_candle_time,
-            candle_state=freshness_contract["candle_state"],
-            freshness_reason=freshness_contract["freshness_reason"],
-            decision=decision,
-            confidence=confidence,
-            decision_fresh=freshness_contract["decision_fresh"],
-            episode_id=None,
-            episode_persisted=False,
-            reward=0.0,
-            last_train_time=last_train_time,
-            pending_episodes=0,
-            has_position=has_position,
-            position_side=position_side,
-            position_qty=position_qty,
-            position_entry_price=position_entry_price,
-            position_mark_price=position_mark_price,
-            position_pnl_pct=position_pnl_pct,
-            position_pnl_usd=position_pnl_usd,
-            execution_mode=execution_mode,
-        )
-
-        # Retornar relatório formatado
-        return format_symbol_report(report)
-
-    except Exception as exc:
-        # Fallback seguro se novo formato falhar
-        decision = "HOLD"
-        if live_execute_summary:
-            for item in live_execute_summary.get("staged", []):
-                if str(item.get("symbol", "")).upper() == symbol:
-                    raw_action = item.get("action", "HOLD")
-                    if "LONG" in raw_action:
-                        decision = "BUY"
-                    elif "SHORT" in raw_action:
-                        decision = "SELL"
-                    else:
-                        decision = raw_action
-                    break
-
-        pos_str = "None"
-        pnl_str = "0.00"
-        if exchange:
-            try:
-                position = exchange.get_open_position(symbol)
-                if position:
-                    direction = position.get("direction", "NONE")
-                    size = float(position.get("position_size_qty", 0.0))
-                    entry_price = float(position.get("entry_price", 0.0))
-                    mark_price = float(position.get("mark_price", 0.0))
-                    pos_str = f"{direction} {size:.4f}"
-
-                    pnl = 0.0
-                    if entry_price > 0 and size > 0:
-                        pnl = (mark_price - entry_price) * size if direction == "LONG" else (entry_price - mark_price) * size
-                    pnl_str = f"{pnl:+.2f}"
-            except Exception:
-                pass
-
-        log_template = (
-            "{symbol} | Data: OK | Model: Ran | "
-            "Decision: {decision} | RL: Stored (Pending: N/A) | "
-            "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
-        )
-        return log_template.format(
-            symbol=symbol,
-            decision=decision,
-            last_train=last_train_time,
-            position=pos_str,
-            pnl=pnl_str,
-        )
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Gera resumo por simbolo a partir dos artefatos do ciclo M2"
+    )
+    parser.add_argument("--runtime-dir", default="results/model2/runtime")
+    parser.add_argument("--symbol", action="append", default=[])
+    parser.add_argument("--symbols-csv", default="")
+    parser.add_argument("--max-age-minutes", type=int, default=60)
+    return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
     runtime_dir = Path(args.runtime_dir).resolve()
-    csv_symbols = _normalize_symbol_scope(
-        args.symbols_csv,
-        fallback_symbols=tuple(M2_SYMBOLS),
-    )
-    cli_symbols = _normalize_symbol_scope(
-        ",".join(args.symbol or []),
-        fallback_symbols=tuple(M2_SYMBOLS),
-    )
+    csv_symbols = _normalize_symbol_scope(args.symbols_csv, fallback_symbols=tuple(M2_SYMBOLS))
+    cli_symbols = _normalize_symbol_scope(",".join(args.symbol or []), fallback_symbols=tuple(M2_SYMBOLS))
     symbols = list(dict.fromkeys([*csv_symbols, *cli_symbols]))
 
     if not symbols:
@@ -449,40 +431,44 @@ def main() -> int:
 
     if not runtime_dir.exists():
         print(f"Diretorio de runtime nao encontrado: {runtime_dir}")
-        for symbol in symbols:
-            print(f"[{now_brt_str()}] [M2][{symbol}] | Data: Failed | Status: sem_artefatos")
+        for sym in symbols:
+            print(f"[{now_brt_str()}] [M2][{sym}] | Status: sem_artefatos")
         return 0
 
-    # Carregar artefatos JSON
     max_age_seconds = max(60, int(args.max_age_minutes) * 60)
-    scan_summary = _load_latest_json(runtime_dir, "model2_scan", max_age_seconds)
-    track_summary = _load_latest_json(runtime_dir, "model2_track", max_age_seconds)
-    validate_summary = _load_latest_json(runtime_dir, "model2_validate", max_age_seconds)
-    resolve_summary = _load_latest_json(runtime_dir, "model2_resolve", max_age_seconds)
+
+    # Carregar artefatos por timeframe
+    scan_h4 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "H4", max_age_seconds)
+    scan_h1 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "H1", max_age_seconds)
     live_execute_summary = _load_latest_json(runtime_dir, "model2_live_execute", max_age_seconds)
 
-    # Inicializar cliente da exchange e obter data do último treino
+    # DB path
+    db_path = _get_model2_db_path()
+
+    # Treino: usar collect_training_info do DB (fallback: mtime do checkpoint)
+    last_train_time, pending_episodes = collect_training_info(db_path)
+    if last_train_time == "nunca":
+        last_train_time = _get_last_train_time_from_checkpoint()
+
+    # Exchange (todos os modos — para posições reais na Binance)
     exchange = None
-    try:
-        if M2_EXECUTION_MODE == "live":
+    if _EXCHANGE_AVAILABLE:
+        try:
             client = create_binance_client(mode="live")
             exchange = Model2LiveExchange(client)
-    except Exception as e:
-        print(f"[ERROR] Nao foi possivel criar cliente da exchange: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"[WARN] Exchange nao disponivel: {e}", file=sys.stderr)
 
-    last_train_time = _get_last_train_time()
-
-    # Gerar linha de log para cada símbolo
     for symbol in symbols:
-        line = _build_symbol_line(
+        line = _build_symbol_report(
             symbol=symbol,
-            scan_summary=scan_summary,
-            track_summary=track_summary,
-            validate_summary=validate_summary,
-            resolve_summary=resolve_summary,
+            scan_h4=scan_h4,
+            scan_h1=scan_h1,
             live_execute_summary=live_execute_summary,
             exchange=exchange,
             last_train_time=last_train_time,
+            pending_episodes=pending_episodes,
+            db_path=db_path,
         )
         print(line, flush=True)
 

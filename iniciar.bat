@@ -110,7 +110,7 @@ python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2
 call :GET_BRT_TIMESTAMP
 echo [!TS_BRT! BRT] [M2] Status por simbolo...
 >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Status por simbolo...
-python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 20 --symbols-csv "!M2_SYMBOLS!" > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
+python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 60 --symbols-csv "!M2_SYMBOLS!" > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
 if exist logs\m2_cycle_status.tmp (
     type logs\m2_cycle_status.tmp
     type logs\m2_cycle_status.tmp >> logs\m2_cycle.log
