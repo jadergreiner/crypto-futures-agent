@@ -330,14 +330,17 @@ def collect_training_info(
                 last_train = row[0]
         except sqlite3.OperationalError:
             pass
-        # Episodios pendentes (apos ultimo treino)
+        # Episodios com reward disponivel para treino (apos ultimo retreino)
+        # Conta apenas episodios com reward_proxy preenchido (resultado real de trade)
+        # que ainda nao foram consumidos em um ciclo de retreino.
         try:
             row = conn.execute(
                 "SELECT COUNT(*) FROM training_episodes "
-                "WHERE LOWER(COALESCE(status, '')) != 'pending' "
+                "WHERE reward_proxy IS NOT NULL "
+                "  AND UPPER(COALESCE(status, '')) NOT IN ('CYCLE_CONTEXT', 'PENDING') "
                 "  AND created_at > COALESCE("
                 "  (SELECT MAX(completed_at) FROM rl_training_log), "
-                "  '1970-01-01')"
+                "  0)"
             ).fetchone()
             if row:
                 pending = row[0]
