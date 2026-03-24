@@ -3152,7 +3152,8 @@ Status: CONCLUIDO
 Sprint: M2-022
 Prioridade: P0
 
-PO: Priorizar BLID-085 para blindar operacao contra falhas transitorias de rede e API, reduzindo paradas silenciosas e aumentando a resiliencia do ciclo live.
+PO: Priorizar BLID-085 para blindar operacao contra falhas transitorias de rede
+e API, reduzindo paradas silenciosas e aumentando a resiliencia do ciclo live.
 
 Descricao:
 Implementar retry com backoff exponencial para operacoes de risco (API calls,
@@ -4505,6 +4506,88 @@ com granularidade fina (H4 + H1 + M5).
 1. `ohlcv_m5` populada apos `daily_pipeline.py --timeframe M5` [ ]
 2. Scanner consegue rodar em timeframe M5 sem erro [ ]
 3. `iniciar.bat` executa pipeline M5 no loop [ ]
+4. `pytest -q tests/` passa [ ]
+
+---
+
+### TAREFA BLID-090 - Expor estado do circuit breaker e risk gate no status por simbolo
+
+Status: PENDENTE
+
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto:**
+
+Durante sessao de debug (2026-03-24), foi identificado que `operator_cycle_status.py`
+exibe `OPEN_LONG` mas a posicao nao abre — sem nenhuma indicacao do motivo.
+A causa raiz e o `circuit_breaker` trancado + `short_only: true`, visivel apenas
+consultando `model_decisions.input_json` diretamente no DB.
+O operador nao tem visibilidade disso no terminal do `iniciar.bat`.
+
+**Escopo:**
+
+1. Em `operator_cycle_status.py` (`_build_symbol_report`): consultar `model_decisions`
+   para extrair `risk_state.circuit_breaker_state`, `risk_state.risk_gate_status`,
+   `risk_state.short_only` e `risk_state.recent_entries_today` / `max_daily_entries`
+2. Adicionar linha `  Risk     :` ao bloco por simbolo com esses dados
+3. Quando CB trancado: exibir `[CB TRANCADO]` de forma destacada
+4. Quando short_only ativo e decisao for LONG: exibir aviso `[LONG BLOQUEADO - short_only]`
+5. Quando limite diario atingido: exibir `entradas hoje: N/N`
+6. Cobrir com testes unitarios para os novos campos
+
+**Impacto:** Operador entende imediatamente por que uma decisao do modelo nao
+resultou em ordem, sem precisar abrir o DB manualmente.
+
+**Dependencias:** commits fff8214, e43cbf5 (status por simbolo funcional)
+
+**Criterio de aceite:**
+
+1. Linha `Risk` aparece no bloco de cada simbolo [ ]
+2. CB trancado exibe `[CB TRANCADO]` [ ]
+3. LONG bloqueado por short_only exibe aviso [ ]
+4. `pytest -q tests/` passa [ ]
+
+---
+
+### TAREFA BLID-091 - Corrigir fluxo de reward real para episodios de trades encerrados
+
+Status: PENDENTE
+
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto:**
+
+Durante sessao de debug (2026-03-24), confirmou-se que:
+- 10.978 episodios sao do tipo `CYCLE_CONTEXT` (sem reward — apenas snapshot de contexto)
+- Apenas 101 episodios tem `reward_proxy` preenchido (trades com resultado real)
+- O `reward: +0.0000` exibido no status nao e aprendizado — e ausencia de desfecho
+- O `persist_training_episodes.py` persiste contexto mas o reward real (PnL realizado)
+  precisa ser preenchido quando a posicao fecha (`EXITED`)
+
+**Escopo:**
+
+1. Auditar `persist_training_episodes.py`: verificar se o campo `reward_proxy` e
+   preenchido ao fechar posicao (`signal_execution.status = EXITED`)
+2. Se nao for: implementar atualizacao de `reward_proxy` no evento de saida,
+   usando o PnL realizado proporcional como proxy de reward
+3. Garantir que episodios `CYCLE_CONTEXT` nao sao contados como "prontos para treino"
+   (correcao de `collect_training_info` ja aplicada em commit fff8214)
+4. Adicionar campo `reward_source` (enum: `pnl_realized`, `proxy_signal`, `none`)
+   para rastrear a origem do reward
+5. Cobrir com testes: episodio EXITED gera reward, CYCLE_CONTEXT permanece sem reward
+
+**Impacto:** Garante que o dataset de treino RL reflete aprendizado real de mercado
+em vez de snapshots de contexto sem sinal de reforco.
+
+**Dependencias:** BLID-090, commit fff8214
+
+**Criterio de aceite:**
+
+1. Apos posicao EXITED, `reward_proxy` e preenchido automaticamente [ ]
+2. `collect_training_info` retorna contagem correta de episodios treinaveiss [ ]
+3. `operator_cycle_status` exibe reward real (nao zero) para simbolos com trade fechado [ ]
 4. `pytest -q tests/` passa [ ]
 
 ---

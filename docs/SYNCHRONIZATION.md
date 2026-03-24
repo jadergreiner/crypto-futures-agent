@@ -23,6 +23,25 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-132] BLID-090/091 - Observabilidade do risk gate e correcao de reward RL
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: PENDENTE_PO
+**Agentes**: Backlog (1)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: criados BLID-090 (expor circuit breaker no status) e
+  BLID-091 (correcao de reward real para episodios EXITED)
+- Raiz: sessao de debug identificou que operador nao ve motivo de bloqueio
+  de ordem e que reward_proxy e sempre 0 para simbolos sem posicao aberta
+
+**Docs afetados:** BACKLOG.md
+
+**Commits de referencia:** e43cbf5, fff8214
+
+---
+
 ### [SYNC-131] M2-028 - Promocao GO/NO-GO, Gestao de Risco Avancada e Automacao de Qualidade
 
 **Data/Hora**: 2026-03-24 BRT
