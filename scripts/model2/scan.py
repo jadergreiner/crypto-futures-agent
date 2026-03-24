@@ -170,6 +170,18 @@ def run_scan(
                 items.append(entry)
                 continue
 
+            # Registra metadados de candles para operator_cycle_status
+            entry["candles_count"] = len(candles_df)
+            if "timestamp" in candles_df.columns and len(candles_df) > 0:
+                last_ts = candles_df.iloc[-1]["timestamp"]
+                try:
+                    last_dt = datetime.fromtimestamp(
+                        int(last_ts) / 1000, tz=timezone.utc
+                    )
+                    entry["last_candle_time"] = last_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+                except Exception:
+                    entry["last_candle_time"] = str(last_ts)
+
             indicators = _load_indicators(
                 conn=source_conn,
                 symbol=symbol,
@@ -208,6 +220,17 @@ def run_scan(
     finally:
         source_conn.close()
 
+    # Indice por simbolo usado pelo operator_cycle_status
+    symbols_index: dict[str, dict[str, Any]] = {}
+    for item in items:
+        sym = str(item.get("symbol") or "").upper()
+        if sym:
+            symbols_index[sym] = {
+                "candles_count": int(item.get("candles_count", 0)),
+                "last_candle_time": str(item.get("last_candle_time", "")),
+                "status": item.get("status", ""),
+            }
+
     summary = {
         "status": "ok",
         "timestamp_utc_ms": _utc_now_ms(),
@@ -219,6 +242,7 @@ def run_scan(
         "detections": detected,
         "persisted_now": persisted,
         "items": items,
+        "symbols": symbols_index,
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
