@@ -4597,6 +4597,7 @@ em vez de snapshots de contexto sem sinal de reforco.
 Status: Em analise
 
 PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas. Prioridade maxima, sem dependencias bloqueantes.
+SA: Contrato quebrado: live_service chama check_status/can_trade/NORMAL inexistentes em CircuitBreaker. AttributeError silencioso -> allows_trading=False fixo.
 
 Prioridade proposta: Critica
 Sprint proposto: Imediato (bloqueia toda abertura de posicao)
