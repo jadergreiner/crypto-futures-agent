@@ -4021,6 +4021,19 @@ comparativas
 
 ---
 
+### [SYNC] 2026-03-24 — BLID-093: reward counterfactual para HOLD/BLOCKED
+
+- **Arquivo alterado:** `docs/BACKLOG.md`
+- **Tipo:** criacao de item de backlog
+- **BLID:** BLID-093
+- **Descricao:** Item criado apos diagnostico de gap arquitetural: episodios
+  de decisao de ficar fora (HOLD/BLOCKED) nao recebem reward, criando vies
+  de sobre-entrada no modelo RL. Propoe reward counterfactual baseado em
+  preco N candles apos a decisao, com atualizacao diferida.
+- **Status:** Pendente priorizacao pelo PO
+
+---
+
 ## Notas Operacionais
 
 ### Gaps Identificados (para próxima iteração)

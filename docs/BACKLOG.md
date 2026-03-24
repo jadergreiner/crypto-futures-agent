@@ -4651,6 +4651,79 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
 ---
 
+### TAREFA BLID-093 - Reward por decisao de ficar fora (HOLD/BLOCKED counterfactual)
+
+Status: PENDENTE
+
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto e motivacao:**
+
+Atualmente o modelo so recebe reward quando uma posicao abre e fecha
+(`EXECUTED`/`EXITED` com PnL). A decisao de NAO entrar — seja por `HOLD`,
+`BLOCKED` (risk gate), ou `CYCLE_CONTEXT` sem sinal — nao gera nenhum sinal
+de aprendizado. Isso cria um vies assimetrico grave:
+
+- O modelo aprende com erros de entrada (loss) mas nunca aprende que
+  "ficar fora era correto"
+- Um HOLD correto durante queda de mercado vale tanto quanto um SHORT
+  lucrativo, mas nao e recompensado
+- O modelo tende a sobre-entrar para "gerar recompensa", pois entrar e
+  a unica forma de receber feedback positivo
+
+**Evidencia do DB:**
+- 10.978 episodios `CYCLE_CONTEXT` com `reward_proxy = NULL`
+- 32 episodios `BLOCKED` com `reward_proxy = NULL`
+- 101 episodios com reward real — todos de trades abertos+fechados
+- `target_json` de `CYCLE_CONTEXT`: apenas `{\"objective\": \"support_training_dataset\"}`
+  sem nenhuma sinal de resultado
+
+**Escopo:**
+
+1. Definir metrica de reward counterfactual para HOLD/BLOCKED:
+   - Comparar preco do candle no momento da decisao com preco N candles depois
+   - Se o mercado foi contra a direcao sugerida pelo modelo: reward positivo
+     (ficar fora foi correto)
+   - Se o mercado foi na direcao sugerida: reward negativo (perdeu oportunidade)
+   - Formula proposta: `reward = (close_t+N - close_t) / close_t * direcao_modelo`
+     onde `direcao_modelo = +1 para LONG, -1 para SHORT`
+
+2. Implementar em `persist_training_episodes.py`:
+   - Para episodios `BLOCKED` e `READY` sem execution: persistir com
+     `label = \"hold_correct\"` ou `label = \"hold_opportunity_missed\"`
+     apos N candles (ex.: N=4 para H4, N=24 para H1)
+   - Requer mecanismo de look-ahead: salvar preco atual e atualizar o
+     `reward_proxy` no proximo ciclo com o preco futuro
+
+3. Implementar atualizacao diferida de reward:
+   - Novo campo `reward_lookup_at_ms` na tabela `training_episodes`
+   - Job no ciclo: buscar episodios com `reward_proxy IS NULL AND
+     reward_lookup_at_ms <= now` e preencher reward counterfactual
+
+4. Garantir que `CYCLE_CONTEXT` permanece sem reward (e snapshot de estado,
+   nao episodio de decisao — correto manter como auxiliar de contexto)
+
+5. Cobrir com testes unitarios e de integracao
+
+**Impacto:** Resolve o vies de sobre-entrada do modelo. Com reward em 100%
+das decisoes (entrar E nao entrar), o modelo aprende a calibrar tanto
+o timing de entrada quanto a qualidade dos HOLDs — alinhando incentivos
+com o objetivo real: maximizar PnL ajustado a risco, nao numero de trades.
+
+**Dependencias:** BLID-091 (reward real para EXITED), BLID-092 (CB desbloqueado
+para gerar novos dados de decisao)
+
+**Criterio de aceite:**
+
+1. Episodios `BLOCKED`/`READY` recebem `reward_proxy` apos N candles [ ]
+2. `label` distingue `hold_correct` de `hold_opportunity_missed` [ ]
+3. `collect_training_info` conta esses episodios como treinaveiss [ ]
+4. Dataset de treino tem proporcao balanceada entre entradas e HOLDs [ ]
+5. `pytest -q tests/` passa [ ]
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
