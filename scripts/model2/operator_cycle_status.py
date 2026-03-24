@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, cast
 
+from core.model2.time_utils import now_brt_str, posix_to_brt_str
+
 # Adicionar root do repositório ao sys.path para importações
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -96,7 +98,7 @@ def _get_last_train_time() -> str:
                     latest_time = mod_time
 
     if latest_time > 0.0:
-        return datetime.fromtimestamp(latest_time, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        return posix_to_brt_str(latest_time)
     return "N/A"
 
 
@@ -343,8 +345,6 @@ def _build_symbol_line(
                 last_candle_time = sym_data.get("last_candle_time", "")
 
         # Montar SymbolReport e formatar
-        from zoneinfo import ZoneInfo
-        now_brt = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
         timeframe = "H4"
         execution_mode = "live" if M2_EXECUTION_MODE == "live" else "shadow"
         freshness_contract = resolve_candle_freshness_contract(
@@ -356,7 +356,7 @@ def _build_symbol_line(
         report = SymbolReport(
             symbol=symbol,
             timeframe=timeframe,
-            timestamp=now_brt.strftime("%Y-%m-%d %H:%M:%S BRT"),
+            timestamp=now_brt_str(),
             candles_count=candles_count,
             last_candle_time=last_candle_time,
             candle_state=freshness_contract["candle_state"],
@@ -450,7 +450,7 @@ def main() -> int:
     if not runtime_dir.exists():
         print(f"Diretorio de runtime nao encontrado: {runtime_dir}")
         for symbol in symbols:
-            print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S %Z')}] [M2][{symbol}] | Data: Failed | Status: sem_artefatos")
+            print(f"[{now_brt_str()}] [M2][{symbol}] | Data: Failed | Status: sem_artefatos")
         return 0
 
     # Carregar artefatos JSON

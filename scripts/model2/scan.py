@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
+from core.model2.time_utils import ts_ms_to_brt_str
+
 pd = importlib.import_module("pandas")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -175,11 +177,7 @@ def run_scan(
             if "timestamp" in candles_df.columns and len(candles_df) > 0:
                 last_ts = candles_df.iloc[-1]["timestamp"]
                 try:
-                    from zoneinfo import ZoneInfo
-                    last_dt = datetime.fromtimestamp(
-                        int(last_ts) / 1000, tz=timezone.utc
-                    ).astimezone(ZoneInfo("America/Sao_Paulo"))
-                    entry["last_candle_time"] = last_dt.strftime("%Y-%m-%d %H:%M:%S BRT")
+                    entry["last_candle_time"] = ts_ms_to_brt_str(int(last_ts))
                 except Exception:
                     entry["last_candle_time"] = str(last_ts)
 

@@ -13,6 +13,8 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
 
+from core.model2.time_utils import now_brt, now_brt_str
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -107,7 +109,7 @@ def _to_int(value: Any, default: int = 0) -> int:
 
 
 def _print_ux_cycle_summary(summary: dict[str, Any]) -> None:
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    timestamp = now_brt_str()
     cycle_index = _to_int(summary.get("cycle_index"), 0)
     status = str(summary.get("status") or "?").upper()
     mode = str(summary.get("execution_mode") or "?")
@@ -169,7 +171,7 @@ def _print_ux_cycle_summary(summary: dict[str, Any]) -> None:
 
 
 def _print_stage_update(*, cycle_index: int, stage: str, event: str, elapsed_ms: int | None = None, error: str | None = None) -> None:
-    now_label = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    now_label = now_brt().strftime("%H:%M:%S")
     if event == "start":
         print(f"[PROGRESS] {now_label} | cycle={cycle_index} | stage={stage} | status=RUNNING", flush=True)
         return
@@ -430,7 +432,7 @@ def main() -> int:
     while True:
         cycle_index += 1
         if not bool(args.json_stdout):
-            now_label = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            now_label = now_brt_str()
             print(
                 f"[SHORT-CYCLE] {now_label} | cycle={cycle_index} | status=RUNNING | mode={args.execution_mode} | symbols={','.join(symbols)}",
                 flush=True,

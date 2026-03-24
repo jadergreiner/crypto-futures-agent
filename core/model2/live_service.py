@@ -12,6 +12,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
+
+from core.model2.time_utils import now_brt, now_brt_str, posix_to_brt_str, ts_ms_to_brt_str
 from typing import Any, Protocol
 
 import numpy as np
@@ -134,9 +136,7 @@ class Model2LiveExecutionService:
         self._incremental_training_process: _IncrementalTrainingProcess | None = None
         self._last_train_time = "N/A"
         if self._rl_loader.checkpoint_timestamp:
-            self._last_train_time = datetime.fromtimestamp(
-                self._rl_loader.checkpoint_timestamp, tz=timezone.utc
-            ).strftime("%Y-%m-%d %H:%M:%S")
+            self._last_train_time = posix_to_brt_str(self._rl_loader.checkpoint_timestamp)
         # Config para busca de dados de treino (BD)
         self._db_path = str(
             getattr(config, "db_path", "")
@@ -354,13 +354,12 @@ class Model2LiveExecutionService:
                 }
 
             # Montar report
-            now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
             execution_mode = "live" if self.config.execution_mode == "live" else "shadow"
 
             report = SymbolReport(
                 symbol=symbol,
                 timeframe=timeframe,
-                timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                timestamp=now_brt_str(),
                 candles_count=candles_count,
                 last_candle_time=last_candle_time,
                 candle_state=freshness_contract["candle_state"],
@@ -459,10 +458,7 @@ class Model2LiveExecutionService:
         if signal_timestamp <= 0:
             return 0, "", False
 
-        last_candle_time = datetime.fromtimestamp(
-            signal_timestamp / 1000,
-            tz=timezone.utc,
-        ).strftime("%Y-%m-%d %H:%M UTC")
+        last_candle_time = ts_ms_to_brt_str(signal_timestamp, short=True)
         is_fresh = int(signal_age_ms) <= int(max_signal_age_ms)
         return 1, last_candle_time, is_fresh
 
@@ -472,7 +468,6 @@ class Model2LiveExecutionService:
         decision: ModelDecision,
     ) -> None:
         """Fallback para log antigo se novo formato falhar."""
-        now = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
         pos_str = "None"
         pnl_str = "0.00"
 
@@ -502,7 +497,7 @@ class Model2LiveExecutionService:
             "Last Train: {last_train} | Position: {position} | PnL: {pnl}"
         )
         log_line = log_template.format(
-            timestamp=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
+            timestamp=now_brt_str(),
             symbol=symbol,
             decision=decision.action,
             last_train=self._last_train_time,
