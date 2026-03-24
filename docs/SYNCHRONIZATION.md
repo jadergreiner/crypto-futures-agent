@@ -3898,6 +3898,17 @@ comparativas
 
 ---
 
+### [SYNC] 2026-03-23 - BLID-089 e BLID-088 adicionados ao backlog
+
+- **Arquivo alterado:** `docs/BACKLOG.md`
+- **Alteracao:** Criado BLID-089 — captura e persistencia de candles D1;
+  Criado BLID-088 — captura e persistencia de candles M5
+- **Motivo:** Completar cobertura multi-dataframe D1 + H4 + H1 + M5
+  no pipeline M2
+- **Status:** Pendente priorizacao pelo PO
+
+---
+
 ### [SYNC] 2026-03-23 - BLID-088 adicionado ao backlog
 
 - **Arquivo alterado:** `docs/BACKLOG.md`

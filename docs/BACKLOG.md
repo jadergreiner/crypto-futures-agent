@@ -4015,6 +4015,36 @@ Dependencias: M2-019.9
 
 ---
 
+### TAREFA BLID-089 - Captura e persistencia de candles D1
+
+**Status:** PENDENTE
+**Prioridade proposta:** Media
+**Sprint proposto:** A definir pelo PO
+
+**Escopo:**
+
+Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do agente:
+
+1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e `HISTORICAL_PERIODS`
+2. Confirmar tabela `ohlcv_d1` no schema do banco legado
+3. Adicionar chamada `daily_pipeline.py --timeframe D1` no `iniciar.bat`
+   (hoje apenas H4 e H1 sao executados)
+4. Validar que scanner consegue operar em D1 via `TIMEFRAME_TO_TABLE`
+5. Cobrir com testes: sync D1, tabela populada, leitura pelo scanner
+
+**Impacto:** Completa cobertura multi-dataframe (D1 + H4 + H1 + M5) para analises
+estruturais de tendencia de longo prazo integradas ao pipeline M2.
+
+**Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
+
+**Criterio de aceite:**
+
+1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [ ]
+2. `iniciar.bat` executa pipeline D1 no loop [ ]
+3. `pytest -q tests/` passa [ ]
+
+---
+
 ### TAREFA BLID-088 - Captura e persistencia de candles M5
 
 **Status:** PENDENTE
