@@ -107,6 +107,22 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   `decision_id` ou `decision_origin` passam por strict_contract
   opt-in antes de avançar para execucao live.
 
+Resiliencia e fail-safe de pipeline (M2-027):
+
+- `core/model2/cycle_watchdog.py` — modulo transversal de resiliencia com:
+  - `CycleWatchdog`: detecta travamento por ausencia de progressao em janela
+    configuravel (padrao 300s); aciona fail-safe preservando estado sem
+    desabilitar risk_gate ou circuit_breaker.
+  - `validate_schema_pre_exec`: valida tabelas obrigatorias no modelo2.db antes
+    de cada ciclo; bloqueia com `reason_code='schema_divergence'` em divergencia.
+  - `detect_orphan_positions`: compara posicoes abertas na exchange vs
+    signal_executions IN_PROGRESS; identifica posicoes sem monitoramento.
+  - `build_orphan_exit_order`: constroi ordem de saida orfa com STOP_MARKET
+    obrigatorio e audit_event com decision_id sintetico.
+  - `execute_atomic_state_transition`: garante transicao CONSUMED->IN_PROGRESS
+    atomica com revert logico em falha da segunda escrita.
+- `REASON_CODE_CATALOG` expandido com `orphan_position` (M2-027.3).
+
 ## Camada 5 - Persistencia e Aprendizado Continuo
 
 Responsavel por:

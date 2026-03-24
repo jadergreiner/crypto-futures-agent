@@ -806,6 +806,158 @@ PASSED. Config YAML validado (CRITICAL 365d OK).
 
 ---
 
+## PACOTE M2-027 - Resiliencia e Fail-safe de Pipeline
+
+**Status**: CONCLUIDO (M2-027.1)
+**Prioridade**: 2 (Resiliencia critica de pipeline live)
+**Sprint**: A definir
+**Decisao PO**: 2026-03-24
+
+Objetivo:
+Criar trilha de 5 tarefas para reforcar resiliencia ponta a ponta do pipeline
+M2: retry deterministico, fail-safe de saida, watchdog de ciclo, validacao de
+schema pre-execucao e consistencia de estado entre camadas.
+
+PO: Score 3.40. Watchdog+fail-safe+schema eliminam 3 classes de falha
+silenciosa em live. Handoff para SA.
+
+SA: 5 tarefas viaveis. Novo modulo cycle_watchdog.py; ORPHAN_POSITION no
+catalog; gate atomico OL/LE. Schema: somente ADD. Guardrails preservados.
+
+QA: Suite RED 17 testes; 17 failed (ModuleNotFoundError esperado).
+mypy: 1 erro (import ausente esperado). Pronto para GREEN-REFACTOR.
+
+TL: APROVADO. 17/17 testes reproduzidos, 278 suite verde, mypy clean,
+guardrails STOP_MARKET/risk_gate/circuit_breaker verificados.
+
+DOC: ARQUITETURA_ALVO cycle_watchdog Camada 4; REGRAS_DE_NEGOCIO
+RN-019 a RN-022; SYNCHRONIZATION SYNC-130.
+
+PM: ACEITE 2026-03-24. Trilha validada. Backlog CONCLUIDO.
+
+### TAREFA M2-027.1 - Watchdog de ciclo M2 com deteccao de travamento
+
+Status: CONCLUIDO
+
+Suite: tests/test_model2_m2_027_resilience_failsafe.py (17 testes, 17 passed)
+
+SE: GREEN concluido. core/model2/cycle_watchdog.py criado com CycleWatchdog,
+validate_schema_pre_exec, detect_orphan_positions, build_orphan_exit_order,
+execute_atomic_state_transition. orphan_position adicionado ao REASON_CODE_CATALOG.
+BLID-088/089 formato Status corrigido. Suite 278 passed.
+
+Evidencias:
+
+1. pytest -q tests/test_model2_m2_027_resilience_failsafe.py -> 17 passed.
+2. mypy --strict core/model2/cycle_watchdog.py -> Success.
+3. mypy --strict core/model2/live_execution.py -> Success.
+4. pytest -q tests/ -> 278 passed.
+
+Descricao:
+Implementar watchdog que detecta ciclo M2 travado ou sem progressao dentro
+de janela configuravel, emitindo alerta com reason_code e acionando fail-safe
+de interrupcao segura sem perda de estado.
+
+Criterios de Aceite:
+
+- [ ] Watchdog detecta ausencia de progressao em janela configuravel (padrao 5min)
+- [ ] Alerta emitido com reason_code, timestamp e contexto do ciclo
+- [ ] Fail-safe de interrupcao preserva estado atual sem corromper execucao em curso
+- [ ] Reinicializacao controlada apos travamento registrada em audit trail
+- [ ] Guardrail de risco permanece ativo durante interrupcao e reinicio
+
+Dependencias:
+
+- M2-026.1
+
+### TAREFA M2-027.2 - Validacao de schema M2 pre-execucao por ciclo
+
+Status: BACKLOG
+
+Descricao:
+Executar validacao de integridade de schema do modelo2.db antes de cada
+ciclo live, bloqueando execucao com reason_code explicito se houver
+divergencia de migracao ou campo obrigatorio ausente.
+
+Criterios de Aceite:
+
+- [ ] Schema validado a cada ciclo antes do primeiro comando de escrita
+- [ ] Divergencia de migracao bloqueia execucao com reason_code padronizado
+- [ ] Validacao registrada em audit trail com resultado e timestamp
+- [ ] Compatibilidade com go_live_preflight.py (nao duplicar verificacoes)
+- [ ] Nenhum overhead mensuravel em ciclo nominal (< 50ms)
+
+Dependencias:
+
+- M2-024.13
+
+### TAREFA M2-027.3 - Fail-safe de saida para posicoes orfas
+
+Status: BACKLOG
+
+Descricao:
+Implementar mecanismo que detecta posicoes abertas sem registro correspondente
+em signal_executions e aciona saida segura com reason_code ORPHAN_POSITION,
+evitando posicoes descobertas sem monitoramento.
+
+Criterios de Aceite:
+
+- [ ] Posicoes orfas detectadas por comparacao Binance-API vs modelo2.db
+- [ ] Saida segura acionada com stop_market e reason_code ORPHAN_POSITION
+- [ ] Evento registrado em audit_decision_execution com decision_id sintetico
+- [ ] Alerta operacional emitido antes de acionar saida
+- [ ] Guardrail de risco validado antes de qualquer ordem de saida
+
+Dependencias:
+
+- M2-026.3
+- M2-024.8
+
+### TAREFA M2-027.4 - Consistencia transacional entre order_layer e live_execution
+
+Status: BACKLOG
+
+Descricao:
+Garantir que transicoes de estado entre order_layer (CONSUMED) e
+live_execution (IN_PROGRESS) sejam atomicas ou reversiveis, evitando estado
+parcial persistido em falha de comunicacao entre camadas.
+
+Criterios de Aceite:
+
+- [ ] Transicao CONSUMED→IN_PROGRESS auditavel e reversivel em falha
+- [ ] Estado parcial detectado por reconciliacao e registrado com reason_code
+- [ ] Nenhuma ordem enviada sem registro previo em signal_executions
+- [ ] Compatibilidade com gate de idempotencia M2-024.3
+- [ ] Rollback de estado documentado em politica por severidade (M2-024.14)
+
+Dependencias:
+
+- M2-024.3
+- M2-024.14
+
+### TAREFA M2-027.5 - Governanca e runbook do pacote M2-027
+
+Status: BACKLOG
+
+Descricao:
+Sincronizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION apos
+conclusao das 4 tarefas tecnicas, documentar runbook de operacao para
+watchdog, fail-safe e consistencia transacional.
+
+Criterios de Aceite:
+
+- [ ] ARQUITETURA_ALVO.md atualizado com watchdog, validacao e fail-safe orfas
+- [ ] REGRAS_DE_NEGOCIO.md com regras RN-017 a RN-020 cobrindo cada invariante
+- [ ] Runbook de operacao documentado no diretorio docs/
+- [ ] SYNCHRONIZATION.md atualizado com trilha SYNC do pacote
+- [ ] markdownlint docs/*.md sem erros
+
+Dependencias:
+
+- M2-027.1 a M2-027.4
+
+---
+
 ## Prioridade P0 (iniciar agora)
 
 ## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)
@@ -4034,9 +4186,10 @@ Dependencias: M2-019.9
 
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
-**Status:** PENDENTE
-**Prioridade proposta:** Media
-**Sprint proposto:** A definir pelo PO
+Status: PENDENTE
+
+Prioridade proposta: Media
+Sprint proposto: A definir pelo PO
 
 **Escopo:**
 
@@ -4064,8 +4217,9 @@ estruturais de tendencia de longo prazo integradas ao pipeline M2.
 
 ### TAREFA BLID-088 - Captura e persistencia de candles M5
 
-**Status:** PENDENTE
-**Prioridade proposta:** Media
+Status: PENDENTE
+
+Prioridade proposta: Media
 **Sprint proposto:** A definir pelo PO
 
 **Escopo:**

@@ -23,6 +23,31 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-130] M2-027 - Resiliencia e Fail-safe de Pipeline
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Backlog (1), PO (2), SA (3), QA (4), SE (5), TL (6), DA (7)
+
+**Alteracoes**:
+
+| Documento | Tipo | Descricao |
+| --------- | ---- | --------- |
+| docs/BACKLOG.md | Atualizacao | Pacote M2-027 criado (5 tarefas); M2-027.1 REVISADO_APROVADO; BLID-088/089 formato Status corrigido |
+| docs/ARQUITETURA_ALVO.md | Atualizacao | cycle_watchdog.py registrado na Camada 4 com 5 utilitarios de resiliencia |
+| docs/REGRAS_DE_NEGOCIO.md | Atualizacao | RN-019 a RN-022 adicionados (watchdog, schema, orfas, transicao atomica) |
+| docs/SYNCHRONIZATION.md | Audit trail | SYNC-130 adicionado (este registro) |
+
+**Impacto tecnico**:
+
+- `core/model2/cycle_watchdog.py` criado com CycleWatchdog, validate_schema_pre_exec,
+  detect_orphan_positions, build_orphan_exit_order, execute_atomic_state_transition
+- `REASON_CODE_CATALOG` em `live_execution.py` expandido com `orphan_position`
+- 17 testes novos em `tests/test_model2_m2_027_resilience_failsafe.py`
+- Suite completa: 278 passed; mypy --strict: 0 erros
+
+---
+
 ### [SYNC-129] M2-024.2 - Unificacao do catalogo canonico reason_code
 
 **Data/Hora**: 2026-03-24 BRT

@@ -152,6 +152,52 @@ ser registradas com auditoria imutável:
 4. Comportamento de decisão do circuit_breaker permanece inviolável
 5. Falha em logging de evento não bloqueia decisão (fail-safe com try/except)
 
+### RN-019 - Watchdog de Ciclo M2 (M2-027.1)
+
+O pipeline M2 deve ser monitorado por um watchdog que detecta ausencia de
+progressao dentro de janela configuravel (padrao 300s):
+
+1. Ausencia de progressao acima da janela emite `reason_code='cycle_stalled'`
+   com timestamp_utc e elapsed_seconds.
+2. Fail-safe de interrupcao preserva estado do ciclo sem corromper execucao
+   em andamento.
+3. risk_gate e circuit_breaker NUNCA sao desabilitados pelo watchdog.
+4. Todo acionamento de fail-safe gera audit_event com decision_id e timestamp_utc.
+
+### RN-020 - Validacao de Schema Pre-Execucao (M2-027.2)
+
+O schema do modelo2.db deve ser validado antes de cada ciclo live:
+
+1. Tabelas obrigatorias: schema_migrations, technical_signals, signal_executions,
+   signal_execution_events, signal_execution_snapshots, audit_decision_execution.
+2. Divergencia bloqueia ciclo com `reason_code='schema_divergence'` e lista
+   de tabelas ausentes.
+3. Banco inexistente bloqueia com `reason_code='db_not_found'`.
+4. Validacao registrada com timestamp_utc; overhead maximo tolerado: 50ms.
+
+### RN-021 - Posicoes Orfas e Saida Segura (M2-027.3)
+
+Posicoes abertas na exchange sem signal_execution IN_PROGRESS correspondente
+sao consideradas orfas e devem ser tratadas como risco critico:
+
+1. Deteccao por comparacao symbol entre exchange e signal_executions.
+2. Saida de posicao orfa usa SOMENTE `STOP_MARKET` — nunca `MARKET`.
+3. Ordem de saida carrega `reason_code='orphan_position'` do catalogo canonico.
+4. Audit_event gerado com decision_id sintetico (formato `ORPHAN-<UUID>`) e
+   timestamp_utc antes de qualquer ordem ser enviada.
+5. risk_gate validado antes de toda ordem de saida orfa.
+
+### RN-022 - Consistencia Transacional CONSUMED->IN_PROGRESS (M2-027.4)
+
+A transicao de estado CONSUMED (order_layer) para IN_PROGRESS (live_execution)
+deve ser atomica e reversivel:
+
+1. Se a segunda escrita (IN_PROGRESS) falhar, a primeira (CONSUMED) e revertida.
+2. Estado parcial nunca persiste apos revert (`partial_state_persisted=False`).
+3. Toda transicao gera audit_event com signal_id, execution_id, decision_id e
+   timestamp_utc independente do resultado (committed ou reverted).
+4. Compatibilidade obrigatoria com gate de idempotencia M2-024.3.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:

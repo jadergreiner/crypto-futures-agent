@@ -113,6 +113,8 @@ REASON_CODE_CATALOG: dict[str, str] = {
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "ops.size_exceeds_limit",
     "STOP_LOSS_TOO_LOOSE": "ops.stop_loss_too_loose",
+    # M2-027.3: Posicoes orfas detectadas sem signal_execution correspondente
+    "orphan_position": "ops.orphan_position",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
