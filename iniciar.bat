@@ -83,9 +83,14 @@ echo [!TS_BRT! BRT] [INFO] Log: logs\m2_cycle.log
 :M2_LOOP
 echo.
 call :GET_BRT_TIMESTAMP
-echo [!TS_BRT! BRT] [M2] Pipeline diario...
->> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Pipeline diario...
+echo [!TS_BRT! BRT] [M2] Pipeline diario (H4)...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Pipeline diario (H4)...
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> logs\m2_cycle.log 2>&1
+
+call :GET_BRT_TIMESTAMP
+echo [!TS_BRT! BRT] [M2] Pipeline diario (H1)...
+>> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Pipeline diario (H1)...
+python scripts/model2/daily_pipeline.py --timeframe H1 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> logs\m2_cycle.log 2>&1
 
 call :GET_BRT_TIMESTAMP
 echo [!TS_BRT! BRT] [M2] Ciclo live...
@@ -107,12 +112,12 @@ echo [!TS_BRT! BRT] [M2] Status por simbolo...
 >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2] Status por simbolo...
 python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 20 --symbols-csv "!M2_SYMBOLS!" > logs\m2_cycle_status.tmp 2>> logs\m2_cycle.log
 if exist logs\m2_cycle_status.tmp (
-    for /f "usebackq delims=" %%L in ("logs\m2_cycle_status.tmp") do (
-        call :GET_BRT_TIMESTAMP
-        echo [!TS_BRT! BRT] [M2][SYM] %%L
-        >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2][SYM] %%L
-    )
+    type logs\m2_cycle_status.tmp
+    type logs\m2_cycle_status.tmp >> logs\m2_cycle.log
     del /q logs\m2_cycle_status.tmp >nul 2>&1
+) else (
+    echo [!TS_BRT! BRT] [M2][SYM] WARN: nenhum status gerado pelo operator_cycle_status.py
+    >> logs\m2_cycle.log echo [!TS_BRT! BRT] [M2][SYM] WARN: nenhum status gerado pelo operator_cycle_status.py
 )
 
 call :GET_BRT_TIMESTAMP
