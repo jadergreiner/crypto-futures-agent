@@ -9,6 +9,7 @@ from typing import Dict, Any
 from agent.reward import RewardCalculator
 
 
+@pytest.mark.unit
 class TestRewardCalculator:
     """Testes para a classe RewardCalculator."""
 

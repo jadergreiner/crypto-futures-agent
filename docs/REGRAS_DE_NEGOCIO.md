@@ -140,3 +140,26 @@ Regras de integracao:
 4. Se acao alinhada com direcao SMC: enriquece signal_execution
 5. Se acao contradiz direcao SMC: cancela com motivo auditavel
 6. Todos os casos registram episodio para retreino continuo
+
+### RN-017 - Observabilidade de Circuit Breaker (M2-026.2)
+
+Transições de estado do circuit_breaker (CLOSED→OPEN→HALF_OPEN→CLOSED) devem
+ser registradas com auditoria imutável:
+
+1. Cada transição registra: timestamp_utc, from_state, to_state, reason, reactivation_time_utc
+2. Estrutura é append-only: nenhuma alteração retroativa permitida (frozen dataclass)
+3. Query rápida: estado atual, histórico 24h (DESC por timestamp)
+4. Comportamento de decisão do circuit_breaker permanece inviolável
+5. Falha em logging de evento não bloqueia decisão (fail-safe com try/except)
+
+### RN-018 - Retenção Determinística de Logs (M2-026.5)
+
+Logs devem ser rotacionados e retidos conforme política centralizada por severidade:
+
+1. CRITICAL: retido por 365 dias (1 ano) para compliance
+2. ERROR: retido por 90 dias
+3. WARN: retido por 14 dias
+4. INFO: retido por 7 dias
+5. Rotação automática por tamanho (100MB) + compressão .gz
+6. Config centralizado em config/logging_retention_policy.yaml
+7. Scheduler determinístico sem intervenção manual

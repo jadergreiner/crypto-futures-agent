@@ -1,3 +1,4 @@
+import pytest
 from core.model2.thesis_state import (
     ALLOWED_TRANSITIONS,
     FINAL_THESIS_STATUSES,
@@ -8,6 +9,7 @@ from core.model2.thesis_state import (
 )
 
 
+@pytest.mark.contract
 def test_official_statuses_are_exact_and_ordered() -> None:
     assert OFFICIAL_THESIS_STATUSES == (
         "IDENTIFICADA",
@@ -18,6 +20,7 @@ def test_official_statuses_are_exact_and_ordered() -> None:
     )
 
 
+@pytest.mark.contract
 def test_initial_and_final_status_sets() -> None:
     assert INITIAL_THESIS_STATUS == ThesisStatus.IDENTIFICADA
     assert FINAL_THESIS_STATUSES == {
@@ -27,6 +30,7 @@ def test_initial_and_final_status_sets() -> None:
     }
 
 
+@pytest.mark.contract
 def test_allowed_transitions_matrix_matches_business_contract() -> None:
     assert ALLOWED_TRANSITIONS[None] == {ThesisStatus.IDENTIFICADA}
     assert ALLOWED_TRANSITIONS[ThesisStatus.IDENTIFICADA] == {ThesisStatus.MONITORANDO}
@@ -40,6 +44,7 @@ def test_allowed_transitions_matrix_matches_business_contract() -> None:
     assert ALLOWED_TRANSITIONS[ThesisStatus.EXPIRADA] == set()
 
 
+@pytest.mark.contract
 def test_is_valid_transition_accepts_valid_paths() -> None:
     assert is_valid_transition(None, ThesisStatus.IDENTIFICADA)
     assert is_valid_transition("IDENTIFICADA", "MONITORANDO")
@@ -48,6 +53,7 @@ def test_is_valid_transition_accepts_valid_paths() -> None:
     assert is_valid_transition("MONITORANDO", "EXPIRADA")
 
 
+@pytest.mark.contract
 def test_is_valid_transition_rejects_invalid_paths() -> None:
     assert not is_valid_transition(None, "MONITORANDO")
     assert not is_valid_transition("IDENTIFICADA", "VALIDADA")

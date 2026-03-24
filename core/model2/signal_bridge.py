@@ -9,6 +9,28 @@ M2_006_1_RULE_ID = "M2-006.1-RULE-STANDARD-SIGNAL"
 DEFAULT_ENTRY_TYPE = "MARKET"
 DEFAULT_SIGNAL_STATUS = "CREATED"
 
+# Gate de idempotência para decision_id (M2-024.3)
+# Armazena decision_ids já processados para evitar duplicação
+_PROCESSED_DECISION_IDS: set[int] = set()
+
+
+def is_decision_id_duplicate(decision_id: int | None) -> bool:
+    """Verifica se decision_id já foi processado (duplicado)."""
+    if decision_id is None:
+        return False
+    return decision_id in _PROCESSED_DECISION_IDS
+
+
+def mark_decision_id_processed(decision_id: int | None) -> None:
+    """Marca decision_id como processado."""
+    if decision_id is not None:
+        _PROCESSED_DECISION_IDS.add(decision_id)
+
+
+def reset_idempotence_gate() -> None:
+    """Reseta gate de idempotência (teste/utilitário)."""
+    _PROCESSED_DECISION_IDS.clear()
+
 
 @dataclass(frozen=True)
 class SignalBridgeInput:

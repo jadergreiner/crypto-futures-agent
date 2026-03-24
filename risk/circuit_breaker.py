@@ -60,7 +60,7 @@ class CircuitBreaker:
     def __init__(self, callbacks: Optional[Dict[str, Callable]] = None):
         """
         Inicializar Circuit Breaker.
-        
+
         Args:
             callbacks: Dicionário de callbacks para eventos
         """
@@ -69,10 +69,10 @@ class CircuitBreaker:
         self._portfolio_current: float = 10000.0
         self._triggered_at: Optional[datetime] = None
         self._recovery_until: Optional[datetime] = None
-        
+
         self._callbacks = callbacks or {}
         self._events: List[CircuitBreakerEvent] = []
-        
+
         logger.warning("⚡ Circuit Breaker INICIALIZADO")
         logger.warning(f"   Trigger threshold: {self.TRIGGER_THRESHOLD}%")
         logger.warning(f"   Alert threshold: {self.ALERT_THRESHOLD}%")
@@ -86,35 +86,73 @@ class CircuitBreaker:
         if current_value > self._portfolio_peak:
             self._portfolio_peak = current_value
 
+    def _record_transition(
+        self,
+        from_state: str,
+        to_state: str,
+        reason: str,
+        reactivation_time_utc: Optional[datetime] = None,
+    ) -> None:
+        """Registrar transição em circuit_breaker_events (lazy import)."""
+        try:
+            from core.model2.circuit_breaker_events import get_circuit_breaker_recorder
+            recorder = get_circuit_breaker_recorder()
+            recorder.record_transition(
+                symbol=None,
+                from_state=from_state,
+                to_state=to_state,
+                failure_count=0,
+                window_start_utc=datetime.utcnow() if from_state != to_state else None,
+                reactivation_time_utc=reactivation_time_utc,
+                reason=reason,
+            )
+        except Exception as e:
+            logger.error(f"Erro registrando transição circuit_breaker: {e}")
+
     def check_status(self) -> Dict[str, Any]:
         """
         Verificar status do circuit breaker e atualizar estado.
-        
+
         Returns:
             Dicionário com status atual
         """
         drawdown_pct = self._calculate_drawdown()
-        
+        previous_state = self.state.value
+
         # Verificar se acionado (-3.1%)
         if drawdown_pct <= self.TRIGGER_THRESHOLD:
             # Se ainda não foi acionado, fazer acionamento agora
             if self.state != CircuitBreakerState.TRIGGERED and self.state != CircuitBreakerState.LOCKED:
                 logger.critical(f"💥 CIRCUIT BREAKER ACIONADO: {drawdown_pct:.2f}% <= {self.TRIGGER_THRESHOLD}%")
                 self._trigger_emergency()
-            
+                # Registrar transição
+                self._record_transition(
+                    from_state=previous_state,
+                    to_state=CircuitBreakerState.TRIGGERED.value,
+                    reason=f"drawdown_threshold_exceeded_{drawdown_pct:.2f}%",
+                    reactivation_time_utc=self._recovery_until,
+                )
+
             return {
                 "state": self.state.value,
                 "drawdown_pct": drawdown_pct,
                 "action": "EMERGENCY_SHUTDOWN",
                 "trading_allowed": False,
             }
-        
+
         # Verificar se em recovery
         if self._recovery_until and datetime.now() < self._recovery_until:
+            if self.state != CircuitBreakerState.LOCKED:
+                self._record_transition(
+                    from_state=previous_state,
+                    to_state=CircuitBreakerState.LOCKED.value,
+                    reason="recovery_period_active",
+                    reactivation_time_utc=self._recovery_until,
+                )
             self.state = CircuitBreakerState.LOCKED
             recovery_remaining = (self._recovery_until - datetime.now()).total_seconds() / 3600
             logger.warning(f"🔒 Circuit Breaker em RECOVERY: {recovery_remaining:.1f}h restantes")
-            
+
             return {
                 "state": self.state.value,
                 "drawdown_pct": drawdown_pct,
@@ -123,16 +161,27 @@ class CircuitBreaker:
             }
         elif self._recovery_until:
             # Recovery terminou
+            previous_state_str = self.state.value
             self._recovery_until = None
             self.state = CircuitBreakerState.NORMAL
+            self._record_transition(
+                from_state=previous_state_str,
+                to_state=CircuitBreakerState.NORMAL.value,
+                reason="recovery_period_expired",
+            )
             logger.info("✅ Circuit Breaker RECUPERADO - Operação normal retomada")
 
         # Verificar se em alerta (-2.8%)
         if drawdown_pct <= self.ALERT_THRESHOLD:
             if self.state != CircuitBreakerState.ALERT:
+                self._record_transition(
+                    from_state=previous_state,
+                    to_state=CircuitBreakerState.ALERT.value,
+                    reason=f"alert_threshold_approached_{drawdown_pct:.2f}%",
+                )
                 logger.warning(f"⚠️  ALERTA: drawdown {drawdown_pct:.2f}% próximo ao limite")
                 self.state = CircuitBreakerState.ALERT
-            
+
             return {
                 "state": self.state.value,
                 "drawdown_pct": drawdown_pct,
@@ -141,6 +190,12 @@ class CircuitBreaker:
             }
 
         # Normal
+        if self.state != CircuitBreakerState.NORMAL:
+            self._record_transition(
+                from_state=previous_state,
+                to_state=CircuitBreakerState.NORMAL.value,
+                reason="drawdown_recovered",
+            )
         self.state = CircuitBreakerState.NORMAL
         return {
             "state": self.state.value,

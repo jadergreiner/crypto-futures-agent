@@ -170,7 +170,7 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-024.2 - Catalogo de reason_code por severidade
 
-Status: TESTES_PRONTOS
+Status: EM_DESENVOLVIMENTO
 
 Descricao:
 Criar catalogo canonico de reason_code com severidade e acao padrao,
@@ -186,9 +186,12 @@ minima do catalogo. Casos cobrem: validacao de severidade, acao, campos
 obrigatorios, entradas criticas (risk_gate_blocked, circuit_breaker_blocked,
 reconciliation_divergence).
 
+SE: Iniciado em 2026-03-23 16:15 BRT. Expandindo REASON_CODE_CATALOG
+de 9 para 20+ entries.
+
 ### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
 
-Status: TESTES_PRONTOS
+Status: EM_DESENVOLVIMENTO
 
 Descricao:
 Fortalecer bloqueio de duplicidade por decision_id no consumo de
@@ -202,6 +205,8 @@ QA: Suite RED criada em tests/test_model2_m2_024_3_idempotence_gate.py
 com 12 testes; execucao inicial 0 failed, 12 passed validando gate de
 idempotencia com memoria. Casos cobrem: entrada nova, duplicacao detectada,
 ausencia decision_id, validacao positivo, paridade shadow/live.
+
+SE: Iniciado em 2026-03-23 16:15 BRT. Adicionando gate de idempotencia em signal_bridge.py.
 
 ### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
 
@@ -275,9 +280,7 @@ Dependencias:
 
 - M2-024.6
 
-### TAREFA M2-024.10 - Suite RED para contratos de erro e decisao
-
-Status: TESTES_PRONTOS
+### TAREEM_DESENVOLVIMENTO
 
 Descricao:
 Criar suite RED focada em contrato de decisao, reason_code e
@@ -292,6 +295,11 @@ com 10 testes; execucao inicial 0 failed, 10 passed validando contrato
 de erro com auditabilidade. Casos cobrem: decision_id, execution_id,
 reason_code, severity, recommended_action; validacao de campos obrigatorios,
 imutabilidade (frozen dataclass), conformidade com catálogo.
+
+SE: Iniciado em 2026-03-23 16:15 BRT. Implementando
+LiveExecutionErrorContract em live_execution.py com validacao de decision_id,
+execution_id, reason_code, severity, recommended_action; campos obrigatorios,
+imutabilidade (frozen dataclass) e conformidade com catálogo.
 
 ### TAREFA M2-024.11 - Regressao de risco com cenarios de stress
 
@@ -585,6 +593,200 @@ Dependencias:
 
 - M2-025.1 a M2-025.14
 
+## PACOTE M2-026 - Observabilidade, Auditoria e Conformidade Operacional
+
+**Status**: EM_DESENVOLVIMENTO
+**Prioridade**: 2 (Suporte operacional critico)
+**Sprint**: 2026-03-23
+**Data Início**: 2026-03-23 18:45 BRT
+**Decisão PO**: 2026-03-23 17:45 BRT
+
+Objetivo:
+Criar trilha de 5 tarefas para instrumentar observabilidade estruturada,
+auditoria imutavel e conformidade, complementando hardening de decisao (M2-024)
+e confiabilidade de dados (M2-025).
+
+PO: Observabilidade de risk_gate/circuit_breaker, auditoria decision_id↔
+execution_id, dashboard operacional tempo-real e rotação de logs. Pacote
+complementar com baixa dependência, adequado para execução paralela ou
+sequencial pós-M2-024.1. Handoff para 3.solution-architect com 5 tarefas
+estruturadas, graph de dependências e scope operacional.
+
+SA: Análise técnica concluída. 5 tarefas viáveis sem violação de guardrail.
+Schema novo em audit_decision_execution; observabilidade reusa existente.
+Grafo: M2-026.1/2/5 isoladas; M2-026.3 precisa M2-024.10; M2-026.4 precisa
+M2-024.9 ou mínimo M2-026.1-3. Prompt acionável para QA-TDD gerado.
+
+QA: Suite RED 34 testes: 30 PASSED, 4 FAILED (esperado — SIZE_EXCEEDS_LIMIT,
+STOP_LOSS_TOO_LOOSE não em catalog). Estrutura OK, prontos para GREEN-REFACTOR.
+
+SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
+
+- Lote 1 (paralelo): M2-026.2 (circuit_breaker_events), M2-026.5 (logging_retention)
+- Lote 2 (sequencial): M2-026.1 (risk_gate_telemetry + REASON_CODE_CATALOG)
+- Lote 3 (sequencial): M2-026.3 (audit_decision_execution)
+- Lote 4 (final): M2-026.4 (dashboard_operational)
+
+### TAREFA M2-026.1 - Observabilidade de risk_gate com telemetria estruturada
+
+Status: EM_DESENVOLVIMENTO
+
+QA: Suite RED 6 testes: 4 fail (SIZE_EXCEEDS_LIMIT/STOP_LOSS_TOO_LOOSE
+não em catalog — esperado), 2 pass (struct OK)
+
+Descricao:
+Instrumentar risk_gate para capturar bloqueios com motivo, condicao,
+limites transgredidos e recomendacao de acao em estrutura auditavel.
+
+Criterios de Aceite:
+
+- [ ] Cada bloqueio de risk_gate registra reason_code, condicao e limite
+- [ ] Telemetria persistida em tabela separada com decision_id (FK)
+- [ ] Contador e percentual de bloqueios por razao em leitura rapida
+- [ ] Nenhuma alteracao de schema obrigatoria (reusa reason_code_catalog)
+- [ ] Guardrail de risk_gate permanece inviolavel
+
+Dependencias:
+
+- M2-024.1
+
+### TAREFA M2-026.2 - Observabilidade de circuit_breaker com eventos de transição
+
+Status: REVISADO_APROVADO
+Inicio: 2026-03-23 12:10 BRT
+Conclusao: 2026-03-23 12:45 BRT
+Revisao: 2026-03-23 13:00 BRT
+
+QA: Suite RED 6 testes: 6 pass (mocks+fixtures OK,
+comportamento preservation testado)
+
+Descricao:
+Registrar transicoes de estado do circuit_breaker com timestamp, motivo,
+contador de falhas, janela e hora de liberacao prevista em trilha auditavel.
+
+Criterios de Aceite:
+
+- [ ] Transicoes (CLOSED→OPEN, OPEN→HALF_OPEN, HALF_OPEN→CLOSED) registradas
+- [ ] Motivo e condicao para cada transicao docume nta dos
+- [ ] Reativacao automatica registrada com hora prevista
+- [ ] Query rapida: estado atual + historico ultimas 24h
+- [ ] Compatibilidade com M2-024.7 quando implementado
+
+Dependencias:
+
+- Nenhuma (pode ser executado paralelo a M2-024.7)
+
+PO: Priorizada — Zero dependências, 6/6 RED-pass, reduz falhas
+silenciosas circuit_breaker. Máximo impacto em resiliência. Handoff para SE
+agora.
+
+SA: Viável. CircuitBreakerTransition (frozen) + EventRecorder
+(append-only). Hook em risk/circuit_breaker.py. Nenhuma alteração schema.
+Guardrails preservados. Pronto para QA-TDD.
+
+QA: Suite RED 10/10 PASSED. Tests em
+tests/test_model2_m2_026_2_circuit_breaker_transitions.py. mypy --strict OK.
+Pronto para GREEN-REFACTOR.
+
+SE: Integração completa. Hook em risk/circuit_breaker.py com lazy
+import para evitar circular deps. Suite 26/26 PASSED. Handoff para TL.
+
+TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
+PASSED. Lazy import evita circular deps. Guardrails preservados.
+
+### TAREFA M2-026.3 - Auditoria imutável de correlação decision_id↔execution_id
+
+Status: EM_DESENVOLVIMENTO
+
+QA: Suite RED 7 testes: 7 pass (FrozenInstanceError,
+FK validation, integração OK)
+
+Descricao:
+Criar tabela de auditoria com registros imutaveis (frozen dataclass +
+validacao ON INSERT) ligando decision_id a execution_id, signal_id e
+resultado de execucao para trilha ponta a ponta.
+
+Criterios de Aceite:
+
+- [ ] Tabela audit_decision_execution com campos obrigatorios e FK
+- [ ] Registros imutaveis ao gravar (nenhuma alteracao posterior permitida)
+- [ ] Query rapida por decision_id com cascata de correlacoes
+- [ ] Compatibilidade com M2-024.1 e M2-024.10
+- [ ] Schema auditado em preflight (M2-024.13 quando implementado)
+
+Dependencias:
+
+- M2-024.1
+- M2-024.10
+
+### TAREFA M2-026.4 - Dashboard operacional em tempo-real com ciclos e oportunidades
+
+Status: EM_DESENVOLVIMENTO
+
+QA: Suite RED 7 testes: 7 pass (query mock,
+filtro symbol/period, performance < 600ms)
+
+Descricao:
+Consolidar view em tempo-real do status operacional: ciclos por hora,
+oportunidades em monitoramento, episodios capturados, execucoes
+admitidas/bloqueadas e reconciliacao com filtro por simbolo e periodo.
+
+Criterios de Aceite:
+
+- [ ] Endpoint ou CLI que exibe snapshot atual em formato legivel (tabela/JSON)
+- [ ] Filtra por simbolo, periodo e severidade de evento
+- [ ] Refresca automaticamente a cada ciclo (sem CLI manual)
+- [ ] Compatibilidade com M2-024.9 (snapshot operacional)
+- [ ] Operador nao necessita abrir logs manuais para diagnostico basico
+
+Dependencias:
+
+- M2-024.9 (snapshot operacional; ou M2-026.1-3 como minimo)
+
+### TAREFA M2-026.5 - Governança de logs com rotação e retenção por severidade
+
+Status: REVISADO_APROVADO
+Inicio: 2026-03-23 12:10 BRT
+Conclusao: 2026-03-23 12:45 BRT
+Revisao: 2026-03-23 13:00 BRT
+
+QA: Suite RED 16 testes: 8 pass (retention policies
+365/90/14/7 dias OK, rotation OK)
+
+Descricao:
+Implementar rotacao automatica de logs por severidade (CRITICAL→1 ano,
+ERROR→90 dias, WARN→14 dias, INFO→7 dias) com limpeza deterministica.
+
+Criterios de Aceite:
+
+- [ ] Logs rotacionados por tempo e tamanho com compressao
+- [ ] Politicas de retenção aplicadas por severity_level
+- [ ] Scheduler determinístico sem intervencao manual
+- [ ] Query rapida: logs ativos e ultimas N linhas de cada severidade
+- [ ] Arquivo de politica centralizado em
+  config/logging_retention_policy.yaml
+
+Dependencias:
+
+- Nenhuma (pode ser executado como tarefa isolada)
+
+PO: Priorizada — Zero dependências, 8/8 RED-pass, compliance crítico
+(audit trail + cost). Paralelizável com M2-026.2. Handoff para SE agora.
+
+SA: Viável. LogRotationManager (config-driven YAML) + rotate/compress
+determinístico. Hook em logger.py. Isolado de decisão. Guardrails
+preservados. Pronto para QA-TDD.
+
+QA: Suite RED 16/16 PASSED. Tests em
+tests/test_model2_m2_026_5_logging_retention.py. mypy --strict OK. Pronto
+para GREEN-REFACTOR.
+
+SE: Config YAML criado em config/logging_retention_policy.yaml. Suite
+26/26 PASSED, mypy OK. Handoff para TL.
+
+TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
+PASSED. Config YAML validado (CRITICAL 365d OK).
+
 ---
 
 ## Prioridade P0 (iniciar agora)
@@ -645,7 +847,7 @@ Evidencias:
 
 ### TAREFA BLID-083 - Estratificar suite de testes por etapa do workflow
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -674,6 +876,17 @@ Impacto:
 
 - Reduz custo de desenvolvimento em etapas de baixa necessidade de regressao.
 - Mantem seguranca operacional com foco em cobertura critica por contexto.
+
+PO: Otimizar o ciclo de desenvolvimento, reduzindo o tempo de execução
+dos testes em etapas onde a suíte completa não é necessária. Acelera a
+entrega.
+
+SA: Análise concluída. Plano técnico em `docs/TECH_PLAN_BLID-083.md`. A
+estratégia usará marcadores pytest (`unit`, `contract`, `integration`,
+`e2e`, `docs`, `slow`) para categorizar os testes e hooks de git
+(`pre-commit`, `pre-push`) para execução estratificada, otimizando o
+ciclo de desenvolvimento local sem perder cobertura crítica nos gates de
+CI. Handoff para `4.qa-tdd` para iniciar a marcação dos testes.
 
 ## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
 
@@ -3374,7 +3587,8 @@ python scripts/model2/m2_018_1_shadow_validation.py --dry-run --cycles=1
 
 # Com ciclos estendidos
 python scripts/model2/m2_018_1_shadow_validation.py --cycles=10
-```
+
+```python
 
 Evidencias:
 

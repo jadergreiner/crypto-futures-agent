@@ -1,10 +1,10 @@
 # Handoff Software Engineer — M2-024 Lote 1 GREEN-Refactor
 
-**De**: QA-TDD (4.qa-tdd)  
-**Para**: Software Engineer (5.software-engineer)  
-**Data**: 2026-03-23 16:00 BRT  
-**Status**: PRONTO PARA GREEN-REFACTOR  
-**Referência**: RED Phase criada em SYNC-125  
+**De**: QA-TDD (4.qa-tdd)
+**Para**: Software Engineer (5.software-engineer)
+**Data**: 2026-03-23 16:00 BRT
+**Status**: PRONTO PARA GREEN-REFACTOR
+**Referência**: RED Phase criada em SYNC-125
 
 ---
 
@@ -130,12 +130,12 @@ Testes que já passam (validam a estrutura de LiveExecutionErrorContract):
 
 ## Guardrails Invioláveis
 
-✅ **risk_gate.py** — ATIVO em todos os caminos, NÃO mockado em testes  
-✅ **circuit_breaker.py** — ATIVO em todos os caminos, NÃO mockado em testes  
-✅ **decision_id idempotência** — Enforçado em signal_bridge, validado em testes  
-✅ **Fail-safe** — Em dúvida/ausencia operacional, bloqueia operação  
-✅ **Compatibilidade** — Sem breaking changes em fluxo legado  
-✅ **Auditabilidade** — decision_id e execution_id preservados em erro  
+✅ **risk_gate.py** — ATIVO em todos os caminos, NÃO mockado em testes
+✅ **circuit_breaker.py** — ATIVO em todos os caminos, NÃO mockado em testes
+✅ **decision_id idempotência** — Enforçado em signal_bridge, validado em testes
+✅ **Fail-safe** — Em dúvida/ausencia operacional, bloqueia operação
+✅ **Compatibilidade** — Sem breaking changes em fluxo legado
+✅ **Auditabilidade** — decision_id e execution_id preservados em erro
 
 ---
 
@@ -204,8 +204,8 @@ Evidencias: link para commits.
 
 ---
 
-**Status**: ✅ PRONTO PARA GREEN-REFACTOR  
-**Commit RED**: 473d89e  
+**Status**: ✅ PRONTO PARA GREEN-REFACTOR
+**Commit RED**: 473d89e
 **Próxima Etapa**: 5.software-engineer implementar (GREEN-Refactor)
 
 ---

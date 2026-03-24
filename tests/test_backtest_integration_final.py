@@ -17,12 +17,14 @@ Executar:
 """
 
 import pytest
+import pytest
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any
 import tempfile
 
 
+@pytest.mark.integration
 class TestBacktestEnvironmentIntegration:
     """Testa que BacktestEnvironment está funcionando."""
 
@@ -89,6 +91,7 @@ class TestBacktestEnvironmentIntegration:
             print(f"⚠️ reset() test failed: {e}")
 
 
+@pytest.mark.integration
 class TestBacktestMetricsIntegration:
     """Testa que BacktestMetrics pode calcular 6 gates."""
 
@@ -151,6 +154,7 @@ class TestBacktestMetricsIntegration:
             print(f"⚠️ BacktestMetrics calculation failed: {e}")
 
 
+@pytest.mark.integration
 class TestRevalidationScriptIntegration:
     """Testa que script de revalidação pode ser executado."""
 

@@ -1,3 +1,4 @@
+import pytest
 import re
 from pathlib import Path
 
@@ -23,6 +24,7 @@ def _is_path_like(token: str) -> bool:
     return bool(re.search(r"\.[A-Za-z0-9]+$", normalized))
 
 
+@pytest.mark.docs
 def test_concluded_backlog_tasks_have_existing_evidence_paths() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     blocks = _task_blocks(text)
@@ -62,6 +64,7 @@ def test_concluded_backlog_tasks_have_existing_evidence_paths() -> None:
             )
 
 
+@pytest.mark.docs
 def test_backlog_status_em_analise_is_literal_and_consistent() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     status_lines = re.findall(r"^Status:\s*(.+)$", text, flags=re.MULTILINE)
@@ -79,6 +82,7 @@ def test_backlog_status_em_analise_is_literal_and_consistent() -> None:
         )
 
 
+@pytest.mark.docs
 def test_backlog_sa_comment_limit_when_status_is_em_analise() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     blocks = _task_blocks(text)
@@ -104,6 +108,7 @@ def test_backlog_sa_comment_limit_when_status_is_em_analise() -> None:
         )
 
 
+@pytest.mark.docs
 def test_m2_006_subtasks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-006 - Ponte de Sinal" in text
@@ -113,33 +118,39 @@ def test_m2_006_subtasks_declared_in_backlog() -> None:
     assert "M2-006.1.4" in text
 
 
+@pytest.mark.docs
 def test_m2_007_adapter_task_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-007 - Integracao com execucao" in text
     assert "TAREFA M2-007.2 - Adaptar technical_signals para trade_signals legado" in text
 
 
+@pytest.mark.docs
 def test_m2_007_observability_task_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "TAREFA M2-007.3 - Observabilidade do fluxo de sinais" in text
 
 
+@pytest.mark.docs
 def test_m2_008_daily_pipeline_task_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-008 - Orquestracao operacional" in text
     assert "TAREFA M2-008.1 - Orquestrar pipeline diario ponta a ponta" in text
 
 
+@pytest.mark.docs
 def test_m2_008_scheduled_execution_task_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "TAREFA M2-008.2 - Operacionalizar execucao agendada" in text
 
 
+@pytest.mark.docs
 def test_m2_008_operational_hardening_task_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "TAREFA M2-008.3 - Hardening operacional (monitoramento e alertas)" in text
 
 
+@pytest.mark.docs
 def test_m2_009_live_execution_tasks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-009 - Execucao real nativa" in text
@@ -149,6 +160,7 @@ def test_m2_009_live_execution_tasks_declared_in_backlog() -> None:
     assert "TAREFA M2-009.4 - Fail-safe de protecao" in text
 
 
+@pytest.mark.docs
 def test_m2_010_live_reconcile_tasks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-010 - Reconciliacao e observabilidade live" in text
@@ -157,6 +169,7 @@ def test_m2_010_live_reconcile_tasks_declared_in_backlog() -> None:
     assert "TAREFA M2-010.3 - Healthcheck e runbook" in text
 
 
+@pytest.mark.docs
 def test_m2_011_m2_013_phase2_delivery_tracks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-011 - Orquestracao operacional live" in text

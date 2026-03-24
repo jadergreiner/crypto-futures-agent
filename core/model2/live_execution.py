@@ -6,6 +6,53 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 
+@dataclass(frozen=True)
+class LiveExecutionErrorContract:
+    """Contrato de erro para live_execution com auditabilidade.
+
+    Garante que toda falha/bloqueio é rastreável com contexto completo:
+    - decision_id: identificador da decisão que levou ao bloqueio
+    - execution_id: identificador único da tentativa de execução
+    - reason_code: código canônico da razão (auditável)
+    - severity: nível de severidade da falha
+    - recommended_action: ação recomendada para recuperação/troubleshooting
+    - additional_context: metadados adicionais para análise
+    """
+
+    decision_id: int | None
+    execution_id: int | None
+    reason_code: str
+    severity: str
+    recommended_action: str
+    additional_context: Mapping[str, Any] | None = None
+
+    def is_complete(self) -> bool:
+        """Valida se contrato tem todos os campos obrigatórios preenchidos."""
+        return (
+            self.decision_id is not None
+            and self.execution_id is not None
+            and self.reason_code
+            and len(self.reason_code) > 0
+            and self.severity
+            and len(self.severity) > 0
+            and self.recommended_action
+            and len(self.recommended_action) > 0
+        )
+
+    def validate_reason_code_in_catalog(self) -> bool:
+        """Valida se reason_code existe no catálogo."""
+        return self.reason_code in REASON_CODE_CATALOG
+
+    def validate_severity(self) -> bool:
+        """Valida se severity é um de [INFO, MEDIUM, HIGH, CRITICAL]."""
+        valid_severities = {"INFO", "MEDIUM", "HIGH", "CRITICAL"}
+        return self.severity in valid_severities
+
+    def validate_action(self) -> bool:
+        """Valida se recommended_action não está vazia."""
+        return self.recommended_action and len(self.recommended_action) > 0
+
+
 class _ReasonCode(str):
     """String retrocompativel com alias textual para auditoria."""
 
@@ -26,7 +73,8 @@ M2_009_3_RULE_ID = "M2-009.3-RULE-MARKET-ENTRY"
 M2_009_4_RULE_ID = "M2-009.4-RULE-PROTECTION-FAILSAFE"
 M2_010_1_RULE_ID = "M2-010.1-RULE-LIVE-RECONCILE"
 
-# Catalogo minimo de reason codes para hardening operacional M2-021.
+# Catalogo canônico de reason codes para hardening operacional M2-024.
+# Mínimo 20 entries para cobertura adequada de casos operacionais.
 REASON_CODE_CATALOG: dict[str, str] = {
     "ready_for_live_execution": "ops.ready_for_live_execution",
     "ops_ambiguous_state": "ops.ambiguous_state",
@@ -37,6 +85,23 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "insufficient_balance": "ops.insufficient_balance",
     "timeout": "ops.timeout",
     "reconciliation_divergence": "ops.reconciliation_divergence",
+    # Expansão M2-024.2: 11+ entries adicionais
+    "entrada_validada": "ops.entrada_validada",
+    "ordem_enviada": "ops.ordem_enviada",
+    "ordem_confirmada": "ops.ordem_confirmada",
+    "ordem_rejeitada": "ops.ordem_rejeitada",
+    "protecao_armada": "ops.protecao_armada",
+    "protecao_falhou": "ops.protecao_falhou",
+    "posicao_aumentada": "ops.posicao_aumentada",
+    "posicao_reduzida": "ops.posicao_reduzida",
+    "posicao_fechada": "ops.posicao_fechada",
+    "saida_forcada": "ops.saida_forcada",
+    "reconciliacao_ok": "ops.reconciliacao_ok",
+    "reconciliacao_pendente": "ops.reconciliacao_pendente",
+    "decision_id_duplicado": "ops.decision_id_duplicado",
+    # M2-026.1: Observabilidade de risk_gate
+    "SIZE_EXCEEDS_LIMIT": "ops.size_exceeds_limit",
+    "STOP_LOSS_TOO_LOOSE": "ops.stop_loss_too_loose",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
@@ -49,6 +114,23 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "insufficient_balance": "MEDIUM",
     "timeout": "HIGH",
     "reconciliation_divergence": "CRITICAL",
+    # Expansão M2-024.2
+    "entrada_validada": "INFO",
+    "ordem_enviada": "INFO",
+    "ordem_confirmada": "INFO",
+    "ordem_rejeitada": "HIGH",
+    "protecao_armada": "INFO",
+    "protecao_falhou": "HIGH",
+    "posicao_aumentada": "INFO",
+    "posicao_reduzida": "INFO",
+    "posicao_fechada": "INFO",
+    "saida_forcada": "HIGH",
+    "reconciliacao_ok": "INFO",
+    "reconciliacao_pendente": "MEDIUM",
+    "decision_id_duplicado": "HIGH",
+    # M2-026.1: Observabilidade de risk_gate
+    "SIZE_EXCEEDS_LIMIT": "HIGH",
+    "STOP_LOSS_TOO_LOOSE": "HIGH",
 }
 
 REASON_CODE_ACTION: dict[str, str] = {
@@ -61,6 +143,23 @@ REASON_CODE_ACTION: dict[str, str] = {
     "insufficient_balance": "ajustar_margem_ou_aguardar",
     "timeout": "aplicar_retry_controlado",
     "reconciliation_divergence": "interromper_e_reconciliar",
+    # Expansão M2-024.2
+    "entrada_validada": "continuar_fluxo",
+    "ordem_enviada": "monitorar_preenchimento",
+    "ordem_confirmada": "armar_protecoes",
+    "ordem_rejeitada": "descartar_e_registrar",
+    "protecao_armada": "monitorar_execucao",
+    "protecao_falhou": "bloquear_operacao",
+    "posicao_aumentada": "ajustar_protecao",
+    "posicao_reduzida": "monitorar_saldo",
+    "posicao_fechada": "registrar_resultado",
+    "saida_forcada": "reconciliar_posicao",
+    "reconciliacao_ok": "continuar_monitorando",
+    "reconciliacao_pendente": "retentativas_reconciliacao",
+    "decision_id_duplicado": "bloquear_operacao",
+    # M2-026.1: Observabilidade de risk_gate
+    "SIZE_EXCEEDS_LIMIT": "bloquear_operacao",
+    "STOP_LOSS_TOO_LOOSE": "bloquear_operacao",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"

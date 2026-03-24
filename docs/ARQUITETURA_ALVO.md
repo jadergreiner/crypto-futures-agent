@@ -133,6 +133,19 @@ Componentes:
 3. `format_symbol_report()` — Bloco ASCII legivel
 4. `format_cycle_summary()` — Resumo do ciclo com N simbolos
 
+**M2-026 (Observabilidade + Auditoria + Conformidade)**:
+
+1. `core/model2/circuit_breaker_events.py` — CircuitBreakerEventRecorder (append-only)
+   - Registra transições de estado do circuit_breaker: CLOSED→OPEN→HALF_OPEN→CLOSED
+   - Query rápida: get_history_24h(), get_current_state(), get_reactivation_time()
+   - Singleton pattern com reset para testes
+
+2. `management/logging_retention.py` — LogRotationManager + RetentionPolicy
+   - Rotação automática por tamanho (100MB) e tempo
+   - Retenção por severidade: CRITICAL 365d, ERROR 90d, WARN 14d, INFO 7d
+   - Config centralizado em config/logging_retention_policy.yaml
+   - Compressão .gz de arquivos antigos
+
 Dados coletados por simbolo:
 
 1. Candles capturados (count, timestamp do ultimo)

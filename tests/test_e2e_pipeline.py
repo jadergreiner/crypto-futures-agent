@@ -100,6 +100,7 @@ def create_synthetic_sentiment_data() -> Dict[str, Any]:
     }
 
 
+@pytest.mark.unit
 def test_create_synthetic_data():
     """Test that synthetic data generation works correctly."""
     df = create_synthetic_ohlcv(length=200)
@@ -120,6 +121,7 @@ def test_create_synthetic_data():
     assert all(df['low'] <= df['open'])
 
 
+@pytest.mark.integration
 def test_technical_indicators_on_synthetic_data():
     """Test that technical indicators can be calculated on synthetic data."""
     df = create_synthetic_ohlcv(length=700)  # Need enough for long EMAs
@@ -145,6 +147,7 @@ def test_technical_indicators_on_synthetic_data():
     assert not pd.isna(last_row['adx_14'])
 
 
+@pytest.mark.integration
 def test_smc_on_synthetic_data():
     """Test that SMC can be calculated on synthetic data."""
     df = create_synthetic_ohlcv(length=200)
@@ -165,6 +168,7 @@ def test_smc_on_synthetic_data():
     assert smc_result['structure'] is not None
 
 
+@pytest.mark.integration
 def test_multi_timeframe_analysis():
     """Test multi-timeframe analysis aggregation."""
     # Create synthetic data for different timeframes
@@ -205,6 +209,7 @@ def test_multi_timeframe_analysis():
     assert result['beta_btc'] >= 0.0
 
 
+@pytest.mark.integration
 def test_build_observation_without_multi_tf_result():
     """Test build_observation with placeholder values (backward compatibility)."""
     df = create_synthetic_ohlcv(length=200)
@@ -251,6 +256,7 @@ def test_build_observation_without_multi_tf_result():
     assert observation[block8_start + 1] == 0.0  # regime placeholder
 
 
+@pytest.mark.integration
 def test_build_observation_with_multi_tf_result():
     """Test build_observation with real multi-timeframe values."""
     # Create data
@@ -324,6 +330,7 @@ def test_build_observation_with_multi_tf_result():
     assert regime_val in [-1.0, 0.0, 1.0]
 
 
+@pytest.mark.e2e
 def test_full_pipeline_e2e():
     """
     End-to-end test of the full pipeline:
@@ -408,6 +415,7 @@ def test_full_pipeline_e2e():
     assert np.all(observation[60:65] == 0)
 
 
+@pytest.mark.integration
 def test_multi_tf_result_bias_mapping():
     """Test that D1 bias is correctly mapped to numeric scores."""
     df = create_synthetic_ohlcv(length=200)
