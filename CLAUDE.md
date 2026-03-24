@@ -31,8 +31,13 @@ python scripts/model2/go_live_preflight.py      # Checagens pré-live
 
 # Testes
 pip install -r requirements-test.txt
-pytest -q tests/
-pytest -q tests/test_docs_model2_sync.py
+pytest -q tests/                                 # Suite completa
+pytest -q tests/test_model2_scanner.py           # Arquivo específico
+pytest -q tests/ -k "scanner"                    # Por keyword
+
+# Type checking
+mypy --strict core/model2/scanner.py            # Módulo específico
+# Nota: mypy exclui checkpoints/ automaticamente (ver mypy.ini)
 
 # Lint de documentação
 markdownlint docs/*.md
@@ -79,6 +84,11 @@ Gate de admissão. Consome `technical_signals` e registra `CONSUMED` ou `CANCELL
 Envia ordens MARKET, arma proteções STOP_MARKET + TAKE_PROFIT_MARKET, reconcilia
 fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer ordem.
 
+**Utilitários transversais:**
+- `core/model2/time_utils.py` — conversão canônica de timestamps para BRT; usar sempre que formatar datas/horas
+- `core/model2/observability.py` — snapshots RED (signal flow, thesis lifecycle, audit)
+- `core/model2/repository.py` — camada de acesso ao DB; preferir sobre SQL direto
+
 ## Bancos de Dados
 
 - `db/crypto_agent.db` — Operacional (OHLCV legado, indicadores, dados macro)
@@ -106,8 +116,13 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 
 ## Configuração Principal
 
-- `.env` (baseado em `.env.example`) — `BINANCE_API_KEY`, `BINANCE_API_SECRET`,
-  `TRADING_MODE`, `MODEL2_DB_PATH`, `M2_EXECUTION_MODE`, `M2_MAX_DAILY_ENTRIES`
+- `.env` (baseado em `.env.example`) — variáveis principais:
+  - `BINANCE_API_KEY`, `BINANCE_API_SECRET` (ou `BINANCE_PRIVATE_KEY_PATH` para Ed25519)
+  - `TRADING_MODE` — `paper` | `live` | `shadow`
+  - `M2_EXECUTION_MODE` — `shadow` | `paper` | `live`
+  - `M2_MAX_DAILY_ENTRIES`, `M2_MAX_MARGIN_PER_POSITION_USD`, `M2_SHORT_ONLY`
+  - `M2_LIVE_SYMBOLS` — lista separada por vírgula (vazio = todos os símbolos)
+  - `M2_INJECTION_ENABLED`, `M2_CANARY_DB_PATH`, `M2_CANARY_LEVERAGE`
 - `config/symbols.py` — Lista de símbolos (40+ ativos); alterações exigem sincronizar
   `README.md`, `playbooks/__init__.py` e `docs/SYNCHRONIZATION.md`
 - `config/ppo_config.py`, `config/risk_params.py`, `config/execution_config.py`
@@ -153,18 +168,7 @@ e commitar com a tag correta.
 
 ## Bootstrap rápido
 
-Se está começando no repositório, use este pequeno checklist:
-
 - Windows: executar `setup.bat` para criar venv e instalar dependências.
 - Instalar deps de teste: `pip install -r requirements-test.txt`.
 - Rodar testes: `pytest -q tests/`.
 - Executar pipeline local (dev): `python main.py --mode paper`.
-
-Prompt de exemplo para interações com agentes (PT-BR):
-
-> "Explique onde ficam os scripts de treino e mostre os comandos para
-> treinar o modelo PPO localmente. Liste também os requisitos mínimos do
-> ambiente."
-
-Mantenha todo o conteúdo do agente em Português e siga as regras de commit
-e sincronização descritas acima.
