@@ -3147,10 +3147,12 @@ e trilha documental completa.
 
 ### TAREFA BLID-085 - Mecanismo de retry com backoff exponencial
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P0
+
+PO: Priorizar BLID-085 para blindar operacao contra falhas transitorias de rede e API, reduzindo paradas silenciosas e aumentando a resiliencia do ciclo live.
 
 Descricao:
 Implementar retry com backoff exponencial para operacoes de risco (API calls,

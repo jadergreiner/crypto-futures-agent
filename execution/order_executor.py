@@ -11,6 +11,23 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from decimal import Decimal
 
+# Adicionado para o novo mecanismo de resiliência
+from core.resilience import resilient_operation, PermanentFailure
+from binance_d.exception.binanceapiexception import BinanceApiException
+from binance_d.exception.businessapiexception import BusinessApiException
+
+# Exceções comuns que podem ser tratadas como permanentes.
+# Assumindo que o SDK as exponha. Caso contrário, podemos ter que
+# inspecionar o código de erro da BinanceApiException.
+# Por enquanto, vamos usar a exceção genérica e inspecionar a mensagem.
+# Ex: InsufficientFunds, InvalidOrder poderiam ser exceções específicas.
+# Por simplicidade, usaremos a exceção base do SDK se nomes específicos
+# não estiverem disponíveis.
+# Vamos assumir que erros de negócio herdam de BusinessApiException.
+InvalidOrder = BusinessApiException
+InsufficientFunds = BusinessApiException
+
+
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from risk.trailing_stop import TrailingStopManager, TrailingStopConfig, TrailingStopState
 
@@ -266,6 +283,7 @@ class OrderExecutor:
 
         return True, "Todos os safety guards passaram"
 
+    @resilient_operation(max_retries=2, initial_delay=0.5)
     def _get_quantity_precision(self, symbol: str) -> int:
         """
         Obtém a quantity precision específica do símbolo consultando a Exchange Info da Binance.
@@ -396,56 +414,57 @@ class OrderExecutor:
             'quantity': quantity
         }
 
+    @resilient_operation(
+        max_retries=EXECUTION_CONFIG['max_order_retries'],
+        initial_delay=EXECUTION_CONFIG['order_retry_delay_seconds']
+    )
     def _place_order(self, symbol: str, side: str, quantity: float,
                      order_type: str = "MARKET") -> Optional[Dict[str, Any]]:
         """
-        Coloca a ordem via Binance SDK com lógica de retry.
+        Coloca a ordem via Binance SDK. A resiliência é garantida pelo decorador @resilient_operation.
         Usa self._client.rest_api.new_order() com reduceOnly=True.
 
         Returns:
-            Resposta da ordem (dict) ou None em caso de falha
+            Resposta da ordem (dict) ou None em caso de falha.
+        
+        Raises:
+            PermanentFailure: Em caso de erros de negócio que não devem ser retentados (e.g., saldo insuficiente).
+            ConnectionError/TimeoutError: Em caso de falhas de rede, para serem tratadas pelo decorador.
         """
-        max_retries = self.config['max_order_retries']
-        retry_delay = self.config['order_retry_delay_seconds']
         recv_window = self.config['recv_window']
+        logger.info(f"[EXECUTOR] Colocando ordem: new_order({symbol}, {side}, {order_type}, qty={quantity:.8f}, reduceOnly=True)")
 
-        for attempt in range(max_retries + 1):
-            try:
-                logger.info(f"[EXECUTOR] Tentativa {attempt + 1}/{max_retries + 1}: "
-                           f"new_order({symbol}, {side}, {order_type}, qty={quantity:.8f}, reduceOnly=True)")
+        try:
+            # CRITICAL: reduceOnly=True é a rede de segurança final
+            response = self._client.rest_api.new_order(
+                symbol=symbol,
+                side=side,
+                type=order_type,
+                quantity=quantity,
+                reduce_only=True,  # CRITICAL SAFETY NET
+                recv_window=recv_window
+            )
 
-                # CRITICAL: reduceOnly=True é a rede de segurança final
-                # Binance rejeitará a ordem se ela tentar abrir nova posição
-                response = self._client.rest_api.new_order(
-                    symbol=symbol,
-                    side=side,
-                    type=order_type,
-                    quantity=quantity,
-                    reduce_only=True,  # CRITICAL SAFETY NET
-                    recv_window=recv_window
-                )
+            data = self._extract_data(response)
 
-                # Extrair dados do wrapper ApiResponse (mesmo padrão do PositionMonitor)
-                data = self._extract_data(response)
+            if data:
+                logger.info(f"[EXECUTOR] Ordem colocada com sucesso: {data}")
+                return data
+            else:
+                # Considerar resposta vazia um erro transitório que pode ser retentado
+                logger.warning(f"[EXECUTOR] Resposta vazia da API.")
+                raise ConnectionError("API retornou uma resposta vazia.")
 
-                if data:
-                    logger.info(f"[EXECUTOR] Ordem colocada com sucesso: {data}")
-                    return data
-                else:
-                    logger.warning(f"[EXECUTOR] Resposta vazia da API na tentativa {attempt + 1}")
+        except (InvalidOrder, InsufficientFunds) as e:
+            # Erros de negócio específicos da exchange que são permanentes
+            logger.error(f"[EXECUTOR] Erro permanente de negócio ao colocar ordem: {e}")
+            raise PermanentFailure(f"Erro de negócio da exchange: {e}") from e
+        except Exception as e:
+            # Outras exceções são re-lançadas para que o decorador decida
+            # se são transitórias (e.g. ConnectionError) ou permanentes.
+            logger.error(f"[EXECUTOR] Erro inesperado ao colocar ordem: {e}")
+            raise
 
-            except Exception as e:
-                logger.error(f"[EXECUTOR] Erro na tentativa {attempt + 1}: {e}")
-
-                # Se não é a última tentativa, aguardar e tentar novamente
-                if attempt < max_retries:
-                    logger.info(f"[EXECUTOR] Aguardando {retry_delay}s antes de tentar novamente...")
-                    time.sleep(retry_delay)
-                else:
-                    logger.error(f"[EXECUTOR] Todas as tentativas falharam")
-                    traceback.print_exc()
-
-        return None
 
     def _extract_data(self, response):
         """

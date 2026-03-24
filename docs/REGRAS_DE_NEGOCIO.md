@@ -39,6 +39,8 @@ As validacoes abaixo sao obrigatorias em todos os caminhos de live:
 ### RN-004 - Fail-safe
 
 Em qualquer incerteza operacional relevante, a operacao deve ser bloqueada.
+Mecanismos de resiliencia operacional (ex: retries) devem abortar imediatamente
+(fail-fast) sempre que o `circuit_breaker` ou `risk_gate` estiverem armados.
 
 ### RN-005 - Protecao obrigatoria
 
