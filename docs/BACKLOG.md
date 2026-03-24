@@ -4592,6 +4592,65 @@ em vez de snapshots de contexto sem sinal de reforco.
 
 ---
 
+### TAREFA BLID-092 - Investigar e resolver travamento do circuit breaker
+
+Status: PENDENTE
+
+Prioridade proposta: Critica
+Sprint proposto: Imediato (bloqueia toda abertura de posicao)
+
+**Contexto (evidencia do DB):**
+
+O circuit breaker foi acionado na decisao #426 (FLUXUSDT, 2026-03-09 ~BRT)
+com `drawdown_pct = -4.63%`, ultrapassando o limiar de `-3.1%`. Estado atual:
+`trancado`, `allows_trading: false`. Desde entao, **nenhuma nova posicao pode
+ser aberta** em nenhum simbolo.
+
+Historico de balance reconstruido das `model_decisions`:
+
+- Decisao #300: balance = $52.37 (estado `normal`)
+- Decisao #400: balance = $51.56 (estado `normal`)
+- Decisao #426: balance = $37.49 (estado `acionado`) — queda de ~28% vs #300
+- Decisao #427: balance = $37.62 (estado `trancado`)
+- Atual: balance = ~$51.91 (recuperado, mas CB permanece `trancado`)
+
+Causa provavel da queda: FLUXUSDT LONG com `filled_qty=1905` abriu posicao
+grande e foi encerrada com `exit_reason=exchange_position_closed` sem stop armado
+(`failure_reason=protection_not_armed`). O saldo recuperou parcialmente mas o
+CB nao possui mecanismo de desbloqueio automatico apos recuperacao.
+
+**Escopo:**
+
+1. Confirmar via `risk/circuit_breaker.py` se existe mecanismo de unlock apos
+   recuperacao do saldo (metodo `recovery_time_remaining_hours` existe mas
+   o estado `trancado` nao desbloqueia por recuperacao de saldo — apenas por tempo)
+2. Verificar se `RECOVERY_PERIOD_HOURS = 24` expirou: calcular
+   `decision_timestamp(#427)` + 24h vs agora
+3. Se 24h ja expirou e CB ainda esta trancado: identificar por que nao desbloqueou
+   (possivel bug: estado persistido em memoria, nao em DB — reinicio do processo
+   redefine o objeto mas o drawdown calculado ainda dispara imediatamente)
+4. Se o drawdown atual ainda e negativo vs `peak_balance`: verificar como
+   `_calculate_drawdown` computa o pico (pode estar usando o balance historico
+   alto de $186 como pico, nunca recuperando)
+5. Implementar visibilidade no status por simbolo: exibir `drawdown atual vs pico`
+   e `horas restantes para unlock` (complementa BLID-090)
+6. Definir politica de reset manual controlado para operador humano
+
+**Impacto:** CRITICO — agente esta em modo observacao completo desde ~2026-03-09.
+Nenhuma nova entrada e possivel enquanto CB estiver trancado.
+
+**Dependencias:** BLID-090 (visibilidade do CB no status)
+
+**Criterio de aceite:**
+
+1. Causa exata do travamento documentada com evidencia [ ]
+2. Se 24h expirou e bug confirmado: corrigido e CB desbloqueado [ ]
+3. Mecanismo de reset manual com confirmacao explicitada no runbook [ ]
+4. `operator_cycle_status` exibe drawdown atual e tempo restante [ ]
+5. `pytest -q tests/` passa [ ]
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.

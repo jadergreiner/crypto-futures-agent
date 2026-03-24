@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-133] BLID-092 - Circuit breaker travado desde 2026-03-09 (critico)
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: PENDENTE_PO
+**Agentes**: Backlog (1)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: criado BLID-092 (investigar e resolver CB trancado)
+- Evidencia: CB acionado em decisao #426 por drawdown -4.63% (limiar -3.1%),
+  saldo recuperou para $51.91 mas CB permanece `trancado` — provavel ausencia
+  de desbloqueio automatico por recuperacao de saldo ou bug de persistencia
+  de estado em memoria
+
+**Docs afetados:** BACKLOG.md
+
+---
+
 ### [SYNC-132] BLID-090/091 - Observabilidade do risk gate e correcao de reward RL
 
 **Data/Hora**: 2026-03-24 BRT
