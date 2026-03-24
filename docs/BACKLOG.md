@@ -4013,6 +4013,40 @@ Dependencias: M2-019.9
 
 ---
 
+---
+
+### TAREFA BLID-088 - Captura e persistencia de candles M5
+
+**Status:** PENDENTE
+**Prioridade proposta:** Media
+**Sprint proposto:** A definir pelo PO
+
+**Escopo:**
+
+Adicionar suporte ao timeframe M5 (5 minutos) na stack M2:
+
+1. Mapear `M5 → 5m` em `config/settings.py` (`TIMEFRAMES` e `HISTORICAL_PERIODS`)
+2. Adicionar tabela `ohlcv_m5` no schema do banco legado (`db/crypto_agent.db`)
+3. Atualizar `scripts/model2/sync_ohlcv_from_binance.py` para aceitar e persistir M5
+4. Adicionar `M5` nas choices de `--timeframe` em `daily_pipeline.py`
+5. Mapear `M5 → ohlcv_m5` em `TIMEFRAME_TO_TABLE` no `scripts/model2/scan.py`
+6. Adicionar chamada `daily_pipeline.py --timeframe M5` no `iniciar.bat`
+7. Cobrir com testes: sync, tabela populada, scanner lendo M5
+
+**Impacto:** Habilita analises intraday de curto prazo e estrategias multi-dataframe
+com granularidade fina (H4 + H1 + M5).
+
+**Dependencias:** BLID-076 (hardening), H1 ja incluido no iniciar.bat (commit 784d507)
+
+**Criterio de aceite:**
+
+1. `ohlcv_m5` populada apos `daily_pipeline.py --timeframe M5` [ ]
+2. Scanner consegue rodar em timeframe M5 sem erro [ ]
+3. `iniciar.bat` executa pipeline M5 no loop [ ]
+4. `pytest -q tests/` passa [ ]
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.

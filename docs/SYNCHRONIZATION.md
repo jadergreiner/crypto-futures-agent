@@ -3898,6 +3898,16 @@ comparativas
 
 ---
 
+### [SYNC] 2026-03-23 - BLID-088 adicionado ao backlog
+
+- **Arquivo alterado:** `docs/BACKLOG.md`
+- **Alteracao:** Criado BLID-088 — captura e persistencia de candles M5
+- **Motivo:** Demanda para suporte multi-dataframe (H4 + H1 + M5) identificada
+  durante debug do iniciar.bat (coleta atual limitada a H4)
+- **Status:** Pendente priorizacao pelo PO
+
+---
+
 ## Notas Operacionais
 
 ### Gaps Identificados (para próxima iteração)
