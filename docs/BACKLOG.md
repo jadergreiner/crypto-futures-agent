@@ -4594,7 +4594,9 @@ em vez de snapshots de contexto sem sinal de reforco.
 
 ### TAREFA BLID-092 - Investigar e resolver travamento do circuit breaker
 
-Status: PENDENTE
+Status: Em analise
+
+PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas. Prioridade maxima, sem dependencias bloqueantes.
 
 Prioridade proposta: Critica
 Sprint proposto: Imediato (bloqueia toda abertura de posicao)
