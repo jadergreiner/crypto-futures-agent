@@ -97,7 +97,10 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
 
 - Todo bloqueio ou falha emite `reason_code`, `severity`,
   `recommended_action`, `decision_id` e `execution_id`.
-- Catalogo canonico: `REASON_CODE_CATALOG` em `live_execution.py`.
+- Catalogo canonico: `REASON_CODE_CATALOG` em `live_execution.py`
+  (36 entries com `REASON_CODE_SEVERITY` e `REASON_CODE_ACTION` simetricos).
+- Unificacao M2-024.2: `order_layer.py` importa `REASON_CODE_CATALOG` de
+  `live_execution.py` — fonte unica, sem copia local.
 - Erros desconhecidos: fallback fail-safe via
   `classify_unknown_execution_error()` com severidade CRITICAL.
 - Validacao de contrato no `order_layer` (M2-024.1): sinais com

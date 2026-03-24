@@ -28,7 +28,7 @@ class LiveExecutionErrorContract:
 
     def is_complete(self) -> bool:
         """Valida se contrato tem todos os campos obrigatórios preenchidos."""
-        return (
+        return bool(
             self.decision_id is not None
             and self.execution_id is not None
             and self.reason_code
@@ -50,7 +50,7 @@ class LiveExecutionErrorContract:
 
     def validate_action(self) -> bool:
         """Valida se recommended_action não está vazia."""
-        return self.recommended_action and len(self.recommended_action) > 0
+        return bool(self.recommended_action and len(self.recommended_action) > 0)
 
 
 class _ReasonCode(str):
@@ -99,6 +99,17 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "reconciliacao_ok": "ops.reconciliacao_ok",
     "reconciliacao_pendente": "ops.reconciliacao_pendente",
     "decision_id_duplicado": "ops.decision_id_duplicado",
+    # Codes do order_layer (unificados M2-024.2)
+    "decision_recorded_no_real_order": "ops.decision_recorded_no_real_order",
+    "status_not_created": "ops.status_not_created",
+    "missing_decision_id": "ops.missing_decision_id",
+    "missing_signal_timestamp": "ops.missing_signal_timestamp",
+    "missing_payload_contract": "ops.missing_payload_contract",
+    "symbol_not_authorized": "ops.symbol_not_authorized",
+    "unsupported_signal_side": "ops.unsupported_signal_side",
+    "short_only_enforced": "ops.short_only_enforced",
+    "unsupported_entry_type": "ops.unsupported_entry_type",
+    "invalid_price_geometry": "ops.invalid_price_geometry",
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "ops.size_exceeds_limit",
     "STOP_LOSS_TOO_LOOSE": "ops.stop_loss_too_loose",
@@ -128,6 +139,17 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "reconciliacao_ok": "INFO",
     "reconciliacao_pendente": "MEDIUM",
     "decision_id_duplicado": "HIGH",
+    # Codes do order_layer (unificados M2-024.2)
+    "decision_recorded_no_real_order": "INFO",
+    "status_not_created": "HIGH",
+    "missing_decision_id": "HIGH",
+    "missing_signal_timestamp": "HIGH",
+    "missing_payload_contract": "HIGH",
+    "symbol_not_authorized": "MEDIUM",
+    "unsupported_signal_side": "HIGH",
+    "short_only_enforced": "INFO",
+    "unsupported_entry_type": "HIGH",
+    "invalid_price_geometry": "HIGH",
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "HIGH",
     "STOP_LOSS_TOO_LOOSE": "HIGH",
@@ -157,6 +179,17 @@ REASON_CODE_ACTION: dict[str, str] = {
     "reconciliacao_ok": "continuar_monitorando",
     "reconciliacao_pendente": "retentativas_reconciliacao",
     "decision_id_duplicado": "bloquear_operacao",
+    # Codes do order_layer (unificados M2-024.2)
+    "decision_recorded_no_real_order": "registrar_sem_ordem_real",
+    "status_not_created": "bloquear_operacao",
+    "missing_decision_id": "bloquear_operacao",
+    "missing_signal_timestamp": "bloquear_operacao",
+    "missing_payload_contract": "bloquear_operacao",
+    "symbol_not_authorized": "descartar_sinal",
+    "unsupported_signal_side": "bloquear_operacao",
+    "short_only_enforced": "descartar_sinal",
+    "unsupported_entry_type": "bloquear_operacao",
+    "invalid_price_geometry": "bloquear_operacao",
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "bloquear_operacao",
     "STOP_LOSS_TOO_LOOSE": "bloquear_operacao",

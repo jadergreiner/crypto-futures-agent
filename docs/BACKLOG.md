@@ -170,7 +170,7 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-024.2 - Catalogo de reason_code por severidade
 
-Status: EM_DESENVOLVIMENTO
+Status: CONCLUIDO
 
 Descricao:
 Criar catalogo canonico de reason_code com severidade e acao padrao,
@@ -188,6 +188,23 @@ reconciliation_divergence).
 
 SE: Iniciado em 2026-03-23 16:15 BRT. Expandindo REASON_CODE_CATALOG
 de 9 para 20+ entries.
+
+PO: Score 3.85. Catalogo canonico de reason_code bloqueia M2-024.4/7/14.
+Fundacao critica para tratamento padrao de erros live.
+
+SA: Catalogo canonico em live_execution.py (25+ entries, SEVERITY, ACTION).
+Gap: order_layer usa catalogo local (11 entries). Unificar importacao.
+
+QA2: Suite RED em tests/test_model2_m2_024_2_catalog_unification.py;
+5 failed, 3 passed. Cobre R4/R5: importacao canonica e simetria.
+
+SE: GREEN concluido. order_layer importa REASON_CODE_CATALOG de
+live_execution. Catalog unificado 36 entries. mypy Success. 277 passed.
+
+TL: APROVADO. 31/31 testes reproduzidos, mypy clean, simetria
+CATALOG/SEVERITY/ACTION verificada, guardrails ativos, sem regressao.
+
+DOC: ARQUITETURA_ALVO atualizada M2-024.2; SYNCHRONIZATION SYNC-129.
 
 ### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
 

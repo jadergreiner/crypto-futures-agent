@@ -23,6 +23,31 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-129] M2-024.2 - Unificacao do catalogo canonico reason_code
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5.se), Tech Lead (6.tl), Doc Advocate (7.da)
+
+**Alteracoes**:
+
+| Documento | Tipo | Descricao |
+| --------- | ---- | --------- |
+| docs/BACKLOG.md | Atualizacao | Status M2-024.2 REVISADO_APROVADO; comentarios PO/SA/QA/SE/TL |
+| docs/ARQUITETURA_ALVO.md | Atualizacao | Registrada unificacao M2-024.2: order_layer importa REASON_CODE_CATALOG de live_execution |
+| docs/SYNCHRONIZATION.md | Audit trail | SYNC-129 adicionado (este registro) |
+
+**Impacto tecnico**:
+
+- `REASON_CODE_CATALOG` em `live_execution.py` expandido para 36 entries
+  (CATALOG + SEVERITY + ACTION simetricos)
+- `order_layer.py` removeu catalogo local; importa de `live_execution`
+- Correcao mypy: `bool()` em `is_complete` e `validate_action`
+- Testes: 277 passed; suite `test_model2_m2_024_2_catalog_unification.py`
+  8/8 GREEN
+
+---
+
 ### [SYNC-128] Software Engineer + Tech Lead + Doc Advocate implementam M2-026 Lote 1 - Aprovação Final
 
 **Data/Hora**: 2026-03-23 13:05 BRT
