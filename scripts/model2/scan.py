@@ -175,10 +175,11 @@ def run_scan(
             if "timestamp" in candles_df.columns and len(candles_df) > 0:
                 last_ts = candles_df.iloc[-1]["timestamp"]
                 try:
+                    from zoneinfo import ZoneInfo
                     last_dt = datetime.fromtimestamp(
                         int(last_ts) / 1000, tz=timezone.utc
-                    )
-                    entry["last_candle_time"] = last_dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+                    ).astimezone(ZoneInfo("America/Sao_Paulo"))
+                    entry["last_candle_time"] = last_dt.strftime("%Y-%m-%d %H:%M:%S BRT")
                 except Exception:
                     entry["last_candle_time"] = str(last_ts)
 

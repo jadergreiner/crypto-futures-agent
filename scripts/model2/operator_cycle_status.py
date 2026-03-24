@@ -343,7 +343,8 @@ def _build_symbol_line(
                 last_candle_time = sym_data.get("last_candle_time", "")
 
         # Montar SymbolReport e formatar
-        now = datetime.now(timezone.utc)
+        from zoneinfo import ZoneInfo
+        now_brt = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
         timeframe = "H4"
         execution_mode = "live" if M2_EXECUTION_MODE == "live" else "shadow"
         freshness_contract = resolve_candle_freshness_contract(
@@ -355,7 +356,7 @@ def _build_symbol_line(
         report = SymbolReport(
             symbol=symbol,
             timeframe=timeframe,
-            timestamp=now.strftime("%Y-%m-%d %H:%M:%S"),
+            timestamp=now_brt.strftime("%Y-%m-%d %H:%M:%S BRT"),
             candles_count=candles_count,
             last_candle_time=last_candle_time,
             candle_state=freshness_contract["candle_state"],
