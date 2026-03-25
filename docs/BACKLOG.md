@@ -4772,6 +4772,56 @@ DOC: reward_lookup_at_ms em training_episodes; flush_deferred_rewards; counterfa
 
 ---
 
+### TAREFA BLID-094 - Retreino automatico ao atingir limiar de episodios elegíveis
+
+Status: CONCLUIDO
+Suite: tests/test_live_service_retrain_trigger.py (5 testes, 5 passed)
+
+SA: Bug em live_service.py L297 bloqueia retreino em modo live; corrigir guard + log + testes unitarios do gatilho.
+
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto e motivacao:**
+
+O status live de 2026-03-25 mostra `pendentes: 101/100 [faltam 0 para retreino]`
+indicando que o limiar foi atingido, mas o ultimo treino registrado e de 2026-03-15
+(10 dias atras). O mecanismo de gatilho implementado em BLID-081 depende da flag
+`_incremental_training_running`, mas evidencias apontam que em modo live continuo
+o subprocesso de retreino nao e redisparado automaticamente ao cruzar o limiar.
+
+**Escopo:**
+
+1. Diagnosticar por que o retreino nao disparou com 101 ep elegíveis (limiar=100)
+2. Corrigir gatilho em `live_service.py`: verificar condicao de disparo apos cada
+   ciclo quando `pending_episodes >= threshold` e `_incremental_training_running=False`
+3. Garantir que apos o retreino o contador `rl_training_log` e atualizado e
+   `collect_training_info` reflete o novo ultimo treino
+4. Registrar evidencia no log operacional: `[TREINO] Retreino iniciado: N ep / threshold K`
+5. Cobrir com testes unitarios: gatilho dispara, nao dispara em concorrencia,
+   atualiza timestamp corretamente
+
+**Criterios de Aceite:**
+
+1. Com pending_episodes >= threshold e nenhum treino em andamento: subprocesso
+   de retreino e disparado automaticamente no proximo ciclo [ ]
+2. Linha `Treino` no status exibe timestamp atualizado apos retreino concluido [ ]
+3. Contador `pendentes` decresce ou zera apos retreino registrar em rl_training_log [ ]
+4. Nenhuma execucao concorrente de retreino (flag protege re-entrada) [ ]
+5. pytest -q tests/ passa sem regressoes [ ]
+
+**Dependencias:** BLID-081 (gatilho incremental — base), BLID-093 (reward counterfactual — episodios balanceados)
+
+**Impacto:** Elimina estagnacao do modelo apos 100+ episodios coletados; garante
+retreino operacional autonomo sem intervencao manual.
+
+PO: BLID-081+093 concluidos, 101/100 ep c/ limiar atingido sem retreino. Modelo 10 dias stale. Score 4.20, sem bloqueio.
+SE: guard live removido L297-298; log [TREINO] adicionado; 5 testes GREEN; sem regressoes.
+TL: APROVADO. Guard live removido corretamente; 5 testes AAA GREEN; guardrails ativos; mypy erro pre-existente nao introduzido.
+DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5 testes unitarios GREEN. Sem impacto em ARQUITETURA_ALVO nem REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-138].
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.

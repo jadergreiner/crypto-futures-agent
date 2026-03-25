@@ -23,6 +23,31 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-138] BLID-094 - Retreino automatico ao atingir limiar de episodios elegiveis
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Doc Advocate (7)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-094
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-138]
+
+**Escopo tecnico:** Removido guard de modo live em `live_service.py` L297-298 que
+bloqueava retreino automatico. Adicionado log `[TREINO]` apos `Popen`. Guard de
+concorrencia `_incremental_training_running` preservado. 5 testes unitarios AAA
+GREEN cobrindo: disparo com limiar atingido, bloqueio de concorrencia, modo nao-live,
+threshold nao atingido e log correto. Sem impacto em ARQUITETURA_ALVO nem
+REGRAS_DE_NEGOCIO. Guardrails risk_gate e circuit_breaker intactos.
+
+**Docs afetados:** BACKLOG.md; SYNCHRONIZATION.md
+
+**Arquivos de codigo:** core/model2/live_service.py;
+tests/test_live_service_retrain_trigger.py
+
+---
+
 ### [SYNC-137] BLID-093 - Reward counterfactual para HOLD/BLOCKED
 
 **Data/Hora**: 2026-03-25 BRT
