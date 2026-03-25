@@ -115,6 +115,10 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "STOP_LOSS_TOO_LOOSE": "ops.stop_loss_too_loose",
     # M2-027.3: Posicoes orfas detectadas sem signal_execution correspondente
     "orphan_position": "ops.orphan_position",
+    # M2-024.5: Timeout por etapa de execucao
+    "TIMEOUT_ADMISSION": "ops.timeout_admission",
+    "TIMEOUT_SEND": "ops.timeout_send",
+    "TIMEOUT_RECONCILIATION": "ops.timeout_reconciliation",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
@@ -155,6 +159,10 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "HIGH",
     "STOP_LOSS_TOO_LOOSE": "HIGH",
+    # M2-024.5: Timeout por etapa de execucao
+    "TIMEOUT_ADMISSION": "HIGH",
+    "TIMEOUT_SEND": "HIGH",
+    "TIMEOUT_RECONCILIATION": "HIGH",
 }
 
 REASON_CODE_ACTION: dict[str, str] = {
@@ -195,6 +203,10 @@ REASON_CODE_ACTION: dict[str, str] = {
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "bloquear_operacao",
     "STOP_LOSS_TOO_LOOSE": "bloquear_operacao",
+    # M2-024.5: Timeout por etapa de execucao
+    "TIMEOUT_ADMISSION": "bloquear_operacao",
+    "TIMEOUT_SEND": "bloquear_operacao",
+    "TIMEOUT_RECONCILIATION": "bloquear_operacao",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"

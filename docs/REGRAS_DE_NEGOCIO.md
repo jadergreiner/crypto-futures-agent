@@ -236,6 +236,25 @@ de criterios via `PromotionEvaluator` em `core/model2/promotion_gate.py`:
 5. `PromotionResult` e imutavel (frozen dataclass) com `evaluated_at` ISO UTC.
 6. `evaluate()` nunca lanca excecao; entrada invalida resulta em NO-GO com reason.
 
+### RN-025 - Timeout por Etapa de Execucao (M2-024.5)
+
+Cada etapa do ciclo de execucao live possui timeout configuravel definido em
+`StageTimeoutPolicy` (`core/model2/execution_timeout.py`):
+
+1. Admissao (`order_layer`): padrao 5 000 ms — expirado retorna CANCELLED com
+   `reason_code='TIMEOUT_ADMISSION'`.
+2. Envio de ordem (`live_service`): padrao 10 000 ms — expirado retorna
+   `reason_code='TIMEOUT_SEND'`.
+3. Reconciliacao (`live_service`): padrao 30 000 ms — expirado retorna
+   `reason_code='TIMEOUT_RECONCILIATION'`.
+4. Todos os codes `TIMEOUT_*` possuem `severity=HIGH` e
+   `action=bloquear_operacao` no `REASON_CODE_CATALOG`.
+5. Expiracao de qualquer etapa emite telemetria via
+   `emit_stage_slo_violation_event` com `latency_ms` e `slo_ms`.
+6. `StageTimeoutPolicy` e frozen dataclass — imutavel apos instancia.
+7. `execution_timeout.py` nao importa `risk_gate` nem `circuit_breaker`;
+   guardrails permanecem inviolaveis em todos os caminhos.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:

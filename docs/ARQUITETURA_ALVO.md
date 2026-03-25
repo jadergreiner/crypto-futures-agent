@@ -116,6 +116,14 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   (max 3 tentativas, backoff exponencial) e `ExchangeRetryBudgetError`.
   `live_service.py` expoe `_place_market_entry_with_retry` que aplica o retry
   e retorna None (fail-safe) apos budget esgotado. Guardrails intactos.
+- Timeout por etapa (M2-024.5): `core/model2/execution_timeout.py` fornece
+  `StageTimeoutPolicy` (frozen dataclass, defaults: admissao=5s, envio=10s,
+  reconciliacao=30s), `check_admission_timeout`, `check_send_timeout`,
+  `check_reconciliation_timeout` e `emit_timeout_telemetria`. Gate de admissao
+  integrado em `order_layer.py` via parametro opcional `timeout_policy`.
+  Reason codes `TIMEOUT_ADMISSION`, `TIMEOUT_SEND`, `TIMEOUT_RECONCILIATION`
+  adicionados ao `REASON_CODE_CATALOG` com severity=HIGH e
+  action=bloquear_operacao. Modulo nao importa risk_gate nem circuit_breaker.
 
 Resiliencia e fail-safe de pipeline (M2-027):
 

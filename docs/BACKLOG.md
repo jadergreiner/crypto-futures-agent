@@ -285,7 +285,9 @@ DOC: ARQUITETURA_ALVO extensao M2-024.4 adicionada; SYNCHRONIZATION SYNC-142.
 
 ### TAREFA M2-024.5 - Timeout padrao por etapa de execucao
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Suite: tests/test_model2_m2_024_5_stage_timeout.py (26 passed GREEN)
 
 Descricao:
 Definir timeout objetivo para admissao, envio de ordem e reconciliacao,
@@ -294,6 +296,31 @@ com telemetria de expiracao e motivo padronizado.
 Dependencias:
 
 - M2-024.2
+
+PO: Score 3.60. Timeout por etapa elimina travamento silencioso em live.
+Desbloqueado. Handoff para SA.
+
+SA: StageTimeoutPolicy em execution_timeout.py; reason_codes TIMEOUT_*
+no catalogo; telemetria via emit_stage_slo_violation_event. Sem schema novo.
+
+QA: Suite RED 24 failed, 2 skipped. Cobre StageTimeoutPolicy,
+REASON_CODE_CATALOG, gate admissao, telemetria, guardrails nao-bypass.
+
+SE: GREEN concluido em 2026-03-25. execution_timeout.py criado com
+StageTimeoutPolicy, check_admission/send/reconciliation_timeout e
+emit_timeout_telemetria. TIMEOUT_* adicionados ao
+REASON_CODE_CATALOG/SEVERITY/ACTION. Gate integrado em order_layer.py.
+26/26 passed, mypy clean.
+
+TL: APROVADO. 26/26 testes reproduzidos, 232 suite verde, mypy clean.
+Guardrails ativos, execution_timeout.py sem import risk_gate/circuit_breaker.
+Sem regressao nova.
+
+DOC: ARQUITETURA_ALVO extensao M2-024.5 (execution_timeout.py,
+StageTimeoutPolicy); REGRAS_DE_NEGOCIO RN-025 adicionada; SYNC-145.
+
+PM: ACEITE em 2026-03-25. Trilha completa validada ponta-a-ponta.
+Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-024.6 - Telemetria de latencia por simbolo e etapa
 
@@ -485,7 +512,7 @@ Evidencias de implementacao:
 
 ### TAREFA M2-025.2 - Normalizar timezone de evento no pipeline
 
-Status: BACKLOG
+Status: Em analise
 
 Descricao:
 Padronizar timezone de eventos operacionais para Brasilia na exibicao e UTC
@@ -494,6 +521,9 @@ na persistencia, evitando ambiguidades de auditoria.
 Dependencias:
 
 - M2-025.1
+
+PO: Score 2.05. Padronizacao de timezone elimina ambiguidade de auditoria.
+Desbloqueado. Handoff para SA apos M2-024.5.
 
 ### TAREFA M2-025.3 - Detector de lacuna de candles por janela
 

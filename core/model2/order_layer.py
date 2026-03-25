@@ -60,10 +60,21 @@ def evaluate_signal_for_order_layer(
     *,
     authorized_symbols: Collection[str] | None = None,
     short_only: bool = False,
+    timeout_policy: Any | None = None,
+    now_ms: int | None = None,
 ) -> OrderLayerDecision:
     """Evaluate CREATED technical signal for order-layer consumption."""
+    import time as _time
 
     symbols = set(authorized_symbols) if authorized_symbols is not None else set(AUTHORIZED_SYMBOLS)
+
+    # Gate de timeout de admissao (M2-024.5)
+    if timeout_policy is not None:
+        from core.model2.execution_timeout import check_admission_timeout
+        _now = now_ms if now_ms is not None else int(_time.time() * 1000)
+        timeout_decision = check_admission_timeout(order_input, policy=timeout_policy, now_ms=_now)
+        if timeout_decision is not None:
+            return timeout_decision
 
     if order_input.status != TECHNICAL_SIGNAL_STATUS_CREATED:
         return OrderLayerDecision(

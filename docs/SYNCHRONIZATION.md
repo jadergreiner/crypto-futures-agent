@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-145] M2-024.5 - Timeout padrao por etapa de execucao
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+Docs atualizadas:
+
+- `docs/ARQUITETURA_ALVO.md`: extensao Camada 4 com modulo `execution_timeout.py`,
+  `StageTimeoutPolicy`, funcoes `check_*` e integracao em `order_layer.py`.
+- `docs/REGRAS_DE_NEGOCIO.md`: RN-025 adicionada — timeout por etapa com
+  reason_codes `TIMEOUT_*`, severity=HIGH, action=bloquear_operacao,
+  e invariante de isolamento de guardrails.
+
+Arquivos de codigo alterados:
+
+- `core/model2/execution_timeout.py` (NOVO)
+- `core/model2/live_execution.py` (REASON_CODE_CATALOG/SEVERITY/ACTION)
+- `core/model2/order_layer.py` (gate admission timeout)
+- `tests/test_model2_m2_024_5_stage_timeout.py` (suite 26 passed)
+
 ### [SYNC-144] M2-026.1 - Telemetria de bloqueios do risk_gate
 
 **Data/Hora**: 2026-03-25 BRT
