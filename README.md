@@ -77,6 +77,18 @@ python status_realtime.py
 python posicoes.py
 ```
 
+## Rastreamento de Experimentos (MLflow)
+
+O pipeline de retreino PPO integra MLflow para rastreabilidade de runs:
+
+```bash
+mlflow ui   # Interface local em http://localhost:5000
+```
+
+Parametros, metricas e artefatos de cada run sao registrados automaticamente
+em `agent/trainer.py` e `agent/convergence_monitor.py`.
+O artefato `ppo_model.zip` e versionado via MLflow e nao e rastreado pelo git.
+
 ## Lint de Documentacao
 
 Validacao manual:

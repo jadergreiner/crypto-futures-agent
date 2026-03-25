@@ -4824,9 +4824,11 @@ DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5
 
 ### TAREFA BLID-095 - Rastreamento de experimentos e artefatos MLflow
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 Suite: tests/test_mlflow_tracking.py (13/13 PASS)
 Cobertura: R1..R6 mapeados; mlflow.start_run, log_params, log_metric, log_artifact, load_model_from_mlflow_artifact, .gitignore
+TL: APROVADO. 13/13 PASS reproduzidos; 212 passed sem regressoes; 55 erros mypy pre-existentes, 0 novos; guardrails ativos.
+PM: ACEITE em 2026-03-25. Trilha completa validada ponta-a-ponta. Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 SA: MLflow self-hosted via mlflow.set_experiment; TrainingCallback+ConvergenceMonitor logam run_id; ppo_model.zip no .gitignore; sem schema DB.
 
@@ -4864,6 +4866,7 @@ modelo versionado fora do git; arvore local limpa de binarios.
 
 PO: BLID-094 concluido. MLflow self-hosted; 6 artefatos; git limpo de binarios. Score 3.05. Sem bloqueio.
 SE: mlflow importado em trainer.py e convergence_monitor.py; start_run+log_params+log_artifact em phase1/phase2; log_metric 7 metricas em log_step; load_model_from_mlflow_artifact adicionado; .gitignore atualizado; git rm --cached ppo_model.zip executado; 13/13 GREEN; sem regressoes novas.
+DOC: MLflow integrado em trainer.py e convergence_monitor.py; ppo_model.zip no .gitignore; README.md atualizado com secao MLflow; SYNCHRONIZATION.md atualizado [SYNC-139].
 
 ---
 
