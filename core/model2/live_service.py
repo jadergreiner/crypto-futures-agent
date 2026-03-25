@@ -294,8 +294,6 @@ class Model2LiveExecutionService:
         timeframe: str,
     ) -> None:
         """Dispara retreino incremental em subprocesso isolado quando backlog atinge limiar."""
-        if self.config.execution_mode == "live":
-            return
         if retrain_threshold <= 0:
             return
         if pending_episodes < retrain_threshold:
@@ -312,6 +310,11 @@ class Model2LiveExecutionService:
             str(timeframe),
         ]
         self._incremental_training_process = subprocess.Popen(command)
+        logging.getLogger(__name__).info(
+            "[TREINO] Retreino iniciado: %d ep / threshold %d",
+            pending_episodes,
+            retrain_threshold,
+        )
 
     def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
         try:
