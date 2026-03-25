@@ -45,6 +45,43 @@ def _safe_json_dict(raw_value: Any) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+_MS_PER_CANDLE: dict[str, int] = {
+    "H4": 14_400_000,
+    "H1": 3_600_000,
+    "D1": 86_400_000,
+}
+
+_LOOKUP_N: dict[str, int] = {
+    "H4": 4,
+    "H1": 24,
+    "D1": 3,
+}
+
+
+def _ms_per_candle(timeframe: str) -> int:
+    return _MS_PER_CANDLE[timeframe]
+
+
+def _lookup_at_ms(event_timestamp_ms: int, timeframe: str) -> int:
+    return event_timestamp_ms + _LOOKUP_N[timeframe] * _ms_per_candle(timeframe)
+
+
+def _reward_counterfactual(
+    side: str, close_t: float, close_tN: float | None
+) -> tuple[float | None, str, str]:
+    if close_tN is None or close_t <= 0:
+        return None, "pending", "none"
+    raw = (close_tN - close_t) / close_t
+    # Lógica inversa ao PnL: bloqueou LONG e mercado subiu = oportunidade perdida
+    if str(side).upper() == "LONG":
+        reward = -raw
+    else:
+        reward = raw
+    if reward > 0:
+        return reward, "hold_correct", "counterfactual"
+    return reward, "hold_opportunity_missed", "counterfactual"
+
+
 def _reward_label(
     side: str, entry_price: float | None, exit_price: float | None
 ) -> tuple[float | None, str, str]:
@@ -119,6 +156,7 @@ def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
             label TEXT NOT NULL,
             reward_proxy REAL,
             reward_source TEXT NOT NULL DEFAULT 'none',
+            reward_lookup_at_ms INTEGER,
             features_json TEXT NOT NULL,
             target_json TEXT NOT NULL,
             created_at INTEGER NOT NULL
@@ -130,6 +168,9 @@ def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_training_episodes_cycle ON training_episodes(cycle_run_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_training_episodes_lookup ON training_episodes(reward_lookup_at_ms) WHERE reward_lookup_at_ms IS NOT NULL"
     )
 
 
@@ -147,6 +188,96 @@ def _save_cursor(cursor_file: Path, updated_at_ms: int) -> None:
     cursor_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {"last_updated_at_ms": int(updated_at_ms)}
     cursor_file.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+
+
+def flush_deferred_rewards(
+    model2_db_path: str | Path,
+    source_db_path: str | Path,
+    now_ms: int,
+) -> dict[str, Any]:
+    """Preenche reward_proxy diferido para episodios BLOCKED com candle T+N disponivel."""
+    resolved_model2 = _resolve_repo_path(model2_db_path)
+    resolved_source = _resolve_repo_path(source_db_path)
+
+    flushed = 0
+    pending = 0
+    skipped = 0
+
+    with sqlite3.connect(resolved_model2) as m2_conn, \
+         sqlite3.connect(resolved_source) as src_conn:
+        m2_conn.row_factory = sqlite3.Row
+
+        rows = m2_conn.execute(
+            """
+            SELECT id, episode_key, symbol, timeframe, features_json,
+                   reward_lookup_at_ms, event_timestamp
+            FROM training_episodes
+            WHERE reward_proxy IS NULL
+              AND reward_lookup_at_ms IS NOT NULL
+              AND reward_lookup_at_ms <= ?
+            """,
+            (now_ms,),
+        ).fetchall()
+
+        for row in rows:
+            episode_id = int(row["id"])
+            symbol = str(row["symbol"])
+            timeframe = str(row["timeframe"])
+            lookup_ms = int(row["reward_lookup_at_ms"])
+            event_ts = int(row["event_timestamp"])
+            features = _safe_json_dict(row["features_json"])
+
+            signal_side = str(features.get("signal_side", "LONG"))
+            close_t_raw = features.get("close_t")
+
+            # Fallback: busca close_t do candle base na source DB
+            if close_t_raw is None or float(close_t_raw) <= 0:
+                table_name = TIMEFRAME_TO_TABLE.get(timeframe)
+                if table_name:
+                    base_row = src_conn.execute(
+                        f"SELECT close FROM {table_name} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                        (symbol, event_ts),
+                    ).fetchone()
+                    close_t_raw = float(base_row[0]) if base_row else 0.0
+                else:
+                    close_t_raw = 0.0
+
+            close_t = float(close_t_raw)
+
+            table = TIMEFRAME_TO_TABLE.get(timeframe)
+            if table is None:
+                skipped += 1
+                continue
+
+            candle_row = src_conn.execute(
+                f"SELECT close FROM {table} WHERE symbol = ? AND timestamp = ? LIMIT 1",
+                (symbol, lookup_ms),
+            ).fetchone()
+
+            if candle_row is None:
+                pending += 1
+                continue
+
+            close_tN = float(candle_row[0])
+            reward, label, reward_source = _reward_counterfactual(signal_side, close_t, close_tN)
+
+            if reward is None:
+                pending += 1
+                continue
+
+            m2_conn.execute(
+                """
+                UPDATE training_episodes
+                SET reward_proxy = ?, label = ?, reward_source = ?
+                WHERE id = ?
+                """,
+                (reward, label, reward_source, episode_id),
+            )
+            flushed += 1
+
+        m2_conn.commit()
+
+    return {"flushed": flushed, "pending": pending, "skipped": skipped}
 
 
 def _latest_execution_episode_by_symbol(
@@ -259,14 +390,24 @@ def run_persist_training_episodes(
 
             entry_price = float(row["entry_price"]) if row["entry_price"] is not None else None
             exit_price = float(row["exit_price"]) if row["exit_price"] is not None else None
-            reward_proxy, label, reward_source = _reward_label(
-                side=str(row["signal_side"]),
-                entry_price=entry_price,
-                exit_price=exit_price,
-            )
+
+            if status == "BLOCKED":
+                episode_key = f"hold:{execution_id}:{updated_at}"
+                reward_proxy = None
+                label = "pending"
+                reward_source = "none"
+                reward_lookup_at_ms: int | None = _lookup_at_ms(updated_at, str(row["timeframe"]))
+            else:
+                episode_key = f"exec:{execution_id}:{updated_at}"
+                reward_proxy, label, reward_source = _reward_label(
+                    side=str(row["signal_side"]),
+                    entry_price=entry_price,
+                    exit_price=exit_price,
+                )
+                reward_lookup_at_ms = None
 
             episode = {
-                "episode_key": f"exec:{execution_id}:{updated_at}",
+                "episode_key": episode_key,
                 "cycle_run_id": run_id,
                 "execution_id": execution_id,
                 "symbol": symbol,
@@ -329,10 +470,11 @@ def run_persist_training_episodes(
                     label,
                     reward_proxy,
                     reward_source,
+                    reward_lookup_at_ms,
                     features_json,
                     target_json,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     episode["episode_key"],
@@ -345,6 +487,7 @@ def run_persist_training_episodes(
                     label,
                     reward_proxy,
                     reward_source,
+                    reward_lookup_at_ms,
                     json.dumps(episode["features"], ensure_ascii=True, sort_keys=True),
                     json.dumps(episode["target"], ensure_ascii=True, sort_keys=True),
                     now_ms,

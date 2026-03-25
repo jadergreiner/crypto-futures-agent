@@ -4673,7 +4673,31 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
 ### TAREFA BLID-093 - Reward por decisao de ficar fora (HOLD/BLOCKED counterfactual)
 
-Status: PENDENTE
+Status: IMPLEMENTADO
+
+Suite: tests/test_blid093_hold_reward.py — 26 testes (26 GREEN)
+Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration 0011,
+           persist BLOCKED (hold:*), flush_deferred_rewards, collect_training_info
+
+PO: BLID-091+092 concluidos. 101 ep c/ reward, 10978 CYCLE_CONTEXT sem sinal. Vies sobre-entrada bloqueia retreino. Score 4.00, sem bloqueio.
+
+SA (2026-03-24): Analise tecnica concluida. Arquivos impactados:
+1. `scripts/model2/persist_training_episodes.py` — nova funcao `_reward_counterfactual()`,
+   novo bloco de coleta de episodios BLOCKED/READY, job de flush diferido.
+2. `scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql` — ADD COLUMN idempotente.
+3. `core/model2/cycle_report.py::collect_training_info()` — ampliar filtro para incluir
+   episodios com reward_source='counterfactual'.
+4. `scripts/model2/daily_pipeline.py` (ou live_service.py) — ponto de chamada do job diferido.
+Migracao SQL: `ALTER TABLE training_episodes ADD COLUMN reward_lookup_at_ms INTEGER;`
+(sem NOT NULL, sem DEFAULT — NULL significa sem prazo de lookup pendente).
+Formula counterfactual: `reward = (close_{t+N} - close_t) / close_t * direcao`
+onde `direcao = +1 LONG, -1 SHORT`. Se `reward_counterfactual > 0`: label=hold_correct;
+se `< 0`: label=hold_opportunity_missed; se `close_{t+N}` indisponivel: manter NULL.
+N por timeframe: H4→N=4 (16h look-ahead), H1→N=24 (24h look-ahead), D1→N=3 (3d).
+Adherencia arquitetural: usar `time_utils` para timestamps; SQL direto via sqlite3
+(sem repository.py — padrao do modulo); episode_key para idempotencia (INSERT OR IGNORE).
+CYCLE_CONTEXT permanece sem reward — correto por design.
+Guardrails: risk_gate e circuit_breaker nao sao tocados. Sem impacto no caminho live.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
