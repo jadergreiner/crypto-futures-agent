@@ -7,6 +7,7 @@ from typing import Any, Mapping, Collection
 
 from config.execution_config import AUTHORIZED_SYMBOLS
 from core.model2.live_execution import REASON_CODE_CATALOG
+from core.model2.signal_bridge import is_decision_id_duplicate, mark_decision_id_processed
 
 M2_007_1_RULE_ID = "M2-007.1-RULE-ORDER-LAYER-CONSUMER"
 TECHNICAL_SIGNAL_STATUS_CREATED = "CREATED"
@@ -104,6 +105,16 @@ def evaluate_signal_for_order_layer(
             details={"required_field": "payload.decision_origin"},
         )
 
+    # Gate de idempotência por decision_id (M2-024.3)
+    if order_input.decision_id is not None and is_decision_id_duplicate(order_input.decision_id):
+        return OrderLayerDecision(
+            should_transition=True,
+            target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+            reason="duplicate_decision_id",
+            rule_id=M2_007_1_RULE_ID,
+            details={"decision_id": order_input.decision_id},
+        )
+
     if order_input.symbol not in symbols:
         return OrderLayerDecision(
             should_transition=True,
@@ -158,6 +169,9 @@ def evaluate_signal_for_order_layer(
                 "take_profit": order_input.take_profit,
             },
         )
+
+    # Marcar decision_id como processado para evitar duplicidade futura (M2-024.3)
+    mark_decision_id_processed(order_input.decision_id)
 
     return OrderLayerDecision(
         should_transition=True,

@@ -106,6 +106,11 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
 - Validacao de contrato no `order_layer` (M2-024.1): sinais com
   `decision_id` ou `decision_origin` passam por strict_contract
   opt-in antes de avançar para execucao live.
+- Gate de idempotencia (M2-024.3): `order_layer` chama
+  `is_decision_id_duplicate` de `signal_bridge` antes de processar.
+  Se duplicado, retorna CANCELLED com reason `duplicate_decision_id`.
+  Apos CONSUMED, `mark_decision_id_processed` registra o decision_id.
+  Fluxo legado (decision_id=None) nao e afetado.
 
 Resiliencia e fail-safe de pipeline (M2-027):
 

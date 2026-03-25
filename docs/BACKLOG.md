@@ -211,7 +211,7 @@ DOC: ARQUITETURA_ALVO atualizada M2-024.2; SYNCHRONIZATION SYNC-129.
 
 ### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
 
-Status: EM_DESENVOLVIMENTO
+Status: REVISADO_APROVADO
 
 Descricao:
 Fortalecer bloqueio de duplicidade por decision_id no consumo de
@@ -227,6 +227,20 @@ idempotencia com memoria. Casos cobrem: entrada nova, duplicacao detectada,
 ausencia decision_id, validacao positivo, paridade shadow/live.
 
 SE: Iniciado em 2026-03-23 16:15 BRT. Adicionando gate de idempotencia em signal_bridge.py.
+
+QA2: Suite RED de integracao criada em tests/test_model2_m2_024_3_integration.py
+com 7 testes; 3 failed (bloqueio duplicata, reason code, marca gate) e 4 passed
+(retrocompat legado, primeiro sinal, isolamento). Status: TESTES_PRONTOS.
+
+SE: GREEN concluido em 2026-03-25. order_layer importa is_decision_id_duplicate
+e mark_decision_id_processed de signal_bridge. Gate integrado antes do check de
+simbolo; marca decision_id apos CONSUMED. 22/22 testes passando. mypy clean.
+
+TL: APROVADO. 26/26 testes reproduzidos (order_layer + ambas suites 024.3). mypy
+--strict clean. Gate posicionado antes de execucao, retrocompat legado validado,
+guardrails ativos. Sem regressao nova.
+
+DOC: ARQUITETURA_ALVO extensao M2-024.3 adicionada; SYNCHRONIZATION SYNC-141.
 
 ### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
 

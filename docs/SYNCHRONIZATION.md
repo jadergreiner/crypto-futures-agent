@@ -97,6 +97,39 @@ logging estruturado por tentativa
 
 ---
 
+### [SYNC-141] M2-024.3 - Gate de idempotencia integrado ao order_layer
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5); Doc Advocate (7)
+
+**Alteracoes:**
+
+- `core/model2/order_layer.py`: importa `is_decision_id_duplicate` e
+  `mark_decision_id_processed` de `signal_bridge`; gate inserido antes
+  do check de simbolo; `mark_decision_id_processed` chamado apos CONSUMED
+- `tests/test_model2_m2_024_3_integration.py`: suite de integracao criada
+  (7 testes; 3 RED -> GREEN; retrocompat legado validado)
+- `docs/ARQUITETURA_ALVO.md`: extensao M2-024.3 documentada no bloco de
+  contrato unificado (idempotencia, reason code, retrocompat)
+- `docs/BACKLOG.md`: status REVISADO_APROVADO; comentarios SE/QA2/TL
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-141] fechado
+
+**Escopo tecnico:** Gate de idempotencia por decision_id no order_layer:
+
+- `is_decision_id_duplicate` consultado antes de qualquer validacao de negocio
+- CANCELLED com reason `duplicate_decision_id` em duplicata detectada
+- `mark_decision_id_processed` registra decision_id apos CONSUMED
+- Fluxo legado (decision_id=None) nao afetado
+
+**Guardrails:** risk_gate=ATIVO, circuit_breaker=ATIVO, retrocompat=OK,
+gate so bloqueia se decision_id is not None
+
+**Evidencias:** 26 testes passando (order_layer + 024.3); mypy --strict clean;
+pytest tests/ 211 passed (67 falhas pre-existentes, sem regressao nova)
+
+---
+
 ### [SYNC-139] BLID-095 - Rastreamento de experimentos e artefatos MLflow
 
 **Data/Hora**: 2026-03-25 BRT
