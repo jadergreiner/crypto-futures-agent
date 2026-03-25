@@ -18,6 +18,8 @@ from agent.data_loader import DataLoader
 from agent.sb3_utils import attach_safe_logger_to_model
 from config.ppo_config import get_ppo_config, PPOConfig
 
+import mlflow
+
 logger = logging.getLogger(__name__)
 
 # Verificar se tensorboard está disponível
@@ -192,6 +194,23 @@ class Trainer:
         logger.info(f"Phase 1 model saved to {model_path}")
         logger.info(f"VecNormalize stats saved to {vec_normalize_path}")
 
+        # Rastreamento MLflow — nunca bloqueia execucao
+        try:
+            with mlflow.start_run(run_name="phase1_exploration"):
+                mlflow.log_params({
+                    "learning_rate": self.config.learning_rate,
+                    "batch_size": self.config.batch_size,
+                    "n_steps": self.config.n_steps,
+                    "n_epochs": self.config.n_epochs,
+                    "gamma": self.config.gamma,
+                    "gae_lambda": self.config.gae_lambda,
+                    "clip_range": self.config.clip_range,
+                    "ent_coef": self.config.ent_coef,
+                })
+                mlflow.log_artifact(model_path)
+        except Exception as exc:
+            logger.warning(f"MLflow indisponivel (phase1): {exc}")
+
         return self.model
 
     def train_phase2_refinement(self, train_data: Dict[str, Any],
@@ -305,6 +324,13 @@ class Trainer:
 
         logger.info(f"Phase 2 model saved to {model_path}")
         logger.info(f"VecNormalize stats saved to {vec_normalize_path}")
+
+        # Rastreamento MLflow — nunca bloqueia execucao
+        try:
+            with mlflow.start_run(run_name="phase2_refinement"):
+                mlflow.log_artifact(model_path)
+        except Exception as exc:
+            logger.warning(f"MLflow indisponivel (phase2): {exc}")
 
         return self.model
 
@@ -486,6 +512,28 @@ class Trainer:
 
         self.model.save(path)
         logger.info(f"Model saved to {path}")
+
+    def load_model_from_mlflow_artifact(
+        self,
+        run_id: str,
+        artifact_name: str,
+        env: Optional[Any] = None,
+    ) -> PPO:
+        """
+        Carrega modelo PPO a partir de artifact URI do MLflow.
+
+        Args:
+            run_id: ID do run MLflow
+            artifact_name: Nome do arquivo de artefato (ex: phase1_exploration.zip)
+            env: Environment opcional para associar ao modelo
+
+        Returns:
+            Modelo PPO carregado
+        """
+        artifact_uri = mlflow.get_artifact_uri(artifact_name)
+        self.model = PPO.load(artifact_uri, env=env)
+        logger.info(f"Modelo carregado via MLflow artifact: run_id={run_id}, uri={artifact_uri}")
+        return self.model
 
     def load_model(self, path: str, env: Optional[CryptoFuturesEnv] = None) -> PPO:
         """

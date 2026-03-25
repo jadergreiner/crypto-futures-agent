@@ -4824,7 +4824,11 @@ DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5
 
 ### TAREFA BLID-095 - Rastreamento de experimentos e artefatos MLflow
 
-Status: ABERTA
+Status: IMPLEMENTADO
+Suite: tests/test_mlflow_tracking.py (13/13 PASS)
+Cobertura: R1..R6 mapeados; mlflow.start_run, log_params, log_metric, log_artifact, load_model_from_mlflow_artifact, .gitignore
+
+SA: MLflow self-hosted via mlflow.set_experiment; TrainingCallback+ConvergenceMonitor logam run_id; ppo_model.zip no .gitignore; sem schema DB.
 
 **Contexto e motivacao:**
 
@@ -4858,8 +4862,8 @@ artefatos que crescem a cada retreino.
 **Impacto:** Observabilidade completa do ciclo de treino; comparacao entre runs;
 modelo versionado fora do git; arvore local limpa de binarios.
 
-PO: BLID-094 concluido, modelo 10 dias stale sem rastreabilidade. TensorBoard
-desabilitado no Windows. Metadados JSON gerados mas sem UI. Score a calcular.
+PO: BLID-094 concluido. MLflow self-hosted; 6 artefatos; git limpo de binarios. Score 3.05. Sem bloqueio.
+SE: mlflow importado em trainer.py e convergence_monitor.py; start_run+log_params+log_artifact em phase1/phase2; log_metric 7 metricas em log_step; load_model_from_mlflow_artifact adicionado; .gitignore atualizado; git rm --cached ppo_model.zip executado; 13/13 GREEN; sem regressoes novas.
 
 ---
 

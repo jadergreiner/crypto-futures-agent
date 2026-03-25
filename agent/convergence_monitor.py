@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import json
 from collections import deque
+import mlflow
 
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -118,6 +119,10 @@ class ConvergenceMonitor:
         entropy: Optional[float] = None,
         kl_divergence: Optional[float] = None,
         gradient_norm: Optional[float] = None,
+        sharpe: Optional[float] = None,
+        win_rate: Optional[float] = None,
+        drawdown: Optional[float] = None,
+        profit_factor: Optional[float] = None,
     ) -> None:
         """
         Registra métrica de um step de treinamento.
@@ -131,6 +136,10 @@ class ConvergenceMonitor:
             entropy: Entropia da policy
             kl_divergence: Divergência KL (old vs new policy)
             gradient_norm: Norma do gradiente
+            sharpe: Sharpe ratio do episódio
+            win_rate: Taxa de acerto do episódio
+            drawdown: Drawdown máximo do episódio
+            profit_factor: Profit factor do episódio
         """
         self.step_count = step
         self.metrics_buffer["step"].append(step)
@@ -159,13 +168,33 @@ class ConvergenceMonitor:
             if entropy is not None:
                 self.tb_writer.add_scalar("train/entropy", entropy, step)
 
+        # Rastreamento MLflow — nunca bloqueia execucao
+        try:
+            _reward_mean = episode_reward if episode_reward is not None else 0.0
+            _ep_len_mean = float(episode_length) if episode_length is not None else 0.0
+            _kl = kl_divergence if kl_divergence is not None else 0.0
+            _entropy = entropy if entropy is not None else 0.0
+            _sharpe = sharpe if sharpe is not None else 0.0
+            _win_rate = win_rate if win_rate is not None else 0.0
+            _drawdown = drawdown if drawdown is not None else 0.0
+            _profit_factor = profit_factor if profit_factor is not None else 0.0
+            mlflow.log_metric("reward_mean", _reward_mean, step=step)
+            mlflow.log_metric("ep_len_mean", _ep_len_mean, step=step)
+            mlflow.log_metric("kl_div", _kl, step=step)
+            mlflow.log_metric("sharpe", _sharpe, step=step)
+            mlflow.log_metric("win_rate", _win_rate, step=step)
+            mlflow.log_metric("drawdown", _drawdown, step=step)
+            mlflow.log_metric("profit_factor", _profit_factor, step=step)
+        except Exception as exc:
+            logger.warning(f"MLflow indisponivel (log_step): {exc}")
+
         # Exportar para CSV periodicamente
         if step % self.csv_export_interval == 0:
             self._export_to_csv()
 
         logger.debug(
-            f"Step {step}: reward={episode_reward:.2f}, kl={kl_divergence:.4f}, "
-            f"entropy={entropy:.4f}"
+            f"Step {step}: reward={episode_reward}, kl={kl_divergence}, "
+            f"entropy={entropy}"
         )
 
     def compute_moving_average(
