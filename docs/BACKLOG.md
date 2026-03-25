@@ -247,7 +247,7 @@ Backlog atualizado para CONCLUIDO. Commit 9ca278a e push realizados.
 
 ### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Descricao:
 Implementar retry com budget e backoff para falhas transitorias, com
@@ -256,6 +256,25 @@ cancelamento fail-safe apos limite seguro.
 Dependencias:
 
 - M2-024.2
+
+PO: Score 3.50. Retry com budget/backoff elimina falhas silenciosas live.
+Deps M2-024.2 OK. Bloqueador de resiliencia para expansao.
+
+SA: Adicionar classify_exchange_exception + exchange_retry_with_budget em io_retry.py.
+Aplicar em place_market_entry (live_service.py). Sem schema change. Guardrails ativos.
+
+QA: Suite RED criada em tests/test_model2_m2_024_4_exchange_retry.py com 18 testes;
+execucao inicial 18 failed. Cobre R1-R5: classify, budget, ExchangeRetryBudgetError,
+_place_market_entry_with_retry, fail-safe.
+
+SE: GREEN concluido em 2026-03-25. ExchangeRetryBudgetError +
+classify_exchange_exception + exchange_retry_with_budget em io_retry.py.
+_place_market_entry_with_retry em live_service.py. 18/18 testes passando.
+
+TL: APROVADO. 18/18 testes reproduzidos. 4 falhas M2-024.2 confirmadas pre-existentes
+via git stash. Guardrails intactos, retry limitado a transient, fail-safe validado.
+
+DOC: ARQUITETURA_ALVO extensao M2-024.4 adicionada; SYNCHRONIZATION SYNC-142.
 
 ### TAREFA M2-024.5 - Timeout padrao por etapa de execucao
 

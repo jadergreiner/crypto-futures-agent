@@ -111,6 +111,11 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   Se duplicado, retorna CANCELLED com reason `duplicate_decision_id`.
   Apos CONSUMED, `mark_decision_id_processed` registra o decision_id.
   Fluxo legado (decision_id=None) nao e afetado.
+- Retry controlado de exchange (M2-024.4): `io_retry.py` fornece
+  `classify_exchange_exception` (transient|permanent), `exchange_retry_with_budget`
+  (max 3 tentativas, backoff exponencial) e `ExchangeRetryBudgetError`.
+  `live_service.py` expoe `_place_market_entry_with_retry` que aplica o retry
+  e retorna None (fail-safe) apos budget esgotado. Guardrails intactos.
 
 Resiliencia e fail-safe de pipeline (M2-027):
 

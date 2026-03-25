@@ -23,6 +23,25 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-142] M2-024.4 - Retry controlado para falha transitoria de exchange
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+**Mudancas**:
+
+- `core/model2/io_retry.py`: adicionados `ExchangeRetryBudgetError`,
+  `classify_exchange_exception`, `exchange_retry_with_budget`
+- `core/model2/live_service.py`: adicionado `_place_market_entry_with_retry`
+  com retry controlado e fail-safe
+- `tests/test_model2_m2_024_4_exchange_retry.py`: suite 18 testes GREEN
+- `docs/BACKLOG.md`: status M2-024.4 atualizado para REVISADO_APROVADO
+- `docs/ARQUITETURA_ALVO.md`: extensao M2-024.4 adicionada
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-142] adicionado
+
+---
+
 ### [SYNC-141] BLID-0E4 - Implementacao GREEN-REFACTOR do I/O Retry com atomicidade
 
 **Data/Hora**: 2026-03-25 BRT

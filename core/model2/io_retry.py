@@ -7,6 +7,9 @@ Fornece:
 - read_json_with_retry: wrapper para leitura JSON com retry+timeout
 - write_json_with_retry: wrapper para escrita JSON com retry+timeout
 - IoRetryError: exceção customizada
+- ExchangeRetryBudgetError: falha de exchange após budget esgotado (M2-024.4)
+- classify_exchange_exception: classifica exceção como transient ou permanent
+- exchange_retry_with_budget: retry controlado para falhas de exchange
 
 Guardrails:
 - Timeout: 5s leitura, 10s escrita (hard limits)
@@ -23,7 +26,7 @@ import os
 import json
 from pathlib import Path
 from contextlib import contextmanager
-from typing import Any, Dict, Generator, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generator, Literal, Optional, Tuple, TypeVar, Union
 from collections.abc import Callable
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -367,3 +370,126 @@ def write_json_with_retry(
 def reset_for_testing() -> None:
     """Função auxiliar para testes (reset state se necessário)."""
     pass
+
+
+# ============================================================================
+# M2-024.4: RETRY CONTROLADO PARA EXCHANGE
+# ============================================================================
+
+# Códigos de erro transitórios da Binance (rate limit, server overload, clock skew)
+_BINANCE_TRANSIENT_CODES: frozenset[int] = frozenset({-1001, -1003, -1021})
+
+
+class ExchangeRetryBudgetError(Exception):
+    """Falha de exchange após budget de retry esgotado (M2-024.4).
+
+    Campos obrigatórios:
+    - attempt_count: número de tentativas realizadas
+    - reason_code: código canônico (ex: 'timeout') — deve existir em REASON_CODE_CATALOG
+    - last_exception: última exceção capturada
+    """
+
+    def __init__(
+        self,
+        attempt_count: int,
+        reason_code: str,
+        last_exception: Exception,
+    ) -> None:
+        super().__init__(
+            f"Exchange retry budget esgotado após {attempt_count} tentativas "
+            f"[{reason_code}]: {last_exception}"
+        )
+        self.attempt_count = attempt_count
+        self.reason_code = reason_code
+        self.last_exception = last_exception
+
+
+def classify_exchange_exception(
+    exc: Exception,
+) -> Literal["transient", "permanent"]:
+    """Classifica exceção de exchange como transitória ou permanente.
+
+    Transitório: conexão, timeout, rate limit — vale retry.
+    Permanente: erro de negócio/validação — falha imediata.
+
+    Args:
+        exc: exceção capturada
+
+    Returns:
+        'transient' ou 'permanent'
+    """
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+        return "transient"
+
+    # Verifica BinanceAPIException (importação dinâmica para evitar dep circular)
+    exc_type_name = type(exc).__name__
+    if exc_type_name == "BinanceAPIException":
+        code = getattr(exc, "code", None)
+        if code in _BINANCE_TRANSIENT_CODES:
+            return "transient"
+
+    return "permanent"
+
+
+def exchange_retry_with_budget(
+    fn: Callable[[], Any],
+    max_attempts: int = 3,
+    backoff: Tuple[float, ...] = (1.0, 2.0, 4.0),
+) -> Any:
+    """Executa fn() com retry controlado por budget para falhas transitórias.
+
+    - Transient: retry até max_attempts com backoff
+    - Permanent: falha imediata (1 tentativa)
+    - Budget esgotado: lança ExchangeRetryBudgetError
+
+    Args:
+        fn: callable sem argumentos (use functools.partial para passar args)
+        max_attempts: máximo de tentativas (default 3)
+        backoff: delays em segundos entre tentativas
+
+    Returns:
+        Resultado de fn() em caso de sucesso
+
+    Raises:
+        ExchangeRetryBudgetError: quando budget é esgotado ou erro permanente
+    """
+    last_exc: Exception = RuntimeError("exchange_retry_with_budget: nenhuma tentativa")
+    attempt = 0
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exc = exc
+            kind = classify_exchange_exception(exc)
+
+            if kind == "permanent":
+                logger.warning(
+                    f"Erro permanente de exchange na tentativa {attempt}/{max_attempts} "
+                    f"[{type(exc).__name__}]: {exc} — sem retry"
+                )
+                raise ExchangeRetryBudgetError(
+                    attempt_count=attempt,
+                    reason_code="timeout",
+                    last_exception=exc,
+                )
+
+            # transient: tenta novamente se ainda há budget
+            if attempt < max_attempts:
+                delay = backoff[attempt - 1] if attempt - 1 < len(backoff) else backoff[-1]
+                logger.debug(
+                    f"Falha transitória de exchange tentativa {attempt}/{max_attempts} "
+                    f"[{type(exc).__name__}]: {exc} — retry em {delay}s"
+                )
+                time.sleep(delay)
+            else:
+                logger.warning(
+                    f"Budget de retry de exchange esgotado após {attempt} tentativas "
+                    f"[{type(exc).__name__}]: {exc}"
+                )
+
+    raise ExchangeRetryBudgetError(
+        attempt_count=attempt,
+        reason_code="timeout",
+        last_exception=last_exc,
+    )

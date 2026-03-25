@@ -57,6 +57,7 @@ from .model_decision import (
 from .model_inference_service import ModelInferenceService
 from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
+from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
 
 # Regra que garante que guard-rails permanecem no caminho critico
 # independente da acao do modelo (M2-020.5)
@@ -1295,6 +1296,45 @@ class Model2LiveExecutionService:
                 except Exception:
                     filled_price = None
         return filled_qty, filled_price
+
+    def _place_market_entry_with_retry(
+        self,
+        exchange: Model2LiveExchange,
+        *,
+        symbol: str,
+        signal_side: str,
+        quantity: float,
+        client_order_id: str = "",
+        max_attempts: int = 3,
+        backoff: tuple[float, ...] = (1.0, 2.0, 4.0),
+    ) -> Any:
+        """Envia ordem de entrada MARKET com retry controlado para falhas transitórias.
+
+        - Falha transitória (ConnectionError, TimeoutError): retry até max_attempts
+        - Falha permanente (erro de negócio): falha imediata sem retry
+        - Budget esgotado: registra warning com reason_code=timeout e retorna None (fail-safe)
+
+        Guardrails: risk_gate e circuit_breaker NÃO são contornados por esta função.
+        O retry ocorre APENAS na chamada ao exchange, após todos os gates de admissão.
+        """
+        import functools
+        _log = logging.getLogger(__name__)
+        fn = functools.partial(
+            exchange.place_market_entry,
+            symbol=symbol,
+            signal_side=signal_side,
+            quantity=quantity,
+            client_order_id=client_order_id or str(uuid.uuid4()),
+        )
+        try:
+            return exchange_retry_with_budget(fn, max_attempts=max_attempts, backoff=backoff)
+        except ExchangeRetryBudgetError as err:
+            _log.warning(
+                f"[M2-024.4] Budget de retry esgotado para {symbol} "
+                f"após {err.attempt_count} tentativas "
+                f"[reason_code={err.reason_code}]: {err.last_exception}"
+            )
+            return None
 
     def _place_protective_order_with_retry(
         self,
