@@ -18,7 +18,7 @@ from typing import Any, Iterable, cast
 # Forçar UTF-8 no stdout para suportar emojis e caracteres Unicode no Windows
 if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+        sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -193,6 +193,34 @@ def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]
     return "HOLD", 0.0
 
 
+def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | None:
+    """Extrai campos de risk_state do input_json da decisao mais recente.
+
+    Retorna dict com os campos presentes em input_json, ou None se nao houver
+    dados (DB inexistente, tabela ausente, symbol sem decisao).
+    Nunca levanta excecao.
+    """
+    try:
+        conn = sqlite3.connect(db_path, timeout=5)
+        row = conn.execute(
+            "SELECT input_json FROM model_decisions "
+            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        conn.close()
+        if row is None:
+            return None
+        raw = row[0]
+        if not raw:
+            return {}
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except Exception:
+        return None
+
+
 def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, float]:
     """Retorna (episode_id, persisted, reward) do episodio mais recente do símbolo."""
     try:
@@ -315,7 +343,7 @@ def _build_symbol_report(
     episode_line = f"{ep_label} {ep_status} | reward: {reward_sign}{reward:.4f}"
 
     # --- Treino ---
-    from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, _progress_bar  # type: ignore[attr-defined]
+    from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, _progress_bar
     thresh = RETRAIN_EPISODE_THRESHOLD
     pct = pending_episodes / thresh if thresh > 0 else 0.0
     bar = _progress_bar(pct, width=10)
@@ -325,6 +353,38 @@ def _build_symbol_report(
         f"pendentes: {pending_episodes}/{thresh} {bar} "
         f"(faltam {episodes_restantes} para retreino)"
     )
+
+    # --- Risk State ---
+    risk_state = _query_risk_state_from_db(symbol, db_path)
+
+    def _build_risk_line(rs: dict[str, Any] | None, current_action: str) -> str:
+        if rs is None:
+            return "N/A"
+        cb_state = str(rs.get("circuit_breaker_state", "N/A"))
+        rg_status = str(rs.get("risk_gate_status", "N/A"))
+        short_only = rs.get("short_only", False)
+        recent = rs.get("recent_entries_today")
+        max_daily = rs.get("max_daily_entries")
+
+        parts: list[str] = [f"CB:{cb_state}", f"RG:{rg_status}"]
+
+        if cb_state not in ("normal", "N/A"):
+            parts.append("[CB TRANCADO]")
+
+        if short_only:
+            parts.append(f"short_only:{short_only}")
+            if current_action == "OPEN_LONG":
+                parts.append("[LONG BLOQUEADO - short_only]")
+
+        if recent is not None and max_daily is not None:
+            entry_str = f"entradas hoje: {recent}/{max_daily}"
+            if int(recent) >= int(max_daily):
+                entry_str += " [LIMITE ATINGIDO]"
+            parts.append(entry_str)
+
+        return " | ".join(parts)
+
+    risk_line = _build_risk_line(risk_state, decision)
 
     # --- Posição Binance ---
     has_position = False
@@ -370,6 +430,7 @@ def _build_symbol_report(
         f"  Episodio : {episode_line}",
         f"  Treino   : {train_line}",
         f"  Posicao  : {position_line}",
+        f"  Risk     : {risk_line}",
         sep,
     ]
     return "\n".join(lines)

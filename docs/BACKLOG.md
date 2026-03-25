@@ -4512,7 +4512,11 @@ com granularidade fina (H4 + H1 + M5).
 
 ### TAREFA BLID-090 - Expor estado do circuit breaker e risk gate no status por simbolo
 
-Status: PENDENTE
+Status: IMPLEMENTADO — 19 testes GREEN (18 RED + 1 bonus); mypy --strict zero erros; 283 testes sem regressao (2026-03-24)
+
+PO: CB resolvido (BLID-092), mas status nao exibe estado. Operador cego ao motivo de bloqueio. Score 3.55, desbloqueado.
+
+SA: input_json.risk_state confirmado em DB. Adicionar _query_risk_state_from_db + linha Risk em _build_symbol_report. Sem schema novo.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
