@@ -45,9 +45,11 @@ def _safe_json_dict(raw_value: Any) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _reward_label(side: str, entry_price: float | None, exit_price: float | None) -> tuple[float | None, str]:
+def _reward_label(
+    side: str, entry_price: float | None, exit_price: float | None
+) -> tuple[float | None, str, str]:
     if entry_price is None or exit_price is None or entry_price <= 0:
-        return None, "pending"
+        return None, "pending", "none"
 
     if str(side).upper() == "SHORT":
         reward = (entry_price - exit_price) / entry_price
@@ -55,10 +57,10 @@ def _reward_label(side: str, entry_price: float | None, exit_price: float | None
         reward = (exit_price - entry_price) / entry_price
 
     if reward > 0:
-        return reward, "win"
+        return reward, "win", "pnl_realized"
     if reward < 0:
-        return reward, "loss"
-    return reward, "breakeven"
+        return reward, "loss", "pnl_realized"
+    return reward, "breakeven", "pnl_realized"
 
 
 def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dict[str, Any] | None:
@@ -86,16 +88,19 @@ def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dic
 
 
 def _counts_by_status(conn: sqlite3.Connection, table_name: str, symbol: str, timeframe: str | None = None) -> dict[str, int]:
-    if timeframe is None:
-        rows = conn.execute(
-            f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? GROUP BY status",
-            (symbol,),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? AND timeframe = ? GROUP BY status",
-            (symbol, timeframe),
-        ).fetchall()
+    try:
+        if timeframe is None:
+            rows = conn.execute(
+                f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? GROUP BY status",
+                (symbol,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                f"SELECT status, COUNT(*) FROM {table_name} WHERE symbol = ? AND timeframe = ? GROUP BY status",
+                (symbol, timeframe),
+            ).fetchall()
+    except sqlite3.OperationalError:
+        return {}
     return {str(status): int(count) for status, count in rows}
 
 
@@ -113,6 +118,7 @@ def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
             event_timestamp INTEGER NOT NULL,
             label TEXT NOT NULL,
             reward_proxy REAL,
+            reward_source TEXT NOT NULL DEFAULT 'none',
             features_json TEXT NOT NULL,
             target_json TEXT NOT NULL,
             created_at INTEGER NOT NULL
@@ -253,7 +259,7 @@ def run_persist_training_episodes(
 
             entry_price = float(row["entry_price"]) if row["entry_price"] is not None else None
             exit_price = float(row["exit_price"]) if row["exit_price"] is not None else None
-            reward_proxy, label = _reward_label(
+            reward_proxy, label, reward_source = _reward_label(
                 side=str(row["signal_side"]),
                 entry_price=entry_price,
                 exit_price=exit_price,
@@ -322,10 +328,11 @@ def run_persist_training_episodes(
                     event_timestamp,
                     label,
                     reward_proxy,
+                    reward_source,
                     features_json,
                     target_json,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     episode["episode_key"],
@@ -337,6 +344,7 @@ def run_persist_training_episodes(
                     updated_at,
                     label,
                     reward_proxy,
+                    reward_source,
                     json.dumps(episode["features"], ensure_ascii=True, sort_keys=True),
                     json.dumps(episode["target"], ensure_ascii=True, sort_keys=True),
                     now_ms,
@@ -406,10 +414,11 @@ def run_persist_training_episodes(
                     event_timestamp,
                     label,
                     reward_proxy,
+                    reward_source,
                     features_json,
                     target_json,
                     created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     context_episode["episode_key"],
@@ -421,6 +430,7 @@ def run_persist_training_episodes(
                     now_ms,
                     "context",
                     None,
+                    "none",
                     json.dumps(context_episode["features"], ensure_ascii=True, sort_keys=True),
                     json.dumps(context_episode["target"], ensure_ascii=True, sort_keys=True),
                     now_ms,

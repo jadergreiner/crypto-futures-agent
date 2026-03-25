@@ -143,53 +143,62 @@ def _criar_model2_db_com_execucao(
 
 class TestRewardLabel:
     def test_long_win(self) -> None:
-        reward, label = _reward_label("LONG", 100.0, 110.0)
+        reward, label, reward_source = _reward_label("LONG", 100.0, 110.0)
         assert label == "win"
         assert reward == pytest.approx(0.1)
+        assert reward_source == "pnl_realized"
 
     def test_long_loss(self) -> None:
-        reward, label = _reward_label("LONG", 100.0, 90.0)
+        reward, label, reward_source = _reward_label("LONG", 100.0, 90.0)
         assert label == "loss"
         assert reward == pytest.approx(-0.1)
+        assert reward_source == "pnl_realized"
 
     def test_long_breakeven(self) -> None:
-        reward, label = _reward_label("LONG", 100.0, 100.0)
+        reward, label, reward_source = _reward_label("LONG", 100.0, 100.0)
         assert label == "breakeven"
         assert reward == pytest.approx(0.0)
+        assert reward_source == "pnl_realized"
 
     def test_short_win(self) -> None:
-        reward, label = _reward_label("SHORT", 100.0, 90.0)
+        reward, label, reward_source = _reward_label("SHORT", 100.0, 90.0)
         assert label == "win"
         assert reward == pytest.approx(0.1)
+        assert reward_source == "pnl_realized"
 
     def test_short_loss(self) -> None:
-        reward, label = _reward_label("SHORT", 100.0, 110.0)
+        reward, label, reward_source = _reward_label("SHORT", 100.0, 110.0)
         assert label == "loss"
         assert reward == pytest.approx(-0.1)
+        assert reward_source == "pnl_realized"
 
     def test_short_breakeven(self) -> None:
-        reward, label = _reward_label("SHORT", 100.0, 100.0)
+        reward, label, reward_source = _reward_label("SHORT", 100.0, 100.0)
         assert label == "breakeven"
         assert reward == pytest.approx(0.0)
+        assert reward_source == "pnl_realized"
 
     def test_pending_sem_exit_price(self) -> None:
-        reward, label = _reward_label("LONG", 100.0, None)
+        reward, label, reward_source = _reward_label("LONG", 100.0, None)
         assert label == "pending"
         assert reward is None
+        assert reward_source == "none"
 
     def test_pending_sem_entry_price(self) -> None:
-        reward, label = _reward_label("LONG", None, 110.0)
+        reward, label, reward_source = _reward_label("LONG", None, 110.0)
         assert label == "pending"
         assert reward is None
+        assert reward_source == "none"
 
     def test_pending_entry_zero(self) -> None:
-        reward, label = _reward_label("LONG", 0.0, 110.0)
+        reward, label, reward_source = _reward_label("LONG", 0.0, 110.0)
         assert label == "pending"
         assert reward is None
+        assert reward_source == "none"
 
     def test_side_case_insensitive(self) -> None:
-        reward_l, label_l = _reward_label("long", 100.0, 110.0)
-        reward_s, label_s = _reward_label("short", 100.0, 90.0)
+        reward_l, label_l, _ = _reward_label("long", 100.0, 110.0)
+        reward_s, label_s, _ = _reward_label("short", 100.0, 90.0)
         assert label_l == "win"
         assert label_s == "win"
 
