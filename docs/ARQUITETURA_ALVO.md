@@ -168,7 +168,12 @@ Componentes:
 1. `core/model2/cycle_report.py` — Modulo de formatacao de relatorios
 2. `SymbolReport` — Dataclass com metricas do ciclo por simbolo
 3. `format_symbol_report()` — Bloco ASCII legivel
-4. `format_cycle_summary()` — Resumo do ciclo com N simbolos
+4. `format_cycle_summary()` — Resumo do ciclo com N simbolos;
+   timestamp do header via `now_brt_str()` de `time_utils` (M2-025.2)
+5. `core/model2/time_utils.py` — Utilitario canonico obrigatorio de exibicao
+   de timestamps; toda conversao BRT passa por `now_brt_str()`,
+   `ts_ms_to_brt_str()` ou `posix_to_brt_str()`; persistencia permanece
+   como `int` UTC ms
 
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 

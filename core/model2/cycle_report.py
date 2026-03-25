@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from typing import Any, Literal, Optional, Sequence, TypedDict, cast
 
+from core.model2.time_utils import now_brt_str
+
 logger = logging.getLogger(__name__)
 
 # Limite de episodios para disparo de retreino
@@ -228,11 +230,10 @@ def format_cycle_summary(
     next_cycle_time: str,
 ) -> str:
     """Formata resumo completo do ciclo com todos os simbolos."""
-    now_sp = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo"))
     header = (
         f"\n{'=' * 48}\n"
         f"  CICLO #{cycle_number} | "
-        f"{now_sp.strftime('%Y-%m-%d %H:%M:%S %Z')}\n"
+        f"{now_brt_str()}\n"
         f"{'=' * 48}"
     )
 

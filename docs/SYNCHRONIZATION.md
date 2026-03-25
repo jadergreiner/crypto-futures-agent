@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-146] M2-025.2 - Normalizacao de timezone de evento no pipeline
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+Docs atualizadas:
+
+- `docs/ARQUITETURA_ALVO.md`: Camada 6 atualizada com time_utils como
+  utilitario canonico obrigatorio; format_cycle_summary usa now_brt_str().
+- `docs/REGRAS_DE_NEGOCIO.md`: RN-026 adicionada — timezone canonico de
+  exibicao, proibicao de strftime('%Z'), time_utils como ponto unico.
+
+Arquivos de codigo alterados:
+
+- `core/model2/cycle_report.py` (now_brt_str substitui strftime(%Z))
+- `tests/test_model2_m2_025_2_timezone_normalization.py` (13 passed)
+
 ### [SYNC-145] M2-024.5 - Timeout padrao por etapa de execucao
 
 **Data/Hora**: 2026-03-25 BRT

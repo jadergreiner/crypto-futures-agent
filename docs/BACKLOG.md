@@ -512,7 +512,9 @@ Evidencias de implementacao:
 
 ### TAREFA M2-025.2 - Normalizar timezone de evento no pipeline
 
-Status: Em analise
+Status: CONCLUIDO
+
+Suite: tests/test_model2_m2_025_2_timezone_normalization.py (13 passed GREEN)
 
 Descricao:
 Padronizar timezone de eventos operacionais para Brasilia na exibicao e UTC
@@ -524,6 +526,26 @@ Dependencias:
 
 PO: Score 2.05. Padronizacao de timezone elimina ambiguidade de auditoria.
 Desbloqueado. Handoff para SA apos M2-024.5.
+
+SA: Lacuna em cycle_report.py:235 (%Z inconsistente). time_utils.py ja e
+canonico. Padronizar exibicao BRT via now_brt_str/ts_ms_to_brt_str. Sem
+schema novo. Guardrails intactos.
+
+QA: Suite RED 7 failed, 6 pass. Cobre BRT canonico, LMT/offset ausente,
+AST strftime/%Z, import time_utils, persistencia UTC preservada.
+
+SE: GREEN concluido em 2026-03-25. cycle_report.py importa now_brt_str de
+time_utils; substituido now_sp.strftime('%Y-%m-%d %H:%M:%S %Z') por
+now_brt_str(). 13/13 passed, mypy clean.
+
+TL: APROVADO. 13/13 reproduzidos, 232 suite verde, mypy clean.
+Mudanca cirurgica, import canonico, guardrails intactos.
+
+DOC: ARQUITETURA_ALVO Camada 6 + time_utils canonico; RN-026 adicionada;
+SYNCHRONIZATION SYNC-146.
+
+PM: ACEITE em 2026-03-25. Trilha completa validada ponta-a-ponta.
+Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-025.3 - Detector de lacuna de candles por janela
 

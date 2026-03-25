@@ -255,6 +255,21 @@ Cada etapa do ciclo de execucao live possui timeout configuravel definido em
 7. `execution_timeout.py` nao importa `risk_gate` nem `circuit_breaker`;
    guardrails permanecem inviolaveis em todos os caminhos.
 
+### RN-026 - Timezone Canonico de Exibicao (M2-025.2)
+
+Toda exibicao de timestamp ao operador no pipeline M2 deve usar o utilitario
+canonico `core/model2/time_utils.py`:
+
+1. Exibicao ao operador: sempre em BRT via `now_brt_str()` ou
+   `ts_ms_to_brt_str()` — sufixo obrigatorio `BRT`.
+2. Persistencia interna: sempre UTC como `int` (Unix milliseconds).
+3. Proibido usar `strftime('%Z')` diretamente — pode renderizar `LMT` ou
+   offset numerico em vez de `BRT`.
+4. `time_utils.py` e o unico ponto de conversao BRT; nao duplicar logica.
+
+Implementacao de referencia: `core/model2/time_utils.py`
+(`now_brt_str`, `ts_ms_to_brt_str`, `posix_to_brt_str`).
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:
