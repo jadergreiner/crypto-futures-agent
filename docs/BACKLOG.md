@@ -4594,12 +4594,14 @@ em vez de snapshots de contexto sem sinal de reforco.
 
 ### TAREFA BLID-092 - Investigar e resolver travamento do circuit breaker
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas. Prioridade maxima, sem dependencias bloqueantes.
 SA: Contrato quebrado: live_service chama check_status/can_trade/NORMAL inexistentes em CircuitBreaker. AttributeError silencioso -> allows_trading=False fixo.
 QA: Suite RED criada em tests/test_blid092_circuit_breaker_contract.py — 20 testes cobrindo R1-R6.
 SE: 283/283 testes GREEN | mypy --strict zero erros | arquivos: risk/circuit_breaker.py, risk/states.py, core/model2/cycle_report.py, core/model2/live_service.py
+TL: APROVADO. 21/21 GREEN, mypy strict OK, 283/283 regressoes. Guardrails ativos. Pendencia: operator_cycle_status nao popula CB ainda.
+DOC: RN-024 adicionada (maquina de estados CB, HALF_OPEN, reset_manual). Diagrama 8 em DIAGRAMAS.md. SYNCHRONIZATION.md [SYNC-134].
 
 Prioridade proposta: Critica
 Sprint proposto: Imediato (bloqueia toda abertura de posicao)

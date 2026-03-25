@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-134] BLID-092 - Contrato CircuitBreaker: RN-024 e diagrama de estados CB
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Doc Advocate (7)
+
+**Alteracoes:**
+
+- `docs/REGRAS_DE_NEGOCIO.md`: adicionada RN-024 (maquina de estados CB, transicoes
+  HALF_OPEN, reset_manual com operador, aliases NORMAL/TRANCADO)
+- `docs/DIAGRAMAS.md`: adicionado diagrama 8 (stateDiagram mermaid, estados
+  CLOSED/OPEN/HALF_OPEN, aliases, CircuitBreakerTransition)
+- `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-092
+
+**Docs afetados:** REGRAS_DE_NEGOCIO.md; DIAGRAMAS.md; BACKLOG.md
+
+---
+
 ### [SYNC-133] BLID-092 - Circuit breaker travado desde 2026-03-09 (critico)
 
 **Data/Hora**: 2026-03-24 BRT

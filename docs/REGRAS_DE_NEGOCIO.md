@@ -154,6 +154,30 @@ ser registradas com auditoria imutável:
 4. Comportamento de decisão do circuit_breaker permanece inviolável
 5. Falha em logging de evento não bloqueia decisão (fail-safe com try/except)
 
+### RN-024 - Maquina de estados do Circuit Breaker (BLID-092)
+
+O circuit_breaker opera com tres estados canonicos expostos em `risk/states.py`:
+
+- `CLOSED` (alias `NORMAL`): trading permitido; drawdown dentro do limiar
+- `OPEN` (alias `TRANCADO`): trading bloqueado; drawdown excedeu o limiar
+- `HALF_OPEN`: tentativa de recuperacao ativa
+
+Transicoes e responsaveis:
+
+1. `CLOSED -> OPEN`: automatica via `trip(reason)` quando drawdown <= threshold
+2. `OPEN -> HALF_OPEN`: via `attempt_recovery()` ou `reset_manual(operator=...)`
+3. `HALF_OPEN -> CLOSED`: automatica via `attempt_recovery()` se drawdown recuperado
+4. `HALF_OPEN -> OPEN`: automatica via `attempt_recovery()` se drawdown ainda critico
+
+Regras de reset manual com operador:
+
+1. `reset_manual(operator=<nome>)` exige identificacao auditavel do operador humano
+2. Forca transicao OPEN->HALF_OPEN->CLOSED independente do drawdown atual
+3. Registro obrigatorio: `reason=reset_manual:operador=<nome>`,
+   `from_state`, `to_state`, `timestamp_utc`
+4. Acao irreversivel por codigo — responsabilidade operacional do operador
+5. Apenas operador humano autorizado deve invocar reset_manual em ambiente live
+
 ### RN-019 - Watchdog de Ciclo M2 (M2-027.1)
 
 O pipeline M2 deve ser monitorado por um watchdog que detecta ausencia de

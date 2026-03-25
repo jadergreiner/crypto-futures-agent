@@ -170,7 +170,28 @@ Regra de deduplicacao:
 1. `sync_market_context` nao persiste candle repetido com mesmo
    `symbol+timestamp`.
 
-## 8) Referencias canonicas
+## 8) Maquina de estados do Circuit Breaker (BLID-092)
+
+Estados e transicoes do `risk/circuit_breaker.py`.
+
+```mermaid
+stateDiagram-v2
+  [*] --> CLOSED
+  CLOSED --> OPEN : trip(reason) — drawdown excedeu limiar
+  OPEN --> HALF_OPEN : attempt_recovery() ou reset_manual(operator)
+  HALF_OPEN --> CLOSED : attempt_recovery() — drawdown recuperado
+  HALF_OPEN --> OPEN : attempt_recovery() — drawdown ainda critico
+  CLOSED --> [*]
+  OPEN --> [*]
+  HALF_OPEN --> [*]
+```
+
+Aliases em `risk/states.py`: `NORMAL = CLOSED`, `TRANCADO = OPEN`.
+
+Toda transicao gera `CircuitBreakerTransition` (frozen dataclass) com
+`from_state`, `to_state`, `reason`, `timestamp_utc`.
+
+## 9) Referencias canonicas
 
 1. `docs/ARQUITETURA_ALVO.md`
 2. `docs/REGRAS_DE_NEGOCIO.md`
