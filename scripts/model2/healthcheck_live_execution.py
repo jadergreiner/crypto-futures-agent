@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
 from scripts.model2.io_utils import atomic_write_json
+from core.model2.io_retry import read_json_with_retry
 
 
 def _utc_now_ms() -> int:
@@ -35,11 +36,9 @@ def _load_latest_live_dashboard(runtime_dir: Path) -> tuple[Path | None, dict[st
     if not files:
         return None, None
     latest = files[-1]
-    try:
-        payload = json.loads(latest.read_text(encoding="utf-8"))
-    except Exception:
-        payload = None
-    return latest, payload if isinstance(payload, dict) else None
+    result = read_json_with_retry(str(latest), fail_safe=True)
+    payload = result if isinstance(result, dict) else None
+    return latest, payload
 
 
 def _run_alert_command(command: str, summary: dict[str, Any]) -> dict[str, Any]:

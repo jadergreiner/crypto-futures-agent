@@ -73,6 +73,13 @@ Pendencias operacionais:
    Dependencia minima: baseline atual de `pytest -q tests/` com 200 testes
    em 66.99s, mapa de suites por criticidade e risco.
    Impacto: evitar execucao total em toda etapa sem perder cobertura critica.
+- BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino.
+   Dependencia minima: contador exibindo 101/100 apos ciclo de treino.
+   Impacto: restaurar contagem correta de episodios; evitar acumulo falso.
+- BLID-097 - Integrar io_retry em scripts com lock de arquivo (BLID-0E4).
+   Dependencia minima: BLID-0E4 CONCLUIDO; io_retry.py disponivel;
+   logs confirmam erro em persist, healthcheck e operator_cycle_status.
+   Impacto: eliminar "arquivo ja usado" remanescente apos BLID-0E4.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -5148,3 +5155,78 @@ TL: APROVADO. 15/15 testes reproduzidos, mypy --strict zero erros,
 211 suite baseline preservada, guardrails ativos, sem regressoes.
 
 DOC: SYNCHRONIZATION.md atualizado SYNC-141; BACKLOG.md status REVISADO_APROVADO.
+
+---
+
+### TAREFA BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino
+
+Status: PENDENTE
+
+**Contexto e motivacao:**
+
+Apos o ciclo de treino PPO, o contador de episodios pendentes nao e zerado
+corretamente. O sistema exibe `101/100` (ou valor acima do limite configurado),
+indicando que o reset pos-treino nao ocorre. Isso causa falso acumulo e pode
+interferir em decisoes de retreino incremental.
+
+**Escopo:**
+
+1. Identificar onde o contador de episodios pendentes e mantido
+   (provavelmente `agent/trainer.py`, `live_service.py` ou JSON de estado)
+2. Diagnosticar por que o reset nao ocorre apos conclusao do treino
+3. Corrigir a logica de reset para zerar o contador ao fim de cada ciclo
+4. Adicionar teste RED: treino concluido → contador == 0
+
+**Criterios de aceite:**
+
+- Apos ciclo de treino, contador de episodios pendentes exibe 0 (ou valor <= limite)
+- Teste unitario GREEN cobrindo reset pos-treino
+- Suite completa `pytest -q` sem regressoes
+
+**Dependencias:** nenhuma
+
+**Impacto:** Corrigir contagem erronea de episodios; evitar confusao operacional
+e possivel sobreposicao de ciclos de retreino.
+
+---
+
+### TAREFA BLID-097 - Integrar io_retry nos scripts afetados por lock de arquivo
+
+Status: CONCLUIDO
+Suite: tests/test_model2_blid097_io_retry_integration.py (12/12 PASS)
+Evidencias: pytest 12/12 GREEN; mypy 0 novos erros; 67F/211P sem regressoes.
+TL: APROVADO. 12/12 PASS; 0 novos erros mypy; fail_safe=True em 6 pontos;
+guardrails ativos; sem regressoes.
+
+PO: Score 3.85 — regressao BLID-0E4 em producao; io_retry pronto; 3 scripts.
+SA: 6 pontos em 3 scripts; sem schema DB; fail_safe=True obrigatorio.
+DOC: 3 scripts integrados; 12 testes GREEN; SYNC-143 fechado.
+
+**Contexto e motivacao:**
+
+O BLID-0E4 criou a infraestrutura `core/model2/io_retry.py` (read_json_with_retry,
+write_json_with_retry, atomic_file_write, retry_with_backoff) mas NAO integrou
+nos scripts que realmente causam o erro "O arquivo ja esta sendo usado por outro
+processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
+
+- `scripts/model2/persist_training_episodes.py` (write_text L190, L613)
+- `scripts/model2/healthcheck_live_execution.py` (read_text direto em linha 39)
+- `scripts/model2/operator_cycle_status.py` (read_text direto em linhas 89, 107)
+
+**Escopo:**
+
+1. Substituir `write_text`/`read_text` diretos por `write_json_with_retry` e
+   `read_json_with_retry` de `core/model2/io_retry.py` nos 3 scripts afetados
+2. Garantir fail_safe=True para que o ciclo continue mesmo em lock transitorio
+3. Testes unitarios RED cobrindo integracao de cada script com io_retry
+4. Confirmar que o erro nao aparece mais nos logs apos ciclo simulado
+
+**Criterios de aceite:**
+
+- Nenhuma mensagem "O arquivo ja esta sendo usado" nos ciclos M2
+- Suite `pytest -q` sem regressoes
+- Fail-safe ativo: lock nao interrompe o ciclo M2
+
+**Dependencias:** BLID-0E4 (io_retry.py ja disponivel)
+
+**Impacto:** Eliminar bloqueador operacional remanescente; ciclo M2 estavel.

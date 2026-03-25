@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 from config.settings import DB_PATH, MODEL2_DB_PATH
 from scripts.model2.feature_enricher import FeatureEnricher
 from scripts.model2.binance_funding_api_client import BinanceFundingAPIClient
+from core.model2.io_retry import read_json_with_retry, write_json_with_retry
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 TIMEFRAME_TO_TABLE = {
@@ -177,17 +178,16 @@ def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
 def _load_cursor(cursor_file: Path) -> int:
     if not cursor_file.exists():
         return 0
-    try:
-        payload = json.loads(cursor_file.read_text(encoding="utf-8"))
-        return int(payload.get("last_updated_at_ms", 0))
-    except Exception:
+    result = read_json_with_retry(str(cursor_file), fail_safe=True)
+    if not result or not isinstance(result, dict):
         return 0
+    return int(result.get("last_updated_at_ms", 0))
 
 
 def _save_cursor(cursor_file: Path, updated_at_ms: int) -> None:
     cursor_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {"last_updated_at_ms": int(updated_at_ms)}
-    cursor_file.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json_with_retry(payload, str(cursor_file), fail_safe=True)
 
 
 def flush_deferred_rewards(
@@ -610,7 +610,7 @@ def run_persist_training_episodes(
         "cursor_file": str(cursor_file),
     }
     summary_path = resolved_output_dir / f"model2_training_episodes_{run_id}.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=True), encoding="utf-8")
+    write_json_with_retry(summary, str(summary_path), fail_safe=True)
     summary["output_file"] = str(summary_path)
     return summary
 

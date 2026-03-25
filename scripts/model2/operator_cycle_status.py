@@ -28,6 +28,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from core.model2.time_utils import now_brt_str, posix_to_brt_str
+from core.model2.io_retry import read_json_with_retry
 from core.model2.cycle_report import (
     DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
     SymbolReport,
@@ -85,13 +86,10 @@ def _load_latest_json(runtime_dir: Path, prefix: str, max_age_seconds: int) -> d
     age = (datetime.now(timezone.utc).timestamp() - newest.stat().st_mtime)
     if age > max_age_seconds:
         return None
-    try:
-        payload = json.loads(newest.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict):
-            return None
-        return cast(dict[str, Any], payload)
-    except (OSError, json.JSONDecodeError):
+    result = read_json_with_retry(str(newest), fail_safe=True)
+    if not result or not isinstance(result, dict):
         return None
+    return result
 
 
 def _load_latest_json_by_timeframe(
@@ -103,14 +101,11 @@ def _load_latest_json_by_timeframe(
         age = (datetime.now(timezone.utc).timestamp() - f.stat().st_mtime)
         if age > max_age_seconds:
             break  # Ordenados por mtime, os mais velhos não precisam ser checados
-        try:
-            payload = json.loads(f.read_text(encoding="utf-8"))
-            if not isinstance(payload, dict):
-                continue
-            if str(payload.get("timeframe", "")).upper() == timeframe.upper():
-                return cast(dict[str, Any], payload)
-        except (OSError, json.JSONDecodeError):
+        result = read_json_with_retry(str(f), fail_safe=True)
+        if not result or not isinstance(result, dict):
             continue
+        if str(result.get("timeframe", "")).upper() == timeframe.upper():
+            return result
     return None
 
 

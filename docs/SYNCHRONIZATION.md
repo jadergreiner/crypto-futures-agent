@@ -116,6 +116,43 @@ logging estruturado por tentativa
 
 ---
 
+### [SYNC-143] BLID-097 - Integracao io_retry em scripts afetados por lock de arquivo
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: BD(1); SE(5); TL(6); DA(7)
+
+**Alteracoes:**
+
+- `scripts/model2/persist_training_episodes.py`: _load_cursor, _save_cursor
+  e summary write → read/write_json_with_retry(fail_safe=True)
+- `scripts/model2/healthcheck_live_execution.py`: _load_latest_live_dashboard
+  → read_json_with_retry(fail_safe=True)
+- `scripts/model2/operator_cycle_status.py`: _load_latest_json e
+  _load_latest_json_by_timeframe → read_json_with_retry(fail_safe=True)
+- `tests/test_model2_blid097_io_retry_integration.py`: 12 testes (12/12 PASS)
+- `docs/BACKLOG.md`: BLID-097 REVISADO_APROVADO; comentarios PO/SA/TL
+
+**Escopo tecnico:** Regressao BLID-0E4 corrigida — 6 pontos de IO com retry,
+backoff e fail_safe=True. Ciclo M2 nao sera interrompido por lock de arquivo.
+
+---
+
+### [SYNC-142] BLID-096 - Abertura de tarefa: contador episodios pos-treino
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: PENDENTE
+**Agentes**: Backlog Development (1)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: BLID-096 inserido em Pendencias operacionais e tarefas
+
+**Escopo tecnico:** Bug report — contador de episodios pendentes nao zerado
+apos treino PPO; exibe 101/100. Pronto para priorizacao pelo PO.
+
+---
+
 ### [SYNC-141] M2-024.3 - Gate de idempotencia integrado ao order_layer
 
 **Data/Hora**: 2026-03-25 BRT
