@@ -73,6 +73,15 @@ class SymbolReport:
     # Modo de execucao
     execution_mode: str = "shadow"
 
+    # Circuit Breaker / Risk Gate — visibilidade para o operador
+    circuit_breaker_state: str = ""
+    circuit_breaker_drawdown_pct: float | None = None
+    circuit_breaker_hours_remaining: float | None = None
+    risk_gate_status: str = ""
+    short_only_active: bool = False
+    daily_entries_today: int = 0
+    daily_entries_max: int = 0
+
 
 def resolve_candle_freshness_contract(
     *,
@@ -178,6 +187,26 @@ def format_symbol_report(r: SymbolReport) -> str:
         else "[LIVE]"
     )
 
+    # Linha de Risk (CB + risk gate)
+    risk_parts: list[str] = []
+    cb_state = r.circuit_breaker_state or ""
+    if cb_state in ("trancado", "open"):
+        dd_str = (
+            f"{r.circuit_breaker_drawdown_pct:.2f}%"
+            if r.circuit_breaker_drawdown_pct is not None
+            else "N/A"
+        )
+        risk_parts.append(f"[CB TRANCADO] drawdown={dd_str}")
+    elif cb_state in ("half_open",):
+        risk_parts.append("[CB HALF_OPEN]")
+    elif cb_state:
+        risk_parts.append(f"CB={cb_state}")
+    if r.short_only_active:
+        risk_parts.append("[LONG BLOQUEADO - short_only]")
+    if r.daily_entries_max > 0:
+        risk_parts.append(f"entradas hoje: {r.daily_entries_today}/{r.daily_entries_max}")
+    risk_line = "  ".join(risk_parts) if risk_parts else "OK"
+
     lines = [
         sep,
         f"  {r.symbol} | {r.timeframe} | {r.timestamp} {mode_tag}",
@@ -187,6 +216,7 @@ def format_symbol_report(r: SymbolReport) -> str:
         f"  Episodio : {episode_line}",
         f"  Treino   : {train_line}",
         f"  Posicao  : {position_line}",
+        f"  Risk     : {risk_line}",
         sep,
     ]
     return "\n".join(lines)

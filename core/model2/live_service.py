@@ -730,29 +730,44 @@ class Model2LiveExecutionService:
             }
 
         normalized_balance = float(available_balance)
-        if not self._guardrail_balance_initialized:
-            self._risk_gate._portfolio_value = normalized_balance
-            self._risk_gate._peak_portfolio_value = normalized_balance
-            self._circuit_breaker._portfolio_current = normalized_balance
-            self._circuit_breaker._portfolio_peak = normalized_balance
-            self._guardrail_balance_initialized = True
-        else:
-            self._risk_gate.update_portfolio_value(normalized_balance)
-            self._circuit_breaker.update_portfolio_value(normalized_balance)
+        try:
+            if not self._guardrail_balance_initialized:
+                self._risk_gate._portfolio_value = normalized_balance
+                self._risk_gate._peak_portfolio_value = normalized_balance
+                self._circuit_breaker._portfolio_current = normalized_balance
+                self._circuit_breaker._portfolio_peak = normalized_balance
+                self._guardrail_balance_initialized = True
+            else:
+                self._risk_gate.update_portfolio_value(normalized_balance)
+                self._circuit_breaker.update_portfolio_value(normalized_balance)
 
-        circuit_breaker_status = self._circuit_breaker.check_status()
-        risk_metrics = self._risk_gate.get_risk_metrics()
+            circuit_breaker_status = self._circuit_breaker.check_status()
+            risk_metrics = self._risk_gate.get_risk_metrics()
 
-        return {
-            "risk_gate_status": self._risk_gate.status.value,
-            "risk_gate_allows_order": self._risk_gate.can_execute_order("market"),
-            "risk_gate_drawdown_pct": float(risk_metrics.drawdown_pct),
-            "circuit_breaker_state": self._circuit_breaker.state.value,
-            "circuit_breaker_allows_trading": bool(
-                circuit_breaker_status.get("trading_allowed", self._circuit_breaker.can_trade())
-            ),
-            "circuit_breaker_drawdown_pct": self._to_float(circuit_breaker_status.get("drawdown_pct")),
-        }
+            return {
+                "risk_gate_status": self._risk_gate.status.value,
+                "risk_gate_allows_order": self._risk_gate.can_execute_order("market"),
+                "risk_gate_drawdown_pct": float(risk_metrics.drawdown_pct),
+                "circuit_breaker_state": self._circuit_breaker.state.value,
+                "circuit_breaker_allows_trading": bool(
+                    circuit_breaker_status.get("trading_allowed", self._circuit_breaker.can_trade())
+                ),
+                "circuit_breaker_drawdown_pct": self._to_float(circuit_breaker_status.get("drawdown_pct")),
+            }
+        except AttributeError as exc:
+            logging.getLogger(__name__).error(
+                "guardrail_state: AttributeError no CircuitBreaker — contrato quebrado: %s. "
+                "Retornando estado conservador (allows_trading=False).",
+                exc,
+            )
+            return {
+                "risk_gate_status": "unavailable",
+                "risk_gate_allows_order": False,
+                "risk_gate_drawdown_pct": None,
+                "circuit_breaker_state": "unavailable",
+                "circuit_breaker_allows_trading": False,
+                "circuit_breaker_drawdown_pct": None,
+            }
 
     def _enforce_guardrails_before_order(
         self,

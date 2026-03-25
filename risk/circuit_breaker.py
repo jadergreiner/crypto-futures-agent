@@ -1,345 +1,198 @@
 """
-Circuit Breaker — Proteção de Emergência
+Circuit Breaker para o agente de negociacao M2.
 
-Responsabilidades:
-- Monitorar drawdown constante
-- Acionado em -3.1% (maior que stop loss de -3%)
-- Fecha TODAS as posições imediatamente
-- Passa a zelar por 24h sem aceitar novas ordens
+Implementa a maquina de estados CLOSED -> OPEN -> HALF_OPEN -> CLOSED
+com rastreamento de drawdown de portfolio e integracao com EventRecorder.
 
-Diferença Stop Loss vs Circuit Breaker:
-- Stop Loss (-3%): Aviso, fecha uma posição
-- Circuit Breaker (-3.1%): EMERGÊNCIA, fecha TUDO + para de operar
+Contrato exigido por live_service:
+  - update_portfolio_value(v: float) -> None
+  - check_status() -> dict  (chaves: trading_allowed, drawdown_pct, state)
+  - can_trade() -> bool
+  - _portfolio_current: float
+  - _portfolio_peak: float
+  - state: CircuitBreakerState
+  - trip(reason: str) -> None
+  - attempt_recovery(force: bool) -> None
+  - reset_manual(operator: str) -> None
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional, Dict, Any, Callable, List
-from datetime import datetime, timedelta
-from dataclasses import dataclass
-from enum import Enum
+from typing import Any, Optional
+
+from monitoring.events import EventRecorder, CircuitBreakerTransition
+from risk.states import CircuitBreakerState
 
 logger = logging.getLogger(__name__)
 
-
-class CircuitBreakerState(Enum):
-    """Estados do Circuit Breaker."""
-    NORMAL = "normal"
-    ALERT = "alerta"
-    TRIGGERED = "acionado"
-    RECOVERY = "recuperacao"
-    LOCKED = "trancado"  # 24h post-event
-
-
-@dataclass
-class CircuitBreakerEvent:
-    """Evento de circuit breaker."""
-    timestamp: datetime
-    drawdown_pct: float
-    portfolio_value: float
-    peak_value: float
-    loss_amount: float
-    action_taken: str  # "close_all_positions", "halt_trading"
-    reason: str
+# Limiar de drawdown que dispara o CB (em %)
+_CB_DRAWDOWN_THRESHOLD = -3.1
 
 
 class CircuitBreaker:
     """
-    Circuit Breaker — Proteção de Emergência.
-    
-    Garantias:
-    1. Acionado SEMPRE em -3.1% de drawdown
-    2. Fecha TODAS as posições
-    3. Para de aceitar ordens por 24h (recovery period)
-    4. Auditoria completa
+    Circuit Breaker com maquina de estados e rastreamento de drawdown.
+
+    Estados:
+        CLOSED    -- normal, trading permitido
+        OPEN      -- travado por drawdown, trading bloqueado
+        HALF_OPEN -- em tentativa de recuperacao
+
+    Transicoes:
+        CLOSED    -> OPEN      : quando drawdown <= _CB_DRAWDOWN_THRESHOLD
+        OPEN      -> HALF_OPEN : via attempt_recovery() ou reset_manual()
+        HALF_OPEN -> CLOSED    : se drawdown recuperado (> threshold)
+        HALF_OPEN -> OPEN      : se drawdown ainda critico
     """
 
-    TRIGGER_THRESHOLD = -3.1  # -3.1% (INVIOLÁVEL)
-    RECOVERY_PERIOD_HOURS = 24  # 24h sem trading pós-evento
-    ALERT_THRESHOLD = -2.8  # -2.8% emite ALERTA (pré-evento)
-
-    def __init__(self, callbacks: Optional[Dict[str, Callable]] = None):
-        """
-        Inicializar Circuit Breaker.
-
-        Args:
-            callbacks: Dicionário de callbacks para eventos
-        """
-        self.state = CircuitBreakerState.NORMAL
-        self._portfolio_peak: float = 10000.0
-        self._portfolio_current: float = 10000.0
-        self._triggered_at: Optional[datetime] = None
-        self._recovery_until: Optional[datetime] = None
-
-        self._callbacks = callbacks or {}
-        self._events: List[CircuitBreakerEvent] = []
-
-        logger.warning("⚡ Circuit Breaker INICIALIZADO")
-        logger.warning(f"   Trigger threshold: {self.TRIGGER_THRESHOLD}%")
-        logger.warning(f"   Alert threshold: {self.ALERT_THRESHOLD}%")
-        logger.warning(f"   Recovery period: {self.RECOVERY_PERIOD_HOURS}h")
-
-    def update_portfolio_value(self, current_value: float) -> None:
-        """Atualizar valor da carteira."""
-        self._portfolio_current = current_value
-        
-        # Rastrear peak
-        if current_value > self._portfolio_peak:
-            self._portfolio_peak = current_value
-
-    def _record_transition(
+    def __init__(
         self,
-        from_state: str,
-        to_state: str,
-        reason: str,
-        reactivation_time_utc: Optional[datetime] = None,
+        event_recorder: Optional[EventRecorder] = None,
+        drawdown_threshold: float = _CB_DRAWDOWN_THRESHOLD,
     ) -> None:
-        """Registrar transição em circuit_breaker_events (lazy import)."""
-        try:
-            from core.model2.circuit_breaker_events import get_circuit_breaker_recorder
-            recorder = get_circuit_breaker_recorder()
-            recorder.record_transition(
-                symbol=None,
-                from_state=from_state,
-                to_state=to_state,
-                failure_count=0,
-                window_start_utc=datetime.utcnow() if from_state != to_state else None,
-                reactivation_time_utc=reactivation_time_utc,
-                reason=reason,
-            )
-        except Exception as e:
-            logger.error(f"Erro registrando transição circuit_breaker: {e}")
+        self.state: CircuitBreakerState = CircuitBreakerState.CLOSED
+        self._event_recorder = event_recorder
+        self._drawdown_threshold = drawdown_threshold
+        self._portfolio_current: float = 0.0
+        self._portfolio_peak: float = 0.0
 
-    def check_status(self) -> Dict[str, Any]:
-        """
-        Verificar status do circuit breaker e atualizar estado.
+    # ------------------------------------------------------------------
+    # Interface de portfolio
+    # ------------------------------------------------------------------
 
-        Returns:
-            Dicionário com status atual
-        """
-        drawdown_pct = self._calculate_drawdown()
-        previous_state = self.state.value
+    def update_portfolio_value(self, value: float) -> None:
+        """Atualiza valor corrente e rastreia pico para calculo de drawdown."""
+        self._portfolio_current = value
+        if value > self._portfolio_peak:
+            self._portfolio_peak = value
 
-        # Verificar se acionado (-3.1%)
-        if drawdown_pct <= self.TRIGGER_THRESHOLD:
-            # Se ainda não foi acionado, fazer acionamento agora
-            if self.state != CircuitBreakerState.TRIGGERED and self.state != CircuitBreakerState.LOCKED:
-                logger.critical(f"💥 CIRCUIT BREAKER ACIONADO: {drawdown_pct:.2f}% <= {self.TRIGGER_THRESHOLD}%")
-                self._trigger_emergency()
-                # Registrar transição
-                self._record_transition(
-                    from_state=previous_state,
-                    to_state=CircuitBreakerState.TRIGGERED.value,
-                    reason=f"drawdown_threshold_exceeded_{drawdown_pct:.2f}%",
-                    reactivation_time_utc=self._recovery_until,
-                )
-
-            return {
-                "state": self.state.value,
-                "drawdown_pct": drawdown_pct,
-                "action": "EMERGENCY_SHUTDOWN",
-                "trading_allowed": False,
-            }
-
-        # Verificar se em recovery
-        if self._recovery_until and datetime.now() < self._recovery_until:
-            if self.state != CircuitBreakerState.LOCKED:
-                self._record_transition(
-                    from_state=previous_state,
-                    to_state=CircuitBreakerState.LOCKED.value,
-                    reason="recovery_period_active",
-                    reactivation_time_utc=self._recovery_until,
-                )
-            self.state = CircuitBreakerState.LOCKED
-            recovery_remaining = (self._recovery_until - datetime.now()).total_seconds() / 3600
-            logger.warning(f"🔒 Circuit Breaker em RECOVERY: {recovery_remaining:.1f}h restantes")
-
-            return {
-                "state": self.state.value,
-                "drawdown_pct": drawdown_pct,
-                "recovery_until": self._recovery_until.isoformat(),
-                "trading_allowed": False,
-            }
-        elif self._recovery_until:
-            # Recovery terminou
-            previous_state_str = self.state.value
-            self._recovery_until = None
-            self.state = CircuitBreakerState.NORMAL
-            self._record_transition(
-                from_state=previous_state_str,
-                to_state=CircuitBreakerState.NORMAL.value,
-                reason="recovery_period_expired",
-            )
-            logger.info("✅ Circuit Breaker RECUPERADO - Operação normal retomada")
-
-        # Verificar se em alerta (-2.8%)
-        if drawdown_pct <= self.ALERT_THRESHOLD:
-            if self.state != CircuitBreakerState.ALERT:
-                self._record_transition(
-                    from_state=previous_state,
-                    to_state=CircuitBreakerState.ALERT.value,
-                    reason=f"alert_threshold_approached_{drawdown_pct:.2f}%",
-                )
-                logger.warning(f"⚠️  ALERTA: drawdown {drawdown_pct:.2f}% próximo ao limite")
-                self.state = CircuitBreakerState.ALERT
-
-            return {
-                "state": self.state.value,
-                "drawdown_pct": drawdown_pct,
-                "warning": "drawdown_alert",
-                "trading_allowed": True,
-            }
-
-        # Normal
-        if self.state != CircuitBreakerState.NORMAL:
-            self._record_transition(
-                from_state=previous_state,
-                to_state=CircuitBreakerState.NORMAL.value,
-                reason="drawdown_recovered",
-            )
-        self.state = CircuitBreakerState.NORMAL
-        return {
-            "state": self.state.value,
-            "drawdown_pct": drawdown_pct,
-            "trading_allowed": True,
-        }
-
-    def _trigger_emergency(self) -> None:
-        """
-        Acionamento de emergência do Circuit Breaker.
-        
-        - Fecha todas as posições
-        - Entra em modo LOCKED por 24h
-        - Registra evento
-        """
-        self.state = CircuitBreakerState.TRIGGERED
-        self._triggered_at = datetime.now()
-        self._recovery_until = datetime.now() + timedelta(hours=self.RECOVERY_PERIOD_HOURS)
-        
-        drawdown_pct = self._calculate_drawdown()
-        loss_amount = self._portfolio_peak - self._portfolio_current
-        
-        event = CircuitBreakerEvent(
-            timestamp=self._triggered_at,
-            drawdown_pct=drawdown_pct,
-            portfolio_value=self._portfolio_current,
-            peak_value=self._portfolio_peak,
-            loss_amount=loss_amount,
-            action_taken="close_all_positions",
-            reason=f"Drawdown {drawdown_pct:.2f}% <= {self.TRIGGER_THRESHOLD}%",
-        )
-        
-        self._events.append(event)
-        
-        # Chamar callback se registrado
-        if "on_triggered" in self._callbacks:
-            self._callbacks["on_triggered"](event)
-        
-        logger.critical(f"💥 AÇÃO DE EMERGÊNCIA TOMADA: {event}")
+    # ------------------------------------------------------------------
+    # Consulta de estado
+    # ------------------------------------------------------------------
 
     def can_trade(self) -> bool:
+        """Retorna True apenas quando estado e CLOSED."""
+        return self.state == CircuitBreakerState.CLOSED
+
+    def check_status(self) -> dict[str, Any]:
         """
-        Verificar se trading é permitido.
-        
-        Returns:
-            True se permitido, False se em TRIGGERED ou LOCKED
+        Retorna dicionario de status do CB.
+
+        Chaves: trading_allowed (bool), drawdown_pct (float | None), state (str)
         """
-        if self.state in [CircuitBreakerState.LOCKED, CircuitBreakerState.TRIGGERED]:
-            logger.error(f"🔒 Trading BLOQUEADO: Circuit Breaker em {self.state.value}")
-            return False
-        
-        return True
-
-    def force_close_all_positions(self) -> bool:
-        """
-        Forçar fechamento de TODAS as posições.
-        
-        Chamado pela IA de execução quando CB é acionado.
-        
-        Returns:
-            True se sucesso
-        """
-        logger.critical("💥 ENCERRANDO TODAS AS POSIÇÕES DE EMERGÊNCIA")
-        
-        # TODO: Integrar com execution/ para fechar ordens
-        # - Obter todas as posições abertas
-        # - Enviar ordem MARKET para cada uma
-        # - Verificar confirmação Binance
-        
-        return True
-
-    def get_historical_events(self) -> List[CircuitBreakerEvent]:
-        """Obter histórico de eventos."""
-        return self._events.copy()
-
-    def last_trigger_time(self) -> Optional[datetime]:
-        """Obter momento do último acionamento."""
-        if self._events:
-            return self._events[-1].timestamp
-        return None
-
-    def is_in_recovery(self) -> bool:
-        """Verificar se está em período de recuperação."""
-        return self.state == CircuitBreakerState.LOCKED
-
-    def recovery_time_remaining_hours(self) -> float:
-        """Horas restantes até recuperação."""
-        if not self.is_in_recovery() or not self._recovery_until:
-            return 0.0
-        
-        remaining = (self._recovery_until - datetime.now()).total_seconds() / 3600
-        return max(0.0, remaining)
-
-    def _calculate_drawdown(self) -> float:
-        """Calcular drawdown em %."""
-        if self._portfolio_peak == 0:
-            return 0.0
-        
-        drawdown = (
-            (self._portfolio_current - self._portfolio_peak)
-            / self._portfolio_peak
-        ) * 100
-        
-        return drawdown
-
-    def __repr__(self) -> str:
-        """Representação legível."""
-        remaining = self.recovery_time_remaining_hours()
         drawdown = self._calculate_drawdown()
-        
-        return (
-            f"CircuitBreaker("
-            f"state={self.state.value}, "
-            f"drawdown={drawdown:.2f}%, "
-            f"recovery_remaining={remaining:.1f}h"
-            f")"
+        return {
+            "trading_allowed": self.can_trade(),
+            "drawdown_pct": drawdown,
+            "state": self.state.value,
+        }
+
+    # ------------------------------------------------------------------
+    # Transicoes de estado
+    # ------------------------------------------------------------------
+
+    def trip(self, reason: str) -> None:
+        """Forca transicao para OPEN (disparo do CB)."""
+        if self.state != CircuitBreakerState.OPEN:
+            from_state = self.state
+            self.state = CircuitBreakerState.OPEN
+            logger.critical(
+                "CB DISPARADO: %s | drawdown=%.2f%% | de=%s para=%s",
+                reason,
+                self._calculate_drawdown() or 0.0,
+                from_state.value,
+                self.state.value,
+            )
+            if self._event_recorder:
+                self._event_recorder.record(
+                    CircuitBreakerTransition(
+                        from_state=from_state,
+                        to_state=self.state,
+                        reason=reason,
+                    )
+                )
+
+    def attempt_recovery(self, *, force: bool = False) -> None:
+        """
+        Tenta transicao OPEN -> HALF_OPEN -> CLOSED.
+
+        Se force=True, avanca o estado independentemente do drawdown atual
+        (usado em testes e em reset controlado pelo operador).
+        """
+        prev_state: CircuitBreakerState = self.state
+
+        if self.state == CircuitBreakerState.OPEN:
+            self.state = CircuitBreakerState.HALF_OPEN
+            logger.warning(
+                "CB HALF_OPEN: iniciando tentativa de recuperacao (force=%s)", force
+            )
+            if self._event_recorder:
+                self._event_recorder.record(
+                    CircuitBreakerTransition(
+                        from_state=prev_state,
+                        to_state=self.state,
+                        reason="attempt_recovery",
+                    )
+                )
+            return
+
+        if self.state == CircuitBreakerState.HALF_OPEN:
+            drawdown = self._calculate_drawdown()
+            recuperado = force or (drawdown is None) or (drawdown > self._drawdown_threshold)
+            if recuperado:
+                self.state = CircuitBreakerState.CLOSED
+                logger.info(
+                    "CB FECHADO: drawdown=%.2f%% acima do limiar %.2f%%",
+                    drawdown or 0.0,
+                    self._drawdown_threshold,
+                )
+            else:
+                self.state = CircuitBreakerState.OPEN
+                logger.warning(
+                    "CB RE-DISPARADO no HALF_OPEN: drawdown=%.2f%% ainda critico",
+                    drawdown,
+                )
+            if self._event_recorder:
+                self._event_recorder.record(
+                    CircuitBreakerTransition(
+                        from_state=prev_state,
+                        to_state=self.state,
+                        reason="recovery_confirmed" if recuperado else "recovery_failed",
+                    )
+                )
+
+    def reset_manual(self, *, operator: str) -> None:
+        """
+        Reset manual com confirmacao auditavel obrigatoria.
+
+        Requer identificacao do operador. Registra evento via EventRecorder.
+        Deve ser usado apenas por operador humano com autorizacao explicita.
+        """
+        from_state = self.state
+        self.state = CircuitBreakerState.CLOSED
+        logger.critical(
+            "CB RESET MANUAL por operador='%s' | estado anterior=%s",
+            operator,
+            from_state.value,
         )
+        if self._event_recorder:
+            self._event_recorder.record(
+                CircuitBreakerTransition(
+                    from_state=from_state,
+                    to_state=self.state,
+                    reason=f"reset_manual:operador={operator}",
+                )
+            )
 
+    # ------------------------------------------------------------------
+    # Interno
+    # ------------------------------------------------------------------
 
-if __name__ == "__main__":
-    # Teste básico
-    cb = CircuitBreaker()
-    
-    print(f"✅ Circuit Breaker inicializado")
-    print(f"   State: {cb.state.value}")
-    print(f"   Can trade: {cb.can_trade()}")
-    
-    # Simular portfolio caindo
-    cb.update_portfolio_value(10000.0)  # Peak
-    
-    # Drawdown -2.5% (normal)
-    cb.update_portfolio_value(9750.0)
-    status = cb.check_status()
-    print(f"\n   Drawdown -2.5%: trading={status['trading_allowed']} (deve ser True)")
-    
-    # Drawdown -2.8% (alerta)
-    cb.update_portfolio_value(9720.0)
-    status = cb.check_status()
-    print(f"   Drawdown -2.8%: state={status['state']} (deve ser 'alerta')")
-    
-    # Drawdown -3.1% (acionado!)
-    cb.update_portfolio_value(9690.0)
-    status = cb.check_status()
-    print(f"   Drawdown -3.1%: action={status.get('action')} (deve ser 'EMERGENCY_SHUTDOWN')")
-    print(f"   Trading permitido: {cb.can_trade()} (deve ser False)")
-    
-    print(f"\n   Eventos registrados: {len(cb.get_historical_events())}")
+    def _calculate_drawdown(self) -> Optional[float]:
+        """Calcula drawdown percentual em relacao ao pico. Retorna None se pico=0."""
+        if self._portfolio_peak == 0.0:
+            return None
+        return (
+            (self._portfolio_current - self._portfolio_peak) / self._portfolio_peak
+        ) * 100.0

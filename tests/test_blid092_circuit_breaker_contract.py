@@ -191,8 +191,8 @@ class TestSnapshotGuardrailStateFallback:
         broken_cb = MagicMock(spec=[])  # sem nenhum atributo
         broken_cb.state = CBState.OPEN
 
-        # Criar instancia minima de LiveService para testar o metodo isolado
-        svc = object.__new__(ls_module.LiveService)
+        # Criar instancia minima do servico para testar o metodo isolado
+        svc = object.__new__(ls_module.Model2LiveExecutionService)
         svc._circuit_breaker = broken_cb
         svc._risk_gate = MagicMock()
         svc._risk_gate.status.value = "ativo"
@@ -238,6 +238,8 @@ class TestOperatorCycleStatusCBFields:
         # Criar report minimo com CB trancado
         report = SymbolReport(
             symbol="BTCUSDT",
+            timeframe="H1",
+            timestamp="2026-03-24 18:00:00 BRT",
             circuit_breaker_state="trancado",
             circuit_breaker_drawdown_pct=-6.8,
             circuit_breaker_hours_remaining=None,
