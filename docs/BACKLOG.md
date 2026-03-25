@@ -211,7 +211,7 @@ DOC: ARQUITETURA_ALVO atualizada M2-024.2; SYNCHRONIZATION SYNC-129.
 
 ### TAREFA M2-024.3 - Gate de idempotencia de decisao no order_layer
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Descricao:
 Fortalecer bloqueio de duplicidade por decision_id no consumo de
@@ -241,6 +241,9 @@ TL: APROVADO. 26/26 testes reproduzidos (order_layer + ambas suites 024.3). mypy
 guardrails ativos. Sem regressao nova.
 
 DOC: ARQUITETURA_ALVO extensao M2-024.3 adicionada; SYNCHRONIZATION SYNC-141.
+
+PM: ACEITE em 2026-03-25. Trilha completa validada ponta-a-ponta.
+Backlog atualizado para CONCLUIDO. Commit 9ca278a e push realizados.
 
 ### TAREFA M2-024.4 - Retry controlado para falha transitoria de exchange
 
