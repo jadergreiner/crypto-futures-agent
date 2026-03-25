@@ -54,6 +54,8 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_m2_025_1_candle_freshness_contract.py",
     "test_model2_ohlcv_cache.py",
     "test_sub_agent_manager.py",
+    "test_model2_m2_026_1_risk_gate_telemetry.py",
+    "test_model2_m2_026_1_telemetry_real.py",
 )
 
 

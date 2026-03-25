@@ -20,6 +20,7 @@ import numpy as np
 from notifications.model2_live_alerts import Model2LiveAlertPublisher
 from risk.circuit_breaker import CircuitBreaker, CircuitBreakerState
 from risk.risk_gate import RiskGate, RiskGateStatus
+from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetryRecorder
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from .cycle_report import (
@@ -131,6 +132,7 @@ class Model2LiveExecutionService:
         self._risk_gate = risk_gate or RiskGate()
         self._circuit_breaker = circuit_breaker or CircuitBreaker()
         self._guardrail_balance_initialized = False
+        self._risk_gate_telemetry = RiskGateTelemetryRecorder()
         self._rl_loader = RLModelLoader()
         self._inference_service = ModelInferenceService()
         self._alert_publisher = alert_publisher or Model2LiveAlertPublisher()
@@ -808,6 +810,14 @@ class Model2LiveExecutionService:
             }
 
         if not bool(guardrail_state["risk_gate_allows_order"]):
+            self._risk_gate_telemetry.record(RiskGateBlockEvent(
+                reason_code="risk_gate_blocked",
+                condition=str(guardrail_state.get("risk_gate_status", "unknown")),
+                limit_value=0.0,
+                actual_value=float(guardrail_state.get("risk_gate_drawdown_pct") or 0.0),
+                decision_id=int(execution.get("decision_id") or 0),
+                timestamp_ms=now_ms,
+            ))
             failed = self.repository.mark_signal_execution_failed(
                 execution_id=int(execution["id"]),
                 now_ms=now_ms,

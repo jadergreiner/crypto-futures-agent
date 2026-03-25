@@ -23,6 +23,39 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-144] M2-026.1 - Telemetria de bloqueios do risk_gate
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+**Mudancas**:
+
+- `core/model2/risk_gate_telemetry.py`: criado com RiskGateBlockEvent (frozen dataclass)
+  e RiskGateTelemetryRecorder (record, total_events, all_events, query_by_reason);
+  factory get_risk_gate_telemetry_recorder(); mypy --strict clean
+- `core/model2/live_service.py`: adicionado `_risk_gate_telemetry` no `__init__`;
+  hook add-only em `_enforce_guardrails_before_order` registra bloqueio com decision_id
+- `tests/test_model2_m2_026_1_telemetry_real.py`: suite 10 testes RED→GREEN
+- `tests/test_model2_m2_026_1_risk_gate_telemetry.py`: 11 testes GREEN (pre-existentes)
+- `tests/conftest.py`: 2 arquivos adicionados ao MODEL_DRIVEN_TEST_PATTERNS
+- `docs/BACKLOG.md`: M2-026.1 atualizado para REVISADO_APROVADO
+- `docs/ARQUITETURA_ALVO.md`: extensao M2-026.1 adicionada na secao M2-026
+
+**Evidencias:**
+
+- pytest tests/test_model2_m2_026_1_telemetry_real.py: 10/10 passed
+- pytest tests/test_model2_m2_026_1_risk_gate_telemetry.py: 11/11 passed
+- mypy --strict core/model2/risk_gate_telemetry.py: Success, no issues
+- pytest -q tests/: 232 passed (67 falhos pre-existentes, sem regressao)
+
+**Guardrails:** risk_gate=ATIVO, circuit_breaker=ATIVO, decision_id=IDEMPOTENTE,
+hook add-only sem side-effects no fluxo de bloqueio
+
+**Docs afetados:** ARQUITETURA_ALVO.md, BACKLOG.md, SYNCHRONIZATION.md
+
+---
+
 ### [SYNC-142] M2-024.4 - Retry controlado para falha transitoria de exchange
 
 **Data/Hora**: 2026-03-25 BRT

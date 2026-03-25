@@ -164,12 +164,21 @@ Componentes:
 
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
-1. `core/model2/circuit_breaker_events.py` — CircuitBreakerEventRecorder (append-only)
+1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)
+   - `RiskGateBlockEvent` (frozen dataclass): reason_code, condition, limit_value,
+     actual_value, decision_id, timestamp_ms — imutavel e auditavel
+   - `RiskGateTelemetryRecorder`: append-only; metodos record(), total_events(),
+     all_events(), query_by_reason() com count e percentual por reason_code
+   - Hook em `live_service._enforce_guardrails_before_order`: registra bloqueio
+     com decision_id quando risk_gate_allows_order=False
+   - Telemetria in-memory por ciclo; sem schema DB novo; guardrails intactos
+
+2. `core/model2/circuit_breaker_events.py` — CircuitBreakerEventRecorder (append-only)
    - Registra transições de estado do circuit_breaker: CLOSED→OPEN→HALF_OPEN→CLOSED
    - Query rápida: get_history_24h(), get_current_state(), get_reactivation_time()
    - Singleton pattern com reset para testes
 
-2. `management/logging_retention.py` — LogRotationManager + RetentionPolicy
+3. `management/logging_retention.py` — LogRotationManager + RetentionPolicy
    - Rotação automática por tamanho (100MB) e tempo
    - Retenção por severidade: CRITICAL 365d, ERROR 90d, WARN 14d, INFO 7d
    - Config centralizado em config/logging_retention_policy.yaml

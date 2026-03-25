@@ -692,10 +692,34 @@ SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 
 ### TAREFA M2-026.1 - Observabilidade de risk_gate com telemetria estruturada
 
-Status: EM_DESENVOLVIMENTO
+Status: CONCLUIDO
+
+SE: GREEN concluido em 2026-03-25. core/model2/risk_gate_telemetry.py criado com
+RiskGateBlockEvent (frozen dataclass) e RiskGateTelemetryRecorder (record/query_by_reason).
+Hook em live_service._enforce_guardrails_before_order. 10 testes RED -> GREEN.
+suite total: 232 passed (211 base + 21 novos).
+mypy --strict risk_gate_telemetry.py OK.
+
+TL: APROVADO. 21/21 testes reproduzidos. 232 suite verde. mypy clean
+no modulo novo. Erro CircuitBreakerState pre-existente confirmado.
+Guardrails risk_gate/circuit_breaker intactos, hook add-only validado.
+
+DOC: ARQUITETURA_ALVO.md extensao M2-026.1; SYNCHRONIZATION.md SYNC-144.
+
+Status: REVISADO_APROVADO
 
 QA: Suite RED 6 testes: 4 fail (SIZE_EXCEEDS_LIMIT/STOP_LOSS_TOO_LOOSE
-não em catalog — esperado), 2 pass (struct OK)
+nao em catalog esperado), 2 pass (struct OK)
+
+PO: Score 3.50. Telemetria risk_gate elimina falha silenciosa em live.
+Dep M2-024.1 OK. Retomar GREEN-REFACTOR.
+
+SA: REASON_CODE_CATALOG ja contem SIZE_EXCEEDS_LIMIT/STOP_LOSS_TOO_LOOSE.
+Falta modulo risk_gate_telemetry.py (RiskGateBlockEvent frozen + recorder
+in-memory). Hook em live_service. Sem schema DB. Suite RED 11/11 passa.
+
+QA: Suite RED real criada em tests/test_model2_m2_026_1_telemetry_real.py;
+10 failed (ModuleNotFoundError esperado). Cobre R1-R3. TESTES_PRONTOS.
 
 Descricao:
 Instrumentar risk_gate para capturar bloqueios com motivo, condicao,
