@@ -64,6 +64,7 @@ tests/test_model2_m2_016_2_validation_window.py
 # Model checkpoints (large files)
 checkpoints/ppo_training/lstm/
 checkpoints/ppo_training/mlp/
+checkpoints/ppo_training/ppo_training_metadata_*.json
 *.zip
 .tox/
 
