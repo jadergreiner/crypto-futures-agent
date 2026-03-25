@@ -23,6 +23,33 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-137] BLID-093 - Reward counterfactual para HOLD/BLOCKED
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Doc Advocate (7)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-093
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-137]
+
+**Escopo tecnico:** Reward counterfactual para decisoes HOLD/BLOCKED. Novas
+funcoes `_reward_counterfactual`, `_ms_per_candle`, `_lookup_at_ms` em
+`persist_training_episodes.py`. Migration 0011 ADD COLUMN `reward_lookup_at_ms
+INTEGER` idempotente. `flush_deferred_rewards` preenche reward diferido apos N
+candles. `collect_training_info` ampliado para contar episodios counterfactual.
+Sem impacto em ARQUITETURA_ALVO (schema interno de episodios) nem em
+REGRAS_DE_NEGOCIO (sem mudanca de contrato de execucao). Guardrails intactos.
+
+**Docs afetados:** BACKLOG.md; SYNCHRONIZATION.md
+
+**Arquivos de codigo:** scripts/model2/persist_training_episodes.py;
+scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql;
+core/model2/cycle_report.py; tests/test_blid093_hold_reward.py
+
+---
+
 ### [SYNC-136] BLID-091 - reward_source em training_episodes
 
 **Data/Hora**: 2026-03-24 BRT

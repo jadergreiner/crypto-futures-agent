@@ -4673,7 +4673,7 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
 ### TAREFA BLID-093 - Reward por decisao de ficar fora (HOLD/BLOCKED counterfactual)
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Suite: tests/test_blid093_hold_reward.py — 26 testes (26 GREEN)
 Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration 0011,
@@ -4765,6 +4765,10 @@ para gerar novos dados de decisao)
 3. `collect_training_info` conta esses episodios como treinaveiss [ ]
 4. Dataset de treino tem proporcao balanceada entre entradas e HOLDs [ ]
 5. `pytest -q tests/` passa [ ]
+
+SE: 26/26 GREEN, mypy 4 erros pre-existentes zero novos, arquivos: persist_training_episodes.py, 0011_add_reward_lookup_at_ms.sql, test_blid093_hold_reward.py
+TL: APROVADO. 26/26 GREEN reproduzidos, mypy 4 erros pre-existentes, guardrails intactos, episode_key idempotente. Suite 212 pass sem regressoes.
+DOC: reward_lookup_at_ms em training_episodes; flush_deferred_rewards; counterfactual HOLD/BLOCKED. Sem impacto em ARQUITETURA_ALVO nem REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-137].
 
 ---
 
