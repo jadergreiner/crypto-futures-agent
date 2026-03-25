@@ -23,6 +23,80 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-141] BLID-0E4 - Implementacao GREEN-REFACTOR do I/O Retry com atomicidade
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+**Alteracoes:**
+
+- `core/model2/io_retry.py`: criado com retry_with_backoff, atomic_file_write,
+  read_json_with_retry, write_json_with_retry, IoRetryError; mypy --strict clean
+- `tests/test_model2_io_retry.py`: 3 testes corrigidos para compatibilidade Windows
+  (substituicao de caminhos Unix por mocks via patch('builtins.open'))
+- `docs/BACKLOG.md`: BLID-0E4 status → REVISADO_APROVADO; SE/TL/DOC registrados
+- `docs/SYNCHRONIZATION.md`: este registro SYNC-141 adicionado
+
+**Evidencias:**
+
+- pytest tests/test_model2_io_retry.py: 15/15 passed
+- mypy --strict core/model2/io_retry.py: Success, no issues
+- pytest -q tests/ (baseline): 211 passed (67 falhos pre-existentes, sem regressao)
+
+**Guardrails:** risk_gate=ATIVO, circuit_breaker=ATIVO, fail-safe=SILENT,
+decision_id=IDEMPOTENTE, Windows-compatible, logging estruturado por tentativa
+
+**Docs afetados:** BACKLOG.md, SYNCHRONIZATION.md
+
+---
+
+### [SYNC-140] BLID-0E4 - QA-TDD suite RED para I/O Retry com atomicidade
+
+**Data/Hora**: 2026-03-25 16:22 BRT
+**Status**: TESTES_PRONTOS (fase GREEN-REFACTOR pendente)
+**Agentes**: QA-TDD (4)
+
+**Alteracoes:**
+
+- `tests/test_model2_io_retry.py`: criado com 15 testes em fase RED (5 blocos)
+  - Bloco 1 (3 testes): retry_with_backoff decorator, max retries, timing
+  - Bloco 2 (3 testes): atomic_file_write temp+rename, consistency, fail-safe
+  - Bloco 3 (3 testes): timeout enforcement (5s read, 10s write)
+  - Bloco 4 (3 testes): integração 3 scripts (persist, operator_status, healthcheck)
+  - Bloco 5 (3 testes): fail-safe behavior (log not raise, False, ciclo ok)
+- `docs/BACKLOG.md`: BLID-0E4 atualizado status → TESTES_PRONTOS
+- `.claude/prompts/5.software-engineer_BLID-0E4.md`: handoff prompt QA→SE completo
+
+**RED Phase Validation:**
+
+- pytest: 15/15 tests collected as ERROR (ModuleNotFoundError expected)
+- Todos os testes falham conforme esperado em fase RED
+- Suite pronta para Software Engineer implementar com TDD Green-Refactor
+
+**Escopo tecnico:** Centralizado I/O retry wrapper em core/model2/io_retry.py:
+
+- @retry_with_backoff(retries, backoff_seconds) decorator
+- @contextmanager atomic_file_write(path) para temp+rename
+- read_json_with_retry(path, timeout=5s, retries=3)
+- write_json_with_retry(data, path, timeout=10s, retries=4)
+- Classe IoRetryError customizada
+- Fail-safe mode: retry exhaustion retorna False (não raise)
+- Aplicar em 3 pontos: persist_training_episodes.py L600,
+  operator_cycle_status.py L~350, healthcheck_live_execution.py L~40
+
+**Guardrails validados:** risk_gate=ATIVO, circuit_breaker=ATIVO, fail-safe=SILENT,
+decision_id=IDEMPOTENTE, Windows-compatible (os.replace() atomicidade),
+logging estruturado por tentativa
+
+**Docs afetados:** BACKLOG.md; SYNCHRONIZATION.md
+
+**Arquivos de codigo:** tests/test_model2_io_retry.py (criado)
+
+**Proxima etapa:** Software Engineer implementa GREEN-REFACTOR com suite RED
+
+---
+
 ### [SYNC-139] BLID-095 - Rastreamento de experimentos e artefatos MLflow
 
 **Data/Hora**: 2026-03-25 BRT
