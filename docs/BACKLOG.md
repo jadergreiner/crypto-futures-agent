@@ -4822,6 +4822,47 @@ DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5
 
 ---
 
+### TAREFA BLID-095 - Rastreamento de experimentos e artefatos MLflow
+
+Status: ABERTA
+
+**Contexto e motivacao:**
+
+O processo de retreino PPO incremental (BLID-094) gera metadados JSON por run
+(`ppo_training_metadata_*.json`) e salva o modelo em `ppo_model.zip` — ambos
+sem rastreabilidade estruturada. Nao ha comparacao entre runs, sem UI de
+metricas, sem versionamento de artefatos fora do git. TensorBoard esta
+desabilitado no Windows por file locking. O modelo binario polui o git com
+artefatos que crescem a cada retreino.
+
+**Escopo:**
+
+1. Integrar **MLflow** (self-hosted, sem dependencia de cloud) ao pipeline de treino
+2. Logar parametros (`PPOConfig`) e metricas por run (`reward_mean`, `sharpe_ratio`,
+   `win_rate`, `max_drawdown`, `profit_factor`, `ep_len_mean`, `kl_divergence`)
+3. Registrar modelo como MLflow artifact (substitui versionamento no git)
+4. Integrar com `ConvergenceMonitor.log_step()` e `TrainingCallback`
+5. Adicionar `ppo_model.zip` ao `.gitignore` + `git rm --cached` (modelo sai do git)
+6. Testes unitarios: logar run, registrar params, salvar artifact, carregar modelo
+
+**Criterios de aceite:**
+
+- `mlflow ui` exibe runs com params e metricas de cada retreino
+- `ppo_model.zip` removido do tracking git; modelo salvo via MLflow artifacts
+- Suite de testes GREEN sem regressoes
+- `ConvergenceMonitor` e `TrainingCallback` logam no MLflow por run
+- Instalacao documentada (setup local, porta padrao 5000)
+
+**Dependencias:** BLID-094 (retreino incremental operacional)
+
+**Impacto:** Observabilidade completa do ciclo de treino; comparacao entre runs;
+modelo versionado fora do git; arvore local limpa de binarios.
+
+PO: BLID-094 concluido, modelo 10 dias stale sem rastreabilidade. TensorBoard
+desabilitado no Windows. Metadados JSON gerados mas sem UI. Score a calcular.
+
+---
+
 ## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.

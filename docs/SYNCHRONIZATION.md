@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-139] BLID-095 - Rastreamento de experimentos e artefatos MLflow
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: ABERTA
+**Agentes**: Backlog Development (1)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: BLID-095 criado (Status: ABERTA)
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-139]
+
+**Escopo tecnico:** Integracao MLflow self-hosted ao pipeline de retreino PPO.
+Logs de params e metricas por run. Modelo como artifact MLflow (sai do git).
+Integracao com ConvergenceMonitor e TrainingCallback. Remocao de ppo_model.zip
+do tracking git.
+
+---
+
 ### [SYNC-138] BLID-094 - Retreino automatico ao atingir limiar de episodios elegiveis
 
 **Data/Hora**: 2026-03-25 BRT
