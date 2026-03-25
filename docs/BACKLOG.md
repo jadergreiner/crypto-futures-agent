@@ -4556,11 +4556,13 @@ resultou em ordem, sem precisar abrir o DB manualmente.
 
 ### TAREFA BLID-091 - Corrigir fluxo de reward real para episodios de trades encerrados
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Suite: tests/test_blid091_reward_source.py (17 testes — 17/17 GREEN)
 QA: R1-R5 cobertos; _reward_label(3), _ensure_table(2), INSERT EXITED/CC/OPEN(3), migration(3), collect_training_info(3).
 SE: 17/17 GREEN | mypy preexistente (4 erros nao introduzidos) | arquivos: scripts/model2/persist_training_episodes.py, scripts/model2/migrations/0010_add_reward_source.sql, tests/test_model2_blid_072_persist_episodes.py
+TL: APROVADO. 35/35 PASS, zero novas regressoes. reward_source correto em EXITED+CC. Guardrails intactos.
+DOC: reward_source em training_episodes. _reward_label retorna tupla (reward, label, reward_source). Migration 0010 idempotente. SYNCHRONIZATION.md [SYNC-136].
 
 PO: Fundacao do retreino: sem reward real em EXITED, modelo nao aprende. Score 3.75. BLID-090 concluida, sem bloqueio.
 SA: reward_label calcula PnL proporcional; INSERT OR IGNORE ja gera episodio EXITED c/ reward; falta reward_source + migracao 0010.

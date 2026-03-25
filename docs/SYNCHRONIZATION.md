@@ -23,6 +23,32 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-136] BLID-091 - reward_source em training_episodes
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Doc Advocate (7)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-091
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-136]
+
+**Escopo tecnico:** Campo `reward_source` (enum: `pnl_realized`, `proxy_signal`,
+`none`) adicionado em `training_episodes`. `_reward_label` retorna tupla
+`(reward, label, reward_source)`. INSERT EXITED grava `pnl_realized`;
+CYCLE_CONTEXT grava `none`. Migration 0010 idempotente. `_counts_by_status`
+graceful. Sem impacto em ARQUITETURA_ALVO nem REGRAS_DE_NEGOCIO (schema interno
+de episodios, sem mudanca de contrato de execucao ou regra de negocio).
+
+**Docs afetados:** BACKLOG.md; SYNCHRONIZATION.md
+
+**Arquivos de codigo:** scripts/model2/persist_training_episodes.py;
+scripts/model2/migrations/0010_add_reward_source.sql;
+tests/test_blid091_reward_source.py; tests/test_model2_blid_072_persist_episodes.py
+
+---
+
 ### [SYNC-135] BLID-090 - Linha Risk em operator_cycle_status: visibilidade CB e RG
 
 **Data/Hora**: 2026-03-24 BRT
