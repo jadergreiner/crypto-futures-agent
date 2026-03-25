@@ -23,6 +23,30 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-135] BLID-090 - Linha Risk em operator_cycle_status: visibilidade CB e RG
+
+**Data/Hora**: 2026-03-24 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Doc Advocate (7)
+
+**Alteracoes:**
+
+- `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-090
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-135]
+
+**Escopo tecnico:** `_query_risk_state_from_db` (ORDER BY id DESC LIMIT 1,
+sem excecao) + linha "  Risk     :" apos "  Posicao  :" em `_build_symbol_report`.
+Exibe CB:estado, RG:status, [CB TRANCADO], [LONG BLOQUEADO - short_only] e
+entradas hoje: N/N [LIMITE ATINGIDO]. Sem impacto em ARQUITETURA_ALVO nem
+REGRAS_DE_NEGOCIO (observabilidade pura, sem mudanca de contrato ou regra).
+
+**Docs afetados:** BACKLOG.md; SYNCHRONIZATION.md
+
+**Arquivos de codigo:** scripts/model2/operator_cycle_status.py;
+tests/test_operator_cycle_status.py
+
+---
+
 ### [SYNC-134] BLID-092 - Contrato CircuitBreaker: RN-024 e diagrama de estados CB
 
 **Data/Hora**: 2026-03-24 BRT
