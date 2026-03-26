@@ -2248,3 +2248,81 @@ class Model2ThesisRepository:
             metadata=metadata,
             field_updates=updates,
         )
+
+
+class Model2ExecutionRepository:
+    """Repositorio de execucoes com guardrail de reconciliacao deterministica.
+
+    M2-024.8: transicao OPEN->EXITED exige fill_external_confirmed=True.
+    """
+
+    def __init__(self, db_path: str) -> None:
+        self.db_path = db_path
+
+    def _connect(self) -> sqlite3.Connection:
+        import sqlite3 as _sqlite3
+
+        conn = _sqlite3.connect(self.db_path)
+        conn.row_factory = _sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
+    def _insert_signal_execution(
+        self,
+        *,
+        signal_id: int,
+        symbol: str,
+        status: str,
+    ) -> int:
+        """Insere um registro de execucao de sinal no DB. Retorna o ID gerado."""
+        import time as _time
+
+        ts = int(_time.time() * 1000)
+        conn = self._connect()
+        try:
+            cursor = conn.execute(
+                """
+                INSERT INTO signal_executions (signal_id, symbol, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (signal_id, symbol, status, ts, ts),
+            )
+            conn.commit()
+            return int(cursor.lastrowid)  # type: ignore[arg-type]
+        finally:
+            conn.close()
+
+    def update_execution_status(
+        self,
+        *,
+        execution_id: int,
+        new_status: str,
+        fill_external_confirmed: bool,
+    ) -> bool:
+        """Atualiza status de uma execucao com guardrail de confirmacao externa.
+
+        M2-024.8: transicao para EXITED exige fill_external_confirmed=True.
+        Levanta ValueError se a transicao for bloqueada pelo guardrail.
+
+        Returns:
+            True se atualizado, False se execution_id nao existe.
+        """
+        if new_status == SIGNAL_EXECUTION_STATUS_EXITED and not fill_external_confirmed:
+            raise ValueError(
+                "fill_external_confirmed=True obrigatorio para transicionar para EXITED. "
+                "Nao e permitido EXITED sem evidencia de fill externo confirmado (M2-024.8)."
+            )
+        import time as _time
+
+        ts = int(_time.time() * 1000)
+        conn = self._connect()
+        try:
+            result = conn.execute(
+                "UPDATE signal_executions SET status=?, updated_at=? WHERE id=?",
+                (new_status, ts, execution_id),
+            )
+            conn.commit()
+            return result.rowcount > 0
+        finally:
+            conn.close()
+

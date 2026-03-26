@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-154] M2-024.6/7/8/9/11 IMPLEMENTADO — 2026-03-26
+
+- Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
+- Arquivos alterados:
+  - core/model2/observability.py: +VALID_LATENCY_STAGES, registrar_latencia,
+  OperationalSnapshot, record_cycle_snapshot
+  - risk/circuit_breaker.py: +FailureClass enum, register_failure,
+  is_open_for_class, cooldown_by_class
+  - risk/risk_gate.py: +record_timeout, allows_trading
+  - core/model2/repository.py: +Model2ExecutionRepository (guardrail EXITED)
+  - scripts/model2/migrations/0012_add_latency_and_snapshots.sql:
+  +execution_latencies, operational_snapshots
+  - tests/test_m2_024_6_to_11.py: 19 testes GREEN
+- Escopo: telemetria de latencia, circuit breaker granular, reconciliacao
+deterministica, snapshot operacional, regressao de stress
+- Evidencias: pytest 19/19 GREEN; mypy strict sem erros nos modulos principais;
+67 falhas pre-existentes inalteradas
+- Status: REVISADO_APROVADO
+
+---
+
 ### [SYNC-153] BLID-086 CONCLUIDO — 2026-03-26
 
 - Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
@@ -83,7 +104,8 @@ toda vez que mudanças significativas são feitas no código:
   `execution_id=0` para `HOLD_DECISION`
 - `tests/test_blid099_hold_learning.py`: 16 testes GREEN
 
-**Evidencias:** pytest 16/16 GREEN; mypy 0 regressoes novas; backlog REVISADO_APROVADO
+**Evidencias:** pytest 16/16 GREEN; mypy 0 regressoes novas; backlog
+REVISADO_APROVADO
 
 ---
 
@@ -96,14 +118,16 @@ toda vez que mudanças significativas são feitas no código:
 **Resumo**: BLID-098 concluido. Corrigidos 4 defeitos estruturais que mantinham
 reward=+0.0000 apos retreino: (1) filtro SQL em load_episodes_from_db excluindo
 episodios com reward_proxy NULL/CYCLE_CONTEXT; (2)_build_observation usando
-features reais de features_json ao inves de placeholder zeros; (3) _load_ppo_model
+features reais de features_json ao inves de placeholder zeros; (3)
+_load_ppo_model
 carregando .zip via PPO.load() ao inves de interpretar como bool; (4) log
 pos-retreino com reward_mean/std/n_nonzero/checkpoint_mtime. Suite pytest 6/6
 GREEN. risk_gate e circuit_breaker intocados.
 
 **Documentos Alterados**:
 
-- `docs/BACKLOG.md`: BLID-098 atualizado com rodape DOC e status REVISADO_APROVADO
+- `docs/BACKLOG.md`: BLID-098 atualizado com rodape DOC e status
+REVISADO_APROVADO
 - `docs/SYNCHRONIZATION.md`: este registro [SYNC-148] adicionado
 
 ---
@@ -153,7 +177,8 @@ Arquivos de codigo alterados:
 
 Docs atualizadas:
 
-- `docs/ARQUITETURA_ALVO.md`: extensao Camada 4 com modulo `execution_timeout.py`,
+- `docs/ARQUITETURA_ALVO.md`: extensao Camada 4 com modulo
+`execution_timeout.py`,
   `StageTimeoutPolicy`, funcoes `check_*` e integracao em `order_layer.py`.
 - `docs/REGRAS_DE_NEGOCIO.md`: RN-025 adicionada — timeout por etapa com
   reason_codes `TIMEOUT_*`, severity=HIGH, action=bloquear_operacao,
@@ -174,13 +199,18 @@ Arquivos de codigo alterados:
 
 **Mudancas**:
 
-- `core/model2/risk_gate_telemetry.py`: criado com RiskGateBlockEvent (frozen dataclass)
-  e RiskGateTelemetryRecorder (record, total_events, all_events, query_by_reason);
+- `core/model2/risk_gate_telemetry.py`: criado com RiskGateBlockEvent (frozen
+dataclass)
+  e RiskGateTelemetryRecorder (record, total_events, all_events,
+  query_by_reason);
   factory get_risk_gate_telemetry_recorder(); mypy --strict clean
-- `core/model2/live_service.py`: adicionado `_risk_gate_telemetry` no `__init__`;
-  hook add-only em `_enforce_guardrails_before_order` registra bloqueio com decision_id
+- `core/model2/live_service.py`: adicionado `_risk_gate_telemetry` no
+`__init__`;
+  hook add-only em `_enforce_guardrails_before_order` registra bloqueio com
+  decision_id
 - `tests/test_model2_m2_026_1_telemetry_real.py`: suite 10 testes RED→GREEN
-- `tests/test_model2_m2_026_1_risk_gate_telemetry.py`: 11 testes GREEN (pre-existentes)
+- `tests/test_model2_m2_026_1_risk_gate_telemetry.py`: 11 testes GREEN (pre-
+existentes)
 - `tests/conftest.py`: 2 arquivos adicionados ao MODEL_DRIVEN_TEST_PATTERNS
 - `docs/BACKLOG.md`: M2-026.1 atualizado para REVISADO_APROVADO
 - `docs/ARQUITETURA_ALVO.md`: extensao M2-026.1 adicionada na secao M2-026
@@ -228,7 +258,8 @@ hook add-only sem side-effects no fluxo de bloqueio
 
 - `core/model2/io_retry.py`: criado com retry_with_backoff, atomic_file_write,
   read_json_with_retry, write_json_with_retry, IoRetryError; mypy --strict clean
-- `tests/test_model2_io_retry.py`: 3 testes corrigidos para compatibilidade Windows
+- `tests/test_model2_io_retry.py`: 3 testes corrigidos para compatibilidade
+Windows
   (substituicao de caminhos Unix por mocks via patch('builtins.open'))
 - `docs/BACKLOG.md`: BLID-0E4 status → REVISADO_APROVADO; SE/TL/DOC registrados
 - `docs/SYNCHRONIZATION.md`: este registro SYNC-141 adicionado
@@ -237,7 +268,8 @@ hook add-only sem side-effects no fluxo de bloqueio
 
 - pytest tests/test_model2_io_retry.py: 15/15 passed
 - mypy --strict core/model2/io_retry.py: Success, no issues
-- pytest -q tests/ (baseline): 211 passed (67 falhos pre-existentes, sem regressao)
+- pytest -q tests/ (baseline): 211 passed (67 falhos pre-existentes, sem
+regressao)
 
 **Guardrails:** risk_gate=ATIVO, circuit_breaker=ATIVO, fail-safe=SILENT,
 decision_id=IDEMPOTENTE, Windows-compatible, logging estruturado por tentativa
@@ -258,10 +290,12 @@ decision_id=IDEMPOTENTE, Windows-compatible, logging estruturado por tentativa
   - Bloco 1 (3 testes): retry_with_backoff decorator, max retries, timing
   - Bloco 2 (3 testes): atomic_file_write temp+rename, consistency, fail-safe
   - Bloco 3 (3 testes): timeout enforcement (5s read, 10s write)
-  - Bloco 4 (3 testes): integração 3 scripts (persist, operator_status, healthcheck)
+  - Bloco 4 (3 testes): integração 3 scripts (persist, operator_status,
+  healthcheck)
   - Bloco 5 (3 testes): fail-safe behavior (log not raise, False, ciclo ok)
 - `docs/BACKLOG.md`: BLID-0E4 atualizado status → TESTES_PRONTOS
-- `.claude/prompts/5.software-engineer_BLID-0E4.md`: handoff prompt QA→SE completo
+- `.claude/prompts/5.software-engineer_BLID-0E4.md`: handoff prompt QA→SE
+completo
 
 **RED Phase Validation:**
 
@@ -280,7 +314,8 @@ decision_id=IDEMPOTENTE, Windows-compatible, logging estruturado por tentativa
 - Aplicar em 3 pontos: persist_training_episodes.py L600,
   operator_cycle_status.py L~350, healthcheck_live_execution.py L~40
 
-**Guardrails validados:** risk_gate=ATIVO, circuit_breaker=ATIVO, fail-safe=SILENT,
+**Guardrails validados:** risk_gate=ATIVO, circuit_breaker=ATIVO, fail-
+safe=SILENT,
 decision_id=IDEMPOTENTE, Windows-compatible (os.replace() atomicidade),
 logging estruturado por tentativa
 
@@ -375,7 +410,8 @@ pytest tests/ 211 passed (67 falhas pre-existentes, sem regressao nova)
 - `docs/SYNCHRONIZATION.md`: este registro [SYNC-139] fechado
 
 **Escopo tecnico:** Integracao MLflow self-hosted em trainer.py (start_run,
-log_params 8 campos, log_artifact .zip em phase1/phase2) e convergence_monitor.py
+log_params 8 campos, log_artifact .zip em phase1/phase2) e
+convergence_monitor.py
 (log_metric 7 metricas por step). load_model_from_mlflow_artifact adicionado.
 ppo_model.zip no .gitignore e removido do tracking git.
 
@@ -397,10 +433,12 @@ ppo_model.zip no .gitignore e removido do tracking git.
 - `docs/BACKLOG.md`: comentario DOC adicionado ao rodape de BLID-094
 - `docs/SYNCHRONIZATION.md`: este registro [SYNC-138]
 
-**Escopo tecnico:** Removido guard de modo live em `live_service.py` L297-298 que
+**Escopo tecnico:** Removido guard de modo live em `live_service.py` L297-298
+que
 bloqueava retreino automatico. Adicionado log `[TREINO]` apos `Popen`. Guard de
 concorrencia `_incremental_training_running` preservado. 5 testes unitarios AAA
-GREEN cobrindo: disparo com limiar atingido, bloqueio de concorrencia, modo nao-live,
+GREEN cobrindo: disparo com limiar atingido, bloqueio de concorrencia, modo
+nao-live,
 threshold nao atingido e log correto. Sem impacto em ARQUITETURA_ALVO nem
 REGRAS_DE_NEGOCIO. Guardrails risk_gate e circuit_breaker intactos.
 
@@ -460,7 +498,8 @@ de episodios, sem mudanca de contrato de execucao ou regra de negocio).
 
 **Arquivos de codigo:** scripts/model2/persist_training_episodes.py;
 scripts/model2/migrations/0010_add_reward_source.sql;
-tests/test_blid091_reward_source.py; tests/test_model2_blid_072_persist_episodes.py
+tests/test_blid091_reward_source.py;
+tests/test_model2_blid_072_persist_episodes.py
 
 ---
 
@@ -476,7 +515,8 @@ tests/test_blid091_reward_source.py; tests/test_model2_blid_072_persist_episodes
 - `docs/SYNCHRONIZATION.md`: este registro [SYNC-135]
 
 **Escopo tecnico:** `_query_risk_state_from_db` (ORDER BY id DESC LIMIT 1,
-sem excecao) + linha "  Risk     :" apos "  Posicao  :" em `_build_symbol_report`.
+sem excecao) + linha "  Risk     :" apos "  Posicao  :" em
+`_build_symbol_report`.
 Exibe CB:estado, RG:status, [CB TRANCADO], [LONG BLOQUEADO - short_only] e
 entradas hoje: N/N [LIMITE ATINGIDO]. Sem impacto em ARQUITETURA_ALVO nem
 REGRAS_DE_NEGOCIO (observabilidade pura, sem mudanca de contrato ou regra).
@@ -496,7 +536,8 @@ tests/test_operator_cycle_status.py
 
 **Alteracoes:**
 
-- `docs/REGRAS_DE_NEGOCIO.md`: adicionada RN-024 (maquina de estados CB, transicoes
+- `docs/REGRAS_DE_NEGOCIO.md`: adicionada RN-024 (maquina de estados CB,
+transicoes
   HALF_OPEN, reset_manual com operador, aliases NORMAL/TRANCADO)
 - `docs/DIAGRAMAS.md`: adicionado diagrama 8 (stateDiagram mermaid, estados
   CLOSED/OPEN/HALF_OPEN, aliases, CircuitBreakerTransition)
@@ -575,8 +616,10 @@ RN-023 adicionado em REGRAS_DE_NEGOCIO. ARQUITETURA_ALVO atualizada M2-028.1.
 
 **Impacto tecnico**:
 
-- `core/model2/cycle_watchdog.py` criado com CycleWatchdog, validate_schema_pre_exec,
-  detect_orphan_positions, build_orphan_exit_order, execute_atomic_state_transition
+- `core/model2/cycle_watchdog.py` criado com CycleWatchdog,
+validate_schema_pre_exec,
+  detect_orphan_positions, build_orphan_exit_order,
+  execute_atomic_state_transition
 - `REASON_CODE_CATALOG` em `live_execution.py` expandido com `orphan_position`
 - 17 testes novos em `tests/test_model2_m2_027_resilience_failsafe.py`
 - Suite completa: 278 passed; mypy --strict: 0 erros
@@ -674,7 +717,8 @@ RN-023 adicionado em REGRAS_DE_NEGOCIO. ARQUITETURA_ALVO atualizada M2-028.1.
    - Captura reason_code, condição, limite
    - Queries rápidas por razão (< 100ms)
    - Compatibilidade contrato M2-024.1
-   - **Execução**: 2 failed (reason_codes não em catalog — esperado),\n     4 passed
+   - **Execução**: 2 failed (reason_codes não em catalog — esperado),\n     4
+   passed
 
 2. **test_model2_m2_026_2_circuit_breaker_transitions.py** (6 testes)
    - RF 2.1-2.6: Transições observáveis (CLOSED→OPEN→HALF_OPEN→CLOSED)
@@ -741,7 +785,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR completo:
 **Agente**: Product Owner (2.product-owner)
 **Decisão**: Pacote M2-026 com 5 tarefas criado e registrado em backlog
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#2)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -787,7 +831,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR completo:
 **Agente**: QA-TDD (4.qa-tdd)
 **Decisão**: Suite RED de 37 testes criada e executada
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#3)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -797,7 +841,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR completo:
 | Testes criados | tests/test_model2_m2_024_10_error_contract.py | 10 cases RED (0 failed, 10 passed) |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-125 adicionado |
 
-#### Resumo RED Phase
+#### Resumo RED Phase (#2)
 
 **Suite Criada**: 37 testes estruturados em 3 arquivos
 
@@ -830,7 +874,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR completo:
 - pytest: 1 failed, 53 passed (includes existing M2 tests)
 - Guardrails: risk_gate NÃO mockado, circuit_breaker NÃO mockado
 
-#### Próxima Etapa
+#### Próxima Etapa (#2)
 
 Handoff para 5.software-engineer com prompt GREEN-REFACTOR:
 
@@ -846,7 +890,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR:
 **Agente**: Solution Architect (3.solution-architect)
 **Decisão**: Análise técnica concluída + prompt QA-TDD gerado
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#4)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -867,7 +911,7 @@ Handoff para 5.software-engineer com prompt GREEN-REFACTOR:
 
 **Modelagem de Dados**: ✅ Compatível (nullable, retrocompat garantida)
 
-#### Próxima Etapa
+#### Próxima Etapa (#3)
 
 Handoff para 4.qa-tdd com prompt executável: suite RED para Lote 1
 (37 testes, 0 guardrails mockados)
@@ -879,7 +923,7 @@ Handoff para 4.qa-tdd com prompt executável: suite RED para Lote 1
 **Agente**: Product Owner (2.product-owner)
 **Decisão**: Pacote M2-024 priorizado com 15 tarefas estruturadas
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#5)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -914,7 +958,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Agente**: Software Engineer (5.software-engineer)
 **Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#6)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -938,7 +982,8 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    tests/test_model2_m2_025_1_candle_freshness_contract.py
    tests/test_model2_blid_082_candle_status.py -> 19 passed.
 - c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
-   tests/test_cycle_report.py tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_cycle_report.py
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
    tests/test_model2_blid_082_candle_status.py -> 44 passed.
 - c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
    core/model2/cycle_report.py core/model2/live_service.py
@@ -959,14 +1004,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Agente**: Software Engineer (5.software-engineer)
 **Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#7)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-025.1 atualizada para `EM_DESENVOLVIMENTO` + comentario `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-121 adicionado |
 
-#### Impacto
+#### Impacto (#2)
 
 - Implementacao GREEN iniciada para contrato canonico de frescor.
 - Escopo restrito a cycle_report, live_service e operator_cycle_status.
@@ -978,21 +1023,21 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Agente**: QA-TDD (4.qa-tdd)
 **Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#8)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-025.1 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-120 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#2)
 
 - Suite RED criada em tests/test_model2_m2_025_1_candle_freshness_contract.py.
 - Allowlist model-driven atualizada em tests/conftest.py.
 - Cobertura RED: helper canonico, estados fresh/stale/absent e paridade
    shadow/live.
 
-#### Evidencias
+#### Evidencias (#2)
 
 - c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
    tests/test_model2_m2_025_1_candle_freshness_contract.py
@@ -1000,7 +1045,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
    tests/test_model2_m2_025_1_candle_freshness_contract.py -> Success.
 
-#### Impacto
+#### Impacto (#3)
 
 - M2-025.1 pronta para implementacao Green-Refactor pelo agente
    5.software-engineer.
@@ -1013,21 +1058,21 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Agente**: Solution Architect (3.solution-architect)
 **Atividade**: M2-025.1 - Contrato de frescor de candle por simbolo
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#9)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Handoff tecnico SA | docs/BACKLOG.md | M2-025.1 mantida em `Em analise` + comentario `SA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-119 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#3)
 
 - Contrato atual usa `decision_fresh` booleano em cycle_report e operadores.
 - Refinamento proposto introduz estado canonico de frescor derivado por
    timestamp e janela, com fail-safe e paridade shadow/live.
 - Sem alteracao de schema nesta etapa; foco em contrato, integracao e testes.
 
-#### Impacto
+#### Impacto (#4)
 
 - M2-025.1 pronta para escrita de suite RED pelo agente 4.qa-tdd.
 - Reduz ambiguidade entre candle fresco, stale e ausente no ciclo M2.
@@ -1039,20 +1084,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Agente**: Product Owner (2.product-owner)
 **Atividade**: M2-025 - Confiabilidade de dados e treino no ciclo M2
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#10)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Novo pacote M2-025 | docs/BACKLOG.md | M2-025.1 a M2-025.15 adicionadas; M2-025.1 em `Em analise` + `PO:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-118 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#4)
 
 - Pacote M2-025 orientado a confiabilidade de dados e treino incremental.
 - Priorizacao inicial em M2-025.1 para contrato de frescor de candle.
 - Trilha de 15 tarefas com foco em idempotencia, fail-safe e observabilidade.
 
-#### Impacto
+#### Impacto (#5)
 
 - Backlog preparado para handoff ao agente 3.solution-architect.
 - Reduz risco de decisoes com dados stale e treino sem evidencias.
@@ -1118,14 +1163,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: IMPLEMENTADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#11)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-114 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#5)
 
 - core/model2/order_layer.py: validacao de contrato novo (decision_id,
   signal_timestamp e payload.decision_origin) com modo estrito opcional
@@ -1135,7 +1180,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
   fail-safe por IDs ausentes quando contrato novo estiver ativo.
 - tests/test_model2_m2_024_1_decision_contract.py: suite RED->GREEN da task.
 
-#### Evidencias
+#### Evidencias (#3)
 
 - pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 8 passed.
 - pytest -q tests/test_model2_order_layer.py tests/test_model2_live_execution.py
@@ -1144,7 +1189,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
   tests/test_model2_m2_024_1_decision_contract.py -> Success.
 - pytest -q tests/ -> 267 passed.
 
-#### Impacto
+#### Impacto (#6)
 
 - M2-024.1 pronta para revisao do agente 6.tech-lead com guardrails
   preservados e regressao verde.
@@ -1154,14 +1199,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: EM_DESENVOLVIMENTO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#12)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `EM_DESENVOLVIMENTO` + comentario `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-113 adicionado |
 
-#### Impacto
+#### Impacto (#7)
 
 - Implementacao GREEN iniciada para contrato unico de decisao da M2-024.1.
 
@@ -1170,25 +1215,26 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: TESTES_PRONTOS
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#13)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-024.1 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-112 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#6)
 
 - Suite RED criada em tests/test_model2_m2_024_1_decision_contract.py.
 - Allowlist model-driven atualizada em tests/conftest.py.
 - Cobertura RED: contrato unico, campos obrigatorios e correlacao IDs.
 
-#### Evidencias
+#### Evidencias (#4)
 
-- pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 7 failed, 1 passed.
+- pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 7 failed, 1
+passed.
 - mypy --strict tests/test_model2_m2_024_1_decision_contract.py -> Success.
 
-#### Impacto
+#### Impacto (#8)
 
 - M2-024.1 pronta para implementacao Green-Refactor pelo agente
    5.software-engineer.
@@ -1198,20 +1244,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: EM_ANALISE
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#14)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Handoff tecnico SA | docs/BACKLOG.md | M2-024.1 mantida em `Em analise` + comentario `SA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-111 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#7)
 
 - Contrato unico de decisao entre bridge, order_layer e live_execution.
 - Campos obrigatorios e fail-safe por ausencia de payload valido.
 - Sem alteracao de schema nesta etapa; foco em contrato e testes RED.
 
-#### Impacto
+#### Impacto (#9)
 
 - M2-024.1 pronta para escrita de suite RED pelo agente 4.qa-tdd.
 - Reduz ambiguidade de integracao e reforca idempotencia operacional.
@@ -1221,20 +1267,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: PRIORIZADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#15)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Novo pacote M2-024 | docs/BACKLOG.md | M2-024.1 a M2-024.15 adicionadas; M2-024.1 em `Em analise` + `PO:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-110 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#8)
 
 - Pacote M2-024 orientado a hardening de decisao, execucao e conciliacao.
 - Priorizacao inicial em M2-024.1 para contrato unico de decisao.
 - Trilho de 15 tarefas com foco em fail-safe, idempotencia e observabilidade.
 
-#### Impacto
+#### Impacto (#10)
 
 - Backlog preparado para handoff ao agente 3.solution-architect.
 - Risco operacional reduzido por padronizacao de contratos entre camadas.
@@ -1244,7 +1290,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#16)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1254,10 +1300,11 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 #### Evidencias de Fechamento
 
 - Trilha validada: PO -> SA -> QA-TDD -> SE -> TL -> DA -> PM.
-- Validacoes reproduzidas: pytest task, mypy strict, regressao focada e completa.
+- Validacoes reproduzidas: pytest task, mypy strict, regressao focada e
+completa.
 - Validacoes docs: markdownlint (EXIT:0) e docs_sync (12/12 passed).
 
-#### Impacto
+#### Impacto (#11)
 
 - M2-023.1 encerrada e pronta para publicacao definitiva em `main`.
 
@@ -1266,7 +1313,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: REVISADO_APROVADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#17)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1274,7 +1321,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Arquitetura alvo | docs/ARQUITETURA_ALVO.md | Camada 4: contrato unificado de erros documentado |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-108 adicionado |
 
-#### Impacto
+#### Impacto (#12)
 
 - Governanca documental concluida para M2-023.1.
 - Pronta para aceite final pelo agente 8.project-manager.
@@ -1284,7 +1331,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: REVISADO_APROVADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#18)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1299,7 +1346,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - `pytest -q tests/` -> 259 passed (TL).
 - Guardrails: risk_gate ATIVO, circuit_breaker ATIVO, decision_id IDEMPOTENTE.
 
-#### Impacto
+#### Impacto (#13)
 
 - M2-023.1 aprovada e encaminhada ao agente 7.doc-advocate.
 
@@ -1308,14 +1355,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: IMPLEMENTADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#19)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-023.1 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-106 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#9)
 
 - `core/model2/live_execution.py`: contrato unificado com
    `REASON_CODE_SEVERITY` e `REASON_CODE_ACTION`, inclusao de
@@ -1327,7 +1374,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `decision_id` em `OrderLayerInput`.
 - `tests/test_model2_m2_023_1_error_contract.py`: suite RED->GREEN da task.
 
-#### Evidencias
+#### Evidencias (#5)
 
 - `pytest -q tests/test_model2_m2_023_1_error_contract.py` -> 10 passed.
 - `mypy --strict core/model2/live_execution.py core/model2/live_service.py
@@ -1338,7 +1385,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    -> 28 passed.
 - `pytest -q tests/` -> 259 passed.
 
-#### Impacto
+#### Impacto (#14)
 
 - M2-023.1 pronta para revisao do agente 6.tech-lead com guardrails
    preservados e regressao verde.
@@ -1348,14 +1395,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: EM_DESENVOLVIMENTO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#20)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-023.1 atualizada para `EM_DESENVOLVIMENTO` + comentario `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-105 adicionado |
 
-#### Impacto
+#### Impacto (#15)
 
 - Implementacao GREEN iniciada para contrato unico de erros da M2-023.1.
 
@@ -1364,20 +1411,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: TESTES_PRONTOS
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#21)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | M2-023.1 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-104 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#10)
 
 - Suite RED criada em `tests/test_model2_m2_023_1_error_contract.py`.
 - Allowlist model-driven atualizada em `tests/conftest.py`.
 - Cobertura RED: contrato de erro, correlacao por decision_id e fail-safe.
 
-#### Impacto
+#### Impacto (#16)
 
 - M2-023.1 pronta para implementacao Green-Refactor pelo agente
    5.software-engineer.
@@ -1387,21 +1434,21 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: EM_ANALISE
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#22)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Handoff tecnico SA | docs/BACKLOG.md | M2-023.1 mantida em `Em analise` + comentario `SA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-103 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#11)
 
 - Contrato de erro unificado em `live_service`, `live_execution` e
    `order_layer`.
 - Sem alteracao de schema nesta etapa; foco em contrato e auditabilidade.
 - Guardrails mantidos: `risk_gate`, `circuit_breaker`, `decision_id`.
 
-#### Impacto
+#### Impacto (#17)
 
 - M2-023.1 pronta para escrita de suite RED pelo agente 4.qa-tdd.
 - Escopo reduz ambiguidade de falhas e reforca fail-safe operacional.
@@ -1411,20 +1458,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: PRIORIZADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#23)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Novo pacote M2-023 | docs/BACKLOG.md | M2-023.1 a M2-023.10 adicionadas; M2-023.1 em `Em analise` + `PO:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-102 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#12)
 
 - Pacote M2-023 focado em resiliencia de execucao e governanca operacional.
 - Priorizacao inicial em M2-023.1 (contrato unico de erros de execucao).
 - Escopo com 10 tarefas para reduzir ambiguidade e reforcar fail-safe live.
 
-#### Impacto
+#### Impacto (#18)
 
 - Backlog preparado para handoff ao agente 3.solution-architect.
 - Risco operacional reduzido por trilha de falhas padronizada e auditavel.
@@ -1434,20 +1481,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#24)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Fechamento PM | docs/BACKLOG.md | BLID-084 atualizada para `CONCLUIDO` + comentario `PM:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-101 adicionado |
 
-#### Evidencias
+#### Evidencias (#6)
 
 - `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md` -> OK.
 - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed.
 - `pytest -q tests/` -> 249 passed.
 
-#### Impacto
+#### Impacto (#19)
 
 - Demanda BLID-084 encerrada ponta a ponta e pronta para continuidade
    do pacote M2-022.
@@ -1457,7 +1504,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: REVISADO_APROVADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#25)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1469,7 +1516,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md` -> OK.
 - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed.
 
-#### Impacto
+#### Impacto (#20)
 
 - Pacote documental encerrado e pronto para aceite final do
    agente 8.project-manager.
@@ -1479,7 +1526,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: REVISADO_APROVADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#26)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1494,7 +1541,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    scripts/model2/validate.py scripts/model2/resolve.py
    scripts/model2/sync_market_context.py` -> Success.
 
-#### Impacto
+#### Impacto (#21)
 
 - BLID-084 aprovada para etapa 7.doc-advocate (governanca final de docs).
 
@@ -1503,14 +1550,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: IMPLEMENTADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#27)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | BLID-084 atualizada para `IMPLEMENTADO` + evidencias `SE:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-098 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#13)
 
 - Novo provider de cache: `core/model2/ohlcv_cache.py`.
 - Integracao cache read-through em `scripts/model2/scan.py`,
@@ -1518,7 +1565,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - Exposicao de `SUMMARY_FIELDS` e `cache_hit_rate` em
    `scripts/model2/sync_market_context.py`.
 
-#### Evidencias
+#### Evidencias (#7)
 
 - `pytest -q tests/test_model2_ohlcv_cache.py` -> 15 passed.
 - `pytest -q tests/test_model2_ohlcv_cache.py
@@ -1528,7 +1575,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    scripts/model2/validate.py scripts/model2/resolve.py
    scripts/model2/sync_market_context.py` -> Success.
 
-#### Impacto
+#### Impacto (#22)
 
 - BLID-084 pronta para revisao do Tech Lead com suite GREEN e tipagem strict.
 
@@ -1537,20 +1584,20 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: TESTES_PRONTOS
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#28)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Status da task | docs/BACKLOG.md | BLID-084 atualizada para `TESTES_PRONTOS` + comentario `QA:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-097 adicionado |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#14)
 
 - Suite RED adicionada em `tests/test_model2_ohlcv_cache.py`.
 - Allowlist model-driven atualizada em `tests/conftest.py`.
 - Cobertura RED: contrato do provider, integracao e fallback fail-safe.
 
-#### Impacto
+#### Impacto (#23)
 
 - Task BLID-084 pronta para implementacao Green-Refactor pelo Software Engineer.
 
@@ -1559,19 +1606,19 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: EM_ANALISE
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#29)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Handoff tecnico SA | docs/BACKLOG.md | BLID-084 mantida em `Em analise` + comentario `SA:` |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#15)
 
 - Escopo tecnico fechado: cache read-through unico para scan/validate/resolve.
 - Politica: TTL por simbolo+timeframe, fallback fail-safe e sem schema novo.
 - Guardrails preservados: `risk_gate`, `circuit_breaker`, `decision_id`.
 
-#### Impacto
+#### Impacto (#24)
 
 - BLID-084 pronta para escrita de testes RED pelo agente QA-TDD.
 
@@ -1580,14 +1627,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: PRIORIZADO
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#30)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Novo pacote M2-022 | docs/BACKLOG.md | BLID-084 a M2-022.6 adicionadas, BLID-084 marcada como `Em analise` |
 | Prompt SA | backlog/PROMPT_3_SOLUTION_ARCHITECT_M2_022.txt | Novo arquivo com requisitos de refino para BLID-084 |
 
-#### Mudancas Logicas
+#### Mudancas Logicas (#16)
 
 - Iniciativa M2-022: Consolidação Operacional e Escalabilidade
 - Objetivo: Reduzir latência de ciclo M2 em 80% + preparar 40+ símbolos
@@ -1601,13 +1648,13 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - M2-022.2: BLID-081 ✓ (treino incremental restaurado)
 - M2-022.5: BLID-084 + M2-022.2 (teste de carga)
 
-#### Evidencias
+#### Evidencias (#8)
 
 - Backlog estruturado com `docs/BACKLOG.md` L1850+
 - Contrato PO: BLID-084 com comentário PO "Reduzir latencia... em 80%"
 - Prompt estruturado para Solution Architect pronto
 
-#### Impacto
+#### Impacto (#25)
 
 - Próximas 2 sprints direcionadas
 - Risco operacional reduzido: cache estável → escalabilidade
@@ -1618,19 +1665,19 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#31)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Fechamento PM | docs/BACKLOG.md | M2-021.1 em `CONCLUIDO` + comentario `PM:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-094 adicionado |
 
-#### Evidencias
+#### Evidencias (#9)
 
 - `markdownlint docs/*.md` -> OK
 - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
 
-#### Impacto
+#### Impacto (#26)
 
 - Demanda encerrada com aceite final e trilha documental completa para
    publicacao em `main`.
@@ -1640,18 +1687,18 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#32)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario `DOC:` registrado em M2-021.1 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-093 adicionado |
 
-#### Evidencias
+#### Evidencias (#10)
 
 - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
 
-#### Impacto
+#### Impacto (#27)
 
 - Trilha documental consolidada para handoff final ao Project Manager,
   com status e evidencias coerentes com aprovacao TL.
@@ -1661,14 +1708,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#33)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Revisao TL | docs/BACKLOG.md | M2-021.1 em `REVISADO_APROVADO` + comentario `TL:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-092 adicionado |
 
-#### Evidencias
+#### Evidencias (#11)
 
 - `pytest -q tests/test_model2_m2_021_live_hardening_red.py` -> 16 passed
 - `mypy --strict core/model2/model_inference_service.py`
@@ -1677,7 +1724,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `scripts/model2/go_live_preflight.py` -> Success
 - `pytest -q tests/` -> 234 passed
 
-#### Impacto
+#### Impacto (#28)
 
 - Pacote M2-021.1 aprovado apos rework, com fail-safe restaurado no
    contrato de inferencia e regressao protegendo contra recidiva.
@@ -1696,7 +1743,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-021.1 em IMPLEMENTADO com evidencias de rework |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-091 adicionado |
 
-#### Evidencias
+#### Evidencias (#12)
 
 - `pytest -q tests/test_model2_m2_021_live_hardening_red.py` -> 16 passed
 - `mypy --strict core/model2/model_inference_service.py` -> Success
@@ -1706,7 +1753,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    -> Success
 - `pytest -q tests/` -> 234 passed
 
-#### Impacto
+#### Impacto (#29)
 
 - Semantica fail-safe restaurada: estado invalido de reconciliacao nao e
    mascarado no contrato de inferencia.
@@ -1717,14 +1764,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#34)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Revisao TL | docs/BACKLOG.md | Registro `TL:` com devolucao para ajuste |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-090 adicionado |
 
-#### Evidencias
+#### Evidencias (#13)
 
 - `pytest -q tests/test_model2_m2_021_live_hardening_red.py` -> 16 passed
 - `mypy --strict core/model2/live_service.py`
@@ -1743,7 +1790,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-23 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#2)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1756,7 +1803,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-021.1..M2-021.10 em IMPLEMENTADO + evidencias SE |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-089 adicionado |
 
-#### Evidencias
+#### Evidencias (#14)
 
 - `pytest -q tests/test_model2_m2_021_live_hardening_red.py` -> 16 passed
 - `mypy --strict core/model2/live_service.py`
@@ -1765,7 +1812,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    -> Success
 - `pytest -q tests/` -> 234 passed
 
-#### Impacto
+#### Impacto (#30)
 
 - Ciclo live ganhou contratos explicitos para hardening M2-021 sem bypass
    de guardrails de risco.
@@ -1776,7 +1823,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#3)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1785,13 +1832,13 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-021.1 a M2-021.10 em TESTES_PRONTOS |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-088 adicionado |
 
-#### Evidencias
+#### Evidencias (#15)
 
 - `pytest -q tests/test_model2_m2_021_live_hardening_red.py`
 - Resultado esperado nesta etapa: RED ate implementacao GREEN pelo
    agente 5.software-engineer.
 
-#### Impacto
+#### Impacto (#31)
 
 - Requisitos de idempotencia, reason codes, retry/timeout, drift, SLO,
    reconciliacao, restart e rollback ganharam contrato executavel RED.
@@ -1802,14 +1849,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#35)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario `SA:` registrado no bloco M2-021 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-087 adicionado |
 
-#### Impacto
+#### Impacto (#32)
 
 - Pacote M2-021 permanece em `Em analise` com trilha SA rastreavel.
 - Handoff tecnico para QA-TDD fica pronto com foco em hardening live.
@@ -1819,7 +1866,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#36)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1827,7 +1874,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-021.1 marcado como `Em analise` + `PO:` |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-086 adicionado |
 
-#### Impacto
+#### Impacto (#33)
 
 - Backlog ganhou pacote rastreavel de hardening operacional live M2.
 - Priorizacao PO aplicada com foco em risco operacional e fail-safe.
@@ -1837,7 +1884,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#37)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1858,7 +1905,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `scripts/model2/entry_rl_filter.py core/model2/repository.py`
    -> Success (`EXIT_CODE=0`)
 
-#### Impacto
+#### Impacto (#34)
 
 - Governanca documental final concluida para pacote aprovado pelo TL.
 - Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
@@ -1868,7 +1915,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#4)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1877,7 +1924,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-019.5 retornou para IMPLEMENTADO com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-084 adicionado |
 
-#### Evidencias
+#### Evidencias (#16)
 
 - `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
    (`EXIT_CODE=0`)
@@ -1891,7 +1938,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `scripts/model2/entry_rl_filter.py core/model2/repository.py`
    -> Success (`EXIT_CODE=0`)
 
-#### Impacto
+#### Impacto (#35)
 
 - Bloqueio de aprovacao por tipagem strict foi removido de forma reproduzivel.
 - Contratos CREATED/CONSUMED/CANCELLED e guardrails de risco permanecem.
@@ -1901,14 +1948,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#38)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Status M2-019.5 para EM_DESENVOLVIMENTO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-083 adicionado |
 
-#### Impacto
+#### Impacto (#36)
 
 - Pacote volta para fase SE focada em gate de tipagem strict.
 - Sem alteracao de regra de negocio ou guardrails operacionais.
@@ -1918,14 +1965,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#39)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Revisao TL | docs/BACKLOG.md | Registro `TL:` de devolucao por gate de qualidade |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-082 adicionado |
 
-#### Evidencias
+#### Evidencias (#17)
 
 - `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
 - `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
@@ -1936,7 +1983,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `scripts/model2/train_entry_agents.py`
    `scripts/model2/entry_rl_filter.py core/model2/repository.py` -> exit 1
 
-#### Impacto
+#### Impacto (#37)
 
 - Pacote manteve regressao funcional zero em testes.
 - Aprovacao TL bloqueada por falha no gate de tipagem strict reportado.
@@ -1946,7 +1993,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#5)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1958,7 +2005,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | M2-019.5 a M2-019.9 em IMPLEMENTADO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-081 adicionado |
 
-#### Evidencias
+#### Evidencias (#18)
 
 - `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py` -> 8 passed
 - `pytest -q tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
@@ -1966,7 +2013,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - `pytest -q tests/test_model2_m2_019_9_risk_regression.py` -> 4 passed
 - `pytest -q tests/` -> 218 passed
 
-#### Impacto
+#### Impacto (#38)
 
 - Filtro RL auditavel passou a atuar antes da camada de ordem.
 - Contratos CREATED/CONSUMED/CANCELLED foram preservados.
@@ -1977,7 +2024,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#6)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -1988,7 +2035,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Itens M2-019.5 a M2-019.9 em TESTES_PRONTOS |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-080 adicionado |
 
-#### Evidencias
+#### Evidencias (#19)
 
 - `pytest -q tests/test_model2_m2_019_5_entry_rl_filter.py`
    `tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
@@ -1996,7 +2043,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - Resultado esperado desta fase: RED ate implementacao GREEN pelo
    agente 5.software-engineer.
 
-#### Impacto
+#### Impacto (#39)
 
 - Contrato de integracao do stage `entry_rl_filter` ficou executavel.
 - Ordem obrigatoria `bridge -> persist -> train -> entry_rl_filter ->`
@@ -2009,14 +2056,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#40)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | BLID-083 detalhado com criterios de aceite |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-079 adicionado |
 
-#### Impacto
+#### Impacto (#40)
 
 - Demanda agora define execucao de testes por etapa sem rodar tudo sempre.
 - Backlog fica pronto para priorizacao do PO com escopo verificavel.
@@ -2026,14 +2073,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#41)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | BLID-083 criado na fila aberta do PO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-078 adicionado |
 
-#### Impacto
+#### Impacto (#41)
 
 - Backlog passa a rastrear a duvida de custo-beneficio da suite de testes.
 - Item fica pronto para priorizacao do PO sem alterar decisoes tecnicas agora.
@@ -2043,7 +2090,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#42)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2051,7 +2098,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-077 adicionado |
 
-#### Impacto
+#### Impacto (#42)
 
 - Fechamento ponta-a-ponta concluido com aceite formal do BLID-081.
 - Trilha finalizada para publicacao em `main`.
@@ -2061,14 +2108,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#43)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario DOC registrado no BLID-081 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-076 adicionado |
 
-#### Impacto
+#### Impacto (#43)
 
 - Governanca documental final concluida para BLID-081 aprovado pelo TL.
 - Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
@@ -2078,14 +2125,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#7)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Revisao TL | docs/BACKLOG.md | Registro `TL:` de devolucao por bloqueio em BLID-081 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-075 adicionado |
 
-#### Evidencias
+#### Evidencias (#20)
 
 - `pytest -q tests/test_cycle_report.py`
    `tests/test_model2_m2_019_3_sub_agent_manager.py`
@@ -2101,7 +2148,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `core/model2/live_service.py`
    -> Success
 
-#### Impacto
+#### Impacto (#44)
 
 - Pacote volta para revisao porque o retreino incremental so pode disparar
    uma vez por processo do servico.
@@ -2112,7 +2159,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#8)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2124,7 +2171,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Itens BLID-079/081/076 e M2-019.3/.4 atualizados para IMPLEMENTADO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-074 adicionado |
 
-#### Evidencias
+#### Evidencias (#21)
 
 - `pytest -q tests/test_cycle_report.py`
    `tests/test_model2_m2_019_3_sub_agent_manager.py`
@@ -2140,9 +2187,10 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `core/model2/live_service.py`
    -> Success
 
-#### Impacto
+#### Impacto (#45)
 
-- Regressao de confianca e retreino incremental resolvidas sem alteracao de schema.
+- Regressao de confianca e retreino incremental resolvidas sem alteracao de
+schema.
 - Reconciliacao `EXITED` endurecida contra ausencia transitoria de posicao.
 - Pipeline de RL por simbolo habilitado para treino de entrada diario.
 
@@ -2151,7 +2199,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#9)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2165,7 +2213,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | itens atualizados para TESTES_PRONTOS |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-073 adicionado |
 
-#### Evidencias
+#### Evidencias (#22)
 
 - `pytest -q tests/test_cycle_report.py`
    `tests/test_model2_m2_019_3_sub_agent_manager.py`
@@ -2177,7 +2225,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - `pytest -q tests/test_model2_m2_019_4_train_entry_agents.py`
    -> 5 failed (RED esperado; API `run_train_entry_agents` ausente)
 
-#### Impacto
+#### Impacto (#46)
 
 - Regresses criticas de treino/confianca ficam reproduziveis por teste.
 - Hardening de reconciliacao agora tem contrato RED rastreavel.
@@ -2188,7 +2236,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#44)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2196,7 +2244,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-072 adicionado |
 
-#### Impacto
+#### Impacto (#47)
 
 - Fechamento ponta-a-ponta concluido com aceite formal do BLID-082.
 - Trilha finalizada para publicacao em `main`.
@@ -2206,14 +2254,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#45)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario DOC registrado no BLID-082 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-071 adicionado |
 
-#### Impacto
+#### Impacto (#48)
 
 - Governanca documental final concluida para o BLID-082.
 - Handoff Doc Advocate -> Project Manager fica rastreavel.
@@ -2223,7 +2271,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#46)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2231,7 +2279,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario TL registrado no item |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-070 adicionado |
 
-#### Impacto
+#### Impacto (#49)
 
 - Revisao tecnica confirmou criterios de aceite atendidos para BLID-082.
 - Handoff TL -> Doc Advocate fica rastreavel para governanca final.
@@ -2241,7 +2289,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#10)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2252,7 +2300,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | BLID-082 atualizado para IMPLEMENTADO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-069 adicionado |
 
-#### Evidencias
+#### Evidencias (#23)
 
 - `pytest -q tests/test_model2_blid_082_candle_status.py`
    `tests/test_model2_blid_078_080_cycle_capture.py`
@@ -2262,7 +2310,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
    `tests/test_model2_blid_082_candle_status.py` -> Success
 - `pytest -q tests/` -> 131 passed
 
-#### Impacto
+#### Impacto (#50)
 
 - Log operacional passa a distinguir candle fresco de estado stale sem
    sucesso ambiguo.
@@ -2273,7 +2321,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#11)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2283,11 +2331,11 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario QA registrado no item |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-068 adicionado |
 
-#### Evidencias
+#### Evidencias (#24)
 
 - `pytest -q tests/test_model2_blid_082_candle_status.py` -> 5 failed, 3 passed
 
-#### Impacto
+#### Impacto (#51)
 
 - QA-TDD formaliza regressao do status de candles no bloco `M2/SYM`.
 - Handoff para Software Engineer fica rastreavel com suite RED pronta.
@@ -2297,14 +2345,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#47)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario SA adicionado no BLID-082 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-067 adicionado |
 
-#### Impacto
+#### Impacto (#52)
 
 - Requisitos tecnicos para status de candle fresco/stale ficam rastreaveis.
 - Handoff SA -> QA-TDD formalizado para o BLID-082.
@@ -2314,7 +2362,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#48)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2322,7 +2370,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario PO adicionado no item |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-066 adicionado |
 
-#### Impacto
+#### Impacto (#53)
 
 - Priorizacao formal do incidente de observabilidade no ciclo live.
 - Handoff PO -> Solution Architect fica rastreavel para BLID-082.
@@ -2332,7 +2380,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#49)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2340,7 +2388,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-082 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-065 adicionado |
 
-#### Impacto
+#### Impacto (#54)
 
 - Falha de observabilidade de candle atualizado vira backlog rastreavel.
 - PO recebe item com evidencia minima, janela e impacto operacional.
@@ -2350,7 +2398,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#50)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2358,7 +2406,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario PM de aceite final registrado |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-064 adicionado |
 
-#### Impacto
+#### Impacto (#55)
 
 - Fechamento ponta-a-ponta concluido com aceite formal do pacote.
 - Trilha de workflow finalizada para publicacao em `main`.
@@ -2370,14 +2418,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#51)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario DOC registrado no pacote BLID-078/080 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-063 adicionado |
 
-#### Impacto
+#### Impacto (#56)
 
 - Governanca documental final concluida para o pacote aprovado.
 - Rastreabilidade TL -> Doc Advocate -> Project Manager preservada.
@@ -2389,7 +2437,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#52)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2397,7 +2445,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario TL registrado no pacote |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-062 adicionado |
 
-#### Impacto
+#### Impacto (#57)
 
 - Revisao tecnica concluiu que os criterios de aceite foram atendidos.
 - Pacote segue para governanca documental com handoff TL -> Doc Advocate.
@@ -2409,7 +2457,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#12)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2419,7 +2467,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para IMPLEMENTADO |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-061 adicionado |
 
-#### Evidencias
+#### Evidencias (#25)
 
 - `pytest -q tests/test_model2_blid_078_080_cycle_capture.py` -> 5 passed
 - `pytest -q tests/` -> 123 passed
@@ -2428,7 +2476,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 - `tests/test_model2_blid_078_080_cycle_capture.py`
    -> Success
 
-#### Impacto
+#### Impacto (#58)
 
 - O status operacional deixa de marcar contexto fresco sem candle valido.
 - O ultimo episodio persistido passa a aparecer no report e no summary
@@ -2441,7 +2489,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#13)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2450,7 +2498,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | BLID-078 e BLID-080 atualizados para TESTES_PRONTOS |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-060 adicionado |
 
-#### Impacto
+#### Impacto (#59)
 
 - QA-TDD formaliza gaps reproduziveis em telemetria de candles e
    episodio persistido no status operacional.
@@ -2463,14 +2511,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#53)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentarios SA adicionados em BLID-078 e BLID-080 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-059 adicionado |
 
-#### Impacto
+#### Impacto (#60)
 
 - Escopo tecnico fechado para corrigir telemetria de candles e
    persistencia auditavel de episodios sem ampliar arquitetura.
@@ -2483,7 +2531,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#54)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2491,7 +2539,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentarios PO adicionados no rodape |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-058 adicionado |
 
-#### Impacto
+#### Impacto (#61)
 
 - Prioriza restauracao do contexto minimo do ciclo antes de ajustes
    derivados de observabilidade e treino.
@@ -2505,7 +2553,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#55)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2513,7 +2561,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-081 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-057 adicionado |
 
-#### Impacto
+#### Impacto (#62)
 
 - Estagnacao do treino incremental vira backlog rastreavel para priorizacao
 - PO recebe item com evidencia minima e impacto operacional explicitos
@@ -2525,7 +2573,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#56)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2533,7 +2581,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-080 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-056 adicionado |
 
-#### Impacto
+#### Impacto (#63)
 
 - Regressao de persistencia de episodio vira backlog rastreavel
 - PO recebe item com evidencia minima e impacto operacional explicitos
@@ -2545,7 +2593,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#57)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2553,7 +2601,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-079 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-055 adicionado |
 
-#### Impacto
+#### Impacto (#64)
 
 - Lacuna de confianca na decisao vira backlog rastreavel para priorizacao
 - PO recebe item com evidencia minima e impacto operacional explicitos
@@ -2565,7 +2613,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#58)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2573,7 +2621,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-078 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-054 adicionado |
 
-#### Impacto
+#### Impacto (#65)
 
 - Regressao de captura de candles vira backlog rastreavel para priorizacao
 - PO recebe item com evidencia minima, impacto e dependencia explicitos
@@ -2585,7 +2633,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#59)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2593,7 +2641,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-077 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-053 adicionado |
 
-#### Impacto
+#### Impacto (#66)
 
 - Padrao de timezone em log operacional vira backlog rastreavel
 - PO recebe item pronto para priorizacao sem ambiguidade de escopo
@@ -2605,7 +2653,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#60)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2613,7 +2661,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario TL adicionado no item |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-052 adicionado |
 
-#### Impacto
+#### Impacto (#67)
 
 - Fechamento formal da revisao Tech Lead para a M2-018.2
 - Itens nao bloqueantes seguem rastreados no BLID-076
@@ -2625,7 +2673,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#61)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2633,7 +2681,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Fila aberta do PO atualizada com BLID-076 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-051 adicionado |
 
-#### Impacto
+#### Impacto (#68)
 
 - Risco de reconciliacao da M2-018.2 fica rastreavel em tarefa dedicada
 - Lacunas de cobertura viram backlog acionavel para priorizacao do PO
@@ -2654,19 +2702,19 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Testes live | tests/test_model2_live_execution.py | Contrato atualizado para `external_close_detected` |
 | Testes M2-018.2 | tests/test_model2_m2_018_2_testnet_integration.py | Suite RED->GREEN da demanda |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#62)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | M2-018.2 atualizada para IMPLEMENTADO com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-050 adicionado |
 
-#### Evidencias
+#### Evidencias (#26)
 
 - `pytest -q tests/test_model2_m2_018_2_testnet_integration.py` PASS
 - `pytest -q tests/` PASS (118 passed)
 
-#### Impacto
+#### Impacto (#69)
 
 - Fechamento externo de posicao protegida deixa de cair em falha critica
    e passa a finalizar ciclo como `EXITED` com auditoria.
@@ -2680,7 +2728,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#63)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2688,7 +2736,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Evidencias da suite QA-TDD adicionadas |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-049 adicionado |
 
-#### Impacto
+#### Impacto (#70)
 
 - Handoff QA-TDD pronto para Software Engineer com gaps reproduziveis
 - Rastreabilidade completa de requisitos -> testes -> estado RED
@@ -2700,14 +2748,14 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#64)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Comentario SA adicionado em M2-018.2 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-048 adicionado |
 
-#### Impacto
+#### Impacto (#71)
 
 - Escopo tecnico fechado para testes orientados a risco e reconciliacao
 - Handoff SA -> QA-TDD com rastreabilidade no backlog
@@ -2719,7 +2767,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#65)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2727,7 +2775,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Comentario PO adicionado no rodape |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-047 adicionado |
 
-#### Impacto
+#### Impacto (#72)
 
 - Prioriza validacao testnet para reduzir risco operacional imediato
 - Mantem rastreabilidade do handoff PO -> Solution Architect
@@ -2739,7 +2787,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#66)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2747,7 +2795,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 | Backlog | docs/BACKLOG.md | Extraida pendencia oculta de FLUXUSDT para BLID-075 |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-046 adicionado |
 
-#### Impacto
+#### Impacto (#73)
 
 - Itens abertos ficam visiveis no topo do backlog para leitura rapida
 - Pendencias de FLUXUSDT deixam de ficar escondidas em item concluido
@@ -2760,7 +2808,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#14)
 
 | Componente | Arquivo | Tipo |
 | --- | --- | --- |
@@ -2776,7 +2824,7 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
   (de "Futuro/Planejado" para documentacao completa com guardrails)
 - AGENTS.md: workflow integrado, slash commands e exemplos atualizados
 
-#### Impacto
+#### Impacto (#74)
 
 - **Stage 5 (Software Engineer)**: QA-TDD agora emite handoff para SE
 - **Stage 6 (Tech Lead)**: SE emite handoff para TL com evidencias
@@ -2787,10 +2835,11 @@ Aguardar análise técnica do Solution Architect (3.solution-architect) com:
 
 #### Workflow Atualizado
 
-```
+```txt
 PO → SA → QA-TDD → Software Engineer → Tech Lead
                                             ↓         ↑
                                         APROVADO  DEVOLVIDO (loop)
+
 ```
 
 #### Guardrails Implementados
@@ -2813,7 +2862,7 @@ PO → SA → QA-TDD → Software Engineer → Tech Lead
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#15)
 
 | Componente | Arquivo | Tipo |
 | --- | --- | --- |
@@ -2827,11 +2876,11 @@ PO → SA → QA-TDD → Software Engineer → Tech Lead
 | Integração | .github/instructions/qa-tdd-integration.instructions.md | CREATE |
 | Registro | AGENTS.md | CREATE |
 
-#### Mudancas de Documentacao Existente
+#### Mudancas de Documentacao Existente (#2)
 
 Nenhuma (docs/SYNCHRONIZATION.md atualizado apenas).
 
-#### Impacto
+#### Impacto (#75)
 
 - **Novo stage (4)**: PO → SA → **QA-TDD** → SE → QA-Live
 - **Ciclo TDD formalizado**: Red → Green → Refactor
@@ -2842,8 +2891,9 @@ Nenhuma (docs/SYNCHRONIZATION.md atualizado apenas).
 
 #### Integração no Workflow
 
-```
+```markdown
 PO → SA → QA-TDD (NEW) → SE → QA-Live
+
 ```
 
 1. **Product Owner**: Prioriza backlog (skill 2.product-owner)
@@ -2852,7 +2902,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 4. **Software Engineer**: Implementa GREEN+REFACTOR (skill 5 - futuro)
 5. **QA-Live**: Decisão GO/NO-GO (skill 8 - futuro)
 
-#### Guardrails Implementados
+#### Guardrails Implementados (#2)
 
 ✅ Nunca mockear `risk/risk_gate.py` ou `risk/circuit_breaker.py`
 ✅ Preservar idempotência por `decision_id` em decisão e execução
@@ -2874,7 +2924,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo e Documentacao
+#### Mudancas em Codigo e Documentacao (#16)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2884,7 +2934,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 | Backlog | docs/BACKLOG.md | BLID-072 marcado CONCLUIDA, criterios [x] |
 | Audit trail | docs/SYNCHRONIZATION.md | SYNC-043 adicionado |
 
-#### Impacto
+#### Impacto (#76)
 
 - Episodios com fill persistidos em training_episodes por ciclo live
 - Rewards calculados (win/loss/breakeven/pending) para retroalimentar treino RL
@@ -2896,14 +2946,14 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#67)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | README raiz | README.md | Prompts atualizados para fontes de verdade reais |
 | PRD | docs/PRD.md | Exemplos ajustados para eliminar TRACKER e ROADMAP |
 
-#### Impacto
+#### Impacto (#77)
 
 - Menos ruido de contexto em prompts de orientacao
 - Exemplos alinhados aos arquivos que existem no repositorio
@@ -2913,7 +2963,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#68)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2924,7 +2974,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 | README de dados | data/README.md | Link trocado de ROADMAP para PRD |
 | README de backtest | backtest/README.md | Referencia antiga removida |
 
-#### Impacto
+#### Impacto (#78)
 
 - Menos ruido de contexto em arquivos de apoio ao agente
 - Menos referencias a docs inexistentes no workspace ativo
@@ -2934,13 +2984,13 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#69)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Prompt de board | prompts/board_16_members_data.json | Referencias a ROADMAP trocadas por PRD |
 
-#### Impacto
+#### Impacto (#79)
 
 - Prompt ativo deixa de apontar para `docs/ROADMAP.md`
 - Menor ruido de contexto em artefatos auxiliares do agente
@@ -2950,7 +3000,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#70)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -2960,7 +3010,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 | Docs sync | .github/instructions/docs-sync.instructions.md | Checklist usa BACKLOG e PRD |
 | Prompt de board | prompts/board_16_members_data.json | Core docs trocam TRACKER por BACKLOG |
 
-#### Impacto
+#### Impacto (#80)
 
 - Menos referencias a docs inexistentes no workspace ativo
 - Menor ruido de contexto em templates e instrucoes do agente
@@ -2970,13 +3020,13 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#71)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Prompt de consolidacao | prompts/DOC_ADVOCATE_CONSOLIDACAO_PROMPTS.md | Referencias a TRACKER trocadas por BACKLOG |
 
-#### Impacto
+#### Impacto (#81)
 
 - Menor ruido de contexto em prompt auxiliar legado
 - Nenhuma referencia operacional restante a `docs/TRACKER.md`
@@ -2997,13 +3047,13 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 | .github/skills/8.commit/SKILL.md | MOVE | Skill migrada de .claude para .github |
 | .github/skills/9.close/SKILL.md | MOVE | Skill migrada de .claude para .github |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#72)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Runbook M2 | docs/RUNBOOK_M2_OPERACAO.md | Referencia atualizada para skill numerada |
 
-#### Impacto
+#### Impacto (#82)
 
 - Skills ativas centralizadas em `.github/skills`
 - Workflow numerado reduz carga cognitiva
@@ -3014,20 +3064,20 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#2)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
 | tests/conftest.py | REFACTOR | Filtro de coleta para suite model-driven |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#73)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | BLID-074 marcada como CONCLUIDA |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-036] |
 
-#### Impacto
+#### Impacto (#83)
 
 - Escopo de testes reduzido para contratos, estados e fluxos M2.
 - Suite legada continua disponivel por override `PYTEST_INCLUDE_LEGACY=1`.
@@ -3040,14 +3090,14 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#74)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | BLID-074 criada em Prioridade P0 |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-035] |
 
-#### Impacto
+#### Impacto (#84)
 
 - Escopo restrito ao backlog oficial.
 - Sem mudanca de arquitetura, schema ou regra de negocio.
@@ -3062,7 +3112,7 @@ PO → SA → QA-TDD (NEW) → SE → QA-Live
 "[FEAT] BLID-073 - Integrar cycle_report em live_cycle.py +
 criacao migrations rl_observability"
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#3)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
@@ -3081,7 +3131,8 @@ criacao migrations rl_observability"
 
 #### Criterios de Aceite (BLID-073)
 
-- [x] Modulo `core/model2/cycle_report.py` criado e testado (15/15 testes PASSANDO)
+- [x] Modulo `core/model2/cycle_report.py` criado e testado (15/15 testes
+PASSANDO)
 - [x] Integracao em `live_cycle.py` com render_live_cycle_summary()
 - [x] Integracao em `operator_cycle_status.py` (jà funcional)
 - [x] Tabelas de suporte DB criadas via migracao 0009
@@ -3095,7 +3146,8 @@ criacao migrations rl_observability"
 - ✅ `pytest -q tests/test_cycle_report.py` → 15 PASSANDO
 - ✅ `python -m py_compile scripts/model2/live_cycle.py` → OK
 - ✅ `python scripts/model2/migrate.py up` → Migracao 0009 aplicada com sucesso
-- ✅ `python scripts/model2/operator_cycle_status.py` → Novo formato com UTF-8 renderizado
+- ✅ `python scripts/model2/operator_cycle_status.py` → Novo formato com UTF-8
+renderizado
 - ✅ `markdownlint docs/SYNCHRONIZATION.md` → OK
 - ✅ `git push origin main` → Sincronizado com HEAD=d0b2d6c
 
@@ -3106,7 +3158,7 @@ criacao migrations rl_observability"
 **Data/Hora**: 2026-03-22 09:45 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#4)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
@@ -3129,7 +3181,7 @@ criacao migrations rl_observability"
 
 O script `iniciar.bat` agora exibe o novo padrão estruturado:
 
-```
+```python
 ────────────────────────────────────────────────
   BTCUSDT | H4 | 2026-03-22 12:42:02 [SHADOW]
 ────────────────────────────────────────────────
@@ -3139,15 +3191,18 @@ O script `iniciar.bat` agora exibe o novo padrão estruturado:
   Treino   : ultimo: 2026-03-15 17:22:40 | pendentes: 0/100 [░░░░░░░░░░]
   Posicao  : SEM POSICAO
 ────────────────────────────────────────────────
+
 ```
 
 Versus o padrão antigo (antes):
 
-```
-BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | Last Train: 2026-03-15 17:22:40 | Position: None | PnL: 0.00
+```txt
+BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) |
+Last Train: 2026-03-15 17:22:40 | Position: None | PnL: 0.00
+
 ```
 
-#### Validacoes
+#### Validacoes (#2)
 
 - ✓ pytest tests/test_cycle_report.py: 15/15 PASSANDO
 - ✓ Compilação de operator_cycle_status.py: OK
@@ -3174,7 +3229,7 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#75)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3183,17 +3238,18 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 | Modelagem Dados | docs/MODELAGEM_DE_DADOS.md | Entidades rl_training_log e rl_episodes |
 | Audit Trail | docs/SYNCHRONIZATION.md | Registro [SYNC-030] |
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#5)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
 | core/model2/cycle_report.py | NOVO | Modulo de formatacao (420+ linhas) |
 
-#### Detalhes
+#### Detalhes (#2)
 
 - **cycle_report.py**: Centraliza coleta e formatacao de mensagem de ciclo
 - **SymbolReport**: Dataclass com todas as metricas por simbolo
-- **Helpers**: `collect_training_info()`, `collect_position_info()`, formatadores
+- **Helpers**: `collect_training_info()`, `collect_position_info()`,
+formatadores
 - **Formatacao**: Blocos ASCII claros, ícones de decisão, barra de progresso
 
 #### Observacoes
@@ -3210,7 +3266,7 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#76)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3220,14 +3276,14 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 | Backlog M2 | docs/BACKLOG.md | M2-019.1 marcada CONCLUIDA |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-029] |
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#6)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
 | agent/entry_decision_env.py | NOVO | EntryDecisionEnv (380+ linhas) |
 | tests/test_entry_decision_env.py | NOVO | Suite de 29 testes (29/29 PASSANDO) |
 
-#### Observacoes
+#### Observacoes (#2)
 
 - **EntryDecisionEnv**: Gym.Env para treinamento RL de decisao de entrada
 - **Action Space**: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT
@@ -3241,7 +3297,7 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 - **Edge cases**: NaN handling, clipping, padding, truncagem
 - **Testes**: Cobertura 100% incluindo integracao ponta-a-ponta
 
-#### Proximos Passos
+#### Proximos Passos (#2)
 
 1. M2-019.2 — EpisodeLoader (carregamento/normalizacao de episodios)
 2. M2-019.3 — Adaptar SubAgentManager para EntryDecisionEnv
@@ -3255,21 +3311,21 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#77)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | M2-019.2 marcada CONCLUIDA com 8/8 entregas |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-030] |
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#7)
 
 | Arquivo | Tipo | Descricao |
 | --- | --- | --- |
 | agent/episode_loader.py | NOVO | EpisodeLoader com 310+ linhas |
 | tests/test_model2_m2_019_2_episode_loader.py | NOVO | Suite de 23 testes (23/23 PASSANDO) |
 
-#### Observacoes
+#### Observacoes (#3)
 
 - **EpisodeNormalizer**: Normaliza features para [-1, 1] com bounds empiricos
   - Suporta 26 features mapeadas em 36-float array
@@ -3286,7 +3342,7 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
   - Episodios jerados por backtest/treinamento anterior
   - Prontos para serem carregados em EntryDecisionEnv
 
-#### Proximos Passos
+#### Proximos Passos (#3)
 
 1. M2-019.3 — SubAgentManager com EntryDecisionEnv
 2. M2-019.4 — Runner train_entry_agents.py diario
@@ -3325,14 +3381,15 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 
 3. **Ciclo de Vida de Episódio Mapeado**
 
-   ```
+```txt
    [Decisão Modelo] → [Signal Criado] → [Order Admitida]
         ↓
    [Risk Gate] → [BLOQUEADO] → [Sem Episódio, Sem Reward]
            ↓
       [Permitido] → [Ordem Enviada] → [Fill] → [Proteção]
                         → [Episódio Capturado + Reward]
-   ```
+
+```
 
 #### Conclusões
 
@@ -3404,7 +3461,7 @@ BTCUSDT | Data: OK | Model: Ran | Decision: SELL | RL: Stored (Pending: N/A) | L
 **Data/Hora**: 2026-03-21 23:45 BRT
 **Status**: IMPLEMENTADO
 
-#### Contexto
+#### Contexto (#2)
 
 Diagnóstico do ciclo 20260321_224930 revelou que guard-rails estava
 bloqueando 95% das oportunidades, impedindo captura de episódios novos.
@@ -3417,7 +3474,7 @@ Remover limite diário `M2_MAX_DAILY_ENTRIES` para permitir que modelo
 entre em operação sempre que identificar oportunidade. Foco: coleta de
 episódios reais e evolução do modelo.
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#8)
 
 | Arquivo | Tipo | Descricao | Linhas |
 | --- | --- | --- | --- |
@@ -3432,13 +3489,15 @@ if gate_input.recent_entries_today >= gate_input.max_daily_entries:
         recent_entries_today=int(gate_input.recent_entries_today),
         max_daily_entries=int(gate_input.max_daily_entries),
     )
-```
+
+```txt
 
 **Substituído por Comentário**:
 
 ```python
 # NOTE: Daily entry limit removido em 2026-03-21 para permitir aprendizagem
 # do modelo em mercado real. Foco agora e evolucao e captura de episodios.
+
 ```
 
 #### Protecoes Mantidas
@@ -3464,7 +3523,7 @@ if gate_input.recent_entries_today >= gate_input.max_daily_entries:
 | 0-1 episódios/dia | ~1-5 episódios/dia (esperado) |
 | Aprendizagem lenta | Aprendizagem acelerada |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#78)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3505,20 +3564,20 @@ processo está rodando em segundo plano.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: PROPOSTA
 
-#### Arquivos Impactados
+#### Arquivos Impactados (#2)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog | docs/BACKLOG.md | Adicionada BLID-072 (captura episodios) |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-033] |
 
-#### Descricao
+#### Descricao (#2)
 
 Proposta para validar que o pipeline live captura candles em tempo
 real, persiste episodios de treino e calcula rewards, e que `iniciar.bat`
 opcao 1 sobe o agente em modo live para validacao operacional.
 
-#### Proximos Passos
+#### Proximos Passos (#4)
 
 1. Confirmar proposta e atualizar `docs/BACKLOG.md` com BLID-072.
 2. Executar `scripts/model2/go_live_preflight.py` e testes smoke.
@@ -3535,9 +3594,10 @@ opcao 1 sobe o agente em modo live para validacao operacional.
   - Carregamento: 8 testes (empty/insufficient/filters/normalization)
   - Validacao: 4 testes (empty/bad_features/bad_bounds/NaN)
 - **Integracao**: Compativel com EntryDecisionEnv e pipeline RL
-- **Banco**: Usa training_episodes table criada dinamicamente por persist_training_episodes.py
+- **Banco**: Usa training_episodes table criada dinamicamente por
+persist_training_episodes.py
 
-#### Proximos Passos
+#### Proximos Passos (#5)
 
 1. M2-019.3 — Adaptar SubAgentManager para EntryDecisionEnv
 2. M2-019.4 — Runner train_entry_agents.py
@@ -3551,7 +3611,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#79)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3559,7 +3619,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | Backlog M2 | docs/BACKLOG.md | M2-018.3 marcada CONCLUIDA com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-028] |
 
-#### Observacoes
+#### Observacoes (#4)
 
 - Fase 1 (Estreia): USD 1.0/pos, 3 entradas/dia, 3 simbolos
   (BTCUSDT, ETHUSDT, SOLUSDT).
@@ -3570,7 +3630,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
   fase anterior com playbook incidente.
 - Pre-live: `python scripts/model2/go_live_preflight.py` obrigatorio.
 
-#### Proximos Passos
+#### Proximos Passos (#6)
 
 1. Executar M2-018.2 (Testnet integration com Binance).
 2. Iniciar M2-019.x (RL decisor de entrada por simbolo).
@@ -3582,21 +3642,21 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#9)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Validacao shadow | scripts/model2/m2_018_1_shadow_validation.py | Script automatizado para ciclos shadow (274 linhas, 0 UTF-8) |
 | Testes | tests/test_model2_m2_018_1_shadow_validation.py | Suite com 15 testes (encoding, envvars, estrutura, subprocess) |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#80)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | M2-018.1 marcada CONCLUIDA com evidencias e uso |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-027] |
 
-#### Observacoes
+#### Observacoes (#5)
 
 - Script valida ciclo completo: preflight (skip em --dry-run) + N ciclos
    (default 3) + validacao signal_executions + relatorio JSON.
@@ -3606,9 +3666,10 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 - Teste operacional: `python scripts/model2/m2_018_1_shadow_validation.py
    --dry-run` retorna [SUCCESS] VALIDACAO PASSOU com timestamp.
 
-#### Proximos Passos
+#### Proximos Passos (#7)
 
-1. Executar com ciclos reais: `python scripts/model2/m2_018_1_shadow_validation.py
+1. Executar com ciclos reais: `python
+scripts/model2/m2_018_1_shadow_validation.py
    --cycles=3`.
 2. Avancar para M2-018.2 (Testnet integration).
 
@@ -3619,7 +3680,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#10)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3630,7 +3691,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | Reconciliacao | core/model2/live_service.py | Divergencia critica gera `FAILED` auditavel |
 | Testes | tests/test_model2_*.py | Cobertura de inferencia, preflight e live |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#81)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3638,7 +3699,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | Arquitetura alvo | docs/ARQUITETURA_ALVO.md | Preflight com alertas e reconciliacao critica |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-026] |
 
-#### Observacoes
+#### Observacoes (#6)
 
 - `risk_gate` e `circuit_breaker` permanecem no caminho critico de execucao.
 - Em incerteza operacional relevante, o fluxo permanece fail-safe.
@@ -3650,7 +3711,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Codigo
+#### Mudancas em Codigo (#11)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3660,14 +3721,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | Testes live | tests/test_model2_live_execution.py | 2 testes REDUCE/CLOSE M2-020.5 |
 | Testes preflight | tests/test_model2_go_live_preflight.py | 3 testes guardrails M2-020.5 |
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#82)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | M2-020.5 marcada CONCLUIDA com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-025] atualizado |
 
-#### Observacoes
+#### Observacoes (#7)
 
 - `risk_gate` e `circuit_breaker` verificados no preflight via
    `_check_guardrails_functional` (instanciacao + metodos criticos).
@@ -3682,14 +3743,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#83)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | M2-020.4 marcada como concluida com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-024] |
 
-#### Observacoes
+#### Observacoes (#8)
 
 - A direcao efetiva da execucao passou a nascer de
    `ModelDecision.action` no orquestrador.
@@ -3698,7 +3759,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 - A trilha de execucao preserva o lado legado de origem apenas para
    auditoria comparativa.
 
-#### Proximos Passos
+#### Proximos Passos (#8)
 
 1. Avancar para M2-020.5 preservando guard-rails sem estrategia externa.
 2. Validar sincronismo documental com `tests/test_docs_model2_sync.py`.
@@ -3708,14 +3769,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#84)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | M2-020.3 marcada como concluida com evidencias |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-023] |
 
-#### Observacoes
+#### Observacoes (#9)
 
 - Estado de inferencia passou a consolidar `market_state`,
    `position_state` e `risk_state` em payload serializavel.
@@ -3723,7 +3784,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
    usado pela inferencia.
 - Falta de campo critico continua bloqueando o fluxo com fail-safe.
 
-#### Proximos Passos
+#### Proximos Passos (#9)
 
 1. Avancar para M2-020.4 com a decisao do modelo como origem unica.
 2. Validar sincronismo documental com `tests/test_docs_model2_sync.py`.
@@ -3733,7 +3794,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#85)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3742,14 +3803,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | Modelagem de dados | docs/MODELAGEM_DE_DADOS.md | Ajuste de campos reais de model_decisions e correlacao |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-022] |
 
-#### Observacoes
+#### Observacoes (#10)
 
 - Implementacao introduziu `model_decisions` no schema M2.
 - Ponto de decisao passou a registrar `decision_id`, `model_version` e
    `inference_latency_ms`.
 - Fluxo live/shadow manteve guard-rails e fail-safe.
 
-#### Proximos Passos
+#### Proximos Passos (#10)
 
 1. Avancar M2-020.3 para consolidar state builder unico.
 2. Validar sincronismo com `pytest -q tests/test_docs_model2_sync.py`.
@@ -3759,14 +3820,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#86)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Nova skill | .github/skills/performance-review/SKILL.md | Skill para analise de metricas de reward e Sharpe por janela temporal |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-024] |
 
-#### Observacoes
+#### Observacoes (#11)
 
 - Cobre 4 areas: reward RL por episodio, Sharpe de backtest walk-forward,
   metricas live/shadow e convergencia de treino.
@@ -3781,18 +3842,19 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#87)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Nova skill | .github/skills/symbol-onboarding/SKILL.md | Skill com checklist completo para onboarding de simbolos no pipeline M2 |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-023] |
 
-#### Observacoes
+#### Observacoes (#12)
 
 - 4 passos obrigatorios: symbols.py, playbook, **init**.py, teste de integracao.
 - 4 passos opcionais: coleta OHLCV, pipeline shadow, M2_LIVE_SYMBOLS, treino.
-- Diagnostico de problemas comuns: nao escaneado, bloqueado na ordem, candles insuficientes.
+- Diagnostico de problemas comuns: nao escaneado, bloqueado na ordem, candles
+insuficientes.
 - Guardrails contra execucao live antes de validar onboarding completo.
 
 ---
@@ -3802,14 +3864,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-22 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#88)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Nova skill | .github/skills/data-analysis/SKILL.md | Skill especialista em analise e validacao de dados de simbolos (candles, treinamento, posicoes Binance, conciliacao) |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-022] |
 
-#### Observacoes
+#### Observacoes (#13)
 
 - Cobre 4 areas: candles OHLCV, dados de treinamento RL, posicoes Binance,
   conciliacao banco x exchange.
@@ -3823,14 +3885,14 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#89)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Copilot instructions | .github/copilot-instructions.md | Secao Agent Customizations com instructions, prompts, skills e workflows |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-021] |
 
-#### Observacoes
+#### Observacoes (#14)
 
 - Instructions listadas com escopo applyTo.
 - Prompts listados para invocacao explicita.
@@ -3844,17 +3906,18 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#90)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Copilot instructions | .github/copilot-instructions.md | Adicionar arquivos de camadas, tabelas DB, modos e comandos M2 |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-020] |
 
-#### Observacoes
+#### Observacoes (#15)
 
 - Adicionadas referencias de arquivos reais para cada camada operacional.
-- Adicionadas tabelas canonicas M2 (`model_decisions`, `signal_executions`, etc.).
+- Adicionadas tabelas canonicas M2 (`model_decisions`, `signal_executions`,
+etc.).
 - Adicionados modos de operacao (`backtest`, `shadow`, `live`).
 - Adicionados comandos M2 na secao Build and Test.
 - Adicionada regra de idempotencia por `decision_id`.
@@ -3866,20 +3929,20 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#91)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | PRD | docs/PRD.md | Ajuste de termos legados para decisao e ciclo model-driven |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-019] |
 
-#### Observacoes
+#### Observacoes (#16)
 
 - Removidas referencias a "ciclo short" e "scanner" em requisitos centrais.
 - Ajustada observabilidade para decisoes, execucoes, eventos e episodios.
 - Mantido escopo do produto sem alteracao de objetivos de negocio.
 
-#### Proximos Passos
+#### Proximos Passos (#11)
 
 1. Validar consistencia cruzada entre PRD, DIAGRAMAS e REGRAS.
 2. Seguir implementacao do backlog M2-020 com sincronizacao continua.
@@ -3889,20 +3952,20 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#92)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Diagramas M2 | docs/DIAGRAMAS.md | Reescrita completa para fluxo model-driven atual |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-018] |
 
-#### Observacoes
+#### Observacoes (#17)
 
 - Removidos diagramas de tese/oportunidade e scanner legado.
 - Incluidos fluxos atuais de decisao, safety envelope e reconciliacao.
 - Incluida visao de entidades do estado atual de dados M2.
 
-#### Proximos Passos
+#### Proximos Passos (#12)
 
 1. Revisar diagramas em renderizacao Mermaid no ambiente de docs.
 2. Sincronizar diagramas novamente ao concluir M2-020 no codigo.
@@ -3912,7 +3975,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#93)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3924,12 +3987,12 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | PRD | docs/PRD.md | Alinhamento final com arquitetura model-driven |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-017] |
 
-#### Observacoes
+#### Observacoes (#18)
 
 - Conteudo historico foi removido dos docs principais.
 - Documentos passam a refletir o estado atual do projeto.
 
-#### Proximos Passos
+#### Proximos Passos (#13)
 
 1. Ajustar implementacao de codigo conforme M2-020 em sequencia.
 2. Atualizar docs conforme cada tarefa for concluida.
@@ -3939,19 +4002,19 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#94)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | PRD | docs/PRD.md | Atualizacao de escopo, requisitos e arquitetura para decisao direta do modelo |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-016] |
 
-#### Observacoes
+#### Observacoes (#19)
 
 - Mantidos titulos e estrutura original do PRD.
 - Fluxo atualizado para model-driven com envelope de seguranca inviolavel.
 
-#### Proximos Passos
+#### Proximos Passos (#14)
 
 1. Refletir implementacao gradual do M2-020 no codigo.
 2. Atualizar PRD conforme conclusao de cada tarefa model-driven.
@@ -3961,20 +4024,20 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#95)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
 | Backlog M2 | docs/BACKLOG.md | Inclusao da iniciativa M2-020 em modo sequencial |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-015] |
 
-#### Observacoes
+#### Observacoes (#20)
 
 - Planejamento estruturado sem sprints, sem datas limite e sem blocos.
 - Execucao prevista em sequencia linear por criterios de aceite.
 - `docs/TRACKER.md` nao existe no workspace atual (somente arquivo arquivado).
 
-#### Proximos Passos
+#### Proximos Passos (#15)
 
 1. Executar tarefas M2-020.1 em diante em ordem sequencial.
 2. Atualizar status no backlog ao concluir cada tarefa.
@@ -3984,7 +4047,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 **Data/Hora**: 2026-03-21 UTC
 **Status**: CONCLUIDA
 
-#### Mudancas em Documentacao
+#### Mudancas em Documentacao (#96)
 
 | Componente | Arquivo | Mudanca |
 | --- | --- | --- |
@@ -3993,12 +4056,12 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 | PRD | docs/PRD.md | Nova secao 12: operacao com Copilot |
 | Audit trail | docs/SYNCHRONIZATION.md | Registro [SYNC-014] |
 
-#### Observacoes
+#### Observacoes (#21)
 
 - Objetivo: facilitar validacao das instrucoes do workspace apos /init.
 - Mantido principio de referencia central sem duplicar regras operacionais.
 
-#### Proximos Passos
+#### Proximos Passos (#16)
 
 1. Executar os prompts sugeridos em sessao real.
 2. Criar customizacoes por area (core/model2 e docs) conforme demanda.
@@ -4024,7 +4087,7 @@ opcao 1 sobe o agente em modo live para validacao operacional.
 - Resultado: testes unitários relevantes passam localmente.
 - Ciclo em `shadow` gera `logs/m2_tmp.json` corretamente.
 
-#### Proximos Passos
+#### Proximos Passos (#17)
 
 1. Revisar PR e aplicar em `main` após aprovação.
 2. Adicionar integração com mocks de filtros (opcional).
@@ -4113,7 +4176,7 @@ OK commits [FEAT] + [TEST] aprovados pelo pre-commit hook
 
 #### Suite de Testes BLID-068 (Resultados)
 
-```
+```txt
 
 T01: soft voting consenso — PASS ✓
 T02: hard voting divergencia — PASS ✓
@@ -4199,7 +4262,7 @@ Taxa sucesso: 90.9% / 83.3% (contando SKIP)
 ✓ Compatibilidade com 26 features (E.6+E.7)
 ✓ Sem breaking changes em pipeline existente
 
-```
+```json
 
 ---
 
@@ -4595,7 +4658,7 @@ comparativas
 
 ### Phase 2 Architecture
 
-```
+```txt
 
 Input Data
   ├─ TradesGenerator: Creates 70-trade Sprint 1 dataset
@@ -4630,9 +4693,9 @@ Input Data
 
 ### Integration Tests Results
 
-**All 4 tests PASSED ✅**
+All 4 tests PASSED.
 
-```
+```txt
 
 📂 test_data_loader          ✅ PASS
     └─ 70 trades loaded, validated, statistics computed
@@ -4661,7 +4724,7 @@ Input Data
 
 ### Execution Timeline (Ready Now)
 
-```
+```bash
 
 To launch Phase 2 training:
 
@@ -4697,7 +4760,8 @@ Components:
 
 Status: ✅ READY FOR PRODUCTION EXECUTION
 Next: Phase 3 after 96h training completes
-```
+
+```bash
 
 ---
 
@@ -4757,13 +4821,14 @@ Phase 2 authorization pending
 ```txt
 [FEAT] TASK-005 Phase 1: PPO Environment Setup kickoff
 
-- Components: CryptoTradingEnv ✅ | Data Loader ✅ | Feature Eng ✅ | Reward ✅ | Callbacks ✅
+- Components: CryptoTradingEnv ✅ | Data Loader ✅ | Feature Eng ✅ | Reward ✅ |
+Callbacks ✅
 - Execution: Task005ExecutionLog framework created, phase tracking enabled
 - Documentation: TASK_005_EXECUTION_LOG.md generated
 - Timeline: Phase 1 READY → Phase 2 authorization PENDING (The Brain #3)
 - Next: Implement CryptoTradingEnv, launch 96h training cycle
 
-```
+```markdown
 
 **Next Sync Point:** Phase 2 Authorization + Training Launch
 
@@ -4771,7 +4836,8 @@ Phase 2 authorization pending
 
 ## 🚀 [SYNC] TASK-005 Phase 3: Validation & Deployment Ready — 07 MAR 21:30 UTC
 
-**Status:** ✅ **PHASE 3 INFRASTRUCTURE COMPLETE & READY FOR POST-TRAINING EXECUTION**
+**Status:** ✅ **PHASE 3 INFRASTRUCTURE COMPLETE & READY FOR POST-TRAINING
+EXECUTION**
 
 ### Phase 3 Deliverables (3/3 ✅)
 
@@ -4786,6 +4852,7 @@ Phase 2 authorization pending
 ### Phase 3 Architecture
 
 ```
+
 After Phase 2 Training (96h)
   ├─ models/ppo_v0_final.pkl ← Saved final model
   │
@@ -4812,7 +4879,8 @@ After Phase 2 Training (96h)
      ├─ Check 4: Configurations (config file validation)
      ├─ Check 5: Sign-offs (all 4 personas approved)
      └─ Output: deployment/deployment_manifest.json
-```
+
+```json
 
 ### Phase 3 Success Criteria (ALL READY)
 
@@ -4840,6 +4908,7 @@ After Phase 2 Training (96h)
 ### Execution Timeline (Ready After Phase 2)
 
 ```
+
 After 96h training (Phase 2) completes:
 
   1. python agent/rl/phase3_executor.py
@@ -4858,7 +4927,8 @@ After 96h training (Phase 2) completes:
      └─ All 5 checks must PASS for production deployment
      └─ If GO: Deploy ppo_v0_final.pkl to production
      └─ If NO-GO: Return to Phase 2 for refinement
-```
+
+```txt
 
 ### Protocolo [SYNC] — Phase 3 Completion
 
@@ -4885,6 +4955,7 @@ Timeline: Execute after Phase 2 (96h) training completes
 
 Status: ✅ READY FOR PRODUCTION
 Next: Phase 2 training execution (96h) → Phase 3 validation (4-5h)
+
 ```
 
 **Documentation Updated:**
@@ -4912,7 +4983,8 @@ Next: Phase 2 training execution (96h) → Phase 3 validation (4-5h)
 **Próximo Commit (post-Phase 4 at 24 FEV 10:00):**
 
 ```txt
-[SYNC] Issue #66 Squad Kickoff Multidisciplinar COMPLETO - Phase 1-4 PASS - TASK-005 Desbloqueado
+[SYNC] Issue #66 Squad Kickoff Multidisciplinar COMPLETO - Phase 1-4 PASS -
+TASK-005 Desbloqueado
 
 - Phase 1 (SPEC Review): Arch + Audit architecture consensus ✅
 - Phase 2 (Core E2E): 8/8 tests PASS + regressions 100% ✅
@@ -4921,7 +4993,7 @@ Next: Phase 2 training execution (96h) → Phase 3 validation (4-5h)
 - Docs: PHASE_1/2/3/4 execution playbooks + squad kickoff logs
 - Result: Issue #66 DELIVERED ✅ → TASK-005 UNBLOCKED 🚀
 
-```
+```txt
 
 >>>>>>> Stashed changes
 
@@ -4929,7 +5001,8 @@ Next: Phase 2 training execution (96h) → Phase 3 validation (4-5h)
 
 - Agente: 6.tech-lead
 - Arquivo alterado: docs/BACKLOG.md
-- BLID-098 status atualizado de TESTES_PRONTOS/IMPLEMENTADO para REVISADO_APROVADO
+- BLID-098 status atualizado de TESTES_PRONTOS/IMPLEMENTADO para
+REVISADO_APROVADO
 - Evidencias: pytest 6/6 passed; mypy 25 erros (igual baseline pre-PR);
   erro None iter eliminado apos anotacao Optional[List[Dict[str, Any]]]
 - risk_gate e circuit_breaker intocados

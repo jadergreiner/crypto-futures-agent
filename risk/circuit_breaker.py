@@ -19,7 +19,9 @@ Contrato exigido por live_service:
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from collections import deque
+from enum import Enum
+from typing import Any, Dict, Optional
 
 from monitoring.events import EventRecorder, CircuitBreakerTransition
 from risk.states import CircuitBreakerState
@@ -28,6 +30,19 @@ logger = logging.getLogger(__name__)
 
 # Limiar de drawdown que dispara o CB (em %)
 _CB_DRAWDOWN_THRESHOLD = -3.1
+
+# M2-024.7: tamanho da janela deslizante por classe de falha
+_DEFAULT_WINDOW_SIZE = 100
+# M2-024.7: limite de falhas da mesma classe para abrir o CB
+_DEFAULT_FAILURE_CLASS_THRESHOLD = 3
+
+
+class FailureClass(Enum):
+    """Classes de falha para circuit breaker granular (M2-024.7)."""
+
+    EXCHANGE_ERROR = "EXCHANGE_ERROR"
+    TIMEOUT = "TIMEOUT"
+    VALIDATION_FAIL = "VALIDATION_FAIL"
 
 
 class CircuitBreaker:
@@ -50,12 +65,23 @@ class CircuitBreaker:
         self,
         event_recorder: Optional[EventRecorder] = None,
         drawdown_threshold: float = _CB_DRAWDOWN_THRESHOLD,
+        cooldown_by_class: Optional[Dict[FailureClass, int]] = None,
+        failure_class_threshold: int = _DEFAULT_FAILURE_CLASS_THRESHOLD,
+        window_size: int = _DEFAULT_WINDOW_SIZE,
     ) -> None:
         self.state: CircuitBreakerState = CircuitBreakerState.CLOSED
         self._event_recorder = event_recorder
         self._drawdown_threshold = drawdown_threshold
         self._portfolio_current: float = 0.0
         self._portfolio_peak: float = 0.0
+        # M2-024.7: rastreamento por classe de falha
+        self._cooldown_by_class: Dict[FailureClass, int] = cooldown_by_class or {}
+        self._failure_class_threshold = failure_class_threshold
+        self._window_size = window_size
+        self._failure_windows: Dict[FailureClass, deque[int]] = {
+            fc: deque(maxlen=window_size) for fc in FailureClass
+        }
+        self._open_classes: set[FailureClass] = set()
 
     # ------------------------------------------------------------------
     # Interface de portfolio
@@ -71,8 +97,41 @@ class CircuitBreaker:
     # Consulta de estado
     # ------------------------------------------------------------------
 
+    def register_failure(
+        self, *, failure_class: FailureClass, reason: str
+    ) -> None:
+        """Registra uma falha por classe na janela deslizante (M2-024.7).
+
+        Abre o breaker para a classe se o threshold for atingido.
+        """
+        import time as _time
+
+        ts = int(_time.time() * 1000)
+        window = self._failure_windows[failure_class]
+        window.append(ts)
+        count = len(window)
+
+        logger.debug(
+            "Falha registrada: classe=%s reason=%s contagem=%d",
+            failure_class.value, reason, count,
+        )
+
+        if count >= self._failure_class_threshold:
+            if failure_class not in self._open_classes:
+                self._open_classes.add(failure_class)
+                logger.warning(
+                    "CB ABERTO para classe %s: %d falhas na janela",
+                    failure_class.value, count,
+                )
+
+    def is_open_for_class(self, failure_class: FailureClass) -> bool:
+        """Retorna True se o CB esta aberto para a classe de falha especifica."""
+        return failure_class in self._open_classes
+
     def can_trade(self) -> bool:
-        """Retorna True apenas quando estado e CLOSED."""
+        """Retorna True apenas quando estado e CLOSED e nenhuma classe esta aberta."""
+        if self._open_classes:
+            return False
         return self.state == CircuitBreakerState.CLOSED
 
     def check_status(self) -> dict[str, Any]:

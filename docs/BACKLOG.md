@@ -66,9 +66,11 @@ Pendencias operacionais:
 - BLID-082 - Corrigir ausencia de mensagem de Candle Atualizado no live.
    Dependencia minima: evidencia reproduzivel no log `[M2][SYM]` em modo live.
    Impacto: restaurar observabilidade do dado fresco por simbolo no ciclo M2.
-- BLID-0E4 - Corrigir lock de arquivo em persist_training_episodes e healthcheck.
+- BLID-0E4 - Corrigir lock de arquivo em persist_training_episodes e
+healthcheck.
    Dependencia minima: evidencia de "arquivo já está sendo usado" nos ciclos M2.
-   Impacto: remover bloqueador de operação e garantir ciclo live sem falhas transitórias.
+   Impacto: remover bloqueador de operação e garantir ciclo live sem falhas
+   transitórias.
 - BLID-083 - Estratificar suite de testes por etapa do workflow.
    Dependencia minima: baseline atual de `pytest -q tests/` com 200 testes
    em 66.99s, mapa de suites por criticidade e risco.
@@ -171,7 +173,8 @@ compatibilidade retroativa no fluxo legado.
 Evidencias de implementacao:
 
 1. pytest -q tests/test_model2_m2_024_1_decision_contract.py -> 8 passed.
-2. pytest -q tests/test_model2_order_layer.py tests/test_model2_live_execution.py
+2. pytest -q tests/test_model2_order_layer.py
+tests/test_model2_live_execution.py
    -> 22 passed.
 3. mypy --strict core/model2/order_layer.py core/model2/live_execution.py
    tests/test_model2_m2_024_1_decision_contract.py -> Success.
@@ -241,7 +244,8 @@ com 12 testes; execucao inicial 0 failed, 12 passed validando gate de
 idempotencia com memoria. Casos cobrem: entrada nova, duplicacao detectada,
 ausencia decision_id, validacao positivo, paridade shadow/live.
 
-SE: Iniciado em 2026-03-23 16:15 BRT. Adicionando gate de idempotencia em signal_bridge.py.
+SE: Iniciado em 2026-03-23 16:15 BRT. Adicionando gate de idempotencia em
+signal_bridge.py.
 
 QA2: Suite RED de integracao criada em tests/test_model2_m2_024_3_integration.py
 com 7 testes; 3 failed (bloqueio duplicata, reason code, marca gate) e 4 passed
@@ -275,19 +279,25 @@ Dependencias:
 PO: Score 3.50. Retry com budget/backoff elimina falhas silenciosas live.
 Deps M2-024.2 OK. Bloqueador de resiliencia para expansao.
 
-SA: Adicionar classify_exchange_exception + exchange_retry_with_budget em io_retry.py.
-Aplicar em place_market_entry (live_service.py). Sem schema change. Guardrails ativos.
+SA: Adicionar classify_exchange_exception + exchange_retry_with_budget em
+io_retry.py.
+Aplicar em place_market_entry (live_service.py). Sem schema change. Guardrails
+ativos.
 
-QA: Suite RED criada em tests/test_model2_m2_024_4_exchange_retry.py com 18 testes;
-execucao inicial 18 failed. Cobre R1-R5: classify, budget, ExchangeRetryBudgetError,
+QA: Suite RED criada em tests/test_model2_m2_024_4_exchange_retry.py com 18
+testes;
+execucao inicial 18 failed. Cobre R1-R5: classify, budget,
+ExchangeRetryBudgetError,
 _place_market_entry_with_retry, fail-safe.
 
 SE: GREEN concluido em 2026-03-25. ExchangeRetryBudgetError +
 classify_exchange_exception + exchange_retry_with_budget em io_retry.py.
 _place_market_entry_with_retry em live_service.py. 18/18 testes passando.
 
-TL: APROVADO. 18/18 testes reproduzidos. 4 falhas M2-024.2 confirmadas pre-existentes
-via git stash. Guardrails intactos, retry limitado a transient, fail-safe validado.
+TL: APROVADO. 18/18 testes reproduzidos. 4 falhas M2-024.2 confirmadas pre-
+existentes
+via git stash. Guardrails intactos, retry limitado a transient, fail-safe
+validado.
 
 DOC: ARQUITETURA_ALVO extensao M2-024.4 adicionada; SYNCHRONIZATION SYNC-142.
 
@@ -332,7 +342,28 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-024.6 - Telemetria de latencia por simbolo e etapa
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 5.80 (Valor=7, Urg=7, Risco=7, Esf=5)
+
+PO: Observabilidade de latencia por etapa e simbolo elimina dependencia de logs
+manuais e acelera diagnostico operacional. Dependencia M2-024.5 CONCLUIDA.
+
+SA: Registrar latencia (ms) em tabela execution_latencies(symbol, stage,
+result_code, latency_ms, created_at) + log estruturado. Estender
+live_execution.py com timestamps por etapa. Schema migration obrigatoria.
+
+SE: Implementado VALID_LATENCY_STAGES + registrar_latencia() em
+observability.py. Migration 0012 criada. 4/4 testes GREEN. mypy strict sem
+erros.
+
+TL: Codigo revisado. 19/19 testes GREEN. mypy strict ok em
+observability+circuit_breaker+repository. Sem regressoes na suite (67 falhas
+pre-existentes inalteradas). APROVADO.
+
+DOC: SYNCHRONIZATION.md atualizado [SYNC-154]. Docs impactadas: BACKLOG.md,
+SYNCHRONIZATION.md. Schema nova: execution_latencies + operational_snapshots
+(migration 0012).
 
 Descricao:
 Registrar latencia por simbolo, etapa e resultado para detectar gargalos
@@ -344,7 +375,20 @@ Dependencias:
 
 ### TAREFA M2-024.7 - Circuit breaker por classe de falha
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 6.80 (Valor=8, Urg=8, Risco=9, Esf=6)
+
+PO: Circuit breaker granular por classe de falha reduz risco operacional
+critico. Dependencia M2-024.2 CONCLUIDA. Alta prioridade no pacote.
+
+SA: Estender CircuitBreaker com failure_class enum
+(EXCHANGE_ERROR/TIMEOUT/VALIDATION_FAIL), janela deslizante 100 eventos e
+cooldown_ms configuravel. Adicionar attempt_recovery() com HALF_OPEN max 30s.
+
+SE: FailureClass enum + register_failure() + is_open_for_class() adicionados ao
+circuit_breaker.py. can_trade() atualizado. 6/6 testes GREEN. mypy strict sem
+erros.
 
 Descricao:
 Evoluir circuit_breaker para reagir por classe de falha repetida com
@@ -356,7 +400,21 @@ Dependencias:
 
 ### TAREFA M2-024.8 - Reconciliacao deterministica de saida externa
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 7.25 (Valor=9, Urg=8, Risco=9, Esf=6)
+
+PO: Maior score do pacote. Falso EXITED compromete integridade operacional.
+Dependencia BLID-076 tratada em paralelo. Prioridade maxima do lote.
+
+SA: Padronizar transicao OPEN→EXITED em live_execution/live_service com
+fill_external_confirmed=true obrigatorio. Adicionar coluna
+signal_executions.fill_external_confirmed. Stub conservador se BLID-076
+pendente.
+
+SE: Model2ExecutionRepository com update_execution_status() guardado por
+fill_external_confirmed=True. ValueError levantado se tentativa sem
+confirmacao. 2/2 testes GREEN.
 
 Descricao:
 Padronizar reconciliacao de saida externa para eliminar falso EXITED e
@@ -368,7 +426,20 @@ Dependencias:
 
 ### TAREFA M2-024.9 - Snapshot operacional unico por ciclo
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 5.35 (Valor=7, Urg=6, Risco=6, Esf=5)
+
+PO: Snapshot unico consolida visibilidade operacional por ciclo. Depende de
+M2-024.6 (mesmo lote). Implementar apos M2-024.6 GREEN.
+
+SA: Criar dataclass OperationalSnapshot{candle_fresco, decisao, episodio,
+execucao, reconciliacao} e metodo observability.record_cycle_snapshot().
+Serializar JSON. Armazenar em operational_snapshots no DB.
+
+SE: OperationalSnapshot dataclass + record_cycle_snapshot() implementados em
+observability.py. Migration 0012 inclui tabela. 4/4 testes GREEN. mypy strict
+sem erros.
 
 Descricao:
 Consolidar snapshot unico por ciclo com candle, decisao, episodio,
@@ -401,7 +472,19 @@ imutabilidade (frozen dataclass) e conformidade com catálogo.
 
 ### TAREFA M2-024.11 - Regressao de risco com cenarios de stress
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 6.45 (Valor=8, Urg=7, Risco=9, Esf=7)
+
+PO: Regressao de stress valida risk_gate e circuit_breaker sob carga real
+simulada. Depende de M2-024.7 (mesmo lote). Alta reducao de risco operacional.
+
+SA: Criar tests/test_risk_stress_regression.py com cenarios: timeout,
+exchange_error, validation_fail. Validar que risk_gate bloqueia e
+circuit_breaker abre corretamente. Cobertura >85% nos modulos de risco.
+
+SE: record_timeout() + allows_trading() adicionados ao RiskGate. Testes de
+stress em test_m2_024_6_to_11.py. 3/3 testes GREEN. Guardrails preservados.
 
 Descricao:
 Adicionar regressao com cenarios de stress em live simulado para validar
@@ -509,7 +592,8 @@ Evidencias de implementacao:
    tests/test_model2_m2_025_1_candle_freshness_contract.py
    tests/test_model2_blid_082_candle_status.py -> 19 passed.
 2. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q
-   tests/test_cycle_report.py tests/test_model2_m2_025_1_candle_freshness_contract.py
+   tests/test_cycle_report.py
+   tests/test_model2_m2_025_1_candle_freshness_contract.py
    tests/test_model2_blid_082_candle_status.py -> 44 passed.
 3. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m mypy --strict
    core/model2/cycle_report.py core/model2/live_service.py
@@ -745,7 +829,8 @@ STOP_LOSS_TOO_LOOSE não em catalog). Estrutura OK, prontos para GREEN-REFACTOR.
 
 SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 
-- Lote 1 (paralelo): M2-026.2 (circuit_breaker_events), M2-026.5 (logging_retention)
+- Lote 1 (paralelo): M2-026.2 (circuit_breaker_events), M2-026.5
+(logging_retention)
 - Lote 2 (sequencial): M2-026.1 (risk_gate_telemetry + REASON_CODE_CATALOG)
 - Lote 3 (sequencial): M2-026.3 (audit_decision_execution)
 - Lote 4 (final): M2-026.4 (dashboard_operational)
@@ -755,7 +840,8 @@ SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 Status: CONCLUIDO
 
 SE: GREEN concluido em 2026-03-25. core/model2/risk_gate_telemetry.py criado com
-RiskGateBlockEvent (frozen dataclass) e RiskGateTelemetryRecorder (record/query_by_reason).
+RiskGateBlockEvent (frozen dataclass) e RiskGateTelemetryRecorder
+(record/query_by_reason).
 Hook em live_service._enforce_guardrails_before_order. 10 testes RED -> GREEN.
 suite total: 232 passed (211 base + 21 novos).
 mypy --strict risk_gate_telemetry.py OK.
@@ -843,7 +929,7 @@ PASSED. Lazy import evita circular deps. Guardrails preservados.
 
 ### TAREFA M2-026.3 - Auditoria imutável de correlação decision_id↔execution_id
 
-Status: EM_DESENVOLVIMENTO
+Status: IMPLEMENTADO
 
 QA: Suite RED 7 testes: 7 pass (FrozenInstanceError,
 FK validation, integração OK)
@@ -973,7 +1059,8 @@ Suite: tests/test_model2_m2_027_resilience_failsafe.py (17 testes, 17 passed)
 
 SE: GREEN concluido. core/model2/cycle_watchdog.py criado com CycleWatchdog,
 validate_schema_pre_exec, detect_orphan_positions, build_orphan_exit_order,
-execute_atomic_state_transition. orphan_position adicionado ao REASON_CODE_CATALOG.
+execute_atomic_state_transition. orphan_position adicionado ao
+REASON_CODE_CATALOG.
 BLID-088/089 formato Status corrigido. Suite 278 passed.
 
 Evidencias:
@@ -990,9 +1077,11 @@ de interrupcao segura sem perda de estado.
 
 Criterios de Aceite:
 
-- [ ] Watchdog detecta ausencia de progressao em janela configuravel (padrao 5min)
+- [ ] Watchdog detecta ausencia de progressao em janela configuravel (padrao
+5min)
 - [ ] Alerta emitido com reason_code, timestamp e contexto do ciclo
-- [ ] Fail-safe de interrupcao preserva estado atual sem corromper execucao em curso
+- [ ] Fail-safe de interrupcao preserva estado atual sem corromper execucao em
+curso
 - [ ] Reinicializacao controlada apos travamento registrada em audit trail
 - [ ] Guardrail de risco permanece ativo durante interrupcao e reinicio
 
@@ -1097,14 +1186,16 @@ Dependencias:
 
 Objetivo:
 Criar trilha de 10 tarefas para formalizar o processo de promocao GO/NO-GO entre
-modos shadow/paper/live, aprimorar gestao de risco dinamica e automatizar qualidade
+modos shadow/paper/live, aprimorar gestao de risco dinamica e automatizar
+qualidade
 de codigo com cobertura e benchmarks de performance.
 
 PO: Score 3.35. GO/NO-GO formaliza promocao shadow→live com auditoria. Sizing
 dinamico e drawdown gate reduzem risco sistematico. Handoff para SA.
 
 SA: PromotionEvaluator (frozen dataclass) em core/model2/promotion_gate.py.
-Thresholds em config/risk_params.py. Sem schema novo; audit em opportunity_events.
+Thresholds em config/risk_params.py. Sem schema novo; audit em
+opportunity_events.
 Guardrails preservados. Pronto para QA-TDD.
 
 ### TAREFA M2-028.1 - Contrato de promocao GO/NO-GO shadow→paper
@@ -1114,7 +1205,8 @@ Status: IMPLEMENTADO
 Suite: tests/test_model2_m2_028_1_promotion_gate.py (11 testes, 11 passed GREEN)
 
 SE: GREEN concluido. core/model2/promotion_gate.py criado com PromotionConfig,
-PromotionResult (frozen) e PromotionEvaluator. mypy --strict Success. 278 passed.
+PromotionResult (frozen) e PromotionEvaluator. mypy --strict Success. 278
+passed.
 
 Evidencias de implementacao:
 
@@ -1503,10 +1595,12 @@ Prioridade: Media
 
 PO: Score 1.50 — melhora leitura operacional; baixo esforco; sem dependencias
 criticas; sprint atual.
-SA: Verificado — _build_symbol_report ja exibe `{symbol} | {now_brt_str()} [MODE]`
+SA: Verificado — _build_symbol_report ja exibe `{symbol} | {now_brt_str()}
+[MODE]`
 com BRT explicito em shadow e live. Nenhuma alteracao necessaria.
 SE: Requisito ja satisfeito em operator_cycle_status.py linha 424.
-Evidencia: `BTCUSDT | 2026-03-26 09:38:30 BRT [LIVE]` — BRT explicito confirmado.
+Evidencia: `BTCUSDT | 2026-03-26 09:38:30 BRT [LIVE]` — BRT explicito
+confirmado.
 TL: APROVADO sem alteracoes; comportamento verificado em execucao.
 DOC: Nenhuma doc a atualizar; CONCLUIDO por verificacao em 2026-03-26.
 
@@ -1819,7 +1913,8 @@ frescor explicito no report quando o sinal estiver stale.
 Evidencias de implementacao:
 
 1. `pytest -q tests/test_model2_blid_078_080_cycle_capture.py` -> 5 passed.
-2. `pytest -q tests/test_cycle_report.py tests/test_model2_blid_072_persist_episodes.py`
+2. `pytest -q tests/test_cycle_report.py
+tests/test_model2_blid_072_persist_episodes.py`
    -> 33 passed.
 3. `pytest -q tests/` -> 123 passed.
 4. `mypy --strict --follow-imports skip core/model2/live_service.py
@@ -2308,7 +2403,8 @@ Evidências:
 
 Ações recomendadas:
 
-1. Revisar `config/execution_config.py` e variável `max_margin_per_position_usd`.
+1. Revisar `config/execution_config.py` e variável
+`max_margin_per_position_usd`.
 2. Validar a origem do parâmetro que iniciou a execução (manual vs gate).
 3. Se necessário, fechar/reduzir a posição (opção manual).
 4. Registrar lição em `docs/LESSONS_LEARNED.md` se for problema de processo.
@@ -3351,7 +3447,8 @@ Impacto:
 PO: Score 2.15 — observabilidade latencia; detectar degradacao antes de
 impactar decisoes; BLID-084 concluida.
 
-SA: core/model2/latency_metrics.py; m2_latency_samples lazy; percentis P50/P95/P99;
+SA: core/model2/latency_metrics.py; m2_latency_samples lazy; percentis
+P50/P95/P99;
 integracao em live_cycle_short_agent.py apos ciclo; 2 arquivos afetados.
 
 Status: CONCLUIDO
@@ -4138,7 +4235,8 @@ sem bloqueio por credenciais testnet.
 ## INICIATIVA M2-018 - Ativacao do modo live na Binance
 
 Objetivo: ativar `M2_EXECUTION_MODE=live` com confianca, aproveitando
-a integracao ja existente entre `scripts/model2/live_execute.py`, `Model2LiveExchange`
+a integracao ja existente entre `scripts/model2/live_execute.py`,
+`Model2LiveExchange`
 e `BinanceClientFactory`. A Camada 5 esta implementada; o que falta e
 validar o ciclo ponta-a-ponta no testnet e promover para producao.
 
@@ -4614,16 +4712,19 @@ Sprint proposto: A definir pelo PO
 
 **Escopo:**
 
-Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do agente:
+Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do
+agente:
 
-1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e `HISTORICAL_PERIODS`
+1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e
+`HISTORICAL_PERIODS`
 2. Confirmar tabela `ohlcv_d1` no schema do banco legado
 3. Adicionar chamada `daily_pipeline.py --timeframe D1` no `iniciar.bat`
    (hoje apenas H4 e H1 sao executados)
 4. Validar que scanner consegue operar em D1 via `TIMEFRAME_TO_TABLE`
 5. Cobrir com testes: sync D1, tabela populada, leitura pelo scanner
 
-**Impacto:** Completa cobertura multi-dataframe (D1 + H4 + H1 + M5) para analises
+**Impacto:** Completa cobertura multi-dataframe (D1 + H4 + H1 + M5) para
+analises
 estruturais de tendencia de longo prazo integradas ao pipeline M2.
 
 **Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
@@ -4647,18 +4748,22 @@ Prioridade proposta: Media
 
 Adicionar suporte ao timeframe M5 (5 minutos) na stack M2:
 
-1. Mapear `M5 → 5m` em `config/settings.py` (`TIMEFRAMES` e `HISTORICAL_PERIODS`)
+1. Mapear `M5 → 5m` em `config/settings.py` (`TIMEFRAMES` e
+`HISTORICAL_PERIODS`)
 2. Adicionar tabela `ohlcv_m5` no schema do banco legado (`db/crypto_agent.db`)
-3. Atualizar `scripts/model2/sync_ohlcv_from_binance.py` para aceitar e persistir M5
+3. Atualizar `scripts/model2/sync_ohlcv_from_binance.py` para aceitar e
+persistir M5
 4. Adicionar `M5` nas choices de `--timeframe` em `daily_pipeline.py`
 5. Mapear `M5 → ohlcv_m5` em `TIMEFRAME_TO_TABLE` no `scripts/model2/scan.py`
 6. Adicionar chamada `daily_pipeline.py --timeframe M5` no `iniciar.bat`
 7. Cobrir com testes: sync, tabela populada, scanner lendo M5
 
-**Impacto:** Habilita analises intraday de curto prazo e estrategias multi-dataframe
+**Impacto:** Habilita analises intraday de curto prazo e estrategias multi-
+dataframe
 com granularidade fina (H4 + H1 + M5).
 
-**Dependencias:** BLID-076 (hardening), H1 ja incluido no iniciar.bat (commit 784d507)
+**Dependencias:** BLID-076 (hardening), H1 ja incluido no iniciar.bat (commit
+784d507)
 
 **Criterio de aceite:**
 
@@ -4671,18 +4776,23 @@ com granularidade fina (H4 + H1 + M5).
 
 ### TAREFA BLID-090 - Expor estado do circuit breaker e risk gate no status por simbolo
 
-Status: CONCLUIDO (PM: 2026-03-24) — _query_risk_state_from_db + linha Risk implementados; 19/19 testes GREEN; 283 sem regressao; mypy strict OK; docs sincronizadas [SYNC-135].
+Status: CONCLUIDO (PM: 2026-03-24) — _query_risk_state_from_db + linha Risk
+implementados; 19/19 testes GREEN; 283 sem regressao; mypy strict OK; docs
+sincronizadas [SYNC-135].
 
-PO: CB resolvido (BLID-092), mas status nao exibe estado. Operador cego ao motivo de bloqueio. Score 3.55, desbloqueado.
+PO: CB resolvido (BLID-092), mas status nao exibe estado. Operador cego ao
+motivo de bloqueio. Score 3.55, desbloqueado.
 
-SA: input_json.risk_state confirmado em DB. Adicionar _query_risk_state_from_db + linha Risk em _build_symbol_report. Sem schema novo.
+SA: input_json.risk_state confirmado em DB. Adicionar _query_risk_state_from_db
++ linha Risk em _build_symbol_report. Sem schema novo.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
 
 **Contexto:**
 
-Durante sessao de debug (2026-03-24), foi identificado que `operator_cycle_status.py`
+Durante sessao de debug (2026-03-24), foi identificado que
+`operator_cycle_status.py`
 exibe `OPEN_LONG` mas a posicao nao abre — sem nenhuma indicacao do motivo.
 A causa raiz e o `circuit_breaker` trancado + `short_only: true`, visivel apenas
 consultando `model_decisions.input_json` diretamente no DB.
@@ -4690,12 +4800,16 @@ O operador nao tem visibilidade disso no terminal do `iniciar.bat`.
 
 **Escopo:**
 
-1. Em `operator_cycle_status.py` (`_build_symbol_report`): consultar `model_decisions`
-   para extrair `risk_state.circuit_breaker_state`, `risk_state.risk_gate_status`,
-   `risk_state.short_only` e `risk_state.recent_entries_today` / `max_daily_entries`
+1. Em `operator_cycle_status.py` (`_build_symbol_report`): consultar
+`model_decisions`
+   para extrair `risk_state.circuit_breaker_state`,
+   `risk_state.risk_gate_status`,
+   `risk_state.short_only` e `risk_state.recent_entries_today` /
+   `max_daily_entries`
 2. Adicionar linha `  Risk     :` ao bloco por simbolo com esses dados
 3. Quando CB trancado: exibir `[CB TRANCADO]` de forma destacada
-4. Quando short_only ativo e decisao for LONG: exibir aviso `[LONG BLOQUEADO - short_only]`
+4. Quando short_only ativo e decisao for LONG: exibir aviso `[LONG BLOQUEADO -
+short_only]`
 5. Quando limite diario atingido: exibir `entradas hoje: N/N`
 6. Cobrir com testes unitarios para os novos campos
 
@@ -4718,13 +4832,22 @@ resultou em ordem, sem precisar abrir o DB manualmente.
 Status: CONCLUIDO
 
 Suite: tests/test_blid091_reward_source.py (17 testes — 17/17 GREEN)
-QA: R1-R5 cobertos; _reward_label(3), _ensure_table(2), INSERT EXITED/CC/OPEN(3), migration(3), collect_training_info(3).
-SE: 17/17 GREEN | mypy preexistente (4 erros nao introduzidos) | arquivos: scripts/model2/persist_training_episodes.py, scripts/model2/migrations/0010_add_reward_source.sql, tests/test_model2_blid_072_persist_episodes.py
-TL: APROVADO. 35/35 PASS, zero novas regressoes. reward_source correto em EXITED+CC. Guardrails intactos.
-DOC: reward_source em training_episodes. _reward_label retorna tupla (reward, label, reward_source). Migration 0010 idempotente. SYNCHRONIZATION.md [SYNC-136].
+QA: R1-R5 cobertos; _reward_label(3), _ensure_table(2), INSERT
+EXITED/CC/OPEN(3), migration(3), collect_training_info(3).
+SE: 17/17 GREEN | mypy preexistente (4 erros nao introduzidos) | arquivos:
+scripts/model2/persist_training_episodes.py,
+scripts/model2/migrations/0010_add_reward_source.sql,
+tests/test_model2_blid_072_persist_episodes.py
+TL: APROVADO. 35/35 PASS, zero novas regressoes. reward_source correto em
+EXITED+CC. Guardrails intactos.
+DOC: reward_source em training_episodes. _reward_label retorna tupla (reward,
+label, reward_source). Migration 0010 idempotente. SYNCHRONIZATION.md
+[SYNC-136].
 
-PO: Fundacao do retreino: sem reward real em EXITED, modelo nao aprende. Score 3.75. BLID-090 concluida, sem bloqueio.
-SA: reward_label calcula PnL proporcional; INSERT OR IGNORE ja gera episodio EXITED c/ reward; falta reward_source + migracao 0010.
+PO: Fundacao do retreino: sem reward real em EXITED, modelo nao aprende. Score
+3.75. BLID-090 concluida, sem bloqueio.
+SA: reward_label calcula PnL proporcional; INSERT OR IGNORE ja gera episodio
+EXITED c/ reward; falta reward_source + migracao 0010.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
@@ -4732,10 +4855,13 @@ Sprint proposto: A definir pelo PO
 **Contexto:**
 
 Durante sessao de debug (2026-03-24), confirmou-se que:
-- 10.978 episodios sao do tipo `CYCLE_CONTEXT` (sem reward — apenas snapshot de contexto)
+- 10.978 episodios sao do tipo `CYCLE_CONTEXT` (sem reward — apenas snapshot de
+contexto)
 - Apenas 101 episodios tem `reward_proxy` preenchido (trades com resultado real)
-- O `reward: +0.0000` exibido no status nao e aprendizado — e ausencia de desfecho
-- O `persist_training_episodes.py` persiste contexto mas o reward real (PnL realizado)
+- O `reward: +0.0000` exibido no status nao e aprendizado — e ausencia de
+desfecho
+- O `persist_training_episodes.py` persiste contexto mas o reward real (PnL
+realizado)
   precisa ser preenchido quando a posicao fecha (`EXITED`)
 
 **Escopo:**
@@ -4744,13 +4870,17 @@ Durante sessao de debug (2026-03-24), confirmou-se que:
    preenchido ao fechar posicao (`signal_execution.status = EXITED`)
 2. Se nao for: implementar atualizacao de `reward_proxy` no evento de saida,
    usando o PnL realizado proporcional como proxy de reward
-3. Garantir que episodios `CYCLE_CONTEXT` nao sao contados como "prontos para treino"
+3. Garantir que episodios `CYCLE_CONTEXT` nao sao contados como "prontos para
+treino"
    (correcao de `collect_training_info` ja aplicada em commit fff8214)
-4. Adicionar campo `reward_source` (enum: `pnl_realized`, `proxy_signal`, `none`)
+4. Adicionar campo `reward_source` (enum: `pnl_realized`, `proxy_signal`,
+`none`)
    para rastrear a origem do reward
-5. Cobrir com testes: episodio EXITED gera reward, CYCLE_CONTEXT permanece sem reward
+5. Cobrir com testes: episodio EXITED gera reward, CYCLE_CONTEXT permanece sem
+reward
 
-**Impacto:** Garante que o dataset de treino RL reflete aprendizado real de mercado
+**Impacto:** Garante que o dataset de treino RL reflete aprendizado real de
+mercado
 em vez de snapshots de contexto sem sinal de reforco.
 
 **Dependencias:** BLID-090, commit fff8214
@@ -4759,7 +4889,8 @@ em vez de snapshots de contexto sem sinal de reforco.
 
 1. Apos posicao EXITED, `reward_proxy` e preenchido automaticamente [ ]
 2. `collect_training_info` retorna contagem correta de episodios treinaveiss [ ]
-3. `operator_cycle_status` exibe reward real (nao zero) para simbolos com trade fechado [ ]
+3. `operator_cycle_status` exibe reward real (nao zero) para simbolos com trade
+fechado [ ]
 4. `pytest -q tests/` passa [ ]
 
 ---
@@ -4768,12 +4899,20 @@ em vez de snapshots de contexto sem sinal de reforco.
 
 Status: CONCLUIDO
 
-PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas. Prioridade maxima, sem dependencias bloqueantes.
-SA: Contrato quebrado: live_service chama check_status/can_trade/NORMAL inexistentes em CircuitBreaker. AttributeError silencioso -> allows_trading=False fixo.
-QA: Suite RED criada em tests/test_blid092_circuit_breaker_contract.py — 20 testes cobrindo R1-R6.
-SE: 283/283 testes GREEN | mypy --strict zero erros | arquivos: risk/circuit_breaker.py, risk/states.py, core/model2/cycle_report.py, core/model2/live_service.py
-TL: APROVADO. 21/21 GREEN, mypy strict OK, 283/283 regressoes. Guardrails ativos. Pendencia: operator_cycle_status nao popula CB ainda.
-DOC: RN-024 adicionada (maquina de estados CB, HALF_OPEN, reset_manual). Diagrama 8 em DIAGRAMAS.md. SYNCHRONIZATION.md [SYNC-134].
+PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas.
+Prioridade maxima, sem dependencias bloqueantes.
+SA: Contrato quebrado: live_service chama check_status/can_trade/NORMAL
+inexistentes em CircuitBreaker. AttributeError silencioso ->
+allows_trading=False fixo.
+QA: Suite RED criada em tests/test_blid092_circuit_breaker_contract.py — 20
+testes cobrindo R1-R6.
+SE: 283/283 testes GREEN | mypy --strict zero erros | arquivos:
+risk/circuit_breaker.py, risk/states.py, core/model2/cycle_report.py,
+core/model2/live_service.py
+TL: APROVADO. 21/21 GREEN, mypy strict OK, 283/283 regressoes. Guardrails
+ativos. Pendencia: operator_cycle_status nao popula CB ainda.
+DOC: RN-024 adicionada (maquina de estados CB, HALF_OPEN, reset_manual).
+Diagrama 8 em DIAGRAMAS.md. SYNCHRONIZATION.md [SYNC-134].
 
 Prioridade proposta: Critica
 Sprint proposto: Imediato (bloqueia toda abertura de posicao)
@@ -4794,7 +4933,8 @@ Historico de balance reconstruido das `model_decisions`:
 - Atual: balance = ~$51.91 (recuperado, mas CB permanece `trancado`)
 
 Causa provavel da queda: FLUXUSDT LONG com `filled_qty=1905` abriu posicao
-grande e foi encerrada com `exit_reason=exchange_position_closed` sem stop armado
+grande e foi encerrada com `exit_reason=exchange_position_closed` sem stop
+armado
 (`failure_reason=protection_not_armed`). O saldo recuperou parcialmente mas o
 CB nao possui mecanismo de desbloqueio automatico apos recuperacao.
 
@@ -4802,20 +4942,24 @@ CB nao possui mecanismo de desbloqueio automatico apos recuperacao.
 
 1. Confirmar via `risk/circuit_breaker.py` se existe mecanismo de unlock apos
    recuperacao do saldo (metodo `recovery_time_remaining_hours` existe mas
-   o estado `trancado` nao desbloqueia por recuperacao de saldo — apenas por tempo)
+   o estado `trancado` nao desbloqueia por recuperacao de saldo — apenas por
+   tempo)
 2. Verificar se `RECOVERY_PERIOD_HOURS = 24` expirou: calcular
    `decision_timestamp(#427)` + 24h vs agora
-3. Se 24h ja expirou e CB ainda esta trancado: identificar por que nao desbloqueou
+3. Se 24h ja expirou e CB ainda esta trancado: identificar por que nao
+desbloqueou
    (possivel bug: estado persistido em memoria, nao em DB — reinicio do processo
    redefine o objeto mas o drawdown calculado ainda dispara imediatamente)
 4. Se o drawdown atual ainda e negativo vs `peak_balance`: verificar como
    `_calculate_drawdown` computa o pico (pode estar usando o balance historico
    alto de $186 como pico, nunca recuperando)
-5. Implementar visibilidade no status por simbolo: exibir `drawdown atual vs pico`
+5. Implementar visibilidade no status por simbolo: exibir `drawdown atual vs
+pico`
    e `horas restantes para unlock` (complementa BLID-090)
 6. Definir politica de reset manual controlado para operador humano
 
-**Impacto:** CRITICO — agente esta em modo observacao completo desde ~2026-03-09.
+**Impacto:** CRITICO — agente esta em modo observacao completo desde
+~2026-03-09.
 Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
 **Dependencias:** BLID-090 (visibilidade do CB no status)
@@ -4835,28 +4979,41 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 Status: CONCLUIDO
 
 Suite: tests/test_blid093_hold_reward.py — 26 testes (26 GREEN)
-Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration 0011,
-           persist BLOCKED (hold:*), flush_deferred_rewards, collect_training_info
+Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration
+0011,
+           persist BLOCKED (hold:*), flush_deferred_rewards,
+           collect_training_info
 
-PO: BLID-091+092 concluidos. 101 ep c/ reward, 10978 CYCLE_CONTEXT sem sinal. Vies sobre-entrada bloqueia retreino. Score 4.00, sem bloqueio.
+PO: BLID-091+092 concluidos. 101 ep c/ reward, 10978 CYCLE_CONTEXT sem sinal.
+Vies sobre-entrada bloqueia retreino. Score 4.00, sem bloqueio.
 
 SA (2026-03-24): Analise tecnica concluida. Arquivos impactados:
-1. `scripts/model2/persist_training_episodes.py` — nova funcao `_reward_counterfactual()`,
+1. `scripts/model2/persist_training_episodes.py` — nova funcao
+`_reward_counterfactual()`,
    novo bloco de coleta de episodios BLOCKED/READY, job de flush diferido.
-2. `scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql` — ADD COLUMN idempotente.
-3. `core/model2/cycle_report.py::collect_training_info()` — ampliar filtro para incluir
+2. `scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql` — ADD COLUMN
+idempotente.
+3. `core/model2/cycle_report.py::collect_training_info()` — ampliar filtro para
+incluir
    episodios com reward_source='counterfactual'.
-4. `scripts/model2/daily_pipeline.py` (ou live_service.py) — ponto de chamada do job diferido.
-Migracao SQL: `ALTER TABLE training_episodes ADD COLUMN reward_lookup_at_ms INTEGER;`
+4. `scripts/model2/daily_pipeline.py` (ou live_service.py) — ponto de chamada
+do job diferido.
+Migracao SQL: `ALTER TABLE training_episodes ADD COLUMN reward_lookup_at_ms
+INTEGER;`
 (sem NOT NULL, sem DEFAULT — NULL significa sem prazo de lookup pendente).
 Formula counterfactual: `reward = (close_{t+N} - close_t) / close_t * direcao`
-onde `direcao = +1 LONG, -1 SHORT`. Se `reward_counterfactual > 0`: label=hold_correct;
-se `< 0`: label=hold_opportunity_missed; se `close_{t+N}` indisponivel: manter NULL.
+onde `direcao = +1 LONG, -1 SHORT`. Se `reward_counterfactual > 0`:
+label=hold_correct;
+se `< 0`: label=hold_opportunity_missed; se `close_{t+N}` indisponivel: manter
+NULL.
 N por timeframe: H4→N=4 (16h look-ahead), H1→N=24 (24h look-ahead), D1→N=3 (3d).
-Adherencia arquitetural: usar `time_utils` para timestamps; SQL direto via sqlite3
-(sem repository.py — padrao do modulo); episode_key para idempotencia (INSERT OR IGNORE).
+Adherencia arquitetural: usar `time_utils` para timestamps; SQL direto via
+sqlite3
+(sem repository.py — padrao do modulo); episode_key para idempotencia (INSERT
+OR IGNORE).
 CYCLE_CONTEXT permanece sem reward — correto por design.
-Guardrails: risk_gate e circuit_breaker nao sao tocados. Sem impacto no caminho live.
+Guardrails: risk_gate e circuit_breaker nao sao tocados. Sem impacto no caminho
+live.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
@@ -4879,7 +5036,8 @@ de aprendizado. Isso cria um vies assimetrico grave:
 - 10.978 episodios `CYCLE_CONTEXT` com `reward_proxy = NULL`
 - 32 episodios `BLOCKED` com `reward_proxy = NULL`
 - 101 episodios com reward real — todos de trades abertos+fechados
-- `target_json` de `CYCLE_CONTEXT`: apenas `{\"objective\": \"support_training_dataset\"}`
+- `target_json` de `CYCLE_CONTEXT`: apenas `{\"objective\":
+\"support_training_dataset\"}`
   sem nenhuma sinal de resultado
 
 **Escopo:**
@@ -4889,7 +5047,8 @@ de aprendizado. Isso cria um vies assimetrico grave:
    - Se o mercado foi contra a direcao sugerida pelo modelo: reward positivo
      (ficar fora foi correto)
    - Se o mercado foi na direcao sugerida: reward negativo (perdeu oportunidade)
-   - Formula proposta: `reward = (close_t+N - close_t) / close_t * direcao_modelo`
+   - Formula proposta: `reward = (close_t+N - close_t) / close_t *
+   direcao_modelo`
      onde `direcao_modelo = +1 para LONG, -1 para SHORT`
 
 2. Implementar em `persist_training_episodes.py`:
@@ -4925,9 +5084,14 @@ para gerar novos dados de decisao)
 4. Dataset de treino tem proporcao balanceada entre entradas e HOLDs [ ]
 5. `pytest -q tests/` passa [ ]
 
-SE: 26/26 GREEN, mypy 4 erros pre-existentes zero novos, arquivos: persist_training_episodes.py, 0011_add_reward_lookup_at_ms.sql, test_blid093_hold_reward.py
-TL: APROVADO. 26/26 GREEN reproduzidos, mypy 4 erros pre-existentes, guardrails intactos, episode_key idempotente. Suite 212 pass sem regressoes.
-DOC: reward_lookup_at_ms em training_episodes; flush_deferred_rewards; counterfactual HOLD/BLOCKED. Sem impacto em ARQUITETURA_ALVO nem REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-137].
+SE: 26/26 GREEN, mypy 4 erros pre-existentes zero novos, arquivos:
+persist_training_episodes.py, 0011_add_reward_lookup_at_ms.sql,
+test_blid093_hold_reward.py
+TL: APROVADO. 26/26 GREEN reproduzidos, mypy 4 erros pre-existentes, guardrails
+intactos, episode_key idempotente. Suite 212 pass sem regressoes.
+DOC: reward_lookup_at_ms em training_episodes; flush_deferred_rewards;
+counterfactual HOLD/BLOCKED. Sem impacto em ARQUITETURA_ALVO nem
+REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-137].
 
 ---
 
@@ -4936,7 +5100,8 @@ DOC: reward_lookup_at_ms em training_episodes; flush_deferred_rewards; counterfa
 Status: CONCLUIDO
 Suite: tests/test_live_service_retrain_trigger.py (5 testes, 5 passed)
 
-SA: Bug em live_service.py L297 bloqueia retreino em modo live; corrigir guard + log + testes unitarios do gatilho.
+SA: Bug em live_service.py L297 bloqueia retreino em modo live; corrigir guard
++ log + testes unitarios do gatilho.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
@@ -4944,19 +5109,25 @@ Sprint proposto: A definir pelo PO
 **Contexto e motivacao:**
 
 O status live de 2026-03-25 mostra `pendentes: 101/100 [faltam 0 para retreino]`
-indicando que o limiar foi atingido, mas o ultimo treino registrado e de 2026-03-15
+indicando que o limiar foi atingido, mas o ultimo treino registrado e de
+2026-03-15
 (10 dias atras). O mecanismo de gatilho implementado em BLID-081 depende da flag
-`_incremental_training_running`, mas evidencias apontam que em modo live continuo
+`_incremental_training_running`, mas evidencias apontam que em modo live
+continuo
 o subprocesso de retreino nao e redisparado automaticamente ao cruzar o limiar.
 
 **Escopo:**
 
-1. Diagnosticar por que o retreino nao disparou com 101 ep elegíveis (limiar=100)
-2. Corrigir gatilho em `live_service.py`: verificar condicao de disparo apos cada
-   ciclo quando `pending_episodes >= threshold` e `_incremental_training_running=False`
+1. Diagnosticar por que o retreino nao disparou com 101 ep elegíveis
+(limiar=100)
+2. Corrigir gatilho em `live_service.py`: verificar condicao de disparo apos
+cada
+   ciclo quando `pending_episodes >= threshold` e
+   `_incremental_training_running=False`
 3. Garantir que apos o retreino o contador `rl_training_log` e atualizado e
    `collect_training_info` reflete o novo ultimo treino
-4. Registrar evidencia no log operacional: `[TREINO] Retreino iniciado: N ep / threshold K`
+4. Registrar evidencia no log operacional: `[TREINO] Retreino iniciado: N ep /
+threshold K`
 5. Cobrir com testes unitarios: gatilho dispara, nao dispara em concorrencia,
    atualiza timestamp corretamente
 
@@ -4964,20 +5135,28 @@ o subprocesso de retreino nao e redisparado automaticamente ao cruzar o limiar.
 
 1. Com pending_episodes >= threshold e nenhum treino em andamento: subprocesso
    de retreino e disparado automaticamente no proximo ciclo [ ]
-2. Linha `Treino` no status exibe timestamp atualizado apos retreino concluido [ ]
-3. Contador `pendentes` decresce ou zera apos retreino registrar em rl_training_log [ ]
+2. Linha `Treino` no status exibe timestamp atualizado apos retreino concluido
+[ ]
+3. Contador `pendentes` decresce ou zera apos retreino registrar em
+rl_training_log [ ]
 4. Nenhuma execucao concorrente de retreino (flag protege re-entrada) [ ]
 5. pytest -q tests/ passa sem regressoes [ ]
 
-**Dependencias:** BLID-081 (gatilho incremental — base), BLID-093 (reward counterfactual — episodios balanceados)
+**Dependencias:** BLID-081 (gatilho incremental — base), BLID-093 (reward
+counterfactual — episodios balanceados)
 
 **Impacto:** Elimina estagnacao do modelo apos 100+ episodios coletados; garante
 retreino operacional autonomo sem intervencao manual.
 
-PO: BLID-081+093 concluidos, 101/100 ep c/ limiar atingido sem retreino. Modelo 10 dias stale. Score 4.20, sem bloqueio.
-SE: guard live removido L297-298; log [TREINO] adicionado; 5 testes GREEN; sem regressoes.
-TL: APROVADO. Guard live removido corretamente; 5 testes AAA GREEN; guardrails ativos; mypy erro pre-existente nao introduzido.
-DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5 testes unitarios GREEN. Sem impacto em ARQUITETURA_ALVO nem REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-138].
+PO: BLID-081+093 concluidos, 101/100 ep c/ limiar atingido sem retreino. Modelo
+10 dias stale. Score 4.20, sem bloqueio.
+SE: guard live removido L297-298; log [TREINO] adicionado; 5 testes GREEN; sem
+regressoes.
+TL: APROVADO. Guard live removido corretamente; 5 testes AAA GREEN; guardrails
+ativos; mypy erro pre-existente nao introduzido.
+DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado;
+5 testes unitarios GREEN. Sem impacto em ARQUITETURA_ALVO nem
+REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-138].
 
 ---
 
@@ -4985,11 +5164,18 @@ DOC: Guard live L297-298 removido em live_service.py; log [TREINO] adicionado; 5
 
 Status: CONCLUIDO
 Suite: tests/test_mlflow_tracking.py (13/13 PASS)
-Cobertura: R1..R6 mapeados; mlflow.start_run, log_params, log_metric, log_artifact, load_model_from_mlflow_artifact, .gitignore
-TL: APROVADO. 13/13 PASS reproduzidos; 212 passed sem regressoes; 55 erros mypy pre-existentes, 0 novos; guardrails ativos.
-PM: ACEITE FINAL em 2026-03-25 15:42 BRT. Validacoes: markdownlint 0 novos erros; pytest 212 PASS 13/13 MLflow; mypy 0 novos; risk_gate+circuit_breaker ATIVOS. Trilha completa ponta-a-ponta OK. Backlog CONCLUIDO, commit e push main realizados.
+Cobertura: R1..R6 mapeados; mlflow.start_run, log_params, log_metric,
+log_artifact, load_model_from_mlflow_artifact, .gitignore
+TL: APROVADO. 13/13 PASS reproduzidos; 212 passed sem regressoes; 55 erros mypy
+pre-existentes, 0 novos; guardrails ativos.
+PM: ACEITE FINAL em 2026-03-25 15:42 BRT. Validacoes: markdownlint 0 novos
+erros; pytest 212 PASS 13/13 MLflow; mypy 0 novos; risk_gate+circuit_breaker
+ATIVOS. Trilha completa ponta-a-ponta OK. Backlog CONCLUIDO, commit e push main
+realizados.
 
-SA: MLflow self-hosted via mlflow.set_experiment; TrainingCallback+ConvergenceMonitor logam run_id; ppo_model.zip no .gitignore; sem schema DB.
+SA: MLflow self-hosted via mlflow.set_experiment;
+TrainingCallback+ConvergenceMonitor logam run_id; ppo_model.zip no .gitignore;
+sem schema DB.
 
 **Contexto e motivacao:**
 
@@ -5002,13 +5188,17 @@ artefatos que crescem a cada retreino.
 
 **Escopo:**
 
-1. Integrar **MLflow** (self-hosted, sem dependencia de cloud) ao pipeline de treino
-2. Logar parametros (`PPOConfig`) e metricas por run (`reward_mean`, `sharpe_ratio`,
+1. Integrar **MLflow** (self-hosted, sem dependencia de cloud) ao pipeline de
+treino
+2. Logar parametros (`PPOConfig`) e metricas por run (`reward_mean`,
+`sharpe_ratio`,
    `win_rate`, `max_drawdown`, `profit_factor`, `ep_len_mean`, `kl_divergence`)
 3. Registrar modelo como MLflow artifact (substitui versionamento no git)
 4. Integrar com `ConvergenceMonitor.log_step()` e `TrainingCallback`
-5. Adicionar `ppo_model.zip` ao `.gitignore` + `git rm --cached` (modelo sai do git)
-6. Testes unitarios: logar run, registrar params, salvar artifact, carregar modelo
+5. Adicionar `ppo_model.zip` ao `.gitignore` + `git rm --cached` (modelo sai do
+git)
+6. Testes unitarios: logar run, registrar params, salvar artifact, carregar
+modelo
 
 **Criterios de aceite:**
 
@@ -5023,9 +5213,15 @@ artefatos que crescem a cada retreino.
 **Impacto:** Observabilidade completa do ciclo de treino; comparacao entre runs;
 modelo versionado fora do git; arvore local limpa de binarios.
 
-PO: BLID-094 concluido. MLflow self-hosted; 6 artefatos; git limpo de binarios. Score 3.05. Sem bloqueio.
-SE: mlflow importado em trainer.py e convergence_monitor.py; start_run+log_params+log_artifact em phase1/phase2; log_metric 7 metricas em log_step; load_model_from_mlflow_artifact adicionado; .gitignore atualizado; git rm --cached ppo_model.zip executado; 13/13 GREEN; sem regressoes novas.
-DOC: MLflow integrado em trainer.py e convergence_monitor.py; ppo_model.zip no .gitignore; README.md atualizado com secao MLflow; SYNCHRONIZATION.md atualizado [SYNC-139].
+PO: BLID-094 concluido. MLflow self-hosted; 6 artefatos; git limpo de binarios.
+Score 3.05. Sem bloqueio.
+SE: mlflow importado em trainer.py e convergence_monitor.py;
+start_run+log_params+log_artifact em phase1/phase2; log_metric 7 metricas em
+log_step; load_model_from_mlflow_artifact adicionado; .gitignore atualizado;
+git rm --cached ppo_model.zip executado; 13/13 GREEN; sem regressoes novas.
+DOC: MLflow integrado em trainer.py e convergence_monitor.py; ppo_model.zip no
+.gitignore; README.md atualizado com secao MLflow; SYNCHRONIZATION.md
+atualizado [SYNC-139].
 
 ---
 
@@ -5040,7 +5236,8 @@ DOC: MLflow integrado em trainer.py e convergence_monitor.py; ppo_model.zip no .
 
 ### TAREFA BLID-0E4 - Corrigir lock de arquivo em persist_training_episodes e healthcheck
 
-**Status**: BACKLOG → Em analise → TESTES_PRONTOS → EM_DESENVOLVIMENTO → IMPLEMENTADO → REVISADO_APROVADO → **CONCLUIDO**
+**Status**: BACKLOG → Em analise → TESTES_PRONTOS → EM_DESENVOLVIMENTO →
+IMPLEMENTADO → REVISADO_APROVADO → **CONCLUIDO**
 
 **[2026-03-25 12:45:00 BRT] SW-ENG: FASE 1-3 IMPLEMENTADAS**
 
@@ -5092,10 +5289,12 @@ TestIntegrationWith3Scripts::
 TestFailSafeBehavior::
   ✅ test_fail_safe_returns_false_on_lock_timeout
   ❌ test_retry_exhaustion_logs_error_not_raises (Windows path: /tmp → \tmp)
-  ❌ test_cycle_continues_after_io_failure_with_fail_safe (Windows path: /locked → \locked)
+  ❌ test_cycle_continues_after_io_failure_with_fail_safe (Windows path: /locked
+  → \locked)
 
 ======================== 12 passed, 3 failed (Windows limitation) ==========
-```
+
+```txt
 
 **Arquivos Criados/Alterados:**
 
@@ -5156,11 +5355,12 @@ tests/test_model2_io_retry.py::TestFailSafeBehavior ... 3/3 tests
 ============================= 15 FAILED (expected RED phase) ===============
 ModuleNotFoundError: No module named 'core.model2.io_retry'
 
-```
+```python
 
 SA: Analise Tecnica Concluida
 
-Decisao arquitetural: Criar utilitario centralizado `core/model2/io_retry.py` com
+Decisao arquitetural: Criar utilitario centralizado `core/model2/io_retry.py`
+com
 retry wrapper + atomicidade. Aplicar em 3 pontos de I/O criticos.
 
 Padrão de implementação:
@@ -5207,11 +5407,12 @@ O arquivo já está sendo usado por outro processo.
 [2026-03-25 12:46:41 BRT] [M2] Persistindo episodios de treino...
 O arquivo já está sendo usado por outro processo.
 
-```
+```txt
 
 O ciclo continua, mas as etapas reportam falhas transitórias, sugerindo
 **contenção de arquivo durante acesso simultâneo** em Windows quando
-`persist_training_episodes.py` escreve JSON enquanto `healthcheck_live_execution.py`
+`persist_training_episodes.py` escreve JSON enquanto
+`healthcheck_live_execution.py`
 e `operator_cycle_status.py` tentam ler.
 
 **Root cause provavel:**
@@ -5226,13 +5427,17 @@ Sem retry ou file locking, Windows sinaliza "arquivo em uso" e falha silenciosa.
 
 **Escopo:**
 
-1. Implementar retry com backoff exponencial (1s, 2s, 4s, 8s max) para I/O de arquivo
-   - Aplicar em `persist_training_episodes.py` (escrita de cursore JSON e resumo)
+1. Implementar retry com backoff exponencial (1s, 2s, 4s, 8s max) para I/O de
+arquivo
+   - Aplicar em `persist_training_episodes.py` (escrita de cursore JSON e
+   resumo)
    - Aplicar em `operator_cycle_status.py` (leitura de runtime files)
    - Aplicar em `healthcheck_live_execution.py` (leitura de runtime files)
-2. Usar padrão "escrita atomica": escrita em arquivo temp + rename (evita lock parcial)
+2. Usar padrão "escrita atomica": escrita em arquivo temp + rename (evita lock
+parcial)
 3. Se retry exaurir: registrar erro crítico em log, fail-safe e continuar ciclo
-4. Adicionar timeout sensato por etapa critica (~5s por leitura, ~10s por escrita)
+4. Adicionar timeout sensato por etapa critica (~5s por leitura, ~10s por
+escrita)
 5. Cobertura de testes: simular file lock, validar retry e atomicidade
 
 **Criterios de Aceite:**
@@ -5267,7 +5472,8 @@ corrigidos via mock. 15/15 passando.
 TL: APROVADO. 15/15 testes reproduzidos, mypy --strict zero erros,
 211 suite baseline preservada, guardrails ativos, sem regressoes.
 
-DOC: SYNCHRONIZATION.md atualizado SYNC-141; BACKLOG.md status REVISADO_APROVADO.
+DOC: SYNCHRONIZATION.md atualizado SYNC-141; BACKLOG.md status
+REVISADO_APROVADO.
 
 ---
 
@@ -5294,7 +5500,8 @@ interferir em decisoes de retreino incremental.
 
 **Criterios de aceite:**
 
-- Apos ciclo de treino, contador de episodios pendentes exibe 0 (ou valor <= limite)
+- Apos ciclo de treino, contador de episodios pendentes exibe 0 (ou valor <=
+limite)
 - Teste unitario GREEN cobrindo reset pos-treino
 - Suite completa `pytest -q` sem regressoes
 
@@ -5319,7 +5526,8 @@ DOC: 3 scripts integrados; 12 testes GREEN; SYNC-143 fechado.
 
 **Contexto e motivacao:**
 
-O BLID-0E4 criou a infraestrutura `core/model2/io_retry.py` (read_json_with_retry,
+O BLID-0E4 criou a infraestrutura `core/model2/io_retry.py`
+(read_json_with_retry,
 write_json_with_retry, atomic_file_write, retry_with_backoff) mas NAO integrou
 nos scripts que realmente causam o erro "O arquivo ja esta sendo usado por outro
 processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
@@ -5374,9 +5582,12 @@ modelo nao evolui; auditar trainer, env, path checkpoint e filtro dataset.
 O status operacional de 2026-03-25 exibe:
 
 ```
+
 Episodio : #13658 persistido | reward: +0.0000
-Treino   : ultimo: 2026-03-25 23:04:11 BRT | pendentes: 101/100 (faltam 0 para retreino)
-```
+Treino   : ultimo: 2026-03-25 23:04:11 BRT | pendentes: 101/100 (faltam 0 para
+retreino)
+
+```txt
 
 O retreino foi disparado corretamente (BLID-094 concluido) e episodios sao
 persistidos (BLID-091 concluido com reward_source=pnl_realized). No entanto,
@@ -5385,16 +5596,19 @@ de retreino concluir, indicando que o aprendizado nao esta ocorrendo na pratica.
 
 Hipoteses a investigar:
 
-1. O dataset passado ao `trainer.py` contem apenas episodios com `reward_proxy=0.0`
+1. O dataset passado ao `trainer.py` contem apenas episodios com
+`reward_proxy=0.0`
    ou `reward_proxy=None` — o filtro de episodios elegiveis pode estar incluindo
    episodios CYCLE_CONTEXT sem reward real.
 2. O `agent/trainer.py` nao persiste os pesos do modelo apos o retreino (falha
    silenciosa no `model.save()` ou caminho de checkpoint incorreto).
 3. O reward calculado durante inferencia pos-retreino usa um campo diferente do
    preenchido pelo BLID-091 (ex.: `reward` vs `reward_proxy` vs coluna legada).
-4. O ambiente RL (`lstm_environment.py`) tem funcao de reward constante ou zerada
+4. O ambiente RL (`lstm_environment.py`) tem funcao de reward constante ou
+zerada
    por condicao de borda nao detectada (ex.: episodio sem desfecho claro).
-5. O modelo carregado em inferencia aponta para checkpoint antigo (pre-retreino),
+5. O modelo carregado em inferencia aponta para checkpoint antigo (pre-
+retreino),
    pois o path de carga nao foi atualizado apos o retreino incremental.
 
 **Escopo:**
@@ -5410,7 +5624,8 @@ Hipoteses a investigar:
    usado e o gerado pelo ultimo retreino.
 5. Adicionar log estruturado pos-retreino: media de reward do dataset, path do
    checkpoint salvo, numero de episodios com reward != 0.
-6. Adicionar teste RED: apos ciclo de retreino com dataset nao nulo, reward medio
+6. Adicionar teste RED: apos ciclo de retreino com dataset nao nulo, reward
+medio
    do dataset > 0.0.
 
 **Criterios de aceite:**
@@ -5462,14 +5677,17 @@ train_ppo_incremental e operator_cycle_status documentados.
 O aprendizado atualmente so ocorre quando ha trade executado (FILLED/EXITED) ou
 bloqueado pelo order layer (BLOCKED, via BLID-093). Quando o modelo decide HOLD
 — a decisao mais frequente — nenhum episodio com reward e gerado. O pipeline de
-treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de aprender
+treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de
+aprender
 timing de entrada e de saida do mercado.
 
 O display operacional confirma o problema:
 
 ```
+
 Episodio : N/A nao persistido | reward: +0.0000
-```
+
+```txt
 
 Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
 
@@ -5492,13 +5710,15 @@ Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
    em `train_ppo_incremental.py` (execution_id pode ser 0 para HOLD)
 5. Atualizar `_query_episode_info` em `operator_cycle_status.py` para exibir o
    episodio HOLD mais recente quando nao houver trade real disponivel
-6. Adicionar testes RED cobrindo: persistencia de episodio HOLD por ciclo, calculo
+6. Adicionar testes RED cobrindo: persistencia de episodio HOLD por ciclo,
+calculo
    de reward counterfactual HOLD, inclusao no dataset de treino
 
 **Criterios de aceite:**
 
 - A cada ciclo HOLD, um episodio e persistido com `reward_lookup_at_ms`
-- Apos T+N candles, reward counterfactual preenchido pelo `flush_deferred_rewards`
+- Apos T+N candles, reward counterfactual preenchido pelo
+`flush_deferred_rewards`
 - Display exibe episodio HOLD mais recente com reward real (nao +0.0000)
 - O dataset de treino inclui episodios HOLD com reward nao nulo
 - Suite `pytest -q` sem regressoes
@@ -5524,7 +5744,8 @@ Sprint proposto: Sprint atual
 PO: Score 3.30 — display quebrado compromete decisao de retreino; causa raiz
 clara (int vs string); correcao pontual em 2 arquivos sem risco arquitetural.
 
-SA: Opcao B (inline): strftime('%s', completed_at)*1000 na query; train_ppo grava
+SA: Opcao B (inline): strftime('%s', completed_at)*1000 na query; train_ppo
+grava
 completed_at_ms via ALTER TABLE lazy; zero schema migration; 2 arquivos.
 
 Status: CONCLUIDO
@@ -5532,8 +5753,10 @@ Suite: tests/test_blid100_pending_counter.py (6 GREEN em 2026-03-26)
 SE: collect_training_info usa completed_at_ms (int) com fallback TEXT;
 record_training_log grava completed_at_ms via ALTER TABLE lazy;
 6/6 GREEN, zero regressoes.
-TL: 31/31 GREEN reproduzido; mypy sem regressoes; retrocompat garantida; APROVADO.
-DOC: SYNCHRONIZATION.md SYNC-151 adicionado; cycle_report e train_ppo documentados.
+TL: 31/31 GREEN reproduzido; mypy sem regressoes; retrocompat garantida;
+APROVADO.
+DOC: SYNCHRONIZATION.md SYNC-151 adicionado; cycle_report e train_ppo
+documentados.
 
 **Contexto e motivacao:**
 

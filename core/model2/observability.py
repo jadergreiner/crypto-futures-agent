@@ -4,13 +4,83 @@ from __future__ import annotations
 
 import sqlite3
 import json
-from dataclasses import dataclass
+import logging
+import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from .signal_adapter import ADAPTER_EXPORT_KEY, ADAPTER_LAST_ERROR_KEY
 from .thesis_state import OFFICIAL_THESIS_STATUSES
 
 FINAL_STATUSES = ("VALIDADA", "INVALIDADA", "EXPIRADA")
+
+# M2-024.6 — etapas validas para telemetria de latencia
+VALID_LATENCY_STAGES: frozenset[str] = frozenset(
+    {"scan", "validate", "signal", "order", "execute"}
+)
+
+_logger = logging.getLogger(__name__)
+
+
+def registrar_latencia(
+    *,
+    simbolo: str,
+    etapa: str,
+    resultado: str,
+    latencia_ms: int,
+    db_path: str | None = None,
+) -> None:
+    """Registra latencia de uma etapa do pipeline para um simbolo.
+
+    Args:
+        simbolo: simbolo negociado (ex: BTCUSDT)
+        etapa: etapa do pipeline; deve ser uma de VALID_LATENCY_STAGES
+        resultado: descricao do resultado (ex: sucesso, erro)
+        latencia_ms: duracao da etapa em milissegundos
+        db_path: caminho para o DB modelo2; usa padrao se None
+    """
+    if etapa not in VALID_LATENCY_STAGES:
+        raise ValueError(
+            f"Etapa '{etapa}' invalida. Validas: {sorted(VALID_LATENCY_STAGES)}"
+        )
+    if db_path is None:
+        try:
+            from config.settings import MODEL2_DB_PATH
+            db_path = str(MODEL2_DB_PATH)
+        except Exception:
+            db_path = "db/modelo2.db"
+
+    ts = int(time.time() * 1000)
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO execution_latencies (symbol, stage, result_code, latency_ms, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (simbolo, etapa, resultado, latencia_ms, ts),
+        )
+        conn.commit()
+    except Exception:
+        _logger.warning(
+            "Falha ao registrar latencia %s/%s %dms — ignorando",
+            simbolo, etapa, latencia_ms,
+        )
+    finally:
+        conn.close()
+
+
+# M2-024.9 — snapshot operacional por ciclo
+@dataclass
+class OperationalSnapshot:
+    """Snapshot consolidado de um ciclo operacional do pipeline M2."""
+
+    candle_fresco: dict[str, Any]
+    decisao: dict[str, Any]
+    episodio: dict[str, Any]
+    execucao: dict[str, Any]
+    reconciliacao: dict[str, Any]
+    cycle_id: str | None = field(default=None)
 
 
 @dataclass(frozen=True)
@@ -628,3 +698,32 @@ class Model2ObservabilityService:
             stored_rows=1,
             purged_rows=int(purged_rows),
         )
+
+    def record_cycle_snapshot(self, snapshot: OperationalSnapshot) -> None:
+        """Persiste snapshot operacional de um ciclo no DB.
+
+        M2-024.9: snapshot unico por ciclo com todos os campos operacionais.
+        """
+        ts = int(time.time() * 1000)
+        conn = self._connect()
+        try:
+            conn.execute(
+                """
+                INSERT INTO operational_snapshots
+                    (cycle_id, candle_json, decisao_json, episodio_json,
+                     execucao_json, reconciliacao_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    snapshot.cycle_id,
+                    json.dumps(snapshot.candle_fresco, ensure_ascii=True),
+                    json.dumps(snapshot.decisao, ensure_ascii=True),
+                    json.dumps(snapshot.episodio, ensure_ascii=True),
+                    json.dumps(snapshot.execucao, ensure_ascii=True),
+                    json.dumps(snapshot.reconciliacao, ensure_ascii=True),
+                    ts,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()

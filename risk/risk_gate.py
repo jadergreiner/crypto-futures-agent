@@ -298,6 +298,46 @@ class RiskGate:
 
         return drawdown
 
+    # M2-024.11 — rastreamento de timeouts para regressao de stress
+
+    _MAX_CONSECUTIVE_TIMEOUTS = 5
+
+    def record_timeout(self, *, stage: str, symbol: str) -> None:
+        """Registra um timeout em uma etapa do pipeline.
+
+        Apos _MAX_CONSECUTIVE_TIMEOUTS timeouts, bloqueia trading via FROZEN.
+        M2-024.11: validacao de stress — risk_gate deve bloquear sob carga.
+        """
+        if not hasattr(self, "_timeout_count"):
+            self._timeout_count: int = 0
+        self._timeout_count += 1
+        logger.warning(
+            "Timeout registrado: stage=%s symbol=%s contagem=%d",
+            stage, symbol, self._timeout_count,
+        )
+        self._log_to_audit(
+            event="TIMEOUT_REGISTERED",
+            data={"stage": stage, "symbol": symbol, "count": self._timeout_count},
+        )
+        if self._timeout_count >= self._MAX_CONSECUTIVE_TIMEOUTS:
+            self.status = RiskGateStatus.FROZEN
+            logger.critical(
+                "Risk Gate FROZEN apos %d timeouts consecutivos",
+                self._timeout_count,
+            )
+            self._log_to_audit(
+                event="RISK_GATE_FROZEN_BY_TIMEOUTS",
+                data={"timeout_count": self._timeout_count},
+            )
+
+    def allows_trading(self) -> bool:
+        """Retorna True se o Risk Gate permite trading no momento.
+
+        Equivalente a verificar se o status e ACTIVE sem nenhum bloqueio.
+        M2-024.11: metodo de consulta de status para testes de stress.
+        """
+        return self.status == RiskGateStatus.ACTIVE
+
     def _log_to_audit(self, event: str, data: Dict[str, Any]) -> None:
         """
         Registrar evento em log de auditoria INVIOLÁVEL.
