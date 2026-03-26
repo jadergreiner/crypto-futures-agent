@@ -86,10 +86,10 @@ class PPOTrainer:
 
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        self.ppo_model = None
-        self.episodes_data = None
-        self.obs_data = None
-        self.rewards_data = None
+        self.ppo_model: Optional[Any] = None
+        self.episodes_data: Optional[List[Dict[str, Any]]] = None
+        self.obs_data: Optional[Any] = None
+        self.rewards_data: Optional[Any] = None
 
     def load_episodes_from_db(self) -> Dict[str, Any]:
         """
@@ -144,6 +144,7 @@ class PPOTrainer:
                 result['symbols'] = list(result['symbols'])
 
             if episodes:
+                assert self.episodes_data is not None
                 rewards = [ep['reward_proxy'] for ep in self.episodes_data if ep.get('reward_proxy') is not None]
                 mean = float(np.mean(rewards)) if rewards else 0.0
                 std = float(np.std(rewards)) if rewards else 0.0
