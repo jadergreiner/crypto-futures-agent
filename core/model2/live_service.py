@@ -18,8 +18,9 @@ from typing import Any, Protocol
 
 import numpy as np
 from notifications.model2_live_alerts import Model2LiveAlertPublisher
-from risk.circuit_breaker import CircuitBreaker, CircuitBreakerState
+from risk.circuit_breaker import CircuitBreaker
 from risk.risk_gate import RiskGate, RiskGateStatus
+from risk.states import CircuitBreakerState
 from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetryRecorder
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
@@ -39,6 +40,9 @@ from .live_execution import (
     M2_009_3_RULE_ID,
     M2_009_4_RULE_ID,
     M2_010_1_RULE_ID,
+    REASON_CODE_ACTION,
+    REASON_CODE_CATALOG,
+    REASON_CODE_SEVERITY,
     SIGNAL_EXECUTION_STATUS_BLOCKED,
     SIGNAL_EXECUTION_STATUS_ENTRY_FILLED,
     SIGNAL_EXECUTION_STATUS_ENTRY_SENT,
@@ -1505,10 +1509,17 @@ class Model2LiveExecutionService:
 
     def _execute_ready_signal(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         if self.config.execution_mode != "live":
+            execution_id = int(execution["id"])
+            decision_id = int(execution.get("decision_id") or execution_id)
+            reason_key = "ready_for_live_execution"
             return {
-                "execution_id": int(execution["id"]),
+                "execution_id": execution_id,
+                "decision_id": decision_id,
                 "status": execution["status"],
                 "reason": "shadow_mode_no_order_sent",
+                "reason_code": REASON_CODE_CATALOG.get(reason_key, "ops.ready_for_live_execution"),
+                "severity": REASON_CODE_SEVERITY.get(reason_key, "INFO"),
+                "recommended_action": REASON_CODE_ACTION.get(reason_key, "seguir_fluxo"),
             }
 
         guardrail_failure = self._enforce_guardrails_before_order(execution, now_ms=now_ms)

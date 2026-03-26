@@ -1,6 +1,22 @@
 -- Migration 0011: adiciona coluna reward_lookup_at_ms em training_episodes
 -- Idempotente: recria a tabela com a nova coluna via staging + rename
 -- (SQLite nao suporta IF NOT EXISTS em ALTER TABLE)
+CREATE TABLE IF NOT EXISTS training_episodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    episode_key TEXT NOT NULL UNIQUE,
+    cycle_run_id TEXT NOT NULL,
+    execution_id INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    status TEXT NOT NULL,
+    event_timestamp INTEGER NOT NULL,
+    label TEXT NOT NULL,
+    reward_proxy REAL,
+    reward_source TEXT NOT NULL DEFAULT 'none',
+    features_json TEXT NOT NULL,
+    target_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS training_episodes_new (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     episode_key TEXT NOT NULL UNIQUE,

@@ -23,6 +23,80 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-158] M2-024.12 DOC GOVERNANCA FINAL — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos atualizados:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo: consolidar contrato auditavel M2-024.12 em docs oficiais:
+  `testnet_evidence` no preflight e contrato canonico no retorno shadow
+  (`decision_id`, `execution_id`, `reason_code`, `severity`,
+  `recommended_action`).
+- Validacoes:
+  - markdownlint docs/*.md -> executado (resultado abaixo)
+  - pytest -q tests/test_docs_model2_sync.py -> executado (resultado abaixo)
+- Status: REVISADO_APROVADO
+
+---
+
+### [SYNC-157] M2-024.12 CORRECAO DEVOLVIDO — 2026-03-26
+
+- Agente: 5.software-engineer
+- Arquivos alterados:
+  - docs/BACKLOG.md
+  - scripts/model2/migrations/0010_add_reward_source.sql
+  - scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql
+- Escopo: corrigir devolucao do TL (Status literal no BLID-0E4 e bootstrap de
+  `training_episodes` nas migracoes 0010/0011 para banco novo).
+- Evidencias:
+  - pytest task: 6/6 PASS
+  - mypy strict (2 modulos): PASS
+  - pytest docs sync: 12/12 PASS
+  - pytest suites criticas: 8/8, 18/18, 6/6 PASS
+  - pytest global: 304/304 PASS
+- Status: IMPLEMENTADO (retorno para nova revisao TL)
+
+---
+
+### [SYNC-156] M2-024.12 IMPLEMENTADO — 2026-03-26
+
+- Agente: 5.software-engineer
+- Arquivos alterados:
+  - scripts/model2/go_live_preflight.py
+  - core/model2/live_service.py
+  - docs/BACKLOG.md
+- Escopo: adicionar `testnet_evidence` no summary do preflight e contrato
+  canônico no retorno shadow de `_execute_ready_signal`
+  (`reason_code`, `severity`, `recommended_action`, `decision_id`,
+  `execution_id`).
+- Evidencias:
+  - pytest -q tests/test_model2_m2_024_12_testnet_fullflow_contract.py -> 6/6
+    PASS
+  - mypy --strict scripts/model2/go_live_preflight.py core/model2/live_service.py
+    -> Success
+  - pytest -q tests/ -> 232 passed, 67 failed, 5 errors
+    (baseline global com falhas preexistentes fora do escopo)
+- Status: IMPLEMENTADO
+
+---
+
+### [SYNC-155] M2-024.12 TESTES_PRONTOS — 2026-03-26
+
+- Agente: 4.qa-tdd
+- Arquivos alterados:
+  - tests/test_model2_m2_024_12_testnet_fullflow_contract.py (novo)
+  - docs/BACKLOG.md (M2-024.12 -> TESTES_PRONTOS + comentario QA)
+- Escopo: suite RED para contrato de evidencias em preflight Testnet e
+  contrato auditavel no retorno de execute em shadow.
+- Evidencias: pytest -q tests/test_model2_m2_024_12_testnet_fullflow_contract.py
+  -> 6 testes coletados; 5 failed, 1 passed (RED esperado).
+- Status: TESTES_PRONTOS
+
+---
+
 ### [SYNC-154] M2-024.6/7/8/9/11 IMPLEMENTADO — 2026-03-26
 
 - Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate

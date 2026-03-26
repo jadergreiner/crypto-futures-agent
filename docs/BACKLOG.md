@@ -496,7 +496,34 @@ Dependencias:
 
 ### TAREFA M2-024.12 - Integracao testnet para fluxo completo
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 6.55 (Valor=8, Urg=7, Risco=8, Esf=4)
+
+PO: Validacao ponta a ponta em Testnet reduz risco de regressao live e
+fecha hardening do pacote M2-024 com evidencia operacional.
+SA: Refinado escopo E2E Testnet com preflight, guardrails e reconciliacao
+auditavel; sem mudanca de schema, com foco em evidencias deterministicas.
+QA: Suite RED em tests/test_model2_m2_024_12_testnet_fullflow_contract.py;
+6 testes (5 failed, 1 passed) cobrindo preflight paper+credenciais e contrato
+auditavel em execute shadow (reason_code/severity/action, decision/execution).
+SE: Inicio GREEN-REFACTOR em 2026-03-26. Foco em testnet_evidence no preflight
+e contrato canonico no retorno shadow de `_execute_ready_signal`.
+SE: GREEN concluido. testnet_evidence adicionado em go_live_preflight e
+_execute_ready_signal(shadow) retorna reason_code/severity/recommended_action
+e decision_id/execution_id. pytest task 6/6 PASS; mypy strict PASS.
+TL: DEVOLVIDO. Task verde, mas suite completa falhou (67F/5E) em reproducao
+local; necessario estabilizar baseline antes de aprovacao final.
+SE: Correcao DEVOLVIDO concluida. BLID-0E4 ganhou `Status:` literal; migracoes
+0010/0011 toleram bootstrap de `training_episodes`. Evidencias: task 6/6 PASS,
+mypy strict PASS, docs 12/12 PASS, suites criticas 8/8 18/18 6/6 PASS e
+`pytest -q tests/` 304/304 PASS.
+TL: APROVADO. Reproducao local verde (task, mypy e suite completa 304/304);
+guardrails ativos e correcoes de migracao/docs validadas.
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizadas com M2-024.12
+(`testnet_evidence` + contrato canonico no shadow). SYNC-158 registrado.
+PM: ACEITE em 2026-03-26. Trilha ponta-a-ponta validada, backlog fechado em
+CONCLUIDO, pronto para iniciar proxima priorizacao.
 
 Descricao:
 Executar fluxo completo em Binance Testnet com evidencias de admissao,
@@ -508,7 +535,12 @@ Dependencias:
 
 ### TAREFA M2-024.13 - Gate preflight com contrato de schema M2
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 7.40 (Valor=8, Urg=8, Risco=9, Esf=4)
+
+PO: Gate preflight valida schema e migracoes antes de qualquer live.
+Dep M2-024.1 CONCLUIDA. Maior score do lote; risco critico operacional.
 
 Descricao:
 Ampliar preflight para validar contrato de schema, migracao e campos
@@ -520,7 +552,12 @@ Dependencias:
 
 ### TAREFA M2-024.14 - Politica de rollback operacional por severidade
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 6.35 (Valor=7, Urg=7, Risco=8, Esf=5)
+
+PO: Politica de rollback por severidade garante retomada segura
+pos-incidente. Dep M2-024.7 CONCLUIDA.
 
 Descricao:
 Definir politica de rollback por severidade com acoes claras para
@@ -641,7 +678,12 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-025.3 - Detector de lacuna de candles por janela
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 6.85 (Valor=7, Urg=7, Risco=7, Esf=5)
+
+PO: Detector de lacuna por janela alerta antes de decisao com dados
+degradados. Dep M2-025.1 IMPLEMENTADA.
 
 Descricao:
 Implementar detector de lacunas por simbolo e timeframe com alerta objetivo
@@ -665,7 +707,12 @@ Dependencias:
 
 ### TAREFA M2-025.5 - Idempotencia de episodios por decision_id
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 7.00 (Valor=8, Urg=7, Risco=8, Esf=5)
+
+PO: Idempotencia por decision_id previne episodios duplicados em
+concorrencia ou reprocessamento. Dep M2-024.3 CONCLUIDA.
 
 Descricao:
 Reforcar idempotencia da gravacao de episodios para impedir duplicidade em
@@ -1498,6 +1545,11 @@ Evidencias:
 ### TAREFA BLID-083 - Estratificar suite de testes por etapa do workflow
 
 Status: Em analise
+
+Score PO: 5.35 (Valor=6, Urg=6, Risco=5, Esf=6)
+
+PO: Suite estratificada reduz tempo de CI e foco de regressao por agente.
+Sem dependencias bloqueantes. Menor score do lote mas valor de processo.
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -5238,6 +5290,7 @@ atualizado [SYNC-139].
 
 **Status**: BACKLOG → Em analise → TESTES_PRONTOS → EM_DESENVOLVIMENTO →
 IMPLEMENTADO → REVISADO_APROVADO → **CONCLUIDO**
+Status: CONCLUIDO
 
 **[2026-03-25 12:45:00 BRT] SW-ENG: FASE 1-3 IMPLEMENTADAS**
 

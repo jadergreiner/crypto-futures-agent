@@ -270,6 +270,21 @@ canonico `core/model2/time_utils.py`:
 Implementacao de referencia: `core/model2/time_utils.py`
 (`now_brt_str`, `ts_ms_to_brt_str`, `posix_to_brt_str`).
 
+### RN-027 - Evidencia Testnet e Contrato Canonico em Shadow (M2-024.12)
+
+No fluxo paper/testnet, a trilha de evidencias operacionais deve permanecer
+auditavel e consistente entre preflight e execucao:
+
+1. `go_live_preflight.py` deve persistir `testnet_evidence` no summary final.
+2. `testnet_evidence` deve incluir `testnet_credentials` e
+   `decision_execution_correlation`.
+3. `decision_execution_correlation.required_fields` inclui:
+   `decision_id`, `execution_id`, `reason_code`, `severity`,
+   `recommended_action`.
+4. Em modo `shadow`, `_execute_ready_signal` deve retornar os mesmos campos
+   canonicos de correlacao e razao operacional.
+5. Guardrails de risco permanecem obrigatorios e inalterados.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:

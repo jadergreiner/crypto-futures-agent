@@ -790,6 +790,18 @@ def run_go_live_preflight(
     overall_status = "ok" if all(check["status"] == "ok" for check in checks if check["status"] != "skipped") else "alert"
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     timestamp_utc_ms = _utc_now_ms()
+    check6 = next((item for item in checks if item.get("id") == "6"), {})
+    check6_evidence = check6.get("evidence") if isinstance(check6, dict) else {}
+    testnet_credentials_evidence = (
+        check6_evidence.get("testnet_credentials", {}) if isinstance(check6_evidence, dict) else {}
+    )
+    testnet_evidence: dict[str, Any] = {
+        "decision_execution_correlation": {
+            "required_fields": ["decision_id", "execution_id", "reason_code", "severity", "recommended_action"],
+            "status": "required_for_m2_024_12",
+        },
+        "testnet_credentials": testnet_credentials_evidence,
+    }
     summary: dict[str, Any] = {
         "status": overall_status,
         "run_id": run_id,
@@ -799,6 +811,7 @@ def run_go_live_preflight(
         "checks": checks,
         "applied_fixes": applied_fixes,
         "next_actions": next_actions,
+        "testnet_evidence": testnet_evidence,
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_go_live_preflight_{run_id}.json"

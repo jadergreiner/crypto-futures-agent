@@ -124,6 +124,12 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   Reason codes `TIMEOUT_ADMISSION`, `TIMEOUT_SEND`, `TIMEOUT_RECONCILIATION`
   adicionados ao `REASON_CODE_CATALOG` com severity=HIGH e
   action=bloquear_operacao. Modulo nao importa risk_gate nem circuit_breaker.
+- Integracao Testnet ponta a ponta (M2-024.12): `go_live_preflight.py`
+  publica `testnet_evidence` no summary (inclui `testnet_credentials` e
+  contrato de correlacao `decision_id/execution_id/reason_code/severity/
+  recommended_action`). No modo shadow, `_execute_ready_signal` retorna esses
+  campos canonicos para manter auditabilidade consistente entre preflight e
+  execucao.
 
 Resiliencia e fail-safe de pipeline (M2-027):
 
