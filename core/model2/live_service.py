@@ -432,6 +432,7 @@ class Model2LiveExecutionService:
                     WHERE symbol = ?
                       AND timeframe = ?
                       AND execution_id > 0
+                      AND reward_proxy IS NOT NULL
                     ORDER BY event_timestamp DESC, id DESC
                     LIMIT 1
                     """,

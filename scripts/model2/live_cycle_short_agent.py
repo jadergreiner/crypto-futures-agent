@@ -34,7 +34,10 @@ from scripts.model2.daily_pipeline import run_daily_pipeline
 from scripts.model2.healthcheck_live_execution import run_live_healthcheck
 from scripts.model2.io_utils import atomic_write_json
 from scripts.model2.live_cycle import run_live_cycle
-from scripts.model2.persist_training_episodes import run_persist_training_episodes
+from scripts.model2.persist_training_episodes import (
+    flush_deferred_rewards,
+    run_persist_training_episodes,
+)
 from scripts.model2.sync_market_context import run_sync_market_context
 
 DEFAULT_SHORT_SYMBOLS = ("BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "FLUXUSDT")
@@ -304,6 +307,17 @@ def run_short_agent_cycle(
                     "symbols": symbols_to_use,
                     "timeframe": timeframe,
                     "output_dir": resolved_output_dir,
+                },
+            )
+        )
+        stage_definitions.append(
+            (
+                "flush_deferred_rewards",
+                flush_deferred_rewards,
+                {
+                    "model2_db_path": resolved_model2_db,
+                    "source_db_path": resolved_source_db,
+                    "now_ms": _utc_now_ms(),
                 },
             )
         )
