@@ -155,13 +155,12 @@ def _get_model2_db_path() -> str:
 def _query_confidence_from_db(symbol: str, db_path: str) -> float | None:
     """Busca a confiança da decisão mais recente do modelo para o símbolo."""
     try:
-        conn = sqlite3.connect(db_path, timeout=5)
-        row = conn.execute(
-            "SELECT confidence FROM model_decisions "
-            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
-            (symbol,),
-        ).fetchone()
-        conn.close()
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT confidence FROM model_decisions "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
         if row and row[0] is not None:
             return float(row[0])
     except Exception:
@@ -172,13 +171,12 @@ def _query_confidence_from_db(symbol: str, db_path: str) -> float | None:
 def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]:
     """Retorna (action, confidence) da decisão mais recente no DB."""
     try:
-        conn = sqlite3.connect(db_path, timeout=5)
-        row = conn.execute(
-            "SELECT action, confidence FROM model_decisions "
-            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
-            (symbol,),
-        ).fetchone()
-        conn.close()
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT action, confidence FROM model_decisions "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
         if row:
             action = str(row[0] or "HOLD")
             confidence = float(row[1]) if row[1] is not None else 0.0
@@ -196,13 +194,12 @@ def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | Non
     Nunca levanta excecao.
     """
     try:
-        conn = sqlite3.connect(db_path, timeout=5)
-        row = conn.execute(
-            "SELECT input_json FROM model_decisions "
-            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
-            (symbol,),
-        ).fetchone()
-        conn.close()
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT input_json FROM model_decisions "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
         if row is None:
             return None
         raw = row[0]
@@ -219,13 +216,12 @@ def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | Non
 def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, float]:
     """Retorna (episode_id, persisted, reward) do episodio mais recente do símbolo."""
     try:
-        conn = sqlite3.connect(db_path, timeout=5)
-        row = conn.execute(
-            "SELECT id, status, reward_proxy FROM training_episodes "
-            "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
-            (symbol,),
-        ).fetchone()
-        conn.close()
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT id, status, reward_proxy FROM training_episodes "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
         if row:
             ep_id = int(row[0])
             persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT")

@@ -81,7 +81,7 @@ Pendencias operacionais:
    logs confirmam erro em persist, healthcheck e operator_cycle_status.
    Impacto: eliminar "arquivo ja usado" remanescente apos BLID-0E4.
 - BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino.
-   Status: REVISADO_APROVADO (2026-03-26) — 6/6 testes GREEN;
+   Status: CONCLUIDO (2026-03-26) — 6/6 testes GREEN;
    mypy sem regressao; erro None iter eliminado
    Dependencia minima: retreino disparado (BLID-094 concluido); episodios com
    reward_proxy preenchido (BLID-091 concluido); evidencia de reward +0.0000 em
@@ -5319,9 +5319,10 @@ processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
 
 ### TAREFA BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 TL: pytest 6/6 passed; mypy 25 erros (igual baseline pre-PR, sem regressao);
-erro None iter eliminado; correcao valida.
+erro None iter eliminado; correcao valida. PM validou suite 67 failed/232 passed
+(igual baseline). Commit final aceito em 2026-03-26.
 
 Arquivo de testes: `tests/test_blid098_rl_learning.py`
 (6 testes RED confirmados em 2026-03-25)
