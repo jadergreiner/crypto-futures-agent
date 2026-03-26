@@ -80,6 +80,12 @@ Pendencias operacionais:
    Dependencia minima: BLID-0E4 CONCLUIDO; io_retry.py disponivel;
    logs confirmam erro em persist, healthcheck e operator_cycle_status.
    Impacto: eliminar "arquivo ja usado" remanescente apos BLID-0E4.
+- BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino.
+   Dependencia minima: retreino disparado (BLID-094 concluido); episodios com
+   reward_proxy preenchido (BLID-091 concluido); evidencia de reward +0.0000 em
+   todos os episodios apos ciclo de treino completo.
+   Impacto: sem aprendizado efetivo, modelo PPO nao evolui apesar do retreino
+   ocorrer — ciclo de aprendizado esta estruturalmente quebrado.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
@@ -5306,3 +5312,73 @@ processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
 **Dependencias:** BLID-0E4 (io_retry.py ja disponivel)
 
 **Impacto:** Eliminar bloqueador operacional remanescente; ciclo M2 estavel.
+
+---
+
+### TAREFA BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino
+
+Status: NOVO
+
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto e motivacao:**
+
+O status operacional de 2026-03-25 exibe:
+
+```
+Episodio : #13658 persistido | reward: +0.0000
+Treino   : ultimo: 2026-03-25 23:04:11 BRT | pendentes: 101/100 (faltam 0 para retreino)
+```
+
+O retreino foi disparado corretamente (BLID-094 concluido) e episodios sao
+persistidos (BLID-091 concluido com reward_source=pnl_realized). No entanto,
+o reward exibido permanece +0.0000 em todos os episodios mesmo apos o ciclo
+de retreino concluir, indicando que o aprendizado nao esta ocorrendo na pratica.
+
+Hipoteses a investigar:
+
+1. O dataset passado ao `trainer.py` contem apenas episodios com `reward_proxy=0.0`
+   ou `reward_proxy=None` — o filtro de episodios elegiveis pode estar incluindo
+   episodios CYCLE_CONTEXT sem reward real.
+2. O `agent/trainer.py` nao persiste os pesos do modelo apos o retreino (falha
+   silenciosa no `model.save()` ou caminho de checkpoint incorreto).
+3. O reward calculado durante inferencia pos-retreino usa um campo diferente do
+   preenchido pelo BLID-091 (ex.: `reward` vs `reward_proxy` vs coluna legada).
+4. O ambiente RL (`lstm_environment.py`) tem funcao de reward constante ou zerada
+   por condicao de borda nao detectada (ex.: episodio sem desfecho claro).
+5. O modelo carregado em inferencia aponta para checkpoint antigo (pre-retreino),
+   pois o path de carga nao foi atualizado apos o retreino incremental.
+
+**Escopo:**
+
+1. Auditar `agent/trainer.py`: confirmar que pesos sao salvos em `models/` com
+   path acessivel ao pipeline de inferencia.
+2. Auditar `collect_training_info` / `persist_training_episodes.py`: confirmar
+   que episodios passados ao treino tem `reward_proxy != 0` e `reward_source`
+   valido (pnl_realized ou proxy_signal).
+3. Auditar `lstm_environment.py`: confirmar que a funcao de reward retorna valor
+   nao nulo para os dados de entrada disponiveis.
+4. Auditar o path de carga do modelo em inferencia: confirmar que o checkpoint
+   usado e o gerado pelo ultimo retreino.
+5. Adicionar log estruturado pos-retreino: media de reward do dataset, path do
+   checkpoint salvo, numero de episodios com reward != 0.
+6. Adicionar teste RED: apos ciclo de retreino com dataset nao nulo, reward medio
+   do dataset > 0.0.
+
+**Criterios de aceite:**
+
+- Apos retreino concluido, log exibe media de reward do dataset != 0.0
+- Checkpoint salvo e confirmado em `models/` com timestamp atualizado
+- Inferencia pos-retreino usa o checkpoint mais recente
+- Pelo menos 1 episodio no log operacional com reward != +0.0000 apos retreino
+- Suite `pytest -q` sem regressoes
+
+**Dependencias:**
+
+- BLID-091 concluida (reward_proxy preenchido para EXITED)
+- BLID-094 concluida (retreino automatico disparado)
+
+**Impacto:** Sem correcao, o modelo PPO nunca evolui apesar do ciclo de retreino
+estar ativo — todo o investimento em coleta de episodios e infraestrutura de
+retreino e desperdicado. Bloqueia qualquer melhoria de qualidade de decisao.

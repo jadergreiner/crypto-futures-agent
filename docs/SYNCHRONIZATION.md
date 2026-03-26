@@ -23,6 +23,25 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-147] BLID-098 - Abertura de tarefa: aprendizado nulo pos-retreino
+
+**Data/Hora**: 2026-03-25 BRT
+**Status**: REGISTRADO
+**Agentes**: Backlog Development (1)
+
+**Resumo**: Criado BLID-098 em `docs/BACKLOG.md` para investigar e corrigir
+aprendizado nulo no modelo PPO — reward permanece +0.0000 em todos os episodios
+mesmo apos o ciclo de retreino disparar e concluir (BLID-094 concluido).
+Item adicionado na fila aberta para priorizacao do PO e como tarefa estruturada
+com escopo, hipoteses e criterios de aceite.
+
+**Documentos Alterados**:
+
+- `docs/BACKLOG.md`: BLID-098 inserido na fila aberta e como tarefa estruturada
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-147] adicionado
+
+---
+
 ### [SYNC-146] M2-025.2 - Normalizacao de timezone de evento no pipeline
 
 **Data/Hora**: 2026-03-25 BRT
