@@ -644,6 +644,12 @@ def main() -> int:
         timeframe=args.timeframe,
         output_dir=args.output_dir,
     )
+    flush_result = flush_deferred_rewards(
+        model2_db_path=args.model2_db_path,
+        source_db_path=args.source_db_path,
+        now_ms=_utc_now_ms(),
+    )
+    summary["flush_deferred_rewards"] = flush_result
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0
 

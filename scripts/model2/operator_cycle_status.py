@@ -214,18 +214,23 @@ def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | Non
 
 
 def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, float]:
-    """Retorna (episode_id, persisted, reward) do episodio mais recente do símbolo."""
+    """Retorna (episode_id, persisted, reward) do ultimo episodio real do simbolo.
+
+    Filtra episodios de contexto (CYCLE_CONTEXT) e pendentes sem reward.
+    Exibe apenas episodios de execucao real com reward_proxy preenchido.
+    """
     try:
         with sqlite3.connect(db_path, timeout=5) as conn:
             row = conn.execute(
                 "SELECT id, status, reward_proxy FROM training_episodes "
-                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                "WHERE symbol = ? AND execution_id > 0 AND reward_proxy IS NOT NULL "
+                "ORDER BY id DESC LIMIT 1",
                 (symbol,),
             ).fetchone()
         if row:
             ep_id = int(row[0])
-            persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT")
-            reward = float(row[2]) if row[2] is not None else 0.0
+            persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT", "CYCLE_CONTEXT")
+            reward = float(row[2])
             return ep_id, persisted, reward
     except Exception:
         pass
