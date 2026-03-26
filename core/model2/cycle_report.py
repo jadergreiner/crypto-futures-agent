@@ -352,32 +352,34 @@ def collect_training_info(
     pending = 0
     try:
         conn = sqlite3.connect(db_path, timeout=5)
-        # Ultimo treinamento
         try:
-            row = conn.execute(
-                "SELECT MAX(completed_at) FROM rl_training_log"
-            ).fetchone()
-            if row and row[0]:
-                last_train = row[0]
-        except sqlite3.OperationalError:
-            pass
-        # Episodios com reward disponivel para treino (apos ultimo retreino)
-        # Conta apenas episodios com reward_proxy preenchido (resultado real de trade)
-        # que ainda nao foram consumidos em um ciclo de retreino.
-        try:
-            row = conn.execute(
-                "SELECT COUNT(*) FROM training_episodes "
-                "WHERE reward_proxy IS NOT NULL "
-                "  AND UPPER(COALESCE(status, '')) NOT IN ('CYCLE_CONTEXT', 'PENDING') "
-                "  AND created_at > COALESCE("
-                "  (SELECT MAX(completed_at) FROM rl_training_log), "
-                "  0)"
-            ).fetchone()
-            if row:
-                pending = row[0]
-        except sqlite3.OperationalError:
-            pass
-        conn.close()
+            # Ultimo treinamento
+            try:
+                row = conn.execute(
+                    "SELECT MAX(completed_at) FROM rl_training_log"
+                ).fetchone()
+                if row and row[0]:
+                    last_train = row[0]
+            except sqlite3.OperationalError:
+                pass
+            # Episodios com reward disponivel para treino (apos ultimo retreino)
+            # Conta apenas episodios com reward_proxy preenchido (resultado real de trade)
+            # que ainda nao foram consumidos em um ciclo de retreino.
+            try:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM training_episodes "
+                    "WHERE reward_proxy IS NOT NULL "
+                    "  AND UPPER(COALESCE(status, '')) NOT IN ('CYCLE_CONTEXT', 'PENDING') "
+                    "  AND created_at > COALESCE("
+                    "  (SELECT MAX(completed_at) FROM rl_training_log), "
+                    "  0)"
+                ).fetchone()
+                if row:
+                    pending = row[0]
+            except sqlite3.OperationalError:
+                pass
+        finally:
+            conn.close()
     except Exception as exc:
         logger.warning("Falha ao coletar info de treino: %s", exc)
     return last_train, pending
