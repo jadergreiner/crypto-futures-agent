@@ -151,6 +151,18 @@ Resiliencia e fail-safe de pipeline (M2-027):
   - `execute_atomic_state_transition`: garante transicao CONSUMED->IN_PROGRESS
     atomica com revert logico em falha da segunda escrita.
 - `REASON_CODE_CATALOG` expandido com `orphan_position` (M2-027.3).
+- `core/model2/resilience_controls.py` (PKG-PO10-0326) — funcoes puras para
+  contrato de resiliencia operacional:
+  - drift gate pre-admissao (`evaluate_position_drift_gate`)
+  - degradacao por latencia (`evaluate_latency_degradation`)
+  - restart idempotente (`plan_restart_from_snapshot`)
+  - fila priorizada (`prioritize_events`)
+  - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
+  - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
+  - retry por categoria (`execute_with_category_retry`)
+  - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
+  - validacao de runbook (`validate_contingency_runbook`)
+  - validacao de schema por conjunto de tabelas (`validate_schema_tables`)
 
 ## Camada 5 - Persistencia e Aprendizado Continuo
 

@@ -163,3 +163,11 @@ Indice:
 3. Idempotencia em escrita de execucao e episodio.
 4. JSON valido em todos os campos `*_json`.
 5. Nenhum segredo em payload persistido.
+
+## PKG-PO10-0326 - Impacto de dados
+
+1. Sem criacao de novas tabelas ou colunas.
+2. Contratos de resiliencia operam sobre payloads em memoria e artefatos
+   existentes.
+3. Validacao de schema reutiliza conjunto de tabelas obrigatorias ja definido
+   em RN-020.

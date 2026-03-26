@@ -23,6 +23,79 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-165] PKG-PO10-0326 REVISADO_APROVADO — 2026-03-26
+
+- Agentes: 6.tech-lead, 7.doc-advocate
+- Arquivos atualizados:
+  - core/model2/resilience_controls.py
+  - tests/test_model2_m2_023_2_to_10_and_027_2_red.py
+  - docs/BACKLOG.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/DIAGRAMAS.md
+  - docs/MODELAGEM_DE_DADOS.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - pacote M2-023.2..023.10 + M2-027.2 aprovado com contratos de resiliencia;
+  - docs sincronizadas sem criacao de novos arquivos em `docs/`;
+  - backlog atualizado com `DOC:` e rastreabilidade completa.
+- Evidencias:
+  - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
+  - mypy --strict core/model2/resilience_controls.py -> Success
+  - pytest -q tests/ -> 307 passed
+  - markdownlint docs/*.md -> executado
+  - pytest -q tests/test_docs_model2_sync.py -> executado
+- Status backlog: PKG-PO10-0326 -> REVISADO_APROVADO
+
+---
+
+### [SYNC-164] M2-028.3 IMPLEMENTADO — 2026-03-26
+
+- Agente: 5.software-engineer
+- Arquivos atualizados:
+  - core/model2/volatility_sizing.py
+  - core/model2/live_service.py
+  - tests/test_model2_m2_028_3_volatility_sizing.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - sizing dinamico inversamente proporcional ao ATR normalizado por simbolo;
+  - modo shadow preservado (informativo, sem ajuste efetivo);
+  - modo live/paper aplica ajuste com clamp de faixa segura.
+- Evidencias:
+  - pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+    tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+    tests/test_model2_m2_028_3_volatility_sizing.py -> 25 passed
+  - mypy --strict core/model2/promotion_gate.py core/model2/volatility_sizing.py
+    core/model2/live_service.py
+    tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+    tests/test_model2_m2_028_3_volatility_sizing.py -> Success
+- Status backlog: M2-028.3 -> IMPLEMENTADO
+
+---
+
+### [SYNC-163] M2-028.2 IMPLEMENTADO — 2026-03-26
+
+- Agente: 5.software-engineer
+- Arquivos atualizados:
+  - core/model2/promotion_gate.py
+  - tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - implementado contrato paper→live com criterios distintos do shadow→paper;
+  - aprovacao manual obrigatoria (`approver_id` + justificativa);
+  - rollback sinalizado para paper em evento critico pos-promocao;
+  - helper de compatibilidade com preflight (`status=ok`).
+- Evidencias:
+  - pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+    tests/test_model2_m2_028_2_promotion_gate_paper_live.py -> 20 passed
+  - mypy --strict core/model2/promotion_gate.py
+    tests/test_model2_m2_028_2_promotion_gate_paper_live.py -> Success
+- Status backlog: M2-028.2 -> IMPLEMENTADO
+
+---
+
 ### [SYNC-162] M2-024.13 REVISADO_APROVADO + DOC SYNC — 2026-03-26
 
 - Agentes: 6.tech-lead, 7.doc-advocate

@@ -289,6 +289,22 @@ auditavel e consistente entre preflight e execucao:
    canonicos de correlacao e razao operacional.
 5. Guardrails de risco permanecem obrigatorios e inalterados.
 
+### RN-028 - Controles de Resiliencia Contratuais (PKG-PO10-0326)
+
+O pacote de resiliencia operacional deve manter contratos deterministas e
+fail-safe para validacao de runtime:
+
+1. Drift pre-admissao bloqueia com `reason_code='position_drift_blocked'`.
+2. Degradacao por latencia entra em `mode='degraded'` ao romper SLO.
+3. Restart usa replay idempotente sem reenvio de ordem.
+4. Priorizacao de eventos respeita ordem CRITICAL > HIGH > WARN.
+5. Consulta de auditoria por `decision_id` retorna trilha filtrada.
+6. Validacao cruzada contraditoria bloqueia com fail-safe.
+7. Retry por categoria nao repete falha permanente.
+8. Indicadores de reconciliacao expõem drift medio, p95 confirmacao e taxa.
+9. Runbook ausente/invalido retorna `runbook_missing_or_invalid`.
+10. Schema incompleto bloqueia com `reason_code='schema_divergence'`.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:

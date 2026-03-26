@@ -1154,7 +1154,15 @@ Dependencias:
 
 ### TAREFA M2-027.2 - Validacao de schema M2 pre-execucao por ciclo
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.35
+PO: Validacao de schema por ciclo reduz risco operacional.
+SA: Alinhar pre-ciclo com RN-020 e preflight M2-024.13.
+QA: Suite RED em tests/test_model2_m2_023_2_to_10_and_027_2_red.py.
+SE: GREEN com 10/10 no alvo, 307/307 regressao e mypy strict OK.
+TL: APROVADO. Testes e guardrails validados sem regressao.
+DOC: Sync em ARQUITETURA, REGRAS, DIAGRAMAS, MODELAGEM e SYNC.
 
 Descricao:
 Executar validacao de integridade de schema do modelo2.db antes de cada
@@ -1305,7 +1313,27 @@ Dependencias:
 
 ### TAREFA M2-028.2 - Contrato de promocao GO/NO-GO paper→live
 
-Status: BACKLOG
+Status: IMPLEMENTADO
+
+PO: Priorizar M2-028.2 para gate paper→live com aprovacao manual e rollback
+pos-promocao em evento critico.
+
+SA: Extend PromotionEvaluator com avaliacao paper→live (Sharpe,
+reconciliation_rate, critical_errors, manual approval), sem bypass de
+guardrails e fail-safe por default.
+
+QA: Suite criada em
+`tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
+com 9 casos para criterios GO/NO-GO, aprovacao manual, rollback automatico,
+imutabilidade e compatibilidade de preflight.
+
+SE: GREEN concluido em 2026-03-26. `core/model2/promotion_gate.py`
+estendido com `LivePromotionConfig`, `LivePromotionResult`,
+`evaluate_paper_to_live()` e `is_preflight_compatible_for_live()`.
+Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed;
+`mypy --strict core/model2/promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success.
 
 Descricao:
 Definir criterios objetivos para promover paper para live, incluindo Sharpe
@@ -1326,7 +1354,27 @@ Dependencias:
 
 ### TAREFA M2-028.3 - Sizing dinamico por volatilidade de simbolo
 
-Status: BACKLOG
+Status: IMPLEMENTADO
+
+PO: Priorizar M2-028.3 para reduzir risco sistematico via sizing dinamico por
+volatilidade sem quebrar guardrails atuais.
+
+SA: Introduzir modulo dedicado de volatility sizing com comportamento
+aplicavel em live/paper e apenas informativo em shadow.
+
+QA: Suite criada em `tests/test_model2_m2_028_3_volatility_sizing.py`
+com 5 casos cobrindo baixo/alto ATR, interpolacao, clamp e modo shadow.
+
+SE: GREEN concluido em 2026-03-26. `core/model2/volatility_sizing.py`
+adicionado e integrado em `core/model2/live_service.py` para ajustar
+`size_fraction` em aberturas com metadata de ATR/multiplicador.
+Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+tests/test_model2_m2_028_3_volatility_sizing.py` -> 25 passed;
+`mypy --strict core/model2/promotion_gate.py
+core/model2/volatility_sizing.py core/model2/live_service.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+tests/test_model2_m2_028_3_volatility_sizing.py` -> Success.
 
 Descricao:
 Ajustar tamanho de posicao dinamicamente com base em volatilidade recente
@@ -3892,7 +3940,12 @@ documental sincronizada.
 
 ### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.60
+PO: Drift gate evita admissao com estado divergente.
+SA: Drift gate pre-admissao com reason_code e trilha por decision_id.
+SE: PKG-PO10-0326 implementado com guardrails e idempotencia.
 
 Sprint: M2-023
 Prioridade: P0
@@ -3909,7 +3962,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.3 - Politica de degradacao por latencia
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.20
+PO: Degradacao por latencia reduz risco em estresse.
+SA: Faixas P95/P99 com entrada e saida objetiva do modo degradado.
 
 Sprint: M2-023
 Prioridade: P1
@@ -3926,7 +3983,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.4 - Snapshot de estado para restart seguro
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.00
+PO: Snapshot reduz duplicidade e acelera recuperacao.
+SA: Snapshot com decision_id, fase e heartbeat; replay idempotente.
 
 Sprint: M2-023
 Prioridade: P1
@@ -3943,7 +4004,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.5 - Fila priorizada para eventos criticos
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 3.70
+PO: Fila priorizada reduz starvation de eventos criticos.
+SA: Ordem CRITICAL/HIGH/WARN com latencia por classe.
 
 Sprint: M2-023
 Prioridade: P1
@@ -3960,7 +4025,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.50
+PO: Trilha de bloqueios do risk_gate fecha auditoria.
+SA: Trilha append-only com consulta por decision_id.
 
 Sprint: M2-023
 Prioridade: P0
@@ -3977,7 +4046,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 3.95
+PO: Validacao cruzada reforca admissao conservadora.
+SA: Contradicao critica bloqueia admissao em fail-safe.
 
 Sprint: M2-023
 Prioridade: P1
@@ -3994,7 +4067,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.8 - Politica de retries orientada a categoria
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 4.10
+PO: Retry por categoria reduz loops improdutivos.
+SA: Retry so em erro transitorio com budget e acao.
 
 Sprint: M2-023
 Prioridade: P1
@@ -4011,7 +4088,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 3.80
+PO: Indicadores de reconciliacao antecipam drift e atraso.
+SA: Expor drift medio, p95 e taxa de ajuste com alerta.
 
 Sprint: M2-023
 Prioridade: P1
@@ -4028,7 +4109,11 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.10 - Runbook de contingencia de execucao live
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
+
+Score PO: 3.55
+PO: Runbook de contingencia padroniza resposta a incidente.
+SA: Checklist de contencao/recuperacao ligado a preflight.
 
 Sprint: M2-023
 Prioridade: P1

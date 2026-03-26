@@ -63,6 +63,7 @@ from .model_inference_service import ModelInferenceService
 from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
 from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
+from .volatility_sizing import adjust_size_for_volatility
 
 # Regra que garante que guard-rails permanecem no caminho critico
 # independente da acao do modelo (M2-020.5)
@@ -110,6 +111,27 @@ def emit_stage_slo_violation_event(
         "metadata": dict(metadata or {}),
     }
     return payload
+
+
+def _extract_atr_normalized_pct(market_state: dict[str, Any]) -> float | None:
+    """Extrai ATR normalizado (%) de market_state em formatos legados."""
+    volatility = market_state.get("volatility")
+    if isinstance(volatility, dict):
+        for key in ("atr_normalized", "atr_norm", "atr_pct"):
+            raw = volatility.get(key)
+            if raw is None:
+                continue
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                continue
+    raw_top = market_state.get("atr_normalized")
+    if raw_top is None:
+        return None
+    try:
+        return float(raw_top)
+    except (TypeError, ValueError):
+        return None
 
 
 class _IncrementalTrainingProcess(Protocol):
@@ -1041,6 +1063,38 @@ class Model2LiveExecutionService:
                 timeframe=str(candidate.get("timeframe") or "H4"),
             )
             # <<< Fim da instrumentacao
+
+            atr_normalized_pct = (
+                _extract_atr_normalized_pct(dict(model_input.market_state))
+                if model_input is not None
+                else None
+            )
+            sizing_result = adjust_size_for_volatility(
+                base_size_fraction=float(inferred_decision.size_fraction),
+                atr_normalized_pct=atr_normalized_pct,
+                execution_mode=str(self.config.execution_mode),
+            )
+            if inferred_decision.action in {ACTION_OPEN_LONG, ACTION_OPEN_SHORT}:
+                metadata = dict(inferred_decision.metadata)
+                metadata["volatility_sizing"] = {
+                    "applied": bool(sizing_result.applied),
+                    "multiplier": float(sizing_result.multiplier),
+                    "atr_normalized_pct": sizing_result.atr_normalized_pct,
+                    "base_size_fraction": float(inferred_decision.size_fraction),
+                    "adjusted_size_fraction": float(sizing_result.adjusted_size_fraction),
+                }
+                inferred_decision = ModelDecision(
+                    action=inferred_decision.action,
+                    confidence=inferred_decision.confidence,
+                    size_fraction=float(sizing_result.adjusted_size_fraction),
+                    sl_target=inferred_decision.sl_target,
+                    tp_target=inferred_decision.tp_target,
+                    reason_code=inferred_decision.reason_code,
+                    decision_timestamp=inferred_decision.decision_timestamp,
+                    symbol=inferred_decision.symbol,
+                    model_version=inferred_decision.model_version,
+                    metadata=metadata,
+                )
 
             gate_input: LiveExecutionGateInput | None = None
             created_decision = self.repository.create_model_decision(

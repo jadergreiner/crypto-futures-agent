@@ -196,3 +196,19 @@ Toda transicao gera `CircuitBreakerTransition` (frozen dataclass) com
 1. `docs/ARQUITETURA_ALVO.md`
 2. `docs/REGRAS_DE_NEGOCIO.md`
 3. `docs/MODELAGEM_DE_DADOS.md`
+
+## 10) Controles de resiliencia contratuais (PKG-PO10-0326)
+
+```mermaid
+flowchart TD
+  A[Entrada de ciclo] --> B[Drift gate pre-admissao]
+  B -->|ok| C[Validacao cruzada sinal-contexto-posicao]
+  B -->|bloqueio| H[Evento auditavel]
+  C -->|ok| D[Retry por categoria]
+  C -->|contradicao| H
+  D --> E[Indicadores de reconciliacao]
+  E --> F{Schema completo?}
+  F -->|sim| G[Prosseguir ciclo]
+  F -->|nao| H
+  H --> I[Fail-safe sem bypass de guardrails]
+```
