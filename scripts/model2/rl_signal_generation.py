@@ -265,17 +265,20 @@ class RLSignalGenerator:
         Returns:
             Dicionário com resultado do processamento
         """
-        result = {
+        signals_generated: int = 0
+        signals_with_rl_enhancement: int = 0
+        opportunities_result: List[Dict[str, Any]] = []
+        result: Dict[str, Any] = {
             'status': 'ok',
             'run_id': datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
             'timestamp_utc_ms': int(datetime.now(timezone.utc).timestamp() * 1000),
             'ppo_available': self.ppo_model is not None,
             'episodes_available': self.episodes_available,
             'opportunities_processed': len(opportunities),
-            'signals_generated': 0,
-            'signals_with_rl_enhancement': 0,
+            'signals_generated': signals_generated,
+            'signals_with_rl_enhancement': signals_with_rl_enhancement,
             'dry_run': self.dry_run,
-            'opportunities': []
+            'opportunities': opportunities_result,
         }
 
         try:
@@ -314,20 +317,23 @@ class RLSignalGenerator:
                         # signal_repository.create_signal(signal_data)
                         pass
 
-                    result['signals_generated'] += 1
+                    signals_generated += 1
                     if self.ppo_model:
-                        result['signals_with_rl_enhancement'] += 1
+                        signals_with_rl_enhancement += 1
                     opp_result['signal_generated'] = True
                 else:
                     opp_result['signal_generated'] = False
                     opp_result['skip_reason'] = f'RL confidence too low: {rl_confidence}'
 
-                result['opportunities'].append(opp_result)
+                opportunities_result.append(opp_result)
 
+            result['signals_generated'] = signals_generated
+            result['signals_with_rl_enhancement'] = signals_with_rl_enhancement
+            result['opportunities'] = opportunities_result
             logger.info(
-                f"[RL] {result['signals_generated']}/{len(opportunities)} "
+                f"[RL] {signals_generated}/{len(opportunities)} "
                 f"sinais gerados "
-                f"({result['signals_with_rl_enhancement']} com RL enhancement)"
+                f"({signals_with_rl_enhancement} com RL enhancement)"
             )
         except Exception as e:
             result['status'] = 'error'

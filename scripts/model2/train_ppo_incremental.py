@@ -34,7 +34,7 @@ import sys
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Set
 from time import perf_counter
 import numpy as np
 
@@ -121,11 +121,13 @@ class PPOTrainer:
 
             conn.close()
 
-            result = {
+            symbols_set: Set[str] = set()
+            labels_map: Dict[str, int] = {}
+            result: Dict[str, Any] = {
                 "total_episodes": len(episodes),
                 "timeframe": self.timeframe,
-                "symbols": set(),
-                "labels": {},
+                "symbols": symbols_set,
+                "labels": labels_map,
                 "date_range": None,
             }
 
@@ -134,14 +136,14 @@ class PPOTrainer:
 
                 # Estatísticas
                 for ep in episodes:
-                    result['symbols'].add(ep['symbol'])
-                    label = ep['label']
-                    result['labels'][label] = result['labels'].get(label, 0) + 1
+                    symbols_set.add(str(ep['symbol']))
+                    label = str(ep['label'])
+                    labels_map[label] = labels_map.get(label, 0) + 1
 
                 first_ts = episodes[0]['created_at']
                 last_ts = episodes[-1]['created_at']
                 result['date_range'] = f"{first_ts} to {last_ts}"
-                result['symbols'] = list(result['symbols'])
+                result['symbols'] = list(symbols_set)
 
             if episodes:
                 assert self.episodes_data is not None
@@ -179,8 +181,8 @@ class PPOTrainer:
             return {"status": "error", "error": "No episodes loaded"}
 
         try:
-            observations = []
-            rewards = []
+            observations_list: List[np.ndarray] = []
+            rewards_list: List[float] = []
 
             for ep in self.episodes_data:
                 # Extrair features JSON
@@ -194,14 +196,14 @@ class PPOTrainer:
                 # Construir observação (placeholder — seria extraído de features reais)
                 obs = self._build_observation(features, ep)
                 if obs is not None:
-                    observations.append(obs)
+                    observations_list.append(obs)
 
                     # Reward: usar reward_proxy ou calcular de label
                     reward = self._compute_reward(ep, features)
-                    rewards.append(reward)
+                    rewards_list.append(reward)
 
-            observations = np.array(observations, dtype=np.float32)
-            rewards = np.array(rewards, dtype=np.float32)
+            observations: np.ndarray = np.array(observations_list, dtype=np.float32)
+            rewards: np.ndarray = np.array(rewards_list, dtype=np.float32)
 
             self.obs_data = observations
             self.rewards_data = rewards
@@ -317,15 +319,16 @@ class PPOTrainer:
             logger.info(f"[PPO] Iniciando treinamento real com {len(self.obs_data)} samples...")
 
             # Criar environment simples baseado em dados históricos
-            class HistoricalDataEnv(gym.Env):
+            class HistoricalDataEnv(gym.Env):  # type: ignore[type-arg]
                 """Environment que simula trading com dados históricos."""
 
-                def __init__(self, observations, rewards, max_steps=1000):
+                def __init__(self, observations: np.ndarray, rewards: np.ndarray, max_steps: int = 1000) -> None:
                     self.observations = observations
                     self.rewards = rewards
                     self.max_steps = max_steps
-                    self.current_step = 0
-                    self.episode_rewards = []
+                    self.current_step: int = 0
+                    self.start_idx: int = 0
+                    self.episode_rewards: List[float] = []
 
                     # Spaces: obs é [close, volume, rsi, position, pnl]
                     self.observation_space = Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32)
@@ -333,7 +336,7 @@ class PPOTrainer:
 
                     self.metadata = {"render_modes": []}
 
-                def reset(self, seed=None):
+                def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[Any, Dict[str, Any]]:
                     super().reset(seed=seed)
                     self.current_step = 0
                     self.episode_rewards = []
@@ -346,7 +349,7 @@ class PPOTrainer:
 
                     return self.observations[idx], {}
 
-                def step(self, action):
+                def step(self, action: Any) -> Tuple[Any, float, bool, bool, Dict[str, Any]]:
                     self.current_step += 1
 
                     # Índice relativo ao episódio
@@ -371,7 +374,7 @@ class PPOTrainer:
                         else:
                             action_bonus = -0.05
 
-                    reward = base_reward + action_bonus
+                    reward = float(base_reward) + action_bonus
                     self.episode_rewards.append(reward)
 
                     terminated = self.current_step >= self.max_steps
@@ -382,6 +385,7 @@ class PPOTrainer:
                     return obs, reward, terminated, truncated, {}
 
             # Criar e treinar o modelo
+            assert self.obs_data is not None and self.rewards_data is not None
             env = HistoricalDataEnv(self.obs_data, self.rewards_data, max_steps=100)
 
             model = PPO(
