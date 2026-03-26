@@ -127,56 +127,12 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
   `README.md`, `playbooks/__init__.py` e `docs/SYNCHRONIZATION.md`
 - `config/ppo_config.py`, `config/risk_params.py`, `config/execution_config.py`
 
-## Requisitos do Produto (PRD)
-
-Fonte completa: **`docs/PRD.md`** — documento mestre e única fonte de verdade de
-escopo, requisitos e critérios operacionais. Toda alteração de escopo deve ser
-registrada lá primeiro.
-
-### Requisitos funcionais P0 (bloqueantes para a release)
-
-| Área | Requisito-chave |
-| --- | --- |
-| Ciclo | Orquestrar sincronização, pipeline, execução, episódios e healthcheck em ciclo único |
-| Contexto | Bloquear execução quando contexto crítico estiver ausente, stale ou inconsistente |
-| Decisão | Inferência direta do modelo gera evento com motivo, confiança e timestamp auditável |
-| Decisão | Idempotência obrigatória: sem ordens duplicadas por reinício |
-| Risco | Envelope de risco (risk_gate + circuit_breaker) ativo em todos os caminhos |
-| Risco | Toda entrada live exige proteção validada (SL + TP) após fill |
-| Risco | Fail-closed: em dúvida operacional, bloquear — nunca assumir risco |
-| Execução | Nenhuma execução live sem `go_live_preflight.py` aprovado sem erro bloqueante |
-| Execução | Falha nas proteções dispara retry com backoff e classificação de risco |
-| RL | Persistir episódios completos, incluindo decisões `HOLD`, para aprendizado contínuo |
-| RL | Reward considera P&L líquido, custo operacional e decisão de não operar |
-| RL | Modo seguro quando modelo/checkpoint estiver indisponível |
-| Auditoria | Trilha completa de decisões, execuções, eventos e episódios no banco |
-
-### KPIs mínimos de trading
-
-| KPI | Meta |
-| --- | --- |
-| Win rate | >= 45% |
-| Profit factor | >= 1.3 |
-| Sharpe ratio | >= 0.8 |
-| Max drawdown | <= 10% em 30 dias |
-| Posições live protegidas | 100% |
-| Latência ordem (live) | <= 300 ms |
-
-### Go/No-Go para capital real
-
-Antes de qualquer ampliação em `live`:
-- `go_live_preflight.py` sem erro bloqueante
-- Janela mínima em `shadow` concluída com sucesso
-- Posições protegidas = 100%, preenchidas sem proteção = 0
-- Símbolos live explicitamente allow-listed via `M2_LIVE_SYMBOLS`
-- KPIs acima dentro das metas
-
----
-
 ## Fontes de Verdade da Documentação
 
 - **`docs/BACKLOG.md`** — Fonte única de verdade para tarefas, sprints e status
-- **`docs/PRD.md`** — Fonte de verdade de escopo e direcionamento do produto
+- **`docs/PRD.md`** — Fonte de verdade de escopo, requisitos funcionais (RF-*),
+  requisitos não funcionais (RNF-*), KPIs e critérios Go/No-Go para `live`.
+  Consultar antes de qualquer decisão de escopo ou implementação de nova funcionalidade.
 - **`docs/REGRAS_DE_NEGOCIO.md`** — Regras de negócio para validação de teses e
   transições de estado
 - **`docs/ARQUITETURA_ALVO.md`** — Arquitetura alvo e schema do DB M2
