@@ -5317,10 +5317,21 @@ processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
 
 ### TAREFA BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino
 
-Status: NOVO
+Status: TESTES_PRONTOS
+
+Arquivo de testes: `tests/test_blid098_rl_learning.py`
+(6 testes RED confirmados em 2026-03-25)
+
+SA: 3 causas raiz:
+(1) `_build_observation` usa placeholder fixo ignorando features reais;
+(2) `episodes_to_training_dataset` nao filtra `reward_proxy IS NULL`;
+(3) `rl_signal_generation` carrega JSON como bool, nao PPO real.
 
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
+
+PO: Score 7.60 — ciclo RL estruturalmente quebrado; retreino ocorre mas
+modelo nao evolui; auditar trainer, env, path checkpoint e filtro dataset.
 
 **Contexto e motivacao:**
 
