@@ -23,6 +23,25 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-149] BLID-099 - Conclusao: aprendizado continuo por ciclo (HOLD_DECISION)
+
+**Data/Hora**: 2026-03-26 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Software Engineer (5), Tech Lead (6), Doc Advocate (7)
+
+**Alteracoes:**
+
+- `scripts/model2/persist_training_episodes.py`: nova funcao
+  `_persist_hold_decision_episodes`; `_reward_counterfactual` com branch NEUTRAL
+- `scripts/model2/train_ppo_incremental.py`: status IN inclui `HOLD_DECISION`
+- `scripts/model2/operator_cycle_status.py`: `_query_episode_info` aceita
+  `execution_id=0` para `HOLD_DECISION`
+- `tests/test_blid099_hold_learning.py`: 16 testes GREEN
+
+**Evidencias:** pytest 16/16 GREEN; mypy 0 regressoes novas; backlog REVISADO_APROVADO
+
+---
+
 ### [SYNC-148] BLID-098 - Conclusao: correcao de aprendizado nulo no ciclo RL
 
 **Data/Hora**: 2026-03-26 BRT

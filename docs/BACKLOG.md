@@ -5406,9 +5406,25 @@ log pos-retreino); 6/6 testes GREEN; ciclo RL restaurado. [SYNC-148]
 
 ### TAREFA BLID-099 - Aprendizado continuo por ciclo: reward para decisao HOLD do modelo
 
-Status: IDENTIFICADO
+Status: Em analise
 Prioridade proposta: Alta
-Sprint proposto: A definir pelo PO
+Sprint proposto: Sprint atual
+
+PO: Score 3.90 — aprendizado esparso bloqueia evolucao; HOLD e decisao ativa
+sem sinal; BLID-093 infra disponivel.
+
+SA: model_decisions tem HOLD first-class; flush_deferred_rewards reusavel;
+3 arquivos afetados; sem schema DB novo; NEUTRAL direction via abs_return.
+
+Status: CONCLUIDO
+Suite: tests/test_blid099_hold_learning.py (16 GREEN em 2026-03-26)
+SE:_persist_hold_decision_episodes em persist_training_episodes.py;
+HOLD_DECISION em train_ppo_incremental.py e operator_cycle_status.py;
+16/16 GREEN, 0 regressoes mypy.
+TL: 16/16 GREEN reproduzido; 7 erros mypy pre-existentes; sem regressao;
+APROVADO.
+DOC: SYNCHRONIZATION.md SYNC-149 adicionado; persist_training_episodes,
+train_ppo_incremental e operator_cycle_status documentados.
 
 **Contexto e motivacao:**
 

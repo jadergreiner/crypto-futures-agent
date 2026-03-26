@@ -112,7 +112,7 @@ class PPOTrainer:
                 FROM training_episodes
                 WHERE timeframe = ?
                   AND reward_proxy IS NOT NULL
-                  AND status IN ('FILLED', 'BLOCKED')
+                  AND status IN ('FILLED', 'BLOCKED', 'HOLD_DECISION')
                   AND label != 'context'
                 ORDER BY created_at ASC
             """, (self.timeframe,))

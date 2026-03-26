@@ -223,7 +223,9 @@ def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, fl
         with sqlite3.connect(db_path, timeout=5) as conn:
             row = conn.execute(
                 "SELECT id, status, reward_proxy FROM training_episodes "
-                "WHERE symbol = ? AND execution_id > 0 AND reward_proxy IS NOT NULL "
+                "WHERE symbol = ? AND reward_proxy IS NOT NULL "
+                "AND status NOT IN ('CYCLE_CONTEXT') "
+                "AND (execution_id > 0 OR status = 'HOLD_DECISION') "
                 "ORDER BY id DESC LIMIT 1",
                 (symbol,),
             ).fetchone()

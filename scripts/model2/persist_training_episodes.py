@@ -67,14 +67,25 @@ def _lookup_at_ms(event_timestamp_ms: int, timeframe: str) -> int:
     return event_timestamp_ms + _LOOKUP_N[timeframe] * _ms_per_candle(timeframe)
 
 
+_HOLD_NEUTRAL_THRESHOLD = 0.002  # 0.2%: variacao abaixo = mercado quieto
+
+
 def _reward_counterfactual(
     side: str, close_t: float, close_tN: float | None
 ) -> tuple[float | None, str, str]:
     if close_tN is None or close_t <= 0:
         return None, "pending", "none"
     raw = (close_tN - close_t) / close_t
-    # Lógica inversa ao PnL: bloqueou LONG e mercado subiu = oportunidade perdida
-    if str(side).upper() == "LONG":
+    side_upper = str(side).upper()
+    if side_upper == "NEUTRAL":
+        # Sem direcao: mercado quieto = HOLD correto; mercado movendo = oportunidade perdida
+        abs_raw = abs(raw)
+        if abs_raw < _HOLD_NEUTRAL_THRESHOLD:
+            reward = _HOLD_NEUTRAL_THRESHOLD - abs_raw  # pequeno positivo
+        else:
+            reward = -abs_raw  # penalidade proporcional ao movimento perdido
+    elif side_upper == "LONG":
+        # Lógica inversa ao PnL: bloqueou LONG e mercado subiu = oportunidade perdida
         reward = -raw
     else:
         reward = raw
@@ -313,6 +324,87 @@ def _latest_execution_episode_by_symbol(
     return snapshots
 
 
+def _persist_hold_decision_episodes(
+    m2_conn: sqlite3.Connection,
+    src_conn: sqlite3.Connection,
+    *,
+    symbols: list[str],
+    timeframe: str,
+    cursor_ms: int,
+    now_ms: int,
+    run_id: str,
+) -> int:
+    """Cria episodios HOLD_DECISION a partir de model_decisions com action='HOLD'.
+
+    Cada decisao HOLD gera um episodio treinavel com reward diferido (T+N candles).
+    Idempotente via INSERT OR IGNORE na chave hold_decision:{id}:{ts}.
+    """
+    if not symbols:
+        return 0
+
+    # Verificar se a tabela model_decisions existe (pode nao existir em DBs antigos)
+    has_table = m2_conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='model_decisions'"
+    ).fetchone()
+    if not has_table:
+        return 0
+
+    placeholders = ", ".join(["?"] * len(symbols))
+    rows = m2_conn.execute(
+        f"""
+        SELECT id, decision_timestamp, symbol, input_json
+        FROM model_decisions
+        WHERE action = 'HOLD'
+          AND symbol IN ({placeholders})
+          AND decision_timestamp > ?
+          AND decision_timestamp <= ?
+        ORDER BY decision_timestamp ASC
+        """,
+        (*symbols, cursor_ms, now_ms),
+    ).fetchall()
+
+    inserted = 0
+    for row in rows:
+        decision_id = int(row[0])
+        decision_ts = int(row[1])
+        symbol = str(row[2])
+        input_data = _safe_json_dict(row[3])
+
+        close_price = float(input_data.get("close_price", 0.0) or 0.0)
+        signal_side = str(input_data.get("signal_side", "NEUTRAL")).upper()
+
+        episode_key = f"hold_decision:{decision_id}:{decision_ts}"
+        reward_lookup = _lookup_at_ms(decision_ts, timeframe)
+
+        features: dict[str, Any] = {
+            "close_t": close_price,
+            "signal_side": signal_side,
+            "latest_candle": _latest_candle(src_conn, symbol=symbol, timeframe=timeframe),
+        }
+
+        m2_conn.execute(
+            """
+            INSERT OR IGNORE INTO training_episodes (
+                episode_key, cycle_run_id, execution_id, symbol, timeframe,
+                status, event_timestamp, label, reward_proxy, reward_source,
+                reward_lookup_at_ms, features_json, target_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                episode_key, run_id, 0, symbol, timeframe,
+                "HOLD_DECISION", decision_ts, "pending", None, "none",
+                reward_lookup,
+                json.dumps(features, ensure_ascii=True, sort_keys=True),
+                "{}",
+                now_ms,
+            ),
+        )
+        inserted += 1
+
+    m2_conn.commit()
+    return inserted
+
+
 def run_persist_training_episodes(
     *,
     source_db_path: str | Path,
@@ -350,6 +442,17 @@ def run_persist_training_episodes(
                 "SELECT DISTINCT symbol FROM signal_executions ORDER BY symbol"
             ).fetchall()
             symbol_filter = [str(row[0]) for row in rows]
+
+        # Episodios HOLD_DECISION: uma entrada por ciclo para cada decisao HOLD do modelo
+        _persist_hold_decision_episodes(
+            model2_conn,
+            source_conn,
+            symbols=symbol_filter,
+            timeframe=timeframe,
+            cursor_ms=last_cursor_ms,
+            now_ms=now_ms,
+            run_id=run_id,
+        )
 
         placeholders = ", ".join(["?"] * len(symbol_filter)) if symbol_filter else ""
         query = [
