@@ -23,6 +23,29 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-151] BLID-100 CONCLUIDO — 2026-03-26
+
+- Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
+- Arquivos: core/model2/cycle_report.py,
+  scripts/model2/train_ppo_incremental.py,
+  tests/test_blid100_pending_counter.py
+- Correcao: collect_training_info usa completed_at_ms (INTEGER ms);
+  record_training_log grava completed_at_ms via ALTER TABLE lazy;
+  fallback TEXT para DBs legados
+- Status: REVISADO_APROVADO
+
+---
+
+### [SYNC-150] BLID-100 IDENTIFICADO — 2026-03-26
+
+- Agente: 1.backlog-development
+- Arquivo alterado: docs/BACKLOG.md
+- BLID-100 criado: corrigir contador de episodios pendentes apos retreino
+- Causa raiz: comparacao int vs string em collect_training_info
+- Status: Em analise, pronto para PO priorizar
+
+---
+
 ### [SYNC-149] BLID-099 - Conclusao: aprendizado continuo por ciclo (HOLD_DECISION)
 
 **Data/Hora**: 2026-03-26 BRT

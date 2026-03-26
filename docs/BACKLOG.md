@@ -5481,3 +5481,60 @@ Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
 Resolve o aprendizado esparso e habilita o modelo a decidir timing de
 entrada/saida com base em evidencia continua. Pre-requisito para qualquer
 melhoria de qualidade de decisao em mercados sem trades frequentes.
+
+---
+
+### TAREFA BLID-100 - Corrigir contador de episodios pendentes apos retreino
+
+Status: Em analise
+Prioridade proposta: Alta
+Sprint proposto: Sprint atual
+
+PO: Score 3.30 — display quebrado compromete decisao de retreino; causa raiz
+clara (int vs string); correcao pontual em 2 arquivos sem risco arquitetural.
+
+SA: Opcao B (inline): strftime('%s', completed_at)*1000 na query; train_ppo grava
+completed_at_ms via ALTER TABLE lazy; zero schema migration; 2 arquivos.
+
+Status: CONCLUIDO
+Suite: tests/test_blid100_pending_counter.py (6 GREEN em 2026-03-26)
+SE: collect_training_info usa completed_at_ms (int) com fallback TEXT;
+record_training_log grava completed_at_ms via ALTER TABLE lazy;
+6/6 GREEN, zero regressoes.
+TL: 31/31 GREEN reproduzido; mypy sem regressoes; retrocompat garantida; APROVADO.
+DOC: SYNCHRONIZATION.md SYNC-151 adicionado; cycle_report e train_ppo documentados.
+
+**Contexto e motivacao:**
+
+O display operacional mostra `pendentes: 101/100` mesmo apos retreino concluido.
+A causa raiz e uma comparacao de tipos incompativeis em `collect_training_info`:
+
+- `rl_training_log.completed_at` e string ISO (`2026-03-25 23:04:11`)
+- `training_episodes.created_at` e inteiro em milissegundos
+
+A query `created_at > MAX(completed_at)` compara int vs string — resultado
+indefinido no SQLite, por isso o contador nunca zera apos o retreino.
+
+**Escopo:**
+
+1. Converter `completed_at` para ms inline na query usando
+   `CAST(strftime('%s', completed_at) AS INTEGER) * 1000`
+2. Atualizar `train_ppo_incremental.py` para gravar `completed_at_ms INTEGER`
+   na tabela (retrocompatibilidade: manter coluna string existente)
+3. Atualizar `collect_training_info` em `cycle_report.py` para usar
+   `completed_at_ms` quando disponivel, com fallback de conversao inline
+4. Garantir que `pending` retorne 0 imediatamente apos retreino
+
+**Criterios de aceite:**
+
+- Apos retreino, `pending_episodes` retorna 0
+- Display mostra `pendentes: 0/100` imediatamente apos retreino
+- Novos episodios apos retreino incrementam o contador corretamente
+- Suite `pytest -q` sem regressoes
+
+**Dependencias:**
+
+- BLID-099 concluido (episodios HOLD_DECISION no pipeline)
+
+**Impacto:** Display correto do progresso; modelo nao fica em estado ambiguo
+de "sempre pronto para retreinar".

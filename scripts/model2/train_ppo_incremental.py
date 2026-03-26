@@ -537,13 +537,23 @@ class PPOTrainer:
         """Registra conclusao de treino em rl_training_log."""
         try:
             completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            completed_at_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
             with sqlite3.connect(str(self.model2_db_path)) as conn:
+                # Adicionar coluna completed_at_ms se nao existir (retrocompatibilidade)
+                try:
+                    conn.execute(
+                        "ALTER TABLE rl_training_log ADD COLUMN completed_at_ms INTEGER"
+                    )
+                    conn.commit()
+                except sqlite3.OperationalError:
+                    pass  # coluna ja existe
                 conn.execute(
                     """
-                    INSERT INTO rl_training_log (completed_at, episodes_used, status)
-                    VALUES (?, ?, ?)
+                    INSERT INTO rl_training_log
+                        (completed_at, completed_at_ms, episodes_used, status)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (completed_at, int(episodes_used), str(status)),
+                    (completed_at, completed_at_ms, int(episodes_used), str(status)),
                 )
                 conn.commit()
             return {

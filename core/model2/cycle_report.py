@@ -362,18 +362,44 @@ def collect_training_info(
                     last_train = row[0]
             except sqlite3.OperationalError:
                 pass
-            # Episodios com reward disponivel para treino (apos ultimo retreino)
-            # Conta apenas episodios com reward_proxy preenchido (resultado real de trade)
-            # que ainda nao foram consumidos em um ciclo de retreino.
+            # Episodios com reward disponivel para treino (apos ultimo retreino).
+            # Estrategia: usar completed_at_ms (INTEGER ms) quando disponivel para
+            # comparacao correta (int vs int). Sem a coluna, fallback para comparacao
+            # TEXT vs TEXT (comportamento legado).
             try:
-                row = conn.execute(
-                    "SELECT COUNT(*) FROM training_episodes "
-                    "WHERE reward_proxy IS NOT NULL "
-                    "  AND UPPER(COALESCE(status, '')) NOT IN ('CYCLE_CONTEXT', 'PENDING') "
-                    "  AND created_at > COALESCE("
-                    "  (SELECT MAX(completed_at) FROM rl_training_log), "
-                    "  0)"
-                ).fetchone()
+                has_ms_col = False
+                cutoff_ms: int | None = None
+                try:
+                    r = conn.execute(
+                        "SELECT MAX(completed_at_ms) FROM rl_training_log"
+                    ).fetchone()
+                    has_ms_col = True
+                    if r and r[0] is not None:
+                        cutoff_ms = int(r[0])
+                except sqlite3.OperationalError:
+                    has_ms_col = False
+
+                if has_ms_col and cutoff_ms is not None:
+                    # Caminho preferido: comparacao int vs int (ms)
+                    row = conn.execute(
+                        "SELECT COUNT(*) FROM training_episodes "
+                        "WHERE reward_proxy IS NOT NULL "
+                        "  AND UPPER(COALESCE(status, '')) NOT IN "
+                        "      ('CYCLE_CONTEXT', 'PENDING') "
+                        "  AND created_at > ?",
+                        (cutoff_ms,),
+                    ).fetchone()
+                else:
+                    # Fallback: comparacao TEXT vs TEXT (DBs sem completed_at_ms preenchido)
+                    row = conn.execute(
+                        "SELECT COUNT(*) FROM training_episodes "
+                        "WHERE reward_proxy IS NOT NULL "
+                        "  AND UPPER(COALESCE(status, '')) NOT IN "
+                        "      ('CYCLE_CONTEXT', 'PENDING') "
+                        "  AND created_at > COALESCE("
+                        "  (SELECT MAX(completed_at) FROM rl_training_log), "
+                        "  0)"
+                    ).fetchone()
                 if row:
                     pending = row[0]
             except sqlite3.OperationalError:
