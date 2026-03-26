@@ -23,6 +23,17 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-153] BLID-086 CONCLUIDO — 2026-03-26
+
+- Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
+- Arquivos: core/model2/latency_metrics.py (novo),
+  tests/test_model2_latency_metrics.py (novo)
+- record_latency/compute_percentiles/detect_latency_violations/
+  record_cycle_latencies; m2_latency_samples lazy; mypy strict Success
+- Status: CONCLUIDO
+
+---
+
 ### [SYNC-152] BLID-087 CONCLUIDO — 2026-03-26
 
 - Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate

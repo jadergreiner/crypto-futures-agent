@@ -3321,7 +3321,7 @@ rede e API, reduzindo paradas silenciosas em producao.
 
 ### TAREFA BLID-086 - Metricas de latencia em decisao e execucao
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: M2-022
 Prioridade: P1
@@ -3348,8 +3348,18 @@ Impacto:
 - Observabilidade operacional em tempo real
 - Detect degradacao antes de impactar decisoes
 
-PO: Adicionar metricas de latencia para observabilidade operacional em
-tempo real e deteccao precoce de degradacao.
+PO: Score 2.15 — observabilidade latencia; detectar degradacao antes de
+impactar decisoes; BLID-084 concluida.
+
+SA: core/model2/latency_metrics.py; m2_latency_samples lazy; percentis P50/P95/P99;
+integracao em live_cycle_short_agent.py apos ciclo; 2 arquivos afetados.
+
+Status: CONCLUIDO
+Suite: tests/test_model2_latency_metrics.py (9 GREEN em 2026-03-26)
+SE: core/model2/latency_metrics.py; record_latency, compute_percentiles,
+detect_latency_violations, record_cycle_latencies; mypy strict Success.
+TL: 9/9 GREEN; mypy Success; zero regressoes; APROVADO.
+DOC: SYNCHRONIZATION.md SYNC-153 adicionado.
 
 ### TAREFA BLID-087 - Healthcheck operacional para anomalias
 
