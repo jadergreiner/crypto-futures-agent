@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-148] BLID-098 - Conclusao: correcao de aprendizado nulo no ciclo RL
+
+**Data/Hora**: 2026-03-26 BRT
+**Status**: REVISADO_APROVADO
+**Agentes**: Tech Lead (6), Doc Advocate (7)
+
+**Resumo**: BLID-098 concluido. Corrigidos 4 defeitos estruturais que mantinham
+reward=+0.0000 apos retreino: (1) filtro SQL em load_episodes_from_db excluindo
+episodios com reward_proxy NULL/CYCLE_CONTEXT; (2)_build_observation usando
+features reais de features_json ao inves de placeholder zeros; (3) _load_ppo_model
+carregando .zip via PPO.load() ao inves de interpretar como bool; (4) log
+pos-retreino com reward_mean/std/n_nonzero/checkpoint_mtime. Suite pytest 6/6
+GREEN. risk_gate e circuit_breaker intocados.
+
+**Documentos Alterados**:
+
+- `docs/BACKLOG.md`: BLID-098 atualizado com rodape DOC e status REVISADO_APROVADO
+- `docs/SYNCHRONIZATION.md`: este registro [SYNC-148] adicionado
+
+---
+
 ### [SYNC-147] BLID-098 - Abertura de tarefa: aprendizado nulo pos-retreino
 
 **Data/Hora**: 2026-03-25 BRT

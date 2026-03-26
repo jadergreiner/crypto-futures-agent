@@ -5397,3 +5397,6 @@ Hipoteses a investigar:
 **Impacto:** Sem correcao, o modelo PPO nunca evolui apesar do ciclo de retreino
 estar ativo — todo o investimento em coleta de episodios e infraestrutura de
 retreino e desperdicado. Bloqueia qualquer melhoria de qualidade de decisao.
+
+DOC: 4 defeitos corrigidos (filtro SQL, _build_observation, carga PPO.load,
+log pos-retreino); 6/6 testes GREEN; ciclo RL restaurado. [SYNC-148]
