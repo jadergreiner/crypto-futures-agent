@@ -5401,3 +5401,67 @@ retreino e desperdicado. Bloqueia qualquer melhoria de qualidade de decisao.
 
 DOC: 4 defeitos corrigidos (filtro SQL, _build_observation, carga PPO.load,
 log pos-retreino); 6/6 testes GREEN; ciclo RL restaurado. [SYNC-148]
+
+---
+
+### TAREFA BLID-099 - Aprendizado continuo por ciclo: reward para decisao HOLD do modelo
+
+Status: IDENTIFICADO
+Prioridade proposta: Alta
+Sprint proposto: A definir pelo PO
+
+**Contexto e motivacao:**
+
+O aprendizado atualmente so ocorre quando ha trade executado (FILLED/EXITED) ou
+bloqueado pelo order layer (BLOCKED, via BLID-093). Quando o modelo decide HOLD
+— a decisao mais frequente — nenhum episodio com reward e gerado. O pipeline de
+treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de aprender
+timing de entrada e de saida do mercado.
+
+O display operacional confirma o problema:
+
+```
+Episodio : N/A nao persistido | reward: +0.0000
+```
+
+Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
+
+- HOLD correto (mercado desfavoravel): reward positivo
+- HOLD incorreto (oportunidade perdida): reward negativo
+- Cada ciclo sem trade deve produzir pelo menos um episodio treinavel
+
+**Escopo:**
+
+1. Identificar onde decisoes HOLD do modelo sao registradas
+   (tabela `model_decisions`, `live_cycle.py` ou `live_service.py`)
+   e o campo que indica direcao favoravel esperada
+2. Criar episodio de decisao HOLD em `persist_training_episodes.py`
+   a cada ciclo, usando o mecanismo de reward diferido
+   (`reward_lookup_at_ms`) do BLID-093
+3. Calcular reward counterfactual para HOLD: se preco no T+N confirma
+   que ficar fora foi certo → reward positivo; se perdeu oportunidade
+   → reward negativo
+4. Garantir que episodios HOLD sejam incluidos no filtro de treinamento
+   em `train_ppo_incremental.py` (execution_id pode ser 0 para HOLD)
+5. Atualizar `_query_episode_info` em `operator_cycle_status.py` para exibir o
+   episodio HOLD mais recente quando nao houver trade real disponivel
+6. Adicionar testes RED cobrindo: persistencia de episodio HOLD por ciclo, calculo
+   de reward counterfactual HOLD, inclusao no dataset de treino
+
+**Criterios de aceite:**
+
+- A cada ciclo HOLD, um episodio e persistido com `reward_lookup_at_ms`
+- Apos T+N candles, reward counterfactual preenchido pelo `flush_deferred_rewards`
+- Display exibe episodio HOLD mais recente com reward real (nao +0.0000)
+- O dataset de treino inclui episodios HOLD com reward nao nulo
+- Suite `pytest -q` sem regressoes
+
+**Dependencias:**
+
+- BLID-093 concluido (infraestrutura `flush_deferred_rewards` disponivel)
+- BLID-098 concluido (filtros de dataset e display corrigidos)
+
+**Impacto:** O modelo passa a aprender com cada ciclo, nao apenas com trades.
+Resolve o aprendizado esparso e habilita o modelo a decidir timing de
+entrada/saida com base em evidencia continua. Pre-requisito para qualquer
+melhoria de qualidade de decisao em mercados sem trades frequentes.
