@@ -130,6 +130,11 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   recommended_action`). No modo shadow, `_execute_ready_signal` retorna esses
   campos canonicos para manter auditabilidade consistente entre preflight e
   execucao.
+- Gate de contrato de schema no preflight (M2-024.13): check 3 valida
+  tabelas/colunas obrigatorias e presenca da migracao alvo (ultima versao em
+  `schema_migrations`). Em divergencia, bloqueia com evidencia estruturada
+  (`missing_tables`, `missing_columns`, `missing_migrations`,
+  `applied_migrations`, `expected_latest_migration`).
 
 Resiliencia e fail-safe de pipeline (M2-027):
 

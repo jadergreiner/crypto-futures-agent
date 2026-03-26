@@ -40,7 +40,7 @@ Em progresso:
    Dependencia minima: concluir Fase E em treino e comparativos.
    Impacto: melhorar qualidade de decisao e base de retreino.
 
-Pendencias operacionais:
+Pendencias operacionais abertas:
 
 - BLID-075 - Concluir onboarding operacional de FLUXUSDT.
    Dependencia minima: FLUXUSDT habilitado no pipeline RL.
@@ -66,33 +66,20 @@ Pendencias operacionais:
 - BLID-082 - Corrigir ausencia de mensagem de Candle Atualizado no live.
    Dependencia minima: evidencia reproduzivel no log `[M2][SYM]` em modo live.
    Impacto: restaurar observabilidade do dado fresco por simbolo no ciclo M2.
-- BLID-0E4 - Corrigir lock de arquivo em persist_training_episodes e
-healthcheck.
-   Dependencia minima: evidencia de "arquivo já está sendo usado" nos ciclos M2.
-   Impacto: remover bloqueador de operação e garantir ciclo live sem falhas
-   transitórias.
 - BLID-083 - Estratificar suite de testes por etapa do workflow.
    Dependencia minima: baseline atual de `pytest -q tests/` com 200 testes
    em 66.99s, mapa de suites por criticidade e risco.
    Impacto: evitar execucao total em toda etapa sem perder cobertura critica.
-- BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino.
-   Dependencia minima: contador exibindo 101/100 apos ciclo de treino.
-   Impacto: restaurar contagem correta de episodios; evitar acumulo falso.
-- BLID-097 - Integrar io_retry em scripts com lock de arquivo (BLID-0E4).
-   Dependencia minima: BLID-0E4 CONCLUIDO; io_retry.py disponivel;
-   logs confirmam erro em persist, healthcheck e operator_cycle_status.
-   Impacto: eliminar "arquivo ja usado" remanescente apos BLID-0E4.
-- BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino.
-   Status: CONCLUIDO (2026-03-26) — 6/6 testes GREEN;
-   mypy sem regressao; erro None iter eliminado
-   Dependencia minima: retreino disparado (BLID-094 concluido); episodios com
-   reward_proxy preenchido (BLID-091 concluido); evidencia de reward +0.0000 em
-   todos os episodios apos ciclo de treino completo.
-   Impacto: sem aprendizado efetivo, modelo PPO nao evolui apesar do retreino
-   ocorrer — ciclo de aprendizado esta estruturalmente quebrado.
 - M2-018.2 - Testes de integracao com Binance Testnet.
    Dependencia minima: chaves testnet e simbolo live controlado.
    Impacto: validar reconciliacao e protecao antes de novos ramp-ups.
+
+Priorizacao PO sugerida (2026-03-26):
+
+- P0 (bloqueador operacional imediato): BLID-078, BLID-081, BLID-080,
+  BLID-076, M2-018.2.
+- P1 (observabilidade e confianca operacional): BLID-079, BLID-082, BLID-077, BLID-083.
+- P2 (expansao controlada e evolucao): BLID-075, M2-016.2, M2-016.3.
 
 Backlog estruturado para priorizacao:
 
@@ -111,6 +98,8 @@ Observacao de organizacao:
 
 - Itens concluidos com subtarefas ainda pendentes devem gerar nova tarefa
    rastreavel em vez de manter pendencia escondida em checklist concluido.
+- Itens removidos da fila aberta por ja estarem resolvidos:
+  BLID-0E4, BLID-096 (cancelado), BLID-097, BLID-098, BLID-099 e BLID-100.
 
 ## PACOTE M2-024 - Hardening de decisao e execucao live
 
@@ -535,7 +524,7 @@ Dependencias:
 
 ### TAREFA M2-024.13 - Gate preflight com contrato de schema M2
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 7.40 (Valor=8, Urg=8, Risco=9, Esf=4)
 
@@ -549,6 +538,33 @@ obrigatorios antes de qualquer live.
 Dependencias:
 
 - M2-024.1
+
+SE: Inicio em 2026-03-26. Implementado gate de contrato de schema no
+`go_live_preflight` com validacao de migracao alvo e colunas obrigatorias
+por tabela critica. Evidencias: `pytest -q tests/test_model2_go_live_preflight.py`
+12/12 PASS; `mypy --strict scripts/model2/go_live_preflight.py
+tests/test_model2_go_live_preflight.py` SUCCESS.
+
+SA: Escopo refinado para QA: validar check3 com contrato
+schema+migracao+colunas, fail-safe e sem bypass de guardrails.
+
+QA: Suite RED/contratual pronta em `tests/test_model2_go_live_preflight.py`
+(14 testes). Cobre R1-R5: missing_tables, missing_columns, missing_migrations,
+evidencia estruturada e modo validacao-only sem side effects.
+
+SE: GREEN concluido em 2026-03-26. Check3 valida contrato de schema
+(tabelas/colunas) e migracao alvo com evidencia estruturada. Validacoes:
+`pytest -q tests/` -> 307 passed; `mypy --strict scripts/model2/go_live_preflight.py
+tests/test_model2_go_live_preflight.py` -> Success.
+
+TL: APROVADO. Reproduzido localmente: pytest 307/307 e mypy strict limpo
+nos modulos da task; guardrails e fail-safe preservados.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com contrato do
+check3 (schema+colunas+migracao alvo) e evidencia estruturada.
+
+PM: ACEITE em 2026-03-26. Trilha validada (QA->SE->TL->DOC); gate de schema
+ativo no preflight com evidencias e suite verde.
 
 ### TAREFA M2-024.14 - Politica de rollback operacional por severidade
 
@@ -884,7 +900,7 @@ SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 
 ### TAREFA M2-026.1 - Observabilidade de risk_gate com telemetria estruturada
 
-Status: CONCLUIDO
+Status: REVISADO_APROVADO
 
 SE: GREEN concluido em 2026-03-25. core/model2/risk_gate_telemetry.py criado com
 RiskGateBlockEvent (frozen dataclass) e RiskGateTelemetryRecorder
@@ -898,8 +914,6 @@ no modulo novo. Erro CircuitBreakerState pre-existente confirmado.
 Guardrails risk_gate/circuit_breaker intactos, hook add-only validado.
 
 DOC: ARQUITETURA_ALVO.md extensao M2-026.1; SYNCHRONIZATION.md SYNC-144.
-
-Status: REVISADO_APROVADO
 
 QA: Suite RED 6 testes: 4 fail (SIZE_EXCEEDS_LIMIT/STOP_LOSS_TOO_LOOSE
 nao em catalog esperado), 2 pass (struct OK)
@@ -933,6 +947,7 @@ Dependencias:
 ### TAREFA M2-026.2 - Observabilidade de circuit_breaker com eventos de transição
 
 Status: REVISADO_APROVADO
+
 Inicio: 2026-03-23 12:10 BRT
 Conclusao: 2026-03-23 12:45 BRT
 Revisao: 2026-03-23 13:00 BRT
@@ -1026,6 +1041,7 @@ Dependencias:
 ### TAREFA M2-026.5 - Governança de logs com rotação e retenção por severidade
 
 Status: REVISADO_APROVADO
+
 Inicio: 2026-03-23 12:10 BRT
 Conclusao: 2026-03-23 12:45 BRT
 Revisao: 2026-03-23 13:00 BRT
@@ -1247,7 +1263,7 @@ Guardrails preservados. Pronto para QA-TDD.
 
 ### TAREFA M2-028.1 - Contrato de promocao GO/NO-GO shadow→paper
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Suite: tests/test_model2_m2_028_1_promotion_gate.py (11 testes, 11 passed GREEN)
 
@@ -1268,8 +1284,6 @@ DOC: ARQUITETURA_ALVO M2-028.1 adicionado; REGRAS_DE_NEGOCIO RN-023;
 SYNCHRONIZATION SYNC-131 atualizado.
 
 PM: ACEITE 2026-03-24. Trilha completa validada. Backlog CONCLUIDO.
-
-Status: CONCLUIDO
 
 Descricao:
 Definir criterios objetivos e verificaveis para promover o pipeline de shadow
@@ -2044,6 +2058,7 @@ sync documental fechado e pacote pronto para publicacao em main.
 ### TAREFA M2-001.1 - Criar esquema de oportunidades
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Criar tabela `opportunities`. [OK]
@@ -2060,6 +2075,7 @@ Evidencias:
 ### TAREFA M2-001.2 - Criar esquema de eventos
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Criar tabela `opportunity_events`. [OK]
@@ -2074,6 +2090,7 @@ Evidencias:
 ### TAREFA M2-001.3 - Definir enumeracoes de estado
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Estados oficiais. [OK]
@@ -2093,6 +2110,7 @@ Evidencias:
 ### TAREFA M2-002.1 - Implementar detector do padrao inicial
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Padrao "falha em regiao para venda". [OK]
@@ -2107,6 +2125,7 @@ Evidencias:
 ### TAREFA M2-002.2 - Persistir tese inicial
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Gravar niveis de zona. [OK]
@@ -2126,6 +2145,7 @@ Evidencias:
 ### TAREFA M2-003.1 - Monitoramento por vela
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Consumir oportunidades abertas. [OK]
@@ -2140,6 +2160,7 @@ Evidencias:
 ### TAREFA M2-003.2 - Regras de validacao
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Confirmar rejeicao. [OK]
@@ -2157,6 +2178,7 @@ Evidencias:
 ### TAREFA M2-003.3 - Regras de invalidacao/expiracao
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Invalidar por quebra da premissa. [OK]
@@ -2177,6 +2199,7 @@ Evidencias:
 ### TAREFA M2-004.1 - Painel de oportunidades
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Contagem por estado. [OK]
@@ -2193,6 +2216,7 @@ Evidencias:
 ### TAREFA M2-004.2 - Registros de auditoria
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Registro por transicao. [OK]
@@ -2211,6 +2235,7 @@ Evidencias:
 ### TAREFA M2-005.1 - Testes unitarios de transicao
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Casos validos e invalidos de mudanca de estado. [OK]
@@ -2227,6 +2252,7 @@ Evidencias:
 ### TAREFA M2-005.2 - Reprocessamento historico
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Reprocessar velas passadas. [OK]
@@ -2249,6 +2275,7 @@ Evidencias:
 ### TAREFA M2-006.1 - Gerar sinal padrao apos validacao
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Contrato canonico de sinal padrao e regra M2-006.1. [OK]
@@ -2281,6 +2308,7 @@ Evidencias:
 ### TAREFA M2-007.1 - Consumir sinal validado na camada de ordem
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Consumir sinais `CREATED` de `technical_signals` na camada de ordem M2. [OK]
@@ -2300,6 +2328,7 @@ Evidencias:
 ### TAREFA M2-007.2 - Adaptar technical_signals para trade_signals legado
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Adaptador deterministico `technical_signals -> trade_signals`. [OK]
@@ -2318,6 +2347,7 @@ Evidencias:
 ### TAREFA M2-007.3 - Observabilidade do fluxo de sinais
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Snapshot materializado do fluxo `CREATED -> CONSUMED -> exportado`. [OK]
@@ -2339,6 +2369,7 @@ Evidencias:
 ### TAREFA M2-008.1 - Orquestrar pipeline diario ponta a ponta
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Runner unico para encadear etapas operacionais M2 em sequencia fixa. [OK]
@@ -2354,6 +2385,7 @@ Evidencias:
 ### TAREFA M2-008.2 - Operacionalizar execucao agendada
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Runner de agendamento diario com horario fixo e timezone configuravel. [OK]
@@ -2369,6 +2401,7 @@ Evidencias:
 ### TAREFA M2-008.3 - Hardening operacional (monitoramento e alertas)
 
 Status: CONCLUIDA (2026-03-08)
+
 Entrega:
 
 1. Healthcheck automatizado da execucao agendada com alerta por exit code. [OK]
@@ -2391,6 +2424,7 @@ Evidencias:
 ### TAREFA M2-009.1 - Modelar ciclo de vida de execucao
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Criar entidade dedicada `signal_executions` para o ciclo real do M2. [OK]
@@ -2410,6 +2444,7 @@ Evidencias:
 ### TAREFA M2-009.2 - Gate live do M2
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Admitir apenas `technical_signals` em `CONSUMED`. [OK]
@@ -2427,6 +2462,7 @@ Evidencias:
 ### TAREFA M2-009.3 - Executor de entrada MARKET
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Enviar ordem de entrada `MARKET` para o mercado real. [OK]
@@ -2471,6 +2507,7 @@ Evidencias:
 ### TAREFA M2-009.4 - Fail-safe de protecao
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Criar protecoes `STOP_MARKET` e `TAKE_PROFIT_MARKET` apos fill. [OK]
@@ -2489,6 +2526,7 @@ Evidencias:
 ### TAREFA M2-010.1 - Reconciliador de ordens e posicoes
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Recuperar fills apos restart a partir de ordem enviada/posicao aberta. [OK]
@@ -2504,6 +2542,7 @@ Evidencias:
 ### TAREFA M2-010.2 - Dashboard live
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Publicar backlog por status do ciclo live. [OK]
@@ -2521,6 +2560,7 @@ Evidencias:
 ### TAREFA M2-010.3 - Healthcheck e runbook
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Alertar quando houver dashboard stale, posicao sem protecao ou divergencia
@@ -2539,6 +2579,7 @@ Evidencias:
 ### TAREFA M2-011.1 - Runner live_execute
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Publicar runner de staging e entrada live/shadow. [OK]
@@ -2554,6 +2595,7 @@ Evidencias:
 ### TAREFA M2-011.2 - Runner live_reconcile
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Publicar runner de reconciliacao continua. [OK]
@@ -2569,6 +2611,7 @@ Evidencias:
 ### TAREFA M2-011.3 - Runner live_cycle
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Encadear `live_execute -> live_reconcile -> live_dashboard`. [OK]
@@ -2588,6 +2631,7 @@ Evidencias:
 ### TAREFA M2-012.1 - Contadores persistidos no M2
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Calcular limite diario e cooldown a partir do banco canonico M2. [OK]
@@ -2604,6 +2648,7 @@ Evidencias:
 ### TAREFA M2-012.2 - Configuracao explicita de ativacao
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Expor `M2_EXECUTION_MODE=shadow|live`. [OK]
@@ -2622,6 +2667,7 @@ Evidencias:
 ### TAREFA M2-012.3 - Exclusividade por simbolo
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Garantir no maximo uma execucao ativa live por simbolo. [OK]
@@ -2639,6 +2685,7 @@ Evidencias:
 ### TAREFA M2-013.1 - Sincronizar arquitetura, modelagem e regras de negocio
 
 Status: CONCLUIDA (2026-03-09)
+
 Entrega:
 
 1. Atualizar backlog, arquitetura alvo, modelagem de dados e regras
@@ -2662,6 +2709,7 @@ Evidencias:
 ### TAREFA M2-014.1 - Runner unico de preflight para go-live
 
 Status: CONCLUIDA (2026-03-13)
+
 Entrega:
 
 1. Publicar runner unico `go_live_preflight.py` cobrindo os 10 itens
@@ -2684,6 +2732,7 @@ Evidencias:
 ### TAREFA M2-015.1 - Consolidar entrada operacional em `iniciar.bat`
 
 Status: CONCLUIDA (2026-03-14)
+
 Entrega:
 
 1. Manter um unico agente de inicializacao no Windows (`iniciar.bat`). [OK]
@@ -2704,6 +2753,7 @@ Evidencias:
 ### TAREFA M2-015.2 - Coleta por ciclo e deduplicacao de candles
 
 Status: CONCLUIDA (2026-03-14)
+
 Entrega:
 
 1. Coleta `H4` e `M5` por ciclo no fluxo `iniciar.bat` opcao `2`. [OK]
@@ -2816,6 +2866,7 @@ Evidencias:
 ### TAREFA M2-016.3 - Melhorias de features e reward engineering
 
 Status: EM_PROGRESSO (iniciada 2026-03-14, Fases A-D.4 concluídas,
+
 Fase E iniciada)
 
 Entrega atual (Fases A-D.4):
@@ -3050,6 +3101,7 @@ seguranca operacional.
 ### TAREFA M2-020.1 - Definir contrato unico de decisao do modelo
 
 Status: CONCLUIDA (2026-03-21)
+
 Entrega:
 
 1. Especificar entrada e saida da decisao do modelo.
@@ -3071,6 +3123,7 @@ Evidencias:
 ### TAREFA M2-020.2 - Criar camada de inferencia desacoplada
 
 Status: CONCLUIDA (2026-03-21)
+
 Entrega:
 
 1. Implementar servico de inferencia independente da tese.
@@ -3101,6 +3154,7 @@ Evidencias:
 ### TAREFA M2-020.3 - Consolidar state builder de mercado
 
 Status: CONCLUIDA (2026-03-21)
+
 Entrega:
 
 1. Consolidar estado unico para inferencia em tempo real. [OK]
@@ -3124,6 +3178,7 @@ Evidencias:
 ### TAREFA M2-020.4 - Integrar decisao ao orquestrador de execucao
 
 Status: CONCLUIDA (2026-03-21)
+
 Entrega:
 
 1. Substituir origem de decisao atual pelo contrato do modelo. [OK]
@@ -3147,6 +3202,7 @@ Evidencias:
 ### TAREFA M2-020.5 - Manter guard-rails sem estrategia externa
 
 Status: CONCLUIDA (2026-03-21)
+
 Entrega:
 
 1. Preservar `risk/risk_gate.py` e `risk/circuit_breaker.py` no caminho
@@ -3188,6 +3244,7 @@ Evidencias:
 ### TAREFA M2-020.6 - Persistir episodios completos de aprendizado
 
 Status: BACKLOG
+
 Entrega:
 
 1. Persistir estado, acao, reward e proximo estado.
@@ -3201,6 +3258,7 @@ Critérios de aceite:
 ### TAREFA M2-020.7 - Definir reward para operar e nao operar
 
 Status: BACKLOG
+
 Entrega:
 
 1. Modelar reward de PnL liquido e custo operacional.
@@ -3214,6 +3272,7 @@ Critérios de aceite:
 ### TAREFA M2-020.8 - Reforcar reconciliacao model-driven
 
 Status: BACKLOG
+
 Entrega:
 
 1. Reconciliar decisao do modelo com estado real da exchange.
@@ -3227,6 +3286,7 @@ Critérios de aceite:
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
 Status: BACKLOG
+
 Entrega:
 
 1. Operar em shadow com modelo decidindo sozinho.
@@ -3240,6 +3300,7 @@ Critérios de aceite:
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
 Status: BACKLOG
+
 Entrega:
 
 1. Coleta continua de episodios para treino.
@@ -3254,6 +3315,7 @@ Critérios de aceite:
 ### TAREFA M2-020.11 - Definir gate de promocao GO/NO-GO
 
 Status: BACKLOG
+
 Entrega:
 
 1. Definir criterios minimos de risco, estabilidade e consistencia.
@@ -3267,6 +3329,7 @@ Critérios de aceite:
 ### TAREFA M2-020.12 - Migrar live para decisao unica do modelo
 
 Status: BACKLOG
+
 Entrega:
 
 1. Tornar modelo a fonte unica de decisao em live.
@@ -3280,6 +3343,7 @@ Critérios de aceite:
 ### TAREFA M2-020.13 - Desativar estrategia legada
 
 Status: BACKLOG
+
 Entrega:
 
 1. Remover acoplamentos legados de estrategia deterministica.
@@ -3293,6 +3357,7 @@ Critérios de aceite:
 ### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
 
 Status: BACKLOG
+
 Entrega:
 
 1. Atualizar docs tecnicos e runbook para fluxo model-driven.
@@ -3308,6 +3373,7 @@ Critérios de aceite:
 ### TAREFA M2-021.1 - Blindar idempotencia por decision_id no live
 
 Status: CONCLUIDO
+
 Entrega:
 
 1. Garantir deduplicacao por `decision_id` em decisao, admissao e execucao.
@@ -3469,7 +3535,7 @@ rede e API, reduzindo paradas silenciosas em producao.
 
 ### TAREFA BLID-086 - Metricas de latencia em decisao e execucao
 
-Status: Em analise
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P1
@@ -3503,7 +3569,6 @@ SA: core/model2/latency_metrics.py; m2_latency_samples lazy; percentis
 P50/P95/P99;
 integracao em live_cycle_short_agent.py apos ciclo; 2 arquivos afetados.
 
-Status: CONCLUIDO
 Suite: tests/test_model2_latency_metrics.py (9 GREEN em 2026-03-26)
 SE: core/model2/latency_metrics.py; record_latency, compute_percentiles,
 detect_latency_violations, record_cycle_latencies; mypy strict Success.
@@ -3512,7 +3577,7 @@ DOC: SYNCHRONIZATION.md SYNC-153 adicionado.
 
 ### TAREFA BLID-087 - Healthcheck operacional para anomalias
 
-Status: Em analise
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P1
@@ -3550,7 +3615,6 @@ de impactar decisoes; integra com ciclo M2 existente.
 SA: core/model2/healthcheck.py com 5 checks + severity (CRITICAL/HIGH/WARN/OK);
 m2_healthchecks via CREATE TABLE lazy; sem migration; 2 arquivos afetados.
 
-Status: CONCLUIDO
 Suite: tests/test_model2_healthcheck.py (10 GREEN em 2026-03-26)
 SE: core/model2/healthcheck.py criado; 3 checks (stagnation, deferred_timeout,
 permanent_lock); m2_healthchecks via lazy CREATE TABLE; mypy strict Success.
@@ -3999,6 +4063,7 @@ e liberado para publicacao em main.
 ### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Definir taxonomia minima de reason codes para gates e reconciliacao.
@@ -4012,6 +4077,7 @@ Critérios de aceite:
 ### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Definir politica de retry com limites para chamadas criticas.
@@ -4025,6 +4091,7 @@ Critérios de aceite:
 ### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Comparar frescor e consistencia de candles por simbolo/timeframe.
@@ -4038,6 +4105,7 @@ Critérios de aceite:
 ### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Medir latencia de decisao, admissao, envio e reconciliacao.
@@ -4051,6 +4119,7 @@ Critérios de aceite:
 ### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Testar saida externa, cancelamento manual e partial fills.
@@ -4064,6 +4133,7 @@ Critérios de aceite:
 ### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Reidratar contexto de posicoes, sinais e execucoes pendentes.
@@ -4077,6 +4147,7 @@ Critérios de aceite:
 ### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Estratificar testes de integracao por criticidade de risco operacional.
@@ -4090,6 +4161,7 @@ Critérios de aceite:
 ### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
 
 Status: IMPLEMENTADO
+
 Entrega:
 
 1. Definir passos de contencao, diagnostico e recuperacao.
@@ -4102,7 +4174,8 @@ Critérios de aceite:
 
 ### TAREFA M2-021.10 - Ensaiar rollback operacional com preflight
 
-Status: IMPLEMENTADO
+Status: CONCLUIDA
+
 Entrega:
 
 1. Simular promocao e rollback com `go_live_preflight.py` como gate.
@@ -4113,7 +4186,14 @@ Critérios de aceite:
 1. Rollback executa sem romper reconciliacao e controles de risco.
 2. Evidencia de ensaio fica registrada para auditoria de release.
 
-3. Timeline: ~20-30 min para completar treinos (em andamento)
+Evidencias:
+
+1. `scripts/model2/go_live_preflight.py`
+2. `docs/RUNBOOK_M2_OPERACAO.md`
+3. `docs/REGRAS_DE_NEGOCIO.md`
+4. `docs/ARQUITETURA_ALVO.md`
+
+5. Timeline: ~20-30 min para completar treinos (em andamento)
 
 Proximas Fases:
 
@@ -4143,8 +4223,6 @@ Evidencias (Fase E.9 — Scripts Criados):
 ### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
 
 #### E.10 - Sinais ao vivo com votacao ensemble + paper trading (2026-03-15+)
-
-Status: EM PROGRESSO (scripts criados, integração daily_pipeline)
 
 #### BLID-068 (E.10): Integrar Ensemble em Daily Pipeline
 
@@ -4178,8 +4256,6 @@ Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
 5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
 
 Dependências: BLID-067 (E.9 scripts prontos) ✅
-
-Status: CONCLUIDA
 
 ---
 
@@ -4344,6 +4420,8 @@ Evidencias:
 
 Status: REVISADO_APROVADO (2026-03-22)
 
+
+
 Entrega:
 
 1. Configurar chaves de testnet em `.env`
@@ -4409,6 +4487,8 @@ Suite QA-TDD (RED):
 
 Status: CONCLUIDA (2026-03-22)
 
+
+
 Entrega:
 
 1. Definir `M2_EXECUTION_MODE=live` + `TRADING_MODE=live` no `.env`. [OK]
@@ -4451,6 +4531,8 @@ Regras inviolaveis:
 ### TAREFA M2-019.1 - EntryDecisionEnv: environment de decisao de entrada
 
 Status: CONCLUIDA (2026-03-22)
+
+
 
 Entrega:
 
@@ -4504,6 +4586,8 @@ Dependencias: Nenhuma
 
 Status: CONCLUIDA (2026-03-22)
 
+
+
 Entrega:
 
 1. Criar `agent/episode_loader.py` com load_episodes(db_path, symbol,
@@ -4538,6 +4622,8 @@ Dependencias: M2-019.1 [OK]
 ### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
 
 Status: IMPLEMENTADO
+
+
 
 Entrega:
 
@@ -4575,6 +4661,8 @@ fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
 
 Status: IMPLEMENTADO
 
+
+
 Entrega:
 
 1. Criar `scripts/model2/train_entry_agents.py` compativel com
@@ -4609,6 +4697,8 @@ carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
 ### TAREFA M2-019.5 - EntryRLFilter: stage de filtragem por RL no pipeline
 
 Status: CONCLUIDO
+
+
 
 Entrega:
 
@@ -4672,6 +4762,8 @@ commit/push em main executados e arvore local limpa.
 
 Status: CONCLUIDO
 
+
+
 Entrega:
 
 1. Modificar `scripts/model2/daily_pipeline.py`. [ ]
@@ -4688,6 +4780,8 @@ Dependencias: M2-019.4, M2-019.5
 ### TAREFA M2-019.7 - Mover persist_training_episodes no pipeline
 
 Status: CONCLUIDO
+
+
 
 Entrega:
 
@@ -4707,6 +4801,8 @@ Dependencias: M2-019.6
 
 Status: CONCLUIDO
 
+
+
 Entrega:
 
 1. Criar `scripts/model2/migrations/0008_add_rl_decision.sql`
@@ -4722,6 +4818,8 @@ Dependencias: Paralelo a M2-019.5
 ### TAREFA M2-019.9 - Testes de integracao ponta-a-ponta
 
 Status: CONCLUIDO
+
+
 
 Entrega:
 
@@ -4739,6 +4837,8 @@ Dependencias: M2-019.1 a M2-019.7
 ### TAREFA M2-019.10 - Atualizacao documental
 
 Status: PENDENTE
+
+
 
 Entrega:
 
@@ -4758,6 +4858,8 @@ Dependencias: M2-019.9
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
 Status: PENDENTE
+
+
 
 Prioridade proposta: Media
 Sprint proposto: A definir pelo PO
@@ -4792,6 +4894,8 @@ estruturais de tendencia de longo prazo integradas ao pipeline M2.
 ### TAREFA BLID-088 - Captura e persistencia de candles M5
 
 Status: PENDENTE
+
+
 
 Prioridade proposta: Media
 **Sprint proposto:** A definir pelo PO
@@ -4829,6 +4933,8 @@ com granularidade fina (H4 + H1 + M5).
 ### TAREFA BLID-090 - Expor estado do circuit breaker e risk gate no status por simbolo
 
 Status: CONCLUIDO (PM: 2026-03-24) — _query_risk_state_from_db + linha Risk
+
+
 implementados; 19/19 testes GREEN; 283 sem regressao; mypy strict OK; docs
 sincronizadas [SYNC-135].
 
@@ -4882,6 +4988,8 @@ resultou em ordem, sem precisar abrir o DB manualmente.
 ### TAREFA BLID-091 - Corrigir fluxo de reward real para episodios de trades encerrados
 
 Status: CONCLUIDO
+
+
 
 Suite: tests/test_blid091_reward_source.py (17 testes — 17/17 GREEN)
 QA: R1-R5 cobertos; _reward_label(3), _ensure_table(2), INSERT
@@ -4950,6 +5058,8 @@ fechado [ ]
 ### TAREFA BLID-092 - Investigar e resolver travamento do circuit breaker
 
 Status: CONCLUIDO
+
+
 
 PO: CB trancado desde 2026-03-09, score 4.95, bloqueia 100% entradas.
 Prioridade maxima, sem dependencias bloqueantes.
@@ -5029,6 +5139,8 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 ### TAREFA BLID-093 - Reward por decisao de ficar fora (HOLD/BLOCKED counterfactual)
 
 Status: CONCLUIDO
+
+
 
 Suite: tests/test_blid093_hold_reward.py — 26 testes (26 GREEN)
 Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration
@@ -5150,6 +5262,8 @@ REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-137].
 ### TAREFA BLID-094 - Retreino automatico ao atingir limiar de episodios elegíveis
 
 Status: CONCLUIDO
+
+
 Suite: tests/test_live_service_retrain_trigger.py (5 testes, 5 passed)
 
 SA: Bug em live_service.py L297 bloqueia retreino em modo live; corrigir guard
@@ -5215,6 +5329,8 @@ REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-138].
 ### TAREFA BLID-095 - Rastreamento de experimentos e artefatos MLflow
 
 Status: CONCLUIDO
+
+
 Suite: tests/test_mlflow_tracking.py (13/13 PASS)
 Cobertura: R1..R6 mapeados; mlflow.start_run, log_params, log_metric,
 log_artifact, load_model_from_mlflow_artifact, .gitignore
@@ -5288,9 +5404,11 @@ atualizado [SYNC-139].
 
 ### TAREFA BLID-0E4 - Corrigir lock de arquivo em persist_training_episodes e healthcheck
 
+Status: CONCLUIDO
+
+
 **Status**: BACKLOG → Em analise → TESTES_PRONTOS → EM_DESENVOLVIMENTO →
 IMPLEMENTADO → REVISADO_APROVADO → **CONCLUIDO**
-Status: CONCLUIDO
 
 **[2026-03-25 12:45:00 BRT] SW-ENG: FASE 1-3 IMPLEMENTADAS**
 
@@ -5533,6 +5651,8 @@ REVISADO_APROVADO.
 ### TAREFA BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino
 
 Status: CANCELADO
+
+
 Motivo: Resolvido por BLID-100 (2026-03-26). Causa raiz (int vs string em
 collect_training_info) corrigida com completed_at_ms INTEGER.
 
@@ -5568,6 +5688,8 @@ e possivel sobreposicao de ciclos de retreino.
 ### TAREFA BLID-097 - Integrar io_retry nos scripts afetados por lock de arquivo
 
 Status: CONCLUIDO
+
+
 Suite: tests/test_model2_blid097_io_retry_integration.py (12/12 PASS)
 Evidencias: pytest 12/12 GREEN; mypy 0 novos erros; 67F/211P sem regressoes.
 TL: APROVADO. 12/12 PASS; 0 novos erros mypy; fail_safe=True em 6 pontos;
@@ -5612,6 +5734,8 @@ processo". Os logs de 2026-03-25 17:45 confirmam que o erro persiste em:
 ### TAREFA BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino
 
 Status: CONCLUIDO
+
+
 TL: pytest 6/6 passed; mypy 25 erros (igual baseline pre-PR, sem regressao);
 erro None iter eliminado; correcao valida. PM validou suite 67 failed/232 passed
 (igual baseline). Commit final aceito em 2026-03-26.
@@ -5705,7 +5829,9 @@ log pos-retreino); 6/6 testes GREEN; ciclo RL restaurado. [SYNC-148]
 
 ### TAREFA BLID-099 - Aprendizado continuo por ciclo: reward para decisao HOLD do modelo
 
-Status: Em analise
+Status: CONCLUIDO
+
+
 Prioridade proposta: Alta
 Sprint proposto: Sprint atual
 
@@ -5715,7 +5841,6 @@ sem sinal; BLID-093 infra disponivel.
 SA: model_decisions tem HOLD first-class; flush_deferred_rewards reusavel;
 3 arquivos afetados; sem schema DB novo; NEUTRAL direction via abs_return.
 
-Status: CONCLUIDO
 Suite: tests/test_blid099_hold_learning.py (16 GREEN em 2026-03-26)
 SE:_persist_hold_decision_episodes em persist_training_episodes.py;
 HOLD_DECISION em train_ppo_incremental.py e operator_cycle_status.py;
@@ -5790,7 +5915,9 @@ melhoria de qualidade de decisao em mercados sem trades frequentes.
 
 ### TAREFA BLID-100 - Corrigir contador de episodios pendentes apos retreino
 
-Status: Em analise
+Status: CONCLUIDO
+
+
 Prioridade proposta: Alta
 Sprint proposto: Sprint atual
 
@@ -5801,7 +5928,6 @@ SA: Opcao B (inline): strftime('%s', completed_at)*1000 na query; train_ppo
 grava
 completed_at_ms via ALTER TABLE lazy; zero schema migration; 2 arquivos.
 
-Status: CONCLUIDO
 Suite: tests/test_blid100_pending_counter.py (6 GREEN em 2026-03-26)
 SE: collect_training_info usa completed_at_ms (int) com fallback TEXT;
 record_training_log grava completed_at_ms via ALTER TABLE lazy;

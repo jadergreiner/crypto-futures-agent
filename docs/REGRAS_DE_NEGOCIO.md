@@ -200,6 +200,10 @@ O schema do modelo2.db deve ser validado antes de cada ciclo live:
    de tabelas ausentes.
 3. Banco inexistente bloqueia com `reason_code='db_not_found'`.
 4. Validacao registrada com timestamp_utc; overhead maximo tolerado: 50ms.
+5. No preflight de go-live (M2-024.13), o check 3 tambem valida colunas
+   obrigatorias das tabelas criticas e bloqueia em divergencia.
+6. O preflight deve validar migracao alvo (ultima versao em
+   `scripts/model2/migrations`) presente em `schema_migrations`.
 
 ### RN-021 - Posicoes Orfas e Saida Segura (M2-027.3)
 

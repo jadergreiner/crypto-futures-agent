@@ -23,6 +23,78 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-162] M2-024.13 REVISADO_APROVADO + DOC SYNC — 2026-03-26
+
+- Agentes: 6.tech-lead, 7.doc-advocate
+- Arquivos atualizados:
+  - docs/BACKLOG.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - aprovacao tecnica da M2-024.13 (preflight check3 com contrato schema);
+  - sincronizacao documental do gate de schema/colunas/migracao alvo;
+  - registro de evidencia estruturada do contrato no fluxo de preflight.
+- Evidencias:
+  - pytest -q tests/ -> 307 passed
+  - mypy --strict scripts/model2/go_live_preflight.py
+    tests/test_model2_go_live_preflight.py -> Success
+  - pytest -q tests/test_docs_model2_sync.py -> PASS
+- Status backlog: M2-024.13 -> REVISADO_APROVADO
+
+---
+
+### [SYNC-161] M2-024.13 INICIO DE DESENVOLVIMENTO — 2026-03-26
+
+- Agente: 5.software-engineer
+- Arquivos atualizados:
+  - scripts/model2/go_live_preflight.py
+  - tests/test_model2_go_live_preflight.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - gate de preflight ampliado com contrato de schema M2 (tabelas e colunas);
+  - validacao de migracao alvo no `schema_migrations` (versao mais recente);
+  - testes atualizados + caso novo para migracao ausente no check 3.
+- Evidencias:
+  - pytest -q tests/test_model2_go_live_preflight.py -> 12/12 PASS
+  - mypy --strict scripts/model2/go_live_preflight.py
+    tests/test_model2_go_live_preflight.py -> Success
+- Status backlog: M2-024.13 -> EM_DESENVOLVIMENTO
+
+---
+
+### [SYNC-160] BACKLOG - NORMALIZACAO DE STATUS POR TAREFA — 2026-03-26
+
+- Agente: 2.product-owner
+- Arquivos atualizados:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - saneamento automatico de `docs/BACKLOG.md` para manter apenas o ultimo
+    `Status:` valido em cada bloco `### TAREFA ...`;
+  - remocao de duplicidades de status historico dentro da mesma tarefa;
+  - backlog pronto para handoff tecnico ao `3.solution-architect`.
+- Evidencia: 172 tarefas analisadas; 7 com status duplicado antes; 0 apos saneamento.
+- Status: backlog normalizado e pronto para proxima etapa.
+
+---
+
+### [SYNC-159] BACKLOG - SANEAMENTO E PRIORIZACAO DA FILA ABERTA — 2026-03-26
+
+- Agente: 1.backlog-development + 2.product-owner
+- Arquivos atualizados:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - saneada a secao "FILA ABERTA PARA PRIORIZACAO DO PO";
+  - removidos da fila aberta itens ja resolvidos (BLID-0E4, BLID-096,
+    BLID-097, BLID-098, BLID-099, BLID-100);
+  - priorizacao explicita adicionada por nivel P0/P1/P2 para execucao.
+- Status: pronto para handoff ao Solution Architect nos itens P0.
+
+---
+
 ### [SYNC-158] M2-024.12 DOC GOVERNANCA FINAL — 2026-03-26
 
 - Agente: 7.doc-advocate

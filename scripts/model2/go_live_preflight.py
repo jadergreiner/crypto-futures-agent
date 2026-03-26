@@ -33,6 +33,7 @@ from scripts.model2.live_dashboard import run_live_dashboard
 from scripts.model2.live_execute import run_live_execute
 from scripts.model2.live_reconcile import run_live_reconcile
 from scripts.model2.migrate import run_up
+from scripts.model2.migrate import MIGRATIONS_DIR as MODEL2_MIGRATIONS_DIR
 from scripts.model2.io_utils import atomic_write_json
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
@@ -168,6 +169,92 @@ def _has_minimum_live_schema(db_path: Path) -> bool:
             for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         }
     return required_tables.issubset(found)
+
+
+def _get_required_migration_versions() -> list[int]:
+    versions: list[int] = []
+    for sql_file in sorted(MODEL2_MIGRATIONS_DIR.glob("*.sql")):
+        prefix = sql_file.name.split("_", 1)[0]
+        if prefix.isdigit():
+            versions.append(int(prefix))
+    return sorted(versions)
+
+
+def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
+    required_tables = {
+        "schema_migrations",
+        "technical_signals",
+        "signal_executions",
+        "signal_execution_events",
+        "signal_execution_snapshots",
+    }
+    required_columns: dict[str, set[str]] = {
+        "technical_signals": {"id", "symbol", "timeframe", "status", "payload_json", "created_at", "updated_at"},
+        "signal_executions": {
+            "id",
+            "technical_signal_id",
+            "symbol",
+            "execution_mode",
+            "status",
+            "payload_json",
+            "created_at",
+            "updated_at",
+            "decision_id",
+        },
+        "signal_execution_events": {"id", "signal_execution_id", "event_type", "event_timestamp", "rule_id", "payload_json"},
+        "signal_execution_snapshots": {"id", "run_id", "snapshot_timestamp", "ready_count", "blocked_count", "created_at"},
+    }
+    expected_versions = _get_required_migration_versions()
+
+    if not db_path.exists():
+        return {
+            "ok": False,
+            "reason_code": "db_not_found",
+            "missing_tables": sorted(required_tables),
+            "missing_columns": {},
+            "missing_migrations": expected_versions,
+            "applied_migrations": [],
+            "expected_latest_migration": max(expected_versions) if expected_versions else None,
+        }
+
+    with sqlite3.connect(db_path) as conn:
+        found_tables = {
+            str(row[0])
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        missing_tables = sorted(required_tables - found_tables)
+
+        applied_migrations: list[int] = []
+        if "schema_migrations" in found_tables:
+            rows = conn.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
+            applied_migrations = sorted(int(row[0]) for row in rows)
+        expected_latest = max(expected_versions) if expected_versions else None
+        missing_migrations = [] if expected_latest is None or expected_latest in set(applied_migrations) else [expected_latest]
+
+        missing_columns: dict[str, list[str]] = {}
+        for table_name, columns in required_columns.items():
+            if table_name not in found_tables:
+                continue
+            pragma_rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+            existing_columns = {str(row[1]).lower() for row in pragma_rows}
+            missing = sorted(col for col in columns if col.lower() not in existing_columns)
+            if missing:
+                missing_columns[table_name] = missing
+
+    expected_latest = max(expected_versions) if expected_versions else None
+    return {
+        "ok": not missing_tables and not missing_columns and not missing_migrations,
+        "reason_code": (
+            "schema_divergence"
+            if missing_tables or missing_columns
+            else ("missing_migrations" if missing_migrations else None)
+        ),
+        "missing_tables": missing_tables,
+        "missing_columns": missing_columns,
+        "missing_migrations": missing_migrations,
+        "applied_migrations": applied_migrations,
+        "expected_latest_migration": expected_latest,
+    }
 
 
 def _to_positive_int(value: str, default: int) -> int:
@@ -463,6 +550,7 @@ def run_go_live_preflight(
             migrate_action = f"python scripts/model2/migrate.py up --db-path {resolved_db}"
             try:
                 migrate_summary = migrate_fn(db_path=resolved_db, output_dir=resolved_output_dir)
+                schema_contract = _validate_schema_contract(resolved_db)
                 applied_fixes.append(
                     {
                         "type": "migrate_up",
@@ -474,10 +562,21 @@ def run_go_live_preflight(
                 add_check(
                     check_id="3",
                     description="Executar migrate.py up no banco operacional.",
-                    status="ok" if migrate_summary.get("status") == "ok" else "alert",
+                    status="ok" if migrate_summary.get("status") == "ok" and schema_contract.get("ok") else "alert",
                     actions=[migrate_action],
-                    evidence={"migration_summary": migrate_summary},
-                    error=None if migrate_summary.get("status") == "ok" else "Migration returned non-ok status.",
+                    evidence={
+                        "migration_summary": migrate_summary,
+                        "schema_contract": schema_contract,
+                    },
+                    error=(
+                        None
+                        if migrate_summary.get("status") == "ok" and schema_contract.get("ok")
+                        else (
+                            "Migration returned non-ok status."
+                            if migrate_summary.get("status") != "ok"
+                            else "Schema contract validation failed after migration."
+                        )
+                    ),
                 )
             except Exception as exc:
                 add_check(
@@ -488,14 +587,18 @@ def run_go_live_preflight(
                     error=str(exc),
                 )
         else:
-            has_schema = _has_minimum_live_schema(resolved_db)
+            schema_contract = _validate_schema_contract(resolved_db)
             add_check(
                 check_id="3",
-                description="Validar schema esperado para operacao live.",
-                status="ok" if has_schema else "alert",
-                actions=["validate required tables in sqlite_master"],
-                evidence={"has_minimum_live_schema": has_schema, "model2_db_path": str(resolved_db)},
-                error=None if has_schema else "Missing required tables. Run migrate.py up.",
+                description="Validar contrato de schema/migracoes/campos obrigatorios para operacao live.",
+                status="ok" if schema_contract.get("ok") else "alert",
+                actions=["validate schema contract and required migrations"],
+                evidence={"schema_contract": schema_contract, "model2_db_path": str(resolved_db)},
+                error=(
+                    None
+                    if schema_contract.get("ok")
+                    else "Schema contract invalid. Run migrate.py up and reconcile required columns."
+                ),
             )
 
         env_values = _load_env_values(resolved_env_file)

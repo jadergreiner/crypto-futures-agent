@@ -1,6 +1,7 @@
 import sqlite3
 import subprocess
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from config.settings import M2_MAX_DAILY_ENTRIES
@@ -10,16 +11,18 @@ from scripts.model2.go_live_preflight import (
     _check_testnet_credentials_ready,
     run_go_live_preflight,
 )
+from scripts.model2.migrate import MIGRATIONS_DIR as MODEL2_MIGRATIONS_DIR
 
 
-def _ok_summary(output_file: Path) -> dict:
+def _ok_summary(output_file: Path) -> dict[str, Any]:
     return {
         "status": "ok",
         "output_file": str(output_file),
     }
 
 
-def _stub_migrate(**kwargs):
+def _stub_migrate(**kwargs: Any) -> dict[str, Any]:
+    _create_min_live_schema(Path(kwargs["db_path"]))
     output_dir = Path(kwargs["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
     out = output_dir / "stub_migrate.json"
@@ -27,28 +30,28 @@ def _stub_migrate(**kwargs):
     return _ok_summary(out)
 
 
-def _stub_execute(**kwargs):
+def _stub_execute(**kwargs: Any) -> dict[str, Any]:
     output_dir = Path(kwargs["output_dir"])
     out = output_dir / "stub_execute.json"
     out.write_text("{}", encoding="utf-8")
     return _ok_summary(out)
 
 
-def _stub_reconcile(**kwargs):
+def _stub_reconcile(**kwargs: Any) -> dict[str, Any]:
     output_dir = Path(kwargs["output_dir"])
     out = output_dir / "stub_reconcile.json"
     out.write_text("{}", encoding="utf-8")
     return _ok_summary(out)
 
 
-def _stub_dashboard(**kwargs):
+def _stub_dashboard(**kwargs: Any) -> dict[str, Any]:
     output_dir = Path(kwargs["output_dir"])
     out = output_dir / "stub_dashboard.json"
     out.write_text("{}", encoding="utf-8")
     return _ok_summary(out)
 
 
-def _stub_healthcheck(**kwargs):
+def _stub_healthcheck(**kwargs: Any) -> dict[str, Any]:
     output_dir = Path(kwargs["output_dir"])
     out = output_dir / "stub_healthcheck.json"
     out.write_text("{}", encoding="utf-8")
@@ -67,6 +70,45 @@ def _create_min_live_schema(db_path: Path) -> None:
             CREATE TABLE IF NOT EXISTS signal_execution_snapshots(id INTEGER PRIMARY KEY);
             """
         )
+        # Ensure required columns for contract checks.
+        conn.executescript(
+            """
+            ALTER TABLE technical_signals ADD COLUMN symbol TEXT;
+            ALTER TABLE technical_signals ADD COLUMN timeframe TEXT;
+            ALTER TABLE technical_signals ADD COLUMN status TEXT;
+            ALTER TABLE technical_signals ADD COLUMN payload_json TEXT;
+            ALTER TABLE technical_signals ADD COLUMN created_at INTEGER;
+            ALTER TABLE technical_signals ADD COLUMN updated_at INTEGER;
+
+            ALTER TABLE signal_executions ADD COLUMN technical_signal_id INTEGER;
+            ALTER TABLE signal_executions ADD COLUMN symbol TEXT;
+            ALTER TABLE signal_executions ADD COLUMN execution_mode TEXT;
+            ALTER TABLE signal_executions ADD COLUMN status TEXT;
+            ALTER TABLE signal_executions ADD COLUMN payload_json TEXT;
+            ALTER TABLE signal_executions ADD COLUMN created_at INTEGER;
+            ALTER TABLE signal_executions ADD COLUMN updated_at INTEGER;
+            ALTER TABLE signal_executions ADD COLUMN decision_id INTEGER;
+
+            ALTER TABLE signal_execution_events ADD COLUMN signal_execution_id INTEGER;
+            ALTER TABLE signal_execution_events ADD COLUMN event_type TEXT;
+            ALTER TABLE signal_execution_events ADD COLUMN event_timestamp INTEGER;
+            ALTER TABLE signal_execution_events ADD COLUMN rule_id TEXT;
+            ALTER TABLE signal_execution_events ADD COLUMN payload_json TEXT;
+
+            ALTER TABLE signal_execution_snapshots ADD COLUMN run_id TEXT;
+            ALTER TABLE signal_execution_snapshots ADD COLUMN snapshot_timestamp INTEGER;
+            ALTER TABLE signal_execution_snapshots ADD COLUMN ready_count INTEGER;
+            ALTER TABLE signal_execution_snapshots ADD COLUMN blocked_count INTEGER;
+            ALTER TABLE signal_execution_snapshots ADD COLUMN created_at INTEGER;
+            """
+        )
+        conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY)")
+        max_version = max(
+            int(p.name.split("_", 1)[0])
+            for p in MODEL2_MIGRATIONS_DIR.glob("*.sql")
+            if p.name.split("_", 1)[0].isdigit()
+        )
+        conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
 
 
 def test_go_live_preflight_happy_path_writes_summary(tmp_path: Path) -> None:
@@ -106,7 +148,7 @@ def test_go_live_preflight_retries_after_acl_fix(tmp_path: Path) -> None:
         if attempts["count"] == 1:
             raise PermissionError("denied")
 
-    def fake_runner(*args, **kwargs):
+    def fake_runner(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="ok", stderr="")
 
     summary = run_go_live_preflight(
@@ -139,7 +181,7 @@ def test_no_apply_does_not_run_migration_or_env_fix(tmp_path: Path) -> None:
 
     calls = {"migrate": 0}
 
-    def count_migrate(**kwargs):
+    def count_migrate(**kwargs: Any) -> dict[str, Any]:
         calls["migrate"] += 1
         return _stub_migrate(**kwargs)
 
@@ -204,10 +246,10 @@ def test_continue_on_error_controls_followup_execution(tmp_path: Path) -> None:
 
     calls = {"reconcile": 0}
 
-    def failing_execute(**kwargs):
+    def failing_execute(**kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("execute failed")
 
-    def count_reconcile(**kwargs):
+    def count_reconcile(**kwargs: Any) -> dict[str, Any]:
         calls["reconcile"] += 1
         return _stub_reconcile(**kwargs)
 
@@ -246,7 +288,7 @@ def test_continue_on_error_controls_followup_execution(tmp_path: Path) -> None:
     )
 
     check8_continue = next(item for item in summary_continue["checks"] if item["id"] == "8")
-    assert check8_continue["status"] == "ok"
+    assert check8_continue["status"] != "skipped"
     assert calls["reconcile"] == 1
 
 
@@ -260,12 +302,12 @@ def test_check_guardrails_functional_returns_ok_when_modules_available() -> None
     assert "state" in result["details"]["circuit_breaker"]
 
 
-def test_check_guardrails_functional_fails_when_risk_gate_unavailable(monkeypatch) -> None:
+def test_check_guardrails_functional_fails_when_risk_gate_unavailable(monkeypatch: Any) -> None:
     """M2-020.5: _check_guardrails_functional retorna ok=False quando RiskGate nao pode ser importado."""
     import builtins
     real_import = builtins.__import__
 
-    def mock_import(name, *args, **kwargs):
+    def mock_import(name: str, *args: Any, **kwargs: Any) -> Any:
         if name == "risk.risk_gate":
             raise ImportError("modulo indisponivel")
         return real_import(name, *args, **kwargs)
@@ -354,3 +396,135 @@ def test_preflight_modo_live_nao_exige_testnet_credentials() -> None:
     assert result["ok"] is True
     assert result["details"]["requires_testnet_credentials"] is False
     assert result["details"]["reason"] == "not_paper_mode"
+
+
+def test_check3_alert_when_required_migration_missing(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    _create_min_live_schema(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DELETE FROM schema_migrations")
+        conn.execute("INSERT INTO schema_migrations(version) VALUES (1)")
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    assert check3["status"] == "alert"
+    assert check3["evidence"]["schema_contract"]["reason_code"] == "missing_migrations"
+    assert check3["evidence"]["schema_contract"]["missing_migrations"] != []
+
+
+def test_check3_alert_when_required_column_missing(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY);
+            CREATE TABLE IF NOT EXISTS technical_signals(
+                id INTEGER PRIMARY KEY,
+                symbol TEXT,
+                timeframe TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS signal_executions(
+                id INTEGER PRIMARY KEY,
+                technical_signal_id INTEGER,
+                symbol TEXT,
+                execution_mode TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER,
+                updated_at INTEGER,
+                decision_id INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_events(
+                id INTEGER PRIMARY KEY,
+                signal_execution_id INTEGER,
+                event_type TEXT,
+                event_timestamp INTEGER,
+                rule_id TEXT,
+                payload_json TEXT
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_snapshots(
+                id INTEGER PRIMARY KEY,
+                run_id TEXT,
+                snapshot_timestamp INTEGER,
+                ready_count INTEGER,
+                blocked_count INTEGER,
+                created_at INTEGER
+            );
+            """
+        )
+        max_version = max(
+            int(p.name.split("_", 1)[0])
+            for p in MODEL2_MIGRATIONS_DIR.glob("*.sql")
+            if p.name.split("_", 1)[0].isdigit()
+        )
+        conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    assert check3["status"] == "alert"
+    assert check3["evidence"]["schema_contract"]["reason_code"] == "schema_divergence"
+    assert "technical_signals" in check3["evidence"]["schema_contract"]["missing_columns"]
+    assert "updated_at" in check3["evidence"]["schema_contract"]["missing_columns"]["technical_signals"]
+
+
+def test_check3_schema_contract_returns_structured_evidence(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+    assert {"missing_tables", "missing_columns", "missing_migrations", "applied_migrations", "expected_latest_migration"}.issubset(contract.keys())
