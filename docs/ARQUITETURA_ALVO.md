@@ -135,6 +135,23 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   `schema_migrations`). Em divergencia, bloqueia com evidencia estruturada
   (`missing_tables`, `missing_columns`, `missing_migrations`,
   `applied_migrations`, `expected_latest_migration`).
+- Contrato de erro de execucao auditavel (M2-024.10): `LiveExecutionErrorContract`
+  frozen dataclass em `live_execution.py` com campos obrigatorios `decision_id`,
+  `execution_id`, `reason_code`, `severity`, `recommended_action` e campo
+  opcional `additional_context`. Imutabilidade garantida por frozen=True.
+  Toda falha/bloqueio deve ser representada por esta estrutura para rastreabilidade
+  ponta a ponta.
+
+Politica de rollback por severidade (M2-024.14):
+
+- `core/model2/rollback_policy.py` com:
+  - `ROLLBACK_ACTION_INTERRUPT` = "INTERRUPT_AND_HALT"
+  - `ROLLBACK_ACTION_OBSERVE` = "OBSERVE_AND_ALERT"
+  - `ROLLBACK_ACTION_LOG` = "LOG_ONLY"
+  - `get_rollback_action(severity)`: CRITICAL/HIGH -> INTERRUPT;
+    MEDIUM -> OBSERVE; LOW/INFO -> LOG; desconhecido -> INTERRUPT (fail-safe)
+  - `evaluate_rollback(severity, reason_code)`: retorna action, safe_to_resume
+    e alert_message. Nunca levanta excecao.
 
 Resiliencia e fail-safe de pipeline (M2-027):
 
@@ -198,6 +215,41 @@ Componentes:
    `ts_ms_to_brt_str()` ou `posix_to_brt_str()`; persistencia permanece
    como `int` UTC ms
 
+**M2-025.1/025.3 (Frescor e lacuna de candles)**:
+
+- `resolve_candle_freshness_contract(ts_ms, symbol, mode)` em
+  `core/model2/cycle_report.py`: retorna `CandleFreshnessContract` com
+  `candle_state` (fresh|stale|absent) e `freshness_reason`.
+  Janela: live=120s, shadow=300s. Fail-safe: absent se ts_ms=None.
+  Propagado em `live_service` e `operator_cycle_status`.
+- `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`
+  (M2-025.3): detecta lacuna por janela configuravel (padrao 300s).
+  Retorna `has_gap`, `gap_ms`, `gap_reason` (absent|stale|'') e
+  `alert_message`. Nunca levanta excecao (fail-safe conservador).
+  `DEFAULT_GAP_WINDOW_MS=300_000` exportado do modulo.
+
+**M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
+
+- `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`
+  em `core/model2/cycle_report.py` (M2-025.3): detecta lacuna por janela
+  configuravel (DEFAULT_GAP_WINDOW_MS=300_000). Retorna has_gap, gap_ms,
+  gap_reason (absent|stale|'') e alert_message. Fail-safe: sem excecao.
+- `check_stale_circuit_breaker(stale_count, max_stale)` (M2-025.9):
+  acionado quando stale_count >= max_stale. Retorna tripped, reason e
+  alert_message. Fail-safe: TRIPPED em excecao.
+
+**M2-025.4/025.5 (Guardrail de treino + Idempotencia de episodios)**:
+
+- `check_training_data_minimum(db_path, min_episodes)` em
+  `scripts/model2/persist_training_episodes.py`:
+  retorna `(ok, reason_code, count)`. Bloqueia treino com
+  `reason_code=insufficient_training_data` quando count < min_episodes.
+  Fail-safe: retorna `(False, "insufficient_training_data", 0)` em erro.
+- `is_episode_duplicate(db_path, decision_id)` no mesmo modulo:
+  verifica por coluna `decision_id` (se existir) ou fallback por
+  `episode_key LIKE %:decision_id:%`. Retorna False para decision_id=None
+  (legado) e em caso de excecao (fail-safe).
+
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
 1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)
@@ -209,16 +261,32 @@ Componentes:
      com decision_id quando risk_gate_allows_order=False
    - Telemetria in-memory por ciclo; sem schema DB novo; guardrails intactos
 
-2. `core/model2/circuit_breaker_events.py` — CircuitBreakerEventRecorder (append-only)
-   - Registra transições de estado do circuit_breaker: CLOSED→OPEN→HALF_OPEN→CLOSED
-   - Query rápida: get_history_24h(), get_current_state(), get_reactivation_time()
+2. `core/model2/audit_decision_execution.py` — Auditoria imutavel (M2-026.3)
+   - `AuditDecisionExecution` (frozen dataclass): decision_id, execution_id,
+     signal_id, timestamp_utc, decision_status, execution_status,
+     error_reason, additional_context
+   - `AuditDecisionExecutionRepository`: INSERT-only; UPDATE/DELETE levantam
+     NotImplementedError
+   - Migration 0013: tabela `audit_decision_execution` com indices em
+     decision_id/execution_id/signal_id
+   - Integrado no preflight check3: tabela obrigatoria verificada
+
+3. `core/model2/circuit_breaker_events.py` — CircuitBreakerEventRecorder
+   - Registra transicoes: CLOSED->OPEN->HALF_OPEN->CLOSED
+   - Query rapida: get_history_24h(), get_current_state()
    - Singleton pattern com reset para testes
 
-3. `management/logging_retention.py` — LogRotationManager + RetentionPolicy
-   - Rotação automática por tamanho (100MB) e tempo
-   - Retenção por severidade: CRITICAL 365d, ERROR 90d, WARN 14d, INFO 7d
+4. `management/logging_retention.py` — LogRotationManager + RetentionPolicy
+   - Rotacao automatica por tamanho (100MB) e tempo
+   - Retencao: CRITICAL 365d, ERROR 90d, WARN 14d, INFO 7d
    - Config centralizado em config/logging_retention_policy.yaml
-   - Compressão .gz de arquivos antigos
+
+5. `core/model2/dashboard_operational.py` — Dashboard operacional (M2-026.4)
+   - `query_operational_status(db_path, symbol)`: sumario consolidado
+   - `query_by_symbol(db_path, symbol, limit)`: oportunidades ativas (max 100)
+   - `query_by_period(db_path, start, end, symbol, limit)`: eventos por janela
+   - `sort_alerts_by_severity(alerts)`: CRITICAL > ERROR > WARN > INFO
+   - MAX_ROWS_PER_QUERY=100 enforca limite em todas queries
 
 **M2-028.1 (Gate de Promocao GO/NO-GO shadow→paper)**:
 

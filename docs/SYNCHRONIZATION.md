@@ -23,6 +23,91 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-174] M2-025.9 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  core/model2/cycle_report.py,
+  tests/test_model2_m2_025_9_stale_circuit_breaker.py
+- M2-025.9: check_stale_circuit_breaker() adicionado em cycle_report.py
+- 6/6 testes GREEN; mypy strict clean; suite verde
+
+### [SYNC-173] M2-024.14 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  core/model2/rollback_policy.py,
+  tests/test_model2_m2_024_14_rollback_policy.py
+- M2-024.14: rollback_policy.py com get_rollback_action + evaluate_rollback
+- 10/10 testes GREEN; mypy strict clean; suite 307 verde
+
+### [SYNC-172] M2-025.4 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  scripts/model2/persist_training_episodes.py,
+  tests/test_model2_m2_025_4_training_guardrail.py
+- M2-025.4: check_training_data_minimum() adicionado
+- 5/5 testes GREEN; suite 307 verde; guardrails intactos
+
+### [SYNC-171] M2-025.5 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  scripts/model2/persist_training_episodes.py,
+  tests/test_model2_m2_025_5_episode_idempotency.py
+- M2-025.5: is_episode_duplicate() adicionado com fallback por episode_key
+- 6/6 testes GREEN; mypy clean na funcao nova; suite 307 verde
+
+### [SYNC-170] M2-025.3 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  core/model2/cycle_report.py,
+  tests/test_model2_m2_025_3_candle_gap_detector.py
+- M2-025.3: detect_candle_gap() adicionado em cycle_report.py
+- DEFAULT_GAP_WINDOW_MS=300_000; gap_reason absent|stale|''
+- 9/9 testes GREEN; mypy strict clean; suite 307 verde
+
+### [SYNC-169] M2-026.4 CONCLUIDO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  core/model2/dashboard_operational.py
+- M2-026.4: dashboard_operational.py criado com query_operational_status,
+  query_by_symbol, query_by_period, sort_alerts_by_severity
+- 307 suite verde; mypy strict clean; guardrails intactos
+
+### [SYNC-168] M2-026.3 REVISADO_APROVADO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  core/model2/audit_decision_execution.py,
+  scripts/model2/migrations/0013_create_audit_decision_execution.sql,
+  scripts/model2/go_live_preflight.py,
+  tests/test_model2_go_live_preflight.py
+- M2-026.3: AuditDecisionExecution frozen dataclass + repositório INSERT-only
+- Migration 0013 criada e aplicada; preflight check3 atualizado
+- 307 suite verde; mypy strict clean; guardrails intactos
+
+### [SYNC-167] M2-025.1 + M2-026.1/2/5 FECHAMENTO DOC — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivo alterado: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md
+- M2-025.1: CandleFreshnessResult documentada em ARQUITETURA_ALVO (Camada M2-025.1)
+- M2-026.1/2/5: already documented; CONCLUIDO confirmado
+- Trilhas fechadas: M2-025.1 CONCLUIDO, M2-026.1/2/5 CONCLUIDO
+
+### [SYNC-166] M2-024.10 REVISADO_APROVADO — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Arquivo alterado: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md
+- M2-024.10: LiveExecutionErrorContract frozen dataclass em live_execution.py
+- Contrato de erro auditavel com decision_id, execution_id, reason_code,
+  severity, recommended_action e additional_context
+- 20/20 testes GREEN; mypy strict Success; 307 suite verde
+- risk_gate e circuit_breaker intocados
+
 ### [SYNC-165] PKG-PO10-0326 REVISADO_APROVADO — 2026-03-26
 
 - Agentes: 6.tech-lead, 7.doc-advocate

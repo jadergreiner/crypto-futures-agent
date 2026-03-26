@@ -438,7 +438,14 @@ Dependencias:
 
 - M2-024.6
 
-### TAREEM_DESENVOLVIMENTO
+### TAREFA M2-024.10 - Contrato de erro de execucao com auditabilidade
+
+Status: CONCLUIDO
+
+Score PO: 3.80 (Valor=4, Urg=4, Risco=4, Esf=2)
+
+PO: Contrato de erro auditavel fecha trilha M2-024 de hardening.
+Dep M2-024.1 CONCLUIDA. Desbloqueado para finalizacao GREEN-REFACTOR.
 
 Descricao:
 Criar suite RED focada em contrato de decisao, reason_code e
@@ -454,10 +461,16 @@ de erro com auditabilidade. Casos cobrem: decision_id, execution_id,
 reason_code, severity, recommended_action; validacao de campos obrigatorios,
 imutabilidade (frozen dataclass), conformidade com catálogo.
 
-SE: Iniciado em 2026-03-23 16:15 BRT. Implementando
-LiveExecutionErrorContract em live_execution.py com validacao de decision_id,
-execution_id, reason_code, severity, recommended_action; campos obrigatorios,
-imutabilidade (frozen dataclass) e conformidade com catálogo.
+SE: GREEN concluido. LiveExecutionErrorContract frozen dataclass em
+live_execution.py com decision_id, execution_id, reason_code, severity,
+recommended_action. 20/20 testes GREEN. mypy strict Success.
+
+TL: APROVADO. 20/20 testes reproduzidos, 307 suite verde, mypy clean em
+live_execution.py. Frozen dataclass validado, guardrails preservados.
+
+DOC: ARQUITETURA_ALVO extensao M2-024.10 adicionada; SYNCHRONIZATION SYNC-166.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog fechado CONCLUIDO.
 
 ### TAREFA M2-024.11 - Regressao de risco com cenarios de stress
 
@@ -568,9 +581,9 @@ ativo no preflight com evidencias e suite verde.
 
 ### TAREFA M2-024.14 - Politica de rollback operacional por severidade
 
-Status: Em analise
+Status: CONCLUIDO
 
-Score PO: 6.35 (Valor=7, Urg=7, Risco=8, Esf=5)
+Score PO: 3.05 (Valor=3, Urg=3, Risco=4, Esf=3)
 
 PO: Politica de rollback por severidade garante retomada segura
 pos-incidente. Dep M2-024.7 CONCLUIDA.
@@ -582,6 +595,20 @@ interrupcao, observacao e retomada segura.
 Dependencias:
 
 - M2-024.7
+
+QA: Suite RED em tests/test_model2_m2_024_14_rollback_policy.py
+com 10 testes; 10 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. core/model2/rollback_policy.py criado com
+ROLLBACK_ACTION_INTERRUPT/OBSERVE/LOG, get_rollback_action() e
+evaluate_rollback(). 10/10 testes GREEN. mypy strict clean.
+
+TL: APROVADO. 10/10 testes + 307 suite verde + mypy clean.
+Guardrails intactos, fail-safe INTERRUPT em severidade desconhecida.
+
+DOC: ARQUITETURA_ALVO M2-024.14 adicionado; SYNCHRONIZATION SYNC-173.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-024.15 - Governanca de docs e runbook do pacote M2-024
 
@@ -603,7 +630,7 @@ incremental e observabilidade operacional com foco em fail-safe.
 
 ### TAREFA M2-025.1 - Contrato de frescor de candle por simbolo
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -655,6 +682,13 @@ Evidencias de implementacao:
 4. c:/repo/crypto-futures-agent/venv/Scripts/python.exe -m pytest -q tests/
    -> 278 passed.
 
+TL: APROVADO. 19/19 testes reproduzidos. mypy strict clean. Contrato
+CandleFreshnessResult validado, guardrails intactos.
+
+DOC: ARQUITETURA_ALVO M2-025.1 adicionado; SYNCHRONIZATION SYNC-167.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-025.2 - Normalizar timezone de evento no pipeline
 
 Status: CONCLUIDO
@@ -694,9 +728,9 @@ Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
 ### TAREFA M2-025.3 - Detector de lacuna de candles por janela
 
-Status: Em analise
+Status: CONCLUIDO
 
-Score PO: 6.85 (Valor=7, Urg=7, Risco=7, Esf=5)
+Score PO: 3.30 (Valor=4, Urg=4, Risco=4, Esf=3)
 
 PO: Detector de lacuna por janela alerta antes de decisao com dados
 degradados. Dep M2-025.1 IMPLEMENTADA.
@@ -709,9 +743,24 @@ Dependencias:
 
 - M2-025.1
 
+QA: Suite RED criada em tests/test_model2_m2_025_3_candle_gap_detector.py
+com 9 testes; 9 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. detect_candle_gap() adicionado em cycle_report.py
+com DEFAULT_GAP_WINDOW_MS=300_000. 9/9 testes GREEN. mypy strict clean.
+
+TL: APROVADO. 9/9 testes reproduzidos. 307 suite verde. mypy clean.
+Guardrails intactos, fail-safe validado (sem excecao em nenhum cenario).
+
+DOC: ARQUITETURA_ALVO M2-025.1/025.3 documentado; SYNCHRONIZATION SYNC-170.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-025.4 - Guardrail de treino com dados minimos
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 3.25 (Valor=4, Urg=3, Risco=5, Esf=3)
 
 Descricao:
 Bloquear treino incremental quando dados minimos nao forem atendidos,
@@ -721,11 +770,25 @@ Dependencias:
 
 - M2-025.3
 
+QA: Suite RED em tests/test_model2_m2_025_4_training_guardrail.py
+com 5 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. check_training_data_minimum() adicionado em
+persist_training_episodes.py. Retorna (ok, reason_code, count).
+5/5 testes GREEN. mypy clean na funcao nova.
+
+TL: APROVADO. 11/11 (M2-025.4 + M2-025.5) + 307 suite verde.
+Guardrails intactos, fail-safe conservador validado.
+
+DOC: ARQUITETURA_ALVO M2-025.4 adicionado; SYNCHRONIZATION SYNC-172.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-025.5 - Idempotencia de episodios por decision_id
 
-Status: Em analise
+Status: CONCLUIDO
 
-Score PO: 7.00 (Valor=8, Urg=7, Risco=8, Esf=5)
+Score PO: 3.70 (Valor=4, Urg=4, Risco=4, Esf=3)
 
 PO: Idempotencia por decision_id previne episodios duplicados em
 concorrencia ou reprocessamento. Dep M2-024.3 CONCLUIDA.
@@ -737,6 +800,21 @@ concorrencia ou reprocessamento.
 Dependencias:
 
 - M2-024.3
+
+QA: Suite RED em tests/test_model2_m2_025_5_episode_idempotency.py
+com 6 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. is_episode_duplicate() adicionado em
+persist_training_episodes.py. Verifica coluna decision_id se existir,
+fallback por episode_key. 6/6 testes GREEN. mypy clean na funcao nova.
+
+TL: APROVADO. 6/6 testes + 307 suite verde + mypy clean na funcao nova.
+Erros pre-existentes em enrich_features confirmados inalterados.
+Guardrails intactos, fail-safe (retorna False em excecao).
+
+DOC: ARQUITETURA_ALVO M2-025.5 adicionado; SYNCHRONIZATION SYNC-171.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.6 - Correlacao episodio treino e execucao
 
@@ -776,7 +854,9 @@ Dependencias:
 
 ### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 3.45 (Valor=4, Urg=3, Risco=4, Esf=3)
 
 Descricao:
 Acionar circuit breaker quando estado stale persistir acima da janela segura,
@@ -786,6 +866,19 @@ Dependencias:
 
 - M2-025.1
 - M2-025.8
+
+QA: Suite RED em tests/test_model2_m2_025_9_stale_circuit_breaker.py
+com 6 testes; 6 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. check_stale_circuit_breaker() adicionado em
+cycle_report.py. 6/6 testes GREEN. mypy strict clean.
+
+TL: APROVADO. 6/6 testes + suite verde + mypy clean.
+Guardrails intactos, fail-safe TRIPPED em excecao.
+
+DOC: ARQUITETURA_ALVO M2-025.9 adicionado; SYNCHRONIZATION SYNC-174.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
 
@@ -900,7 +993,7 @@ SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 
 ### TAREFA M2-026.1 - Observabilidade de risk_gate com telemetria estruturada
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 SE: GREEN concluido em 2026-03-25. core/model2/risk_gate_telemetry.py criado com
 RiskGateBlockEvent (frozen dataclass) e RiskGateTelemetryRecorder
@@ -944,9 +1037,13 @@ Dependencias:
 
 - M2-024.1
 
+DOC: ARQUITETURA_ALVO M2-026.1 documentado; SYNCHRONIZATION SYNC-167.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-026.2 - Observabilidade de circuit_breaker com eventos de transição
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Inicio: 2026-03-23 12:10 BRT
 Conclusao: 2026-03-23 12:45 BRT
@@ -989,9 +1086,13 @@ import para evitar circular deps. Suite 26/26 PASSED. Handoff para TL.
 TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
 PASSED. Lazy import evita circular deps. Guardrails preservados.
 
+DOC: ARQUITETURA_ALVO M2-026.2 documentado; SYNCHRONIZATION SYNC-167.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-026.3 - Auditoria imutável de correlação decision_id↔execution_id
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 QA: Suite RED 7 testes: 7 pass (FrozenInstanceError,
 FK validation, integração OK)
@@ -1014,9 +1115,21 @@ Dependencias:
 - M2-024.1
 - M2-024.10
 
+SE: GREEN concluido. core/model2/audit_decision_execution.py criado com
+AuditDecisionExecution frozen dataclass + AuditDecisionExecutionRepository
+INSERT-only. Migration 0013 criada e aplicada. Preflight check3 atualizado
+com tabela obrigatoria. 307 suite verde. mypy strict clean.
+
+TL: APROVADO. 12/12 M2-026.3 + 14/14 preflight + 307 suite verde.
+mypy clean. Frozen dataclass validado, INSERT-only com NotImplementedError.
+
+DOC: ARQUITETURA_ALVO M2-026.3 documentado; SYNCHRONIZATION SYNC-168.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-026.4 - Dashboard operacional em tempo-real com ciclos e oportunidades
 
-Status: EM_DESENVOLVIMENTO
+Status: CONCLUIDO
 
 QA: Suite RED 7 testes: 7 pass (query mock,
 filtro symbol/period, performance < 600ms)
@@ -1038,9 +1151,21 @@ Dependencias:
 
 - M2-024.9 (snapshot operacional; ou M2-026.1-3 como minimo)
 
+SE: GREEN concluido. core/model2/dashboard_operational.py criado com
+query_operational_status, query_by_symbol, query_by_period e
+sort_alerts_by_severity. MAX_ROWS_PER_QUERY=100 enforçado.
+14/14 testes GREEN. mypy strict clean. 307 suite verde.
+
+TL: APROVADO. 14/14 M2-026.4 + 307 suite verde + mypy clean.
+Guardrails intactos, sem alteracao de schema nem risk_gate.
+
+DOC: ARQUITETURA_ALVO M2-026.4 documentado; SYNCHRONIZATION SYNC-169.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
 ### TAREFA M2-026.5 - Governança de logs com rotação e retenção por severidade
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Inicio: 2026-03-23 12:10 BRT
 Conclusao: 2026-03-23 12:45 BRT
@@ -1082,6 +1207,12 @@ SE: Config YAML criado em config/logging_retention_policy.yaml. Suite
 
 TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
 PASSED. Config YAML validado (CRITICAL 365d OK).
+
+DOC: ARQUITETURA_ALVO M2-026.5 documentado; SYNCHRONIZATION SYNC-167.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
+Status: CONCLUIDO
 
 ---
 

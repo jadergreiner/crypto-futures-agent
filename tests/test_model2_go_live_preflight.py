@@ -68,6 +68,17 @@ def _create_min_live_schema(db_path: Path) -> None:
             CREATE TABLE IF NOT EXISTS signal_executions(id INTEGER PRIMARY KEY);
             CREATE TABLE IF NOT EXISTS signal_execution_events(id INTEGER PRIMARY KEY);
             CREATE TABLE IF NOT EXISTS signal_execution_snapshots(id INTEGER PRIMARY KEY);
+            CREATE TABLE IF NOT EXISTS audit_decision_execution(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                decision_id INTEGER NOT NULL,
+                execution_id INTEGER NOT NULL,
+                signal_id INTEGER NOT NULL,
+                timestamp_utc TEXT NOT NULL,
+                decision_status TEXT NOT NULL,
+                execution_status TEXT NOT NULL,
+                error_reason TEXT,
+                additional_context TEXT
+            );
             """
         )
         # Ensure required columns for contract checks.

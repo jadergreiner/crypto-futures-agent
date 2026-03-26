@@ -162,6 +162,7 @@ def _has_minimum_live_schema(db_path: Path) -> bool:
         "signal_executions",
         "signal_execution_events",
         "signal_execution_snapshots",
+        "audit_decision_execution",
     }
     with sqlite3.connect(db_path) as conn:
         found = {
@@ -187,6 +188,7 @@ def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
         "signal_executions",
         "signal_execution_events",
         "signal_execution_snapshots",
+        "audit_decision_execution",
     }
     required_columns: dict[str, set[str]] = {
         "technical_signals": {"id", "symbol", "timeframe", "status", "payload_json", "created_at", "updated_at"},
@@ -203,6 +205,7 @@ def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
         },
         "signal_execution_events": {"id", "signal_execution_id", "event_type", "event_timestamp", "rule_id", "payload_json"},
         "signal_execution_snapshots": {"id", "run_id", "snapshot_timestamp", "ready_count", "blocked_count", "created_at"},
+        "audit_decision_execution": {"id", "decision_id", "execution_id", "signal_id", "timestamp_utc", "decision_status", "execution_status"},
     }
     expected_versions = _get_required_migration_versions()
 

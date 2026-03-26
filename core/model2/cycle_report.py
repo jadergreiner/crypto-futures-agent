@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 RETRAIN_EPISODE_THRESHOLD = 100
 DEFAULT_REPORT_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
+# M2-025.3 — janela padrao para deteccao de lacuna de candles (5 minutos)
+DEFAULT_GAP_WINDOW_MS = 300_000
+
 
 CandleState = Literal["fresh", "stale", "absent"]
 
@@ -508,3 +511,123 @@ def _progress_bar(pct: float, width: int = 10) -> str:
     filled = int(min(pct, 1.0) * width)
     empty = width - filled
     return f"[{'█' * filled}{'░' * empty}]"
+
+
+def check_stale_circuit_breaker(
+    *,
+    stale_count: int,
+    max_stale: int,
+) -> dict[str, Any]:
+    """Verifica se contador de candles stale justifica acionar circuit breaker.
+
+    M2-025.9: evita decisao com contexto degradado quando stale persiste.
+
+    Args:
+        stale_count: numero de ciclos consecutivos com candle stale
+        max_stale: limite maximo antes de acionar (inclusivo)
+
+    Returns:
+        dict com tripped, stale_count, max_stale, reason, alert_message.
+        Nunca levanta excecao (fail-safe).
+    """
+    try:
+        effective_max = max(max_stale, 0)
+        tripped = stale_count >= effective_max and effective_max > 0
+
+        if tripped:
+            reason = "stale_limit_exceeded"
+            alert = (
+                f"[STALE-CB] {stale_count}/{effective_max} ciclos stale: "
+                "circuit breaker acionado. Decisao bloqueada ate dados frescos."
+            )
+        else:
+            reason = ""
+            alert = ""
+
+        return {
+            "tripped": tripped,
+            "stale_count": stale_count,
+            "max_stale": effective_max,
+            "reason": reason,
+            "alert_message": alert,
+        }
+    except Exception:
+        return {
+            "tripped": True,
+            "stale_count": stale_count,
+            "max_stale": max_stale,
+            "reason": "stale_limit_exceeded",
+            "alert_message": "[STALE-CB] Erro ao verificar; CB acionado por fail-safe.",
+        }
+
+
+def detect_candle_gap(
+    *,
+    symbol: str,
+    timeframe: str,
+    last_candle_ts_ms: Optional[int],
+    gap_window_ms: int = DEFAULT_GAP_WINDOW_MS,
+) -> dict[str, Any]:
+    """Detecta lacuna de candles por simbolo e timeframe.
+
+    Retorna dict com:
+    - has_gap: True se ha lacuna
+    - symbol: simbolo analisado
+    - timeframe: timeframe analisado
+    - gap_ms: duracao da lacuna em ms (0 se nao ha lacuna)
+    - gap_reason: 'absent' | 'stale' | '' (vazio se fresco)
+    - alert_message: mensagem de alerta (vazio se sem lacuna)
+
+    Guardrail: nunca levanta excecao; retorna resultado conservador em erro.
+    """
+    import time as _time
+
+    try:
+        if last_candle_ts_ms is None:
+            return {
+                "has_gap": True,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "gap_ms": 0,
+                "gap_reason": "absent",
+                "alert_message": (
+                    f"[GAP] {symbol}/{timeframe}: nenhum candle disponivel"
+                ),
+            }
+
+        now_ms = int(_time.time() * 1000)
+        effective_window = max(gap_window_ms, 1)
+        elapsed_ms = now_ms - last_candle_ts_ms
+
+        if elapsed_ms > effective_window:
+            alert = (
+                f"[GAP] {symbol}/{timeframe}: lacuna de {elapsed_ms // 1000}s "
+                f"(janela={effective_window // 1000}s)"
+            )
+            return {
+                "has_gap": True,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "gap_ms": elapsed_ms,
+                "gap_reason": "stale",
+                "alert_message": alert,
+            }
+
+        return {
+            "has_gap": False,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "gap_ms": 0,
+            "gap_reason": "",
+            "alert_message": "",
+        }
+
+    except Exception:
+        return {
+            "has_gap": True,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "gap_ms": 0,
+            "gap_reason": "absent",
+            "alert_message": f"[GAP] {symbol}/{timeframe}: erro ao verificar lacuna",
+        }

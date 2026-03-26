@@ -186,6 +186,90 @@ def _ensure_training_episodes_table(conn: sqlite3.Connection) -> None:
     )
 
 
+def is_episode_duplicate(*, db_path: str, decision_id: int | None) -> bool:
+    """Verifica se ja existe episodio para o decision_id fornecido.
+
+    Idempotencia M2-025.5: impede gravacao duplicada em reprocessamento.
+
+    Args:
+        db_path: caminho para o DB modelo2
+        decision_id: identificador da decisao; None = legado (nunca duplicata)
+
+    Returns:
+        True se ja existe episodio com este decision_id; False caso contrario.
+        Retorna False em caso de erro (fail-safe conservador).
+    """
+    if decision_id is None:
+        return False
+
+    try:
+        with sqlite3.connect(db_path) as conn:
+            # Verifica se coluna decision_id existe na tabela
+            cols = {
+                row[1]
+                for row in conn.execute(
+                    "PRAGMA table_info(training_episodes)"
+                ).fetchall()
+            }
+            if "decision_id" in cols:
+                row = conn.execute(
+                    "SELECT 1 FROM training_episodes WHERE decision_id = ? LIMIT 1",
+                    (decision_id,),
+                ).fetchone()
+            else:
+                # Fallback: busca por episode_key prefixado com decision_id
+                row = conn.execute(
+                    "SELECT 1 FROM training_episodes"
+                    " WHERE episode_key LIKE ? LIMIT 1",
+                    (f"%:{decision_id}:%",),
+                ).fetchone()
+            return row is not None
+    except Exception:
+        return False
+
+
+def check_training_data_minimum(
+    *,
+    db_path: str,
+    min_episodes: int,
+) -> tuple[bool, str, int]:
+    """Guardrail M2-025.4: verifica dados minimos antes de treino incremental.
+
+    Args:
+        db_path: caminho para o DB modelo2
+        min_episodes: numero minimo de episodios exigido
+
+    Returns:
+        (ok, reason_code, count) onde:
+        - ok: True se dados suficientes para treino
+        - reason_code: '' se ok, 'insufficient_training_data' ou 'table_not_found'
+        - count: numero de episodios encontrados (0 se tabela ausente)
+
+    Guardrail: nunca levanta excecao (retorna fail-safe conservador em erro).
+    """
+    try:
+        with sqlite3.connect(db_path) as conn:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            if "training_episodes" not in tables:
+                return False, "table_not_found", 0
+
+            row = conn.execute(
+                "SELECT COUNT(*) FROM training_episodes"
+            ).fetchone()
+            count = int(row[0]) if row else 0
+
+            if count < min_episodes:
+                return False, "insufficient_training_data", count
+            return True, "", count
+    except Exception:
+        return False, "insufficient_training_data", 0
+
+
 def _load_cursor(cursor_file: Path) -> int:
     if not cursor_file.exists():
         return 0
