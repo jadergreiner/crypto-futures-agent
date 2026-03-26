@@ -111,6 +111,9 @@ class PPOTrainer:
                     created_at
                 FROM training_episodes
                 WHERE timeframe = ?
+                  AND reward_proxy IS NOT NULL
+                  AND status IN ('FILLED', 'BLOCKED')
+                  AND label != 'context'
                 ORDER BY created_at ASC
             """, (self.timeframe,))
 
@@ -140,6 +143,14 @@ class PPOTrainer:
                 result['date_range'] = f"{first_ts} to {last_ts}"
                 result['symbols'] = list(result['symbols'])
 
+            if episodes:
+                rewards = [ep['reward_proxy'] for ep in self.episodes_data if ep.get('reward_proxy') is not None]
+                mean = float(np.mean(rewards)) if rewards else 0.0
+                std = float(np.std(rewards)) if rewards else 0.0
+                logger.info(
+                    f"[PPO] Episodios elegiveis: {len(episodes)} | "
+                    f"reward_mean={mean:.4f} | reward_std={std:.4f}"
+                )
             logger.info(f"[PPO] Carregados {len(episodes)} episódios do banco")
             logger.info(f"[PPO] Símbolos: {result['symbols']}")
             logger.info(f"[PPO] Labels: {result['labels']}")
@@ -213,21 +224,38 @@ class PPOTrainer:
             return {"status": "error", "error": str(e)}
 
     def _build_observation(self, features: Dict[str, Any], episode: Dict[str, Any]) -> Optional[np.ndarray]:
-        """Construir vetor de observação a partir de features."""
+        """Construir vetor de observação a partir de features reais do episódio."""
         try:
-            # Placeholder features — em produção viria dos candles reais
-            close = 50000.0  # normalize com histórico
-            volume = 1.0
-            rsi = 50.0
-            position = 0.0
-            pnl_pct = 0.0
+            # Extrair features reais de features_json
+            latest_candle = features.get('latest_candle', {})
+            signal_snapshot = features.get('signal_snapshot', {})
+
+            close = float(latest_candle.get('close', 0.0))
+            if close <= 0:
+                # Fallback: tentar entry_price do episodio
+                close = float(episode.get('entry_price', 0.0))
+            if close <= 0:
+                return None
+
+            volume = float(latest_candle.get('volume', 1.0)) or 1.0
+            rsi = float(signal_snapshot.get('rsi', 50.0))
+            volatility = float(features.get('volatility', 0.0))
+
+            # position: long=1, short=-1, neutro=0
+            direction = str(signal_snapshot.get('direction', '')).lower()
+            if direction == 'long':
+                position = 1.0
+            elif direction == 'short':
+                position = -1.0
+            else:
+                position = 0.0
 
             obs = np.array([
-                np.log(close) if close > 0 else 0,
-                np.log(volume) if volume > 0 else 0,
+                np.log(close) if close > 0 else 0.0,
+                np.log(volume) if volume > 0 else 0.0,
                 rsi / 100.0,
                 float(position),
-                np.tanh(pnl_pct),
+                np.tanh(volatility * 10.0),
             ], dtype=np.float32)
 
             return obs
@@ -386,7 +414,7 @@ class PPOTrainer:
                 "timesteps_trained": timesteps,
                 "total_timesteps": timesteps,
                 "training_duration_seconds": elapsed,
-                "checkpoint_path": str(self.checkpoint_dir / "ppo_model.pkl"),
+                "checkpoint_path": str(self.checkpoint_dir / "ppo_model.zip"),
                 "model_saved": str(model_path),
                 "episodes_used": len(self.obs_data),
                 "mean_reward_data": float(np.mean(self.rewards_data)),
@@ -431,7 +459,7 @@ class PPOTrainer:
             "total_timesteps": timesteps,
             "mean_reward_during_training": float(np.mean(self.rewards_data)),
             "training_duration_seconds": perf_counter() - start_time,
-            "checkpoint_path": str(self.checkpoint_dir / "ppo_model.pkl"),
+            "checkpoint_path": str(self.checkpoint_dir / "ppo_model.zip"),
             "note": "Treinamento simulado (SB3/Gymnasium não disponível)",
         }
 
@@ -442,15 +470,35 @@ class PPOTrainer:
     def save_checkpoint_with_metadata(self) -> Dict[str, Any]:
         """Salvar checkpoint com metadados de treinamento."""
         try:
+            import os as _os
             run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+
+            # Calcular metricas de reward
+            rewards_arr = self.rewards_data if self.rewards_data is not None else np.array([], dtype=np.float32)
+            reward_mean = float(np.mean(rewards_arr)) if len(rewards_arr) > 0 else 0.0
+            reward_std = float(np.std(rewards_arr)) if len(rewards_arr) > 0 else 0.0
+            n_episodes_nonzero = int(np.sum(rewards_arr != 0.0)) if len(rewards_arr) > 0 else 0
+
+            # Path unificado: .zip (mesmo path usado pelo trainer ao salvar)
+            checkpoint_zip = self.checkpoint_dir / "ppo_model.zip"
+
+            # Obter mtime do checkpoint se existir
+            checkpoint_mtime: Optional[str] = None
+            if checkpoint_zip.exists():
+                mtime = _os.path.getmtime(str(checkpoint_zip))
+                checkpoint_mtime = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
 
             metadata = {
                 "run_id": run_id,
                 "timestamp_utc_ms": int(datetime.now(timezone.utc).timestamp() * 1000),
                 "timeframe": self.timeframe,
                 "episodes_used": len(self.episodes_data) if self.episodes_data else 0,
-                "observations_shape": self.obs_data.shape if self.obs_data is not None else None,
-                "checkpoint_path": str(self.checkpoint_dir / "ppo_model.pkl"),
+                "observations_shape": list(self.obs_data.shape) if self.obs_data is not None else None,
+                "checkpoint_path": str(checkpoint_zip),
+                "reward_mean": reward_mean,
+                "reward_std": reward_std,
+                "n_episodes_nonzero": n_episodes_nonzero,
+                "checkpoint_mtime": checkpoint_mtime,
             }
 
             # Save metadata
@@ -459,6 +507,13 @@ class PPOTrainer:
                 json.dump(metadata, f, indent=2)
 
             logger.info(f"[PPO] Metadados salvos: {metadata_path}")
+            logger.info(
+                f"[PPO] Pos-retreino: reward_mean={reward_mean:.4f} | "
+                f"reward_std={reward_std:.4f} | "
+                f"n_episodes_nonzero={n_episodes_nonzero} | "
+                f"checkpoint_path={checkpoint_zip} | "
+                f"checkpoint_mtime={checkpoint_mtime}"
+            )
 
             return {
                 "status": "ok",

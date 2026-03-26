@@ -82,7 +82,7 @@ class RLSignalGenerator:
         self.timeframe = timeframe
         self.dry_run = dry_run
 
-        self.ppo_model = None
+        self.ppo_model: Any = None
         self.episodes_available = 0
         self.signal_repository = SignalRepository(str(model2_db_path)) if SignalRepository else None
 
@@ -96,39 +96,29 @@ class RLSignalGenerator:
         """Carregar modelo PPO treinado (se disponível)."""
         try:
             import warnings
-            import json
             warnings.filterwarnings('ignore')
 
-            # Tentar carregar JSON checkpoint primeiro (mais simples, sem SB3)
-            json_checkpoint = REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.json"
-            if json_checkpoint.exists():
-                try:
-                    with open(json_checkpoint) as f:
-                        config = json.load(f)
-                    logger.info(f"[RL] Checkpoint JSON carregado: {json_checkpoint}")
-                    # Usar config como modelo (fallback inteligente)
-                    self.ppo_model = config.get('status') == 'trained'
-                    return
-                except Exception as e:
-                    logger.debug(f"[RL] Erro ao carregar JSON: {e}")
-
-            # Tentar carregar via stable_baselines3 se .pkl disponível
+            # Tentar carregar via stable_baselines3 — path unificado: .zip
             try:
                 from stable_baselines3 import PPO
             except (ImportError, Exception) as e:
-                logger.warning(f"[RL] stable_baselines3 indisponível ({type(e).__name__}). Usando fallback.")
+                logger.warning(f"[RL] stable_baselines3 indisponivel ({type(e).__name__}). Usando fallback.")
                 self.ppo_model = None
                 return
 
-            pkl_checkpoint = self.ppo_checkpoint or (
-                REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.pkl"
+            # Path unificado: mesmo path que o trainer usa ao salvar (ppo_model.zip)
+            zip_checkpoint = self.ppo_checkpoint or (
+                REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.zip"
             )
 
-            if pkl_checkpoint.exists():
-                self.ppo_model = PPO.load(str(pkl_checkpoint))
-                logger.info(f"[RL] Modelo PPO carregado: {pkl_checkpoint}")
+            if zip_checkpoint.exists():
+                self.ppo_model = PPO.load(str(zip_checkpoint))
+                logger.info(f"[RL] Modelo PPO carregado: {zip_checkpoint}")
+            else:
+                logger.info(f"[RL] Nenhum checkpoint PPO encontrado em {zip_checkpoint}. Usando fallback.")
+                self.ppo_model = None
         except Exception as e:
-            logger.error(f"[RL] Erro ao carregar PPO: {e}. Usando fallback determinístico.")
+            logger.error(f"[RL] Erro ao carregar PPO: {e}. Usando fallback deterministico.")
             self.ppo_model = None
 
     def _load_training_episodes(self) -> None:

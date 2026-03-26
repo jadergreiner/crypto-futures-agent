@@ -81,6 +81,7 @@ Pendencias operacionais:
    logs confirmam erro em persist, healthcheck e operator_cycle_status.
    Impacto: eliminar "arquivo ja usado" remanescente apos BLID-0E4.
 - BLID-098 - Corrigir aprendizado nulo: reward permanece +0.0000 apos retreino.
+   Status: IMPLEMENTADO (2026-03-25) — 6/6 testes GREEN (test_blid098_rl_learning.py)
    Dependencia minima: retreino disparado (BLID-094 concluido); episodios com
    reward_proxy preenchido (BLID-091 concluido); evidencia de reward +0.0000 em
    todos os episodios apos ciclo de treino completo.

@@ -313,14 +313,14 @@ def test_load_ppo_model_path_unificado(tmp_path):
     # stable_baselines3 adiciona .zip automaticamente
     trainer_save_path = tmp_path / "checkpoints" / "ppo_training" / "ppo_model.zip"
 
-    # Path que _load_ppo_model usa para carregar (linha ~124 de rl_signal_generation.py)
-    # pkl_checkpoint = REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.pkl"
-    infer_load_path = tmp_path / "checkpoints" / "ppo_training" / "ppo_model.pkl"
+    # Path que _load_ppo_model usa para carregar (apos fix: unificado para .zip)
+    # zip_checkpoint = REPO_ROOT / "checkpoints" / "ppo_training" / "ppo_model.zip"
+    infer_load_path = tmp_path / "checkpoints" / "ppo_training" / "ppo_model.zip"
 
     assert trainer_save_path == infer_load_path, (
         f"Path de save do trainer ({trainer_save_path.name}) difere do "
         f"path de load de inferencia ({infer_load_path.name}). "
-        "Unificar ambos para ppo_model.zip."
+        "Ambos devem usar ppo_model.zip."
     )
 
 
