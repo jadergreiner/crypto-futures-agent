@@ -4839,3 +4839,12 @@ Next: Phase 2 training execution (96h) → Phase 3 validation (4-5h)
 ```
 
 >>>>>>> Stashed changes
+
+### [SYNC] BLID-098 REVISADO_APROVADO — 2026-03-26
+
+- Agente: 6.tech-lead
+- Arquivo alterado: docs/BACKLOG.md
+- BLID-098 status atualizado de TESTES_PRONTOS/IMPLEMENTADO para REVISADO_APROVADO
+- Evidencias: pytest 6/6 passed; mypy 25 erros (igual baseline pre-PR);
+  erro None iter eliminado apos anotacao Optional[List[Dict[str, Any]]]
+- risk_gate e circuit_breaker intocados
