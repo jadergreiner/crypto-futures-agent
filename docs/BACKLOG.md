@@ -1496,10 +1496,19 @@ Impacto Arquitetural:
 
 ### TAREFA BLID-077 - Padronizar horario de Brasilia no log `[SYM]`
 
-Status: BACKLOG
+Status: CONCLUIDO
 
-Sprint: A definir
-Prioridade: A definir pelo PO
+Sprint: Sprint atual
+Prioridade: Media
+
+PO: Score 1.50 — melhora leitura operacional; baixo esforco; sem dependencias
+criticas; sprint atual.
+SA: Verificado — _build_symbol_report ja exibe `{symbol} | {now_brt_str()} [MODE]`
+com BRT explicito em shadow e live. Nenhuma alteracao necessaria.
+SE: Requisito ja satisfeito em operator_cycle_status.py linha 424.
+Evidencia: `BTCUSDT | 2026-03-26 09:38:30 BRT [LIVE]` — BRT explicito confirmado.
+TL: APROVADO sem alteracoes; comportamento verificado em execucao.
+DOC: Nenhuma doc a atualizar; CONCLUIDO por verificacao em 2026-03-26.
 
 Descricao:
 Padronizar a exibicao do horario de Brasilia no log de `iniciar.bat`
@@ -3214,7 +3223,7 @@ de reconciliação e elimina degradação silenciosa de qualidade em produção.
 
 ### TAREFA BLID-084 - Otimizar coleta OHLCV com cache e batelada
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P0
@@ -3344,7 +3353,7 @@ tempo real e deteccao precoce de degradacao.
 
 ### TAREFA BLID-087 - Healthcheck operacional para anomalias
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: M2-022
 Prioridade: P1
@@ -3376,8 +3385,18 @@ Impacto:
 - Early warning para problemas operacionais
 - Reduz MTTR ao alertar degradacao silenciosa
 
-PO: Diagnosticar anomalias operacionais antes de impactarem decisoes com
-healthcheck preditivo integrado ao ciclo M2.
+PO: Score 2.95 — deteccao precoce de anomalias operacionais; early warning antes
+de impactar decisoes; integra com ciclo M2 existente.
+
+SA: core/model2/healthcheck.py com 5 checks + severity (CRITICAL/HIGH/WARN/OK);
+m2_healthchecks via CREATE TABLE lazy; sem migration; 2 arquivos afetados.
+
+Status: CONCLUIDO
+Suite: tests/test_model2_healthcheck.py (10 GREEN em 2026-03-26)
+SE: core/model2/healthcheck.py criado; 3 checks (stagnation, deferred_timeout,
+permanent_lock); m2_healthchecks via lazy CREATE TABLE; mypy strict Success.
+TL: 10/10 GREEN reproduzido; mypy Success; zero regressoes; APROVADO.
+DOC: SYNCHRONIZATION.md SYNC-152 adicionado.
 
 ### TAREFA M2-022.1 - Validacao de schema em warm-up
 
@@ -5244,7 +5263,9 @@ DOC: SYNCHRONIZATION.md atualizado SYNC-141; BACKLOG.md status REVISADO_APROVADO
 
 ### TAREFA BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino
 
-Status: PENDENTE
+Status: CANCELADO
+Motivo: Resolvido por BLID-100 (2026-03-26). Causa raiz (int vs string em
+collect_training_info) corrigida com completed_at_ms INTEGER.
 
 **Contexto e motivacao:**
 

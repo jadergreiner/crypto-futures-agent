@@ -23,6 +23,17 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-152] BLID-087 CONCLUIDO — 2026-03-26
+
+- Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
+- Arquivos: core/model2/healthcheck.py (novo),
+  tests/test_model2_healthcheck.py (novo)
+- 3 checks implementados: episode_stagnation, deferred_reward_timeout,
+  permanent_lock; persiste em m2_healthchecks; mypy strict Success
+- Status: REVISADO_APROVADO
+
+---
+
 ### [SYNC-151] BLID-100 CONCLUIDO — 2026-03-26
 
 - Agente: 5.software-engineer, 6.tech-lead, 7.doc-advocate
