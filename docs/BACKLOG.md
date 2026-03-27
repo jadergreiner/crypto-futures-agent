@@ -6922,3 +6922,268 @@ plano de rollback controlado.
 Dependencias:
 - M2-030.13
 - M2-030.14
+
+## PACOTE M2-031 - Escala de execucao do dev-cycle em lote
+
+**Status**: EM_DESENVOLVIMENTO
+**Prioridade**: 1 (throughput com governanca)
+**Sprint**: 2026-03-W5 a 2026-04-W3
+**Decisao PO**: 2026-03-27 19:20 BRT
+
+Objetivo:
+Preparar e executar pacote fechado de 20 itens para aumentar throughput do
+orquestrador com rastreabilidade BLID->teste->codigo->docs e sem bypass de
+risk_gate/circuit_breaker.
+
+PO: Pacote M2-031 priorizado com 20 itens. Score orientado por valor,
+urgencia e reducao de risco com foco em previsibilidade de entrega.
+
+SA: Trilha tecnica validada em 6 fases. Dependencias mapeadas para evitar
+bloqueio em cadeia e preservar idempotencia por decision_id.
+
+Orquestracao dev-cycle (2026-03-27):
+- [STAGE 1/8] Backlog Development - CONCLUIDO (pacote estruturado)
+- [STAGE 2/8] Product Owner - CONCLUIDO (priorizacao aplicada)
+- [STAGE 3/8] Solution Architect - CONCLUIDO (requisitos e dependencias)
+- [STAGE 4/8] QA-TDD - CONCLUIDO para M2-031.1 (suite RED definida)
+- [STAGE 5/8] Software Engineer - CONCLUIDO em M2-031.1
+- [STAGE 6/8] Tech Lead - APROVADO em M2-031.1
+- [STAGE 7/8] Doc Advocate - CONCLUIDO em M2-031.1
+- [STAGE 8/8] Project Manager - ACEITE em M2-031.1
+
+### TAREFA M2-031.1 - Planejador de pacote de 20 itens com dependencias
+
+Status: CONCLUIDO
+
+Descricao:
+Criar modulo canonico para montar pacote de desenvolvimento com tamanho alvo de
+20 itens, ordenacao por score PO e respeito a dependencias desbloqueadas.
+
+Dependencias:
+- M2-030.1
+
+QA: Suite RED criada em tests/test_m2_031_1_package_planner.py com 4 cenarios.
+SE: Inicio GREEN em core/dev_cycle_package_planner.py com score PO e montagem
+fail-safe do pacote.
+SE: IMPLEMENTADO. pytest -q tests/test_m2_031_1_package_planner.py (4 passed),
+mypy --strict core/dev_cycle_package_planner.py (Success) e pytest -q tests/
+(308 passed).
+TL: APROVADO. Reproducao independente concluida; sem regressao; guardrails
+risk_gate/circuit_breaker inalterados e idempotencia por decision_id preservada.
+DOC: BACKLOG e SYNCHRONIZATION sincronizados; markdownlint docs/*.md OK;
+pytest -q tests/test_docs_model2_sync.py (12 passed).
+PM: ACEITE em 2026-03-27. Trilha completa validada (BLID->teste->codigo->docs),
+status CONCLUIDO aplicado ao item.
+
+### TAREFA M2-031.2 - Catalogo de limites por stage para lote de itens
+
+Status: Em analise
+
+Descricao:
+Definir limites por stage (2-8) para execucao em lote com mensagens de bloqueio
+acionaveis e sem truncamento de handoff.
+
+Dependencias:
+- M2-031.1
+
+### TAREFA M2-031.3 - Validador de dependencia cruzada entre itens do pacote
+
+Status: Em analise
+
+Descricao:
+Validar referencias de dependencia inexistente, circular ou fora do pacote para
+parada conservadora antes do stage 4.
+
+Dependencias:
+- M2-031.1
+
+### TAREFA M2-031.4 - Priorizacao deterministica com desempate auditavel
+
+Status: Em analise
+
+Descricao:
+Aplicar desempate por score, risco residual e id do item para garantir ordem
+reproduzivel entre execucoes.
+
+Dependencias:
+- M2-031.1
+
+### TAREFA M2-031.5 - Gate de capacidade por sprint no pacote
+
+Status: Em analise
+
+Descricao:
+Ajustar pacote de 20 itens por capacidade configurada da sprint, mantendo trilha
+com itens adiados e justificativa.
+
+Dependencias:
+- M2-031.2
+- M2-031.4
+
+### TAREFA M2-031.6 - Snapshot de progresso por item e stage
+
+Status: Em analise
+
+Descricao:
+Persistir snapshot operacional por item em cada stage para retomada segura e
+monitoramento de throughput.
+
+Dependencias:
+- M2-031.2
+
+### TAREFA M2-031.7 - Retry controlado para falha transitoria de stage
+
+Status: Em analise
+
+Descricao:
+Permitir retry com budget por stage para falhas transitorias, sem bypass dos
+estados DEVOLVIDO e sem reprocessar item concluido.
+
+Dependencias:
+- M2-031.6
+
+### TAREFA M2-031.8 - Matriz de bloqueios por tipo de devolucao em lote
+
+Status: Em analise
+
+Descricao:
+Mapear motivo de devolucao para acao de retorno ao stage correto em contexto de
+pacote multiplo.
+
+Dependencias:
+- M2-031.3
+- M2-031.7
+
+### TAREFA M2-031.9 - Gate de payload agregado por pacote
+
+Status: Em analise
+
+Descricao:
+Controlar tamanho agregado de handoffs do pacote e acionar compactacao quando
+limite configurado for excedido.
+
+Dependencias:
+- M2-031.2
+
+### TAREFA M2-031.10 - Verificador de guardrails por diff do lote
+
+Status: Em analise
+
+Descricao:
+Bloquear lote quando diff alterar risk_gate, circuit_breaker ou idempotencia de
+decision_id sem evidencias obrigatorias.
+
+Dependencias:
+- M2-031.8
+
+### TAREFA M2-031.11 - Script de reproducao TL para item selecionado
+
+Status: Em analise
+
+Descricao:
+Padronizar reproducao do Tech Lead por item (pytest, mypy, evidencias) dentro
+do pacote sem executar suite total desnecessaria.
+
+Dependencias:
+- M2-031.6
+
+### TAREFA M2-031.12 - Contrato de handoff consolidado por lote
+
+Status: Em analise
+
+Descricao:
+Consolidar schema de handoff por item e por pacote para reduzir ambiguidades
+entre os agentes 2-8.
+
+Dependencias:
+- M2-031.9
+
+### TAREFA M2-031.13 - Rastreabilidade automatica BLID->teste->codigo->docs
+
+Status: Em analise
+
+Descricao:
+Gerar checkpoint obrigatorio de rastreabilidade por item antes do stage 8.
+
+Dependencias:
+- M2-031.10
+- M2-031.12
+
+### TAREFA M2-031.14 - Gate doc advocate por impacto do lote
+
+Status: Em analise
+
+Descricao:
+Determinar docs obrigatorias por tipo de mudanca e bloquear fechamento sem
+registro [SYNC] por item.
+
+Dependencias:
+- M2-031.13
+
+### TAREFA M2-031.15 - Dashboard de throughput do dev-cycle por pacote
+
+Status: Em analise
+
+Descricao:
+Exibir throughput, WIP por stage, itens bloqueados e SLA de transicao para
+suporte operacional diario.
+
+Dependencias:
+- M2-031.6
+
+### TAREFA M2-031.16 - SLA de transicao por status no backlog
+
+Status: Em analise
+
+Descricao:
+Aplicar SLA para itens presos em Em analise/TESTES_PRONTOS/EM_DESENVOLVIMENTO
+com alerta de aging por item.
+
+Dependencias:
+- M2-031.15
+
+### TAREFA M2-031.17 - Matriz GO/NO-GO para fechamento de pacote
+
+Status: Em analise
+
+Descricao:
+Definir criterios binarios de aceite de pacote completo antes de push final em
+main.
+
+Dependencias:
+- M2-031.13
+- M2-031.16
+
+### TAREFA M2-031.18 - Preflight PM para clean tree e commit em lote
+
+Status: Em analise
+
+Descricao:
+Automatizar check final do stage 8 com validacao de clean tree, commit valido e
+rastreabilidade por item.
+
+Dependencias:
+- M2-031.17
+
+### TAREFA M2-031.19 - Runbook de retomada de pacote apos interrupcao
+
+Status: Em analise
+
+Descricao:
+Consolidar runbook de retomada por stage apos DEVOLVIDO, mantendo checkpoint e
+contexto corrigido por item.
+
+Dependencias:
+- M2-031.8
+- M2-031.18
+
+### TAREFA M2-031.20 - Encerramento executivo do pacote com aceite final
+
+Status: Em analise
+
+Descricao:
+Emitir comunicado executivo final com status por item, evidencias, hash de
+commit e confirmacao de arvore limpa.
+
+Dependencias:
+- M2-031.19
