@@ -23,6 +23,20 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-176] M2-022.2 REVISADO_APROVADO — 2026-03-27
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, core/model2/training_audit.py,
+  core/model2/live_service.py, tests/test_model2_training_audit.py,
+  docs/MODELAGEM_DE_DADOS.md, docs/ARQUITETURA_ALVO.md
+- M2-022.2: trilha de auditoria para trigger incremental com schema
+  `rl_training_audit`, bloqueio anti-duplicidade e deteccao de stale > 6h.
+- Evidencias:
+  - `pytest -q tests/test_model2_training_audit.py` -> 7 passed
+  - `mypy --strict core/model2/training_audit.py` -> Success
+  - `mypy --strict core/model2/live_service.py` -> Success
+  - `pytest -q tests/` -> 308 passed
+
 ### [SYNC-175] M2-024.15 IMPLEMENTADO — 2026-03-27
 
 - Agente: 7.doc-advocate

@@ -132,6 +132,31 @@ Indice:
 
 1. `(completed_at DESC)` para busca rápida do último treino.
 
+## 6.1) rl_training_audit (M2-022.2)
+
+Trilha de auditoria do trigger de treino incremental.
+
+Campos:
+
+1. `id` (PK)
+2. `triggered_at_ms` (INTEGER UTC ms)
+3. `trigger_reason` (TEXT)
+4. `episodes_count` (INTEGER)
+5. `model_id_before` (TEXT, nulo permitido)
+6. `model_id_after` (TEXT, nulo permitido)
+7. `avg_reward_delta` (REAL, nulo permitido)
+8. `status` (TEXT: started|blocked)
+9. `created_at` (TEXT DEFAULT CURRENT_TIMESTAMP)
+
+Uso:
+
+1. Auditar contexto de trigger (threshold, treino em andamento, stale).
+2. Suportar analise de anti-duplicidade e explicacao de bloqueio.
+
+Indice:
+
+1. `(triggered_at_ms DESC, id DESC)` para consulta operacional recente.
+
 ## 7) rl_episodes
 
 Episódios de aprendizado RL capturados durante execução.

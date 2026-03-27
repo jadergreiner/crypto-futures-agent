@@ -327,6 +327,21 @@ Dados coletados por simbolo:
 4. Executar (ou aguardar) e reconciliar.
 5. Persistir episodio e reward.
 
+**M2-022.2 (Auditoria de trigger de treino incremental)**:
+
+1. `core/model2/training_audit.py` centraliza:
+   - `ensure_rl_training_audit_schema(conn)`
+   - `record_training_audit_event(...)`
+   - `evaluate_training_trigger_audit(...)`
+   - `detect_training_stale(...)`
+2. `core/model2/live_service.py` integra auditoria no caminho de trigger:
+   - registra decisao auditavel (`started|blocked`) em `rl_training_audit`
+   - bloqueia duplicidade quando treino ja esta em andamento
+   - detecta stale de treino > 6h em operacao ativa (fail-safe)
+3. Guardrails preservados:
+   - `risk_gate` e `circuit_breaker` permanecem ativos
+   - idempotencia por `decision_id` inalterada
+
 ## Modos de operacao
 
 1. `backtest`: validacao offline da politica.

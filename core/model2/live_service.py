@@ -65,6 +65,11 @@ from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
 from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
 from .volatility_sizing import adjust_size_for_volatility
+from .training_audit import (
+    detect_training_stale,
+    evaluate_training_trigger_audit,
+    record_training_audit_event,
+)
 
 # Regra que garante que guard-rails permanecem no caminho critico
 # independente da acao do modelo (M2-020.5)
@@ -74,6 +79,7 @@ _PROTECTION_MAX_RETRIES = 3
 _PROTECTION_RETRY_BASE_DELAY_S = 1.0
 _BALANCE_RETRY_ATTEMPTS = 3
 _BALANCE_RETRY_DELAY_S = 0.4
+_TRAINING_STALE_MAX_HOURS = 6
 FAIL_SAFE_RETRY_TIMEOUT_POLICY: dict[str, float | int | str] = {
     "policy": "fail_safe",
     "max_retries": _PROTECTION_MAX_RETRIES,
@@ -326,11 +332,41 @@ class Model2LiveExecutionService:
         timeframe: str,
     ) -> None:
         """Dispara retreino incremental em subprocesso isolado quando backlog atinge limiar."""
-        if retrain_threshold <= 0:
-            return
-        if pending_episodes < retrain_threshold:
-            return
-        if self._incremental_training_is_running():
+        now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+        is_running = self._incremental_training_is_running()
+        last_completed_at_ms = self._load_last_training_completed_at_ms()
+
+        decision = evaluate_training_trigger_audit(
+            pending_episodes=int(pending_episodes),
+            retrain_threshold=int(retrain_threshold),
+            is_running=is_running,
+            now_ms=now_ms,
+            last_completed_at_ms=last_completed_at_ms,
+        )
+
+        self._record_training_audit(
+            triggered_at_ms=now_ms,
+            trigger_reason=decision["trigger_reason"],
+            episodes_count=int(pending_episodes),
+            status=decision["status"],
+            model_id_after=None,
+        )
+
+        if not decision["trigger_allowed"]:
+            stale_result = detect_training_stale(
+                now_ms=now_ms,
+                last_completed_at_ms=last_completed_at_ms,
+                max_stale_hours=_TRAINING_STALE_MAX_HOURS,
+                operation_active=(int(pending_episodes) > 0),
+            )
+            if stale_result["stale"]:
+                self._record_training_audit(
+                    triggered_at_ms=now_ms,
+                    trigger_reason=stale_result["reason"],
+                    episodes_count=int(pending_episodes),
+                    status="blocked",
+                    model_id_after=None,
+                )
             return
 
         command = [
@@ -347,6 +383,59 @@ class Model2LiveExecutionService:
             pending_episodes,
             retrain_threshold,
         )
+
+    def _load_last_training_completed_at_ms(self) -> int | None:
+        """Busca o ultimo timestamp de treino concluido em ms com fallback seguro."""
+        try:
+            with sqlite3.connect(self._resolve_repository_db_path(), timeout=5) as conn:
+                row = conn.execute(
+                    """
+                    SELECT MAX(completed_at_ms)
+                    FROM rl_training_log
+                    """
+                ).fetchone()
+                if row and row[0] is not None:
+                    return int(row[0])
+                fallback = conn.execute(
+                    """
+                    SELECT MAX(CAST(strftime('%s', completed_at) AS INTEGER) * 1000)
+                    FROM rl_training_log
+                    """
+                ).fetchone()
+                if fallback and fallback[0] is not None:
+                    return int(fallback[0])
+        except Exception:
+            return None
+        return None
+
+    def _record_training_audit(
+        self,
+        *,
+        triggered_at_ms: int,
+        trigger_reason: str,
+        episodes_count: int,
+        status: str,
+        model_id_after: str | None,
+    ) -> None:
+        """Registra auditoria do trigger de treino em modo fail-safe."""
+        try:
+            with sqlite3.connect(self._resolve_repository_db_path(), timeout=5) as conn:
+                record_training_audit_event(
+                    conn,
+                    triggered_at_ms=int(triggered_at_ms),
+                    trigger_reason=str(trigger_reason),
+                    episodes_count=int(episodes_count),
+                    model_id_before=str(self._last_train_time),
+                    model_id_after=model_id_after,
+                    avg_reward_delta=None,
+                    status=str(status),
+                )
+                conn.commit()
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "Falha ao registrar training_audit (fail-safe): %s",
+                exc,
+            )
 
     def _emit_operational_alert(self, event_type: str, details: dict[str, Any]) -> None:
         try:

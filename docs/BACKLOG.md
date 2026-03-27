@@ -96,11 +96,11 @@ Priorizacao PO executada (2026-03-26) - Top 10:
 
 Priorizacao PO executada (2026-03-27) - Top 5 (ciclo atual):
 
-1) M2-024.15 (Score 5.10) - Em analise
-2) BLID-089 (Score 4.95) - Em analise
-3) M2-022.1 (Score 4.90) - Em analise
-4) BLID-075 (Score 4.55) - Em analise
-5) BLID-083 (Score 4.30) - Em analise
+1) M2-022.2 (Score 4.20) - Em analise
+2) M2-022.1 (Score 3.95) - Em analise
+3) BLID-089 (Score 3.85) - Em analise
+4) BLID-075 (Score 3.05) - Em analise
+5) BLID-083 (Score 2.95) - Em analise
 
 Backlog estruturado para priorizacao:
 
@@ -1877,7 +1877,7 @@ Evidencias:
 
 Status: Em analise
 
-Score PO: 5.35 (Valor=6, Urg=6, Risco=5, Esf=6)
+Score PO: 2.95 (Valor=4, Urg=3, Risco=3, Esf=2)
 
 PO: Suite estratificada reduz tempo de CI e foco de regressao por agente.
 Sem dependencias bloqueantes. Menor score do lote mas valor de processo.
@@ -1914,6 +1914,9 @@ PO: Otimizar o ciclo de desenvolvimento, reduzindo o tempo de execução
 dos testes em etapas onde a suíte completa não é necessária. Acelera a
 entrega.
 
+PO: Score 2.95. Prioridade de eficiencia do fluxo, sem bloqueio tecnico
+imediato e com impacto direto no lead time do ciclo.
+
 SA: Análise concluída. Plano técnico em `docs/TECH_PLAN_BLID-083.md`. A
 estratégia usará marcadores pytest (`unit`, `contract`, `integration`,
 `e2e`, `docs`, `slow`) para categorizar os testes e hooks de git
@@ -1923,6 +1926,9 @@ CI. Handoff para `4.qa-tdd` para iniciar a marcação dos testes.
 
 SA: Refino incremental aprovado para ciclo atual: iniciar por marcação de
 gates criticos (`contract`, `risk`, `docs`) e depois expandir para suite completa.
+
+SA: Handoff QA pronto para matriz por etapa com gates criticos e comandos
+objetivos, preservando risk_gate/circuit_breaker.
 
 ## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
 
@@ -3945,6 +3951,8 @@ DOC: SYNCHRONIZATION.md SYNC-152 adicionado.
 
 Status: Em analise
 
+Score PO: 3.95 (Valor=5, Urg=4, Risco=5, Esf=3)
+
 Sprint: M2-022
 Prioridade: P1
 
@@ -3979,9 +3987,14 @@ de degradacao por dados inconsistentes.
 SA: Executar validacao de schema no preflight com severidade por violacao e
 bloqueio CRITICAL/HIGH; preservar guardrails e idempotencia por decision_id.
 
+SA: Handoff QA preparado para validar severidade CRITICAL/HIGH no preflight
+e relatorio de cobertura de schema sem bypass de guardrails.
+
 ### TAREFA M2-022.2 - Auditoria de trigger de treino incremental
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 4.20 (Valor=5, Urg=5, Risco=5, Esf=3)
 
 Sprint: M2-022
 Prioridade: P0
@@ -4011,6 +4024,41 @@ Impacto:
 
 PO: Rastrear disparo de treino incremental para auditoria e deteccao de
 stale model, critical para qualidade de decisao em producao.
+
+PO: Score 4.20. Prioridade maxima do ciclo por risco de treino stale
+silencioso e impacto direto em decisoes live.
+
+SA: Handoff QA preparado para trilha de auditoria do trigger,
+anti-duplicidade de treino e deteccao de stale >6h com fail-safe.
+
+QA: Suite RED criada em `tests/test_model2_training_audit.py` com 7 testes;
+execucao inicial `pytest -q tests/test_model2_training_audit.py` -> 7 failed
+(esperado, modulo `core.model2.training_audit` ausente). Cobertura de R1-R4:
+schema `rl_training_audit`, evento de trigger, anti-duplicidade e stale > 6h.
+
+SE: Inicio Green-Refactor em 2026-03-27 com status `EM_DESENVOLVIMENTO`.
+Implementado `core/model2/training_audit.py` e integracao no trigger de treino
+em `core/model2/live_service.py` com auditoria fail-safe.
+
+SE: GREEN concluido com R1-R4 atendidos. `rl_training_audit` criada/garantida,
+trigger bloqueia duplicidade, evento de trigger auditavel e stale >6h detectado
+sem interromper ciclo operacional.
+
+Evidencias de implementacao:
+
+1. `pytest -q tests/test_model2_training_audit.py` -> 7 passed.
+2. `mypy --strict core/model2/training_audit.py` -> Success.
+3. `mypy --strict core/model2/live_service.py` -> Success.
+4. `pytest -q tests/` -> 308 passed.
+
+TL: APROVADO. Reproducao local validada (suite nova + regressao completa),
+mypy strict clean nos modulos alterados, guardrails preservados e sem regressao.
+
+DOC: MODELAGEM_DE_DADOS e ARQUITETURA_ALVO sincronizados para M2-022.2;
+SYNCHRONIZATION atualizado com [SYNC-176].
+
+PM: ACEITE em 2026-03-27. Trilha BLID->QA->SE->TL->DOC validada com
+evidencias verdes; fechamento publicado em main com arvore limpa.
 
 ### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
 
@@ -4648,6 +4696,8 @@ Evidencias:
 
 Status: Em analise
 
+Score PO: 3.05 (Valor=4, Urg=3, Risco=4, Esf=3)
+
 Sprint: A definir
 Prioridade: A definir pelo PO
 
@@ -4672,6 +4722,9 @@ verificaveis e trilha de onboarding ponta a ponta.
 
 SA: Fatiar onboarding em 3 entregas: coleta validada, dry-run 5 camadas e
 checklist de aceite operacional; sem alterar risk_gate/circuit_breaker.
+
+SA: Handoff QA pronto para validar coleta >=20 sinais, dry-run 5 camadas e
+checklist final sem alterar guardrails.
 
 Impacto:
 
@@ -5243,6 +5296,8 @@ validacoes verdes e fechamento publicado em main.
 
 Status: Em analise
 
+Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
+
 
 
 Prioridade proposta: Media
@@ -5274,6 +5329,8 @@ tendencia e baixa dependencia tecnica residual.
 
 SA: Habilitar D1 ponta a ponta (settings, pipeline, iniciar.bat e scanner),
 com validacao de `ohlcv_d1` e regressao da trilha M2 em modo conservador.
+
+SA: Handoff QA preparado para RED de sync D1, execucao no iniciar.bat e leitura scanner com regressao controlada.
 
 **Criterio de aceite:**
 
