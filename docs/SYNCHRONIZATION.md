@@ -5490,3 +5490,22 @@ REVISADO_APROVADO
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
 - Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-183] M2-031.2 Catalogo de limites por stage - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.2
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_planner.py
+  - tests/test_m2_031_2_stage_limits_catalog.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_2_stage_limits_catalog.py -> 5 passed
+  - mypy --strict core/dev_cycle_package_planner.py -> Success
+  - pytest -q tests/ -> 308 passed
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.

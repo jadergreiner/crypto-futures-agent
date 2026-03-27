@@ -15,6 +15,36 @@ class BacklogCandidate:
     dependencies: tuple[str, ...] = field(default_factory=tuple)
 
 
+@dataclass(frozen=True)
+class StageLimit:
+    stage: str
+    max_payload_chars: int
+    max_parallel_items: int
+
+
+_STAGE_LIMITS: dict[str, StageLimit] = {
+    "2.product-owner": StageLimit(stage="2.product-owner", max_payload_chars=1200, max_parallel_items=20),
+    "3.solution-architect": StageLimit(
+        stage="3.solution-architect",
+        max_payload_chars=1600,
+        max_parallel_items=20,
+    ),
+    "4.qa-tdd": StageLimit(stage="4.qa-tdd", max_payload_chars=2500, max_parallel_items=10),
+    "5.software-engineer": StageLimit(
+        stage="5.software-engineer",
+        max_payload_chars=1800,
+        max_parallel_items=5,
+    ),
+    "6.tech-lead": StageLimit(stage="6.tech-lead", max_payload_chars=1800, max_parallel_items=5),
+    "7.doc-advocate": StageLimit(stage="7.doc-advocate", max_payload_chars=1800, max_parallel_items=8),
+    "8.project-manager": StageLimit(
+        stage="8.project-manager",
+        max_payload_chars=1800,
+        max_parallel_items=8,
+    ),
+}
+
+
 def calculate_priority_score(candidate: BacklogCandidate) -> float:
     score = (
         candidate.valor * 0.45
@@ -55,3 +85,20 @@ def build_development_package(
 
     return selected
 
+
+def get_stage_limits_catalog() -> dict[str, StageLimit]:
+    return dict(_STAGE_LIMITS)
+
+
+def validate_stage_limits(*, stage: str, payload_chars: int, items_in_batch: int) -> list[str]:
+    normalized_stage = stage.strip().lower()
+    limit = _STAGE_LIMITS.get(normalized_stage)
+    if limit is None:
+        raise ValueError("stage_invalido")
+
+    errors: list[str] = []
+    if payload_chars > limit.max_payload_chars:
+        errors.append("payload_excede_limite_do_stage")
+    if items_in_batch > limit.max_parallel_items:
+        errors.append("itens_excedem_capacidade_do_stage")
+    return errors
