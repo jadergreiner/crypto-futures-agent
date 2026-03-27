@@ -26,6 +26,8 @@ TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
     "HOLD_DECISION",
     "EXECUTED",
     "EXITED",
+    "WIN",
+    "LOSS",
 )
 
 # M2-025.3 — janela padrao para deteccao de lacuna de candles (5 minutos)
@@ -411,7 +413,16 @@ def collect_training_info(
                     "WHERE reward_proxy IS NOT NULL",
                     f"  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})",
                     "  AND LOWER(COALESCE(label, '')) != 'context'",
-                    "  AND created_at > ?",
+                    "  AND COALESCE(",
+                    "    CASE",
+                    "      WHEN CAST(created_at AS INTEGER) > 100000000000",
+                    "        THEN CAST(created_at AS INTEGER)",
+                    "      WHEN strftime('%s', created_at) IS NOT NULL",
+                    "        THEN CAST(strftime('%s', created_at) AS INTEGER) * 1000",
+                    "      ELSE 0",
+                    "    END,",
+                    "    0",
+                    "  ) > ?",
                 ]
                 params: list[Any] = [*TRAINING_EPISODE_ELIGIBLE_STATUSES, int(cutoff_ms)]
                 if timeframe:
@@ -489,7 +500,16 @@ def collect_training_info_for_symbol(
                 "WHERE reward_proxy IS NOT NULL",
                 f"  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})",
                 "  AND LOWER(COALESCE(label, '')) != 'context'",
-                "  AND created_at > ?",
+                "  AND COALESCE(",
+                "    CASE",
+                "      WHEN CAST(created_at AS INTEGER) > 100000000000",
+                "        THEN CAST(created_at AS INTEGER)",
+                "      WHEN strftime('%s', created_at) IS NOT NULL",
+                "        THEN CAST(strftime('%s', created_at) AS INTEGER) * 1000",
+                "      ELSE 0",
+                "    END,",
+                "    0",
+                "  ) > ?",
                 "  AND symbol = ?",
             ]
             params = [*TRAINING_EPISODE_ELIGIBLE_STATUSES, int(cutoff_ms), normalized_symbol]

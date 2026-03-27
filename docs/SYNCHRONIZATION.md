@@ -23,6 +23,16 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-175] M2-024.15 IMPLEMENTADO — 2026-03-27
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/ARQUITETURA_ALVO.md,
+  docs/REGRAS_DE_NEGOCIO.md, tests/test_model2_m2_024_15_docs_governance.py
+- M2-024.15: runbook unico do pacote M2-024 e matriz de guardrails
+  documentados; RN-029 adicionada para governanca documental.
+- Evidencias: pytest -q tests/test_model2_m2_024_15_docs_governance.py PASS;
+  pytest -q tests/test_docs_model2_sync.py PASS.
+
 ### [SYNC-174] M2-025.9 CONCLUIDO — 2026-03-26
 
 - Agente: 7.doc-advocate
@@ -5344,3 +5354,16 @@ REVISADO_APROVADO
   > M2-025.6(3.00) = M2-025.10(3.00) > M2-027.5(2.75)
 - Score medio: 3.78
 - Guardrails: risk_gate/circuit_breaker obrigatorios em todos os itens.
+
+---
+
+## [SYNC] SA PKG-M2-025/027/028-0326B - 2026-03-26
+
+- Agente: 3.solution-architect
+- Arquivo alterado: docs/BACKLOG.md
+- 10 itens analisados: M2-025.6/7/8/10/11/14, M2-027.3/4/5, M2-028.4
+- Todos mantidos em `Em analise` com comentario SA registrado
+- Modulos afetados: scanner.py, order_layer.py, repository.py,
+  go_live_preflight.py, risk_gate.py; novos: market_reader.py,
+  cycle_snapshot.py, orphan_guard.py, drawdown_gate.py
+- Guardrails: risk/circuit_breaker.py e risk/risk_gate.py ativos em todos os paths

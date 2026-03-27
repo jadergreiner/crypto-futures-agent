@@ -157,6 +157,15 @@ Politica de rollback por severidade (M2-024.14):
   - `evaluate_rollback(severity, reason_code)`: retorna action, safe_to_resume
     e alert_message. Nunca levanta excecao.
 
+Governanca de docs e runbook do pacote M2-024 (M2-024.15):
+
+- Consolidar runbook unico do pacote M2-024 como trilha de operacao segura
+  para incidentes, degradacao e retomada controlada.
+- Manter matriz de guardrails (`risk_gate`, `circuit_breaker`, `decision_id`)
+  explicitando invariantes que nao podem ser bypassados em nenhum stage.
+- Centralizar evidencias do pacote no backlog e no audit trail `[SYNC]`,
+  garantindo rastreabilidade entre arquitetura, regras e execucao.
+
 Resiliencia e fail-safe de pipeline (M2-027):
 
 - `core/model2/cycle_watchdog.py` — modulo transversal de resiliencia com:

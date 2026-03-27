@@ -322,3 +322,17 @@ Logs devem ser rotacionados e retidos conforme política centralizada por severi
 5. Rotação automática por tamanho (100MB) + compressão .gz
 6. Config centralizado em config/logging_retention_policy.yaml
 7. Scheduler determinístico sem intervenção manual
+
+### RN-029 - Governanca Documental do Pacote M2-024 (M2-024.15)
+
+A conclusao do pacote M2-024 exige sincronizacao documental auditavel
+entre backlog, arquitetura e regras de negocio:
+
+1. O runbook unico do pacote M2-024 deve consolidar resposta a incidente,
+   criterios de bloqueio e retomada segura.
+2. A matriz de guardrails deve explicitar `risk_gate`, `circuit_breaker`
+   e idempotencia por `decision_id` como invariantes inviolaveis.
+3. Toda alteracao de governanca deve gerar trilha em `docs/SYNCHRONIZATION.md`
+   com tag `[SYNC]` e referencia da task.
+4. Divergencia entre docs oficiais e implementacao deve resultar em
+   tratamento conservador (no-go para expansao operacional).

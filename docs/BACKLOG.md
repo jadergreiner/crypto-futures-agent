@@ -94,6 +94,14 @@ Priorizacao PO executada (2026-03-26) - Top 10:
 9) M2-025.6 (Score 2.95) - Em analise
 10) M2-028.9 (Score 2.90) - Em analise
 
+Priorizacao PO executada (2026-03-27) - Top 5 (ciclo atual):
+
+1) M2-024.15 (Score 5.10) - Em analise
+2) BLID-089 (Score 4.95) - Em analise
+3) M2-022.1 (Score 4.90) - Em analise
+4) BLID-075 (Score 4.55) - Em analise
+5) BLID-083 (Score 4.30) - Em analise
+
 Backlog estruturado para priorizacao:
 
 - M2-019.3 a M2-019.10 - RL por simbolo como decisor de entrada.
@@ -625,7 +633,7 @@ PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-024.15 - Governanca de docs e runbook do pacote M2-024
 
-Status: Em analise
+Status: CONCLUIDO
 
 Descricao:
 Sincronizar arquitetura, regras, runbook e trilha SYNC apos conclusao do
@@ -637,6 +645,38 @@ Dependencias:
 
 PO: Encerrar governanca documental do M2-024 com trilha auditavel e
 runbook unico para operacao segura.
+
+SA: Consolidar runbook unico, matriz de guardrails e checklist de incidentes
+do pacote M2-024; sem mudanca de schema, com foco em auditabilidade.
+
+QA: Suite RED em tests/test_model2_m2_024_15_docs_governance.py com 4 testes;
+execucao inicial 3 failed, 1 passed validando lacunas de governanca em
+ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e trilha [SYNC].
+
+SE: Inicio Green-Refactor da M2-024.15 em 2026-03-27; foco em runbook unico,
+matriz de guardrails e sincronizacao documental auditavel.
+
+SE: GREEN concluido. Governanca documental implementada em
+ARQUITETURA_ALVO (M2-024.15), REGRAS_DE_NEGOCIO (RN-029) e
+SYNCHRONIZATION ([SYNC-175]).
+Evidencias:
+
+1. pytest -q tests/test_model2_m2_024_15_docs_governance.py -> 4 passed.
+2. pytest -q tests/test_docs_model2_sync.py -> 12 passed.
+3. markdownlint docs/*.md -> OK.
+
+TL: APROVADO. Reproducao local valida (4+12 testes), mypy strict clean,
+guardrails documentados e trilha [SYNC] consistente.
+
+DOC: Governanca final aplicada com RN-029, atualizacao de arquitetura
+M2-024.15 e registro [SYNC-175].
+
+PM: DEVOLVER_PARA_AJUSTE. Suite completa falhou em `pytest -q tests/`
+(10 falhas pre-existentes fora do escopo M2-024.15). Aguardar saneamento
+baseline para emitir ACEITE e fechar como CONCLUIDO.
+
+PM: ACEITE em 2026-03-27. Gate obrigatorio validado com suite completa
+verde (`pytest -q tests/` -> 308 passed). Trilha ponta-a-ponta concluida.
 
 ## PACOTE M2-025 - Confiabilidade de dados e treino no ciclo M2
 
@@ -849,6 +889,9 @@ Dependencias:
 PO: Score 3.00. Rastreabilidade ciclo-episodio-execucao; habilita
 M2-025.10/12. Prioridade media.
 
+SA: Adicionar cycle_id em DetectorInput/DetectionResult; propagar via
+repository.py. Sem schema novo se usar campo metadata existente.
+
 ### TAREFA M2-025.7 - Retry seguro para leitura de mercado
 
 Status: Em analise
@@ -866,6 +909,10 @@ Dependencias:
 PO: Score 3.85. Resiliencia contra falhas transitorias; fallback
 conservador protege pipeline. Desbloqueia M2-025.8.
 
+SA: RetryPolicy(frozen dataclass) em core/model2/market_reader.py;
+max_retries+backoff+fallback conservador; reason_code
+MARKET_READ_RETRY_EXHAUSTED.
+
 ### TAREFA M2-025.8 - Timeout de coleta por etapa critica
 
 Status: Em analise
@@ -882,6 +929,9 @@ Dependencias:
 
 PO: Score 3.30. Elimina travamento silencioso por etapa; telemetria
 auditavel. Dep M2-025.7 deve preceder.
+
+SA: TimeoutPolicy(frozen dataclass) com budget_ms por etapa; wrapping em
+scanner/validator; telemetria via observability.py.
 
 ### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
 
@@ -928,6 +978,9 @@ Dependencias:
 PO: Score 3.00. Consolida visibilidade operacional por ciclo.
 Dep M2-025.6 deve preceder.
 
+SA: CycleSnapshot(frozen dataclass) em core/model2/cycle_snapshot.py;
+agregado por cycle_id; persiste em campo JSON ou tabela cycle_snapshots.
+
 ### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
 
 Status: Em analise
@@ -945,6 +998,9 @@ Dependencias:
 
 PO: Score 3.60. Cobertura RED critica para frescor/lacuna; fail-safe
 auditavel sem dados. Deps ja concluidas.
+
+SA: Suite RED em tests/test_model2_m2_025_11_data_freshness.py; testar
+frescor, lacuna e fail-safe; usar DetectorInput com candles vazios/stale.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
@@ -989,6 +1045,9 @@ Dependencias:
 
 PO: Score 3.85. Gate pre-live que bloqueia live com dados inconsistentes.
 Alta prioridade para Go/No-Go seguro.
+
+SA: Expandir go_live_preflight.py com checks de episodio, treino e
+consistencia candle; bloquear se falhar; reason_code DATA_CONSISTENCY_FAIL.
 
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
@@ -1385,6 +1444,9 @@ Dependencias:
 PO: Score 4.45. Risco critico: posicao orfa sem monitoramento causa
 perda nao controlada. Guardrail obrigatorio pre-saida.
 
+SA: OrphanDetector em core/model2/orphan_guard.py; compara Binance open
+positions vs signal_executions ACTIVE; decision_id sintetico ORPHAN_POSITION.
+
 ### TAREFA M2-027.4 - Consistencia transacional entre order_layer e live_execution
 
 Status: Em analise
@@ -1412,6 +1474,9 @@ Dependencias:
 PO: Score 4.45. Estado parcial CONSUMED sem IN_PROGRESS e risco de
 ordem dupla ou fantasma. Atomicidade essencial.
 
+SA: Transacao DB unica CONSUMED->IN_PROGRESS em repository.py; rollback em
+falha; reconciliacao detecta estado parcial; compativel M2-024.3.
+
 ### TAREFA M2-027.5 - Governanca e runbook do pacote M2-027
 
 Status: Em analise
@@ -1437,6 +1502,9 @@ Dependencias:
 
 PO: Score 2.75. Governanca documental; deve ser ultimo do pacote M2-027.
 Dep M2-027.3/4 obrigatorias.
+
+SA: Doc-only task; atualizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO
+(RN-017..020) e runbook em docs/; markdownlint obrigatorio.
 
 ---
 
@@ -1612,6 +1680,10 @@ Dependencias:
 
 PO: Score 4.55. Maior score do pacote. Drawdown ilimitado e risco
 catastrofico; gate diario inviolavel com CB parcial.
+
+SA: DailyDrawdownGate em drawdown_gate.py; gate em order_layer
+pre-CONSUMED; reset UTC midnight; reason_code DAILY_DRAWDOWN_LIMIT;
+CB parcial.
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 
@@ -1848,6 +1920,9 @@ estratégia usará marcadores pytest (`unit`, `contract`, `integration`,
 (`pre-commit`, `pre-push`) para execução estratificada, otimizando o
 ciclo de desenvolvimento local sem perder cobertura crítica nos gates de
 CI. Handoff para `4.qa-tdd` para iniciar a marcação dos testes.
+
+SA: Refino incremental aprovado para ciclo atual: iniciar por marcação de
+gates criticos (`contract`, `risk`, `docs`) e depois expandir para suite completa.
 
 ## INICIATIVA M2-011 - Observabilidade do Ciclo M2 (BLID-073)
 
@@ -3868,7 +3943,7 @@ DOC: SYNCHRONIZATION.md SYNC-152 adicionado.
 
 ### TAREFA M2-022.1 - Validacao de schema em warm-up
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: M2-022
 Prioridade: P1
@@ -3900,6 +3975,9 @@ Impacto:
 
 PO: Validar schema M2 como gate obrigatorio em go-live, reduzindo risco
 de degradacao por dados inconsistentes.
+
+SA: Executar validacao de schema no preflight com severidade por violacao e
+bloqueio CRITICAL/HIGH; preservar guardrails e idempotencia por decision_id.
 
 ### TAREFA M2-022.2 - Auditoria de trigger de treino incremental
 
@@ -4592,6 +4670,9 @@ Dependencias:
 PO: Item entrou no Top 10 para fechamento operacional com evidencias
 verificaveis e trilha de onboarding ponta a ponta.
 
+SA: Fatiar onboarding em 3 entregas: coleta validada, dry-run 5 camadas e
+checklist de aceite operacional; sem alterar risk_gate/circuit_breaker.
+
 Impacto:
 
 - Fecha o onboarding do simbolo com rastreabilidade operacional
@@ -5187,6 +5268,12 @@ estruturais de tendencia de longo prazo integradas ao pipeline M2.
 **Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
 
 PO: Preparar expansao D1 no loop diario apos M5 para completar cobertura multi-timeframe operacional.
+
+PO: Priorizado no ciclo atual por impacto direto em contexto estrutural de
+tendencia e baixa dependencia tecnica residual.
+
+SA: Habilitar D1 ponta a ponta (settings, pipeline, iniciar.bat e scanner),
+com validacao de `ohlcv_d1` e regressao da trilha M2 em modo conservador.
 
 **Criterio de aceite:**
 

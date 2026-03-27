@@ -26,6 +26,7 @@ from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetr
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from .cycle_report import (
     SymbolReport,
+    collect_training_info,
     collect_training_info_for_symbol,
     collect_position_info,
     format_symbol_report,
@@ -365,12 +366,17 @@ class Model2LiveExecutionService:
     ) -> None:
         """Formata status operacional usando novo padrao cycle_report."""
         try:
-            # Coletar dados de treino
-            last_train, pending = collect_training_info_for_symbol(
+            # Coletar dados de treino (compatibilidade legacy + granularidade por simbolo)
+            last_train, pending = collect_training_info(self._db_path)
+            symbol_last_train, symbol_pending = collect_training_info_for_symbol(
                 self._db_path,
                 symbol=symbol,
                 timeframe=str(timeframe),
             )
+            if int(symbol_pending) > 0:
+                pending = int(symbol_pending)
+            if str(symbol_last_train).strip().lower() != "nunca":
+                last_train = str(symbol_last_train)
             fallback_last_train = str(self._last_train_time).strip()
             if (
                 str(last_train).strip().lower() == "nunca"
@@ -970,7 +976,7 @@ class Model2LiveExecutionService:
             symbol=symbol,
             timeframe=timeframe,
             limit=limit,
-            exclude_with_signal_execution=True,
+            exclude_with_signal_execution=False,
         ):
             position_state: dict[str, Any] = {
                 "has_open_position": False,
