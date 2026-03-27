@@ -23,6 +23,59 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-231] M2-020.6 REVISADO_APROVADO — 2026-03-27
+
+- Agente: 7.doc-advocate
+- Arquivos atualizados:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/MODELAGEM_DE_DADOS.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/DIAGRAMAS.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - sincronizado contrato documental de `persist_learning_episode` (M2-020.6)
+    com persistencia completa de episodio, idempotencia por `decision_id` e
+    fail-safe auditavel em erro de persistencia;
+  - backlog recebeu comentario `DOC:` com referencia de sincronizacao.
+- Evidencias tecnicas (validadas no APROVADO do TL):
+  - `pytest -q tests/test_model2_m2_020_6_learning_episodes.py` -> 5 passed
+  - `mypy --strict scripts/model2/persist_training_episodes.py` -> Success
+  - `pytest -q tests/` -> 308 passed
+- Status backlog: M2-020.6 -> REVISADO_APROVADO
+
+### [SYNC-178] M2-031.4 CONCLUIDO — 2026-03-27
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/SYNCHRONIZATION.md,
+  core/dev_cycle_package_planner.py,
+  tests/test_m2_031_4_deterministic_tiebreak.py
+- M2-031.4: desempate deterministico no planejador por
+  `score -> risco_residual -> id`, com ordem reproduzivel em execucoes.
+- Evidencias:
+  - `pytest -q tests/test_m2_031_4_deterministic_tiebreak.py`
+    `tests/test_m2_031_3_cross_dependency_validator.py`
+    `tests/test_m2_031_2_stage_limits_catalog.py`
+    `tests/test_m2_031_1_package_planner.py` -> 16 passed
+  - `mypy --strict core/dev_cycle_package_planner.py` -> Success
+  - `pytest -q tests/` -> 308 passed
+
+### [SYNC-177] M2-031.3 CONCLUIDO — 2026-03-27
+
+- Agente: 7.doc-advocate
+- Arquivos alterados: docs/BACKLOG.md, docs/SYNCHRONIZATION.md,
+  core/dev_cycle_package_planner.py,
+  tests/test_m2_031_3_cross_dependency_validator.py
+- M2-031.3: validador de dependencia cruzada com deteccao de
+  `dependencia_inexistente`, `dependencia_fora_do_pacote` e
+  `dependencia_circular` para parada conservadora pre-stage 4.
+- Evidencias:
+  - `pytest -q tests/test_m2_031_3_cross_dependency_validator.py`
+    `tests/test_m2_031_1_package_planner.py`
+    `tests/test_m2_031_2_stage_limits_catalog.py` -> 14 passed
+  - `mypy --strict core/dev_cycle_package_planner.py` -> Success
+  - `pytest -q tests/` -> 308 passed
+
 ### [SYNC-176] M2-022.2 REVISADO_APROVADO — 2026-03-27
 
 - Agente: 7.doc-advocate
@@ -5509,3 +5562,570 @@ REVISADO_APROVADO
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
 - Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-184] M2-031.5 Gate de capacidade por sprint - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.5
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_planner.py
+  - tests/test_m2_031_5_sprint_capacity_gate.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_5_sprint_capacity_gate.py
+    tests/test_m2_031_4_deterministic_tiebreak.py
+    tests/test_m2_031_3_cross_dependency_validator.py
+    tests/test_m2_031_2_stage_limits_catalog.py
+    tests/test_m2_031_1_package_planner.py -> 20 passed
+  - mypy --strict core/dev_cycle_package_planner.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-185] M2-031.6 Snapshot de progresso por item/stage - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.6
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_planner.py
+  - tests/test_m2_031_6_stage_progress_snapshot.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_6_stage_progress_snapshot.py
+    tests/test_m2_031_5_sprint_capacity_gate.py
+    tests/test_m2_031_4_deterministic_tiebreak.py
+    tests/test_m2_031_3_cross_dependency_validator.py
+    tests/test_m2_031_2_stage_limits_catalog.py
+    tests/test_m2_031_1_package_planner.py -> 24 passed
+  - mypy --strict core/dev_cycle_package_planner.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-186] M2-031.7 Retry controlado por stage - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.7
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_executor.py
+  - tests/test_m2_031_7_stage_retry_budget.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_7_stage_retry_budget.py
+    tests/test_m2_030_1_dev_cycle_executor.py -> 9 passed
+  - mypy --strict core/dev_cycle_executor.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-187] M2-031.8 Matriz de bloqueios por devolucao - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.8
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_executor.py
+  - tests/test_m2_031_8_blocking_matrix.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_8_blocking_matrix.py
+    tests/test_m2_031_7_stage_retry_budget.py
+    tests/test_m2_030_1_dev_cycle_executor.py -> 13 passed
+  - mypy --strict core/dev_cycle_executor.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-188] M2-031.9 Gate de payload agregado - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.9
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_planner.py
+  - tests/test_m2_031_9_aggregate_payload_gate.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_9_aggregate_payload_gate.py
+    tests/test_m2_031_6_stage_progress_snapshot.py
+    tests/test_m2_031_5_sprint_capacity_gate.py
+    tests/test_m2_031_4_deterministic_tiebreak.py
+    tests/test_m2_031_3_cross_dependency_validator.py
+    tests/test_m2_031_2_stage_limits_catalog.py
+    tests/test_m2_031_1_package_planner.py -> 28 passed
+  - mypy --strict core/dev_cycle_package_planner.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-189] M2-031.10 Verificador de guardrails por diff - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.10
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_planner.py
+  - tests/test_m2_031_10_guardrail_diff_verifier.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_10_guardrail_diff_verifier.py
+    tests/test_m2_031_9_aggregate_payload_gate.py
+    tests/test_m2_031_6_stage_progress_snapshot.py
+    tests/test_m2_031_5_sprint_capacity_gate.py
+    tests/test_m2_031_4_deterministic_tiebreak.py
+    tests/test_m2_031_3_cross_dependency_validator.py
+    tests/test_m2_031_2_stage_limits_catalog.py
+    tests/test_m2_031_1_package_planner.py -> 32 passed
+  - mypy --strict core/dev_cycle_package_planner.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: risk_gate e circuit_breaker protegidos por diff-check; idempotencia de decision_id validada por evidencias obrigatorias.
+
+### [SYNC-190] M2-031.11 Script TL de reproducao por item - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.11
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_tl_reproduction.py (novo)
+  - tests/test_m2_031_11_tl_reproduction_plan.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_031_11_tl_reproduction_plan.py
+    tests/test_m2_031_10_guardrail_diff_verifier.py
+    tests/test_m2_031_9_aggregate_payload_gate.py -> 12 passed
+  - mypy --strict core/dev_cycle_tl_reproduction.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Guardrails: reproducao por item evita full suite desnecessaria, preserva gates de risco e idempotencia de decision_id.
+
+### [SYNC-191] M2-030.2 Compactador de payload - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.2
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_payload_compactor.py (novo)
+  - tests/test_m2_030_2_payload_compactor.py (novo)
+- Validacoes:
+  - pytest -q tests/test_m2_030_2_payload_compactor.py -> 3 passed
+  - mypy --strict core/dev_cycle_payload_compactor.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-192] M2-031.12 Contrato de handoff por lote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.12
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py (novo)
+  - tests/test_m2_031_12_to_20_package_governance.py (novo)
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-193] M2-031.13 Rastreabilidade automatica - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.13
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-194] M2-031.14 Gate Doc Advocate por impacto - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.14
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-195] M2-031.15 Dashboard de throughput por pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.15
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-196] M2-031.16 SLA de transicao por status - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.16
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-197] M2-031.17 Matriz GO/NO-GO por pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.17
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-198] M2-031.18 Preflight PM de aceite final - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.18
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-199] M2-031.19 Runbook de retomada por pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.19
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+
+### [SYNC-200] M2-031.20 Encerramento executivo de pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-031.20
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_package_governance.py
+  - tests/test_m2_031_12_to_20_package_governance.py
+- Validacoes:
+  - pytest -q tests/test_m2_031_12_to_20_package_governance.py -> 9 passed
+  - mypy --strict core/dev_cycle_package_governance.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-201] M2-030.3 Validador de schema por stage - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.3
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py (novo)
+  - tests/test_m2_030_3_to_12_stage_controls.py (novo)
+- Validacoes:
+  - pytest -q tests/test_m2_030_3_to_12_stage_controls.py
+    tests/test_m2_030_2_payload_compactor.py
+    tests/test_m2_031_12_to_20_package_governance.py -> 23 passed
+  - mypy --strict core/dev_cycle_stage_controls.py
+    core/dev_cycle_payload_compactor.py
+    core/dev_cycle_package_governance.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-202] M2-030.4 Retomada automatica apos DEVOLVIDO - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.4
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-203] M2-030.5 Matriz de bloqueios por devolucao - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.5
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-204] M2-030.6 Script TL de reproducao deterministica - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.6
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-205] M2-030.7 Gate de guardrails por diff sensivel - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.7
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-206] M2-030.8 Checkpoint requisito->codigo->teste - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.8
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-207] M2-030.9 Gate documental por impacto tecnico - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.9
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-208] M2-030.10 Check pre-aceite stage 8 - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.10
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-209] M2-030.11 Contratos de slash commands - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.11
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+
+### [SYNC-210] M2-030.12 Snapshot executivo diario - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.12
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_stage_controls.py
+  - tests/test_m2_030_3_to_12_stage_controls.py
+- Validacoes:
+  - pytest -q tests/test_m2_030_3_to_12_stage_controls.py
+    tests/test_m2_030_2_payload_compactor.py
+    tests/test_m2_031_12_to_20_package_governance.py -> 23 passed
+  - mypy --strict core/dev_cycle_stage_controls.py
+    core/dev_cycle_payload_compactor.py
+    core/dev_cycle_package_governance.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-211] M2-029.2 Gate de cobertura minima - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.2
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py (novo)
+  - tests/test_m2_029_2_to_11_quality_gates.py (novo)
+
+### [SYNC-212] M2-029.3 Mypy strict por escopo alterado - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.3
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-213] M2-029.4 Contrato unico de Gate_payload - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.4
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-214] M2-029.5 Trilha BLID->teste->codigo->docs - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.5
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-215] M2-029.6 Hardening de reproducao TL - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.6
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-216] M2-029.7 Preflight de guardrails por diff - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.7
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-217] M2-029.8 Matriz GO/NO-GO shadow->paper - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.8
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-218] M2-029.9 Matriz GO/NO-GO paper->live - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.9
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-219] M2-029.10 Auditoria de regressao por pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.10
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+
+### [SYNC-220] M2-029.11 Contratos slash e handoffs - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.11
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_quality_gates.py
+  - tests/test_m2_029_2_to_11_quality_gates.py
+- Validacoes:
+  - pytest -q tests/test_m2_029_2_to_11_quality_gates.py
+    tests/test_m2_030_3_to_12_stage_controls.py
+    tests/test_m2_031_12_to_20_package_governance.py -> 31 passed
+  - mypy --strict core/dev_cycle_quality_gates.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-221] M2-029.12 Snapshot executivo diario - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.12
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py (novo)
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py (novo)
+
+### [SYNC-222] M2-029.13 Governanca de backlog por SLA - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.13
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-223] M2-029.14 Sincronizacao documental automatica - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.14
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-224] M2-029.15 Runbook final de aceite - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.15
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-225] M2-030.13 SLA de transicao de status - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.13
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-226] M2-030.14 Relatorio de risco por pacote - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.14
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-227] M2-030.15 Runbook final de decisao de aceite - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.15
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-228] M2-027.3 Fail-safe para posicoes orfas - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-027.3
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-229] M2-027.4 Consistencia transacional entre camadas - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-027.4
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+
+### [SYNC-230] M2-027.5 Governanca e runbook do pacote M2-027 - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-027.5
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_acceptance_pack.py
+  - tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+- Validacoes:
+  - pytest -q tests/test_m2_029_12_15_m2_030_13_15_m2_027_3_5.py
+    tests/test_m2_029_2_to_11_quality_gates.py
+    tests/test_m2_030_3_to_12_stage_controls.py -> 32 passed
+  - mypy --strict core/dev_cycle_acceptance_pack.py -> Success
+  - pytest -q tests/ -> 308 passed

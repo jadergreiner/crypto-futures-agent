@@ -147,6 +147,11 @@ flowchart LR
   G --> H
 ```
 
+Notas de contrato (M2-020.6):
+
+1. Persistencia de episodio deve ser idempotente por `decision_id`.
+2. Falha de escrita em episodio deve acionar retorno fail-safe auditavel.
+
 ## 7) Loop operacional unificado (Windows)
 
 Entry point local: `iniciar.bat` (opcao `2`).

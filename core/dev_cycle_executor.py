@@ -23,6 +23,14 @@ class StageExecution:
     motivo: str
 
 
+@dataclass(frozen=True)
+class BlockedStageRouting:
+    decision: str
+    action: str
+    return_stage: str
+    reason_code: str
+
+
 class DevCycleExecutor:
     def __init__(self, *, checkpoint_path: Path | str, audit_log_path: Path | str | None) -> None:
         self._checkpoint_path = Path(checkpoint_path)
@@ -35,6 +43,7 @@ class DevCycleExecutor:
         stages: list[tuple[str, DecisionStageFn]],
         resume: bool = False,
         initial_context: Mapping[str, Any] | None = None,
+        retry_budget_by_stage: Mapping[str, int] | None = None,
     ) -> dict[str, Any]:
         if resume:
             state = self._load_checkpoint()
@@ -57,22 +66,71 @@ class DevCycleExecutor:
         total = len(stages)
         for stage_idx in range(next_stage_index, total):
             stage_name, stage_fn = stages[stage_idx]
+            known_output = stage_outputs.get(stage_name)
+            if isinstance(known_output, Mapping):
+                known_decision = str(known_output.get("decision", "")).strip().upper()
+                if known_decision and known_decision not in _DECISIONS_BLOQUEIO:
+                    skip_label = f"[STAGE {stage_idx + 1}/{total}] {stage_name} - JA_CONCLUIDO (SKIP)"
+                    progress.append(skip_label)
+                    self._append_audit_event(
+                        item_id=item_id,
+                        stage=stage_name,
+                        event="stage_skipped_already_completed",
+                        detail={"decision": known_decision},
+                    )
+                    continue
+
             start_label = f"[STAGE {stage_idx + 1}/{total}] {stage_name} - iniciando..."
             progress.append(start_label)
             self._append_audit_event(item_id=item_id, stage=stage_name, event="stage_started", detail={})
 
             started = perf_counter()
+            stage_retry_budget = self._resolve_retry_budget(
+                stage_name=stage_name,
+                retry_budget_by_stage=retry_budget_by_stage,
+            )
+            attempt = 0
             try:
-                raw_result = dict(stage_fn(context))
+                while True:
+                    try:
+                        raw_result = dict(stage_fn(context))
+                        break
+                    except Exception as exc:
+                        is_transient = isinstance(exc, (TimeoutError, ConnectionError))
+                        if not is_transient or attempt >= stage_retry_budget:
+                            raise
+                        attempt += 1
+                        retry_label = (
+                            f"[STAGE {stage_idx + 1}/{total}] "
+                            f"{stage_name} - RETRY_TRANSITORIO {attempt}/{stage_retry_budget}"
+                        )
+                        progress.append(retry_label)
+                        self._append_audit_event(
+                            item_id=item_id,
+                            stage=stage_name,
+                            event="stage_retry_transient_error",
+                            detail={"attempt": attempt, "error": str(exc)},
+                        )
             except Exception as exc:
                 elapsed_ms = int((perf_counter() - started) * 1000)
                 error_label = f"[STAGE {stage_idx + 1}/{total}] {stage_name} - DEVOLVIDO_PARA_REVISAO"
                 progress.append(error_label)
+                routing = self.resolve_blocked_routing(
+                    stage_name=stage_name,
+                    decision="DEVOLVIDO_PARA_REVISAO",
+                    motivo=str(exc),
+                )
                 self._append_audit_event(
                     item_id=item_id,
                     stage=stage_name,
                     event="stage_blocked",
-                    detail={"reason": "exception", "error": str(exc), "elapsed_ms": elapsed_ms},
+                    detail={
+                        "reason": "exception",
+                        "error": str(exc),
+                        "elapsed_ms": elapsed_ms,
+                        "return_stage": routing.return_stage,
+                        "reason_code": routing.reason_code,
+                    },
                 )
                 self._save_checkpoint(
                     item_id=item_id,
@@ -84,6 +142,9 @@ class DevCycleExecutor:
                 return {
                     "status": "AGUARDANDO_CORRECAO",
                     "blocked_stage": stage_name,
+                    "return_stage": routing.return_stage,
+                    "return_action": routing.action,
+                    "return_reason_code": routing.reason_code,
                     "motivo": str(exc),
                     "progress": progress,
                 }
@@ -107,6 +168,11 @@ class DevCycleExecutor:
             if stage_result.decision in _DECISIONS_BLOQUEIO:
                 blocked_label = f"[STAGE {stage_idx + 1}/{total}] {stage_name} - {stage_result.decision}"
                 progress.append(blocked_label)
+                routing = self.resolve_blocked_routing(
+                    stage_name=stage_name,
+                    decision=stage_result.decision,
+                    motivo=stage_result.motivo,
+                )
                 self._append_audit_event(
                     item_id=item_id,
                     stage=stage_name,
@@ -115,6 +181,8 @@ class DevCycleExecutor:
                         "decision": stage_result.decision,
                         "motivo": stage_result.motivo,
                         "elapsed_ms": stage_result.elapsed_ms,
+                        "return_stage": routing.return_stage,
+                        "reason_code": routing.reason_code,
                     },
                 )
                 self._save_checkpoint(
@@ -127,6 +195,9 @@ class DevCycleExecutor:
                 return {
                     "status": "AGUARDANDO_CORRECAO",
                     "blocked_stage": stage_name,
+                    "return_stage": routing.return_stage,
+                    "return_action": routing.action,
+                    "return_reason_code": routing.reason_code,
                     "motivo": stage_result.motivo,
                     "progress": progress,
                 }
@@ -137,11 +208,12 @@ class DevCycleExecutor:
                 item_id=item_id,
                 stage=stage_name,
                 event="stage_completed",
-                detail={
-                    "decision": stage_result.decision,
-                    "elapsed_ms": stage_result.elapsed_ms,
-                },
-            )
+                    detail={
+                        "decision": stage_result.decision,
+                        "elapsed_ms": stage_result.elapsed_ms,
+                        "retry_attempts": attempt,
+                    },
+                )
 
         self._clear_checkpoint()
         return {
@@ -234,3 +306,76 @@ class DevCycleExecutor:
     @staticmethod
     def _now_iso() -> str:
         return datetime.now(tz=UTC).isoformat(timespec="seconds")
+
+    @staticmethod
+    def _resolve_retry_budget(*, stage_name: str, retry_budget_by_stage: Mapping[str, int] | None) -> int:
+        if retry_budget_by_stage is None:
+            return 0
+        raw_budget = retry_budget_by_stage.get(stage_name, 0)
+        if raw_budget <= 0:
+            return 0
+        return int(raw_budget)
+
+    @staticmethod
+    def resolve_blocked_routing(*, stage_name: str, decision: str, motivo: str) -> BlockedStageRouting:
+        normalized_stage = stage_name.strip()
+        normalized_decision = decision.strip().upper()
+        normalized_motivo = motivo.strip().lower()
+
+        if normalized_decision == "DEVOLVIDO_PARA_REVISAO":
+            if normalized_stage == "Tech Lead":
+                return BlockedStageRouting(
+                    decision=normalized_decision,
+                    action="RETORNAR_STAGE_ESPECIFICO",
+                    return_stage="Software Engineer",
+                    reason_code="tl_devolvido_para_se",
+                )
+            if normalized_stage == "Doc Advocate":
+                return BlockedStageRouting(
+                    decision=normalized_decision,
+                    action="RETORNAR_STAGE_ESPECIFICO",
+                    return_stage="Tech Lead",
+                    reason_code="doc_devolvido_para_tl",
+                )
+            return BlockedStageRouting(
+                decision=normalized_decision,
+                action="REEXECUTAR_STAGE_ATUAL",
+                return_stage=normalized_stage,
+                reason_code="devolvido_reexecucao_mesmo_stage",
+            )
+
+        if normalized_decision == "DEVOLVER_PARA_AJUSTE":
+            if normalized_stage == "Project Manager":
+                if "doc" in normalized_motivo:
+                    return BlockedStageRouting(
+                        decision=normalized_decision,
+                        action="RETORNAR_STAGE_ESPECIFICO",
+                        return_stage="Doc Advocate",
+                        reason_code="pm_ajuste_documentacao",
+                    )
+                if "teste" in normalized_motivo or "mypy" in normalized_motivo or "regress" in normalized_motivo:
+                    return BlockedStageRouting(
+                        decision=normalized_decision,
+                        action="RETORNAR_STAGE_ESPECIFICO",
+                        return_stage="Tech Lead",
+                        reason_code="pm_ajuste_validacao_tecnica",
+                    )
+                return BlockedStageRouting(
+                    decision=normalized_decision,
+                    action="RETORNAR_STAGE_ESPECIFICO",
+                    return_stage="Software Engineer",
+                    reason_code="pm_ajuste_implementacao",
+                )
+            return BlockedStageRouting(
+                decision=normalized_decision,
+                action="REEXECUTAR_STAGE_ATUAL",
+                return_stage=normalized_stage,
+                reason_code="devolver_reexecucao_mesmo_stage",
+            )
+
+        return BlockedStageRouting(
+            decision=normalized_decision,
+            action="SEM_ROTEAMENTO",
+            return_stage=normalized_stage,
+            reason_code="decision_sem_bloqueio",
+        )

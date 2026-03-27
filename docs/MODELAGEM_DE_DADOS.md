@@ -97,6 +97,24 @@ Regra:
 
 1. Deve incluir episodios da acao `HOLD`.
 
+### 4.1) Contrato de persistencia M2-020.6 (`persist_learning_episode`)
+
+Persistencia do episodio completo com foco em rastreabilidade e fail-safe.
+
+Campos esperados quando presentes no schema:
+
+1. `decision_id` (chave de idempotencia)
+2. `execution_id` (correlacao com execucao, quando aplicavel)
+3. `symbol` (correlacao por ativo)
+4. `action_t`, `state_t_json`, `reward_t`, `state_t1_json`, `done`, `outcome_json`
+5. `created_at` (UTC ms)
+
+Regras:
+
+1. `decision_id` duplicado deve bloquear nova escrita (idempotencia).
+2. Erro de persistencia deve retornar fail-safe com reason code auditavel.
+3. Serializacao de estado/outcome deve manter JSON valido.
+
 ## 5) training_runs
 
 Audita retreino e promocao de versoes.

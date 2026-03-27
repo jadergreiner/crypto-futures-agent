@@ -262,6 +262,10 @@ Componentes:
   verifica por coluna `decision_id` (se existir) ou fallback por
   `episode_key LIKE %:decision_id:%`. Retorna False para decision_id=None
   (legado) e em caso de excecao (fail-safe).
+- `persist_learning_episode(...)` no mesmo modulo (M2-020.6):
+  persiste episodio completo em `learning_episodes` com deteccao dinamica
+  de schema, idempotencia por `decision_id` e retorno fail-safe auditavel
+  (`learning_episode_persist_failed`) em erro de persistencia.
 
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 

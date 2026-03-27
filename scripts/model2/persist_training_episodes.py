@@ -8,7 +8,7 @@ import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -226,6 +226,99 @@ def is_episode_duplicate(*, db_path: str, decision_id: int | None) -> bool:
             return row is not None
     except Exception:
         return False
+
+
+def persist_learning_episode(
+    *,
+    db_path: str,
+    decision_id: int,
+    execution_id: int | None,
+    symbol: str,
+    action_t: str,
+    state_t: dict[str, Any],
+    reward_t: float,
+    state_t1: dict[str, Any],
+    done: bool,
+    outcome: dict[str, Any],
+) -> dict[str, Any]:
+    """Persiste um episodio completo de aprendizado com idempotencia por decision_id.
+
+    Retorno fail-safe:
+    - erro de persistencia -> persisted=False, safe_to_continue=False
+    - duplicidade -> persisted=False com reason_code de bloqueio
+    """
+    created_at = _utc_now_ms()
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cols = {
+                str(row[1])
+                for row in conn.execute(
+                    "PRAGMA table_info(learning_episodes)"
+                ).fetchall()
+            }
+            if not cols:
+                return {
+                    "persisted": False,
+                    "reason_code": "learning_episode_table_not_found",
+                    "safe_to_continue": False,
+                }
+
+            if "decision_id" in cols:
+                duplicate = conn.execute(
+                    "SELECT 1 FROM learning_episodes WHERE decision_id = ? LIMIT 1",
+                    (int(decision_id),),
+                ).fetchone()
+                if duplicate is not None:
+                    return {
+                        "persisted": False,
+                        "reason_code": "duplicate_decision_id_blocked",
+                        "safe_to_continue": True,
+                    }
+
+            values_by_col: dict[str, Any] = {
+                "decision_id": int(decision_id),
+                "execution_id": (int(execution_id) if execution_id is not None else None),
+                "symbol": str(symbol),
+                "action_t": str(action_t),
+                "state_t_json": json.dumps(state_t, ensure_ascii=True, sort_keys=True),
+                "reward_t": float(reward_t),
+                "state_t1_json": json.dumps(state_t1, ensure_ascii=True, sort_keys=True),
+                "done": (1 if bool(done) else 0),
+                "outcome_json": json.dumps(outcome, ensure_ascii=True, sort_keys=True),
+                "created_at": int(created_at),
+            }
+
+            insert_cols = [col for col in values_by_col if col in cols]
+            if not insert_cols:
+                return {
+                    "persisted": False,
+                    "reason_code": "learning_episode_schema_incompatible",
+                    "safe_to_continue": False,
+                }
+
+            placeholders = ", ".join(["?"] * len(insert_cols))
+            sql = (
+                f"INSERT INTO learning_episodes ({', '.join(insert_cols)}) "
+                f"VALUES ({placeholders})"
+            )
+            conn.execute(sql, tuple(values_by_col[col] for col in insert_cols))
+            conn.commit()
+
+            return {
+                "persisted": True,
+                "reason_code": "",
+                "safe_to_continue": True,
+                "decision_id": int(decision_id),
+                "execution_id": (int(execution_id) if execution_id is not None else None),
+                "symbol": str(symbol),
+                "created_at": int(created_at),
+            }
+    except Exception:
+        return {
+            "persisted": False,
+            "reason_code": "learning_episode_persist_failed",
+            "safe_to_continue": False,
+        }
 
 
 def check_training_data_minimum(
@@ -621,11 +714,12 @@ def run_persist_training_episodes(
 
             # Enriquecer features com volatilidade e multi-timeframe
             try:
+                base_features = cast(dict[str, Any], episode["features"])
                 enriched_features = FeatureEnricher.enrich_features(
                     conn=source_conn,
                     symbol=symbol,
                     timeframe=str(row["timeframe"]),
-                    base_features=episode["features"],
+                    base_features=base_features,
                 )
                 episode["features"] = enriched_features
             except Exception as e:
@@ -635,8 +729,11 @@ def run_persist_training_episodes(
             # Enriquecer com funding rates + open interest (Phase D.3)
             if funding_api_client:
                 try:
+                    enriched_features_for_funding = cast(
+                        dict[str, Any], episode["features"]
+                    )
                     episode["features"] = FeatureEnricher.enrich_with_funding_data(
-                        enriched_features=episode["features"],
+                        enriched_features=enriched_features_for_funding,
                         symbol=symbol,
                         funding_collector=funding_api_client
                     )
@@ -709,11 +806,12 @@ def run_persist_training_episodes(
 
             # Enriquecer features de contexto também
             try:
+                context_base_features = cast(dict[str, Any], context_episode["features"])
                 enriched_features = FeatureEnricher.enrich_features(
                     conn=source_conn,
                     symbol=symbol,
                     timeframe=timeframe,
-                    base_features=context_episode["features"],
+                    base_features=context_base_features,
                 )
                 context_episode["features"] = enriched_features
             except Exception:
@@ -723,8 +821,11 @@ def run_persist_training_episodes(
             # Enriquecer com funding rates + open interest (Phase D.3)
             if funding_api_client:
                 try:
+                    context_features_for_funding = cast(
+                        dict[str, Any], context_episode["features"]
+                    )
                     context_episode["features"] = FeatureEnricher.enrich_with_funding_data(
-                        enriched_features=context_episode["features"],
+                        enriched_features=context_features_for_funding,
                         symbol=symbol,
                         funding_collector=funding_api_client
                     )

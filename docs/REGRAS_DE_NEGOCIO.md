@@ -100,6 +100,14 @@ Implementacao de referencia: `core/model2/order_layer.py`
 
 Toda decisao deve gerar episodio de aprendizado, inclusive `HOLD`.
 
+Implementacao de referencia (M2-020.6):
+
+1. `scripts/model2/persist_training_episodes.py::persist_learning_episode`
+   persiste contrato completo de episodio e aplica idempotencia por
+   `decision_id`.
+2. Em falha de persistencia, retorna bloqueio fail-safe com
+   `reason_code='learning_episode_persist_failed'`.
+
 ### RN-010 - Reward para operar e nao operar
 
 O reward deve considerar:
