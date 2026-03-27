@@ -119,6 +119,8 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "TIMEOUT_ADMISSION": "ops.timeout_admission",
     "TIMEOUT_SEND": "ops.timeout_send",
     "TIMEOUT_RECONCILIATION": "ops.timeout_reconciliation",
+    # M2-028.4: Drawdown diario como gate de admissao
+    "daily_drawdown_limit": "ops.daily_drawdown_limit",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
@@ -163,6 +165,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "TIMEOUT_ADMISSION": "HIGH",
     "TIMEOUT_SEND": "HIGH",
     "TIMEOUT_RECONCILIATION": "HIGH",
+    "daily_drawdown_limit": "HIGH",
 }
 
 REASON_CODE_ACTION: dict[str, str] = {
@@ -207,6 +210,7 @@ REASON_CODE_ACTION: dict[str, str] = {
     "TIMEOUT_ADMISSION": "bloquear_operacao",
     "TIMEOUT_SEND": "bloquear_operacao",
     "TIMEOUT_RECONCILIATION": "bloquear_operacao",
+    "daily_drawdown_limit": "bloquear_operacao",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"

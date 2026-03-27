@@ -5381,3 +5381,21 @@ REVISADO_APROVADO
   go_live_preflight.py, risk_gate.py; novos: market_reader.py,
   cycle_snapshot.py, orphan_guard.py, drawdown_gate.py
 - Guardrails: risk/circuit_breaker.py e risk/risk_gate.py ativos em todos os paths
+
+### [SYNC-177] M2-028.4 Drawdown Gate - 2026-03-27
+
+- Agente: dev-cycle (orquestrador, stages 4 a 7)
+- Item: M2-028.4
+- Status backlog: REVISADO_APROVADO
+- Codigo alterado:
+  - core/model2/drawdown_gate.py (novo)
+  - core/model2/order_layer.py (gate pre-CONSUMED)
+  - core/model2/live_execution.py (reason_code daily_drawdown_limit)
+- Validacoes:
+  - pytest -q tests/test_model2_m2_028_4_drawdown_gate.py -> 8 passed
+  - pytest -q tests/test_model2_order_layer.py -> 4 passed
+  - mypy --strict core/model2/drawdown_gate.py core/model2/order_layer.py -> Success
+  - pytest -q tests/ -> 308 passed
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+- Guardrails: risk_gate e circuit_breaker ativos; decision_id idempotencia preservada.

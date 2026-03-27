@@ -102,6 +102,28 @@ Priorizacao PO executada (2026-03-27) - Top 5 (ciclo atual):
 4) BLID-075 (Score 3.05) - Em analise
 5) BLID-083 (Score 2.95) - Em analise
 
+Priorizacao PO executada (2026-03-27) - Top 10 (orquestrador):
+
+1) M2-028.4 (Score 4.55) - CONCLUIDO
+2) M2-027.3 (Score 4.45) - Em analise
+3) M2-027.4 (Score 4.45) - Em analise
+4) M2-022.1 (Score 3.95) - Em analise
+5) M2-025.7 (Score 3.85) - Em analise
+6) M2-025.14 (Score 3.85) - Em analise
+7) BLID-089 (Score 3.85) - Em analise
+8) M2-025.11 (Score 3.60) - Em analise
+9) M2-025.8 (Score 3.30) - Em analise
+10) M2-025.6 (Score 3.00) - Em analise
+
+Orquestracao de etapas (dev-cycle 2026-03-27):
+
+- Stage 3 (SA): consolidado para os itens 1-10 em `Em analise`.
+- Stage 4 (QA-TDD): iniciar por ordem de score no item 1 (M2-028.4).
+- Stage 5 (SE): iniciar apos suite RED aprovada do item 1.
+- Stage 6 (TL): reproduzir `pytest -q tests/` e `mypy --strict` no item 1.
+- Stage 7 (DOC): atualizar docs existentes e registrar `[SYNC]` apos APROVADO.
+- Stage 8 (PM): fechar com ACEITE, status `CONCLUIDO`, commit/push e arvore limpa.
+
 Backlog estruturado para priorizacao:
 
 - M2-019.3 a M2-019.10 - RL por simbolo como decisor de entrada.
@@ -1656,7 +1678,7 @@ Dependencias:
 
 ### TAREFA M2-028.4 - Drawdown diario como gate de admissao
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 4.55 (Valor=5, Urg=4, Risco=5, Esf=2)
 
@@ -1684,6 +1706,30 @@ catastrofico; gate diario inviolavel com CB parcial.
 SA: DailyDrawdownGate em drawdown_gate.py; gate em order_layer
 pre-CONSUMED; reset UTC midnight; reason_code DAILY_DRAWDOWN_LIMIT;
 CB parcial.
+
+QA: Suite RED validada em `tests/test_model2_m2_028_4_drawdown_gate.py`;
+execucao inicial com `ModuleNotFoundError` para `core.model2.drawdown_gate`
+(esperado na fase RED).
+
+SE: GREEN concluido. `core/model2/drawdown_gate.py` criado e integrado em
+`core/model2/order_layer.py` com gate pre-CONSUMED. Catalogo canônico
+atualizado em `core/model2/live_execution.py` com `daily_drawdown_limit`.
+Evidencias:
+
+1. `pytest -q tests/test_model2_m2_028_4_drawdown_gate.py` -> 8 passed
+2. `pytest -q tests/test_model2_order_layer.py` -> 4 passed
+3. `mypy --strict core/model2/drawdown_gate.py core/model2/order_layer.py` -> Success
+4. `pytest -q tests/` -> 308 passed
+
+TL: APROVADO. Reproducao local validada (suite da tarefa, order_layer,
+suite completa e mypy strict clean nos modulos alterados). Guardrails
+`risk_gate`, `circuit_breaker` e idempotencia por `decision_id` preservados.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO nao exigiram ajuste funcional
+adicional nesta entrega; SYNCHRONIZATION atualizado com [SYNC-177].
+
+PM: ACEITE em 2026-03-27. Trilha completa BLID->QA->SE->TL->DOC validada,
+backlog atualizado para CONCLUIDO e fechamento publicado em main.
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 

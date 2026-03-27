@@ -60,6 +60,7 @@ def evaluate_signal_for_order_layer(
     *,
     authorized_symbols: Collection[str] | None = None,
     short_only: bool = False,
+    drawdown_gate: Any | None = None,
     timeout_policy: Any | None = None,
     now_ms: int | None = None,
 ) -> OrderLayerDecision:
@@ -125,6 +126,24 @@ def evaluate_signal_for_order_layer(
             rule_id=M2_007_1_RULE_ID,
             details={"decision_id": order_input.decision_id},
         )
+
+    # Gate de drawdown diário pre-CONSUMED (M2-028.4)
+    if drawdown_gate is not None:
+        gate_decision = drawdown_gate.evaluate()
+        if not gate_decision.allowed:
+            reason = "daily_drawdown_limit"
+            reason_alias = REASON_CODE_CATALOG.get(reason, reason)
+            return OrderLayerDecision(
+                should_transition=False,
+                target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+                reason=reason_alias,
+                rule_id=M2_007_1_RULE_ID,
+                details={
+                    "reason_code": reason,
+                    "frozen": bool(getattr(gate_decision, "frozen", False)),
+                    "current_drawdown_pct": float(getattr(gate_decision, "current_drawdown_pct", 0.0)),
+                },
+            )
 
     if order_input.symbol not in symbols:
         return OrderLayerDecision(
