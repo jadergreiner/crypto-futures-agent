@@ -5331,3 +5331,16 @@ REVISADO_APROVADO
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
   - pytest -q tests/test_pkg_po_10_0326_backlog_and_timeframes.py -> 5 passed
 - Guardrails: risk_gate/circuit_breaker inalterados; decision_id preservado.
+
+### [SYNC] PKG-M2-025/027/028-0326B PO-ANALISE — 2026-03-26
+
+- Agente: 2.product-owner
+- Arquivo alterado: docs/BACKLOG.md
+- 10 itens marcados Em analise com Score PO e justificativa:
+  M2-025.6/7/8/10/11/14, M2-027.3/4/5, M2-028.4
+- Ordem de implementacao por score decrescente:
+  M2-028.4(4.55) > M2-027.3(4.45) = M2-027.4(4.45) > M2-025.7(3.85)
+  = M2-025.14(3.85) > M2-025.11(3.60) > M2-025.8(3.30)
+  > M2-025.6(3.00) = M2-025.10(3.00) > M2-027.5(2.75)
+- Score medio: 3.78
+- Guardrails: risk_gate/circuit_breaker obrigatorios em todos os itens.

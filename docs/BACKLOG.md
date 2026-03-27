@@ -834,7 +834,9 @@ PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.6 - Correlacao episodio treino e execucao
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
 
 Descricao:
 Garantir correlacao auditavel entre episodio, treino incremental e execucao,
@@ -844,9 +846,14 @@ Dependencias:
 
 - M2-025.5
 
+PO: Score 3.00. Rastreabilidade ciclo-episodio-execucao; habilita
+M2-025.10/12. Prioridade media.
+
 ### TAREFA M2-025.7 - Retry seguro para leitura de mercado
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
 Descricao:
 Adicionar retry com budget para falhas transitorias na leitura de mercado,
@@ -856,9 +863,14 @@ Dependencias:
 
 - M2-025.3
 
+PO: Score 3.85. Resiliencia contra falhas transitorias; fallback
+conservador protege pipeline. Desbloqueia M2-025.8.
+
 ### TAREFA M2-025.8 - Timeout de coleta por etapa critica
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.30 (Valor=3, Urg=3, Risco=4, Esf=2)
 
 Descricao:
 Definir timeout padrao para coleta, validacao e consolidacao de dados com
@@ -867,6 +879,9 @@ telemetria de expiracao.
 Dependencias:
 
 - M2-025.7
+
+PO: Score 3.30. Elimina travamento silencioso por etapa; telemetria
+auditavel. Dep M2-025.7 deve preceder.
 
 ### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
 
@@ -898,7 +913,9 @@ PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
 
 Descricao:
 Consolidar snapshot por ciclo com candle, decisao, episodio e treino para
@@ -908,9 +925,14 @@ Dependencias:
 
 - M2-025.6
 
+PO: Score 3.00. Consolida visibilidade operacional por ciclo.
+Dep M2-025.6 deve preceder.
+
 ### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.60 (Valor=4, Urg=3, Risco=4, Esf=2)
 
 Descricao:
 Criar suite RED cobrindo frescor de candle, lacuna por janela e fail-safe em
@@ -920,6 +942,9 @@ Dependencias:
 
 - M2-025.1
 - M2-025.3
+
+PO: Score 3.60. Cobertura RED critica para frescor/lacuna; fail-safe
+auditavel sem dados. Deps ja concluidas.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
@@ -949,7 +974,9 @@ Dependencias:
 
 ### TAREFA M2-025.14 - Preflight de consistencia de dados M2
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
 Descricao:
 Expandir preflight para checar consistencia minima de dados, episodio e
@@ -959,6 +986,9 @@ Dependencias:
 
 - M2-025.1
 - M2-025.4
+
+PO: Score 3.85. Gate pre-live que bloqueia live com dados inconsistentes.
+Alta prioridade para Go/No-Go seguro.
 
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
@@ -1330,7 +1360,9 @@ Dependencias:
 
 ### TAREFA M2-027.3 - Fail-safe de saida para posicoes orfas
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 4.45 (Valor=5, Urg=4, Risco=5, Esf=3)
 
 Descricao:
 Implementar mecanismo que detecta posicoes abertas sem registro correspondente
@@ -1350,9 +1382,14 @@ Dependencias:
 - M2-026.3
 - M2-024.8
 
+PO: Score 4.45. Risco critico: posicao orfa sem monitoramento causa
+perda nao controlada. Guardrail obrigatorio pre-saida.
+
 ### TAREFA M2-027.4 - Consistencia transacional entre order_layer e live_execution
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 4.45 (Valor=5, Urg=4, Risco=5, Esf=3)
 
 Descricao:
 Garantir que transicoes de estado entre order_layer (CONSUMED) e
@@ -1372,9 +1409,14 @@ Dependencias:
 - M2-024.3
 - M2-024.14
 
+PO: Score 4.45. Estado parcial CONSUMED sem IN_PROGRESS e risco de
+ordem dupla ou fantasma. Atomicidade essencial.
+
 ### TAREFA M2-027.5 - Governanca e runbook do pacote M2-027
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 2.75 (Valor=3, Urg=3, Risco=2, Esf=2)
 
 Descricao:
 Sincronizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION apos
@@ -1392,6 +1434,9 @@ Criterios de Aceite:
 Dependencias:
 
 - M2-027.1 a M2-027.4
+
+PO: Score 2.75. Governanca documental; deve ser ultimo do pacote M2-027.
+Dep M2-027.3/4 obrigatorias.
 
 ---
 
@@ -1543,7 +1588,9 @@ Dependencias:
 
 ### TAREFA M2-028.4 - Drawdown diario como gate de admissao
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 4.55 (Valor=5, Urg=4, Risco=5, Esf=2)
 
 Descricao:
 Bloquear novas entradas quando drawdown diario acumulado exceder threshold
@@ -1562,6 +1609,9 @@ Dependencias:
 
 - M2-024.2
 - M2-026.1
+
+PO: Score 4.55. Maior score do pacote. Drawdown ilimitado e risco
+catastrofico; gate diario inviolavel com CB parcial.
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 
