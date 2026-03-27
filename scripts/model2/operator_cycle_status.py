@@ -33,6 +33,7 @@ from core.model2.cycle_report import (
     DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
     SymbolReport,
     collect_training_info,
+    collect_training_info_for_symbol,
     format_symbol_report,
     resolve_candle_freshness_contract,
 )
@@ -474,6 +475,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--symbol", action="append", default=[])
     parser.add_argument("--symbols-csv", default="")
     parser.add_argument("--max-age-minutes", type=int, default=60)
+    parser.add_argument(
+        "--training-timeframe",
+        default="H4",
+        choices=["D1", "H4", "H1", "M5", "ALL"],
+        help="Timeframe usado para contagem de pendencias de retreino (ALL = todos).",
+    )
     return parser.parse_args()
 
 
@@ -504,10 +511,14 @@ def main() -> int:
     # DB path
     db_path = _get_model2_db_path()
 
-    # Treino: usar collect_training_info do DB (fallback: mtime do checkpoint)
-    last_train_time, pending_episodes = collect_training_info(db_path)
-    if last_train_time == "nunca":
-        last_train_time = _get_last_train_time_from_checkpoint()
+    # Treino (global): fallback para simbolos sem log dedicado
+    training_timeframe = None if str(args.training_timeframe).upper() == "ALL" else str(args.training_timeframe).upper()
+    global_last_train_time, global_pending_episodes = collect_training_info(
+        db_path,
+        timeframe=training_timeframe,
+    )
+    if global_last_train_time == "nunca":
+        global_last_train_time = _get_last_train_time_from_checkpoint()
 
     # Exchange (todos os modos — para posições reais na Binance)
     exchange = None
@@ -519,14 +530,23 @@ def main() -> int:
             print(f"[WARN] Exchange nao disponivel: {e}", file=sys.stderr)
 
     for symbol in symbols:
+        symbol_last_train, symbol_pending = collect_training_info_for_symbol(
+            db_path,
+            symbol=symbol,
+            timeframe=training_timeframe,
+        )
+        if symbol_last_train == "nunca":
+            symbol_last_train = global_last_train_time
+            symbol_pending = global_pending_episodes
+
         line = _build_symbol_report(
             symbol=symbol,
             scan_h4=scan_h4,
             scan_h1=scan_h1,
             live_execute_summary=live_execute_summary,
             exchange=exchange,
-            last_train_time=last_train_time,
-            pending_episodes=pending_episodes,
+            last_train_time=symbol_last_train,
+            pending_episodes=symbol_pending,
             db_path=db_path,
         )
         print(line, flush=True)

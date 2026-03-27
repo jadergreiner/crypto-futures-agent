@@ -443,6 +443,40 @@ def test_run_live_execute_live_happy_path_transitions_to_protected(tmp_path: Pat
     assert events == 4
 
 
+def test_run_live_execute_retries_balance_when_initial_zero(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+    exchange = SequencedBalanceExchange([0.0, 100.0, 100.0], protection_works=True)
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["staged"][0]["status"] == "READY"
+    assert summary["processed_ready"][0]["status"] == "PROTECTED"
+    assert exchange.market_calls == 1
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
+            (signal_id,),
+        ).fetchone()
+
+    assert row == ("PROTECTED", "ready_for_live_execution")
+
+
 def test_run_live_execute_blocks_when_risk_gate_is_not_allowing_orders(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _, signal_id = _create_consumed_signal(db_path)

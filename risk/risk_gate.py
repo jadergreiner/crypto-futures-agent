@@ -67,6 +67,8 @@ class RiskGate:
     MAX_DRAWDOWN_PCT = 3.0  # -3% de drawdown máximo
     STOP_LOSS_THRESHOLD = -3.0  # -3% ativa stop loss
     CIRCUIT_BREAKER_THRESHOLD = -3.1  # -3.1% ativa circuit breaker
+    RECOVERY_THRESHOLD_PCT = -2.7  # histerese para retomar apos bloqueio
+    RECOVERY_SAMPLES_REQUIRED = 3  # amostras consecutivas para reativar
 
     def __init__(self) -> None:
         """Inicializar Risk Gate com proteções armadas."""
@@ -76,6 +78,7 @@ class RiskGate:
         self._position_entry_price: Optional[float] = None
         self._current_price: Optional[float] = None
         self._audit_trail: list = []  # LOG INVIOLÁVEL
+        self._recovery_ok_streak = 0
 
         logger.warning("🛡️  Risk Gate 1.0 INICIALIZADO COM PROTEÇÕES ARMADAS")
         logger.warning(f"   Max Drawdown: {self.MAX_DRAWDOWN_PCT}%")
@@ -102,6 +105,9 @@ class RiskGate:
         # Rastrear peak para cálculo correto de drawdown
         if new_value > self._peak_portfolio_value:
             self._peak_portfolio_value = new_value
+
+        # Politica de risco com histerese: evita lock permanente por oscilacao pontual.
+        self._evaluate_drawdown_policy(self._calculate_drawdown())
 
     def update_price_feed(self, current_price: float) -> None:
         """Atualizar preço atual do ativo."""
@@ -168,6 +174,7 @@ class RiskGate:
         if drawdown_pct <= self.STOP_LOSS_THRESHOLD:
             logger.critical(f"🛑 STOP LOSS ACIONADO: {drawdown_pct:.2f}% <= {self.STOP_LOSS_THRESHOLD}%")
             self.status = RiskGateStatus.STOP_LOSS_ARMED
+            self._recovery_ok_streak = 0
 
             details = {
                 "event": "STOP_LOSS_TRIGGERED",
@@ -195,6 +202,7 @@ class RiskGate:
         if drawdown_pct <= self.CIRCUIT_BREAKER_THRESHOLD:
             logger.critical(f"💥 CIRCUIT BREAKER ACIONADO: {drawdown_pct:.2f}% <= {self.CIRCUIT_BREAKER_THRESHOLD}%")
             self.status = RiskGateStatus.CIRCUIT_BREAKER_ARMED
+            self._recovery_ok_streak = 0
 
             details = {
                 "event": "CIRCUIT_BREAKER_TRIGGERED",
@@ -264,8 +272,9 @@ class RiskGate:
     def get_risk_metrics(self) -> RiskMetrics:
         """Obter métricas de risco atuais."""
         drawdown_pct = self._calculate_drawdown()
-        sl_triggered, _ = self.check_stop_loss()
-        cb_triggered, _ = self.check_circuit_breaker()
+        self._evaluate_drawdown_policy(drawdown_pct)
+        sl_triggered = drawdown_pct <= self.STOP_LOSS_THRESHOLD
+        cb_triggered = drawdown_pct <= self.CIRCUIT_BREAKER_THRESHOLD
 
         return RiskMetrics(
             portfolio_value=self._portfolio_value,
@@ -277,6 +286,55 @@ class RiskGate:
             is_stop_loss_triggered=sl_triggered,
             is_circuit_breaker_triggered=cb_triggered,
         )
+
+    def _evaluate_drawdown_policy(self, drawdown_pct: float) -> None:
+        """Aplica politica de arm/disarm com histerese para evitar latch permanente."""
+        if self.status == RiskGateStatus.FROZEN:
+            return
+
+        if self.status == RiskGateStatus.ACTIVE:
+            if drawdown_pct <= self.CIRCUIT_BREAKER_THRESHOLD:
+                self.status = RiskGateStatus.CIRCUIT_BREAKER_ARMED
+                self._recovery_ok_streak = 0
+                self._log_to_audit(
+                    event="RISK_GATE_CIRCUIT_BREAKER_ARMED",
+                    data={
+                        "drawdown_pct": float(drawdown_pct),
+                        "threshold": float(self.CIRCUIT_BREAKER_THRESHOLD),
+                    },
+                )
+                return
+            if drawdown_pct <= self.STOP_LOSS_THRESHOLD:
+                self.status = RiskGateStatus.STOP_LOSS_ARMED
+                self._recovery_ok_streak = 0
+                self._log_to_audit(
+                    event="RISK_GATE_STOP_LOSS_ARMED",
+                    data={
+                        "drawdown_pct": float(drawdown_pct),
+                        "threshold": float(self.STOP_LOSS_THRESHOLD),
+                    },
+                )
+            return
+
+        # Se bloqueado por SL/CB, exige recuperacao sustentada para retomar ACTIVE.
+        if drawdown_pct > self.RECOVERY_THRESHOLD_PCT:
+            self._recovery_ok_streak += 1
+        else:
+            self._recovery_ok_streak = 0
+
+        if self._recovery_ok_streak >= self.RECOVERY_SAMPLES_REQUIRED:
+            previous_status = self.status.value
+            self.status = RiskGateStatus.ACTIVE
+            self._recovery_ok_streak = 0
+            self._log_to_audit(
+                event="RISK_GATE_RECOVERED",
+                data={
+                    "previous_status": previous_status,
+                    "drawdown_pct": float(drawdown_pct),
+                    "recovery_threshold_pct": float(self.RECOVERY_THRESHOLD_PCT),
+                    "samples_required": int(self.RECOVERY_SAMPLES_REQUIRED),
+                },
+            )
 
     def get_audit_trail(self) -> list:
         """Obter log completo de auditoria (INVIOLÁVEL)."""

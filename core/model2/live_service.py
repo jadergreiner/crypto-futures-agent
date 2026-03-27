@@ -26,7 +26,7 @@ from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetr
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from .cycle_report import (
     SymbolReport,
-    collect_training_info,
+    collect_training_info_for_symbol,
     collect_position_info,
     format_symbol_report,
     resolve_candle_freshness_contract,
@@ -71,6 +71,8 @@ M2_020_5_RULE_ID = "M2-020.5-RULE-GUARDRAILS-ACTIVE"
 
 _PROTECTION_MAX_RETRIES = 3
 _PROTECTION_RETRY_BASE_DELAY_S = 1.0
+_BALANCE_RETRY_ATTEMPTS = 3
+_BALANCE_RETRY_DELAY_S = 0.4
 FAIL_SAFE_RETRY_TIMEOUT_POLICY: dict[str, float | int | str] = {
     "policy": "fail_safe",
     "max_retries": _PROTECTION_MAX_RETRIES,
@@ -364,7 +366,18 @@ class Model2LiveExecutionService:
         """Formata status operacional usando novo padrao cycle_report."""
         try:
             # Coletar dados de treino
-            last_train, pending = collect_training_info(self._db_path)
+            last_train, pending = collect_training_info_for_symbol(
+                self._db_path,
+                symbol=symbol,
+                timeframe=str(timeframe),
+            )
+            fallback_last_train = str(self._last_train_time).strip()
+            if (
+                str(last_train).strip().lower() == "nunca"
+                and fallback_last_train
+                and fallback_last_train.upper() != "N/A"
+            ):
+                last_train = str(self._last_train_time)
 
             # Coletar posicao aberta
             pos_info = collect_position_info(symbol, exchange_client=self.exchange)
@@ -693,7 +706,11 @@ class Model2LiveExecutionService:
     ) -> LiveExecutionGateInput:
         exchange = self.exchange if self.config.execution_mode == "live" else None
         position = exchange.get_open_position(str(candidate["symbol"])) if exchange else None
-        available_balance = exchange.get_available_balance() if exchange else None
+        available_balance = (
+            self._fetch_available_balance_with_retry(exchange)
+            if exchange is not None
+            else None
+        )
         funding_rate, basis_value = self._extract_funding_and_basis(candidate)
         effective_signal_side = str(signal_side_override or candidate["signal_side"])
         guardrail_state = self._snapshot_guardrail_state(available_balance)
@@ -740,6 +757,29 @@ class Model2LiveExecutionService:
             circuit_breaker_allows_trading=bool(guardrail_state["circuit_breaker_allows_trading"]),
             circuit_breaker_drawdown_pct=self._to_float(guardrail_state.get("circuit_breaker_drawdown_pct")),
         )
+
+    def _fetch_available_balance_with_retry(self, exchange: Model2LiveExchange) -> float | None:
+        """Busca saldo disponivel com retentativa curta quando vem None/0.0."""
+        last_balance: float | None = None
+        for attempt in range(1, _BALANCE_RETRY_ATTEMPTS + 1):
+            raw_balance = exchange.get_available_balance()
+            normalized_balance = self._to_float(raw_balance)
+            if normalized_balance is not None:
+                last_balance = float(normalized_balance)
+
+            if last_balance is not None and last_balance > 0.0:
+                if attempt > 1:
+                    logging.getLogger(__name__).warning(
+                        "available_balance recuperado apos retry: tentativas=%d saldo=%.6f",
+                        attempt,
+                        float(last_balance),
+                    )
+                return last_balance
+
+            if attempt < _BALANCE_RETRY_ATTEMPTS:
+                time.sleep(_BALANCE_RETRY_DELAY_S)
+
+        return last_balance
 
     def _snapshot_guardrail_state(self, available_balance: float | None) -> dict[str, Any]:
         if self.config.execution_mode != "live":
@@ -811,7 +851,8 @@ class Model2LiveExecutionService:
             return None
 
         exchange = self._ensure_live_exchange()
-        guardrail_state = self._snapshot_guardrail_state(exchange.get_available_balance())
+        available_balance = self._fetch_available_balance_with_retry(exchange)
+        guardrail_state = self._snapshot_guardrail_state(available_balance)
 
         if str(guardrail_state["risk_gate_status"]).lower() == "unavailable":
             failed = self.repository.mark_signal_execution_failed(
@@ -929,6 +970,7 @@ class Model2LiveExecutionService:
             symbol=symbol,
             timeframe=timeframe,
             limit=limit,
+            exclude_with_signal_execution=True,
         ):
             position_state: dict[str, Any] = {
                 "has_open_position": False,

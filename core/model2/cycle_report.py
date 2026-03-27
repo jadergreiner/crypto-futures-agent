@@ -20,6 +20,13 @@ logger = logging.getLogger(__name__)
 # Limite de episodios para disparo de retreino
 RETRAIN_EPISODE_THRESHOLD = 100
 DEFAULT_REPORT_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
+    "FILLED",
+    "BLOCKED",
+    "HOLD_DECISION",
+    "EXECUTED",
+    "EXITED",
+)
 
 # M2-025.3 — janela padrao para deteccao de lacuna de candles (5 minutos)
 DEFAULT_GAP_WINDOW_MS = 300_000
@@ -345,6 +352,7 @@ def _parse_candle_timestamp(raw_value: str) -> datetime | None:
 
 def collect_training_info(
     db_path: str,
+    timeframe: str | None = None,
 ) -> tuple[str, int]:
     """Retorna (data ultimo treino, episodios pendentes).
 
@@ -365,44 +373,52 @@ def collect_training_info(
                     last_train = row[0]
             except sqlite3.OperationalError:
                 pass
-            # Episodios com reward disponivel para treino (apos ultimo retreino).
-            # Estrategia: usar completed_at_ms (INTEGER ms) quando disponivel para
-            # comparacao correta (int vs int). Sem a coluna, fallback para comparacao
-            # TEXT vs TEXT (comportamento legado).
+            # Episodios elegiveis para treino apos ultimo retreino.
+            # Usa cutoff em milissegundos para comparacao numerica consistente.
             try:
-                has_ms_col = False
                 cutoff_ms: int | None = None
+
+                # Caminho preferido: completed_at_ms
                 try:
                     r = conn.execute(
                         "SELECT MAX(completed_at_ms) FROM rl_training_log"
                     ).fetchone()
-                    has_ms_col = True
                     if r and r[0] is not None:
                         cutoff_ms = int(r[0])
                 except sqlite3.OperationalError:
-                    has_ms_col = False
+                    cutoff_ms = None
 
-                if has_ms_col and cutoff_ms is not None:
-                    # Caminho preferido: comparacao int vs int (ms)
-                    row = conn.execute(
-                        "SELECT COUNT(*) FROM training_episodes "
-                        "WHERE reward_proxy IS NOT NULL "
-                        "  AND UPPER(COALESCE(status, '')) NOT IN "
-                        "      ('CYCLE_CONTEXT', 'PENDING') "
-                        "  AND created_at > ?",
-                        (cutoff_ms,),
-                    ).fetchone()
-                else:
-                    # Fallback: comparacao TEXT vs TEXT (DBs sem completed_at_ms preenchido)
-                    row = conn.execute(
-                        "SELECT COUNT(*) FROM training_episodes "
-                        "WHERE reward_proxy IS NOT NULL "
-                        "  AND UPPER(COALESCE(status, '')) NOT IN "
-                        "      ('CYCLE_CONTEXT', 'PENDING') "
-                        "  AND created_at > COALESCE("
-                        "  (SELECT MAX(completed_at) FROM rl_training_log), "
-                        "  0)"
-                    ).fetchone()
+                # Fallback retrocompativel: parse completed_at (texto UTC) para ms.
+                if cutoff_ms is None:
+                    try:
+                        r = conn.execute(
+                            "SELECT MAX(completed_at) FROM rl_training_log"
+                        ).fetchone()
+                        if r and r[0]:
+                            cutoff_dt = datetime.strptime(str(r[0]), "%Y-%m-%d %H:%M:%S").replace(
+                                tzinfo=timezone.utc
+                            )
+                            cutoff_ms = int(cutoff_dt.timestamp() * 1000)
+                    except Exception:
+                        cutoff_ms = None
+
+                if cutoff_ms is None:
+                    cutoff_ms = 0
+
+                status_placeholders = ", ".join("?" for _ in TRAINING_EPISODE_ELIGIBLE_STATUSES)
+                query_parts = [
+                    "SELECT COUNT(*) FROM training_episodes",
+                    "WHERE reward_proxy IS NOT NULL",
+                    f"  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})",
+                    "  AND LOWER(COALESCE(label, '')) != 'context'",
+                    "  AND created_at > ?",
+                ]
+                params: list[Any] = [*TRAINING_EPISODE_ELIGIBLE_STATUSES, int(cutoff_ms)]
+                if timeframe:
+                    query_parts.append("  AND timeframe = ?")
+                    params.append(str(timeframe))
+
+                row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
                 if row:
                     pending = row[0]
             except sqlite3.OperationalError:
@@ -411,6 +427,81 @@ def collect_training_info(
             conn.close()
     except Exception as exc:
         logger.warning("Falha ao coletar info de treino: %s", exc)
+    return last_train, pending
+
+
+def collect_training_info_for_symbol(
+    db_path: str,
+    *,
+    symbol: str,
+    timeframe: str | None = None,
+) -> tuple[str, int]:
+    """Retorna (data ultimo treino, episodios pendentes) por simbolo.
+
+    Usa log dedicado `rl_training_log_by_symbol` quando disponivel.
+    Fallback seguro para corte global quando necessario.
+    """
+    normalized_symbol = str(symbol).strip().upper()
+    if not normalized_symbol:
+        return collect_training_info(db_path, timeframe=timeframe)
+
+    global_last_train, global_pending = collect_training_info(db_path, timeframe=timeframe)
+    last_train = global_last_train
+    pending = global_pending
+    cutoff_ms = 0
+
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            # cutoff global como fallback
+            try:
+                row = conn.execute(
+                    "SELECT MAX(completed_at_ms) FROM rl_training_log"
+                ).fetchone()
+                if row and row[0] is not None:
+                    cutoff_ms = int(row[0])
+            except sqlite3.OperationalError:
+                cutoff_ms = 0
+
+            # preferir log por simbolo (se existir)
+            try:
+                query_parts = [
+                    "SELECT completed_at, completed_at_ms",
+                    "FROM rl_training_log_by_symbol",
+                    "WHERE symbol = ?",
+                ]
+                params: list[Any] = [normalized_symbol]
+                if timeframe is not None:
+                    query_parts.append("AND timeframe = ?")
+                    params.append(str(timeframe).upper())
+                query_parts.append("ORDER BY completed_at_ms DESC, id DESC LIMIT 1")
+                row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
+                if row:
+                    if row[0]:
+                        last_train = str(row[0])
+                    if row[1] is not None:
+                        cutoff_ms = int(row[1])
+            except sqlite3.OperationalError:
+                pass
+
+            status_placeholders = ", ".join("?" for _ in TRAINING_EPISODE_ELIGIBLE_STATUSES)
+            query_parts = [
+                "SELECT COUNT(*) FROM training_episodes",
+                "WHERE reward_proxy IS NOT NULL",
+                f"  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})",
+                "  AND LOWER(COALESCE(label, '')) != 'context'",
+                "  AND created_at > ?",
+                "  AND symbol = ?",
+            ]
+            params = [*TRAINING_EPISODE_ELIGIBLE_STATUSES, int(cutoff_ms), normalized_symbol]
+            if timeframe is not None:
+                query_parts.append("  AND timeframe = ?")
+                params.append(str(timeframe).upper())
+            row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
+            if row:
+                pending = int(row[0])
+    except Exception as exc:
+        logger.warning("Falha ao coletar info de treino por simbolo %s: %s", normalized_symbol, exc)
+
     return last_train, pending
 
 

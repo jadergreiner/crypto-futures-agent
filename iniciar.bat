@@ -3,7 +3,7 @@ REM ============================================================================
 REM Crypto Futures Agent - Script de Inicializacao
 REM ==============================================================================
 
-setlocal enabledelayedexpansion
+setlocal EnableExtensions EnableDelayedExpansion
 
 REM Ativar UTF-8 para suportar caracteres especiais nos logs
 chcp 65001 > nul 2>&1
@@ -39,7 +39,8 @@ echo.
 set "LOG_FILE=logs/startup_log.txt"
 set "CYCLE_LOG=logs\m2_cycle.log"
 if not exist "logs" mkdir logs
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
+if "!TS_BRT!"=="" set "TS_BRT=%date% %time%"
 (
     echo [INFO] Agent startup at !TS_BRT! BRT
     echo   M2 Mode: !M2_MODE!
@@ -64,6 +65,7 @@ goto END
 REM Montar argumentos de simbolos para live_cycle e daily_pipeline
 set "LIVE_SYMBOL_ARGS="
 set "PIPELINE_SYMBOL_ARGS="
+set "STATUS_TMP=logs\m2_cycle_status_!RANDOM!_!RANDOM!.tmp"
 set "M2_SYMBOLS_LOOP=!M2_SYMBOLS:,= !"
 for %%S in (!M2_SYMBOLS_LOOP!) do (
     if not "%%~S"=="" (
@@ -74,54 +76,55 @@ for %%S in (!M2_SYMBOLS_LOOP!) do (
 
 set PYTHONIOENCODING=utf-8
 echo.
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[INFO] Iniciando ciclo M2 model-driven (modo: !M2_MODE!). Ctrl+C para parar."
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[INFO] Log: !CYCLE_LOG!"
 
 :M2_LOOP
 echo.
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Pipeline diario (D1)..."
 python scripts/model2/daily_pipeline.py --timeframe D1 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Pipeline diario (H4)..."
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Pipeline diario (H1)..."
 python scripts/model2/daily_pipeline.py --timeframe H1 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Pipeline diario (M5)..."
 python scripts/model2/daily_pipeline.py --timeframe M5 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Ciclo live..."
 python scripts/model2/live_cycle.py --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Persistindo episodios de treino..."
 python scripts/model2/persist_training_episodes.py --timeframe H4 !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Healthcheck..."
 python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2/runtime >> "!CYCLE_LOG!" 2>&1
 
-call :GET_BRT_TIMESTAMP
+call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Status por simbolo..."
-python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 60 --symbols-csv "!M2_SYMBOLS!" > logs\m2_cycle_status.tmp 2>&1
-if exist logs\m2_cycle_status.tmp (
-    type logs\m2_cycle_status.tmp
-    (type logs\m2_cycle_status.tmp) >> "!CYCLE_LOG!" 2>nul
-    del /q logs\m2_cycle_status.tmp >nul 2>&1
+python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 60 --symbols-csv "!M2_SYMBOLS!" > "!STATUS_TMP!" 2>&1
+if exist "!STATUS_TMP!" (
+    type "!STATUS_TMP!"
+    (type "!STATUS_TMP!") >> "!CYCLE_LOG!" 2>nul
+    del /q "!STATUS_TMP!" >nul 2>&1
 ) else (
     call :LOG_AND_ECHO "[M2][SYM] WARN: nenhum status gerado pelo operator_cycle_status.py"
 )
 
-call :GET_BRT_TIMESTAMP
-call :GET_BRT_TIMESTAMP_PLUS_SECONDS !M2_LOOP_SECONDS!
+call :GET_BRT_TIMESTAMP 2>nul
+call :GET_BRT_TIMESTAMP_PLUS_SECONDS !M2_LOOP_SECONDS! 2>nul
+if "!TS_BRT_PLUS!"=="" set "TS_BRT_PLUS=!TS_BRT!"
 call :LOG_AND_ECHO "[M2] Ciclo concluido. Aguardando !M2_LOOP_SECONDS!s... Proximo ciclo as !TS_BRT_PLUS! BRT."
 timeout /t !M2_LOOP_SECONDS! /nobreak >nul 2>&1
 goto M2_LOOP
@@ -134,6 +137,7 @@ REM   antes de retornar ao chamador.
 REM ---------------------------------------------------------------------------
 :LOG_AND_ECHO
 set "_lmsg=%~1"
+if "!TS_BRT!"=="" set "TS_BRT=%date% %time%"
 echo [!TS_BRT! BRT] !_lmsg!
 (echo [!TS_BRT! BRT] !_lmsg!) >> "!CYCLE_LOG!"
 exit /b 0

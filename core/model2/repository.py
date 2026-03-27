@@ -528,6 +528,7 @@ class Model2ThesisRepository:
         symbol: str | None = None,
         timeframe: str | None = None,
         limit: int = 200,
+        exclude_with_signal_execution: bool = False,
     ) -> list[dict[str, Any]]:
         """Return technical signals in CONSUMED status (eligible for legacy adapter)."""
 
@@ -547,6 +548,14 @@ class Model2ThesisRepository:
         if timeframe:
             query.append("AND timeframe = ?")
             params.append(timeframe)
+
+        if exclude_with_signal_execution:
+            query.append(
+                "AND NOT EXISTS ("
+                "  SELECT 1 FROM signal_executions se "
+                "  WHERE se.technical_signal_id = technical_signals.id"
+                ")"
+            )
 
         query.append("ORDER BY signal_timestamp ASC, id ASC")
         query.append("LIMIT ?")

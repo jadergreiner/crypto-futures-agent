@@ -34,7 +34,7 @@ import sys
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple, Set
+from typing import Optional, Dict, Any, List, Tuple
 from time import perf_counter
 import numpy as np
 
@@ -50,6 +50,25 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
+    "FILLED",
+    "BLOCKED",
+    "HOLD_DECISION",
+    "EXECUTED",
+    "EXITED",
+)
+
+
+def _json_default(value: Any) -> Any:
+    """Fallback para serializacao JSON de tipos nao nativos."""
+    if isinstance(value, set):
+        return sorted(value)
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, np.generic):
+        return value.item()
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
 
 
 class PPOTrainer:
@@ -91,6 +110,16 @@ class PPOTrainer:
         self.obs_data: Optional[Any] = None
         self.rewards_data: Optional[Any] = None
 
+    def _episodes_count_by_symbol(self) -> dict[str, int]:
+        """Conta episodios carregados por simbolo (normalizado em uppercase)."""
+        counts: dict[str, int] = {}
+        for episode in self.episodes_data or []:
+            symbol = str(episode.get("symbol") or "").strip().upper()
+            if not symbol:
+                continue
+            counts[symbol] = counts.get(symbol, 0) + 1
+        return counts
+
     def load_episodes_from_db(self) -> Dict[str, Any]:
         """
         Carregar episódios de treinamento do banco.
@@ -103,7 +132,8 @@ class PPOTrainer:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            cursor.execute("""
+            status_placeholders = ", ".join("?" for _ in TRAINING_EPISODE_ELIGIBLE_STATUSES)
+            cursor.execute(f"""
                 SELECT
                     id, episode_key, cycle_run_id, execution_id,
                     symbol, timeframe, status, event_timestamp,
@@ -112,21 +142,21 @@ class PPOTrainer:
                 FROM training_episodes
                 WHERE timeframe = ?
                   AND reward_proxy IS NOT NULL
-                  AND status IN ('FILLED', 'BLOCKED', 'HOLD_DECISION')
-                  AND label != 'context'
+                  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})
+                  AND LOWER(COALESCE(label, '')) != 'context'
                 ORDER BY created_at ASC
-            """, (self.timeframe,))
+            """, (self.timeframe, *TRAINING_EPISODE_ELIGIBLE_STATUSES))
 
             episodes = cursor.fetchall()
 
             conn.close()
 
-            symbols_set: Set[str] = set()
+            symbols_set: set[str] = set()
             labels_map: Dict[str, int] = {}
             result: Dict[str, Any] = {
                 "total_episodes": len(episodes),
                 "timeframe": self.timeframe,
-                "symbols": symbols_set,
+                "symbols": [],
                 "labels": labels_map,
                 "date_range": None,
             }
@@ -136,14 +166,14 @@ class PPOTrainer:
 
                 # Estatísticas
                 for ep in episodes:
-                    symbols_set.add(str(ep['symbol']))
+                    symbols_set.add(str(ep['symbol']).strip().upper())
                     label = str(ep['label'])
                     labels_map[label] = labels_map.get(label, 0) + 1
 
                 first_ts = episodes[0]['created_at']
                 last_ts = episodes[-1]['created_at']
                 result['date_range'] = f"{first_ts} to {last_ts}"
-                result['symbols'] = list(symbols_set)
+                result['symbols'] = sorted(symbols_set)
 
             if episodes:
                 assert self.episodes_data is not None
@@ -538,29 +568,102 @@ class PPOTrainer:
         try:
             completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             completed_at_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            symbols_logged = 0
             with sqlite3.connect(str(self.model2_db_path)) as conn:
-                # Adicionar coluna completed_at_ms se nao existir (retrocompatibilidade)
-                try:
-                    conn.execute(
-                        "ALTER TABLE rl_training_log ADD COLUMN completed_at_ms INTEGER"
-                    )
-                    conn.commit()
-                except sqlite3.OperationalError:
-                    pass  # coluna ja existe
+                self._ensure_rl_training_log_schema(conn)
+                self._ensure_rl_training_log_by_symbol_schema(conn)
+                schema_rows = conn.execute("PRAGMA table_info(rl_training_log)").fetchall()
+                schema_cols = {str(row[1]) for row in schema_rows}
+
+                columns: list[str] = []
+                values: list[Any] = []
+
+                columns.append("completed_at")
+                values.append(completed_at)
+
+                if "completed_at_ms" in schema_cols:
+                    columns.append("completed_at_ms")
+                    values.append(completed_at_ms)
+
+                columns.append("episodes_used")
+                values.append(int(episodes_used))
+
+                if "status" in schema_cols:
+                    columns.append("status")
+                    values.append(str(status))
+
+                if "avg_reward" in schema_cols:
+                    avg_reward: float | None = None
+                    if self.rewards_data is not None and len(self.rewards_data) > 0:
+                        avg_reward = float(np.mean(self.rewards_data))
+                    columns.append("avg_reward")
+                    values.append(avg_reward)
+
+                if "model_version" in schema_cols:
+                    columns.append("model_version")
+                    values.append("ppo_incremental")
+
+                if "created_at" in schema_cols:
+                    columns.append("created_at")
+                    values.append(completed_at)
+
+                placeholders = ", ".join(["?"] * len(columns))
                 conn.execute(
-                    """
-                    INSERT INTO rl_training_log
-                        (completed_at, completed_at_ms, episodes_used, status)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (completed_at, completed_at_ms, int(episodes_used), str(status)),
+                    f"INSERT INTO rl_training_log ({', '.join(columns)}) VALUES ({placeholders})",
+                    tuple(values),
                 )
+
+                symbol_counts = self._episodes_count_by_symbol()
+                symbols_logged = len(symbol_counts)
+                symbol_schema_rows = conn.execute("PRAGMA table_info(rl_training_log_by_symbol)").fetchall()
+                symbol_schema_cols = {str(row[1]) for row in symbol_schema_rows}
+                for symbol, symbol_episodes_used in symbol_counts.items():
+                    by_symbol_cols: list[str] = []
+                    by_symbol_values: list[Any] = []
+
+                    by_symbol_cols.append("symbol")
+                    by_symbol_values.append(str(symbol))
+
+                    if "timeframe" in symbol_schema_cols:
+                        by_symbol_cols.append("timeframe")
+                        by_symbol_values.append(str(self.timeframe).upper())
+
+                    by_symbol_cols.append("episodes_used")
+                    by_symbol_values.append(int(symbol_episodes_used))
+
+                    by_symbol_cols.append("completed_at")
+                    by_symbol_values.append(completed_at)
+
+                    if "completed_at_ms" in symbol_schema_cols:
+                        by_symbol_cols.append("completed_at_ms")
+                        by_symbol_values.append(completed_at_ms)
+
+                    if "status" in symbol_schema_cols:
+                        by_symbol_cols.append("status")
+                        by_symbol_values.append(str(status))
+
+                    if "model_version" in symbol_schema_cols:
+                        by_symbol_cols.append("model_version")
+                        by_symbol_values.append("ppo_incremental")
+
+                    if "created_at" in symbol_schema_cols:
+                        by_symbol_cols.append("created_at")
+                        by_symbol_values.append(completed_at)
+
+                    by_symbol_placeholders = ", ".join(["?"] * len(by_symbol_cols))
+                    conn.execute(
+                        f"INSERT INTO rl_training_log_by_symbol ({', '.join(by_symbol_cols)}) "
+                        f"VALUES ({by_symbol_placeholders})",
+                        tuple(by_symbol_values),
+                    )
+
                 conn.commit()
             return {
                 "status": "ok",
                 "completed_at": completed_at,
                 "episodes_used": int(episodes_used),
                 "training_status": str(status),
+                "symbols_logged": int(symbols_logged),
             }
         except sqlite3.OperationalError as exc:
             return {
@@ -572,6 +675,77 @@ class PPOTrainer:
                 "status": "error",
                 "error": str(exc),
             }
+
+    def _ensure_rl_training_log_schema(self, conn: sqlite3.Connection) -> None:
+        """Garante schema minimo de rl_training_log com retrocompatibilidade."""
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rl_training_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                episodes_used INTEGER NOT NULL,
+                avg_reward REAL,
+                completed_at TEXT NOT NULL,
+                model_version TEXT,
+                status TEXT,
+                created_at TEXT,
+                completed_at_ms INTEGER
+            )
+            """
+        )
+
+        cols = {
+            str(row[1])
+            for row in conn.execute("PRAGMA table_info(rl_training_log)").fetchall()
+        }
+        if "completed_at_ms" not in cols:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN completed_at_ms INTEGER")
+        if "status" not in cols:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN status TEXT")
+        if "avg_reward" not in cols:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN avg_reward REAL")
+        if "model_version" not in cols:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN model_version TEXT")
+        if "created_at" not in cols:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN created_at TEXT")
+
+    def _ensure_rl_training_log_by_symbol_schema(self, conn: sqlite3.Connection) -> None:
+        """Garante schema minimo de log de treino por simbolo."""
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rl_training_log_by_symbol (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                timeframe TEXT,
+                episodes_used INTEGER NOT NULL,
+                completed_at TEXT NOT NULL,
+                completed_at_ms INTEGER,
+                status TEXT,
+                model_version TEXT,
+                created_at TEXT
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_rl_training_log_by_symbol_lookup
+            ON rl_training_log_by_symbol (symbol, timeframe, completed_at_ms DESC, id DESC)
+            """
+        )
+
+        cols = {
+            str(row[1])
+            for row in conn.execute("PRAGMA table_info(rl_training_log_by_symbol)").fetchall()
+        }
+        if "timeframe" not in cols:
+            conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN timeframe TEXT")
+        if "completed_at_ms" not in cols:
+            conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN completed_at_ms INTEGER")
+        if "status" not in cols:
+            conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN status TEXT")
+        if "model_version" not in cols:
+            conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN model_version TEXT")
+        if "created_at" not in cols:
+            conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN created_at TEXT")
 
 
 def main():
@@ -638,7 +812,7 @@ def main():
     pipeline_result['stages']['load_episodes'] = load_result
     if load_result.get('status') == 'error':
         pipeline_result['status'] = 'error'
-        print(json.dumps(pipeline_result, indent=2))
+        print(json.dumps(pipeline_result, indent=2, default=_json_default))
         return 1
 
     # Stage 2: Prepare dataset
@@ -646,7 +820,7 @@ def main():
     pipeline_result['stages']['prepare_dataset'] = dataset_result
     if dataset_result.get('status') == 'error':
         pipeline_result['status'] = 'error'
-        print(json.dumps(pipeline_result, indent=2))
+        print(json.dumps(pipeline_result, indent=2, default=_json_default))
         return 1
 
     # Stage 3: Train
@@ -676,10 +850,10 @@ def main():
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, 'w') as f:
-        json.dump(pipeline_result, f, indent=2)
+        json.dump(pipeline_result, f, indent=2, default=_json_default)
 
     logger.info(f"Resultado salvo: {output_path}")
-    print(json.dumps(pipeline_result, indent=2))
+    print(json.dumps(pipeline_result, indent=2, default=_json_default))
 
     return 0 if pipeline_result['status'] == 'ok' else 1
 
