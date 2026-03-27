@@ -5418,3 +5418,36 @@ REVISADO_APROVADO
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
 - Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
+
+### [SYNC-179] M2-030 Pacote 15 itens iniciado - 2026-03-27
+
+- Agente: dev-cycle (orquestrador)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Acao:
+  - Pacote M2-030 estruturado com 15 tarefas encadeadas
+  - Item M2-030.1 marcado como `EM_DESENVOLVIMENTO`
+  - Trilhas de stage 1-4 registradas como concluidas para kickoff
+- Guardrails:
+  - Sem bypass de risk_gate/circuit_breaker
+  - Idempotencia por decision_id preservada
+
+### [SYNC-180] M2-030.1 Executor dev-cycle - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-030.1
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/dev_cycle_executor.py (novo)
+  - tests/test_m2_030_1_dev_cycle_executor.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_030_1_dev_cycle_executor.py -> 5 passed
+  - mypy --strict core/dev_cycle_executor.py -> Success
+  - pytest -q tests/ -> 308 passed
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.

@@ -6697,3 +6697,228 @@ CONCLUIDO, commit/push e arvore local limpa.
 Dependencias:
 - M2-029.13
 - M2-029.14
+
+---
+
+## PACOTE M2-030 - Orquestracao confiavel do ciclo de desenvolvimento
+
+**Status**: EM_DESENVOLVIMENTO
+**Prioridade**: 1 (bloqueador de throughput com qualidade)
+**Sprint**: 2026-03-W5 a 2026-04-W2
+**Decisao PO**: 2026-03-27 18:10 BRT
+
+Objetivo:
+Preparar pacote fechado de 15 itens para fortalecer a execucao do dev-cycle,
+reduzir regressao entre stages e acelerar entrega ponta a ponta com guardrails.
+
+PO: Pacote M2-030 priorizado com 15 itens orientados a confiabilidade de
+handoff, reproducao tecnica e aceite final rastreavel.
+
+SA: Trilha tecnica validada em 5 fases com dependencias lineares. Sem bypass de
+risk_gate/circuit_breaker e com idempotencia por decision_id preservada.
+
+Orquestracao dev-cycle (2026-03-27):
+- [STAGE 1/8] Backlog Development - CONCLUIDO (pacote estruturado)
+- [STAGE 2/8] Product Owner - CONCLUIDO (priorizacao e score aplicados)
+- [STAGE 3/8] Solution Architect - CONCLUIDO (requisitos e plano incremental)
+- [STAGE 4/8] QA-TDD - CONCLUIDO para M2-030.1 (suite RED definida)
+- [STAGE 5/8] Software Engineer - CONCLUIDO em M2-030.1
+- [STAGE 6/8] Tech Lead - APROVADO em M2-030.1
+- [STAGE 7/8] Doc Advocate - CONCLUIDO em M2-030.1
+- [STAGE 8/8] Project Manager - ACEITE em M2-030.1
+
+### TAREFA M2-030.1 - Executor unico para stages 1-8 com trilha auditavel
+
+Status: CONCLUIDO
+
+Descricao:
+Implementar executor unico do dev-cycle com logs padronizados por stage,
+checkpoint de retomada e trilha de auditoria por BLID/item.
+
+Dependencias:
+- M2-029.4
+
+QA: Suite RED criada em tests/test_m2_030_1_dev_cycle_executor.py com 5
+cenarios. Execucao inicial: 5 failed (modulo inexistente).
+
+SE: GREEN concluido com core/dev_cycle_executor.py. Executor sequencial com
+progresso padronizado, parada em DEVOLVIDO, checkpoint de retomada e trilha
+auditavel JSONL por stage/item.
+
+Evidencias de implementacao:
+
+1. pytest -q tests/test_m2_030_1_dev_cycle_executor.py -> 5 passed.
+2. mypy --strict core/dev_cycle_executor.py -> Success.
+3. pytest -q tests/ -> 308 passed.
+
+TL: APROVADO. Reproducao independente da suite da tarefa e da suite completa.
+Guardrails preservados (risk_gate/circuit_breaker inalterados, idempotencia
+decision_id mantida).
+
+DOC: BACKLOG e SYNCHRONIZATION atualizados; markdownlint docs/*.md OK; pytest
+-q tests/test_docs_model2_sync.py -> 12 passed.
+
+PM: ACEITE em 2026-03-27. Trilha completa validada (QA->SE->TL->DOC->PM).
+Item encerrado como CONCLUIDO e pacote segue para M2-030.2.
+
+### TAREFA M2-030.2 - Compactador de payload para handoff longo
+
+Status: Em analise
+
+Descricao:
+Aplicar compactacao automatica quando handoff exceder gate de tamanho,
+mantendo schema e campos obrigatorios.
+
+Dependencias:
+- M2-030.1
+
+### TAREFA M2-030.3 - Validador de schema por stage (PO->PM)
+
+Status: Em analise
+
+Descricao:
+Validar schema de entrada/saida por stage e bloquear transicao com erro
+acionavel quando houver campo faltante ou invalido.
+
+Dependencias:
+- M2-030.1
+
+### TAREFA M2-030.4 - Modo retomada automatica apos DEVOLVIDO
+
+Status: Em analise
+
+Descricao:
+Retomar automaticamente no stage que falhou, preservando contexto corrigido
+sem reiniciar o ciclo inteiro.
+
+Dependencias:
+- M2-030.1
+- M2-030.3
+
+### TAREFA M2-030.5 - Matriz de bloqueios por tipo de devolucao
+
+Status: Em analise
+
+Descricao:
+Mapear `DEVOLVIDO_PARA_REVISAO` e `DEVOLVER_PARA_AJUSTE` para fluxos de retorno
+deterministicos por agente com mensagens objetivas ao usuario.
+
+Dependencias:
+- M2-030.4
+
+### TAREFA M2-030.6 - Script TL de reproducao deterministica local
+
+Status: Em analise
+
+Descricao:
+Criar script unico do Tech Lead para reproducao de evidencias (pytest, mypy,
+resumo de risco e diff de guardrails).
+
+Dependencias:
+- M2-030.1
+- M2-029.6
+
+### TAREFA M2-030.7 - Gate de guardrails por diff sensivel
+
+Status: Em analise
+
+Descricao:
+Bloquear alteracoes que enfraquecam risk_gate, circuit_breaker ou
+idempotencia por decision_id nos modulos criticos.
+
+Dependencias:
+- M2-030.6
+
+### TAREFA M2-030.8 - Checkpoint de evidencias requisito->codigo->teste
+
+Status: Em analise
+
+Descricao:
+Exigir checkpoint estruturado no handoff SE->TL com mapa minimo rastreavel
+para revisao binaria do Tech Lead.
+
+Dependencias:
+- M2-030.3
+- M2-030.6
+
+### TAREFA M2-030.9 - Gate documental por impacto tecnico
+
+Status: Em analise
+
+Descricao:
+Determinar docs obrigatorias por tipo de alteracao e impedir fechamento sem
+registro [SYNC] e atualizacao coerente.
+
+Dependencias:
+- M2-030.8
+- M2-029.14
+
+### TAREFA M2-030.10 - Check pre-aceite do stage 8 (clean tree obrigatorio)
+
+Status: Em analise
+
+Descricao:
+Aplicar check final automatizado para backlog CONCLUIDO, suite verde, commit
+valido e arvore limpa antes de ACEITE.
+
+Dependencias:
+- M2-030.8
+- M2-030.9
+
+### TAREFA M2-030.11 - Contratos de slash commands do orquestrador
+
+Status: Em analise
+
+Descricao:
+Cobrir contratos de entrada e saida dos comandos de agentes para reduzir quebra
+de integracao e ambiguidade de invocacao.
+
+Dependencias:
+- M2-030.3
+
+### TAREFA M2-030.12 - Snapshot executivo diario do dev-cycle
+
+Status: Em analise
+
+Descricao:
+Gerar snapshot diario com status por stage, bloqueios, pendencias e proximos
+itens prontos para execucao.
+
+Dependencias:
+- M2-030.8
+- M2-030.11
+
+### TAREFA M2-030.13 - SLA de transicao de status no backlog
+
+Status: Em analise
+
+Descricao:
+Definir e monitorar SLA de mudanca de status para evitar itens presos em
+`Em analise` sem acao por ciclo.
+
+Dependencias:
+- M2-030.12
+
+### TAREFA M2-030.14 - Relatorio de risco por pacote antes de merge
+
+Status: Em analise
+
+Descricao:
+Consolidar riscos residuais, cobertura de teste e impacto operacional por
+pacote antes de merge para main.
+
+Dependencias:
+- M2-030.7
+- M2-030.10
+
+### TAREFA M2-030.15 - Runbook final de orquestracao com decisao de aceite
+
+Status: Em analise
+
+Descricao:
+Consolidar runbook final do orquestrador com criterios de ACEITE/DEVOLVER e
+plano de rollback controlado.
+
+Dependencias:
+- M2-030.13
+- M2-030.14
