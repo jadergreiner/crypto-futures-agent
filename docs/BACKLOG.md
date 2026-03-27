@@ -6484,3 +6484,216 @@ indefinido no SQLite, por isso o contador nunca zera apos o retreino.
 
 **Impacto:** Display correto do progresso; modelo nao fica em estado ambiguo
 de "sempre pronto para retreinar".
+
+---
+
+## PACOTE M2-029 - Hardening de qualidade e prontidao para promocao
+
+**Status**: EM_DESENVOLVIMENTO
+**Prioridade**: 1 (bloqueador para escalar com seguranca)
+**Sprint**: 2026-03-W4 a 2026-04-W2
+**Decisao PO**: 2026-03-27 16:40 BRT
+
+Objetivo:
+Executar um pacote de 15 itens para reduzir risco de regressao, acelerar
+feedback de testes por etapa e fechar lacunas de promocao shadow->paper->live.
+
+PO: Pacote M2-029 priorizado com 15 itens. Foco em confiabilidade do ciclo,
+criterios objetivos de promocao e reducao de tempo de validacao.
+
+SA: Trilha tecnica validada em 5 fases. Sem bypass de guardrails.
+Dependencias lineares mapeadas. Item M2-029.1 liberado para execucao imediata.
+
+Orquestracao dev-cycle (2026-03-27):
+- [STAGE 1/8] Backlog Development - CONCLUIDO (pacote estruturado)
+- [STAGE 2/8] Product Owner - CONCLUIDO (score e priorizacao aplicados)
+- [STAGE 3/8] Solution Architect - CONCLUIDO (requisitos e plano incremental)
+- [STAGE 4/8] QA-TDD - CONCLUIDO para M2-029.1 (suite RED definida)
+- [STAGE 5/8] Software Engineer - CONCLUIDO em M2-029.1
+- [STAGE 6/8] Tech Lead - APROVADO em M2-029.1
+- [STAGE 7/8] Doc Advocate - CONCLUIDO em M2-029.1
+- [STAGE 8/8] Project Manager - ACEITE em M2-029.1
+
+### TAREFA M2-029.1 - Estratificar pipeline de testes por gate operacional
+
+Status: CONCLUIDO
+
+Descricao:
+Separar suites criticas por stage (preflight, decisao, execucao, docs)
+com comandos objetivos para reduzir tempo de feedback sem perder cobertura.
+
+Dependencias:
+- BLID-083
+
+PO: Score 4.60. Destrava throughput do ciclo e reduz custo de validacao por stage.
+SA: Entrega em 3 passos: taxonomy, marcadores pytest, comando por stage.
+QA: Suite RED criada em tests/test_m2_029_1_stage_test_matrix.py (5 cenarios).
+SE: Green inicial aplicado com core/model2/stage_test_matrix.py; pytest -q
+tests/test_m2_029_1_stage_test_matrix.py -> 5 passed.
+SE: IMPLEMENTADO com validacoes completas. mypy --strict
+core/model2/stage_test_matrix.py -> Success. pytest -q tests/ -> 308 passed.
+TL: APROVADO. Reproducao independente concluida (suite da task + suite completa +
+mypy strict), sem regressao e guardrails preservados.
+DOC: BACKLOG e SYNCHRONIZATION atualizados; markdownlint docs/*.md OK; pytest -q
+tests/test_docs_model2_sync.py -> 12 passed.
+PM: ACEITE em 2026-03-27. Trilha ponta-a-ponta validada; backlog concluido,
+commit/push em main e arvore local limpa.
+
+### TAREFA M2-029.2 - Gate de cobertura minima por modulo critico
+
+Status: Em analise
+
+Descricao:
+Aplicar threshold por modulo critico (risk, execution, reconciliation) e
+falhar pipeline quando cobertura cair abaixo do minimo definido.
+
+Dependencias:
+- M2-029.1
+
+### TAREFA M2-029.3 - Mypy strict por escopo alterado no PR
+
+Status: Em analise
+
+Descricao:
+Executar mypy strict somente nos modulos alterados + contratos criticos para
+manter rigor com menor tempo de execucao.
+
+Dependencias:
+- M2-029.1
+
+### TAREFA M2-029.4 - Contrato unico de Gate_payload entre stages 2-8
+
+Status: Em analise
+
+Descricao:
+Padronizar validacao de tamanho e schema de handoff para impedir truncamento,
+payload invalido e ambiguidade entre agentes.
+
+Dependencias:
+- M2-029.1
+
+### TAREFA M2-029.5 - Validacao automatica de trilha BLID->teste->codigo->docs
+
+Status: Em analise
+
+Descricao:
+Criar checagem automatica de rastreabilidade ponta a ponta antes de ACEITE.
+
+Dependencias:
+- M2-029.2
+- M2-029.4
+
+### TAREFA M2-029.6 - Hardening de reproducao local do Tech Lead
+
+Status: Em analise
+
+Descricao:
+Formalizar script unico de reproducao de evidencias (pytest, mypy, diff,
+resumo de risco) para decisao binaria APROVADO/DEVOLVIDO.
+
+Dependencias:
+- M2-029.1
+- M2-029.3
+
+### TAREFA M2-029.7 - Preflight de guardrails obrigatorios por diff
+
+Status: Em analise
+
+Descricao:
+Bloquear mudancas que desabilitem risk_gate, circuit_breaker ou quebrem
+idempotencia por decision_id.
+
+Dependencias:
+- M2-029.3
+
+### TAREFA M2-029.8 - Matriz GO/NO-GO shadow->paper com metricas objetivas
+
+Status: Em analise
+
+Descricao:
+Definir thresholds minimos de win-rate, sharpe, drawdown e confiabilidade de
+dados para promocao de ambiente.
+
+Dependencias:
+- M2-029.5
+- M2-029.7
+
+### TAREFA M2-029.9 - Matriz GO/NO-GO paper->live com fail-safe reforcado
+
+Status: Em analise
+
+Descricao:
+Definir gates adicionais de risco operacional e condicoes de rollback para
+promocao paper->live.
+
+Dependencias:
+- M2-029.8
+
+### TAREFA M2-029.10 - Auditoria de regressao por pacote antes de merge
+
+Status: Em analise
+
+Descricao:
+Criar checklist tecnico padrao para regressao funcional e operacional por
+pacote com evidencias reproduziveis.
+
+Dependencias:
+- M2-029.6
+- M2-029.7
+
+### TAREFA M2-029.11 - Testes de contrato para comandos slash e handoffs
+
+Status: Em analise
+
+Descricao:
+Cobrir contratos de entrada/saida dos comandos de agentes para prevenir
+quebras no orquestrador.
+
+Dependencias:
+- M2-029.4
+
+### TAREFA M2-029.12 - Snapshot executivo diario do ciclo de desenvolvimento
+
+Status: Em analise
+
+Descricao:
+Gerar resumo diario automatico com status por stage, bloqueios e itens
+prontos para decisao.
+
+Dependencias:
+- M2-029.5
+
+### TAREFA M2-029.13 - Governanca de backlog por SLA de status
+
+Status: Em analise
+
+Descricao:
+Aplicar SLA para transicao de status (Em analise, TESTES_PRONTOS,
+EM_DESENVOLVIMENTO, IMPLEMENTADO, REVISADO_APROVADO, CONCLUIDO).
+
+Dependencias:
+- M2-029.12
+
+### TAREFA M2-029.14 - Sincronizacao documental automatica de impactos
+
+Status: Em analise
+
+Descricao:
+Sinalizar obrigatoriedade de update em docs impactadas (arquitetura,
+regras, diagramas, modelagem, synchronization) por tipo de mudanca.
+
+Dependencias:
+- M2-029.10
+- M2-029.11
+
+### TAREFA M2-029.15 - Runbook final de aceite e encerramento clean tree
+
+Status: Em analise
+
+Descricao:
+Consolidar runbook final do stage 8 para garantir ACEITE com backlog
+CONCLUIDO, commit/push e arvore local limpa.
+
+Dependencias:
+- M2-029.13
+- M2-029.14

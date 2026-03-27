@@ -5399,3 +5399,22 @@ REVISADO_APROVADO
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
 - Guardrails: risk_gate e circuit_breaker ativos; decision_id idempotencia preservada.
+
+### [SYNC-178] M2-029.1 Stage Test Matrix - 2026-03-27
+
+- Agente: dev-cycle (stages 5 a 8)
+- Item: M2-029.1
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - core/model2/stage_test_matrix.py (novo)
+  - tests/test_m2_029_1_stage_test_matrix.py (novo)
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_m2_029_1_stage_test_matrix.py -> 5 passed
+  - mypy --strict core/model2/stage_test_matrix.py -> Success
+  - pytest -q tests/ -> 308 passed
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+- Guardrails: risk_gate e circuit_breaker inalterados; decision_id idempotencia preservada.
