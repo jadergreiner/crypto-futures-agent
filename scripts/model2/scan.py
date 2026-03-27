@@ -30,6 +30,7 @@ TIMEFRAME_TO_TABLE = {
     "D1": "ohlcv_d1",
     "H4": "ohlcv_h4",
     "H1": "ohlcv_h1",
+    "M5": "ohlcv_m5",
 }
 
 

@@ -48,7 +48,7 @@ def sync_ohlcv_from_binance(
     Args:
         source_db_path: Banco legado (coleta via Binance)
         symbols: Lista de símbolos
-        timeframes: Lista de timeframes (D1, H4, H1)
+        timeframes: Lista de timeframes (D1, H4, H1, M5)
         output_dir: Diretório para saída de summary
 
     Returns:
@@ -94,6 +94,7 @@ def sync_ohlcv_from_binance(
         "D1": "1d",
         "H4": "4h",
         "H1": "1h",
+        "M5": "5m",
     }
 
     for symbol in symbols_to_use:
@@ -176,7 +177,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timeframe",
         action="append",
-        choices=["D1", "H4", "H1"],
+        choices=["D1", "H4", "H1", "M5"],
         default=["H4"],
         help="Timeframe para sincronizar",
     )

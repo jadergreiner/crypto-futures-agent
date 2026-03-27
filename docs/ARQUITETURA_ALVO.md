@@ -53,6 +53,10 @@ Implementacao de RL por simbolo (Iniciativa M2-019):
 2. Environment action space: NEUTRAL(0), LONG(1), SHORT(2)
 3. Environment observation space: 36 features normalizadas
 4. Reward retroativo: outcome real de execucao de sinal
+5. Runtime no pipeline diario: `persist_training_episodes` ->
+   `train_entry_agents` -> `entry_rl_filter` -> `order_layer`
+6. `entry_rl_filter` aplica threshold, fallback e cancelamento auditavel
+   antes de liberar sinal para execucao
 
 Entradas:
 

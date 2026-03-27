@@ -404,7 +404,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--timeframe",
         default="H4",
-        choices=["D1", "H4", "H1"],
+        choices=["D1", "H4", "H1", "M5"],
         help="Timeframe used by all pipeline stages.",
     )
     parser.add_argument(

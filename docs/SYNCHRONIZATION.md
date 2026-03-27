@@ -5317,3 +5317,17 @@ REVISADO_APROVADO
 - Arquivo alterado: docs/BACKLOG.md
 - BLID-099 criado: aprendizado continuo por ciclo — reward para decisao HOLD
 - Status: IDENTIFICADO, pronto para PO priorizar
+
+### [SYNC] PKG-PO-10-0326 DOC-ADVOCATE — 2026-03-26
+
+- Agente: 7.doc-advocate
+- Status de entrada: REVISADO_APROVADO (TL)
+- Docs atualizadas: docs/BACKLOG.md; docs/ARQUITETURA_ALVO.md;
+  docs/REGRAS_DE_NEGOCIO.md
+- Governanca aplicada: registro `DOC:` na M2-019.10 e consolidacao do
+  Top 10 no backlog com status coerente.
+- Validacoes:
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+  - pytest -q tests/test_pkg_po_10_0326_backlog_and_timeframes.py -> 5 passed
+- Guardrails: risk_gate/circuit_breaker inalterados; decision_id preservado.

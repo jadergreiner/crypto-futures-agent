@@ -69,6 +69,19 @@ python main.py --setup
 python main.py --train
 ```
 
+Pipeline diario M2 (stages RL de entrada):
+
+```bash
+python scripts/model2/daily_pipeline.py --timeframe H4 --symbol BTCUSDT
+```
+
+Ordem relevante no runtime:
+
+1. `persist_training_episodes`
+2. `train_entry_agents`
+3. `entry_rl_filter`
+4. `order_layer`
+
 Status:
 
 ```bash

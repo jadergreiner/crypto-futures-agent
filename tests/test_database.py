@@ -5,6 +5,7 @@ Testes para database manager.
 import pytest
 import tempfile
 import os
+import sqlite3
 import pandas as pd
 from data.database import DatabaseManager
 
@@ -190,3 +191,41 @@ def test_insert_ohlcv_with_multiple_symbols():
         assert btc_data[0]['close'] == 29200.0
         assert len(eth_data) == 1
         assert eth_data[0]['close'] == 740.0
+
+
+def test_legacy_schema_initialization_creates_ohlcv_m5_table(tmp_path):
+    """Garante que o schema legado inicializa a tabela ohlcv_m5."""
+    db_path = tmp_path / "test.db"
+    DatabaseManager(str(db_path))
+
+    with sqlite3.connect(str(db_path)) as conn:
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='ohlcv_m5'"
+        ).fetchone()
+
+    assert row is not None
+
+
+def test_insert_ohlcv_m5_roundtrip():
+    """Valida persistencia/releitura de candle M5 no banco legado."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = os.path.join(tmpdir, "test.db")
+        db = DatabaseManager(db_path)
+
+        test_data = [{
+            'timestamp': 1609459200000,
+            'symbol': 'BTCUSDT',
+            'open': 29000.0,
+            'high': 29100.0,
+            'low': 28950.0,
+            'close': 29080.0,
+            'volume': 250.0,
+            'quote_volume': 7270000.0,
+            'trades_count': 900
+        }]
+
+        db.insert_ohlcv("m5", test_data)
+        data = db.get_ohlcv("m5", "BTCUSDT")
+
+        assert len(data) == 1
+        assert data[0]["close"] == 29080.0

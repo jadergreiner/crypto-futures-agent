@@ -82,12 +82,20 @@ call :LOG_AND_ECHO "[INFO] Log: !CYCLE_LOG!"
 :M2_LOOP
 echo.
 call :GET_BRT_TIMESTAMP
+call :LOG_AND_ECHO "[M2] Pipeline diario (D1)..."
+python scripts/model2/daily_pipeline.py --timeframe D1 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
+
+call :GET_BRT_TIMESTAMP
 call :LOG_AND_ECHO "[M2] Pipeline diario (H4)..."
 python scripts/model2/daily_pipeline.py --timeframe H4 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
 call :GET_BRT_TIMESTAMP
 call :LOG_AND_ECHO "[M2] Pipeline diario (H1)..."
 python scripts/model2/daily_pipeline.py --timeframe H1 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
+
+call :GET_BRT_TIMESTAMP
+call :LOG_AND_ECHO "[M2] Pipeline diario (M5)..."
+python scripts/model2/daily_pipeline.py --timeframe M5 --continue-on-error !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
 call :GET_BRT_TIMESTAMP
 call :LOG_AND_ECHO "[M2] Ciclo live..."

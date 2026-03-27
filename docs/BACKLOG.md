@@ -81,6 +81,19 @@ Priorizacao PO sugerida (2026-03-26):
 - P1 (observabilidade e confianca operacional): BLID-079, BLID-082, BLID-077, BLID-083.
 - P2 (expansao controlada e evolucao): BLID-075, M2-016.2, M2-016.3.
 
+Priorizacao PO executada (2026-03-26) - Top 10:
+
+1) BLID-088 (Score 3.95) - CONCLUIDO
+2) M2-019.10 (Score 3.80) - CONCLUIDO
+3) BLID-089 (Score 3.55) - Em analise
+4) BLID-083 (Score 3.40) - Em analise
+5) M2-024.15 (Score 3.20) - Em analise
+6) BLID-075 (Score 3.15) - Em analise
+7) M2-022.1 (Score 3.10) - Em analise
+8) M2-022.2 (Score 3.05) - Em analise
+9) M2-025.6 (Score 2.95) - Em analise
+10) M2-028.9 (Score 2.90) - Em analise
+
 Backlog estruturado para priorizacao:
 
 - M2-019.3 a M2-019.10 - RL por simbolo como decisor de entrada.
@@ -612,7 +625,7 @@ PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-024.15 - Governanca de docs e runbook do pacote M2-024
 
-Status: BACKLOG
+Status: Em analise
 
 Descricao:
 Sincronizar arquitetura, regras, runbook e trilha SYNC apos conclusao do
@@ -621,6 +634,9 @@ pacote para manter governanca documental auditavel.
 Dependencias:
 
 - M2-024.1 a M2-024.14
+
+PO: Encerrar governanca documental do M2-024 com trilha auditavel e
+runbook unico para operacao segura.
 
 ## PACOTE M2-025 - Confiabilidade de dados e treino no ciclo M2
 
@@ -4502,7 +4518,7 @@ Evidencias:
 
 ### TAREFA BLID-075 - Concluir onboarding operacional de FLUXUSDT
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -4522,6 +4538,9 @@ Dependencias:
 
 - M2-017.1 concluida
 - Janela minima com episodios validados para FLUXUSDT
+
+PO: Item entrou no Top 10 para fechamento operacional com evidencias
+verificaveis e trilha de onboarding ponta a ponta.
 
 Impacto:
 
@@ -5052,7 +5071,7 @@ Dependencias: M2-019.1 a M2-019.7
 
 ### TAREFA M2-019.10 - Atualizacao documental
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 
 
@@ -5067,13 +5086,31 @@ Entrega:
 
 Dependencias: M2-019.9
 
+PO: Consolidar docs da camada RL e do filtro entry_rl_filter para fechar iniciativa M2-019 com rastreabilidade.
+
+SE: Inicio em 2026-03-26. Atualizando ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e README com stages RL no pipeline.
+
+SE: Atualizacao documental concluida. ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e
+README alinhados com stage `entry_rl_filter`.
+Evidencias: pytest -q tests/test_docs_model2_sync.py (12 passed) e
+pytest -q tests/test_pkg_po_10_0326_backlog_and_timeframes.py (5 passed).
+
+TL: APROVADO. 307/307 suite verde, mypy strict OK, backlog Top10 e docs
+sincronizados sem impacto em guardrails de risco.
+
+DOC: Governanca concluida; docs oficiais sincronizadas, [SYNC] registrado e
+validacoes de documentacao aprovadas.
+
+PM: ACEITE em 2026-03-26. Trilha fim-a-fim validada, docs sincronizadas,
+validacoes verdes e fechamento publicado em main.
+
 ---
 
 ---
 
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
-Status: PENDENTE
+Status: Em analise
 
 
 
@@ -5099,6 +5136,8 @@ estruturais de tendencia de longo prazo integradas ao pipeline M2.
 
 **Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
 
+PO: Preparar expansao D1 no loop diario apos M5 para completar cobertura multi-timeframe operacional.
+
 **Criterio de aceite:**
 
 1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [ ]
@@ -5109,12 +5148,30 @@ estruturais de tendencia de longo prazo integradas ao pipeline M2.
 
 ### TAREFA BLID-088 - Captura e persistencia de candles M5
 
-Status: PENDENTE
+Status: CONCLUIDO
 
 
 
 Prioridade proposta: Media
 **Sprint proposto:** A definir pelo PO
+
+PO: Score 3.95. BLID-088 desbloqueada, impacto direto no ciclo intraday e na qualidade do contexto multi-timeframe. Priorizada para execucao imediata.
+
+SE: Inicio de desenvolvimento em 2026-03-26. Foco inicial: habilitar M5 no pipeline (sync, scan, scheduler e iniciar.bat) com testes de regressao.
+
+SE: Garantia de schema legado e persistencia E2E do M5 validada.
+pytest -q tests/test_database.py tests/test_model2_sync_ohlcv_m5_e2e.py
+tests/test_blid088_m5_enablement.py -> 13 passed.
+
+SE: Integracao do daily_pipeline com timeframe M5 validada com fixture de DB
+real (ohlcv_m5). Encadeamento de stages preservado com timeframe M5 ponta a
+ponta no run.
+pytest -q tests/test_blid088_m5_pipeline_integration.py
+tests/test_model2_sync_ohlcv_m5_e2e.py tests/test_blid088_m5_enablement.py
+-> 6 passed.
+
+SE: Fechamento do item confirmado no backlog apos Top 10 priorizado;
+entregas M5 de sync/scan/pipeline/testes consolidadas sem regressao local.
 
 **Escopo:**
 

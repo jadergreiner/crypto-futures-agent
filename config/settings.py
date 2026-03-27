@@ -110,6 +110,7 @@ TIMEFRAMES = {
     "D1": "1d",
     "H4": "4h",
     "H1": "1h",
+    "M5": "5m",
     "M1": "1m"
 }
 
@@ -118,7 +119,8 @@ TIMEFRAMES = {
 HISTORICAL_PERIODS = {
     "D1": 730,    # 2 anos (para EMA_610 com margem de segurança)
     "H4": 250,    # ~1500 candles H4 (garante 1000+ candles após split 80/20)
-    "H1": 209     # ~5016 candles H1 (remove aviso limítrofe de suficiência)
+    "H1": 209,    # ~5016 candles H1 (remove aviso limítrofe de suficiência)
+    "M5": 30      # ~8640 candles M5 para contexto intraday consistente
 }
 
 # Layer 4 (H4) execution times in UTC

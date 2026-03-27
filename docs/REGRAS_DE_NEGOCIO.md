@@ -143,6 +143,12 @@ Regras de integracao:
 5. Se acao contradiz direcao SMC: cancela com motivo auditavel
 6. Todos os casos registram episodio para retreino continuo
 
+Implementacao de referencia:
+
+1. `scripts/model2/train_entry_agents.py` (treino diario por simbolo)
+2. `scripts/model2/entry_rl_filter.py` (threshold, fallback e cancelamento)
+3. `scripts/model2/daily_pipeline.py` (ordem: persist -> train -> filter -> order)
+
 ### RN-017 - Observabilidade de Circuit Breaker (M2-026.2)
 
 Transições de estado do circuit_breaker (CLOSED→OPEN→HALF_OPEN→CLOSED) devem
