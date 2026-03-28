@@ -448,3 +448,21 @@ Para reduzir risco de corrida silenciosa no trigger de treino incremental:
 7. Quando metadata da decisao nao trouxer `decision_id`, o trigger de treino
    deve gerar fallback deterministico
    `{symbol}:{timeframe}:{decision_timestamp}` para manter rastreabilidade.
+
+### RN-036 - Gate Preflight de Consistencia de Dados (M2-025.14)
+
+Antes de qualquer ativacao live, o preflight deve validar consistencia minima
+de dados e treino com bloqueio fail-safe em falha:
+
+1. O preflight deve validar frescor de candle via `ohlcv_cache` com limite
+   de idade configuravel (`candle_max_age_minutes`).
+2. O preflight deve validar existencia de checkpoint de treino no diretorio
+   configurado (`checkpoints_dir`).
+3. O preflight deve validar baseline minima de passos/episodios de treino
+   (`min_train_steps`) a partir dos checkpoints detectados.
+4. Falha em qualquer check de consistencia acima deve forcar
+   `reason_code='DATA_CONSISTENCY_FAIL'` no summary de preflight.
+5. Compatibilidade legada deve ser preservada no contrato do runner:
+   aceita `model2_db_path` e alias `db_path`.
+6. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

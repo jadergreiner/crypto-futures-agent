@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import re
 import sqlite3
@@ -418,30 +419,155 @@ def _check_testnet_credentials_ready(env_values: dict[str, str]) -> dict[str, An
     }
 
 
+def _check_candle_freshness(*, db_path: Path, candle_max_age_minutes: int) -> dict[str, Any]:
+    now_ms = _utc_now_ms()
+    max_age_ms = max(1, int(candle_max_age_minutes)) * 60 * 1000
+    cutoff_ms = now_ms - max_age_ms
+
+    if not db_path.exists():
+        return {
+            "passed": False,
+            "reason": "db_not_found",
+            "latest_candle_ts_open_ms": None,
+            "cutoff_ts_open_ms": cutoff_ms,
+        }
+
+    try:
+        with sqlite3.connect(db_path) as conn:
+            table_exists = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='ohlcv_cache' LIMIT 1"
+            ).fetchone()
+            if not table_exists:
+                return {
+                    "passed": False,
+                    "reason": "ohlcv_cache_not_found",
+                    "latest_candle_ts_open_ms": None,
+                    "cutoff_ts_open_ms": cutoff_ms,
+                }
+
+            row = conn.execute("SELECT MAX(ts_open) FROM ohlcv_cache").fetchone()
+            latest_ts = int(row[0]) if row and row[0] is not None else None
+            if latest_ts is None:
+                return {
+                    "passed": False,
+                    "reason": "no_candles",
+                    "latest_candle_ts_open_ms": None,
+                    "cutoff_ts_open_ms": cutoff_ms,
+                }
+    except Exception as exc:
+        return {
+            "passed": False,
+            "reason": "candle_check_error",
+            "error": str(exc),
+            "latest_candle_ts_open_ms": None,
+            "cutoff_ts_open_ms": cutoff_ms,
+        }
+
+    return {
+        "passed": bool(latest_ts >= cutoff_ms),
+        "reason": "ok" if latest_ts >= cutoff_ms else "stale_candles",
+        "latest_candle_ts_open_ms": latest_ts,
+        "cutoff_ts_open_ms": cutoff_ms,
+    }
+
+
+def _check_train_checkpoint(*, checkpoints_dir: Path) -> dict[str, Any]:
+    if not checkpoints_dir.exists():
+        return {
+            "passed": False,
+            "reason": "checkpoints_dir_not_found",
+            "checkpoints_dir": str(checkpoints_dir),
+            "checkpoint_count": 0,
+        }
+
+    checkpoint_files = [p for p in checkpoints_dir.iterdir() if p.is_file()]
+    return {
+        "passed": bool(checkpoint_files),
+        "reason": "ok" if checkpoint_files else "checkpoint_missing",
+        "checkpoints_dir": str(checkpoints_dir),
+        "checkpoint_count": len(checkpoint_files),
+        "latest_checkpoint": str(max(checkpoint_files, key=lambda p: p.stat().st_mtime)) if checkpoint_files else None,
+    }
+
+
+def _check_train_episodes(*, checkpoints_dir: Path, min_train_steps: int) -> dict[str, Any]:
+    if not checkpoints_dir.exists():
+        return {
+            "passed": False,
+            "reason": "checkpoints_dir_not_found",
+            "steps_available": 0,
+            "min_train_steps": int(min_train_steps),
+        }
+
+    pattern = re.compile(r"step[_-]?(\d+)", re.IGNORECASE)
+    steps_found: list[int] = []
+    for file_path in checkpoints_dir.iterdir():
+        if not file_path.is_file():
+            continue
+        match = pattern.search(file_path.name)
+        if match:
+            try:
+                steps_found.append(int(match.group(1)))
+            except Exception:
+                continue
+
+    best_steps = max(steps_found) if steps_found else 0
+    required_steps = max(1, int(min_train_steps))
+    return {
+        "passed": bool(best_steps >= required_steps),
+        "reason": "ok" if best_steps >= required_steps else "insufficient_train_steps",
+        "steps_available": int(best_steps),
+        "min_train_steps": required_steps,
+    }
+
+
 def run_go_live_preflight(
     *,
-    model2_db_path: str | Path,
+    model2_db_path: str | Path | None = None,
+    db_path: str | Path | None = None,
     output_dir: str | Path,
-    env_file: str | Path,
-    apply_fixes: bool,
-    continue_on_error: bool,
-    live_symbols: tuple[str, ...],
-    command_runner: Callable[..., subprocess.CompletedProcess[str]] = _default_command_runner,
+    env_file: str | Path = DEFAULT_ENV_FILE,
+    apply_fixes: bool = True,
+    continue_on_error: bool = False,
+    live_symbols: tuple[str, ...] = M2_LIVE_SYMBOLS,
+    check_candle_freshness: bool = False,
+    candle_max_age_minutes: int = 60,
+    check_train_checkpoint: bool = False,
+    check_train_episodes: bool = False,
+    min_train_steps: int = 10_000,
+    checkpoints_dir: str | Path = REPO_ROOT / "models" / "checkpoints",
+    command_runner: Callable[..., subprocess.CompletedProcess[str]] | None = None,
     db_write_probe: Callable[[Path], None] = _probe_db_write_access,
-    migrate_fn: Callable[..., dict[str, Any]] = run_up,
-    live_execute_fn: Callable[..., dict[str, Any]] = run_live_execute,
-    live_reconcile_fn: Callable[..., dict[str, Any]] = run_live_reconcile,
-    live_dashboard_fn: Callable[..., dict[str, Any]] = run_live_dashboard,
-    live_healthcheck_fn: Callable[..., dict[str, Any]] = run_live_healthcheck,
+    migrate_fn: Callable[..., dict[str, Any]] | None = None,
+    live_execute_fn: Callable[..., dict[str, Any]] | None = None,
+    live_reconcile_fn: Callable[..., dict[str, Any]] | None = None,
+    live_dashboard_fn: Callable[..., dict[str, Any]] | None = None,
+    live_healthcheck_fn: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    resolved_db = _resolve_repo_path(model2_db_path)
+    effective_db_path = model2_db_path if model2_db_path is not None else db_path
+    if effective_db_path is None:
+        raise ValueError("Either model2_db_path or db_path must be provided.")
+
+    command_runner = command_runner or _default_command_runner
+    migrate_fn = migrate_fn or run_up
+    live_execute_fn = live_execute_fn or run_live_execute
+    live_reconcile_fn = live_reconcile_fn or run_live_reconcile
+    live_dashboard_fn = live_dashboard_fn or run_live_dashboard
+    live_healthcheck_fn = live_healthcheck_fn or run_live_healthcheck
+
+    resolved_db = _resolve_repo_path(effective_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
     resolved_env_file = _resolve_repo_path(env_file)
     selected_symbols = _normalize_live_symbols(live_symbols)
+    resolved_checkpoints_dir = _resolve_repo_path(checkpoints_dir)
     applied_fixes: list[dict[str, Any]] = []
     next_actions: list[str] = []
     checks: list[dict[str, Any]] = []
     should_stop = False
+    data_consistency_fail = False
+    candle_freshness_result: dict[str, Any] = {"passed": True, "reason": "not_checked"}
+    train_checkpoint_result: dict[str, Any] = {"passed": True, "reason": "not_checked"}
+    train_episodes_result: dict[str, Any] = {"passed": True, "reason": "not_checked"}
 
     def add_check(
         *,
@@ -469,12 +595,12 @@ def run_go_live_preflight(
     add_check(
         check_id="1",
         description="Confirmar MODEL2_DB_PATH operacional e path resolvido.",
-        status="ok" if str(model2_db_path).strip() else "alert",
+        status="ok" if str(effective_db_path).strip() else "alert",
         evidence={
-            "configured_model2_db_path": str(model2_db_path),
+            "configured_model2_db_path": str(effective_db_path),
             "resolved_model2_db_path": str(resolved_db),
         },
-        error=None if str(model2_db_path).strip() else "MODEL2_DB_PATH is empty.",
+        error=None if str(effective_db_path).strip() else "MODEL2_DB_PATH is empty.",
     )
 
     if not should_stop:
@@ -726,6 +852,33 @@ def run_go_live_preflight(
         if not continue_on_error and any(item["status"] != "ok" for item in checks if item["id"] in {"3", "4", "5", "6"}):
             should_stop = True
 
+        if check_candle_freshness:
+            candle_freshness_result = _check_candle_freshness(
+                db_path=resolved_db,
+                candle_max_age_minutes=candle_max_age_minutes,
+            )
+            if not candle_freshness_result["passed"]:
+                data_consistency_fail = True
+                if not continue_on_error:
+                    should_stop = True
+
+        if check_train_checkpoint:
+            train_checkpoint_result = _check_train_checkpoint(checkpoints_dir=resolved_checkpoints_dir)
+            if not train_checkpoint_result["passed"]:
+                data_consistency_fail = True
+                if not continue_on_error:
+                    should_stop = True
+
+        if check_train_episodes:
+            train_episodes_result = _check_train_episodes(
+                checkpoints_dir=resolved_checkpoints_dir,
+                min_train_steps=min_train_steps,
+            )
+            if not train_episodes_result["passed"]:
+                data_consistency_fail = True
+                if not continue_on_error:
+                    should_stop = True
+
         if should_stop:
             for step in ("7", "8", "9", "10"):
                 add_check(
@@ -734,40 +887,56 @@ def run_go_live_preflight(
                     status="skipped",
                 )
         else:
-            shared_params = {
-                "model2_db_path": resolved_db,
-                "symbol": explicit_symbols[0] if explicit_symbols else None,
-                "timeframe": "H4",
-                "limit": 200,
-                "output_dir": resolved_output_dir,
-                "execution_mode": "shadow",
-                "live_symbols": explicit_symbols,
-                "max_daily_entries": _to_positive_int(env_values.get("M2_MAX_DAILY_ENTRIES", ""), M2_MAX_DAILY_ENTRIES),
-                "max_margin_per_position_usd": _to_positive_float(
-                    env_values.get("M2_MAX_MARGIN_PER_POSITION_USD", ""),
-                    M2_MAX_MARGIN_PER_POSITION_USD,
-                ),
-                "max_signal_age_minutes": _to_positive_int(
-                    env_values.get("M2_MAX_SIGNAL_AGE_MINUTES", ""),
-                    M2_MAX_SIGNAL_AGE_MINUTES,
-                ),
-                "symbol_cooldown_minutes": _to_positive_int(
-                    env_values.get("M2_SYMBOL_COOLDOWN_MINUTES", ""),
-                    M2_SYMBOL_COOLDOWN_MINUTES,
-                ),
-                "short_only": str(env_values.get("M2_SHORT_ONLY", str(M2_SHORT_ONLY))).strip().lower() in {"1", "true", "yes", "on"},
-                "funding_rate_max_for_short": _to_positive_float(
-                    env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT", ""),
-                    M2_FUNDING_RATE_MAX_FOR_SHORT,
-                ),
-                "leverage": _to_positive_int(
-                    env_values.get("M2_CANARY_LEVERAGE", ""),
-                    M2_CANARY_LEVERAGE,
-                ),
-            }
+            selected_symbol = explicit_symbols[0] if explicit_symbols else None
+            selected_timeframe = "H4"
+            selected_limit = 200
+            selected_execution_mode = "shadow"
+            selected_max_daily_entries = _to_positive_int(
+                env_values.get("M2_MAX_DAILY_ENTRIES", ""),
+                M2_MAX_DAILY_ENTRIES,
+            )
+            selected_max_margin = _to_positive_float(
+                env_values.get("M2_MAX_MARGIN_PER_POSITION_USD", ""),
+                M2_MAX_MARGIN_PER_POSITION_USD,
+            )
+            selected_max_signal_age = _to_positive_int(
+                env_values.get("M2_MAX_SIGNAL_AGE_MINUTES", ""),
+                M2_MAX_SIGNAL_AGE_MINUTES,
+            )
+            selected_symbol_cooldown = _to_positive_int(
+                env_values.get("M2_SYMBOL_COOLDOWN_MINUTES", ""),
+                M2_SYMBOL_COOLDOWN_MINUTES,
+            )
+            selected_short_only = (
+                str(env_values.get("M2_SHORT_ONLY", str(M2_SHORT_ONLY))).strip().lower() in {"1", "true", "yes", "on"}
+            )
+            selected_funding_rate_max = _to_positive_float(
+                env_values.get("M2_FUNDING_RATE_MAX_FOR_SHORT", ""),
+                M2_FUNDING_RATE_MAX_FOR_SHORT,
+            )
+            selected_leverage = _to_positive_int(
+                env_values.get("M2_CANARY_LEVERAGE", ""),
+                M2_CANARY_LEVERAGE,
+            )
+
             execute_action = "python scripts/model2/live_execute.py --timeframe H4 --execution-mode shadow"
             try:
-                execute_summary = live_execute_fn(**shared_params)
+                execute_summary = live_execute_fn(
+                    model2_db_path=resolved_db,
+                    symbol=selected_symbol,
+                    timeframe=selected_timeframe,
+                    limit=selected_limit,
+                    output_dir=resolved_output_dir,
+                    execution_mode=selected_execution_mode,
+                    live_symbols=explicit_symbols,
+                    max_daily_entries=selected_max_daily_entries,
+                    max_margin_per_position_usd=selected_max_margin,
+                    max_signal_age_minutes=selected_max_signal_age,
+                    symbol_cooldown_minutes=selected_symbol_cooldown,
+                    short_only=selected_short_only,
+                    funding_rate_max_for_short=selected_funding_rate_max,
+                    leverage=selected_leverage,
+                )
                 add_check(
                     check_id="7",
                     description="Validar live_execute em shadow.",
@@ -797,7 +966,22 @@ def run_go_live_preflight(
                 )
             else:
                 try:
-                    reconcile_summary = live_reconcile_fn(exchange=_NoopExchange(), **shared_params)
+                    reconcile_summary = live_reconcile_fn(
+                        model2_db_path=resolved_db,
+                        symbol=selected_symbol,
+                        timeframe=selected_timeframe,
+                        limit=selected_limit,
+                        output_dir=resolved_output_dir,
+                        execution_mode=selected_execution_mode,
+                        live_symbols=explicit_symbols,
+                        max_daily_entries=selected_max_daily_entries,
+                        max_margin_per_position_usd=selected_max_margin,
+                        max_signal_age_minutes=selected_max_signal_age,
+                        symbol_cooldown_minutes=selected_symbol_cooldown,
+                        short_only=selected_short_only,
+                        funding_rate_max_for_short=selected_funding_rate_max,
+                        leverage=selected_leverage,
+                    )
                     reconcile_ok = reconcile_summary.get("status") == "ok"
                     add_check(
                         check_id="8",
@@ -894,6 +1078,8 @@ def run_go_live_preflight(
                 )
 
     overall_status = "ok" if all(check["status"] == "ok" for check in checks if check["status"] != "skipped") else "alert"
+    if data_consistency_fail:
+        overall_status = "alert"
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     timestamp_utc_ms = _utc_now_ms()
     check6 = next((item for item in checks if item.get("id") == "6"), {})
@@ -910,6 +1096,7 @@ def run_go_live_preflight(
     }
     summary: dict[str, Any] = {
         "status": overall_status,
+        "reason_code": "DATA_CONSISTENCY_FAIL" if data_consistency_fail else "",
         "run_id": run_id,
         "timestamp_utc_ms": timestamp_utc_ms,
         "model2_db_path": str(resolved_db),
@@ -918,11 +1105,15 @@ def run_go_live_preflight(
         "applied_fixes": applied_fixes,
         "next_actions": next_actions,
         "testnet_evidence": testnet_evidence,
+        "candle_freshness_check": candle_freshness_result,
+        "train_checkpoint_check": train_checkpoint_result,
+        "train_episodes_check": train_episodes_result,
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_go_live_preflight_{run_id}.json"
     atomic_write_json(output_file, {**summary, "output_file": str(output_file)}, ensure_ascii=True, indent=2)
     summary["output_file"] = str(output_file)
+    gc.collect()
     return summary
 
 

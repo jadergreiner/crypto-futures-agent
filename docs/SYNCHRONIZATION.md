@@ -23,6 +23,26 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-261] M2-025.14 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.14
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.14 com referencia
+    de sincronizacao final.
+  - REGRAS_DE_NEGOCIO: adicionada RN-036 para contrato do gate preflight de
+    consistencia de dados (candle/checkpoint/train) com
+    `reason_code='DATA_CONSISTENCY_FAIL'` e retrocompat
+    `model2_db_path`/`db_path`.
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
 ### [SYNC-257] M2-025.12 Suite RED QA-TDD (TESTES_PRONTOS) - 2026-03-28
 
 - Agente: 4.qa-tdd

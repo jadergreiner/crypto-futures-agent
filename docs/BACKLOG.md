@@ -474,7 +474,7 @@ Dependencias:
 
 ### TAREFA M2-025.14 - Preflight de consistencia de dados M2
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
@@ -492,6 +492,32 @@ Alta prioridade para Go/No-Go seguro.
 
 SA: Expandir go_live_preflight.py com checks de episodio, treino e
 consistencia candle; bloquear se falhar; reason_code DATA_CONSISTENCY_FAIL.
+
+SE: Preflight expandido em `scripts/model2/go_live_preflight.py` com checks
+de frescor de candle, checkpoint e passos de treino/episodio (retrocompat com
+`db_path`); falha de consistencia retorna `reason_code=DATA_CONSISTENCY_FAIL`.
+Testes validados: `tests/test_model2_m2_025_14_preflight_data.py` e
+`tests/test_model2_go_live_preflight.py`.
+
+TL: DEVOLVIDO. `mypy --strict scripts/model2/go_live_preflight.py` falhou
+(18 arg-type). Corrigir tipagem de chamadas live_* sem bypass.
+
+SE: Correcao concluida no preflight: chamadas live_* agora usam kwargs
+explicitos tipados (sem `**shared_params` heterogeneo), removendo os 18
+`arg-type` do mypy strict e preservando `DATA_CONSISTENCY_FAIL` + checks M2-025.14.
+Evidencias: `mypy --strict scripts/model2/go_live_preflight.py` OK; pytest
+`tests/test_model2_m2_025_14_preflight_data.py` 4/4; pytest
+`tests/test_model2_go_live_preflight.py` 14/14.
+
+TL: APROVADO. Reproduzido local: mypy strict OK + pytest 4/4 e 14/14;
+gate DATA_CONSISTENCY_FAIL e retrocompat db_path preservados.
+
+DOC: REGRAS_DE_NEGOCIO atualizado com RN-036 (gate preflight de consistencia
+de dados M2-025.14) e SYNCHRONIZATION registrado em [SYNC-261].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-261] concluido; backlog fechado em
+CONCLUIDO com validacoes tecnicas e documentais verdes.
 
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
