@@ -1,28 +1,28 @@
-﻿# Backlog - Modelo 2.0
+# Backlog - Modelo 2.0
 
 Somente funcionalidades e tarefas do Modelo 2.0.
 
 ---
 
-## NOTA OPERACIONAL â€” Captura de EpisÃ³dios em Fase 1
+## NOTA OPERACIONAL — Captura de Episódios em Fase 1
 
 **Data**: 2026-03-21
 **Ciclo Analisado**: 20260321_224930 BRT
-**Update**: 2026-03-21 â€” LIMITE DIÃRIO REMOVIDO PARA APRENDIZAGEM
-**Status Fase 1**: âœ… Operacional (conservadora, sem limite diÃ¡rio)
+**Update**: 2026-03-21 — LIMITE DIÁRIO REMOVIDO PARA APRENDIZAGEM
+**Status Fase 1**: ✅ Operacional (conservadora, sem limite diário)
 
-**DecisÃ£o**: Remover limite M2_MAX_DAILY_ENTRIES para permitir que modelo
-entre em operaÃ§Ã£o sempre que identificar oportunidade. Foco: aprendizagem
+**Decisão**: Remover limite M2_MAX_DAILY_ENTRIES para permitir que modelo
+entre em operação sempre que identificar oportunidade. Foco: aprendizagem
 com dados reais.
 
-**Motivo**: Nenhum episÃ³dio novo estava sendo capturado porque guard-rails
-bloqueava 95% das oportunidades. Para evoluir o modelo precisamos expÃ´-lo
-a diversas situaÃ§Ãµes de mercado e coletar rewards reais.
+**Motivo**: Nenhum episódio novo estava sendo capturado porque guard-rails
+bloqueava 95% das oportunidades. Para evoluir o modelo precisamos expô-lo
+a diversas situações de mercado e coletar rewards reais.
 
-**MudanÃ§a em CÃ³digo**: Removido check de `daily_limit_reached` em
+**Mudança em Código**: Removido check de `daily_limit_reached` em
 `core/model2/live_execution.py` linhas 271-277.
 
-**ReferÃªncia DiagnÃ³stica**: `logs/m2_diagnostico_episodios_rewards_20260321.md`
+**Referência Diagnóstica**: `logs/m2_diagnostico_episodios_rewards_20260321.md`
 
 ---
 
@@ -170,46 +170,38 @@ Objetivo:
 Criar trilha de 15 tarefas para estabilizar captura de dados, treino
 incremental e observabilidade operacional com foco em fail-safe.
 
-### TAREFA M2-025.6 - Correlacao episodio treino e execucao
+### TAREFA M2-025.14 - Preflight de consistencia de dados M2
 
-Status: CONCLUIDO
+Status: Em analise
 
-Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
+Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
 Descricao:
-Garantir correlacao auditavel entre episodio, treino incremental e execucao,
-incluindo chaves de rastreio por ciclo.
+Expandir preflight para checar consistencia minima de dados, episodio e
+treino antes de qualquer live.
 
 Dependencias:
 
-- M2-025.5
+- M2-025.1
+- M2-025.4
 
-PO: Score 3.00. Priorizado para desenvolvimento: cycle_id auditavel entre
-episodio, treino e execucao; desbloqueia M2-025.10/12.
+PO: Score 3.85. Gate pre-live que bloqueia live com dados inconsistentes.
+Alta prioridade para Go/No-Go seguro.
 
-SA: Padronizar cycle_id em DetectorInput/DetectionResult e persistencia via
-metadata no repository.py, sem migracao; idempotencia por decision_id.
+SA: Expandir go_live_preflight.py com checks de episodio, treino e
+consistencia candle; bloquear se falhar; reason_code DATA_CONSISTENCY_FAIL.
 
-QA: Suite RED em tests/test_model2_m2_025_6_cycle_correlation.py
-com 5 testes; 5 failed (TypeError: cycle_id ausente em DetectorInput/
-DetectionResult). TESTES_PRONTOS.
+### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
-SE: Inicio GREEN-REFACTOR M2-025.6 em 2026-03-28; foco em cycle_id
-opcional no scanner/repository sem migracao e com compatibilidade legado.
+Status: BACKLOG
 
-SE: GREEN concluido. cycle_id opcional adicionado em DetectorInput/
-DetectionResult; propagacao no scanner e persistencia em metadata no
-repository sem migracao. 18 testes alvo GREEN; mypy strict clean; 308
-testes da suite completa GREEN.
+Descricao:
+Sincronizar arquitetura, regras, runbook e trilha SYNC ao concluir o pacote,
+mantendo governanca documental auditavel.
 
-TL: APROVADO. Reproducao local: 18 testes alvo + 308 suite verde, mypy
-strict clean; cycle_id auditavel sem migracao e guardrails preservados.
+Dependencias:
 
-DOC: ARQUITETURA_ALVO (M2-025.6) e REGRAS_DE_NEGOCIO (RN-031)
-sincronizados; trilha registrada em SYNCHRONIZATION [SYNC-232].
-
-PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
-sync [SYNC-232] concluido. Backlog atualizado para CONCLUIDO.
+- M2-025.1 a M2-025.14
 
 ### TAREFA M2-025.7 - Retry seguro para leitura de mercado
 
@@ -258,87 +250,37 @@ DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.7
 PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
 (PO->SA->QA->SE->TL->DOC), sync [SYNC-245] concluido.
 
-### TAREFA M2-025.8 - Timeout de coleta por etapa critica
+### TAREFA M2-025.5 - Idempotencia de episodios por decision_id
 
 Status: CONCLUIDO
 
-Score PO: 3.30 (Valor=3, Urg=3, Risco=4, Esf=2)
+Score PO: 3.70 (Valor=4, Urg=4, Risco=4, Esf=3)
+
+PO: Idempotencia por decision_id previne episodios duplicados em
+concorrencia ou reprocessamento. Dep M2-024.3 CONCLUIDA.
 
 Descricao:
-Definir timeout padrao para coleta, validacao e consolidacao de dados com
-telemetria de expiracao.
+Reforcar idempotencia da gravacao de episodios para impedir duplicidade em
+concorrencia ou reprocessamento.
 
 Dependencias:
 
-- M2-025.7
+- M2-024.3
 
-PO: Score 3.30. Elimina travamento silencioso por etapa; telemetria
-auditavel. Dep M2-025.7 deve preceder.
+QA: Suite RED em tests/test_model2_m2_025_5_episode_idempotency.py
+com 6 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
 
-SA: TimeoutPolicy(frozen dataclass) com budget_ms por etapa; wrapping em
-scanner/validator; telemetria via observability.py.
+SE: GREEN concluido. is_episode_duplicate() adicionado em
+persist_training_episodes.py. Verifica coluna decision_id se existir,
+fallback por episode_key. 6/6 testes GREEN. mypy clean na funcao nova.
 
-QA: Suite RED em tests/test_model2_m2_025_8_pipeline_stage_timeout.py com 10
-testes; 10 failed (pipeline_timeout ausente + telemetria timeout nao
-implementada). TESTES_PRONTOS.
+TL: APROVADO. 6/6 testes + 307 suite verde + mypy clean na funcao nova.
+Erros pre-existentes em enrich_features confirmados inalterados.
+Guardrails intactos, fail-safe (retorna False em excecao).
 
-SE: Inicio GREEN-REFACTOR M2-025.8 em 2026-03-28; foco em TimeoutPolicy por
-etapa (collect/validate/consolidate), wrappers scanner/validator e telemetria
-auditavel de expiracao em observability.py.
+DOC: ARQUITETURA_ALVO M2-025.5 adicionado; SYNCHRONIZATION SYNC-171.
 
-SE: GREEN concluido. core/model2/pipeline_timeout.py criado com TimeoutPolicy
-frozen + checks por etapa e wrappers de timeout; observability.py com
-emit_stage_timeout_telemetry e registro de latencia timeout_expired.
-10/10 task GREEN, mypy strict clean e 308 testes da suite completa GREEN.
-
-TL: APROVADO. 10/10 task, mypy strict e 308 suite verdes; timeout por etapa
-e telemetria auditavel OK sem regressao.
-
-DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.8
-(TimeoutPolicy por etapa, wrappers scanner/validator e telemetria de
-timeout_expired); trilha registrada em SYNCHRONIZATION [SYNC-250].
-
-PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
-(PO->SA->QA->SE->TL->DOC), sync [SYNC-250] concluido, testes/docs OK,
-publicado em main com arvore local limpa.
-
-### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
-
-Status: CONCLUIDO
-
-Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
-
-Descricao:
-Consolidar snapshot por ciclo com candle, decisao, episodio e treino para
-suporte operacional e investigacao rapida.
-
-Dependencias:
-
-- M2-025.6
-
-PO: Score 3.00. Consolida visibilidade operacional por ciclo.
-Dep M2-025.6 deve preceder.
-
-SA: CycleSnapshot(frozen dataclass) em core/model2/cycle_snapshot.py;
-agregado por cycle_id; persiste em campo JSON ou tabela cycle_snapshots.
-
-SE: GREEN concluido em 2026-03-28. Criado core/model2/cycle_snapshot.py
-com CycleSnapshot(frozen) + CycleSnapshotRepository para consolidar
-candle/decisao/episodio/treino por cycle_id e upsert em cycle_snapshots.
-Integrado ao observability.record_cycle_snapshot() e adicionada migracao
-scripts/model2/migrations/0014_create_cycle_snapshots.sql.
-Suite alvo GREEN: tests/test_model2_m2_025_10_cycle_snapshot.py (4/4),
-snapshot regressao em tests/test_m2_024_6_to_11.py -k snapshot (4/4),
-mypy --strict clean nos modulos alterados.
-
-TL: APROVADO. 4/4 task + 308/308 suite + mypy strict verdes;
-cycle_snapshot por cycle_id e migracao 0014 sem regressao.
-
-DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.10
-(snapshot unico por cycle_id e governanca RN-034); trilha [SYNC-252].
-
-PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
-(PO->SA->QA->SE->TL->DOC), sync [SYNC-252] concluido; publicado em main.
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
 
@@ -389,6 +331,136 @@ revalidacao M2-025.11; trilha registrada em [SYNC-255].
 
 PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
 sync [SYNC-256] concluido; publicado em main com arvore local limpa.
+
+### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
+
+Status: CONCLUIDO
+
+Score PO: 3.45 (Valor=4, Urg=3, Risco=4, Esf=3)
+
+Descricao:
+Acionar circuit breaker quando estado stale persistir acima da janela segura,
+evitando decisao com contexto degradado.
+
+Dependencias:
+
+- M2-025.1
+- M2-025.8
+
+QA: Suite RED em tests/test_model2_m2_025_9_stale_circuit_breaker.py
+com 6 testes; 6 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. check_stale_circuit_breaker() adicionado em
+cycle_report.py. 6/6 testes GREEN. mypy strict clean.
+
+TL: APROVADO. 6/6 testes + suite verde + mypy clean.
+Guardrails intactos, fail-safe TRIPPED em excecao.
+
+DOC: ARQUITETURA_ALVO M2-025.9 adicionado; SYNCHRONIZATION SYNC-174.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
+### TAREFA M2-025.3 - Detector de lacuna de candles por janela
+
+Status: CONCLUIDO
+
+Score PO: 3.30 (Valor=4, Urg=4, Risco=4, Esf=3)
+
+PO: Detector de lacuna por janela alerta antes de decisao com dados
+degradados. Dep M2-025.1 IMPLEMENTADA.
+
+Descricao:
+Implementar detector de lacunas por simbolo e timeframe com alerta objetivo
+quando houver janela sem atualizacao.
+
+Dependencias:
+
+- M2-025.1
+
+QA: Suite RED criada em tests/test_model2_m2_025_3_candle_gap_detector.py
+com 9 testes; 9 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. detect_candle_gap() adicionado em cycle_report.py
+com DEFAULT_GAP_WINDOW_MS=300_000. 9/9 testes GREEN. mypy strict clean.
+
+TL: APROVADO. 9/9 testes reproduzidos. 307 suite verde. mypy clean.
+Guardrails intactos, fail-safe validado (sem excecao em nenhum cenario).
+
+DOC: ARQUITETURA_ALVO M2-025.1/025.3 documentado; SYNCHRONIZATION SYNC-170.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
+
+### TAREFA M2-025.8 - Timeout de coleta por etapa critica
+
+Status: CONCLUIDO
+
+Score PO: 3.30 (Valor=3, Urg=3, Risco=4, Esf=2)
+
+Descricao:
+Definir timeout padrao para coleta, validacao e consolidacao de dados com
+telemetria de expiracao.
+
+Dependencias:
+
+- M2-025.7
+
+PO: Score 3.30. Elimina travamento silencioso por etapa; telemetria
+auditavel. Dep M2-025.7 deve preceder.
+
+SA: TimeoutPolicy(frozen dataclass) com budget_ms por etapa; wrapping em
+scanner/validator; telemetria via observability.py.
+
+QA: Suite RED em tests/test_model2_m2_025_8_pipeline_stage_timeout.py com 10
+testes; 10 failed (pipeline_timeout ausente + telemetria timeout nao
+implementada). TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-025.8 em 2026-03-28; foco em TimeoutPolicy por
+etapa (collect/validate/consolidate), wrappers scanner/validator e telemetria
+auditavel de expiracao em observability.py.
+
+SE: GREEN concluido. core/model2/pipeline_timeout.py criado com TimeoutPolicy
+frozen + checks por etapa e wrappers de timeout; observability.py com
+emit_stage_timeout_telemetry e registro de latencia timeout_expired.
+10/10 task GREEN, mypy strict clean e 308 testes da suite completa GREEN.
+
+TL: APROVADO. 10/10 task, mypy strict e 308 suite verdes; timeout por etapa
+e telemetria auditavel OK sem regressao.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.8
+(TimeoutPolicy por etapa, wrappers scanner/validator e telemetria de
+timeout_expired); trilha registrada em SYNCHRONIZATION [SYNC-250].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-250] concluido, testes/docs OK,
+publicado em main com arvore local limpa.
+
+### TAREFA M2-025.4 - Guardrail de treino com dados minimos
+
+Status: CONCLUIDO
+
+Score PO: 3.25 (Valor=4, Urg=3, Risco=5, Esf=3)
+
+Descricao:
+Bloquear treino incremental quando dados minimos nao forem atendidos,
+registrando reason_code e acao recomendada.
+
+Dependencias:
+
+- M2-025.3
+
+QA: Suite RED em tests/test_model2_m2_025_4_training_guardrail.py
+com 5 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
+
+SE: GREEN concluido. check_training_data_minimum() adicionado em
+persist_training_episodes.py. Retorna (ok, reason_code, count).
+5/5 testes GREEN. mypy clean na funcao nova.
+
+TL: APROVADO. 11/11 (M2-025.4 + M2-025.5) + 307 suite verde.
+Guardrails intactos, fail-safe conservador validado.
+
+DOC: ARQUITETURA_ALVO M2-025.4 adicionado; SYNCHRONIZATION SYNC-172.
+
+PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
@@ -459,9 +531,11 @@ iniciar.bat (aud24h em Treino + fallback deterministico de decision_id);
 trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC), sync [SYNC-260]
 concluido.
 
-### TAREFA M2-025.13 - Integracao testnet para dados e treino
+<!-- ### TAREFA M2-025.13 - Integracao testnet para dados e treino
 
-Status: BACKLOG
+Status: Em analise
+
+Score PO: 3.90 (Valor=4, Urg=4, Risco=4, Esf=2)
 
 Descricao:
 Executar fluxo em testnet validando captura, decisao, episodio e treino com
@@ -472,64 +546,89 @@ Dependencias:
 - M2-018.2
 - M2-025.12
 
-### TAREFA M2-025.14 - Preflight de consistencia de dados M2
+PO: Score 3.90. Priorizado para validar ciclo completo em testnet com
+evidencias por simbolo e reduzir risco antes do live. Ao fim deste
+desenvolvimento estarei feliz se cada simbolo tiver logs de captura,
+decisao, episodio e treino sem lacunas. -->
+
+### TAREFA M2-025.6 - Correlacao episodio treino e execucao
 
 Status: CONCLUIDO
 
-Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
+Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
 
 Descricao:
-Expandir preflight para checar consistencia minima de dados, episodio e
-treino antes de qualquer live.
+Garantir correlacao auditavel entre episodio, treino incremental e execucao,
+incluindo chaves de rastreio por ciclo.
 
 Dependencias:
 
-- M2-025.1
-- M2-025.4
+- M2-025.5
 
-PO: Score 3.85. Gate pre-live que bloqueia live com dados inconsistentes.
-Alta prioridade para Go/No-Go seguro.
+PO: Score 3.00. Priorizado para desenvolvimento: cycle_id auditavel entre
+episodio, treino e execucao; desbloqueia M2-025.10/12.
 
-SA: Expandir go_live_preflight.py com checks de episodio, treino e
-consistencia candle; bloquear se falhar; reason_code DATA_CONSISTENCY_FAIL.
+SA: Padronizar cycle_id em DetectorInput/DetectionResult e persistencia via
+metadata no repository.py, sem migracao; idempotencia por decision_id.
 
-SE: Preflight expandido em `scripts/model2/go_live_preflight.py` com checks
-de frescor de candle, checkpoint e passos de treino/episodio (retrocompat com
-`db_path`); falha de consistencia retorna `reason_code=DATA_CONSISTENCY_FAIL`.
-Testes validados: `tests/test_model2_m2_025_14_preflight_data.py` e
-`tests/test_model2_go_live_preflight.py`.
+QA: Suite RED em tests/test_model2_m2_025_6_cycle_correlation.py
+com 5 testes; 5 failed (TypeError: cycle_id ausente em DetectorInput/
+DetectionResult). TESTES_PRONTOS.
 
-TL: DEVOLVIDO. `mypy --strict scripts/model2/go_live_preflight.py` falhou
-(18 arg-type). Corrigir tipagem de chamadas live_* sem bypass.
+SE: Inicio GREEN-REFACTOR M2-025.6 em 2026-03-28; foco em cycle_id
+opcional no scanner/repository sem migracao e com compatibilidade legado.
 
-SE: Correcao concluida no preflight: chamadas live_* agora usam kwargs
-explicitos tipados (sem `**shared_params` heterogeneo), removendo os 18
-`arg-type` do mypy strict e preservando `DATA_CONSISTENCY_FAIL` + checks M2-025.14.
-Evidencias: `mypy --strict scripts/model2/go_live_preflight.py` OK; pytest
-`tests/test_model2_m2_025_14_preflight_data.py` 4/4; pytest
-`tests/test_model2_go_live_preflight.py` 14/14.
+SE: GREEN concluido. cycle_id opcional adicionado em DetectorInput/
+DetectionResult; propagacao no scanner e persistencia em metadata no
+repository sem migracao. 18 testes alvo GREEN; mypy strict clean; 308
+testes da suite completa GREEN.
 
-TL: APROVADO. Reproduzido local: mypy strict OK + pytest 4/4 e 14/14;
-gate DATA_CONSISTENCY_FAIL e retrocompat db_path preservados.
+TL: APROVADO. Reproducao local: 18 testes alvo + 308 suite verde, mypy
+strict clean; cycle_id auditavel sem migracao e guardrails preservados.
 
-DOC: REGRAS_DE_NEGOCIO atualizado com RN-036 (gate preflight de consistencia
-de dados M2-025.14) e SYNCHRONIZATION registrado em [SYNC-261].
+DOC: ARQUITETURA_ALVO (M2-025.6) e REGRAS_DE_NEGOCIO (RN-031)
+sincronizados; trilha registrada em SYNCHRONIZATION [SYNC-232].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
+sync [SYNC-232] concluido. Backlog atualizado para CONCLUIDO.
+
+### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
+
+Status: CONCLUIDO
+
+Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
+
+Descricao:
+Consolidar snapshot por ciclo com candle, decisao, episodio e treino para
+suporte operacional e investigacao rapida.
+
+Dependencias:
+
+- M2-025.6
+
+PO: Score 3.00. Consolida visibilidade operacional por ciclo.
+Dep M2-025.6 deve preceder.
+
+SA: CycleSnapshot(frozen dataclass) em core/model2/cycle_snapshot.py;
+agregado por cycle_id; persiste em campo JSON ou tabela cycle_snapshots.
+
+SE: GREEN concluido em 2026-03-28. Criado core/model2/cycle_snapshot.py
+com CycleSnapshot(frozen) + CycleSnapshotRepository para consolidar
+candle/decisao/episodio/treino por cycle_id e upsert em cycle_snapshots.
+Integrado ao observability.record_cycle_snapshot() e adicionada migracao
+scripts/model2/migrations/0014_create_cycle_snapshots.sql.
+Suite alvo GREEN: tests/test_model2_m2_025_10_cycle_snapshot.py (4/4),
+snapshot regressao em tests/test_m2_024_6_to_11.py -k snapshot (4/4),
+mypy --strict clean nos modulos alterados.
+
+TL: APROVADO. 4/4 task + 308/308 suite + mypy strict verdes;
+cycle_snapshot por cycle_id e migracao 0014 sem regressao.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.10
+(snapshot unico por cycle_id e governanca RN-034); trilha [SYNC-252].
 
 PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
-(PO->SA->QA->SE->TL->DOC), sync [SYNC-261] concluido; backlog fechado em
-CONCLUIDO com validacoes tecnicas e documentais verdes.
-
-### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
-
-Status: BACKLOG
-
-Descricao:
-Sincronizar arquitetura, regras, runbook e trilha SYNC ao concluir o pacote,
-mantendo governanca documental auditavel.
-
-Dependencias:
-
-- M2-025.1 a M2-025.14
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-252] concluido; publicado em main.
 
 ### TAREFA M2-025.1 - Contrato de frescor de candle por simbolo
 
@@ -629,124 +728,6 @@ SYNCHRONIZATION SYNC-146.
 PM: ACEITE em 2026-03-25. Trilha completa validada ponta-a-ponta.
 Backlog atualizado para CONCLUIDO. Commit e push realizados.
 
-### TAREFA M2-025.3 - Detector de lacuna de candles por janela
-
-Status: CONCLUIDO
-
-Score PO: 3.30 (Valor=4, Urg=4, Risco=4, Esf=3)
-
-PO: Detector de lacuna por janela alerta antes de decisao com dados
-degradados. Dep M2-025.1 IMPLEMENTADA.
-
-Descricao:
-Implementar detector de lacunas por simbolo e timeframe com alerta objetivo
-quando houver janela sem atualizacao.
-
-Dependencias:
-
-- M2-025.1
-
-QA: Suite RED criada em tests/test_model2_m2_025_3_candle_gap_detector.py
-com 9 testes; 9 failed (ImportError esperado). TESTES_PRONTOS.
-
-SE: GREEN concluido. detect_candle_gap() adicionado em cycle_report.py
-com DEFAULT_GAP_WINDOW_MS=300_000. 9/9 testes GREEN. mypy strict clean.
-
-TL: APROVADO. 9/9 testes reproduzidos. 307 suite verde. mypy clean.
-Guardrails intactos, fail-safe validado (sem excecao em nenhum cenario).
-
-DOC: ARQUITETURA_ALVO M2-025.1/025.3 documentado; SYNCHRONIZATION SYNC-170.
-
-PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
-
-### TAREFA M2-025.4 - Guardrail de treino com dados minimos
-
-Status: CONCLUIDO
-
-Score PO: 3.25 (Valor=4, Urg=3, Risco=5, Esf=3)
-
-Descricao:
-Bloquear treino incremental quando dados minimos nao forem atendidos,
-registrando reason_code e acao recomendada.
-
-Dependencias:
-
-- M2-025.3
-
-QA: Suite RED em tests/test_model2_m2_025_4_training_guardrail.py
-com 5 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
-
-SE: GREEN concluido. check_training_data_minimum() adicionado em
-persist_training_episodes.py. Retorna (ok, reason_code, count).
-5/5 testes GREEN. mypy clean na funcao nova.
-
-TL: APROVADO. 11/11 (M2-025.4 + M2-025.5) + 307 suite verde.
-Guardrails intactos, fail-safe conservador validado.
-
-DOC: ARQUITETURA_ALVO M2-025.4 adicionado; SYNCHRONIZATION SYNC-172.
-
-PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
-
-### TAREFA M2-025.5 - Idempotencia de episodios por decision_id
-
-Status: CONCLUIDO
-
-Score PO: 3.70 (Valor=4, Urg=4, Risco=4, Esf=3)
-
-PO: Idempotencia por decision_id previne episodios duplicados em
-concorrencia ou reprocessamento. Dep M2-024.3 CONCLUIDA.
-
-Descricao:
-Reforcar idempotencia da gravacao de episodios para impedir duplicidade em
-concorrencia ou reprocessamento.
-
-Dependencias:
-
-- M2-024.3
-
-QA: Suite RED em tests/test_model2_m2_025_5_episode_idempotency.py
-com 6 testes; 5 failed (ImportError esperado). TESTES_PRONTOS.
-
-SE: GREEN concluido. is_episode_duplicate() adicionado em
-persist_training_episodes.py. Verifica coluna decision_id se existir,
-fallback por episode_key. 6/6 testes GREEN. mypy clean na funcao nova.
-
-TL: APROVADO. 6/6 testes + 307 suite verde + mypy clean na funcao nova.
-Erros pre-existentes em enrich_features confirmados inalterados.
-Guardrails intactos, fail-safe (retorna False em excecao).
-
-DOC: ARQUITETURA_ALVO M2-025.5 adicionado; SYNCHRONIZATION SYNC-171.
-
-PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
-
-### TAREFA M2-025.9 - Circuit breaker para dados stale persistentes
-
-Status: CONCLUIDO
-
-Score PO: 3.45 (Valor=4, Urg=3, Risco=4, Esf=3)
-
-Descricao:
-Acionar circuit breaker quando estado stale persistir acima da janela segura,
-evitando decisao com contexto degradado.
-
-Dependencias:
-
-- M2-025.1
-- M2-025.8
-
-QA: Suite RED em tests/test_model2_m2_025_9_stale_circuit_breaker.py
-com 6 testes; 6 failed (ImportError esperado). TESTES_PRONTOS.
-
-SE: GREEN concluido. check_stale_circuit_breaker() adicionado em
-cycle_report.py. 6/6 testes GREEN. mypy strict clean.
-
-TL: APROVADO. 6/6 testes + suite verde + mypy clean.
-Guardrails intactos, fail-safe TRIPPED em excecao.
-
-DOC: ARQUITETURA_ALVO M2-025.9 adicionado; SYNCHRONIZATION SYNC-174.
-
-PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
-
 ## PACOTE M2-028 - Promocao GO/NO-GO, Gestao de Risco Avancada e Automacao de Qualidade
 
 **Status**: Em analise
@@ -760,96 +741,13 @@ modos shadow/paper/live, aprimorar gestao de risco dinamica e automatizar
 qualidade
 de codigo com cobertura e benchmarks de performance.
 
-PO: Score 3.35. GO/NO-GO formaliza promocao shadowâ†’live com auditoria. Sizing
+PO: Score 3.35. GO/NO-GO formaliza promocao shadow→live com auditoria. Sizing
 dinamico e drawdown gate reduzem risco sistematico. Handoff para SA.
 
 SA: PromotionEvaluator (frozen dataclass) em core/model2/promotion_gate.py.
 Thresholds em config/risk_params.py. Sem schema novo; audit em
 opportunity_events.
 Guardrails preservados. Pronto para QA-TDD.
-
-### TAREFA M2-028.2 - Contrato de promocao GO/NO-GO paperâ†’live
-
-Status: IMPLEMENTADO
-
-PO: Priorizar M2-028.2 para gate paperâ†’live com aprovacao manual e rollback
-pos-promocao em evento critico.
-
-SA: Extend PromotionEvaluator com avaliacao paperâ†’live (Sharpe,
-reconciliation_rate, critical_errors, manual approval), sem bypass de
-guardrails e fail-safe por default.
-
-QA: Suite criada em
-`tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
-com 9 casos para criterios GO/NO-GO, aprovacao manual, rollback automatico,
-imutabilidade e compatibilidade de preflight.
-
-SE: GREEN concluido em 2026-03-26. `core/model2/promotion_gate.py`
-estendido com `LivePromotionConfig`, `LivePromotionResult`,
-`evaluate_paper_to_live()` e `is_preflight_compatible_for_live()`.
-Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
-tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed;
-`mypy --strict core/model2/promotion_gate.py
-tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success.
-
-Descricao:
-Definir criterios objetivos para promover paper para live, incluindo Sharpe
-minimo, taxa de reconciliacao correta, ausencia de erros criticos e aprovacao
-manual com registro auditavel.
-
-Criterios de Aceite:
-
-- [ ] Criterios GO/NO-GO paperâ†’live com thresholds distintos do shadowâ†’paper
-- [ ] Aprovacao manual obrigatoria registrada com decisor e justificativa
-- [ ] Historico de promovocoes e reversoes em tabela auditavel
-- [ ] Rollback automatico para paper em evento critico pos-promocao
-- [ ] Compatibilidade com go_live_preflight.py
-
-Dependencias:
-
-- M2-028.1
-
-### TAREFA M2-028.3 - Sizing dinamico por volatilidade de simbolo
-
-Status: IMPLEMENTADO
-
-PO: Priorizar M2-028.3 para reduzir risco sistematico via sizing dinamico por
-volatilidade sem quebrar guardrails atuais.
-
-SA: Introduzir modulo dedicado de volatility sizing com comportamento
-aplicavel em live/paper e apenas informativo em shadow.
-
-QA: Suite criada em `tests/test_model2_m2_028_3_volatility_sizing.py`
-com 5 casos cobrindo baixo/alto ATR, interpolacao, clamp e modo shadow.
-
-SE: GREEN concluido em 2026-03-26. `core/model2/volatility_sizing.py`
-adicionado e integrado em `core/model2/live_service.py` para ajustar
-`size_fraction` em aberturas com metadata de ATR/multiplicador.
-Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
-tests/test_model2_m2_028_2_promotion_gate_paper_live.py
-tests/test_model2_m2_028_3_volatility_sizing.py` -> 25 passed;
-`mypy --strict core/model2/promotion_gate.py
-core/model2/volatility_sizing.py core/model2/live_service.py
-tests/test_model2_m2_028_2_promotion_gate_paper_live.py
-tests/test_model2_m2_028_3_volatility_sizing.py` -> Success.
-
-Descricao:
-Ajustar tamanho de posicao dinamicamente com base em volatilidade recente
-(ATR normalizado) por simbolo, mantendo risco por trade constante mesmo
-em condicoes de mercado variavel.
-
-Criterios de Aceite:
-
-- [ ] Sizing ajustado inversamente proporcional ao ATR do simbolo
-- [ ] Limite minimo e maximo de posicao configuravel por simbolo
-- [ ] Ajuste registrado em technical_signals com factor e ATR snapshot
-- [ ] Guardrail de tamanho maximo absoluto permanece inviolavel
-- [ ] Sem impacto em modos shadow (apenas informativo)
-
-Dependencias:
-
-- M2-024.1
-- M2-025.1
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 
@@ -983,6 +881,89 @@ Dependencias:
 
 ---
 
+### TAREFA M2-028.2 - Contrato de promocao GO/NO-GO paper→live
+
+Status: IMPLEMENTADO
+
+PO: Priorizar M2-028.2 para gate paper→live com aprovacao manual e rollback
+pos-promocao em evento critico.
+
+SA: Extend PromotionEvaluator com avaliacao paper→live (Sharpe,
+reconciliation_rate, critical_errors, manual approval), sem bypass de
+guardrails e fail-safe por default.
+
+QA: Suite criada em
+`tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
+com 9 casos para criterios GO/NO-GO, aprovacao manual, rollback automatico,
+imutabilidade e compatibilidade de preflight.
+
+SE: GREEN concluido em 2026-03-26. `core/model2/promotion_gate.py`
+estendido com `LivePromotionConfig`, `LivePromotionResult`,
+`evaluate_paper_to_live()` e `is_preflight_compatible_for_live()`.
+Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed;
+`mypy --strict core/model2/promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success.
+
+Descricao:
+Definir criterios objetivos para promover paper para live, incluindo Sharpe
+minimo, taxa de reconciliacao correta, ausencia de erros criticos e aprovacao
+manual com registro auditavel.
+
+Criterios de Aceite:
+
+- [ ] Criterios GO/NO-GO paper→live com thresholds distintos do shadow→paper
+- [ ] Aprovacao manual obrigatoria registrada com decisor e justificativa
+- [ ] Historico de promovocoes e reversoes em tabela auditavel
+- [ ] Rollback automatico para paper em evento critico pos-promocao
+- [ ] Compatibilidade com go_live_preflight.py
+
+Dependencias:
+
+- M2-028.1
+
+### TAREFA M2-028.3 - Sizing dinamico por volatilidade de simbolo
+
+Status: IMPLEMENTADO
+
+PO: Priorizar M2-028.3 para reduzir risco sistematico via sizing dinamico por
+volatilidade sem quebrar guardrails atuais.
+
+SA: Introduzir modulo dedicado de volatility sizing com comportamento
+aplicavel em live/paper e apenas informativo em shadow.
+
+QA: Suite criada em `tests/test_model2_m2_028_3_volatility_sizing.py`
+com 5 casos cobrindo baixo/alto ATR, interpolacao, clamp e modo shadow.
+
+SE: GREEN concluido em 2026-03-26. `core/model2/volatility_sizing.py`
+adicionado e integrado em `core/model2/live_service.py` para ajustar
+`size_fraction` em aberturas com metadata de ATR/multiplicador.
+Evidencias: `pytest -q tests/test_model2_m2_028_1_promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+tests/test_model2_m2_028_3_volatility_sizing.py` -> 25 passed;
+`mypy --strict core/model2/promotion_gate.py
+core/model2/volatility_sizing.py core/model2/live_service.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py
+tests/test_model2_m2_028_3_volatility_sizing.py` -> Success.
+
+Descricao:
+Ajustar tamanho de posicao dinamicamente com base em volatilidade recente
+(ATR normalizado) por simbolo, mantendo risco por trade constante mesmo
+em condicoes de mercado variavel.
+
+Criterios de Aceite:
+
+- [ ] Sizing ajustado inversamente proporcional ao ATR do simbolo
+- [ ] Limite minimo e maximo de posicao configuravel por simbolo
+- [ ] Ajuste registrado em technical_signals com factor e ATR snapshot
+- [ ] Guardrail de tamanho maximo absoluto permanece inviolavel
+- [ ] Sem impacto em modos shadow (apenas informativo)
+
+Dependencias:
+
+- M2-024.1
+- M2-025.1
+
 ## Prioridade P0 (iniciar agora)
 
 ## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)
@@ -1024,21 +1005,21 @@ Impacto:
 - Reduz custo de desenvolvimento em etapas de baixa necessidade de regressao.
 - Mantem seguranca operacional com foco em cobertura critica por contexto.
 
-PO: Otimizar o ciclo de desenvolvimento, reduzindo o tempo de execuÃ§Ã£o
-dos testes em etapas onde a suÃ­te completa nÃ£o Ã© necessÃ¡ria. Acelera a
+PO: Otimizar o ciclo de desenvolvimento, reduzindo o tempo de execução
+dos testes em etapas onde a suíte completa não é necessária. Acelera a
 entrega.
 
 PO: Score 2.95. Prioridade de eficiencia do fluxo, sem bloqueio tecnico
 imediato e com impacto direto no lead time do ciclo.
 
-SA: AnÃ¡lise concluÃ­da. Plano tÃ©cnico em `docs/TECH_PLAN_BLID-083.md`. A
-estratÃ©gia usarÃ¡ marcadores pytest (`unit`, `contract`, `integration`,
+SA: Análise concluída. Plano técnico em `docs/TECH_PLAN_BLID-083.md`. A
+estratégia usará marcadores pytest (`unit`, `contract`, `integration`,
 `e2e`, `docs`, `slow`) para categorizar os testes e hooks de git
-(`pre-commit`, `pre-push`) para execuÃ§Ã£o estratificada, otimizando o
-ciclo de desenvolvimento local sem perder cobertura crÃ­tica nos gates de
-CI. Handoff para `4.qa-tdd` para iniciar a marcaÃ§Ã£o dos testes.
+(`pre-commit`, `pre-push`) para execução estratificada, otimizando o
+ciclo de desenvolvimento local sem perder cobertura crítica nos gates de
+CI. Handoff para `4.qa-tdd` para iniciar a marcação dos testes.
 
-SA: Refino incremental aprovado para ciclo atual: iniciar por marcaÃ§Ã£o de
+SA: Refino incremental aprovado para ciclo atual: iniciar por marcação de
 gates criticos (`contract`, `risk`, `docs`) e depois expandir para suite completa.
 
 SA: Handoff QA pronto para matriz por etapa com gates criticos e comandos
@@ -1120,44 +1101,44 @@ Entrega atual (Fases A-D.4):
 2. Enriquecimento de features com volatilidade (ATR, RSI,
    Bandas de Bollinger). [OK]
 3. Enriquecimento com multi-timeframe context (H1, H4, D1). [OK]
-4. EspecificaÃ§Ã£o tÃ©cnica completa de roadmap (5 fases). [OK]
+4. Especificação técnica completa de roadmap (5 fases). [OK]
 5. Reward function estendida com Sharpe, drawdown, recovery time. [OK]
-6. Teste de cenÃ¡rios de reward: Winning (+0.76), No Trade (+0.06),
+6. Teste de cenários de reward: Winning (+0.76), No Trade (+0.06),
    Slow Recovery (-0.47), Losing (-0.85). [OK]
-7. Grid search PPO 64 combinaÃ§Ãµes (learning_rate, batch_size,
+7. Grid search PPO 64 combinações (learning_rate, batch_size,
    entropy_coef). [OK]
 8. Best hyperparams validados: lr=3e-4, bs=64, ent=0.01 (Sharpe=1.176). [OK]
-9. Coletor de funding rates com anÃ¡lise de sentiment e leverage. [OK]
-10. IntegraÃ§Ã£o de open interest com anÃ¡lise de acumulaÃ§Ã£o/distribuiÃ§Ã£o. [OK]
-11. IntegraÃ§Ã£o feature enricher com dados Binance Futures (simulator). [OK]
+9. Coletor de funding rates com análise de sentiment e leverage. [OK]
+10. Integração de open interest com análise de acumulação/distribuição. [OK]
+11. Integração feature enricher com dados Binance Futures (simulator). [OK]
 12. Teste end-to-end Phase D (simulator). [OK]
 13. API client Binance real (mode hybrid mock/real). [OK]
-14. Daemon background para coleta contÃ­nua (8h FR, 1h OI). [OK]
+14. Daemon background para coleta contínua (8h FR, 1h OI). [OK]
 15. Integration test Phase D.2 (Daemon + API + Enrichment). [OK]
-16. IntegraÃ§Ã£o API client com persist_training_episodes.py. [OK]
+16. Integração API client com persist_training_episodes.py. [OK]
 17. Enriquecimento composto (volatility + multi-TF + funding rates + OI)
     em episodes. [OK]
-18. API client com mÃ©todos de sentiment analysis (funding + OI). [OK]
-19. Teste end-to-end Phase D.3 (episodes contÃªm funding data enriched). [OK]
-20. AnÃ¡lise de correlaÃ§Ã£o FR sentiment vs label (Pearson r). [OK]
-21. AnÃ¡lise de correlaÃ§Ã£o FR trend vs reward (Pearson r). [OK]
-22. AnÃ¡lise de correlaÃ§Ã£o OI sentiment vs label (Pearson r). [OK]
-23. Gerador de dados sintÃ©ticos para validaÃ§Ã£o. [OK]
+18. API client com métodos de sentiment analysis (funding + OI). [OK]
+19. Teste end-to-end Phase D.3 (episodes contêm funding data enriched). [OK]
+20. Análise de correlação FR sentiment vs label (Pearson r). [OK]
+21. Análise de correlação FR trend vs reward (Pearson r). [OK]
+22. Análise de correlação OI sentiment vs label (Pearson r). [OK]
+23. Gerador de dados sintéticos para validação. [OK]
 24. Script phase_d4_correlation_analysis.py. [OK]
-25. RelatÃ³rio JSON com estatÃ­sticas e interpretaÃ§Ãµes. [OK]
+25. Relatório JSON com estatísticas e interpretações. [OK]
 
-Evidencias (Fases A-D.4 concluÃ­das):
+Evidencias (Fases A-D.4 concluídas):
 
-1. Validador acurÃ¡cia: `scripts/model2/validate_training_episodes.py`
+1. Validador acurácia: `scripts/model2/validate_training_episodes.py`
 2. Enriquecedor features: `scripts/model2/feature_enricher.py`
-3. IntegraÃ§Ã£o pipeline: `scripts/model2/persist_training_episodes.py`
+3. Integração pipeline: `scripts/model2/persist_training_episodes.py`
    (com API client Phase D.3)
 4. Reward estendida: `agent/reward_extended.py`
-5. Teste cenÃ¡rios: `scripts/test_reward_extended.py`
+5. Teste cenários: `scripts/test_reward_extended.py`
    (output: `results/model2/extended_reward_test.json`)
 6. Grid search PPO: `scripts/model2/ppo_grid_search.py`
-7. AnÃ¡lise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md`
-8. Spec tÃ©cnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
+7. Análise grid search: `designs/M2_016_3_PPO_GRID_SEARCH_ANALYSIS.md`
+8. Spec técnica Phase D: `designs/M2_016_3_PHASE_D_FUNDING_ENRICHMENT.md`
 9. Coletor funding/OI simulator: `scripts/model2/binance_funding_collector.py`
 10. Teste Phase D: `scripts/model2/test_phase_d_funding_enrichment.py`
 11. API client Binance: `scripts/model2/binance_funding_api_client.py`
@@ -1168,19 +1149,19 @@ Evidencias (Fases A-D.4 concluÃ­das):
 14. Spec Phase D.2: `designs/M2_016_3_PHASE_D2_API_DAEMON.md`
 15. Teste Phase D.3 integration: `scripts/model2/test_phase_d3_integration.py`
 16. Teste Phase D.3 direct: `scripts/model2/test_phase_d3_direct.py` (PASSED)
-17. Gerador dados sintÃ©ticos D.4:
+17. Gerador dados sintéticos D.4:
     `scripts/model2/test_phase_d4_synthetic_data.py`
-18. AnÃ¡lise correlaÃ§Ã£o D.4: `scripts/model2/phase_d4_correlation_analysis.py`
+18. Análise correlação D.4: `scripts/model2/phase_d4_correlation_analysis.py`
 19. Spec Phase D.4: `designs/M2_016_3_PHASE_D4_CORRELATION_ANALYSIS.md`
-20. RelatÃ³rio correlaÃ§Ã£o: `results/model2/analysis/phase_d4_correlation_*.json`
+20. Relatório correlação: `results/model2/analysis/phase_d4_correlation_*.json`
 
-Entrega atual (Fases E.1 + DocumentaÃ§Ã£o):
+Entrega atual (Fases E.1 + Documentação):
 
 1. LSTM Environment wrapper com rolling buffer (10 timesteps, 20 features). [OK]
 2. Feature extraction (5 candle + 4 volatility + 3 multi-TF + 4 FR + 3 OI). [OK]
 3. Modo dual LSTM/MLP (output shapes: (10,20) vs (200,)). [OK]
-4. Ambiente LSTM ready para integraÃ§Ã£o com training pipeline. [OK]
-5. SincronizaÃ§Ã£o de 8 docs governanÃ§a (CRITICAL/HIGH/MEDIUM/LOW). [OK]
+4. Ambiente LSTM ready para integração com training pipeline. [OK]
+5. Sincronização de 8 docs governança (CRITICAL/HIGH/MEDIUM/LOW). [OK]
 6. ARQUITETURA_ALVO.md atualizado (M2-016.3, camada de features). [OK]
 7. RUNBOOK_M2_OPERACAO.md atualizado (daemon, D.4 monitoring, E.1 setup). [OK]
 8. RL_SIGNAL_GENERATION.md atualizado (M2-016.3, feature enrichment
@@ -1191,9 +1172,9 @@ Entrega atual (Fases E.1 + DocumentaÃ§Ã£o):
 11. ADRS.md atualizado (ADR-023: Feature enrichment, ADR-024: LSTM design). [OK]
 12. DIAGRAMAS.md atualizado (diagrama 1c D.2-D.4, diagrama 1d E.1). [OK]
 13. CHANGELOG.md criado (M2-016.x release history). [OK]
-14. SYNCHRONIZATION.md criado (audit trail de sincronizaÃ§Ã£o completo). [OK]
+14. SYNCHRONIZATION.md criado (audit trail de sincronização completo). [OK]
 
-Evidencias (Fase E.1 + DocumentaÃ§Ã£o concluÃ­das):
+Evidencias (Fase E.1 + Documentação concluídas):
 
 1. LSTM environment wrapper: `agent/lstm_environment.py`
 2. Spec Phase E.1: `designs/M2_016_3_PHASE_E_LSTM_POLICY.md`
@@ -1202,7 +1183,7 @@ Evidencias (Fase E.1 + DocumentaÃ§Ã£o concluÃ­das):
    `docs/REGRAS_DE_NEGOCIO.md`, `docs/MODELAGEM_DE_DADOS.md`,
    `docs/ADRS.md`, `docs/DIAGRAMAS.md`
 4. Novo CHANGELOG: `docs/CHANGELOG.md`
-5. Audit trail sincronizaÃ§Ã£o: `docs/SYNCHRONIZATION.md`
+5. Audit trail sincronização: `docs/SYNCHRONIZATION.md`
 6. Commits sync:
    - eae8d20: 4 docs (CRITICAL+HIGH)
    - 7064e13: 2 docs (MEDIUM)
@@ -1211,15 +1192,15 @@ Evidencias (Fase E.1 + DocumentaÃ§Ã£o concluÃ­das):
 
 Entrega atual (Fase D.5):
 
-1. AnÃ¡lise de correlaÃ§Ã£o com dados reais (`shadow` e `live`). [OK]
+1. Análise de correlação com dados reais (`shadow` e `live`). [OK]
 2. Runner com filtro por `execution_mode` e `min_episodes`. [OK]
 3. Cobertura de testes para o novo runner. [OK]
 
-Evidencias (Fase D.5 concluÃ­da):
+Evidencias (Fase D.5 concluída):
 
-1. Runner de anÃ¡lise: `scripts/model2/phase_d5_real_data_correlation.py`
+1. Runner de análise: `scripts/model2/phase_d5_real_data_correlation.py`
 2. Testes de unidade: `tests/test_model2_phase_d5_correlation.py`
-3. RelatÃ³rio de exemplo: `results/model2/analysis/phase_d5_correlation_*.json`
+3. Relatório de exemplo: `results/model2/analysis/phase_d5_correlation_*.json`
 
 Entrega atual (Fase E.2):
 
@@ -1228,7 +1209,7 @@ Entrega atual (Fase E.2):
    default em SB3. [OK]
 3. Unit tests executados com sucesso em ambiente simulado DummyLSTMEnv. [OK]
 
-Evidencias (Fase E.2 concluÃ­da):
+Evidencias (Fase E.2 concluída):
 
 1. LSTM Policy implementation: `agent/lstm_policy.py`
 2. Testes de unidade da LSTM Policy: `tests/test_lstm_policy.py`
@@ -1238,44 +1219,44 @@ Entrega atual (Fase E.3):
 
 1. Script interativo de treinamento local: `scripts/model2/train_ppo_lstm.py`
    parametrizado. [OK]
-2. RefatoraÃ§Ã£o do ambiente para suporte ao Gym.Wrapper via
+2. Refatoração do ambiente para suporte ao Gym.Wrapper via
    `LSTMSignalEnvironment`. [OK]
-3. Run comparativo executado tanto para `mlp` e `lstm` e mÃ©tricas geradas
+3. Run comparativo executado tanto para `mlp` e `lstm` e métricas geradas
    separadamente. [OK]
 
-Evidencias (Fase E.3 concluÃ­da):
+Evidencias (Fase E.3 concluída):
 
 1. Script de Treinamento Duplo: `scripts/model2/train_ppo_lstm.py`
-2. ResoluÃ§Ãµes do ambiente LSTM: `agent/lstm_environment.py`
+2. Resoluções do ambiente LSTM: `agent/lstm_environment.py`
 3. Checkpoints e modelos localizados em: `checkpoints/ppo_training/mlp`
    e `checkpoints/ppo_training/lstm`
 
 Entrega atual (Fase E.4):
 
-1. Script avaliador para simular e calcular histÃ³rico real:
+1. Script avaliador para simular e calcular histórico real:
    `scripts/model2/phase_e4_sharpe_analysis.py` [OK]
-2. ImplementaÃ§Ã£o de Testes mockando banco SQLite:
+2. Implementação de Testes mockando banco SQLite:
    `tests/test_model2_phase_e4_sharpe.py` [OK]
 3. Comparativo PPO MLP vs PPO LSTM exportados para a pasta analysis [OK]
 
-Evidencias (Fase E.4 concluÃ­da):
+Evidencias (Fase E.4 concluída):
 
-1. Script de AnÃ¡lise Comparativa: `scripts/model2/phase_e4_sharpe_analysis.py`
-2. RelatÃ³rio exportado em:
+1. Script de Análise Comparativa: `scripts/model2/phase_e4_sharpe_analysis.py`
+2. Relatório exportado em:
    `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
 Entrega atual (Fase E.5):
 
-1. AdiÃ§Ã£o de features MACD (linha, sinal, histograma) ao
+1. Adição de features MACD (linha, sinal, histograma) ao
    `feature_enricher`. [OK]
 2. Modelos MLP e LSTM retreinados com 22 features. [OK]
-3. Nova avaliaÃ§Ã£o comparativa executada. [OK]
+3. Nova avaliação comparativa executada. [OK]
 
-Evidencias (Fase E.5 concluÃ­da):
+Evidencias (Fase E.5 concluída):
 
 1. Feature Enricher atualizado: `scripts/model2/feature_enricher.py`
 2. Modelos retreinados em: `checkpoints/ppo_training/`
-3. RelatÃ³rio de anÃ¡lise atualizado:
+3. Relatório de análise atualizado:
    `results/model2/analysis/phase_e4_sharpe_analysis.json`
 
 Entrega atual (Fase E.6 - BLID-064):
@@ -1287,13 +1268,13 @@ Entrega atual (Fase E.6 - BLID-064):
 5. Retreinar modelos MLP e LSTM com 26 features. [OK (background)]
 6. Gerar relatorio comparativo Sharpe (22 vs 26 features). [AGENDADO]
 
-Evidencias (Fase E.6 CONCLUIDA â€” 2026-03-15):
+Evidencias (Fase E.6 CONCLUIDA — 2026-03-15):
 
 1. Feature Enricher estendido: `scripts/model2/feature_enricher.py`
    (Estocastico, Williams, ATR)
 2. Modelos em treinamento background: `checkpoints/ppo_training/mlp/e6`
    e `checkpoints/ppo_training/lstm/e6`
-3. Unit tests: `tests/test_model2_phase_e6_indicators.py` â€” 9/9 PASSED
+3. Unit tests: `tests/test_model2_phase_e6_indicators.py` — 9/9 PASSED
 4. Commit: 4dc1956 [FEAT] BLID-064 Indicadores avancados
 5. Backlog e docs sincronizados com E.6
 
@@ -1306,12 +1287,12 @@ Entrega atual (Fase E.7 - BLID-065):
 4. Comparacao de performance: baseline E.6 vs otimizado E.7. [OK]
 5. Resultados: MLP score 0.8761, LSTM score 0.8690 (E.7 grid completou)
 
-Evidencias (Fase E.7 CONCLUIDA â€” 2026-03-15):
+Evidencias (Fase E.7 CONCLUIDA — 2026-03-15):
 
 1. Script Optuna (100 trials): `scripts/model2/optuna_grid_search_ppo.py`
 2. Resultados grid search:
    `results/model2/analysis/optuna_grid_search_results.json`
-3. ExecuÃ§Ã£o: 2026-03-15 16:40 UTC â€” âœ… COMPLETED
+3. Execução: 2026-03-15 16:40 UTC — ✅ COMPLETED
 4. Commit: 71b8038 [FEAT] BLID-065 Grid search Optuna (100 trials)
 5. Docs sincronizados com E.7
 
@@ -1325,12 +1306,12 @@ Entrega atual (Fase E.8 - BLID-066):
    [AGENDADO (pos-treino)]
 4. Validar melhoria de Sharpe ratio (meta: +10% vs E.6). [AGENDADO (pos-treino)]
 
-Evidencias (Fase E.8 EM PROGRESSO â€” 2026-03-15):
+Evidencias (Fase E.8 EM PROGRESSO — 2026-03-15):
 
 1. Script retrain com Optuna params:
-   `scripts/model2/retrain_ppo_with_optuna_params.py` âœ… OK
+   `scripts/model2/retrain_ppo_with_optuna_params.py` ✅ OK
 2. Script comparacao E.6 vs E.8: `scripts/model2/compare_e6_vs_e8_sharpe.py`
-   âœ… OK
+   ✅ OK
 3. Treinamento background: MLP (Terminal fe6d7c38...),
    LSTM (Terminal 5c5b7fa1...)
 4. Checkpoints esperados:
@@ -1372,7 +1353,7 @@ Entrega:
 1. Modelar reward de PnL liquido e custo operacional.
 2. Modelar reward para HOLD (evitou perda x perdeu oportunidade).
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Reward reproduzivel em replay.
 2. Penalidade para overtrading e risco excessivo definida.
@@ -1386,7 +1367,7 @@ Entrega:
 1. Reconciliar decisao do modelo com estado real da exchange.
 2. Registrar divergencias criticas como bloqueantes.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Divergencias banco vs exchange detectadas e auditadas.
 2. Nao existe transicao final sem reconciliacao minima.
@@ -1400,7 +1381,7 @@ Entrega:
 1. Operar em shadow com modelo decidindo sozinho.
 2. Registrar comparativo de decisoes e resultados.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Shadow gera decisoes completas para todos os sinais.
 2. Sem fallback estrategico antigo na decisao.
@@ -1415,7 +1396,7 @@ Entrega:
 2. Treino em ambiente separado do runtime live.
 3. Promocao com gate e rollback.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Nova versao so promove com criterio de qualidade.
 2. Rollback automatico funcional.
@@ -1429,7 +1410,7 @@ Entrega:
 1. Definir criterios minimos de risco, estabilidade e consistencia.
 2. Bloquear promocao com evidencia insuficiente.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Decisao GO/NO-GO rastreavel.
 2. Falha em criterio retorna NO_GO automaticamente.
@@ -1443,7 +1424,7 @@ Entrega:
 1. Tornar modelo a fonte unica de decisao em live.
 2. Preservar envelope de seguranca e reconciliacao.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Fluxo live nao depende de tese/oportunidade para decidir entrada.
 2. Protecao pos-fill e fail-safe permanecem ativos.
@@ -1457,7 +1438,7 @@ Entrega:
 1. Remover acoplamentos legados de estrategia deterministica.
 2. Manter compatibilidade operacional de observabilidade.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Nao ha caminho estrategico antigo interferindo na decisao live.
 2. Regressao funcional ausente em testes relevantes.
@@ -1471,7 +1452,7 @@ Entrega:
 1. Atualizar docs tecnicos e runbook para fluxo model-driven.
 2. Atualizar trilha de sincronizacao documental.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Arquitetura, regras e operacao estao consistentes entre docs.
 2. Fontes de verdade do M2 refletem decisao direta do modelo.
@@ -1539,7 +1520,7 @@ Implementar isolamento de risco por contexto operacional:
 Criterios de Aceite:
 
 - [ ] Risk gate valida contexto e aplica limite apropriado.
-- [ ] Transicao de shadow para live nao permite degradacao de proteÃ§Ã£o.
+- [ ] Transicao de shadow para live nao permite degradacao de proteção.
 - [ ] Contexto falso nao permite acesso a chaves reais.
 - [ ] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
 
@@ -1551,7 +1532,7 @@ Dependencias:
 Impacto:
 
 - Previne accidental live trading em shadow
-- MantÃ©m fail-safe em cada mudanÃ§a de contexto
+- Mantém fail-safe em cada mudança de contexto
 
 PO: Isolamento de risco por contexto para evitar acidentes de transicao
 shadow->live e vulnerabilidades operacionais.
@@ -1573,7 +1554,7 @@ Criar camada padronizada de error handling com:
 
 Criterios de Aceite:
 
-- [ ] Todas as chamadas API, DB e live tÃªm timeout explÃ­cito.
+- [ ] Todas as chamadas API, DB e live têm timeout explícito.
 - [ ] 5 categorias de erro mapeadas e testes verificam comportamento.
 - [ ] Error context preserva decision_id para auditoria.
 - [ ] Cobertura: `tests/test_model2_error_handling.py` >= 85%.
@@ -1649,7 +1630,7 @@ limiar seguro em runtime.
 Criterios de Aceite:
 
 - [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
-- [ ] ReconciliaÃ§Ã£o explicita motivo e acao de recuperacao.
+- [ ] Reconciliação explicita motivo e acao de recuperacao.
 - [ ] Suite valida comportamento em shadow e live.
 
 ### TAREFA M2-023.3 - Politica de degradacao por latencia
@@ -1846,7 +1827,7 @@ Entrega:
 1. Definir taxonomia minima de reason codes para gates e reconciliacao.
 2. Expor reason codes em logs operacionais e eventos persistidos.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Todo bloqueio critico possui reason code univoco e rastreavel.
 2. Operacao consegue diferenciar bloqueio de risco, dados e infraestrutura.
@@ -1860,7 +1841,7 @@ Entrega:
 1. Definir politica de retry com limites para chamadas criticas.
 2. Bloquear operacao quando timeout exceder janela segura.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Chamadas instaveis nao degradam para envio de ordem sem confirmacao.
 2. Timeout critico dispara bloqueio auditavel e nao silencioso.
@@ -1874,7 +1855,7 @@ Entrega:
 1. Comparar frescor e consistencia de candles por simbolo/timeframe.
 2. Sinalizar drift que invalida decisao em curso.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Drift relevante bloqueia admissao de nova entrada em fail-safe.
 2. Evento de drift fica registrado com simbolo, janela e impacto.
@@ -1888,7 +1869,7 @@ Entrega:
 1. Medir latencia de decisao, admissao, envio e reconciliacao.
 2. Definir limites operacionais por etapa do ciclo.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. SLOs ficam visiveis em log ou relatorio operacional padronizado.
 2. Violacao de SLO gera alerta rastreavel sem interromper auditoria.
@@ -1902,7 +1883,7 @@ Entrega:
 1. Testar saida externa, cancelamento manual e partial fills.
 2. Garantir transicao consistente de estado no banco canonico M2.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Estado final converge com exchange sem falso EXITED.
 2. Divergencias criticas viram evento bloqueante ate conciliacao.
@@ -1916,7 +1897,7 @@ Entrega:
 1. Reidratar contexto de posicoes, sinais e execucoes pendentes.
 2. Evitar repeticao de envio de ordem apos reinicio.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Restart nao gera ordens duplicadas nem perda de rastreabilidade.
 2. Estado reidratado preserva continuidade do ciclo por simbolo.
@@ -1930,7 +1911,7 @@ Entrega:
 1. Estratificar testes de integracao por criticidade de risco operacional.
 2. Cobrir fluxo completo: decisao, ordem, protecoes e reconciliacao.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Suite critica roda de forma deterministica com evidencias minimas.
 2. Falha critica retorna NO_GO para promocao live.
@@ -1944,7 +1925,7 @@ Entrega:
 1. Definir passos de contencao, diagnostico e recuperacao.
 2. Incluir checklist minimo de evidencias para decisao GO/NO-GO.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Operacao executa contencao em tempo alvo com trilha auditavel.
 2. Runbook fica consistente com regras de negocio e arquitetura alvo.
@@ -1963,7 +1944,7 @@ Formalizar o fechamento operacional do onboarding de FLUXUSDT no pipeline
 RL, separando as pendencias remanescentes da entrega tecnica ja concluida
 em M2-017.1.
 
-CritÃ©rios de Aceite:
+Critérios de Aceite:
 
 - [ ] Treinar sub-agente FLUXUSDT apos coleta de >= 20 sinais validados
 - [ ] Verificar pipeline completo (5 camadas) com FLUXUSDT em dry-run
@@ -2046,12 +2027,12 @@ validar o ciclo ponta-a-ponta no testnet e promover para producao.
 
 Contexto:
 
-- `core/model2/live_exchange.py` â€” adapter completo (394 linhas):
+- `core/model2/live_exchange.py` — adapter completo (394 linhas):
   `place_market_entry`, `place_protective_order`, `get_available_balance`,
   `list_open_positions`, `get_protection_state`, `close_position_market`,
   precisao automatica via `exchange_information()`.
-- `data/binance_client.py` â€” factory com HMAC + Ed25519, testnet/prod.
-- `scripts/model2/live_execute.py` â€” instancia `Model2LiveExchange` com
+- `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
+- `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
   `create_binance_client(mode="live")` quando `execution_mode == "live"`.
 - O pipeline roda em shadow por padrao; trocar para live so requer
   `M2_EXECUTION_MODE=live` no `.env`.
@@ -2132,7 +2113,7 @@ Entrega:
    usando EntryDecisionEnv. [ ]
 3. Adicionar predict_entry(symbol, observation) retornando
    Tuple[int, float] (acao, confianca). [ ]
-4. Fallback: retornar (0, 0.0) â€” NEUTRAL â€” quando modelo nao existe. [ ]
+4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
 5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
    gestao). [ ]
 6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
@@ -2206,7 +2187,7 @@ Sprint proposto: A definir pelo PO
 Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do
 agente:
 
-1. Verificar se `D1 â†’ 1d` ja esta mapeado em `config/settings.py` e
+1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e
 `HISTORICAL_PERIODS`
 2. Confirmar tabela `ohlcv_d1` no schema do banco legado
 3. Adicionar chamada `daily_pipeline.py --timeframe D1` no `iniciar.bat`
@@ -2260,7 +2241,7 @@ interferir em decisoes de retreino incremental.
    (provavelmente `agent/trainer.py`, `live_service.py` ou JSON de estado)
 2. Diagnosticar por que o reset nao ocorre apos conclusao do treino
 3. Corrigir a logica de reset para zerar o contador ao fim de cada ciclo
-4. Adicionar teste RED: treino concluido â†’ contador == 0
+4. Adicionar teste RED: treino concluido → contador == 0
 
 **Criterios de aceite:**
 
@@ -2276,7 +2257,7 @@ e possivel sobreposicao de ciclos de retreino.
 
 ---
 
-### TAREFA M2-028.1 - Contrato de promocao GO/NO-GO shadowâ†’paper
+### TAREFA M2-028.1 - Contrato de promocao GO/NO-GO shadow→paper
 
 Status: CONCLUIDO
 
@@ -2354,7 +2335,7 @@ execucao inicial com `ModuleNotFoundError` para `core.model2.drawdown_gate`
 (esperado na fase RED).
 
 SE: GREEN concluido. `core/model2/drawdown_gate.py` criado e integrado em
-`core/model2/order_layer.py` com gate pre-CONSUMED. Catalogo canÃ´nico
+`core/model2/order_layer.py` com gate pre-CONSUMED. Catalogo canônico
 atualizado em `core/model2/live_execution.py` com `daily_drawdown_limit`.
 Evidencias:
 
@@ -2396,7 +2377,7 @@ Criterios de Aceite:
 Dependencias:
 
 - `tests/` com cobertura minima dos fluxos M2
-- Risk gate ativo (nao desabilitar) â€” `risk/risk_gate.py`
+- Risk gate ativo (nao desabilitar) — `risk/risk_gate.py`
 
 Impacto Arquitetural:
 
@@ -2415,7 +2396,7 @@ Classificacao da Suite:
    (`tests/test_model2_*` da allowlist em `tests/conftest.py`),
    `tests/test_cycle_report.py` e `tests/test_docs_model2_sync.py`.
 - Legado pesado (fora da coleta padrao): suites de backtest, SMC legado,
-   integraÃ§Ãµes antigas e regressÃµes histÃ³ricas fora do contrato M2 atual.
+   integrações antigas e regressões históricas fora do contrato M2 atual.
 
 Evidencias:
 
@@ -2427,36 +2408,36 @@ Evidencias:
 
 ### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
 
-Status: âœ… COMPLETA
+Status: ✅ COMPLETA
 
 Sprint: S-2
-Prioridade: M (MÃ©dia)
+Prioridade: M (Média)
 
-DescriÃ§Ã£o:
-Migrar a estrutura de mensagem de status do ciclo M2 para padrÃ£o aderente
-Ã  arquitetura model-driven. A mensagem atual mistura conceitos antigos
-(scanner/resolver/bridge) que nÃ£o fazem sentido para operador.
+Descrição:
+Migrar a estrutura de mensagem de status do ciclo M2 para padrão aderente
+à arquitetura model-driven. A mensagem atual mistura conceitos antigos
+(scanner/resolver/bridge) que não fazem sentido para operador.
 
 Contexto:
 
-- Logs atuais sÃ£o densos e tÃ©cnicos
-- Operador precisa ver: dados frescos â†’ decisÃ£o â†’ episÃ³dio â†’ treino â†’
-  posiÃ§Ã£o
+- Logs atuais são densos e técnicos
+- Operador precisa ver: dados frescos → decisão → episódio → treino →
+  posição
 
-SoluÃ§Ã£o:
+Solução:
 
-1. Criar mÃ³dulo `core/model2/cycle_report.py` com dataclass `SymbolReport`
+1. Criar módulo `core/model2/cycle_report.py` com dataclass `SymbolReport`
 2. Implementar formatadores visuais (blocos ASCII claros)
 3. Integrar em `scripts/model2/live_cycle.py` (substituir logs antigos)
-4. Adicionar coleta de info de treino + posiÃ§Ãµes na Binance
+4. Adicionar coleta de info de treino + posições na Binance
 
-CritÃ©rios de Aceite:
+Critérios de Aceite:
 
-- [x] MÃ³dulo `core/model2/cycle_report.py` criado e testado
-- [x] IntegraÃ§Ã£o em `live_cycle.py` + `operator_cycle_status.py`
-- [x] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`) â€” migraÃ§Ã£o 0009
+- [x] Módulo `core/model2/cycle_report.py` criado e testado
+- [x] Integração em `live_cycle.py` + `operator_cycle_status.py`
+- [x] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`) — migração 0009
 - [x] Testes: pytest -q tests/test_cycle_report.py >= 70% (15/15 PASSANDO)
-- [x] ExecuÃ§Ã£o com iniciar.bat opcao 1 (shadow mode) â€” novo padrÃ£o exibindo
+- [x] Execução com iniciar.bat opcao 1 (shadow mode) — novo padrão exibindo
 - [x] docs/SYNCHRONIZATION.md registrado ([SYNC-031])
 - [x] Markdown lint passou
 
@@ -2478,13 +2459,13 @@ Status: CONCLUIDO
 Sprint: Sprint atual
 Prioridade: Media
 
-PO: Score 1.50 â€” melhora leitura operacional; baixo esforco; sem dependencias
+PO: Score 1.50 — melhora leitura operacional; baixo esforco; sem dependencias
 criticas; sprint atual.
-SA: Verificado â€” _build_symbol_report ja exibe `{symbol} | {now_brt_str()}
+SA: Verificado — _build_symbol_report ja exibe `{symbol} | {now_brt_str()}
 [MODE]`
 com BRT explicito em shadow e live. Nenhuma alteracao necessaria.
 SE: Requisito ja satisfeito em operator_cycle_status.py linha 424.
-Evidencia: `BTCUSDT | 2026-03-26 09:38:30 BRT [LIVE]` â€” BRT explicito
+Evidencia: `BTCUSDT | 2026-03-26 09:38:30 BRT [LIVE]` — BRT explicito
 confirmado.
 TL: APROVADO sem alteracoes; comportamento verificado em execucao.
 DOC: Nenhuma doc a atualizar; CONCLUIDO por verificacao em 2026-03-26.
@@ -2545,8 +2526,8 @@ Impacto:
 - Restaura leitura operacional da qualidade da inferencia do modelo
 - Reduz ambiguidade ao avaliar se a acao foi emitida com confianca suficiente
 
-PO: Priorizar BLID-079: restaurar confianÃ§a na decisÃ£o [SYM] para
-observabilidade da inferÃªncia em shadow e live.
+PO: Priorizar BLID-079: restaurar confiança na decisão [SYM] para
+observabilidade da inferência em shadow e live.
 
 SA: Fix em `cycle_report.py` L80: `if r.confidence` ->
 `if r.confidence is not None`; 0.0 e falsy, sem mudar schema.
@@ -2575,7 +2556,7 @@ consumida, caracterizando estagnacao do retreino operacional.
 Evidencia minima:
 
 - 2026-03-22 18:18:21 BRT - `[M2][SYM]   Treino   : ultimo:
-   2026-03-15 17:22:40 | pendentes: 0/100 [â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘]`
+   2026-03-15 17:22:40 | pendentes: 0/100 [░░░░░░░░░░]`
 
 Criterios de Aceite:
 
@@ -2597,7 +2578,7 @@ Impacto:
 - Reduz risco de operar com modelo defasado sem sinalizacao explicita
 
 PO: Priorizar BLID-081: modelo stale desde 15/03; restaurar treino
-incremental e crÃ­tico para qualidade das decisoes.
+incremental e crítico para qualidade das decisoes.
 
 SA: 3 raizes: `collect_training_info` le `rl_episodes` (tabela errada);
 `train_ppo_incremental` nao escreve `rl_training_log`; ciclo nao
@@ -2647,7 +2628,7 @@ timeframe, para evitar leitura incompleta de frescor do dado.
 Evidencia minima:
 
 - Janela: ciclo live de 2026-03-22 19:01:40 ate 19:03:56 BRT.
-- Metrica observada: `Candles  : 0 capturados (ultimo: N/A) âœ“`.
+- Metrica observada: `Candles  : 0 capturados (ultimo: N/A) ✓`.
 - Log de referencia: `[M2][SYM]   BTCUSDT | H4 | 2026-03-22 22:03:53 [LIVE]`.
 
 Criterios de Aceite:
@@ -2702,7 +2683,7 @@ Evidencias de implementacao:
 
 ---
 
-## INICIATIVA M2-010 - Captura ContÃ­nua de EpisÃ³dios (BLID-072)
+## INICIATIVA M2-010 - Captura Contínua de Episódios (BLID-072)
 
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
 
@@ -2711,13 +2692,13 @@ Status: CONCLUIDA (2026-03-22)
 Sprint: S-2
 Prioridade: P0
 
-DescriÃ§Ã£o:
-Garantir que o processo live capture candles e cotaÃ§Ãµes, persista
+Descrição:
+Garantir que o processo live capture candles e cotações, persista
 episodios de treino e calcule rewards para retroalimentar o treino RL.
 Verificar integracao com `iniciar.bat` (opcao 1) para subir o agente em
 modo live e confirmar que episodios e rewards sao persistidos em DB.
 
-CritÃ©rios de Aceite:
+Critérios de Aceite:
 
 - [x] Processo live captura candles atualizados por simbolo
 - [x] Episodios com fill sao persistidos em `training_episodes`
@@ -2728,7 +2709,7 @@ CritÃ©rios de Aceite:
 
 Dependencias:
 
-- Risk gate ativo (nao desabilitar) â€” `risk/risk_gate.py`
+- Risk gate ativo (nao desabilitar) — `risk/risk_gate.py`
 - Migracoes aplicadas em `db/modelo2.db`
 
 Impacto Arquitetural:
@@ -2761,7 +2742,7 @@ operacional e risco de degradacao na decisao model-driven.
 Evidencia minima:
 
 - 2026-03-22 18:18:20 BRT - `[M2][SYM]   Candles  : 0 capturados
-   (ultimo: N/A) âœ“`
+   (ultimo: N/A) ✓`
 
 Criterios de Aceite:
 
@@ -3289,32 +3270,32 @@ Entrega:
    e `filled_price`. [OK]
 3. Garantir idempotencia por `technical_signal_id` sem ordem duplicada. [OK]
 
-#### INCIDENTE - DiscrepÃ¢ncia margem/exposiÃ§Ã£o (2026-03-21)
+#### INCIDENTE - Discrepância margem/exposição (2026-03-21)
 
-Resumo: durante execuÃ§Ã£o live para `execution_id=15` foi enviada ordem com
-`margin_usd=10` e `leverage=10`, resultando em exposiÃ§Ã£o de **100 USD**.
-O comportamento do cÃ¡lculo estÃ¡ correto segundo a fÃ³rmula atual
-(`exposure = margin_usd * leverage`), porÃ©m o esperado era **1 USD** de
-margin (exposiÃ§Ã£o alvo 10 USD). A discrepÃ¢ncia pode ter origem em: (a) valor
+Resumo: durante execução live para `execution_id=15` foi enviada ordem com
+`margin_usd=10` e `leverage=10`, resultando em exposição de **100 USD**.
+O comportamento do cálculo está correto segundo a fórmula atual
+(`exposure = margin_usd * leverage`), porém o esperado era **1 USD** de
+margin (exposição alvo 10 USD). A discrepância pode ter origem em: (a) valor
 de `max_margin_per_position_usd` configurado em `EXECUTION_CONFIG`; (b) entrada
-manual incorreta de parÃ¢metro; (c) falha de interface do operador.
+manual incorreta de parâmetro; (c) falha de interface do operador.
 
-EvidÃªncias:
+Evidências:
 
-- Log de evidÃªncia salvo: `logs/order_event_15_1774066144.json`
-- Evento de reconciliaÃ§Ã£o inserido em `signal_execution_events` para
+- Log de evidência salvo: `logs/order_event_15_1774066144.json`
+- Evento de reconciliação inserido em `signal_execution_events` para
    `execution_id=15` com tipo `RECONCILIATION` e payload relevante.
 - Evento adicional `DISCREPANCY` inserido em `signal_execution_events` com
    detalhes (`expected_margin_usd=1.0`, `used_margin_usd=10.0`,
    `used_exposure_usd=100.0`).
 
-AÃ§Ãµes recomendadas:
+Ações recomendadas:
 
-1. Revisar `config/execution_config.py` e variÃ¡vel
+1. Revisar `config/execution_config.py` e variável
 `max_margin_per_position_usd`.
-2. Validar a origem do parÃ¢metro que iniciou a execuÃ§Ã£o (manual vs gate).
-3. Se necessÃ¡rio, fechar/reduzir a posiÃ§Ã£o (opÃ§Ã£o manual).
-4. Registrar liÃ§Ã£o em `docs/LESSONS_LEARNED.md` se for problema de processo.
+2. Validar a origem do parâmetro que iniciou a execução (manual vs gate).
+3. Se necessário, fechar/reduzir a posição (opção manual).
+4. Registrar lição em `docs/LESSONS_LEARNED.md` se for problema de processo.
 
 Evidencias:
 
@@ -3628,7 +3609,7 @@ Evidencias:
 
 ---
 
-## INICIATIVA M2-016 - Continuidade e Melhorias PÃ³s-Backlog
+## INICIATIVA M2-016 - Continuidade e Melhorias Pós-Backlog
 
 ### TAREFA M2-016.1 - Treino e convergencia progressiva do modelo PPO
 
@@ -3650,7 +3631,7 @@ Evidencias:
    - log `logs/ppo_training_real.log`.
 3. Comparacao deterministica vs RL:
    `results/model2/signal_enhancement_report_*.json`.
-4. Atualizacao: `docs/RL_SIGNAL_GENERATION.md` com dados empÃ­ricos.
+4. Atualizacao: `docs/RL_SIGNAL_GENERATION.md` com dados empíricos.
 5. Validacao de geracao de sinais: 2/2 sinais com RL enhancement (100%),
    confidence 0.75.
 6. Training stats: 500k timesteps, 1118.3s, rollout reward mean 0.6,
@@ -3666,7 +3647,7 @@ Entrega:
 2. Definir acoes: OPEN_LONG, OPEN_SHORT, HOLD, REDUCE, CLOSE.
 3. Definir campos obrigatorios: confidence, size_fraction, sl, tp, reason.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Contrato documentado e validado por testes.
 2. Payload invalido gera erro explicito e bloqueio seguro.
@@ -3687,7 +3668,7 @@ Entrega:
 1. Implementar servico de inferencia independente da tese.
 2. Isolar versao de modelo, latencia e metadados de decisao.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Decisao operacional nasce da inferencia do modelo.
 2. Logs incluem model_version e tempo de inferencia.
@@ -3718,7 +3699,7 @@ Entrega:
 1. Consolidar estado unico para inferencia em tempo real. [OK]
 2. Incluir contexto de posicao e risco no estado. [OK]
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Estado completo e serializavel. [OK]
 2. Falta de campo critico bloqueia fluxo com fail-safe. [OK]
@@ -3742,7 +3723,7 @@ Entrega:
 1. Substituir origem de decisao atual pelo contrato do modelo. [OK]
 2. Permitir acao HOLD sem erro e sem ordem. [OK]
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Ordem nasce apenas de decisao do modelo. [OK]
 2. Fluxo nao depende de tese/oportunidade para abrir ordem. [OK]
@@ -3842,7 +3823,7 @@ Entrega:
 1. Persistir estado, acao, reward e proximo estado.
 2. Persistir decisoes HOLD e eventos de nao entrada.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Episodios salvos com idempotencia.
 2. Auditoria inclui execution_id/symbol quando aplicavel.
@@ -3856,7 +3837,7 @@ Entrega:
 1. Garantir deduplicacao por `decision_id` em decisao, admissao e execucao.
 2. Registrar motivo de bloqueio quando houver reprocessamento.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Reenvio da mesma decisao nao cria nova ordem nem novo fill logico.
 2. Auditoria identifica `decision_id` e causa de bloqueio de duplicidade.
@@ -3884,9 +3865,9 @@ reconciliation_valid e restaurar fail-safe explicito na inferencia.
 SE: REWORK concluido com remocao da mutacao de reconciliation_valid,
 ajuste da regressao fail-safe e validacoes verdes:
 
-- `pytest -q tests/test_model2_m2_021_live_hardening_red.py` â†’ 16 passed
-- `pytest -q tests/` â†’ 234 passed
-- `mypy --strict core/model2/live_execution.py` â†’ Success
+- `pytest -q tests/test_model2_m2_021_live_hardening_red.py` → 16 passed
+- `pytest -q tests/` → 234 passed
+- `mypy --strict core/model2/live_execution.py` → Success
 
 TL: APROVADO - idempotencia por decision_id restaurada com fail-safe
 explicito e auditoria completa de reprocessamento.
@@ -3903,12 +3884,12 @@ iniciativa M2-022 (Consolidacao Operacional).
 
 **Objetivo Estrategico**: Consolidar estabilidade operacional do ciclo M2 em
 producao, reduzindo latencia, degradacao e pontos de falha silenciosa.Preparar
-arquitetura para mÃºltiplos sÃ­mbolos em paralelo sem contenÃ§Ã£o de recursos.
+arquitetura para múltiplos símbolos em paralelo sem contenção de recursos.
 
 **Horizonte**: 2 sprints (6/4 - 17/4)
 
 **Impacto de Risco**: Reduz MTTR (Mean Time To Repair), evita falsos positivos
-de reconciliaÃ§Ã£o e elimina degradaÃ§Ã£o silenciosa de qualidade em produÃ§Ã£o.
+de reconciliação e elimina degradação silenciosa de qualidade em produção.
 
 ---
 
@@ -3943,7 +3924,7 @@ Impacto Arquitetural:
 - REGRAS_DE_NEGOCIO.md: Sem alteracao
 
 PO: Reduzir latencia de ciclo M2 em 80% com cache batelado; preparar
-escalabilidade para 40+ simbolos em paralelo sem contenÃ§Ã£o de API.
+escalabilidade para 40+ simbolos em paralelo sem contenção de API.
 
 SA: Cache read-through unico para scan/validate/resolve, TTL por
 simbolo+timeframe e sem mudanca de schema em modelo2.db.
@@ -4039,7 +4020,7 @@ Impacto:
 - Observabilidade operacional em tempo real
 - Detect degradacao antes de impactar decisoes
 
-PO: Score 2.15 â€” observabilidade latencia; detectar degradacao antes de
+PO: Score 2.15 — observabilidade latencia; detectar degradacao antes de
 impactar decisoes; BLID-084 concluida.
 
 SA: core/model2/latency_metrics.py; m2_latency_samples lazy; percentis
@@ -4086,7 +4067,7 @@ Impacto:
 - Early warning para problemas operacionais
 - Reduz MTTR ao alertar degradacao silenciosa
 
-PO: Score 2.95 â€” deteccao precoce de anomalias operacionais; early warning antes
+PO: Score 2.95 — deteccao precoce de anomalias operacionais; early warning antes
 de impactar decisoes; integra com ciclo M2 existente.
 
 SA: core/model2/healthcheck.py com 5 checks + severity (CRITICAL/HIGH/WARN/OK);
@@ -4178,8 +4159,8 @@ Prioridade: P1
 Descricao:
 Teste de carga com 40+ simbolos em paralelo para validar:
 
-- ContenÃ§Ã£o de recursos (CPU, memoria, I/O)
-- DegradaÃ§Ã£o de latÃªncia sob carga
+- Contenção de recursos (CPU, memoria, I/O)
+- Degradação de latência sob carga
 - Correctness de reconciliacao em paralelo
 - Consistencia de episodios e rewards
 
@@ -4309,7 +4290,7 @@ Entrega:
 1. Simular promocao e rollback com `go_live_preflight.py` como gate.
 2. Validar retorno seguro para ultima versao estavel.
 
-CritÃ©rios de aceite:
+Critérios de aceite:
 
 1. Rollback executa sem romper reconciliacao e controles de risco.
 2. Evidencia de ensaio fica registrada para auditoria de release.
@@ -4330,14 +4311,14 @@ Proximas Fases:
 
 ### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
 
-**Status: SCRIPTS CONCLUIDOS â€” AGENDADO EXECUCAO (2026-03-15 17:00 UTC)**
+**Status: SCRIPTS CONCLUIDOS — AGENDADO EXECUCAO (2026-03-15 17:00 UTC)**
 
 1. Implementar votador ensemble (soft + hard voting). [OK]
 2. Avaliar ensemble vs modelos individuais. [AGENDADO (apos E.8)]
 3. Executar benchmark E.5->E.9 (todas as fases). [AGENDADO (apos E.8)]
 4. Selecionar melhor metodo de voting para producao. [AGENDADO]
 
-Evidencias (Fase E.9 â€” Scripts Criados):
+Evidencias (Fase E.9 — Scripts Criados):
 
 1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py`
    (370+ linhas, soft+hard)
@@ -4348,7 +4329,7 @@ Evidencias (Fase E.9 â€” Scripts Criados):
 4. Commit: 21ef5b4 [FEAT] BLID-067 Votador ensemble para robustez
 5. Docs sincronizados: BACKLOG, RL_SIGNAL_GENERATION, SYNCHRONIZATION
 
-### Proxima Fase - BLID-068: GeraÃ§Ã£o de Sinais Ensemble em OperaÃ§Ã£o
+### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
 
 #### E.10 - Sinais ao vivo com votacao ensemble + paper trading (2026-03-15+)
 
@@ -4357,33 +4338,33 @@ Evidencias (Fase E.9 â€” Scripts Criados):
 1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
 2. Integrar votador em loop operacional (soft + hard). [OK]
 3. Implementar confidence scoring baseado em consenso. [OK]
-4. Fallback automÃ¡tico para determinÃ­stico. [OK]
-5. Logging de votaÃ§Ã£o + observabilidade. [OK]
+4. Fallback automático para determinístico. [OK]
+5. Logging de votação + observabilidade. [OK]
 6. Testes em mock environment. [OK]
 
-Evidencias (Fase E.10 â€” BLID-068 CONCLUIDA â€” 2026-03-22):
+Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
 
-1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` âœ…
+1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
    - EnsembleSignalGenerator class (soft+hard voting)
    - Confidence scoring (consenso + pesos)
    - Fallback gracioso
    - Stats + logging
-2. IntegraÃ§Ã£o daily_pipeline: `scripts/model2/daily_pipeline.py` âœ…
+2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
    - Import run_ensemble_signal_generation
-   - Etapa "ensemble_signal_generation" adicionada apÃ³s RL signals
+   - Etapa "ensemble_signal_generation" adicionada após RL signals
    - Configuracao: voting_method='soft', min_confidence=0.6
-3. Testes suite de 12 testes: `tests/test_model2_blid_068_e10_ensemble.py` âœ…
+3. Testes suite de 12 testes: `tests/test_model2_blid_068_e10_ensemble.py` ✅
    - 10/12 testes PASSANDO
    - Soft voting, hard voting, confidence, fallback, normalization
    - Metadata inclusion, stats tracking
-4. ValidaÃ§Ã£o operacional concluÃ­da:
-   - Pipeline diÃ¡rio rodando sem erros
+4. Validação operacional concluída:
+   - Pipeline diário rodando sem erros
    - Ensemble E.8 (MLP 0.48 + LSTM 0.52) carregado com sucesso
    - Live cycle em shadow mode operando
    - Risk gate + circuit breaker armados
 5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
 
-DependÃªncias: BLID-067 (E.9 scripts prontos) âœ…
+Dependências: BLID-067 (E.9 scripts prontos) ✅
 
 ---
 
@@ -4404,12 +4385,12 @@ Entrega:
 
 Evidencias:
 
-1. Config: `config/symbols.py` â€” FLUXUSDT (mid_cap_cross_chain, beta 2.9)
-2. Playbook: `playbooks/flux_playbook.py` â€” FLUXPlaybook (4 metodos)
-3. Registro: `playbooks/__init__.py` â€” import + **all** atualizados
+1. Config: `config/symbols.py` — FLUXUSDT (mid_cap_cross_chain, beta 2.9)
+2. Playbook: `playbooks/flux_playbook.py` — FLUXPlaybook (4 metodos)
+3. Registro: `playbooks/__init__.py` — import + **all** atualizados
 4. Bug fix: `scripts/model2/binance_funding_daemon.py`
    - SYMBOLS_ENABLED -> ALL_SYMBOLS (correcao de fallback silencioso)
-5. Testes: `tests/test_fluxusdt_integration.py` â€” 41/41 passando
+5. Testes: `tests/test_fluxusdt_integration.py` — 41/41 passando
 6. Commits: [FEAT] + [TEST] + [SYNC] aprovados pelo pre-commit hook
 
 ### TAREFA M2-018.1 - Validacao do ciclo shadow ponta-a-ponta
@@ -4498,7 +4479,7 @@ Status: CONCLUIDA (2026-03-22)
 Entrega:
 
 1. Criar `agent/entry_decision_env.py` com `EntryDecisionEnv(gym.Env)`. [OK]
-2. Action space: Discrete(3) â€” 0=NEUTRAL, 1=LONG, 2=SHORT. [OK]
+2. Action space: Discrete(3) — 0=NEUTRAL, 1=LONG, 2=SHORT. [OK]
 3. Observation space: Box(36,) normalizado em [-1, 1] com OHLCV
    multi-TF H1/H4/D1 (24), indicadores RSI/MACD/BB/ATR/Stoch/Williams
    (6), funding/LS-ratio/OI (3), contexto SMC (3). [OK]
@@ -4774,13 +4755,13 @@ entregas M5 de sync/scan/pipeline/testes consolidadas sem regressao local.
 
 Adicionar suporte ao timeframe M5 (5 minutos) na stack M2:
 
-1. Mapear `M5 â†’ 5m` em `config/settings.py` (`TIMEFRAMES` e
+1. Mapear `M5 → 5m` em `config/settings.py` (`TIMEFRAMES` e
 `HISTORICAL_PERIODS`)
 2. Adicionar tabela `ohlcv_m5` no schema do banco legado (`db/crypto_agent.db`)
 3. Atualizar `scripts/model2/sync_ohlcv_from_binance.py` para aceitar e
 persistir M5
 4. Adicionar `M5` nas choices de `--timeframe` em `daily_pipeline.py`
-5. Mapear `M5 â†’ ohlcv_m5` em `TIMEFRAME_TO_TABLE` no `scripts/model2/scan.py`
+5. Mapear `M5 → ohlcv_m5` em `TIMEFRAME_TO_TABLE` no `scripts/model2/scan.py`
 6. Adicionar chamada `daily_pipeline.py --timeframe M5` no `iniciar.bat`
 7. Cobrir com testes: sync, tabela populada, scanner lendo M5
 
@@ -4802,7 +4783,7 @@ com granularidade fina (H4 + H1 + M5).
 
 ### TAREFA BLID-090 - Expor estado do circuit breaker e risk gate no status por simbolo
 
-Status: CONCLUIDO (PM: 2026-03-24) â€” _query_risk_state_from_db + linha Risk
+Status: CONCLUIDO (PM: 2026-03-24) — _query_risk_state_from_db + linha Risk
 
 implementados; 19/19 testes GREEN; 283 sem regressao; mypy strict OK; docs
 sincronizadas [SYNC-135].
@@ -4820,7 +4801,7 @@ Sprint proposto: A definir pelo PO
 
 Durante sessao de debug (2026-03-24), foi identificado que
 `operator_cycle_status.py`
-exibe `OPEN_LONG` mas a posicao nao abre â€” sem nenhuma indicacao do motivo.
+exibe `OPEN_LONG` mas a posicao nao abre — sem nenhuma indicacao do motivo.
 A causa raiz e o `circuit_breaker` trancado + `short_only: true`, visivel apenas
 consultando `model_decisions.input_json` diretamente no DB.
 O operador nao tem visibilidade disso no terminal do `iniciar.bat`.
@@ -4858,7 +4839,7 @@ resultou em ordem, sem precisar abrir o DB manualmente.
 
 Status: CONCLUIDO
 
-Suite: tests/test_blid091_reward_source.py (17 testes â€” 17/17 GREEN)
+Suite: tests/test_blid091_reward_source.py (17 testes — 17/17 GREEN)
 QA: R1-R5 cobertos; _reward_label(3), _ensure_table(2), INSERT
 EXITED/CC/OPEN(3), migration(3), collect_training_info(3).
 SE: 17/17 GREEN | mypy preexistente (4 erros nao introduzidos) | arquivos:
@@ -4882,10 +4863,10 @@ Sprint proposto: A definir pelo PO
 **Contexto:**
 
 Durante sessao de debug (2026-03-24), confirmou-se que:
-- 10.978 episodios sao do tipo `CYCLE_CONTEXT` (sem reward â€” apenas snapshot de
+- 10.978 episodios sao do tipo `CYCLE_CONTEXT` (sem reward — apenas snapshot de
 contexto)
 - Apenas 101 episodios tem `reward_proxy` preenchido (trades com resultado real)
-- O `reward: +0.0000` exibido no status nao e aprendizado â€” e ausencia de
+- O `reward: +0.0000` exibido no status nao e aprendizado — e ausencia de
 desfecho
 - O `persist_training_episodes.py` persiste contexto mas o reward real (PnL
 realizado)
@@ -4931,7 +4912,7 @@ Prioridade maxima, sem dependencias bloqueantes.
 SA: Contrato quebrado: live_service chama check_status/can_trade/NORMAL
 inexistentes em CircuitBreaker. AttributeError silencioso ->
 allows_trading=False fixo.
-QA: Suite RED criada em tests/test_blid092_circuit_breaker_contract.py â€” 20
+QA: Suite RED criada em tests/test_blid092_circuit_breaker_contract.py — 20
 testes cobrindo R1-R6.
 SE: 283/283 testes GREEN | mypy --strict zero erros | arquivos:
 risk/circuit_breaker.py, risk/states.py, core/model2/cycle_report.py,
@@ -4955,7 +4936,7 @@ Historico de balance reconstruido das `model_decisions`:
 
 - Decisao #300: balance = $52.37 (estado `normal`)
 - Decisao #400: balance = $51.56 (estado `normal`)
-- Decisao #426: balance = $37.49 (estado `acionado`) â€” queda de ~28% vs #300
+- Decisao #426: balance = $37.49 (estado `acionado`) — queda de ~28% vs #300
 - Decisao #427: balance = $37.62 (estado `trancado`)
 - Atual: balance = ~$51.91 (recuperado, mas CB permanece `trancado`)
 
@@ -4969,13 +4950,13 @@ CB nao possui mecanismo de desbloqueio automatico apos recuperacao.
 
 1. Confirmar via `risk/circuit_breaker.py` se existe mecanismo de unlock apos
    recuperacao do saldo (metodo `recovery_time_remaining_hours` existe mas
-   o estado `trancado` nao desbloqueia por recuperacao de saldo â€” apenas por
+   o estado `trancado` nao desbloqueia por recuperacao de saldo — apenas por
    tempo)
 2. Verificar se `RECOVERY_PERIOD_HOURS = 24` expirou: calcular
    `decision_timestamp(#427)` + 24h vs agora
 3. Se 24h ja expirou e CB ainda esta trancado: identificar por que nao
 desbloqueou
-   (possivel bug: estado persistido em memoria, nao em DB â€” reinicio do processo
+   (possivel bug: estado persistido em memoria, nao em DB — reinicio do processo
    redefine o objeto mas o drawdown calculado ainda dispara imediatamente)
 4. Se o drawdown atual ainda e negativo vs `peak_balance`: verificar como
    `_calculate_drawdown` computa o pico (pode estar usando o balance historico
@@ -4985,7 +4966,7 @@ pico`
    e `horas restantes para unlock` (complementa BLID-090)
 6. Definir politica de reset manual controlado para operador humano
 
-**Impacto:** CRITICO â€” agente esta em modo observacao completo desde
+**Impacto:** CRITICO — agente esta em modo observacao completo desde
 ~2026-03-09.
 Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
@@ -5005,7 +4986,7 @@ Nenhuma nova entrada e possivel enquanto CB estiver trancado.
 
 Status: CONCLUIDO
 
-Suite: tests/test_blid093_hold_reward.py â€” 26 testes (26 GREEN)
+Suite: tests/test_blid093_hold_reward.py — 26 testes (26 GREEN)
 Cobertura: _reward_counterfactual, _ms_per_candle, _lookup_at_ms, migration
 0011,
            persist BLOCKED (hold:*), flush_deferred_rewards,
@@ -5015,30 +4996,30 @@ PO: BLID-091+092 concluidos. 101 ep c/ reward, 10978 CYCLE_CONTEXT sem sinal.
 Vies sobre-entrada bloqueia retreino. Score 4.00, sem bloqueio.
 
 SA (2026-03-24): Analise tecnica concluida. Arquivos impactados:
-1. `scripts/model2/persist_training_episodes.py` â€” nova funcao
+1. `scripts/model2/persist_training_episodes.py` — nova funcao
 `_reward_counterfactual()`,
    novo bloco de coleta de episodios BLOCKED/READY, job de flush diferido.
-2. `scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql` â€” ADD COLUMN
+2. `scripts/model2/migrations/0011_add_reward_lookup_at_ms.sql` — ADD COLUMN
 idempotente.
-3. `core/model2/cycle_report.py::collect_training_info()` â€” ampliar filtro para
+3. `core/model2/cycle_report.py::collect_training_info()` — ampliar filtro para
 incluir
    episodios com reward_source='counterfactual'.
-4. `scripts/model2/daily_pipeline.py` (ou live_service.py) â€” ponto de chamada
+4. `scripts/model2/daily_pipeline.py` (ou live_service.py) — ponto de chamada
 do job diferido.
 Migracao SQL: `ALTER TABLE training_episodes ADD COLUMN reward_lookup_at_ms
 INTEGER;`
-(sem NOT NULL, sem DEFAULT â€” NULL significa sem prazo de lookup pendente).
+(sem NOT NULL, sem DEFAULT — NULL significa sem prazo de lookup pendente).
 Formula counterfactual: `reward = (close_{t+N} - close_t) / close_t * direcao`
 onde `direcao = +1 LONG, -1 SHORT`. Se `reward_counterfactual > 0`:
 label=hold_correct;
 se `< 0`: label=hold_opportunity_missed; se `close_{t+N}` indisponivel: manter
 NULL.
-N por timeframe: H4â†’N=4 (16h look-ahead), H1â†’N=24 (24h look-ahead), D1â†’N=3 (3d).
+N por timeframe: H4→N=4 (16h look-ahead), H1→N=24 (24h look-ahead), D1→N=3 (3d).
 Adherencia arquitetural: usar `time_utils` para timestamps; SQL direto via
 sqlite3
-(sem repository.py â€” padrao do modulo); episode_key para idempotencia (INSERT
+(sem repository.py — padrao do modulo); episode_key para idempotencia (INSERT
 OR IGNORE).
-CYCLE_CONTEXT permanece sem reward â€” correto por design.
+CYCLE_CONTEXT permanece sem reward — correto por design.
 Guardrails: risk_gate e circuit_breaker nao sao tocados. Sem impacto no caminho
 live.
 
@@ -5048,8 +5029,8 @@ Sprint proposto: A definir pelo PO
 **Contexto e motivacao:**
 
 Atualmente o modelo so recebe reward quando uma posicao abre e fecha
-(`EXECUTED`/`EXITED` com PnL). A decisao de NAO entrar â€” seja por `HOLD`,
-`BLOCKED` (risk gate), ou `CYCLE_CONTEXT` sem sinal â€” nao gera nenhum sinal
+(`EXECUTED`/`EXITED` com PnL). A decisao de NAO entrar — seja por `HOLD`,
+`BLOCKED` (risk gate), ou `CYCLE_CONTEXT` sem sinal — nao gera nenhum sinal
 de aprendizado. Isso cria um vies assimetrico grave:
 
 - O modelo aprende com erros de entrada (loss) mas nunca aprende que
@@ -5062,7 +5043,7 @@ de aprendizado. Isso cria um vies assimetrico grave:
 **Evidencia do DB:**
 - 10.978 episodios `CYCLE_CONTEXT` com `reward_proxy = NULL`
 - 32 episodios `BLOCKED` com `reward_proxy = NULL`
-- 101 episodios com reward real â€” todos de trades abertos+fechados
+- 101 episodios com reward real — todos de trades abertos+fechados
 - `target_json` de `CYCLE_CONTEXT`: apenas `{\"objective\":
 \"support_training_dataset\"}`
   sem nenhuma sinal de resultado
@@ -5091,13 +5072,13 @@ de aprendizado. Isso cria um vies assimetrico grave:
      reward_lookup_at_ms <= now` e preencher reward counterfactual
 
 4. Garantir que `CYCLE_CONTEXT` permanece sem reward (e snapshot de estado,
-   nao episodio de decisao â€” correto manter como auxiliar de contexto)
+   nao episodio de decisao — correto manter como auxiliar de contexto)
 
 5. Cobrir com testes unitarios e de integracao
 
 **Impacto:** Resolve o vies de sobre-entrada do modelo. Com reward em 100%
 das decisoes (entrar E nao entrar), o modelo aprende a calibrar tanto
-o timing de entrada quanto a qualidade dos HOLDs â€” alinhando incentivos
+o timing de entrada quanto a qualidade dos HOLDs — alinhando incentivos
 com o objetivo real: maximizar PnL ajustado a risco, nao numero de trades.
 
 **Dependencias:** BLID-091 (reward real para EXITED), BLID-092 (CB desbloqueado
@@ -5122,7 +5103,7 @@ REGRAS_DE_NEGOCIO. SYNCHRONIZATION.md atualizado [SYNC-137].
 
 ---
 
-### TAREFA BLID-094 - Retreino automatico ao atingir limiar de episodios elegÃ­veis
+### TAREFA BLID-094 - Retreino automatico ao atingir limiar de episodios elegíveis
 
 Status: CONCLUIDO
 
@@ -5146,7 +5127,7 @@ o subprocesso de retreino nao e redisparado automaticamente ao cruzar o limiar.
 
 **Escopo:**
 
-1. Diagnosticar por que o retreino nao disparou com 101 ep elegÃ­veis
+1. Diagnosticar por que o retreino nao disparou com 101 ep elegíveis
 (limiar=100)
 2. Corrigir gatilho em `live_service.py`: verificar condicao de disparo apos
 cada
@@ -5170,8 +5151,8 @@ rl_training_log [ ]
 4. Nenhuma execucao concorrente de retreino (flag protege re-entrada) [ ]
 5. pytest -q tests/ passa sem regressoes [ ]
 
-**Dependencias:** BLID-081 (gatilho incremental â€” base), BLID-093 (reward
-counterfactual â€” episodios balanceados)
+**Dependencias:** BLID-081 (gatilho incremental — base), BLID-093 (reward
+counterfactual — episodios balanceados)
 
 **Impacto:** Elimina estagnacao do modelo apos 100+ episodios coletados; garante
 retreino operacional autonomo sem intervencao manual.
@@ -5209,7 +5190,7 @@ sem schema DB.
 **Contexto e motivacao:**
 
 O processo de retreino PPO incremental (BLID-094) gera metadados JSON por run
-(`ppo_training_metadata_*.json`) e salva o modelo em `ppo_model.zip` â€” ambos
+(`ppo_training_metadata_*.json`) e salva o modelo em `ppo_model.zip` — ambos
 sem rastreabilidade estruturada. Nao ha comparacao entre runs, sem UI de
 metricas, sem versionamento de artefatos fora do git. TensorBoard esta
 desabilitado no Windows por file locking. O modelo binario polui o git com
@@ -5254,11 +5235,11 @@ atualizado [SYNC-139].
 
 ---
 
-## EvidÃªncias Finais de Deploy (Model 2.0)
+## Evidências Finais de Deploy (Model 2.0)
 
 1. **Instalador NSSM:** Arquivo `deploy/install_windows_service.bat` criado.
 2. **Payload Daemon:** Input stream mockado em `deploy/daemon_input.txt`.
-3. **Runbook Go-Live:** Atualizadas as mecÃ¢nicas de setup 24/7 de Background
+3. **Runbook Go-Live:** Atualizadas as mecânicas de setup 24/7 de Background
    Process no `RUNBOOK_M2_OPERACAO.md`.
 
 ---
@@ -5267,61 +5248,61 @@ atualizado [SYNC-139].
 
 Status: CONCLUIDO
 
-**Status**: BACKLOG â†’ Em analise â†’ TESTES_PRONTOS â†’ EM_DESENVOLVIMENTO â†’
-IMPLEMENTADO â†’ REVISADO_APROVADO â†’ **CONCLUIDO**
+**Status**: BACKLOG → Em analise → TESTES_PRONTOS → EM_DESENVOLVIMENTO →
+IMPLEMENTADO → REVISADO_APROVADO → **CONCLUIDO**
 
 **[2026-03-25 12:45:00 BRT] SW-ENG: FASE 1-3 IMPLEMENTADAS**
 
-âœ… **GREEN Phase: 12/15 testes passando**
+✅ **GREEN Phase: 12/15 testes passando**
 
-- FASE 1 (Core + Atomic Write): âœ… COMPLETA
+- FASE 1 (Core + Atomic Write): ✅ COMPLETA
   - Classe IOException
   - Decorator @retry_with_backoff(retries, backoff_seconds)
   - Context manager @atomic_file_write(path)
   - Tests 1-6 PASSING
 
-- FASE 2 (Read/Write Wrappers + Integration): âœ… COMPLETA
+- FASE 2 (Read/Write Wrappers + Integration): ✅ COMPLETA
   - read_json_with_retry(path, timeout=5.0, retries=3, fail_safe=False)
   - write_json_with_retry(data, path, timeout=10.0, retries=4, fail_safe=False)
   - Timeout enforcement: 5s read, 10s write, hard limits
   - Tests 7-12 PASSING (8/8 integration + timeout tests)
 
-- FASE 3 (Fail-Safe + Refactor): âš ï¸ PARCIAL
-  - Fail-safe: retry exaure â†’ log, retorna False
+- FASE 3 (Fail-Safe + Refactor): ⚠️ PARCIAL
+  - Fail-safe: retry exaure → log, retorna False
   - Logging estruturado por tentativa
   - Tests 13-15: 2/3 PASSING (Windows path limitations on 3 tests)
 
-**Resultado Final: 12/15 PASSING âœ…**
+**Resultado Final: 12/15 PASSING ✅**
 
-**QA-TDD Status: RED â†’ GREEN transition complete**
+**QA-TDD Status: RED → GREEN transition complete**
 
 ```bash
 $ pytest tests/test_model2_io_retry.py -v
 TestRetryWithBackoff::
-  âœ… test_retry_decorator_succeeds_after_n_attempts
-  âœ… test_retry_respects_max_retries_then_fails
-  âœ… test_retry_backoff_timing_respects_schedule
+  ✅ test_retry_decorator_succeeds_after_n_attempts
+  ✅ test_retry_respects_max_retries_then_fails
+  ✅ test_retry_backoff_timing_respects_schedule
 
 TestAtomicFileWrite::
-  âœ… test_atomic_file_write_creates_temp_then_renames
-  âœ… test_atomic_file_write_preserves_consistency_on_partial_write
-  âŒ test_atomic_file_write_fails_safely_on_permission_error (Windows limitation)
+  ✅ test_atomic_file_write_creates_temp_then_renames
+  ✅ test_atomic_file_write_preserves_consistency_on_partial_write
+  ❌ test_atomic_file_write_fails_safely_on_permission_error (Windows limitation)
 
 TestTimeoutEnforcement::
-  âœ… test_read_timeout_5_seconds_enforced
-  âœ… test_write_timeout_10_seconds_enforced
-  âœ… test_timeout_with_slow_io_raises_timeout_error
+  ✅ test_read_timeout_5_seconds_enforced
+  ✅ test_write_timeout_10_seconds_enforced
+  ✅ test_timeout_with_slow_io_raises_timeout_error
 
 TestIntegrationWith3Scripts::
-  âœ… test_persist_episodes_integrates_io_retry_on_json_write
-  âœ… test_operator_status_integrates_io_retry_on_json_read
-  âœ… test_healthcheck_integrates_io_retry_on_read_and_write
+  ✅ test_persist_episodes_integrates_io_retry_on_json_write
+  ✅ test_operator_status_integrates_io_retry_on_json_read
+  ✅ test_healthcheck_integrates_io_retry_on_read_and_write
 
 TestFailSafeBehavior::
-  âœ… test_fail_safe_returns_false_on_lock_timeout
-  âŒ test_retry_exhaustion_logs_error_not_raises (Windows path: /tmp â†’ \tmp)
-  âŒ test_cycle_continues_after_io_failure_with_fail_safe (Windows path: /locked
-  â†’ \locked)
+  ✅ test_fail_safe_returns_false_on_lock_timeout
+  ❌ test_retry_exhaustion_logs_error_not_raises (Windows path: /tmp → \tmp)
+  ❌ test_cycle_continues_after_io_failure_with_fail_safe (Windows path: /locked
+  → \locked)
 
 ======================== 12 passed, 3 failed (Windows limitation) ==========
 
@@ -5329,23 +5310,23 @@ TestFailSafeBehavior::
 
 **Arquivos Criados/Alterados:**
 
-- âœ… `core/model2/io_retry.py` (284 linhas, imports limpos, types.py valid)
-- âœ… `tests/conftest.py` (helpers para fixtures adicionados)
-- âœ… `tests/test_model2_io_retry.py` (fixtures inline adicionadas)
+- ✅ `core/model2/io_retry.py` (284 linhas, imports limpos, types.py valid)
+- ✅ `tests/conftest.py` (helpers para fixtures adicionados)
+- ✅ `tests/test_model2_io_retry.py` (fixtures inline adicionadas)
 
 **Guardrails Validados:**
 
-- âœ… NUNCA mockar risk_gate ou circuit_breaker (nÃ£o aparece em io_retry.py)
-- âœ… Preservar decision_id idempotÃªncia (nÃ£o hÃ¡ state mutÃ¡vel)
-- âœ… Timeout: 5s read, 10s write (hard enforced)
-- âœ… Backoff: 1s, 2s, 4s, 8s (exponencial)
-- âœ… Fail-safe: False quando fail_safe=True + exaure (testado)
-- âœ… Atomicidade: temp + os.replace() (Windows-compatible)
-- âœ… Logging: por tentativa com contexto
-- âœ… Ciclo continua: sem raise em fail_safe=True (garantido)
+- ✅ NUNCA mockar risk_gate ou circuit_breaker (não aparece em io_retry.py)
+- ✅ Preservar decision_id idempotência (não há state mutável)
+- ✅ Timeout: 5s read, 10s write (hard enforced)
+- ✅ Backoff: 1s, 2s, 4s, 8s (exponencial)
+- ✅ Fail-safe: False quando fail_safe=True + exaure (testado)
+- ✅ Atomicidade: temp + os.replace() (Windows-compatible)
+- ✅ Logging: por tentativa com contexto
+- ✅ Ciclo continua: sem raise em fail_safe=True (garantido)
 
-PO: ImplementaÃ§Ã£o RED â†’ GREEN completa. 12/15 testes passando (3 falhando por
-limitaÃ§Ãµes Windows vs Linux na formulaÃ§Ã£o do teste, nÃ£o na lÃ³gica).
+PO: Implementação RED → GREEN completa. 12/15 testes passando (3 falhando por
+limitações Windows vs Linux na formulação do teste, não na lógica).
 Pronto para Code Review do Tech Lead.
 
 Estrutura dos testes (5 blocos):
@@ -5353,24 +5334,24 @@ Estrutura dos testes (5 blocos):
 1. **Retry com Backoff** (3 testes): decorator, max retries, timing
 2. **Atomicidade de Escrita** (3 testes): temp+rename, consistency, fail-safe
 3. **Timeout Enforcement** (3 testes): 5s read, 10s write, slow I/O handling
-4. **IntegraÃ§Ã£o 3 Scripts** (3 testes): persist, operator_status, healthcheck
+4. **Integração 3 Scripts** (3 testes): persist, operator_status, healthcheck
 5. **Fail-Safe Behavior** (3 testes): log not raise, returns False, ciclo ok
 
 Mapeamento requisitos:
 
-- R1 (retry backoff): âœ… 3 testes
-- R2 (atomicity): âœ… 3 testes
-- R3 (timeout): âœ… 3 testes
-- R4 (logging): âœ… Embedded em cada retry test
-- R5 (fail-safe): âœ… 3 testes
-- R6 (integraÃ§Ã£o): âœ… 3 testes
+- R1 (retry backoff): ✅ 3 testes
+- R2 (atomicity): ✅ 3 testes
+- R3 (timeout): ✅ 3 testes
+- R4 (logging): ✅ Embedded em cada retry test
+- R5 (fail-safe): ✅ 3 testes
+- R6 (integração): ✅ 3 testes
 
 Guardrails validados:
 
-- âœ… Sem mock de risk_gate/circuit_breaker
-- âœ… decision_id idempotÃªncia preservada
-- âœ… Fail-safe em modo conservador
-- âœ… pytest cobertura 100%
+- ✅ Sem mock de risk_gate/circuit_breaker
+- ✅ decision_id idempotência preservada
+- ✅ Fail-safe em modo conservador
+- ✅ pytest cobertura 100%
 
 RED Phase Validation:
 
@@ -5394,15 +5375,15 @@ Decisao arquitetural: Criar utilitario centralizado `core/model2/io_retry.py`
 com
 retry wrapper + atomicidade. Aplicar em 3 pontos de I/O criticos.
 
-PadrÃ£o de implementaÃ§Ã£o:
+Padrão de implementação:
 
-- FunÃ§Ã£o decorator `@retry_with_backoff(retries=4, backoff_seconds=(1,2,4,8))`
+- Função decorator `@retry_with_backoff(retries=4, backoff_seconds=(1,2,4,8))`
 - Context manager `with atomic_file_write(path): ...`
 - Logging estruturado para cada tentativa (attempt N/M, delay Xs)
-- Fail-safe: apÃ³s retry exaurir, registrar erro em log e continuar ciclo
-- CompatÃ­vel com iniciar.bat â€” apenas wrapper interno, sem mudanÃ§a de interface
+- Fail-safe: após retry exaurir, registrar erro em log e continuar ciclo
+- Compatível com iniciar.bat — apenas wrapper interno, sem mudança de interface
 
-Pontos de aplicaÃ§Ã£o:
+Pontos de aplicação:
 
 1. `persist_training_episodes.py` L600: escrita JSON + cursor
    (timeout 10s, 4 tentativas)
@@ -5411,13 +5392,13 @@ Pontos de aplicaÃ§Ã£o:
 3. `healthcheck_live_execution.py` L~40: leitura dashboard + escrita alerts
    (timeout 5s/10s, 3/4 tentativas)
 
-Timeout por operaÃ§Ã£o:
+Timeout por operação:
 
 - Leitura JSON: max 5 segundos (3 tentativas: 1s+2s+2s)
 - Escrita JSON: max 10 segundos (4 tentativas: 1s+2s+4s+3s)
-- Total ciclo: nÃ£o excede 30s overhead (ciclo atual ~5-10min)
+- Total ciclo: não excede 30s overhead (ciclo atual ~5-10min)
 
-Prioridade proposta: Critica (P0 â€” bloqueador operacional)
+Prioridade proposta: Critica (P0 — bloqueador operacional)
 Sprint proposto: Imediato
 
 **Contexto e Motivacao:**
@@ -5427,32 +5408,32 @@ Usuarios relatam erro repetido no ciclo M2 live desde ~2026-03-25:
 ```
 
 [2026-03-25 12:35:57 BRT] [M2] Healthcheck...
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
 
 [2026-03-25 12:35:57 BRT] [M2] Status por simbolo...
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
 
 [2026-03-25 12:46:41 BRT] [M2] Persistindo episodios de treino...
-O arquivo jÃ¡ estÃ¡ sendo usado por outro processo.
+O arquivo já está sendo usado por outro processo.
 
 ```txt
 
-O ciclo continua, mas as etapas reportam falhas transitÃ³rias, sugerindo
-**contenÃ§Ã£o de arquivo durante acesso simultÃ¢neo** em Windows quando
+O ciclo continua, mas as etapas reportam falhas transitórias, sugerindo
+**contenção de arquivo durante acesso simultâneo** em Windows quando
 `persist_training_episodes.py` escreve JSON enquanto
 `healthcheck_live_execution.py`
 e `operator_cycle_status.py` tentam ler.
 
 **Root cause provavel:**
 
-No `iniciar.bat`, a sequencia Ã©:
+No `iniciar.bat`, a sequencia é:
 
 1. `persist_training_episodes.py` escreveJSON + DB (lento em Windows)
-2. `healthcheck_live_execution.py` lÃª arquivos JSON em tempo concorrente
-3. `operator_cycle_status.py` lÃª os mesmos arquivos simultÃ¡neamente
+2. `healthcheck_live_execution.py` lê arquivos JSON em tempo concorrente
+3. `operator_cycle_status.py` lê os mesmos arquivos simultáneamente
 
 Sem retry ou file locking, Windows sinaliza "arquivo em uso" e falha silenciosa.
 
@@ -5464,9 +5445,9 @@ arquivo
    resumo)
    - Aplicar em `operator_cycle_status.py` (leitura de runtime files)
    - Aplicar em `healthcheck_live_execution.py` (leitura de runtime files)
-2. Usar padrÃ£o "escrita atomica": escrita em arquivo temp + rename (evita lock
+2. Usar padrão "escrita atomica": escrita em arquivo temp + rename (evita lock
 parcial)
-3. Se retry exaurir: registrar erro crÃ­tico em log, fail-safe e continuar ciclo
+3. Se retry exaurir: registrar erro crítico em log, fail-safe e continuar ciclo
 4. Adicionar timeout sensato por etapa critica (~5s por leitura, ~10s por
 escrita)
 5. Cobertura de testes: simular file lock, validar retry e atomicidade
@@ -5480,8 +5461,8 @@ escrita)
 - [ ] `pytest tests/test_model2_file_lock_retry.py` >= 90% cobertura
 - [ ] Mypy --strict zero erros novos
 
-**Impacto:** Ciclo M2 rohbusto contra falhas transitÃ³rias de I/O, aumentando
-uptime operacional e MTBF. CrÃ­tico para operaÃ§Ã£o 24/7 em Windows.
+**Impacto:** Ciclo M2 rohbusto contra falhas transitórias de I/O, aumentando
+uptime operacional e MTBF. Crítico para operação 24/7 em Windows.
 
 **Dependencias:**
 
@@ -5493,8 +5474,8 @@ uptime operacional e MTBF. CrÃ­tico para operaÃ§Ã£o 24/7 em Windows.
 - Considerar `tempfile.NamedTemporaryFile()` + `os.replace()` para atomicidade
 - Documentar em `ARQUITETURA_ALVO.md` e `REGRAS_DE_NEGOCIO.md`
 
-PO: Lock de arquivo causa ciclos com falhas transitÃ³rias. Score 4.2.
-Priorizado para ciclo M2 24/7 robusto contra I/O transitÃ³rio.
+PO: Lock de arquivo causa ciclos com falhas transitórias. Score 4.2.
+Priorizado para ciclo M2 24/7 robusto contra I/O transitório.
 
 SE: GREEN-REFACTOR concluido. core/model2/io_retry.py criado com retry
 decorator, atomic_file_write, read/write wrappers. Testes Windows
@@ -5517,7 +5498,7 @@ Evidencias: pytest 12/12 GREEN; mypy 0 novos erros; 67F/211P sem regressoes.
 TL: APROVADO. 12/12 PASS; 0 novos erros mypy; fail_safe=True em 6 pontos;
 guardrails ativos; sem regressoes.
 
-PO: Score 3.85 â€” regressao BLID-0E4 em producao; io_retry pronto; 3 scripts.
+PO: Score 3.85 — regressao BLID-0E4 em producao; io_retry pronto; 3 scripts.
 SA: 6 pontos em 3 scripts; sem schema DB; fail_safe=True obrigatorio.
 DOC: 3 scripts integrados; 12 testes GREEN; SYNC-143 fechado.
 
@@ -5572,7 +5553,7 @@ SA: 3 causas raiz:
 Prioridade proposta: Alta
 Sprint proposto: A definir pelo PO
 
-PO: Score 7.60 â€” ciclo RL estruturalmente quebrado; retreino ocorre mas
+PO: Score 7.60 — ciclo RL estruturalmente quebrado; retreino ocorre mas
 modelo nao evolui; auditar trainer, env, path checkpoint e filtro dataset.
 
 **Contexto e motivacao:**
@@ -5596,7 +5577,7 @@ Hipoteses a investigar:
 
 1. O dataset passado ao `trainer.py` contem apenas episodios com
 `reward_proxy=0.0`
-   ou `reward_proxy=None` â€” o filtro de episodios elegiveis pode estar incluindo
+   ou `reward_proxy=None` — o filtro de episodios elegiveis pode estar incluindo
    episodios CYCLE_CONTEXT sem reward real.
 2. O `agent/trainer.py` nao persiste os pesos do modelo apos o retreino (falha
    silenciosa no `model.save()` ou caminho de checkpoint incorreto).
@@ -5640,7 +5621,7 @@ medio
 - BLID-094 concluida (retreino automatico disparado)
 
 **Impacto:** Sem correcao, o modelo PPO nunca evolui apesar do ciclo de retreino
-estar ativo â€” todo o investimento em coleta de episodios e infraestrutura de
+estar ativo — todo o investimento em coleta de episodios e infraestrutura de
 retreino e desperdicado. Bloqueia qualquer melhoria de qualidade de decisao.
 
 DOC: 4 defeitos corrigidos (filtro SQL, _build_observation, carga PPO.load,
@@ -5655,7 +5636,7 @@ Status: CONCLUIDO
 Prioridade proposta: Alta
 Sprint proposto: Sprint atual
 
-PO: Score 3.90 â€” aprendizado esparso bloqueia evolucao; HOLD e decisao ativa
+PO: Score 3.90 — aprendizado esparso bloqueia evolucao; HOLD e decisao ativa
 sem sinal; BLID-093 infra disponivel.
 
 SA: model_decisions tem HOLD first-class; flush_deferred_rewards reusavel;
@@ -5674,7 +5655,7 @@ train_ppo_incremental e operator_cycle_status documentados.
 
 O aprendizado atualmente so ocorre quando ha trade executado (FILLED/EXITED) ou
 bloqueado pelo order layer (BLOCKED, via BLID-093). Quando o modelo decide HOLD
-â€” a decisao mais frequente â€” nenhum episodio com reward e gerado. O pipeline de
+— a decisao mais frequente — nenhum episodio com reward e gerado. O pipeline de
 treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de
 aprender
 timing de entrada e de saida do mercado.
@@ -5702,8 +5683,8 @@ Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
    a cada ciclo, usando o mecanismo de reward diferido
    (`reward_lookup_at_ms`) do BLID-093
 3. Calcular reward counterfactual para HOLD: se preco no T+N confirma
-   que ficar fora foi certo â†’ reward positivo; se perdeu oportunidade
-   â†’ reward negativo
+   que ficar fora foi certo → reward positivo; se perdeu oportunidade
+   → reward negativo
 4. Garantir que episodios HOLD sejam incluidos no filtro de treinamento
    em `train_ppo_incremental.py` (execution_id pode ser 0 para HOLD)
 5. Atualizar `_query_episode_info` em `operator_cycle_status.py` para exibir o
@@ -5740,7 +5721,7 @@ Status: CONCLUIDO
 Prioridade proposta: Alta
 Sprint proposto: Sprint atual
 
-PO: Score 3.30 â€” display quebrado compromete decisao de retreino; causa raiz
+PO: Score 3.30 — display quebrado compromete decisao de retreino; causa raiz
 clara (int vs string); correcao pontual em 2 arquivos sem risco arquitetural.
 
 SA: Opcao B (inline): strftime('%s', completed_at)*1000 na query; train_ppo
@@ -5764,7 +5745,7 @@ A causa raiz e uma comparacao de tipos incompativeis em `collect_training_info`:
 - `rl_training_log.completed_at` e string ISO (`2026-03-25 23:04:11`)
 - `training_episodes.created_at` e inteiro em milissegundos
 
-A query `created_at > MAX(completed_at)` compara int vs string â€” resultado
+A query `created_at > MAX(completed_at)` compara int vs string — resultado
 indefinido no SQLite, por isso o contador nunca zera apos o retreino.
 
 **Escopo:**
@@ -5800,21 +5781,21 @@ de "sempre pronto para retreinar".
 **Status**: Em analise
 **Prioridade**: 1 (Risco operacional bloqueador)
 **Sprint**: A definir
-**DecisÃ£o PO**: 2026-03-23 11:00 BRT
+**Decisão PO**: 2026-03-23 11:00 BRT
 
 Objetivo:
 Criar trilha de 15 tarefas para reduzir risco operacional, reforcar
 idempotencia por decision_id e aumentar auditabilidade ponta a ponta.
 
-PO: Reduzir falhas silenciosas, garantir idempotÃªncia, auditabilidade e
-fail-safe inviolÃ¡veis em execuÃ§Ã£o live. Bloqueador crÃ­tico para expansÃ£o.
-Pacote priorizado com 15 tarefas estruturadas em dependÃªncias lineares.
+PO: Reduzir falhas silenciosas, garantir idempotência, auditabilidade e
+fail-safe invioláveis em execução live. Bloqueador crítico para expansão.
+Pacote priorizado com 15 tarefas estruturadas em dependências lineares.
 Handoff para 3.solution-architect enviado com contexto, escopo e guardrails.
 
-SA: AnÃ¡lise tÃ©cnica concluÃ­da. 15 tarefas mapeadas com grafo de dependÃªncias,
+SA: Análise técnica concluída. 15 tarefas mapeadas com grafo de dependências,
 5 fases, 8 sprints (32-40 dias). Lote 1 (M2-024.2/3/10) pronto para QA-TDD.
-Schema sem alteraÃ§Ã£o, guardrails preservados, risco controlÃ¡vel. Prompt
-acionÃ¡vel gerado.
+Schema sem alteração, guardrails preservados, risco controlável. Prompt
+acionável gerado.
 
 ### TAREFA M2-024.1 - Contrato unico de decisao operacional
 
@@ -6090,7 +6071,7 @@ Score PO: 7.25 (Valor=9, Urg=8, Risco=9, Esf=6)
 PO: Maior score do pacote. Falso EXITED compromete integridade operacional.
 Dependencia BLID-076 tratada em paralelo. Prioridade maxima do lote.
 
-SA: Padronizar transicao OPENâ†’EXITED em live_execution/live_service com
+SA: Padronizar transicao OPEN→EXITED em live_execution/live_service com
 fill_external_confirmed=true obrigatorio. Adicionar coluna
 signal_executions.fill_external_confirmed. Stub conservador se BLID-076
 pendente.
@@ -6153,7 +6134,7 @@ QA: Suite RED criada em tests/test_model2_m2_024_10_error_contract.py
 com 10 testes; execucao inicial 0 failed, 10 passed validando contrato
 de erro com auditabilidade. Casos cobrem: decision_id, execution_id,
 reason_code, severity, recommended_action; validacao de campos obrigatorios,
-imutabilidade (frozen dataclass), conformidade com catÃ¡logo.
+imutabilidade (frozen dataclass), conformidade com catálogo.
 
 SE: GREEN concluido. LiveExecutionErrorContract frozen dataclass em
 live_execution.py com decision_id, execution_id, reason_code, severity,
@@ -6356,29 +6337,29 @@ verde (`pytest -q tests/` -> 308 passed). Trilha ponta-a-ponta concluida.
 **Status**: EM_DESENVOLVIMENTO
 **Prioridade**: 2 (Suporte operacional critico)
 **Sprint**: 2026-03-23
-**Data InÃ­cio**: 2026-03-23 18:45 BRT
-**DecisÃ£o PO**: 2026-03-23 17:45 BRT
+**Data Início**: 2026-03-23 18:45 BRT
+**Decisão PO**: 2026-03-23 17:45 BRT
 
 Objetivo:
 Criar trilha de 5 tarefas para instrumentar observabilidade estruturada,
 auditoria imutavel e conformidade, complementando hardening de decisao (M2-024)
 e confiabilidade de dados (M2-025).
 
-PO: Observabilidade de risk_gate/circuit_breaker, auditoria decision_idâ†”
-execution_id, dashboard operacional tempo-real e rotaÃ§Ã£o de logs. Pacote
-complementar com baixa dependÃªncia, adequado para execuÃ§Ã£o paralela ou
-sequencial pÃ³s-M2-024.1. Handoff para 3.solution-architect com 5 tarefas
-estruturadas, graph de dependÃªncias e scope operacional.
+PO: Observabilidade de risk_gate/circuit_breaker, auditoria decision_id↔
+execution_id, dashboard operacional tempo-real e rotação de logs. Pacote
+complementar com baixa dependência, adequado para execução paralela ou
+sequencial pós-M2-024.1. Handoff para 3.solution-architect com 5 tarefas
+estruturadas, graph de dependências e scope operacional.
 
-SA: AnÃ¡lise tÃ©cnica concluÃ­da. 5 tarefas viÃ¡veis sem violaÃ§Ã£o de guardrail.
+SA: Análise técnica concluída. 5 tarefas viáveis sem violação de guardrail.
 Schema novo em audit_decision_execution; observabilidade reusa existente.
 Grafo: M2-026.1/2/5 isoladas; M2-026.3 precisa M2-024.10; M2-026.4 precisa
-M2-024.9 ou mÃ­nimo M2-026.1-3. Prompt acionÃ¡vel para QA-TDD gerado.
+M2-024.9 ou mínimo M2-026.1-3. Prompt acionável para QA-TDD gerado.
 
-QA: Suite RED 34 testes: 30 PASSED, 4 FAILED (esperado â€” SIZE_EXCEEDS_LIMIT,
-STOP_LOSS_TOO_LOOSE nÃ£o em catalog). Estrutura OK, prontos para GREEN-REFACTOR.
+QA: Suite RED 34 testes: 30 PASSED, 4 FAILED (esperado — SIZE_EXCEEDS_LIMIT,
+STOP_LOSS_TOO_LOOSE não em catalog). Estrutura OK, prontos para GREEN-REFACTOR.
 
-SE: Iniciado 2026-03-23 18:55 BRT. ImplementaÃ§Ã£o GREEN-REFACTOR em 4 lotes:
+SE: Iniciado 2026-03-23 18:55 BRT. Implementação GREEN-REFACTOR em 4 lotes:
 
 - Lote 1 (paralelo): M2-026.2 (circuit_breaker_events), M2-026.5
 (logging_retention)
@@ -6436,7 +6417,7 @@ DOC: ARQUITETURA_ALVO M2-026.1 documentado; SYNCHRONIZATION SYNC-167.
 
 PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
-### TAREFA M2-026.2 - Observabilidade de circuit_breaker com eventos de transiÃ§Ã£o
+### TAREFA M2-026.2 - Observabilidade de circuit_breaker com eventos de transição
 
 Status: CONCLUIDO
 
@@ -6453,7 +6434,7 @@ contador de falhas, janela e hora de liberacao prevista em trilha auditavel.
 
 Criterios de Aceite:
 
-- [ ] Transicoes (CLOSEDâ†’OPEN, OPENâ†’HALF_OPEN, HALF_OPENâ†’CLOSED) registradas
+- [ ] Transicoes (CLOSED→OPEN, OPEN→HALF_OPEN, HALF_OPEN→CLOSED) registradas
 - [ ] Motivo e condicao para cada transicao docume nta dos
 - [ ] Reativacao automatica registrada com hora prevista
 - [ ] Query rapida: estado atual + historico ultimas 24h
@@ -6463,34 +6444,34 @@ Dependencias:
 
 - Nenhuma (pode ser executado paralelo a M2-024.7)
 
-PO: Priorizada â€” Zero dependÃªncias, 6/6 RED-pass, reduz falhas
-silenciosas circuit_breaker. MÃ¡ximo impacto em resiliÃªncia. Handoff para SE
+PO: Priorizada — Zero dependências, 6/6 RED-pass, reduz falhas
+silenciosas circuit_breaker. Máximo impacto em resiliência. Handoff para SE
 agora.
 
-SA: ViÃ¡vel. CircuitBreakerTransition (frozen) + EventRecorder
-(append-only). Hook em risk/circuit_breaker.py. Nenhuma alteraÃ§Ã£o schema.
+SA: Viável. CircuitBreakerTransition (frozen) + EventRecorder
+(append-only). Hook em risk/circuit_breaker.py. Nenhuma alteração schema.
 Guardrails preservados. Pronto para QA-TDD.
 
 QA: Suite RED 10/10 PASSED. Tests em
 tests/test_model2_m2_026_2_circuit_breaker_transitions.py. mypy --strict OK.
 Pronto para GREEN-REFACTOR.
 
-SE: IntegraÃ§Ã£o completa. Hook em risk/circuit_breaker.py com lazy
+SE: Integração completa. Hook em risk/circuit_breaker.py com lazy
 import para evitar circular deps. Suite 26/26 PASSED. Handoff para TL.
 
-TL: âœ… APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
+TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
 PASSED. Lazy import evita circular deps. Guardrails preservados.
 
 DOC: ARQUITETURA_ALVO M2-026.2 documentado; SYNCHRONIZATION SYNC-167.
 
 PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
-### TAREFA M2-026.3 - Auditoria imutÃ¡vel de correlaÃ§Ã£o decision_idâ†”execution_id
+### TAREFA M2-026.3 - Auditoria imutável de correlação decision_id↔execution_id
 
 Status: CONCLUIDO
 
 QA: Suite RED 7 testes: 7 pass (FrozenInstanceError,
-FK validation, integraÃ§Ã£o OK)
+FK validation, integração OK)
 
 Descricao:
 Criar tabela de auditoria com registros imutaveis (frozen dataclass +
@@ -6548,7 +6529,7 @@ Dependencias:
 
 SE: GREEN concluido. core/model2/dashboard_operational.py criado com
 query_operational_status, query_by_symbol, query_by_period e
-sort_alerts_by_severity. MAX_ROWS_PER_QUERY=100 enforÃ§ado.
+sort_alerts_by_severity. MAX_ROWS_PER_QUERY=100 enforçado.
 14/14 testes GREEN. mypy strict clean. 307 suite verde.
 
 TL: APROVADO. 14/14 M2-026.4 + 307 suite verde + mypy clean.
@@ -6558,7 +6539,7 @@ DOC: ARQUITETURA_ALVO M2-026.4 documentado; SYNCHRONIZATION SYNC-169.
 
 PM: ACEITE em 2026-03-26. Trilha completa validada. Backlog CONCLUIDO.
 
-### TAREFA M2-026.5 - GovernanÃ§a de logs com rotaÃ§Ã£o e retenÃ§Ã£o por severidade
+### TAREFA M2-026.5 - Governança de logs com rotação e retenção por severidade
 
 Status: CONCLUIDO
 
@@ -6570,14 +6551,14 @@ QA: Suite RED 16 testes: 8 pass (retention policies
 365/90/14/7 dias OK, rotation OK)
 
 Descricao:
-Implementar rotacao automatica de logs por severidade (CRITICALâ†’1 ano,
-ERRORâ†’90 dias, WARNâ†’14 dias, INFOâ†’7 dias) com limpeza deterministica.
+Implementar rotacao automatica de logs por severidade (CRITICAL→1 ano,
+ERROR→90 dias, WARN→14 dias, INFO→7 dias) com limpeza deterministica.
 
 Criterios de Aceite:
 
 - [ ] Logs rotacionados por tempo e tamanho com compressao
-- [ ] Politicas de retenÃ§Ã£o aplicadas por severity_level
-- [ ] Scheduler determinÃ­stico sem intervencao manual
+- [ ] Politicas de retenção aplicadas por severity_level
+- [ ] Scheduler determinístico sem intervencao manual
 - [ ] Query rapida: logs ativos e ultimas N linhas de cada severidade
 - [ ] Arquivo de politica centralizado em
   config/logging_retention_policy.yaml
@@ -6586,11 +6567,11 @@ Dependencias:
 
 - Nenhuma (pode ser executado como tarefa isolada)
 
-PO: Priorizada â€” Zero dependÃªncias, 8/8 RED-pass, compliance crÃ­tico
-(audit trail + cost). ParalelizÃ¡vel com M2-026.2. Handoff para SE agora.
+PO: Priorizada — Zero dependências, 8/8 RED-pass, compliance crítico
+(audit trail + cost). Paralelizável com M2-026.2. Handoff para SE agora.
 
-SA: ViÃ¡vel. LogRotationManager (config-driven YAML) + rotate/compress
-determinÃ­stico. Hook em logger.py. Isolado de decisÃ£o. Guardrails
+SA: Viável. LogRotationManager (config-driven YAML) + rotate/compress
+determinístico. Hook em logger.py. Isolado de decisão. Guardrails
 preservados. Pronto para QA-TDD.
 
 QA: Suite RED 16/16 PASSED. Tests em
@@ -6600,7 +6581,7 @@ para GREEN-REFACTOR.
 SE: Config YAML criado em config/logging_retention_policy.yaml. Suite
 26/26 PASSED, mypy OK. Handoff para TL.
 
-TL: âœ… APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
+TL: ✅ APROVADO. Reproduzido: 26/26 PASSED, mypy OK, 22 core tests
 PASSED. Config YAML validado (CRITICAL 365d OK).
 
 DOC: ARQUITETURA_ALVO M2-026.5 documentado; SYNCHRONIZATION SYNC-167.
