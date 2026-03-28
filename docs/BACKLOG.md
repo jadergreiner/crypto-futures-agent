@@ -115,35 +115,38 @@ Priorizacao PO executada (2026-03-27) - Top 10 (orquestrador):
 9) M2-025.8 (Score 3.30) - Em analise
 10) M2-025.6 (Score 3.00) - Em analise
 
-Priorizacao PO executada (2026-03-27) - Top 20 (ciclo atual):
+Priorizacao PO executada (2026-03-27) - Top 20 (entrega solicitada):
 
-1) M2-020.6 (Score 4.30) - Em analise
-2) M2-022.5 (Score 4.05) - BACKLOG
-3) M2-022.4 (Score 3.85) - BACKLOG
-4) M2-020.7 (Score 3.80) - BACKLOG
-5) M2-020.8 (Score 3.80) - BACKLOG
-6) M2-020.10 (Score 3.75) - BACKLOG
-7) M2-020.11 (Score 3.75) - BACKLOG
-8) M2-025.7 (Score 3.75) - Em analise
-9) M2-028.6 (Score 3.75) - BACKLOG
-10) M2-022.3 (Score 3.70) - BACKLOG
-11) M2-020.9 (Score 3.65) - BACKLOG
-12) M2-020.12 (Score 3.65) - BACKLOG
-13) M2-025.14 (Score 3.65) - Em analise
-14) BLID-076 (Score 3.60) - IMPLEMENTADO
-15) M2-025.11 (Score 3.60) - Em analise
-16) M2-020.13 (Score 3.55) - BACKLOG
-17) M2-025.6 (Score 3.55) - Em analise
-18) M2-028.5 (Score 3.50) - BACKLOG
-19) BLID-083 (Score 3.35) - Em analise
-20) BLID-075 (Score 3.25) - Em analise
+1) M2-022.5 (Score 4.05) - Em analise
+2) M2-022.4 (Score 3.85) - Em analise
+3) M2-025.7 (Score 3.85) - Em analise
+4) M2-025.14 (Score 3.85) - Em analise
+5) M2-022.3 (Score 3.70) - Em analise
+6) M2-020.7 (Score 3.80) - Em analise
+7) M2-020.8 (Score 3.80) - Em analise
+8) M2-020.10 (Score 3.75) - Em analise
+9) M2-020.11 (Score 3.75) - Em analise
+10) M2-025.11 (Score 3.60) - Em analise
+11) M2-025.8 (Score 3.30) - Em analise
+12) M2-025.6 (Score 3.00) - Em analise
+13) M2-020.9 (Score 3.65) - Em analise
+14) M2-020.12 (Score 3.65) - Em analise
+15) M2-020.13 (Score 3.55) - Em analise
+16) M2-020.14 (Score 3.50) - Em analise
+17) BLID-083 (Score 3.35) - Em analise
+18) BLID-075 (Score 3.25) - Em analise
+19) BLID-089 (Score 3.20) - Em analise
+20) M2-025.12 (Score 3.10) - Em analise
+
+PO: Pacote de 20 tasks priorizado para throughput com risco controlado,
+desbloqueio em cadeia e guardrails obrigatorios ativos.
 
 Orquestracao de etapas (dev-cycle 2026-03-27):
 
-- Stage 3 (SA): consolidado para os itens 1-10 em `Em analise`.
-- Stage 4 (QA-TDD): iniciar por ordem de score no item 1 (M2-028.4).
+- Stage 3 (SA): consolidado para os itens 1-20 em `Em analise`.
+- Stage 4 (QA-TDD): iniciar por ordem de score no item 1 (M2-022.5).
 - Stage 5 (SE): iniciar apos suite RED aprovada do item 1.
-- Stage 6 (TL): reproduzir `pytest -q tests/` e `mypy --strict` no item 1.
+- Stage 6 (TL): reproduzir `pytest -q tests/` e `mypy --strict` por item.
 - Stage 7 (DOC): atualizar docs existentes e registrar `[SYNC]` apos APROVADO.
 - Stage 8 (PM): fechar com ACEITE, status `CONCLUIDO`, commit/push e arvore limpa.
 
@@ -1049,7 +1052,7 @@ frescor, lacuna e fail-safe; usar DetectorInput com candles vazios/stale.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
-Status: BACKLOG
+Status: Em analise
 
 Descricao:
 Adicionar regressao com carga moderada para validar estabilidade do treino
@@ -3698,7 +3701,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.7 - Definir reward para operar e nao operar
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3712,7 +3715,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.8 - Reforcar reconciliacao model-driven
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3726,7 +3729,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3740,7 +3743,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3755,7 +3758,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.11 - Definir gate de promocao GO/NO-GO
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3769,7 +3772,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.12 - Migrar live para decisao unica do modelo
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3783,7 +3786,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.13 - Desativar estrategia legada
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -3797,7 +3800,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
 
-Status: BACKLOG
+Status: Em analise
 
 Entrega:
 
@@ -4177,7 +4180,7 @@ evidencias verdes; fechamento publicado em main com arvore limpa.
 
 ### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: M2-022
 Prioridade: P1
@@ -4212,7 +4215,7 @@ shadow->live e vulnerabilidades operacionais.
 
 ### TAREFA M2-022.4 - Padronizar handling de erros e timeouts
 
-Status: BACKLOG
+Status: Em analise
 
 Sprint: M2-022
 Prioridade: P1
@@ -4247,7 +4250,7 @@ operacional e auditoria ponta-a-ponta.
 
 ### TAREFA M2-022.5 - Teste de carga com multiplos simbolos
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P1
@@ -4280,6 +4283,46 @@ Impacto:
 
 PO: Teste de carga com 40+ simbolos para validar estabilidade operacional
 e escalabilidade antes de ramp-up em producao.
+SA: Pacote de 20 tasks fatiado por dependencias e risco; iniciar M2-022.5
+com criterios mensuraveis, guardrails ativos e fail-safe.
+
+QA: Suite RED criada em tests/test_model2_m2_022_5_shadow_load_validation.py
+com 8 testes (unitarios=6, integracao=1, regressao_risco=1); execucao inicial
+pytest -q tests/test_model2_m2_022_5_shadow_load_validation.py -> 8 failed
+(ModuleNotFoundError esperado para core.model2.shadow_load_validation).
+Comando tipagem: mypy --strict tests/test_model2_m2_022_5_shadow_load_validation.py
+-> 1 error (import-not-found) esperado na fase RED.
+
+SE: Inicio Green-Refactor em 2026-03-27 para implementar
+core/model2/shadow_load_validation.py com SLOs de carga shadow, isolamento
+de risco e relatorio consolidado.
+
+SE: GREEN concluido em 2026-03-27. Modulo
+core/model2/shadow_load_validation.py criado com validacoes de latencia
+P95/P50, sucesso de episodios, drift de reconciliacao, classificacao de
+erros e isolamento de contexto por modo.
+
+Evidencias de implementacao:
+
+1. pytest -q tests/test_model2_m2_022_5_shadow_load_validation.py -> 8 passed.
+2. mypy --strict core/model2/shadow_load_validation.py
+tests/test_model2_m2_022_5_shadow_load_validation.py -> Success.
+3. pytest -q tests/ -> 308 passed.
+
+Impacto documental proposto (Doc Advocate):
+
+- docs/ARQUITETURA_ALVO.md (novo modulo de validacao de carga shadow M2-022.5)
+- docs/REGRAS_DE_NEGOCIO.md (invariantes de isolamento de risco por contexto)
+- docs/SYNCHRONIZATION.md (registro [SYNC] da implementacao M2-022.5)
+
+TL: APROVADO. Reproducao local: 8/8 task, mypy strict e 308/308 suite verde;
+guardrails risk_gate/circuit_breaker/decision_id preservados.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados para M2-022.5
+(RN-030), com trilha [SYNC] registrada.
+
+PM: ACEITE em 2026-03-27. Trilha completa validada ponta-a-ponta
+(PO->SA->QA->SE->TL->DOC), backlog atualizado para CONCLUIDO.
 
 ### TAREFA M2-022.6 - Consolidar documentacao de arquitetura live
 

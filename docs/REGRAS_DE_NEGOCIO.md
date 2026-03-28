@@ -344,3 +344,20 @@ entre backlog, arquitetura e regras de negocio:
    com tag `[SYNC]` e referencia da task.
 4. Divergencia entre docs oficiais e implementacao deve resultar em
    tratamento conservador (no-go para expansao operacional).
+
+### RN-030 - Validacao de Carga Shadow e Isolamento de Contexto (M2-022.5)
+
+A validacao de carga para preparo de expansao operacional deve ocorrer em modo
+`shadow` com guardrails preservados e criterios objetivos de desempenho:
+
+1. Escopo minimo de carga: 40 simbolos em janela de 5 minutos, sem envio de
+   ordens reais.
+2. SLO de latencia: razao `P95/P50 <= 1.5` por simbolo na janela avaliada.
+3. SLO de episodios: taxa de sucesso de persistencia `>= 99.5%`.
+4. SLO de reconciliacao: drift maximo `<= 0.01%`.
+5. Classificacao de erro operacional deve manter correlacao por
+   `decision_id` e `execution_id`.
+6. Isolamento de contexto e obrigatorio: modo `shadow` nao pode operar com
+   credencial live; em ambiguidade, bloquear em fail-safe.
+7. Relatorio consolidado deve explicitar guardrails ativos:
+   `risk_gate=ATIVO`, `circuit_breaker=ATIVO`, `decision_id=IDEMPOTENTE`.

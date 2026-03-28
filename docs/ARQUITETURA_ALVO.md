@@ -314,6 +314,21 @@ Componentes:
    - `PromotionEvaluator`: avalia criterios de forma fail-safe (nunca lanca excecao)
    - Defaults conservadores: win_rate >= 55%, episodes >= 30, drawdown <= 5%
 
+**M2-022.5 (Validacao de carga shadow multi-simbolo)**:
+
+1. `core/model2/shadow_load_validation.py` consolida validacao de carga em
+   `shadow` para 40 simbolos por janela de 5 minutos, sem envio de ordem real.
+2. SLOs avaliados no relatorio consolidado:
+   - latencia por razao P95/P50 (`<= 1.5`)
+   - sucesso de episodios (`>= 99.5%`)
+   - drift de reconciliacao (`<= 0.01%`)
+3. Classificacao de erro operacional com correlacao por `decision_id` e
+   `execution_id` para rastreabilidade.
+4. Isolamento de contexto operacional por modo (`shadow`/`paper`/`live`) em
+   fail-safe quando credencial nao aderente ao contexto.
+5. Relatorio final publica snapshot de guardrails:
+   `risk_gate=ATIVO`, `circuit_breaker=ATIVO`, `decision_id=IDEMPOTENTE`.
+
 Dados coletados por simbolo:
 
 1. Candles capturados (count, timestamp do ultimo)

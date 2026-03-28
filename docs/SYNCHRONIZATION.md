@@ -6129,3 +6129,34 @@ REVISADO_APROVADO
     tests/test_m2_030_3_to_12_stage_controls.py -> 32 passed
   - mypy --strict core/dev_cycle_acceptance_pack.py -> Success
   - pytest -q tests/ -> 308 passed
+
+### [SYNC-231] M2-022.5 Suite RED de carga shadow multi-simbolo - 2026-03-27
+
+- Agente: 4.qa-tdd
+- Item: M2-022.5
+- Status backlog: TESTES_PRONTOS
+- Codigo alterado:
+  - tests/test_model2_m2_022_5_shadow_load_validation.py (novo)
+  - docs/BACKLOG.md
+- Validacoes:
+  - pytest -q tests/test_model2_m2_022_5_shadow_load_validation.py -> 8 failed (RED esperado)
+  - mypy --strict tests/test_model2_m2_022_5_shadow_load_validation.py -> 1 error import-not-found (RED esperado)
+
+### [SYNC-232] M2-022.5 Governanca final de docs (Doc Advocate) - 2026-03-27
+
+- Agente: 7.doc-advocate
+- Item: M2-022.5
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: adicionada secao M2-022.5 em Camada 6 com SLOs, isolamento
+    de contexto e snapshot de guardrails.
+  - REGRAS_DE_NEGOCIO: adicionada RN-030 para contrato de carga shadow e
+    criterios de validacao operacional.
+  - BACKLOG: registrado comentario DOC no item M2-022.5.
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
