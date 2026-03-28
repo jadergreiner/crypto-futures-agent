@@ -466,3 +466,24 @@ de dados e treino com bloqueio fail-safe em falha:
    aceita `model2_db_path` e alias `db_path`.
 6. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-037 - Diagnostico Imediato por Artefatos Persistidos (M2-016.2)
+
+Quando a operacao em producao ja tiver acumulado evidencia suficiente:
+
+1. O fechamento da M2-016.2 pode usar `persisted_artifacts` sem aguardar nova
+   janela operacional.
+2. O diagnostico imediato deve localizar obrigatoriamente os artefatos
+   `window`, `checkpoint` e `report` persistidos.
+3. O `report.window_id` deve coincidir com o `window.window_id`; divergencia
+   implica bloqueio fail-safe com `NO_GO`.
+4. O `report.kpis` deve conter, no minimo:
+   `enhancement_rate_percent`, `win_rate_percent`, `incident_count`,
+   `divergence_proxy`, `avg_pipeline_latency_ms` e
+   `p95_pipeline_latency_ms`.
+5. Ausencia de qualquer KPI minimo obrigatorio implica bloqueio fail-safe com
+   `NO_GO`.
+6. O fechamento imediato deve expor `wait_for_new_window=False` e manter
+   rastreabilidade por `decision_id`.
+7. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

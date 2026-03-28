@@ -23,6 +23,48 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-263] M2-016.2 Governanca final de docs para persisted_artifacts - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-016.2
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: documentado fechamento imediato por `persisted_artifacts`
+    com validacao de completude, consistencia temporal, `window_id`
+    consistente e `wait_for_new_window=False`.
+  - REGRAS_DE_NEGOCIO: adicionada RN-037 para fail-safe por divergencia de
+    `window_id` e ausencia de KPI minimo obrigatorio.
+  - BACKLOG: registrado comentario `DOC:` no item M2-016.2 com referencia
+    de sincronizacao final.
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-262] M2-016.2 Suite RED para artefatos persistidos em producao - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Arquivos atualizados:
+  - tests/test_model2_m2_016_2_production_persisted_red.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - criada suite RED para fechamento imediato da M2-016.2 usando artefatos
+    persistidos de producao, sem aguardar nova janela operacional;
+  - backlog atualizado para `TESTES_PRONTOS` com referencia explicita da nova
+    suite focada em completude de artefatos, comparativo auditavel e
+    GO/NO-GO fail-safe;
+  - contratos novos definidos para consolidacao imediata e rastreabilidade por
+    `decision_id`.
+- Evidencias tecnicas (fase RED):
+  - `pytest -q tests/test_model2_m2_016_2_production_persisted_red.py`
+    -> esperado falhar na fase RED por contratos ainda nao implementados
+- Status backlog: M2-016.2 -> TESTES_PRONTOS
+
 ### [SYNC-261] M2-025.14 Governanca final de docs (Doc Advocate) - 2026-03-28
 
 - Agente: 7.doc-advocate

@@ -463,6 +463,40 @@ Dados coletados por simbolo:
      `{symbol}:{timeframe}:{decision_timestamp}` quando metadata nao informar
      `decision_id`.
 
+**M2-016.2 (Diagnostico imediato com artefatos persistidos)**:
+
+1. `scripts/model2/m2_016_2_validation_window.py` suporta fechamento imediato
+   por `persisted_artifacts`, sem iniciar nova janela operacional:
+   - `collect_persisted_validation_artifacts(...)` localiza `window`,
+     `checkpoint` e `report` persistidos;
+   - `validate_persisted_artifact_completeness(...)` exige campos de topo e
+     KPIs minimos obrigatorios nos artefatos persistidos;
+   - `validate_persisted_window_consistency(...)` valida duracao >= 72h e
+     consistencia temporal entre `window` e `checkpoint`;
+   - `run_finalize_from_persisted_artifacts(...)` finaliza com
+     `wait_for_new_window=False`.
+2. O fluxo opera em fail-safe e retorna `NO_GO` quando:
+   - faltar artefato obrigatorio;
+   - `report.window_id` divergir de `window.window_id`;
+   - qualquer KPI minimo obrigatorio estiver ausente.
+3. KPIs minimos obrigatorios no `report.kpis`:
+   - `enhancement_rate_percent`
+   - `win_rate_percent`
+   - `incident_count`
+   - `divergence_proxy`
+   - `avg_pipeline_latency_ms`
+   - `p95_pipeline_latency_ms`
+4. `scripts/model2/phase_d5_real_data_correlation.py` expõe
+   `build_persisted_phase_e_metrics_bundle(...)` para consolidar o bundle
+   minimo a partir do relatorio persistido.
+5. `scripts/model2/train_ppo_lstm.py` expõe
+   `validate_m2_016_2_production_gate(...)` para aceitar somente evidencias
+   oriundas de `persisted_artifacts` com status `GO|GO_COM_RESTRICOES`.
+6. Guardrails preservados:
+   - sem bypass de `risk_gate`/`circuit_breaker`;
+   - idempotencia por `decision_id` mantida;
+   - em ambiguidade operacional, diagnostico bloqueado.
+
 ## Modos de operacao
 
 1. `backtest`: validacao offline da politica.

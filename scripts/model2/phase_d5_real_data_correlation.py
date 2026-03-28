@@ -93,6 +93,18 @@ def build_phase_e_metrics_bundle(
     }
 
 
+def build_persisted_phase_e_metrics_bundle(*, validation_report: dict[str, Any]) -> dict[str, Any]:
+    """Extrai bundle minimo de metricas a partir do relatorio persistido da validacao."""
+    kpis = validation_report.get("kpis", {})
+    if not isinstance(kpis, dict):
+        kpis = {}
+    return {
+        "enhancement_rate_percent": float(kpis.get("enhancement_rate_percent", 0.0) or 0.0),
+        "win_rate_percent": float(kpis.get("win_rate_percent", 0.0) or 0.0),
+        "incident_count": int(kpis.get("incident_count", 0) or 0),
+    }
+
+
 class RealDataCorrelationAnalyzer:
     """Analiza correlacoes em dados reais de episodios de treino."""
 

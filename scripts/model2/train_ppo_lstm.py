@@ -43,6 +43,24 @@ def validate_m2_016_2_dependency_gate(validation_gate_status: str) -> Dict[str, 
     }
 
 
+def validate_m2_016_2_production_gate(validation_status: str, evidence_source: str) -> Dict[str, Any]:
+    """Valida fechamento imediato quando a evidencia vem de artefatos persistidos de producao."""
+    normalized_status = validation_status.strip().upper()
+    normalized_source = evidence_source.strip().lower()
+    allowed = {"GO", "GO_COM_RESTRICOES"}
+    passed = normalized_status in allowed and normalized_source == "persisted_artifacts"
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "validation_status": normalized_status,
+        "evidence_source": normalized_source,
+        "message": (
+            "Validacao imediata em producao autorizada."
+            if passed
+            else "Validacao imediata em producao nao autorizada."
+        ),
+    }
+
+
 def persist_phase_e_comparison_report(
     *,
     output_path: Path,
