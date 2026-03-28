@@ -6475,3 +6475,43 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 10 passed
   - mypy --strict core/model2/pipeline_timeout.py core/model2/observability.py tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> Success
   - pytest -q tests/ -> 308 passed
+
+### [SYNC-252] M2-025.10 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.10
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: adicionada secao M2-025.10 com `CycleSnapshot`
+    (frozen), `CycleSnapshotRepository`, tabela `cycle_snapshots` e
+    integracao no `record_cycle_snapshot`.
+  - REGRAS_DE_NEGOCIO: adicionada RN-034 para snapshot unico por
+    `cycle_id` com upsert, compatibilidade legada e guardrails obrigatorios.
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.10 com referencia
+    [SYNC-252].
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-253] M2-025.10 Fechamento Project Manager (ACEITE) - 2026-03-28
+
+- Agente: 8.project-manager
+- Item: M2-025.10
+- Decisao: ACEITE
+- Status backlog: CONCLUIDO
+- Ajustes finais:
+  - Backlog atualizado para `CONCLUIDO` com comentario `PM:` no item
+    M2-025.10.
+  - Trilha documental confirmada com referencia [SYNC-252].
+- Validacoes finais:
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+  - pytest -q tests/test_model2_m2_025_10_cycle_snapshot.py -> 4 passed
+  - mypy --strict core/model2/cycle_snapshot.py core/model2/observability.py
+    tests/test_model2_m2_025_10_cycle_snapshot.py -> Success
+  - pytest -q tests/ -> 308 passed

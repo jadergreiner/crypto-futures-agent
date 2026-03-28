@@ -316,6 +316,26 @@ Componentes:
   `circuit_breaker`; `decision_id` permanece preservado no wrapper de
   validacao.
 
+**M2-025.10 (Snapshot unico de dados por ciclo)**:
+
+- `core/model2/cycle_snapshot.py` introduz:
+  - `CycleSnapshot` (frozen dataclass) com consolidado de `candle`,
+    `decisao`, `episodio` e `treino` por `cycle_id`;
+  - `CycleSnapshotRepository` com agregacao por `cycle_id`, merge
+    conservador e upsert unico em `cycle_snapshots`.
+- Persistencia dedicada:
+  - migration `scripts/model2/migrations/0014_create_cycle_snapshots.sql`
+    cria tabela `cycle_snapshots` com colunas JSON (`candle_json`,
+    `decisao_json`, `episodio_json`, `treino_json`) e `updated_at`.
+- Integracao operacional:
+  - `Model2ObservabilityService.record_cycle_snapshot(...)` passa a
+    atualizar automaticamente o consolidado de ciclo quando `cycle_id`
+    estiver presente.
+- Guardrails preservados:
+  - sem bypass de `risk_gate`/`circuit_breaker`;
+  - idempotencia por `decision_id` mantida;
+  - ausência de `cycle_id` nao quebra compatibilidade legada.
+
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
 1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)

@@ -411,3 +411,18 @@ No pipeline de dados do ciclo M2:
    (`collect->scan`, `validate->validate`, `consolidate->signal`).
 6. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-034 - Snapshot Unico por Ciclo (M2-025.10)
+
+Para suporte operacional rapido e investigacao auditavel por ciclo:
+
+1. O sistema deve manter snapshot consolidado por `cycle_id` contendo, no
+   minimo, `candle`, `decisao`, `episodio` e `treino`.
+2. A persistencia consolidada deve ocorrer em estrutura dedicada
+   `cycle_snapshots` com um unico registro por `cycle_id` (upsert).
+3. A atualizacao deve integrar o fluxo observability (`record_cycle_snapshot`)
+   sem quebrar compatibilidade com ciclos sem `cycle_id`.
+4. O consolidado deve preservar trilha de correlacao com execucao/treino
+   quando dados estiverem disponiveis no banco.
+5. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

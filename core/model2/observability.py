@@ -9,6 +9,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from .cycle_snapshot import CycleSnapshotRepository
 from .signal_adapter import ADAPTER_EXPORT_KEY, ADAPTER_LAST_ERROR_KEY
 from .thesis_state import OFFICIAL_THESIS_STATUSES
 
@@ -775,3 +776,20 @@ class Model2ObservabilityService:
             conn.commit()
         finally:
             conn.close()
+
+        if snapshot.cycle_id is None:
+            return
+
+        # M2-025.10: manter consolidado unico por cycle_id para suporte operacional.
+        try:
+            CycleSnapshotRepository(self.db_path).refresh_cycle_snapshot(
+                cycle_id=str(snapshot.cycle_id),
+                candle=dict(snapshot.candle_fresco),
+                decision=dict(snapshot.decisao),
+                episode=dict(snapshot.episodio),
+            )
+        except Exception:
+            _logger.warning(
+                "Falha ao atualizar cycle_snapshot consolidado para cycle_id=%s",
+                snapshot.cycle_id,
+            )

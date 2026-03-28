@@ -304,7 +304,7 @@ publicado em main com arvore local limpa.
 
 ### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
 
@@ -321,6 +321,24 @@ Dep M2-025.6 deve preceder.
 
 SA: CycleSnapshot(frozen dataclass) em core/model2/cycle_snapshot.py;
 agregado por cycle_id; persiste em campo JSON ou tabela cycle_snapshots.
+
+SE: GREEN concluido em 2026-03-28. Criado core/model2/cycle_snapshot.py
+com CycleSnapshot(frozen) + CycleSnapshotRepository para consolidar
+candle/decisao/episodio/treino por cycle_id e upsert em cycle_snapshots.
+Integrado ao observability.record_cycle_snapshot() e adicionada migracao
+scripts/model2/migrations/0014_create_cycle_snapshots.sql.
+Suite alvo GREEN: tests/test_model2_m2_025_10_cycle_snapshot.py (4/4),
+snapshot regressao em tests/test_m2_024_6_to_11.py -k snapshot (4/4),
+mypy --strict clean nos modulos alterados.
+
+TL: APROVADO. 4/4 task + 308/308 suite + mypy strict verdes;
+cycle_snapshot por cycle_id e migracao 0014 sem regressao.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.10
+(snapshot unico por cycle_id e governanca RN-034); trilha [SYNC-252].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-252] concluido; publicado em main.
 
 ### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
 
