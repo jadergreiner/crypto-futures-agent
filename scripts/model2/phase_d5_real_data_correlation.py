@@ -11,6 +11,7 @@ coletados pelo processo M2-016.2 em modo live/shadow.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sqlite3
 import sys
@@ -20,10 +21,11 @@ from typing import Any
 
 try:
     import numpy as np
-    from scipy import stats
 except ImportError:
     print("Instale: pip install numpy scipy")
     sys.exit(1)
+
+stats = importlib.import_module("scipy.stats")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -74,6 +76,23 @@ def _label_to_numeric(label: str) -> float | None:
     return mapping.get(str(label).lower())
 
 
+def build_phase_e_metrics_bundle(
+    *,
+    sharpe_mlp: float,
+    sharpe_lstm: float,
+    win_rate_mlp: float,
+    win_rate_lstm: float,
+    drawdown_mlp: float,
+    drawdown_lstm: float,
+) -> dict[str, Any]:
+    """Consolida metricas de comparativo MLP/LSTM para a Fase E."""
+    return {
+        "sharpe": {"mlp": sharpe_mlp, "lstm": sharpe_lstm, "delta_lstm_minus_mlp": sharpe_lstm - sharpe_mlp},
+        "win_rate": {"mlp": win_rate_mlp, "lstm": win_rate_lstm, "delta_lstm_minus_mlp": win_rate_lstm - win_rate_mlp},
+        "drawdown": {"mlp": drawdown_mlp, "lstm": drawdown_lstm, "delta_lstm_minus_mlp": drawdown_lstm - drawdown_mlp},
+    }
+
+
 class RealDataCorrelationAnalyzer:
     """Analiza correlacoes em dados reais de episodios de treino."""
 
@@ -82,7 +101,7 @@ class RealDataCorrelationAnalyzer:
         self.conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
         self.conn.row_factory = sqlite3.Row
 
-    def close(self):
+    def close(self) -> None:
         if self.conn:
             self.conn.close()
 
@@ -109,7 +128,7 @@ class RealDataCorrelationAnalyzer:
             (execution_mode,),
         ).fetchall()
 
-        episodes = []
+        episodes: list[dict[str, Any]] = []
         for row in rows:
             try:
                 features = _safe_json_dict(row["features_json"])
@@ -125,10 +144,10 @@ class RealDataCorrelationAnalyzer:
 
         return episodes
 
-    def analyze_fr_sentiment_vs_label(self, episodes: list[dict]) -> dict[str, Any]:
+    def analyze_fr_sentiment_vs_label(self, episodes: list[dict[str, Any]]) -> dict[str, Any]:
         """Analiza correlacao entre funding rate sentiment e label."""
-        fr_sentiments = []
-        labels_numeric = []
+        fr_sentiments: list[float] = []
+        labels_numeric: list[float] = []
 
         for ep in episodes:
             features = ep.get("features", {})
@@ -150,7 +169,7 @@ class RealDataCorrelationAnalyzer:
         corr_pearson, p_value_pearson = stats.pearsonr(fr_sentiments, labels_numeric)
         corr_spearman, p_value_spearman = stats.spearmanr(fr_sentiments, labels_numeric)
 
-        sentiment_outcomes = {"bullish": [], "neutral": [], "bearish": []}
+        sentiment_outcomes: dict[str, list[float]] = {"bullish": [], "neutral": [], "bearish": []}
         for i, sentiment in enumerate(fr_sentiments):
             if sentiment > 0.5:
                 sentiment_outcomes["bullish"].append(labels_numeric[i])
@@ -159,11 +178,11 @@ class RealDataCorrelationAnalyzer:
             else:
                 sentiment_outcomes["neutral"].append(labels_numeric[i])
 
-        win_rates = {}
-        for sentiment, outcomes in sentiment_outcomes.items():
+        win_rates: dict[str, dict[str, float | int]] = {}
+        for sentiment_key, outcomes in sentiment_outcomes.items():
             if outcomes:
                 win_rate = sum(1 for x in outcomes if x > 0) / len(outcomes)
-                win_rates[sentiment] = {
+                win_rates[sentiment_key] = {
                     "win_rate": win_rate,
                     "n_episodes": len(outcomes),
                     "avg_reward": float(np.mean(outcomes)),
@@ -181,10 +200,10 @@ class RealDataCorrelationAnalyzer:
             "interpretation": _interpret_correlation(corr_pearson, p_value_pearson),
         }
 
-    def analyze_fr_trend_vs_reward(self, episodes: list[dict]) -> dict[str, Any]:
+    def analyze_fr_trend_vs_reward(self, episodes: list[dict[str, Any]]) -> dict[str, Any]:
         """Analiza correlacao entre funding rate trend e reward."""
-        fr_trends = []
-        rewards = []
+        fr_trends: list[float] = []
+        rewards: list[float] = []
 
         for ep in episodes:
             features = ep.get("features", {})
@@ -206,7 +225,7 @@ class RealDataCorrelationAnalyzer:
         corr_pearson, p_value = stats.pearsonr(fr_trends, rewards)
         corr_spearman, p_value_spearman = stats.spearmanr(fr_trends, rewards)
 
-        trend_outcomes = {"increasing": [], "stable": [], "decreasing": []}
+        trend_outcomes: dict[str, list[float]] = {"increasing": [], "stable": [], "decreasing": []}
         for i, trend in enumerate(fr_trends):
             if trend > 0.5:
                 trend_outcomes["increasing"].append(rewards[i])
@@ -215,10 +234,10 @@ class RealDataCorrelationAnalyzer:
             else:
                 trend_outcomes["stable"].append(rewards[i])
 
-        avg_rewards = {}
-        for trend, reward_list in trend_outcomes.items():
+        avg_rewards: dict[str, dict[str, float | int]] = {}
+        for trend_key, reward_list in trend_outcomes.items():
             if reward_list:
-                avg_rewards[trend] = {
+                avg_rewards[trend_key] = {
                     "avg_reward": float(np.mean(reward_list)),
                     "std_reward": float(np.std(reward_list)) if len(reward_list) > 1 else 0.0,
                     "min_reward": float(np.min(reward_list)),
@@ -237,10 +256,10 @@ class RealDataCorrelationAnalyzer:
             "interpretation": _interpret_correlation(corr_pearson, p_value),
         }
 
-    def analyze_oi_sentiment_vs_label(self, episodes: list[dict]) -> dict[str, Any]:
+    def analyze_oi_sentiment_vs_label(self, episodes: list[dict[str, Any]]) -> dict[str, Any]:
         """Analiza correlacao entre OI sentiment e label."""
-        oi_sentiments = []
-        labels_numeric = []
+        oi_sentiments: list[float] = []
+        labels_numeric: list[float] = []
 
         for ep in episodes:
             features = ep.get("features", {})
@@ -262,7 +281,7 @@ class RealDataCorrelationAnalyzer:
         corr_pearson, p_value_pearson = stats.pearsonr(oi_sentiments, labels_numeric)
         corr_spearman, p_value_spearman = stats.spearmanr(oi_sentiments, labels_numeric)
 
-        sentiment_outcomes = {"accumulating": [], "neutral": [], "distributing": []}
+        sentiment_outcomes: dict[str, list[float]] = {"accumulating": [], "neutral": [], "distributing": []}
         for i, sentiment in enumerate(oi_sentiments):
             # Bullish (accumulating) vs Bearish (distributing)
             if sentiment > 0.5:
@@ -272,11 +291,11 @@ class RealDataCorrelationAnalyzer:
             else:
                 sentiment_outcomes["neutral"].append(labels_numeric[i])
 
-        win_rates = {}
-        for sentiment, outcomes in sentiment_outcomes.items():
+        win_rates: dict[str, dict[str, float | int]] = {}
+        for sentiment_key, outcomes in sentiment_outcomes.items():
             if outcomes:
                 win_rate = sum(1 for x in outcomes if x > 0) / len(outcomes)
-                win_rates[sentiment] = {
+                win_rates[sentiment_key] = {
                     "win_rate": win_rate,
                     "n_episodes": len(outcomes),
                     "avg_reward": float(np.mean(outcomes)),
@@ -316,9 +335,9 @@ class RealDataCorrelationAnalyzer:
 
         return report
 
-    def _generate_recommendations(self, episodes: list[dict]) -> list[str]:
+    def _generate_recommendations(self, episodes: list[dict[str, Any]]) -> list[str]:
         """Gera recomendacoes baseadas nos dados."""
-        recommendations = []
+        recommendations: list[str] = []
 
         label_counts = {"win": 0, "loss": 0, "breakeven": 0}
         for ep in episodes:
@@ -341,7 +360,11 @@ class RealDataCorrelationAnalyzer:
                     "Monitorar possivel overfitting ao aumentar complexidade."
                 )
 
-        rewards = [ep.get("reward_proxy") for ep in episodes if ep.get("reward_proxy") is not None]
+        rewards: list[float] = [
+            float(ep["reward_proxy"])
+            for ep in episodes
+            if isinstance(ep.get("reward_proxy"), (int, float))
+        ]
         if rewards:
             avg_reward = np.mean(rewards)
             if avg_reward < -0.1:
@@ -379,7 +402,7 @@ def _interpret_correlation(corr: float, p_value: float) -> str:
     return f"Correlacao {strength} {direction} (r={corr:.4f}, p={p_value:.4f})"
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description="Phase D.5: Analise de Correlacao com Dados Reais")
     parser.add_argument(
         "--db",
@@ -416,7 +439,7 @@ def main():
 
         if report.get("status") == "FAILED":
             print(f"\n[FAIL] Analise abortada: {report.get('error')}")
-            sys.exit(1)
+            return 1
 
         report_path = args.output_dir / f"phase_d5_correlation_{args.execution_mode}_{int(datetime.now(timezone.utc).timestamp())}.json"
         report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -442,13 +465,13 @@ def main():
         for rec in report.get("recommendations", []):
             print(f"  {rec}")
 
-        sys.exit(0)
+        return 0
 
     finally:
         analyzer.close()
 
 
-def _print_analysis_result(analysis: dict[str, Any]):
+def _print_analysis_result(analysis: dict[str, Any]) -> None:
     """Printa resultado da analise."""
     if not analysis or analysis.get("status") == "INSUFFICIENT_DATA":
         print(f"  [WARN] Dados insuficientes (n={analysis.get('n_samples', 0)})")
@@ -474,4 +497,4 @@ def _print_analysis_result(analysis: dict[str, Any]):
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

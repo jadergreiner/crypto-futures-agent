@@ -12,9 +12,10 @@ import sys
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List
 from time import perf_counter
 import numpy as np
+from numpy.typing import NDArray
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -29,6 +30,37 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def validate_m2_016_2_dependency_gate(validation_gate_status: str) -> Dict[str, Any]:
+    """Bloqueia fechamento da Fase E sem validacao operacional previa da M2-016.2."""
+    normalized = validation_gate_status.strip().upper()
+    allowed = {"GO", "GO_COM_RESTRICOES"}
+    return {
+        "status": "PASS" if normalized in allowed else "FAIL",
+        "validation_gate_status": normalized,
+        "message": "Dependencia M2-016.2 valida." if normalized in allowed else "Dependencia M2-016.2 nao validada.",
+    }
+
+
+def persist_phase_e_comparison_report(
+    *,
+    output_path: Path,
+    policy_type: str,
+    sharpe: float,
+    win_rate: float,
+    drawdown: float,
+) -> Path:
+    """Persiste artefato comparativo da Fase E para rastreabilidade de treino."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_at_utc_ms": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "policy_type": policy_type,
+        "metrics": {"sharpe": sharpe, "win_rate": win_rate, "drawdown": drawdown},
+    }
+    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    return output_path
+
 
 class PPOLstmTrainer:
     def __init__(
@@ -49,7 +81,7 @@ class PPOLstmTrainer:
 
         self.episodes_data: Optional[List[Dict[str, Any]]] = None
         self.obs_data: Optional[List[Any]] = None
-        self.rewards_data: Optional[np.ndarray] = None
+        self.rewards_data: Optional[NDArray[np.float32]] = None
 
     def load_episodes_from_db(self) -> Dict[str, Any]:
         """Carregar episódios de treinamento do banco."""
@@ -121,7 +153,7 @@ class PPOLstmTrainer:
             self.obs_data = observations
             self.rewards_data = np.array(rewards, dtype=np.float32)
 
-            result = {
+            result: Dict[str, Any] = {
                 "status": "ok",
                 "samples_count": len(observations),
                 "mean_reward": float(np.mean(self.rewards_data)),
@@ -144,14 +176,19 @@ class PPOLstmTrainer:
 
     def train(self, timesteps: int = 10000) -> Dict[str, Any]:
         from stable_baselines3 import PPO
-        from gymnasium.spaces import Box, Discrete, Dict as GymDict
+        from gymnasium.spaces import Box, Discrete
         import gymnasium as gym
 
         if not self.obs_data:
             return {"status": "error", "error": "No training data"}
 
-        class HistoricalDataEnv(gym.Env):
-            def __init__(self, observations, rewards, max_steps=100):
+        class HistoricalDataEnv(gym.Env[Any, int]):
+            def __init__(
+                self,
+                observations: List[Any],
+                rewards: NDArray[np.float32],
+                max_steps: int = 100,
+            ) -> None:
                 self.observations = observations
                 self.rewards = rewards
                 self.max_steps = max_steps
@@ -162,14 +199,15 @@ class PPOLstmTrainer:
                 self.observation_space = Box(low=-np.inf, high=np.inf, shape=(20,), dtype=np.float32)
                 self.action_space = Discrete(3)
                 
-            def reset(self, seed=None):
+            def reset(self, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[Any, dict[str, Any]]:
                 super().reset(seed=seed)
                 self.current_step = 0
-                idx = np.random.randint(0, max(1, len(self.observations) - self.max_steps))
-                self.start_idx = idx
+                del options
+                idx = int(np.random.randint(0, max(1, len(self.observations) - self.max_steps)))
+                self.start_idx = int(idx)
                 return self.observations[idx], {}
                 
-            def step(self, action):
+            def step(self, action: int) -> tuple[Any, float, bool, bool, dict[str, Any]]:
                 self.current_step += 1
                 idx = min(self.start_idx + self.current_step, len(self.observations) - 1)
                 base_reward = self.rewards[idx] if idx < len(self.rewards) else 0.0
@@ -185,7 +223,8 @@ class PPOLstmTrainer:
                 return obs, base_reward + action_bonus, terminated, truncated, {}
 
         # 1. Base Environment
-        env = HistoricalDataEnv(self.obs_data, self.rewards_data, max_steps=100)
+        assert self.rewards_data is not None
+        env: Any = HistoricalDataEnv(self.obs_data, self.rewards_data, max_steps=100)
         
         # 2. Wrapper
         use_lstm = (self.policy_type == "lstm")
@@ -193,8 +232,8 @@ class PPOLstmTrainer:
 
         logger.info(f"[PPO-{self.policy_type.upper()}] Usando observacao: {env.observation_space}")
 
-        policy_class = LSTMPolicy if use_lstm else 'MlpPolicy'
-        policy_kwargs = {}
+        policy_class: Any = LSTMPolicy if use_lstm else "MlpPolicy"
+        policy_kwargs: Dict[str, Any] = {}
         if not use_lstm:
             policy_kwargs = dict(net_arch=dict(pi=[128, 128], vf=[128, 128]))
 
@@ -228,7 +267,7 @@ class PPOLstmTrainer:
             "model_path": str(model_path)
         }
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description='Treinamento comparativo PPO LSTM vs MLP')
     parser.add_argument('--policy', type=str, choices=['mlp', 'lstm'], default='mlp', help='Tipos de politica a treinar')
     parser.add_argument('--timesteps', type=int, default=10000, help='Timesteps de treino')
@@ -249,4 +288,4 @@ def main():
     return 0 if res.get('status') == 'ok' else 1
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())
