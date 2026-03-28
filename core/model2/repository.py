@@ -348,8 +348,12 @@ class Model2ThesisRepository:
         if not detection.detected:
             raise ValueError("DetectionResult.detected must be True for persistence.")
 
-        expires_at_ms = int(detection.metadata.get("expires_at", now_ms + DEFAULT_EXPIRATION_MS))
-        metadata_json = json.dumps(detection.metadata, ensure_ascii=True, sort_keys=True)
+        metadata_payload = dict(detection.metadata)
+        if detection.cycle_id is not None:
+            metadata_payload["cycle_id"] = detection.cycle_id
+
+        expires_at_ms = int(metadata_payload.get("expires_at", now_ms + DEFAULT_EXPIRATION_MS))
+        metadata_json = json.dumps(metadata_payload, ensure_ascii=True, sort_keys=True)
 
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")

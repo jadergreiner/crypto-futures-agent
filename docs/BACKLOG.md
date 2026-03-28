@@ -114,6 +114,24 @@ Priorizacao PO executada (2026-03-27) - Top 20 (entrega solicitada):
 19) BLID-089 (Score 3.20) - Em analise
 20) M2-025.12 (Score 3.10) - Em analise
 
+Priorizacao PO executada (2026-03-28) - Pacote de 12 itens (2-3 sprints):
+
+1) M2-022.1 (Score 4.40) - Em analise
+2) M2-020.8 (Score 4.20) - Em analise
+3) M2-020.11 (Score 4.10) - Em analise
+4) M2-025.14 (Score 4.00) - Em analise
+5) M2-020.12 (Score 3.95) - Em analise
+6) M2-025.7 (Score 3.90) - Em analise
+7) M2-020.10 (Score 3.80) - Em analise
+8) M2-025.11 (Score 3.75) - Em analise
+9) BLID-083 (Score 3.60) - Em analise
+10) BLID-089 (Score 3.50) - Em analise
+11) BLID-075 (Score 3.30) - Em analise
+12) M2-025.8 (Score 3.25) - Em analise
+
+PO: Pacote de 12 itens priorizado para reduzir risco operacional e
+desbloquear migracao model-driven com governanca de dados em 2-3 sprints.
+
 PO: Pacote de 20 tasks priorizado para throughput com risco controlado,
 desbloqueio em cadeia e guardrails obrigatorios ativos.
 
@@ -154,7 +172,7 @@ incremental e observabilidade operacional com foco em fail-safe.
 
 ### TAREFA M2-025.6 - Correlacao episodio treino e execucao
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.00 (Valor=3, Urg=3, Risco=3, Esf=2)
 
@@ -166,11 +184,32 @@ Dependencias:
 
 - M2-025.5
 
-PO: Score 3.00. Rastreabilidade ciclo-episodio-execucao; habilita
-M2-025.10/12. Prioridade media.
+PO: Score 3.00. Priorizado para desenvolvimento: cycle_id auditavel entre
+episodio, treino e execucao; desbloqueia M2-025.10/12.
 
-SA: Adicionar cycle_id em DetectorInput/DetectionResult; propagar via
-repository.py. Sem schema novo se usar campo metadata existente.
+SA: Padronizar cycle_id em DetectorInput/DetectionResult e persistencia via
+metadata no repository.py, sem migracao; idempotencia por decision_id.
+
+QA: Suite RED em tests/test_model2_m2_025_6_cycle_correlation.py
+com 5 testes; 5 failed (TypeError: cycle_id ausente em DetectorInput/
+DetectionResult). TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-025.6 em 2026-03-28; foco em cycle_id
+opcional no scanner/repository sem migracao e com compatibilidade legado.
+
+SE: GREEN concluido. cycle_id opcional adicionado em DetectorInput/
+DetectionResult; propagacao no scanner e persistencia em metadata no
+repository sem migracao. 18 testes alvo GREEN; mypy strict clean; 308
+testes da suite completa GREEN.
+
+TL: APROVADO. Reproducao local: 18 testes alvo + 308 suite verde, mypy
+strict clean; cycle_id auditavel sem migracao e guardrails preservados.
+
+DOC: ARQUITETURA_ALVO (M2-025.6) e REGRAS_DE_NEGOCIO (RN-031)
+sincronizados; trilha registrada em SYNCHRONIZATION [SYNC-232].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
+sync [SYNC-232] concluido. Backlog atualizado para CONCLUIDO.
 
 ### TAREFA M2-025.7 - Retry seguro para leitura de mercado
 

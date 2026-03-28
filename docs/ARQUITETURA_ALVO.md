@@ -267,6 +267,18 @@ Componentes:
   de schema, idempotencia por `decision_id` e retorno fail-safe auditavel
   (`learning_episode_persist_failed`) em erro de persistencia.
 
+**M2-025.6 (Correlacao auditavel por ciclo)**:
+
+- `DetectorInput` e `DetectionResult` em `core/model2/scanner.py` passam a
+  aceitar `cycle_id` opcional (`str | None`) sem quebrar chamadas legadas.
+- `detect_initial_short_failure(...)` propaga `cycle_id` para
+  `DetectionResult.cycle_id` e para `metadata["cycle_id"]` quando presente.
+- `Model2ThesisRepository.create_initial_thesis(...)` em
+  `core/model2/repository.py` persiste `cycle_id` no `metadata_json` da
+  `opportunities` sem alteracao de schema.
+- Compatibilidade retroativa: ausencia de `cycle_id` preserva comportamento
+  anterior e idempotencia vigente por chave natural/`decision_id`.
+
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
 1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)

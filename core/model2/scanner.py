@@ -25,6 +25,7 @@ class DetectorInput:
     indicators: Sequence[Mapping[str, Any]]
     smc: Mapping[str, Any]
     scan_timestamp: int
+    cycle_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class DetectionResult:
     invalidation_price: float
     metadata: Mapping[str, Any]
     rule_id: str
+    cycle_id: str | None = None
 
 
 def _to_float(value: Any) -> float | None:
@@ -160,7 +162,12 @@ def _is_visible_rejection(candle: Mapping[str, Any], zone_low: float) -> bool:
     close_price = _to_float(candle.get("close"))
     high_price = _to_float(candle.get("high"))
     low_price = _to_float(candle.get("low"))
-    if None in (open_price, close_price, high_price, low_price):
+    if (
+        open_price is None
+        or close_price is None
+        or high_price is None
+        or low_price is None
+    ):
         return False
 
     if close_price >= zone_low:
@@ -261,6 +268,8 @@ def detect_initial_short_failure(detector_input: DetectorInput) -> DetectionResu
         },
         "scan_timestamp": detector_input.scan_timestamp,
     }
+    if detector_input.cycle_id is not None:
+        metadata["cycle_id"] = detector_input.cycle_id
 
     return DetectionResult(
         detected=True,
@@ -274,4 +283,5 @@ def detect_initial_short_failure(detector_input: DetectorInput) -> DetectionResu
         invalidation_price=zone_high,
         metadata=metadata,
         rule_id=M2_002_RULE_ID,
+        cycle_id=detector_input.cycle_id,
     )

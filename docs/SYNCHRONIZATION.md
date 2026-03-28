@@ -44,6 +44,29 @@ toda vez que mudanças significativas são feitas no código:
   - `pytest -q tests/` -> 308 passed
 - Status backlog: M2-020.6 -> REVISADO_APROVADO
 
+### [SYNC-232] M2-025.6 REVISADO_APROVADO — 2026-03-28
+
+- Agente: 7.doc-advocate
+- Arquivos atualizados:
+  - docs/BACKLOG.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - documentada correlacao auditavel por `cycle_id` entre deteccao, episodio,
+    treino e execucao, com persistencia em `metadata_json` sem migracao;
+  - adicionada RN-031 para contrato de correlacao por ciclo com
+    compatibilidade legada e guardrails obrigatorios;
+  - backlog recebeu comentario `DOC:` com referencia de sincronizacao.
+- Evidencias tecnicas (validadas no APROVADO do TL):
+  - `pytest -q tests/test_model2_m2_025_6_cycle_correlation.py`
+    `tests/test_model2_scanner_detector.py`
+    `tests/test_model2_thesis_repository.py` -> 18 passed
+  - `mypy --strict core/model2/scanner.py core/model2/repository.py`
+    -> Success
+  - `pytest -q tests/` -> 308 passed
+- Status backlog: M2-025.6 -> REVISADO_APROVADO
+
 ### [SYNC-178] M2-031.4 CONCLUIDO — 2026-03-27
 
 - Agente: 7.doc-advocate

@@ -361,3 +361,17 @@ A validacao de carga para preparo de expansao operacional deve ocorrer em modo
    credencial live; em ambiguidade, bloquear em fail-safe.
 7. Relatorio consolidado deve explicitar guardrails ativos:
    `risk_gate=ATIVO`, `circuit_breaker=ATIVO`, `decision_id=IDEMPOTENTE`.
+
+### RN-031 - Correlacao de Ciclo entre Deteccao, Episodio e Treino (M2-025.6)
+
+Para trilha auditavel fim-a-fim no ciclo M2:
+
+1. `cycle_id` deve ser aceito como campo opcional nos contratos de deteccao
+   (`DetectorInput` e `DetectionResult`).
+2. Quando informado, `cycle_id` deve ser propagado para metadados de deteccao
+   e persistido em `opportunities.metadata_json`.
+3. A implementacao deve manter compatibilidade com payload legado sem
+   `cycle_id`, sem exigencia de migracao de schema.
+4. A ausencia de `cycle_id` nao pode quebrar fluxos existentes nem alterar os
+   guardrails obrigatorios (`risk_gate`, `circuit_breaker`, idempotencia por
+   `decision_id`).
