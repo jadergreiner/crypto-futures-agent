@@ -37,14 +37,17 @@ Não emite recomendação de prioridade; apenas organiza o backlog.
 Prioriza itens do backlog com score simples. Transforma demanda bruta em
 handoff estruturado para o Solution Architect.
 Ao finalizar, marca o item em `Em analise` no backlog e registra comentario
-`PO:` com resumo de ate 150 caracteres.
+`PO:` com frase obrigatoria de sucesso e foco em valor real capturado via
+operacao do `iniciar.bat`.
 
 **Entrada**
 - Lista de issues/backlog
 - Critérios de priorização (impacto, risco, dependências)
+- Contexto operacional/evidencias de execucao do `iniciar.bat`
 
 **Saída**
 - Atualizacao de `docs/BACKLOG.md` no item priorizado (`Em analise` + `PO:`)
+- Bloco explicito: "Qual o valor real capturado pela operacao em iniciar.bat?"
 - Prompt executável para Solution Architect
 
 **Acionamento**

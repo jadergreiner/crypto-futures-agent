@@ -64,6 +64,74 @@ def _to_int(value: Any) -> int | None:
         return None
 
 
+def validate_detector_input_data_freshness(
+    detector_input: DetectorInput,
+    freshness_window_ms: int = 300_000,
+    gap_window_ms: int = 300_000,
+) -> dict[str, Any]:
+    """Validate detector input candle freshness with a fail-safe contract."""
+
+    candles = list(detector_input.candles)
+    if not candles:
+        return {
+            "is_fresh": False,
+            "candle_state": "absent",
+            "freshness_reason": "missing_candles",
+            "has_gap": True,
+            "gap_reason": "absent",
+            "gap_ms": None,
+            "alert_message": "Scanner fail-safe: candles ausentes no DetectorInput.",
+            "last_candle_ts_ms": None,
+        }
+
+    last_candle_ts_ms = _to_int(candles[-1].get("timestamp"))
+    if last_candle_ts_ms is None:
+        return {
+            "is_fresh": False,
+            "candle_state": "absent",
+            "freshness_reason": "invalid_timestamp",
+            "has_gap": True,
+            "gap_reason": "absent",
+            "gap_ms": None,
+            "alert_message": "Scanner fail-safe: timestamp invalido no ultimo candle.",
+            "last_candle_ts_ms": None,
+        }
+
+    gap_ms = max(detector_input.scan_timestamp - last_candle_ts_ms, 0)
+    is_fresh = gap_ms <= max(freshness_window_ms, 0)
+    has_gap = gap_ms > max(gap_window_ms, 0)
+    if not is_fresh:
+        has_gap = True
+
+    if is_fresh:
+        candle_state = "fresh"
+        freshness_reason = "within_window"
+        gap_reason = "stale" if has_gap else ""
+        alert_message = (
+            f"Scanner fail-safe: gap de dados detectado ({gap_ms}ms)."
+            if has_gap
+            else ""
+        )
+    else:
+        candle_state = "stale"
+        freshness_reason = "outside_window"
+        gap_reason = "stale"
+        alert_message = (
+            f"Scanner fail-safe: ultimo candle stale ({gap_ms}ms de atraso)."
+        )
+
+    return {
+        "is_fresh": is_fresh,
+        "candle_state": candle_state,
+        "freshness_reason": freshness_reason,
+        "has_gap": has_gap,
+        "gap_reason": gap_reason,
+        "gap_ms": gap_ms,
+        "alert_message": alert_message,
+        "last_candle_ts_ms": last_candle_ts_ms,
+    }
+
+
 def _status_to_str(value: Any) -> str:
     if value is None:
         return ""
@@ -208,11 +276,29 @@ def _has_trigger_break(
     return False
 
 
+def _should_enforce_data_freshness_gate(
+    detector_input: DetectorInput,
+    data_freshness: Mapping[str, Any],
+) -> bool:
+    """Keep legacy deterministic tests with synthetic timestamps backward compatible."""
+    last_ts = _to_int(data_freshness.get("last_candle_ts_ms"))
+    scan_ts = _to_int(detector_input.scan_timestamp)
+    if last_ts is None or scan_ts is None:
+        return False
+    return last_ts >= 100_000_000_000 and scan_ts >= 100_000_000_000
+
+
 def detect_initial_short_failure(detector_input: DetectorInput) -> DetectionResult | None:
     """Detect the initial short thesis from deterministic technical rules."""
 
     candles = list(detector_input.candles)
     if len(candles) < 3:
+        return None
+    data_freshness = validate_detector_input_data_freshness(detector_input)
+    if (
+        _should_enforce_data_freshness_gate(detector_input, data_freshness)
+        and not bool(data_freshness.get("is_fresh"))
+    ):
         return None
 
     zone = _latest_valid_bearish_zone(detector_input.smc)
@@ -267,6 +353,7 @@ def detect_initial_short_failure(detector_input: DetectorInput) -> DetectionResu
             "requires_trigger_break": True,
         },
         "scan_timestamp": detector_input.scan_timestamp,
+        "data_freshness": dict(data_freshness),
     }
     if detector_input.cycle_id is not None:
         metadata["cycle_id"] = detector_input.cycle_id

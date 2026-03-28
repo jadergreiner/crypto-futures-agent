@@ -23,6 +23,21 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-254] Evolucao do agente 2.product-owner (prompt de valor real) - 2026-03-28
+
+- Agente: 2.product-owner
+- Arquivos atualizados:
+  - .github/agents/2.product-owner.agent.md
+  - AGENTS.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - adicionado requisito explicito de avaliar "qual o valor real capturado"
+    pela operacao iniciada em `iniciar.bat`, com base em evidencias operacionais;
+  - comentario de backlog `PO:` passou a exigir a frase:
+    `Ao fim deste desenvolvimento estarei feliz se ...`;
+  - handoff para Solution Architect passou a exigir bloco de valor real capturado.
+- Status: sincronizado e rastreavel.
+
 ### [SYNC-231] M2-020.6 REVISADO_APROVADO — 2026-03-27
 
 - Agente: 7.doc-advocate
@@ -6514,4 +6529,38 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_025_10_cycle_snapshot.py -> 4 passed
   - mypy --strict core/model2/cycle_snapshot.py core/model2/observability.py
     tests/test_model2_m2_025_10_cycle_snapshot.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-255] M2-025.11 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.11
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.11 para fechamento
+    documental da revalidacao tecnica aprovada pelo Tech Lead.
+  - SYNCHRONIZATION: registrada trilha [SYNC-255] com evidencias validadas na
+    revalidacao (sem alteracao de codigo de produto).
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-256] M2-025.11 Fechamento Project Manager (ACEITE) - 2026-03-28
+
+- Agente: 8.project-manager
+- Item: M2-025.11
+- Decisao: ACEITE
+- Status backlog: CONCLUIDO
+- Ajustes finais:
+  - Backlog atualizado para `CONCLUIDO` com comentario `PM:` no item M2-025.11.
+  - Trilha documental confirmada com referencia [SYNC-255].
+- Validacoes finais:
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+  - pytest -q tests/test_model2_m2_025_11_data_freshness.py -> 6 passed
+  - pytest -q tests/test_model2_scanner_detector.py -> 5 passed
+  - mypy --strict core/model2/scanner.py -> Success
   - pytest -q tests/ -> 308 passed

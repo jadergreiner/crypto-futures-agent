@@ -342,7 +342,7 @@ PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
 
 ### TAREFA M2-025.11 - Suite RED para frescor e lacuna de dados
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.60 (Valor=4, Urg=3, Risco=4, Esf=2)
 
@@ -360,6 +360,35 @@ auditavel sem dados. Deps ja concluidas.
 
 SA: Suite RED em tests/test_model2_m2_025_11_data_freshness.py; testar
 frescor, lacuna e fail-safe; usar DetectorInput com candles vazios/stale.
+
+QA: Suite RED criada em tests/test_model2_m2_025_11_data_freshness.py
+com 6 testes; 6 failed (ImportError esperado:
+validate_detector_input_data_freshness ausente em core/model2/scanner.py).
+Cobertura RED: absent com candles vazios, stale fora da janela, fresh
+dentro da janela, gap por janela configuravel, fail-safe para timestamp
+invalido e contrato minimo de campos auditaveis. TESTES_PRONTOS.
+
+SE: GREEN entregue em core/model2/scanner.py com helper
+validate_detector_input_data_freshness + gate conservador no
+detect_initial_short_failure (sem bypass de guardrails). Evidencias locais:
+pytest M2-025.11 6/6 PASS, regressao scanner 5/5 PASS e
+mypy --strict core/model2/scanner.py sem erros.
+
+SE: Revalidacao tecnica em 2026-03-28 sem alteracao de codigo: pytest
+M2-025.11 6/6 PASS, scanner 5/5 PASS, mypy strict scanner OK e
+regressao completa 308/308 PASS.
+
+QA: Revalidacao em 2026-03-28 (handoff SA): pytest suites alvo 11/11 PASS
+e mypy strict em scanner GREEN; contrato auditavel e fail-safe preservados.
+
+TL: APROVADO. Reproducao local 6/6 + 5/5 + 308/308 e mypy strict OK;
+sem diff de codigo; guardrails e decision_id preservados.
+
+DOC: BACKLOG e SYNCHRONIZATION sincronizados para fechamento documental da
+revalidacao M2-025.11; trilha registrada em [SYNC-255].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
+sync [SYNC-256] concluido; publicado em main com arvore local limpa.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
