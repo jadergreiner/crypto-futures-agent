@@ -70,6 +70,54 @@ def registrar_latencia(
         conn.close()
 
 
+def emit_stage_timeout_telemetry(
+    *,
+    symbol: str,
+    stage: str,
+    elapsed_ms: int,
+    budget_ms: int,
+    cycle_id: str | None,
+    reason_code: str,
+) -> dict[str, Any]:
+    """Emite payload auditavel de timeout por etapa e registra latencia.
+
+    Mantem stage original no payload para auditoria e mapeia para etapas
+    aceitas em execution_latencies quando necessario.
+    """
+    stage_raw = str(stage).strip().lower()
+    stage_for_latency = {
+        "collect": "scan",
+        "validate": "validate",
+        "consolidate": "signal",
+    }.get(stage_raw, stage_raw if stage_raw in VALID_LATENCY_STAGES else "scan")
+
+    try:
+        registrar_latencia(
+            simbolo=str(symbol),
+            etapa=stage_for_latency,
+            resultado="timeout_expired",
+            latencia_ms=int(elapsed_ms),
+        )
+    except Exception:
+        # Fail-safe: telemetria nao deve interromper pipeline.
+        _logger.warning(
+            "Falha ao registrar latencia de timeout %s/%s",
+            symbol,
+            stage_raw,
+        )
+
+    return {
+        "event_type": "stage_timeout_expired",
+        "symbol": str(symbol),
+        "stage": stage_raw,
+        "elapsed_ms": int(elapsed_ms),
+        "budget_ms": int(budget_ms),
+        "cycle_id": cycle_id,
+        "reason_code": str(reason_code),
+        "timestamp": int(time.time() * 1000),
+    }
+
+
 # M2-024.9 — snapshot operacional por ciclo
 @dataclass
 class OperationalSnapshot:

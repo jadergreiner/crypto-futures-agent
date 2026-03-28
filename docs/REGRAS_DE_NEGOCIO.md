@@ -390,3 +390,24 @@ No caminho de leitura de mercado do ciclo live:
    `live_service` (nao apenas declarado).
 5. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-033 - Timeout por Etapa Critica de Dados (M2-025.8)
+
+No pipeline de dados do ciclo M2:
+
+1. Timeout por etapa deve ser configurado via contrato imutavel
+   `TimeoutPolicy` em `core/model2/pipeline_timeout.py` com budgets para
+   `collect`, `validate` e `consolidate`.
+2. Expiracao de etapa deve produzir reason_code canonico da propria etapa:
+   `TIMEOUT_COLLECT`, `TIMEOUT_VALIDATE` ou `TIMEOUT_CONSOLIDATE`.
+3. Scanner e validator devem usar wrappers de short-circuit por timeout,
+   bloqueando processamento tardio e preservando comportamento fail-safe.
+4. Toda expiracao deve emitir telemetria auditavel por
+   `emit_stage_timeout_telemetry` em `core/model2/observability.py`, com
+   `event_type='stage_timeout_expired'`, `elapsed_ms`, `budget_ms`,
+   `reason_code` e `cycle_id` quando disponivel.
+5. Latencia de timeout deve ser registrada com
+   `resultado='timeout_expired'` e mapeamento de etapa operacional
+   (`collect->scan`, `validate->validate`, `consolidate->signal`).
+6. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

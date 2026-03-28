@@ -295,6 +295,27 @@ Componentes:
 - Guardrails preservados: `risk_gate`, `circuit_breaker` e idempotencia por
   `decision_id` permanecem ativos; em ambiguidade, fallback fail-safe.
 
+**M2-025.8 (Timeout por etapa critica de dados)**:
+
+- `core/model2/pipeline_timeout.py` define contrato dedicado para pipeline de
+  dados com:
+  - `TimeoutPolicy` (frozen dataclass: `collect_timeout_ms`,
+    `validate_timeout_ms`, `consolidate_timeout_ms`)
+  - checks deterministicas por etapa:
+    `check_collect_timeout`, `check_validate_timeout`,
+    `check_consolidate_timeout`
+  - wrappers de short-circuit:
+    `wrap_scanner_with_timeout` e `wrap_validator_with_timeout`
+- Integracao de telemetria em `core/model2/observability.py`:
+  `emit_stage_timeout_telemetry` gera payload auditavel
+  (`event_type='stage_timeout_expired'`) e registra latencia com
+  `resultado='timeout_expired'`.
+- Mapeamento de etapa para latencia operacional:
+  `collect -> scan`, `validate -> validate`, `consolidate -> signal`.
+- Guardrails preservados: nao ha bypass de `risk_gate` ou
+  `circuit_breaker`; `decision_id` permanece preservado no wrapper de
+  validacao.
+
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
 1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)

@@ -260,7 +260,7 @@ PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
 
 ### TAREFA M2-025.8 - Timeout de coleta por etapa critica
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.30 (Valor=3, Urg=3, Risco=4, Esf=2)
 
@@ -277,6 +277,30 @@ auditavel. Dep M2-025.7 deve preceder.
 
 SA: TimeoutPolicy(frozen dataclass) com budget_ms por etapa; wrapping em
 scanner/validator; telemetria via observability.py.
+
+QA: Suite RED em tests/test_model2_m2_025_8_pipeline_stage_timeout.py com 10
+testes; 10 failed (pipeline_timeout ausente + telemetria timeout nao
+implementada). TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-025.8 em 2026-03-28; foco em TimeoutPolicy por
+etapa (collect/validate/consolidate), wrappers scanner/validator e telemetria
+auditavel de expiracao em observability.py.
+
+SE: GREEN concluido. core/model2/pipeline_timeout.py criado com TimeoutPolicy
+frozen + checks por etapa e wrappers de timeout; observability.py com
+emit_stage_timeout_telemetry e registro de latencia timeout_expired.
+10/10 task GREEN, mypy strict clean e 308 testes da suite completa GREEN.
+
+TL: APROVADO. 10/10 task, mypy strict e 308 suite verdes; timeout por etapa
+e telemetria auditavel OK sem regressao.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.8
+(TimeoutPolicy por etapa, wrappers scanner/validator e telemetria de
+timeout_expired); trilha registrada em SYNCHRONIZATION [SYNC-250].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-250] concluido, testes/docs OK,
+publicado em main com arvore local limpa.
 
 ### TAREFA M2-025.10 - Snapshot unico de dados por ciclo
 

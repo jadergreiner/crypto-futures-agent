@@ -6386,3 +6386,92 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 308 passed
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+
+### [SYNC-247] M2-025.8 Suite RED timeout por etapa critica - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Item: M2-025.8
+- Status backlog: TESTES_PRONTOS
+- Codigo alterado:
+  - tests/test_model2_m2_025_8_pipeline_stage_timeout.py (novo)
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 10 failed (RED esperado)
+  - mypy --strict tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 3 errors (import-not-found + attr-defined esperados em RED)
+
+### [SYNC-248] M2-025.8 GREEN/REFACTOR timeout por etapa critica - 2026-03-28
+
+- Agente: 5.software-engineer
+- Item: M2-025.8
+- Status backlog: IMPLEMENTADO
+- Codigo alterado:
+  - core/model2/pipeline_timeout.py (novo)
+  - core/model2/observability.py
+  - tests/test_model2_m2_025_8_pipeline_stage_timeout.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Implementacao:
+  - TimeoutPolicy frozen com budget por etapa (collect/validate/consolidate).
+  - Checks deterministicas `check_*_timeout` retornando reason_code canonico.
+  - Wrappers `wrap_scanner_with_timeout` e `wrap_validator_with_timeout`
+    com short-circuit por expiracao e preservacao de `decision_id`.
+  - Telemetria `emit_stage_timeout_telemetry` com payload auditavel e
+    registro de latencia `timeout_expired`.
+- Validacoes:
+  - pytest -q tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 10 passed
+  - mypy --strict core/model2/pipeline_timeout.py core/model2/observability.py tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-249] M2-025.8 Revisao Tech Lead (APROVADO) - 2026-03-28
+
+- Agente: 6.tech-lead
+- Item: M2-025.8
+- Decisao: APROVADO
+- Status backlog: REVISADO_APROVADO
+- Validacoes reproduzidas:
+  - pytest -q tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 10 passed
+  - mypy --strict core/model2/pipeline_timeout.py core/model2/observability.py tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Resultado da revisao:
+  - Contrato TimeoutPolicy por etapa e wrappers scanner/validator conforme handoff QA.
+  - Telemetria de expiracao auditavel em observability com registro de latencia timeout_expired.
+  - Guardrails preservados (sem bypass de risk_gate/circuit_breaker; decision_id preservado no wrapper validator).
+
+### [SYNC-250] M2-025.8 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.8
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: adicionada secao M2-025.8 com `pipeline_timeout.py`
+    (TimeoutPolicy, checks por etapa e wrappers scanner/validator) e
+    integracao de telemetria via `emit_stage_timeout_telemetry`.
+  - REGRAS_DE_NEGOCIO: adicionada RN-033 para timeout por etapa critica de
+    dados, reason_codes canonicos e registro auditavel `timeout_expired`.
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.8 com referencia
+    [SYNC-250].
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-251] M2-025.8 Fechamento Project Manager (ACEITE) - 2026-03-28
+
+- Agente: 8.project-manager
+- Item: M2-025.8
+- Decisao: ACEITE
+- Status backlog: CONCLUIDO
+- Ajustes finais:
+  - Backlog atualizado para `CONCLUIDO` com comentario `PM:` no item M2-025.8.
+  - Trilha documental confirmada com referencia [SYNC-250].
+- Validacoes finais:
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+  - pytest -q tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> 10 passed
+  - mypy --strict core/model2/pipeline_timeout.py core/model2/observability.py tests/test_model2_m2_025_8_pipeline_stage_timeout.py -> Success
+  - pytest -q tests/ -> 308 passed
