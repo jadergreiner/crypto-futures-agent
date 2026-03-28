@@ -64,6 +64,7 @@ from .model_inference_service import ModelInferenceService
 from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
 from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
+from .market_reader import RetryPolicy, read_market_with_retry
 from .volatility_sizing import adjust_size_for_volatility
 from .training_audit import (
     detect_training_stale,
@@ -709,17 +710,26 @@ class Model2LiveExecutionService:
         except (TypeError, ValueError):
             return None
 
-    def _extract_funding_and_basis(self, candidate: dict[str, Any]) -> tuple[float | None, float | None]:
+    def _extract_funding_and_basis(
+        self,
+        candidate: dict[str, Any],
+        *,
+        market_state: dict[str, Any] | None = None,
+    ) -> tuple[float | None, float | None]:
         payload = self._safe_json_dict(candidate.get("payload_json"))
         funding = self._to_float(payload.get("funding_rate"))
         if funding is None:
             funding = self._to_float(self._lookup_nested(payload, "market_context", "funding_rate"))
+        if funding is None and isinstance(market_state, dict):
+            funding = self._to_float(market_state.get("funding_rate"))
         if funding is None:
             funding = self.repository.get_latest_funding_rate(symbol=str(candidate["symbol"]))
 
         basis = self._to_float(payload.get("basis"))
         if basis is None:
             basis = self._to_float(self._lookup_nested(payload, "market_context", "basis"))
+        if basis is None and isinstance(market_state, dict):
+            basis = self._to_float(market_state.get("basis"))
         if basis is None:
             basis = self.repository.get_latest_basis_value(symbol=str(candidate["symbol"]))
         return funding, basis
@@ -806,7 +816,24 @@ class Model2LiveExecutionService:
             if exchange is not None
             else None
         )
-        funding_rate, basis_value = self._extract_funding_and_basis(candidate)
+        raw_decision_id = candidate.get("decision_id")
+        decision_id: int | None = None
+        try:
+            if raw_decision_id is not None:
+                parsed = int(raw_decision_id)
+                if parsed > 0:
+                    decision_id = parsed
+        except (TypeError, ValueError):
+            decision_id = None
+
+        market_state = self._read_market_state_with_retry(
+            symbol=str(candidate["symbol"]),
+            decision_id=decision_id,
+        )
+        funding_rate, basis_value = self._extract_funding_and_basis(
+            candidate,
+            market_state=market_state,
+        )
         effective_signal_side = str(signal_side_override or candidate["signal_side"])
         guardrail_state = self._snapshot_guardrail_state(available_balance)
 
@@ -875,6 +902,34 @@ class Model2LiveExecutionService:
                 time.sleep(_BALANCE_RETRY_DELAY_S)
 
         return last_balance
+
+    def _read_market_state_with_retry(
+        self,
+        *,
+        symbol: str,
+        decision_id: int | None = None,
+        policy: RetryPolicy | None = None,
+    ) -> dict[str, Any]:
+        """Leitura de mercado com retry controlado e fallback conservador."""
+
+        exchange_obj = getattr(self, "exchange", None)
+
+        def _reader() -> dict[str, Any]:
+            if exchange_obj is not None and hasattr(exchange_obj, "get_market_state"):
+                raw = exchange_obj.get_market_state(str(symbol))
+                if isinstance(raw, dict):
+                    return dict(raw)
+            return {"symbol": str(symbol)}
+
+        effective_policy = policy or RetryPolicy(
+            max_retries=3,
+            backoff_base_ms=100,
+            max_budget_ms=1_000,
+        )
+        payload = read_market_with_retry(reader=_reader, policy=effective_policy)
+        payload.setdefault("symbol", str(symbol))
+        payload["decision_id"] = decision_id
+        return payload
 
     def _snapshot_guardrail_state(self, available_balance: float | None) -> dict[str, Any]:
         if self.config.execution_mode != "live":

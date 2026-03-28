@@ -375,3 +375,18 @@ Para trilha auditavel fim-a-fim no ciclo M2:
 4. A ausencia de `cycle_id` nao pode quebrar fluxos existentes nem alterar os
    guardrails obrigatorios (`risk_gate`, `circuit_breaker`, idempotencia por
    `decision_id`).
+
+### RN-032 - Retry Seguro de Leitura de Mercado (M2-025.7)
+
+No caminho de leitura de mercado do ciclo live:
+
+1. A leitura deve usar politica imutavel de retry (`RetryPolicy`) com budget
+   maximo e backoff deterministico.
+2. Falha classificada como permanente deve abortar sem retentativas extras,
+   com `reason_code='MARKET_READ_PERMANENT_FAILURE'`.
+3. Exaustao de budget/tentativas deve retornar fallback conservador com
+   `reason_code='MARKET_READ_RETRY_EXHAUSTED'`.
+4. O hook de retry deve estar integrado ao fluxo operacional do
+   `live_service` (nao apenas declarado).
+5. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

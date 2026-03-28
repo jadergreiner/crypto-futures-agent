@@ -279,6 +279,22 @@ Componentes:
 - Compatibilidade retroativa: ausencia de `cycle_id` preserva comportamento
   anterior e idempotencia vigente por chave natural/`decision_id`.
 
+**M2-025.7 (Retry seguro para leitura de mercado)**:
+
+- `core/model2/market_reader.py` introduz contrato dedicado de leitura com:
+  - `RetryPolicy` (frozen dataclass: `max_retries`, `backoff_base_ms`,
+    `max_budget_ms`)
+  - `classify_market_read_exception` (transient|permanent)
+  - `read_market_with_retry` com fallback conservador em falha
+- Integracao operacional em `core/model2/live_service.py`:
+  `_build_gate_input` chama `_read_market_state_with_retry` no caminho
+  produtivo antes da montagem de `LiveExecutionGateInput`.
+- Semantica canonica de erros em `REASON_CODE_CATALOG`:
+  - `MARKET_READ_RETRY_EXHAUSTED`: budget/tentativas esgotados
+  - `MARKET_READ_PERMANENT_FAILURE`: erro permanente sem retry adicional
+- Guardrails preservados: `risk_gate`, `circuit_breaker` e idempotencia por
+  `decision_id` permanecem ativos; em ambiguidade, fallback fail-safe.
+
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
 1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)

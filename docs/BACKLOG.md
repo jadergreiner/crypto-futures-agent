@@ -121,7 +121,7 @@ Priorizacao PO executada (2026-03-28) - Pacote de 12 itens (2-3 sprints):
 3) M2-020.11 (Score 4.10) - Em analise
 4) M2-025.14 (Score 4.00) - Em analise
 5) M2-020.12 (Score 3.95) - Em analise
-6) M2-025.7 (Score 3.90) - Em analise
+6) M2-025.7 (Score 3.85) - Em analise
 7) M2-020.10 (Score 3.80) - Em analise
 8) M2-025.11 (Score 3.75) - Em analise
 9) BLID-083 (Score 3.60) - Em analise
@@ -213,7 +213,7 @@ sync [SYNC-232] concluido. Backlog atualizado para CONCLUIDO.
 
 ### TAREFA M2-025.7 - Retry seguro para leitura de mercado
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
@@ -228,9 +228,35 @@ Dependencias:
 PO: Score 3.85. Resiliencia contra falhas transitorias; fallback
 conservador protege pipeline. Desbloqueia M2-025.8.
 
-SA: RetryPolicy(frozen dataclass) em core/model2/market_reader.py;
-max_retries+backoff+fallback conservador; reason_code
-MARKET_READ_RETRY_EXHAUSTED.
+SA: RetryPolicy frozen em novo core/model2/market_reader.py + hook no
+live_service; fallback fail-safe e reason_code MARKET_READ_RETRY_EXHAUSTED.
+
+QA: Suite RED em tests/test_model2_m2_025_7_market_read_retry.py com 11
+testes; 11 failed (ModuleNotFoundError + reason_code/hook ausentes).
+TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-025.7 em 2026-03-28; foco em RetryPolicy
+frozen, fallback conservador e hook no live_service.
+
+SE: GREEN concluido. core/model2/market_reader.py criado; live_service
+com hook _read_market_state_with_retry; reason_code canonico integrado.
+11/11 task GREEN, mypy strict clean e 308 testes da suite completos GREEN.
+
+TL: DEVOLVIDO_PARA_REVISAO. Hook de retry nao integrado ao fluxo live e
+reason_code de exaustao usado em falha permanente.
+
+SE: Correcao DEVOLVIDO concluida em 2026-03-28. Hook integrado no
+_build_gate_input e reason_code permanente separado de retry_exhausted.
+13/13 task GREEN, mypy strict clean e 308/308 suite completa verde.
+
+TL: APROVADO. Hook integrado no fluxo live e semantica de reason_code
+corrigida; 13/13 task GREEN, mypy clean e 308 suite verde.
+
+DOC: ARQUITETURA_ALVO e REGRAS_DE_NEGOCIO sincronizados com M2-025.7
+(retry de leitura, reason_codes canonicos e integracao no fluxo live).
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), sync [SYNC-245] concluido.
 
 ### TAREFA M2-025.8 - Timeout de coleta por etapa critica
 

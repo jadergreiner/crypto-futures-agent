@@ -6276,3 +6276,113 @@ REVISADO_APROVADO
   - pytest -q tests/test_docs_model2_sync.py -> 12 passed
   - pytest -q tests/test_model2_m2_016_2_016_3_handoff_red.py -> 7 passed
   - mypy --strict scripts/model2/phase_d5_real_data_correlation.py scripts/model2/train_ppo_lstm.py -> Success
+
+### [SYNC-240] M2-025.7 Suite RED para retry seguro de leitura de mercado - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Item: M2-025.7
+- Status backlog: TESTES_PRONTOS
+- Codigo alterado:
+  - tests/test_model2_m2_025_7_market_read_retry.py (novo)
+  - docs/BACKLOG.md
+- Validacoes:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 11 failed (RED esperado)
+  - mypy --strict tests/test_model2_m2_025_7_market_read_retry.py -> 1 error import-not-found (RED esperado)
+
+### [SYNC-241] M2-025.7 GREEN/REFACTOR retry seguro de leitura de mercado - 2026-03-28
+
+- Agente: 5.software-engineer
+- Item: M2-025.7
+- Status backlog: IMPLEMENTADO
+- Codigo alterado:
+  - core/model2/market_reader.py (novo)
+  - core/model2/live_service.py
+  - core/model2/live_execution.py
+  - docs/BACKLOG.md
+- Validacoes:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 11 passed
+  - mypy --strict core/model2/market_reader.py core/model2/live_service.py core/model2/live_execution.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-242] M2-025.7 Revisao Tech Lead (DEVOLVIDO) - 2026-03-28
+
+- Agente: 6.tech-lead
+- Item: M2-025.7
+- Decisao: DEVOLVIDO_PARA_REVISAO
+- Motivos:
+  - Hook `_read_market_state_with_retry` foi adicionado, mas nao integrado ao fluxo operacional de leitura no `live_service`.
+  - `read_market_with_retry` retorna `MARKET_READ_RETRY_EXHAUSTED` tambem para falha permanente, contrariando semantica de exaustao por budget/tentativas.
+- Validacoes reproduzidas:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 11 passed
+  - mypy --strict core/model2/market_reader.py core/model2/live_service.py core/model2/live_execution.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-243] M2-025.7 Correcao apos DEVOLVIDO Tech Lead - 2026-03-28
+
+- Agente: 5.software-engineer
+- Item: M2-025.7
+- Status backlog: IMPLEMENTADO
+- Codigo alterado:
+  - core/model2/market_reader.py
+  - core/model2/live_service.py
+  - core/model2/live_execution.py
+  - tests/test_model2_m2_025_7_market_read_retry.py
+  - docs/BACKLOG.md
+- Correcoes aplicadas:
+  - Integrado `_read_market_state_with_retry` no fluxo `_build_gate_input` do live_service.
+  - Separada semantica de reason_code: `MARKET_READ_PERMANENT_FAILURE` para falha permanente e `MARKET_READ_RETRY_EXHAUSTED` apenas para budget/tentativas esgotados.
+  - Suite reforcada com checks de integracao do hook e reason_code permanente.
+- Validacoes:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 13 passed
+  - mypy --strict core/model2/market_reader.py core/model2/live_service.py core/model2/live_execution.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-244] M2-025.7 Revisao Tech Lead (APROVADO) - 2026-03-28
+
+- Agente: 6.tech-lead
+- Item: M2-025.7
+- Decisao: APROVADO
+- Status backlog: REVISADO_APROVADO
+- Validacoes reproduzidas:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 13 passed
+  - mypy --strict core/model2/market_reader.py core/model2/live_service.py core/model2/live_execution.py -> Success
+  - pytest -q tests/ -> 308 passed
+- Resultado da revisao:
+  - Hook de retry integrado no fluxo operacional (`_build_gate_input`).
+  - Semantica de reason_code separada entre falha permanente e budget esgotado.
+
+### [SYNC-245] M2-025.7 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.7
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: adicionada secao M2-025.7 com RetryPolicy, integracao
+    no `live_service` e separacao de reason_code permanente vs retry esgotado.
+  - REGRAS_DE_NEGOCIO: adicionada RN-032 para contrato de retry de leitura
+    de mercado com fallback conservador e guardrails obrigatorios.
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.7.
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-246] M2-025.7 Fechamento Project Manager (ACEITE) - 2026-03-28
+
+- Agente: 8.project-manager
+- Item: M2-025.7
+- Decisao: ACEITE
+- Status backlog: CONCLUIDO
+- Ajustes finais:
+  - Backlog atualizado para `CONCLUIDO` com comentario `PM:` no item M2-025.7.
+  - Trilha documental confirmada com referencia [SYNC-245].
+- Validacoes finais:
+  - pytest -q tests/test_model2_m2_025_7_market_read_retry.py -> 13 passed
+  - mypy --strict core/model2/market_reader.py core/model2/live_service.py core/model2/live_execution.py -> Success
+  - pytest -q tests/ -> 308 passed
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
