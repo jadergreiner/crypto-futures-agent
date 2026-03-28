@@ -70,6 +70,7 @@ from .training_audit import (
     detect_training_stale,
     evaluate_training_trigger_audit,
     record_training_audit_event,
+    summarize_training_audit_window,
 )
 
 # Regra que garante que guard-rails permanecem no caminho critico
@@ -331,11 +332,18 @@ class Model2LiveExecutionService:
         pending_episodes: int,
         retrain_threshold: int,
         timeframe: str,
+        decision_id: str | None = None,
+        concurrency_label: str | None = None,
     ) -> None:
         """Dispara retreino incremental em subprocesso isolado quando backlog atinge limiar."""
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         is_running = self._incremental_training_is_running()
         last_completed_at_ms = self._load_last_training_completed_at_ms()
+        resolved_concurrency_key = (
+            str(concurrency_label).strip()
+            if concurrency_label is not None and str(concurrency_label).strip()
+            else f"train-{str(timeframe).strip()}"
+        )
 
         decision = evaluate_training_trigger_audit(
             pending_episodes=int(pending_episodes),
@@ -343,6 +351,8 @@ class Model2LiveExecutionService:
             is_running=is_running,
             now_ms=now_ms,
             last_completed_at_ms=last_completed_at_ms,
+            decision_id=decision_id,
+            timeframe=timeframe,
         )
 
         self._record_training_audit(
@@ -351,6 +361,8 @@ class Model2LiveExecutionService:
             episodes_count=int(pending_episodes),
             status=decision["status"],
             model_id_after=None,
+            decision_id=decision_id,
+            concurrency_key=resolved_concurrency_key,
         )
 
         if not decision["trigger_allowed"]:
@@ -367,6 +379,8 @@ class Model2LiveExecutionService:
                     episodes_count=int(pending_episodes),
                     status="blocked",
                     model_id_after=None,
+                    decision_id=decision_id,
+                    concurrency_key=resolved_concurrency_key,
                 )
             return
 
@@ -417,6 +431,8 @@ class Model2LiveExecutionService:
         episodes_count: int,
         status: str,
         model_id_after: str | None,
+        decision_id: str | None = None,
+        concurrency_key: str | None = None,
     ) -> None:
         """Registra auditoria do trigger de treino em modo fail-safe."""
         try:
@@ -430,6 +446,8 @@ class Model2LiveExecutionService:
                     model_id_after=model_id_after,
                     avg_reward_delta=None,
                     status=str(status),
+                    decision_id=decision_id,
+                    concurrency_key=concurrency_key,
                 )
                 conn.commit()
         except Exception as exc:
@@ -474,6 +492,23 @@ class Model2LiveExecutionService:
                 and fallback_last_train.upper() != "N/A"
             ):
                 last_train = str(self._last_train_time)
+            training_audit_started_24h = 0
+            training_audit_running_blocks_24h = 0
+            training_audit_conclusive_24h = False
+            try:
+                with sqlite3.connect(self._resolve_repository_db_path(), timeout=5) as conn:
+                    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+                    training_summary = summarize_training_audit_window(
+                        conn,
+                        since_ms=now_ms - (24 * 60 * 60 * 1000),
+                    )
+                    training_audit_started_24h = int(training_summary["started_events"])
+                    training_audit_running_blocks_24h = int(
+                        training_summary["blocked_running_events"]
+                    )
+                    training_audit_conclusive_24h = bool(training_summary["conclusive"])
+            except Exception:
+                pass
 
             # Coletar posicao aberta
             pos_info = collect_position_info(symbol, exchange_client=self.exchange)
@@ -529,6 +564,9 @@ class Model2LiveExecutionService:
                 position_pnl_pct=float(pos_info.get("position_pnl_pct", 0.0)),
                 position_pnl_usd=float(pos_info.get("position_pnl_usd", 0.0)),
                 execution_mode=execution_mode,
+                training_audit_started_24h=training_audit_started_24h,
+                training_audit_running_blocks_24h=training_audit_running_blocks_24h,
+                training_audit_conclusive_24h=training_audit_conclusive_24h,
             )
 
             try:
@@ -536,6 +574,12 @@ class Model2LiveExecutionService:
                     pending_episodes=int(pending),
                     retrain_threshold=int(report.retrain_threshold),
                     timeframe=timeframe,
+                    decision_id=(
+                        str(decision.metadata.get("decision_id"))
+                        if decision.metadata.get("decision_id") is not None
+                        else f"{symbol}:{timeframe}:{int(decision.decision_timestamp)}"
+                    ),
+                    concurrency_label=f"train-{timeframe}-{symbol}",
                 )
             except Exception as exc:
                 logger = logging.getLogger(__name__)

@@ -37,6 +37,7 @@ from core.model2.cycle_report import (
     format_symbol_report,
     resolve_candle_freshness_contract,
 )
+from core.model2.training_audit import summarize_training_audit_window
 from config.settings import M2_EXECUTION_MODE
 
 try:
@@ -352,6 +353,21 @@ def _build_symbol_report(
         f"pendentes: {pending_episodes}/{thresh} {bar} "
         f"(faltam {episodes_restantes} para retreino)"
     )
+    audit_train_line = "aud24h: started=0 | running_block=0 | conclusivo=nao"
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            summary = summarize_training_audit_window(
+                conn,
+                since_ms=now_ms - (24 * 60 * 60 * 1000),
+            )
+            audit_train_line = (
+                f"aud24h: started={int(summary['started_events'])} | "
+                f"running_block={int(summary['blocked_running_events'])} | "
+                f"conclusivo={'sim' if bool(summary['conclusive']) else 'nao'}"
+            )
+    except Exception:
+        pass
 
     # --- Risk State ---
     risk_state = _query_risk_state_from_db(symbol, db_path)
@@ -427,7 +443,7 @@ def _build_symbol_report(
         f"  Candles  : {candles_line}",
         f"  Decisao  : {decision_line}",
         f"  Episodio : {episode_line}",
-        f"  Treino   : {train_line}",
+        f"  Treino   : {train_line} | {audit_train_line}",
         f"  Posicao  : {position_line}",
         f"  Risk     : {risk_line}",
         sep,

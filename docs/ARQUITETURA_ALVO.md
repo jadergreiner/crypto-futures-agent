@@ -430,6 +430,39 @@ Dados coletados por simbolo:
    - `risk_gate` e `circuit_breaker` permanecem ativos
    - idempotencia por `decision_id` inalterada
 
+**M2-025.12 (Regressao de treino incremental em carga moderada)**:
+
+1. `core/model2/training_audit.py` passa a suportar trilha estendida:
+   - schema `rl_training_audit` com colunas `decision_id` e
+     `concurrency_key` (retrocompativel por `ALTER TABLE` condicional);
+   - `record_training_audit_event(...)` persiste os novos campos sem
+     quebrar chamadas legadas;
+   - `evaluate_training_trigger_audit(...)` aceita `decision_id/timeframe`
+     e retorna `idempotency_key` deterministica.
+2. `core/model2/live_service.py` estende o trigger de treino incremental:
+   - `_trigger_incremental_training_if_needed(..., decision_id,
+     concurrency_label)` com fallback seguro para chamadas antigas;
+   - propagacao de `decision_id` e `concurrency_key` para auditoria de
+     trigger `started|blocked`, mantendo semantica fail-safe.
+3. `core/model2/training_load_regression.py` adiciona harness deterministico
+   para carga moderada em CI:
+   - `run_incremental_training_load_regression(...)` mede tentativas,
+     bloqueios e `concurrency_violations`;
+   - criterio de estabilidade: `concurrency_violations=0`.
+4. Guardrails preservados:
+   - sem bypass de `risk_gate`/`circuit_breaker`;
+   - idempotencia por `decision_id` mantida no caminho de trigger/auditoria.
+5. Fechamento da devolucao PM (valor operacional em `iniciar.bat`):
+   - `core/model2/training_audit.py` expõe `summarize_training_audit_window(...)`
+     para consolidar janela 24h (`started`, `training_already_running`,
+     `threshold_not_reached`, `conclusive`);
+   - `core/model2/live_service.py` injeta no `SymbolReport` os campos
+     `training_audit_started_24h`, `training_audit_running_blocks_24h` e
+     `training_audit_conclusive_24h`, refletidos na linha `Treino`;
+   - fallback deterministico de `decision_id` no trigger:
+     `{symbol}:{timeframe}:{decision_timestamp}` quando metadata nao informar
+     `decision_id`.
+
 ## Modos de operacao
 
 1. `backtest`: validacao offline da politica.

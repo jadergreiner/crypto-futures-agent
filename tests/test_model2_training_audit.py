@@ -190,3 +190,48 @@ class TestM20222TrainingStaleDetection:
 
         assert recent["stale"] is False
         assert inactive["stale"] is False
+
+
+class TestM20222TrainingAuditWindowSummary:
+    """Resumo operacional da janela de auditoria para leitura no iniciar.bat."""
+
+    def test_summarize_training_audit_window_returns_conclusive_when_started_exists(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        from core.model2.training_audit import (
+            record_training_audit_event,
+            summarize_training_audit_window,
+        )
+
+        db_path = tmp_path / "m20222_summary.db"
+        _create_minimal_training_tables(db_path)
+        now_ms = 1_711_000_000_000
+
+        with sqlite3.connect(db_path) as conn:
+            record_training_audit_event(
+                conn,
+                triggered_at_ms=now_ms,
+                trigger_reason="threshold_reached",
+                episodes_count=101,
+                model_id_before="before",
+                model_id_after=None,
+                avg_reward_delta=None,
+                status="started",
+            )
+            record_training_audit_event(
+                conn,
+                triggered_at_ms=now_ms,
+                trigger_reason="training_already_running",
+                episodes_count=101,
+                model_id_before="before",
+                model_id_after=None,
+                avg_reward_delta=None,
+                status="blocked",
+            )
+            summary = summarize_training_audit_window(conn, since_ms=now_ms - 1)
+
+        assert summary["total_events"] == 2
+        assert summary["started_events"] == 1
+        assert summary["blocked_running_events"] == 1
+        assert summary["conclusive"] is True

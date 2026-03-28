@@ -16,6 +16,7 @@ class TrainingTriggerAuditDecision(TypedDict):
     retrain_threshold: int
     now_ms: int
     last_completed_at_ms: int | None
+    idempotency_key: str | None
 
 
 class TrainingStaleResult(TypedDict):
@@ -25,6 +26,16 @@ class TrainingStaleResult(TypedDict):
     reason: str
     age_ms: int | None
     max_allowed_age_ms: int
+
+
+class TrainingAuditWindowSummary(TypedDict):
+    """Resumo operacional da janela de auditoria de treino incremental."""
+
+    total_events: int
+    started_events: int
+    blocked_running_events: int
+    threshold_not_reached_events: int
+    conclusive: bool
 
 
 def ensure_rl_training_audit_schema(conn: sqlite3.Connection) -> None:
@@ -40,6 +51,8 @@ def ensure_rl_training_audit_schema(conn: sqlite3.Connection) -> None:
             model_id_after TEXT,
             avg_reward_delta REAL,
             status TEXT NOT NULL,
+            decision_id TEXT,
+            concurrency_key TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
         """
@@ -50,6 +63,14 @@ def ensure_rl_training_audit_schema(conn: sqlite3.Connection) -> None:
         ON rl_training_audit (triggered_at_ms DESC, id DESC)
         """
     )
+    columns = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(rl_training_audit)").fetchall()
+    }
+    if "decision_id" not in columns:
+        conn.execute("ALTER TABLE rl_training_audit ADD COLUMN decision_id TEXT")
+    if "concurrency_key" not in columns:
+        conn.execute("ALTER TABLE rl_training_audit ADD COLUMN concurrency_key TEXT")
 
 
 def record_training_audit_event(
@@ -62,6 +83,8 @@ def record_training_audit_event(
     model_id_after: str | None,
     avg_reward_delta: float | None,
     status: str,
+    decision_id: str | None = None,
+    concurrency_key: str | None = None,
 ) -> None:
     """Persiste um evento de trigger de treino para auditoria."""
     ensure_rl_training_audit_schema(conn)
@@ -74,8 +97,10 @@ def record_training_audit_event(
             model_id_before,
             model_id_after,
             avg_reward_delta,
-            status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            status,
+            decision_id,
+            concurrency_key
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             int(triggered_at_ms),
@@ -85,8 +110,24 @@ def record_training_audit_event(
             (str(model_id_after) if model_id_after is not None else None),
             (float(avg_reward_delta) if avg_reward_delta is not None else None),
             str(status),
+            (str(decision_id) if decision_id is not None else None),
+            (str(concurrency_key) if concurrency_key is not None else None),
         ),
     )
+
+
+def _build_training_idempotency_key(
+    *,
+    decision_id: str | None,
+    timeframe: str | None,
+) -> str | None:
+    normalized_decision = (decision_id or "").strip()
+    normalized_timeframe = (timeframe or "").strip()
+    if not normalized_decision:
+        return None
+    if normalized_timeframe:
+        return f"{normalized_decision}:{normalized_timeframe}"
+    return normalized_decision
 
 
 def evaluate_training_trigger_audit(
@@ -96,10 +137,16 @@ def evaluate_training_trigger_audit(
     is_running: bool,
     now_ms: int,
     last_completed_at_ms: int | None,
+    decision_id: str | None = None,
+    timeframe: str | None = None,
 ) -> TrainingTriggerAuditDecision:
     """Avalia trigger incremental de treino com semantica auditavel."""
     pending_value = max(0, int(pending_episodes))
     threshold_value = int(retrain_threshold)
+    idempotency_key = _build_training_idempotency_key(
+        decision_id=decision_id,
+        timeframe=timeframe,
+    )
 
     if threshold_value <= 0:
         return {
@@ -110,6 +157,7 @@ def evaluate_training_trigger_audit(
             "retrain_threshold": threshold_value,
             "now_ms": int(now_ms),
             "last_completed_at_ms": last_completed_at_ms,
+            "idempotency_key": idempotency_key,
         }
 
     if is_running:
@@ -121,6 +169,7 @@ def evaluate_training_trigger_audit(
             "retrain_threshold": threshold_value,
             "now_ms": int(now_ms),
             "last_completed_at_ms": last_completed_at_ms,
+            "idempotency_key": idempotency_key,
         }
 
     if pending_value < threshold_value:
@@ -132,6 +181,7 @@ def evaluate_training_trigger_audit(
             "retrain_threshold": threshold_value,
             "now_ms": int(now_ms),
             "last_completed_at_ms": last_completed_at_ms,
+            "idempotency_key": idempotency_key,
         }
 
     return {
@@ -142,6 +192,7 @@ def evaluate_training_trigger_audit(
         "retrain_threshold": threshold_value,
         "now_ms": int(now_ms),
         "last_completed_at_ms": last_completed_at_ms,
+        "idempotency_key": idempotency_key,
     }
 
 
@@ -193,4 +244,47 @@ def detect_training_stale(
         "reason": "training_recent",
         "age_ms": age_ms,
         "max_allowed_age_ms": max_allowed_age_ms,
+    }
+
+
+def summarize_training_audit_window(
+    conn: sqlite3.Connection,
+    *,
+    since_ms: int,
+) -> TrainingAuditWindowSummary:
+    """Resume eventos de auditoria para leitura operacional objetiva."""
+    ensure_rl_training_audit_schema(conn)
+    rows = conn.execute(
+        """
+        SELECT trigger_reason, status, COUNT(*)
+        FROM rl_training_audit
+        WHERE triggered_at_ms >= ?
+        GROUP BY trigger_reason, status
+        """,
+        (int(since_ms),),
+    ).fetchall()
+
+    total_events = 0
+    started_events = 0
+    blocked_running_events = 0
+    threshold_not_reached_events = 0
+
+    for trigger_reason, status, count in rows:
+        row_count = int(count or 0)
+        total_events += row_count
+        reason = str(trigger_reason or "")
+        state = str(status or "")
+        if state == "started":
+            started_events += row_count
+        if reason == "training_already_running":
+            blocked_running_events += row_count
+        if reason == "threshold_not_reached":
+            threshold_not_reached_events += row_count
+
+    return {
+        "total_events": total_events,
+        "started_events": started_events,
+        "blocked_running_events": blocked_running_events,
+        "threshold_not_reached_events": threshold_not_reached_events,
+        "conclusive": started_events > 0,
     }

@@ -74,6 +74,9 @@ class SymbolReport:
     last_train_time: str = "nunca"
     pending_episodes: int = 0
     retrain_threshold: int = RETRAIN_EPISODE_THRESHOLD
+    training_audit_started_24h: int = 0
+    training_audit_running_blocks_24h: int = 0
+    training_audit_conclusive_24h: bool = False
 
     # Posicao na Binance
     has_position: bool = False
@@ -180,6 +183,11 @@ def format_symbol_report(r: SymbolReport) -> str:
         f"ultimo: {r.last_train_time} | "
         f"pendentes: {pend}/{thresh} {bar}"
     )
+    audit_line = (
+        f"aud24h: started={int(r.training_audit_started_24h)} | "
+        f"running_block={int(r.training_audit_running_blocks_24h)} | "
+        f"conclusivo={'sim' if bool(r.training_audit_conclusive_24h) else 'nao'}"
+    )
 
     # Linha de posicao
     if r.has_position:
@@ -228,7 +236,7 @@ def format_symbol_report(r: SymbolReport) -> str:
         f"  Candles  : {candle_info}{fresh_tag} | {candle_status}",
         f"  Decisao  : {decision_line}",
         f"  Episodio : {episode_line}",
-        f"  Treino   : {train_line}",
+        f"  Treino   : {train_line} | {audit_line}",
         f"  Posicao  : {position_line}",
         f"  Risk     : {risk_line}",
         sep,

@@ -426,3 +426,25 @@ Para suporte operacional rapido e investigacao auditavel por ciclo:
    quando dados estiverem disponiveis no banco.
 5. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-035 - Regressao de Treino Incremental em Carga Moderada (M2-025.12)
+
+Para reduzir risco de corrida silenciosa no trigger de treino incremental:
+
+1. Toda decisao de trigger de treino deve ser auditavel com:
+   `trigger_reason`, `status`, `decision_id` e `concurrency_key`.
+2. O contrato de avaliacao de trigger deve gerar `idempotency_key`
+   deterministica por `decision_id` e `timeframe` quando `decision_id`
+   estiver disponivel.
+3. O trigger de treino em `live_service` deve aceitar `decision_id` e
+   `concurrency_label`, mantendo compatibilidade com chamadas legadas.
+4. Deve existir regressao automatizavel em CI para carga moderada com
+   metrica objetiva `concurrency_violations`; aceite somente com valor `0`.
+5. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+6. O status operacional exibido no `iniciar.bat` deve publicar resumo
+   objetivo de auditoria de treino da janela de 24h na linha `Treino`:
+   `started`, `running_block` e `conclusivo`.
+7. Quando metadata da decisao nao trouxer `decision_id`, o trigger de treino
+   deve gerar fallback deterministico
+   `{symbol}:{timeframe}:{decision_timestamp}` para manter rastreabilidade.

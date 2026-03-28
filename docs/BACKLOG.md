@@ -392,7 +392,9 @@ sync [SYNC-256] concluido; publicado em main com arvore local limpa.
 
 ### TAREFA M2-025.12 - Regressao de treino incremental em carga
 
-Status: Em analise
+Status: CONCLUIDO
+
+Score PO: 3.10 (Valor=3, Urg=3, Risco=4, Esf=2)
 
 Descricao:
 Adicionar regressao com carga moderada para validar estabilidade do treino
@@ -402,6 +404,60 @@ Dependencias:
 
 - M2-025.4
 - M2-025.6
+
+PO: Score 3.10. Priorizado para provar estabilidade do treino incremental sob
+carga moderada sem corrida entre execucoes. Ao fim deste desenvolvimento
+estarei feliz se 0 concorrencias indevidas forem detectadas e a regressao
+ficar verde no CI.
+
+SA: Regressao de carga moderada para treino incremental com exclusao mutua,
+telemetria anti-concorrencia e idempotencia por decision_id.
+
+QA: Suite RED criada em tests/test_model2_m2_025_12_incremental_training_load_regression.py
+com 6 testes; 6 failed (schema sem decision_id/concurrency_key, assinatura sem
+decision_id/concurrency_label e modulo training_load_regression ausente).
+TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-025.12 em 2026-03-28; foco em contrato auditavel
+com decision_id/concurrency_key, assinatura do trigger e harness de carga
+moderada para CI.
+
+SE: GREEN concluido em 2026-03-28. training_audit com decision_id/concurrency_key
+e idempotency_key; live_service com assinatura estendida do trigger
+(decision_id/concurrency_label) sem quebra; novo harness
+core/model2/training_load_regression.py. Evidencias: pytest task+regressao
+18/18 PASS, mypy --strict nos 3 modulos OK, suite completa 308/308 PASS.
+
+TL: APROVADO. Reproduzido localmente: 18/18 task, 308/308 suite e mypy strict
+OK; regressao de carga e guardrails preservados.
+
+DOC: ARQUITETURA_ALVO (M2-025.12) e REGRAS_DE_NEGOCIO (RN-035)
+sincronizados; trilha registrada em SYNCHRONIZATION [SYNC-258].
+
+PM: DEVOLVER_PARA_AJUSTE em 2026-03-28. Regressao CI verde, mas valor real
+no iniciar.bat ainda inconclusivo: rl_training_audit recente sem treino
+iniciado (0 started, 0 training_already_running, bloqueios por threshold_not_reached).
+Falta evidencia operacional de carga moderada com 0 concorrencias indevidas.
+
+SE: Retomada GREEN-REFACTOR M2-025.12 em 2026-03-28 para fechar lacuna
+operacional do iniciar.bat com evidencias objetivas na linha de Treino.
+
+SE: Ajuste concluido em 2026-03-28. Status operacional agora exibe
+auditoria 24h (started/running_block/conclusivo) em `Treino`; trigger
+gera fallback deterministico de decision_id quando metadata ausente.
+Evidencias: pytest alvo 20/20 PASS, mypy strict modulos alterados OK,
+suite completa 308/308 PASS.
+
+TL: APROVADO. Reproducao local 20/20 + 308/308 e mypy strict OK; lacuna
+operacional coberta com auditoria objetiva no iniciar.bat.
+
+DOC: ARQUITETURA_ALVO (M2-025.12) e REGRAS_DE_NEGOCIO (RN-035)
+ressincronizados para fechamento da devolucao PM; trilha [SYNC-259].
+
+PM: ACEITE em 2026-03-28. Devolucao tratada com evidencia objetiva no
+iniciar.bat (aud24h em Treino + fallback deterministico de decision_id);
+trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC), sync [SYNC-260]
+concluido.
 
 ### TAREFA M2-025.13 - Integracao testnet para dados e treino
 

@@ -23,6 +23,23 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-257] M2-025.12 Suite RED QA-TDD (TESTES_PRONTOS) - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Arquivos atualizados:
+  - tests/test_model2_m2_025_12_incremental_training_load_regression.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Escopo:
+  - criada suite RED para regressao de treino incremental em carga moderada
+    com foco em anti-concorrencia e idempotencia por `decision_id`;
+  - backlog atualizado para `TESTES_PRONTOS` com referencia explicita da suite;
+  - falhas RED documentadas para orientar fase GREEN do Software Engineer.
+- Evidencias tecnicas (fase RED):
+  - `pytest -q tests/test_model2_m2_025_12_incremental_training_load_regression.py`
+    -> 6 failed (esperado na fase RED)
+- Status backlog: M2-025.12 -> TESTES_PRONTOS
+
 ### [SYNC-254] Evolucao do agente 2.product-owner (prompt de valor real) - 2026-03-28
 
 - Agente: 2.product-owner
@@ -6563,4 +6580,71 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_025_11_data_freshness.py -> 6 passed
   - pytest -q tests/test_model2_scanner_detector.py -> 5 passed
   - mypy --strict core/model2/scanner.py -> Success
+  - pytest -q tests/ -> 308 passed
+
+### [SYNC-258] M2-025.12 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.12
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: adicionada secao M2-025.12 com contrato de auditoria
+    estendido (`decision_id`, `concurrency_key`), assinatura do trigger e
+    harness deterministico de regressao de carga.
+  - REGRAS_DE_NEGOCIO: adicionada RN-035 com criterios objetivos de
+    estabilidade (`concurrency_violations=0`) e guardrails obrigatorios.
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.12 com referencia
+    [SYNC-258].
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-259] M2-025.12 Fechamento da devolucao PM (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-025.12
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - ARQUITETURA_ALVO: detalhado fechamento operacional da devolucao PM com
+    resumo aud24h no `Treino` e fallback deterministico de `decision_id`.
+  - REGRAS_DE_NEGOCIO: RN-035 expandida com obrigatoriedade de evidencia
+    objetiva no `iniciar.bat` (`started`, `running_block`, `conclusivo`) e
+    fallback de `decision_id` quando metadata ausente.
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.12 com referencia
+    [SYNC-259].
+- Validacoes:
+  - markdownlint docs/*.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-260] M2-025.12 Fechamento Project Manager (ACEITE) - 2026-03-28
+
+- Agente: 8.project-manager
+- Item: M2-025.12
+- Decisao: ACEITE
+- Status backlog: CONCLUIDO
+- Ajustes finais:
+  - Backlog atualizado para `CONCLUIDO` com comentario `PM:` no item M2-025.12.
+  - Trilha documental confirmada com referencias [SYNC-258] e [SYNC-259].
+  - Fechamento validado com evidencia operacional objetiva no `iniciar.bat`
+    via linha `Treino` (`aud24h: started/running_block/conclusivo`) e fallback
+    deterministico de `decision_id` no trigger.
+- Validacoes finais:
+  - markdownlint docs/*.md -> OK
+  - pytest -q tests/test_docs_model2_sync.py -> 12 passed
+  - pytest -q tests/test_model2_m2_025_12_incremental_training_load_regression.py
+    tests/test_model2_training_audit.py tests/test_live_service_retrain_trigger.py
+    -> 20 passed
+  - mypy --strict core/model2/training_audit.py core/model2/live_service.py
+    core/model2/cycle_report.py core/model2/training_load_regression.py
+    scripts/model2/operator_cycle_status.py -> Success
   - pytest -q tests/ -> 308 passed
