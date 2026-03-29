@@ -587,6 +587,21 @@ Dados coletados por simbolo:
    - idempotencia por `decision_id` mantida;
    - em ambiguidade operacional, diagnostico bloqueado.
 
+**M2-025.15 (Governanca e auditoria documental do pacote)**:
+
+1. Fechamento documental do pacote M2-025 exige sincronizacao cruzada entre:
+   `docs/ARQUITETURA_ALVO.md`, `docs/ADRS.md`, `docs/DIAGRAMAS.md`,
+   `docs/MODELAGEM_DE_DADOS.md`, `docs/PRD.md`, `docs/REGRAS_DE_NEGOCIO.md`,
+   `docs/RUNBOOK_M2_OPERACAO.md` e trilha em `docs/SYNCHRONIZATION.md`.
+2. Objetivo arquitetural: reduzir divergencia entre contrato tecnico e operacao
+   observada no `iniciar.bat` por meio de checklist auditavel.
+3. Guardrails inviolaveis no fechamento documental:
+   `risk_gate=ATIVO`, `circuit_breaker=ATIVO`, `decision_id=IDEMPOTENTE`.
+4. Escopo sem impacto de runtime ou schema; mudanca restrita a governanca de
+   documentacao e rastreabilidade.
+5. Esta secao formaliza a governanca documental do pacote com criterio
+   verificavel para auditoria.
+
 ## Modos de operacao
 
 1. `backtest`: validacao offline da politica.

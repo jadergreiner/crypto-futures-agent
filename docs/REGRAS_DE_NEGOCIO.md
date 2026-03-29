@@ -576,3 +576,19 @@ Para reduzir ambiguidade no `iniciar.bat` sem perder auditabilidade tecnica:
    (fail-safe) com lacuna explicita e sem mascarar causa.
 7. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-040 - Governanca Documental do Pacote M2-025 (M2-025.15)
+
+Para o fechamento do pacote M2-025 com auditoria documental:
+
+1. O item M2-025.15 deve sincronizar `ARQUITETURA_ALVO`, `ADRS`,
+   `DIAGRAMAS`, `MODELAGEM_DE_DADOS`, `PRD`, `REGRAS_DE_NEGOCIO` e
+   `RUNBOOK_M2_OPERACAO`.
+2. Toda sincronizacao da M2-025.15 deve registrar trilha em
+   `docs/SYNCHRONIZATION.md` com tag `[SYNC]` e referencia explicita do item.
+3. O runbook deve incluir checklist de troubleshooting com evidencias
+   observaveis em `iniciar.bat`, `logs/startup_log.txt` e `logs/m2_cycle.log`.
+4. A governanca documental da M2-025.15 nao pode introduzir promessa de
+   comportamento ainda nao implementado no runtime.
+5. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

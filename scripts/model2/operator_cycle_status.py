@@ -1040,18 +1040,51 @@ def _build_symbol_line(
     last_train_time: str,
 ) -> str:
     """Compatibilidade: mapeia interface legada para _build_symbol_report."""
-    return _build_symbol_report(
+    candles_count, last_candle_time = _get_candle_info_for_timeframe(scan_summary, symbol)
+    action = "HOLD"
+    confidence = 0.0
+    if live_execute_summary:
+        for item in live_execute_summary.get("staged", []):
+            if str(item.get("symbol", "")).upper() != symbol:
+                continue
+            raw_action = str(item.get("action", "HOLD"))
+            if "LONG" in raw_action:
+                action = "OPEN_LONG"
+            elif "SHORT" in raw_action:
+                action = "OPEN_SHORT"
+            else:
+                action = raw_action
+            try:
+                confidence = float(item.get("confidence", 0.0) or 0.0)
+            except Exception:
+                confidence = 0.0
+            break
+
+    # Compatibilidade legada: _build_symbol_line usa janela mais tolerante para
+    # nao tornar snapshots validos do mesmo ciclo como stale por variacao de data
+    # entre execucoes em CI/local.
+    legacy_window_ms = 14 * 24 * 60 * 60 * 1000
+    freshness = resolve_candle_freshness_contract(
+        last_candle_time=last_candle_time,
+        signal_age_ms=None,
+        max_signal_age_ms=legacy_window_ms,
+    )
+    report = SymbolReport(
         symbol=symbol,
-        scan_d1=scan_summary,
-        scan_h4=scan_summary,
-        scan_h1=scan_summary,
-        scan_m5=scan_summary,
-        live_execute_summary=live_execute_summary,
-        exchange=exchange,
+        timeframe="H4",
+        timestamp=now_brt_str(),
+        candles_count=candles_count,
+        last_candle_time=last_candle_time,
+        candle_state=freshness["candle_state"],
+        freshness_reason=freshness["freshness_reason"],
+        decision=action,
+        confidence=confidence,
+        decision_fresh=freshness["decision_fresh"],
         last_train_time=last_train_time,
         pending_episodes=0,
-        db_path=_get_model2_db_path(),
+        execution_mode=M2_EXECUTION_MODE,
     )
+    return format_symbol_report(report)
 
 
 # ---------------------------------------------------------------------------

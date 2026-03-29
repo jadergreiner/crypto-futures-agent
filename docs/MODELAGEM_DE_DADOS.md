@@ -214,3 +214,13 @@ Indice:
    existentes.
 3. Validacao de schema reutiliza conjunto de tabelas obrigatorias ja definido
    em RN-020.
+
+## M2-025.15 - Governanca documental do pacote (impacto de dados)
+
+1. Escopo da M2-025.15 e exclusivamente documental e nao altera schema.
+2. Sem criacao/remoção de tabelas, colunas, indices ou migracoes.
+3. Contrato de dados vigente permanece alinhado a:
+   `docs/ARQUITETURA_ALVO.md`, `docs/REGRAS_DE_NEGOCIO.md` e `docs/PRD.md`.
+4. Rastreabilidade do fechamento deve constar em `docs/SYNCHRONIZATION.md`.
+5. Guardrails mantidos como invariantes documentais:
+   `risk_gate`, `circuit_breaker`, `decision_id`.

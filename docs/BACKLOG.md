@@ -12,7 +12,9 @@ incremental e observabilidade operacional com foco em fail-safe.
 
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+Score PO: 2.80 (ValorReal=2, Valor=4, Urg=3, Risco=4, Esf=2)
 
 Descricao:
 Sincronizar arquitetura, regras, runbook e trilha SYNC ao concluir o pacote,
@@ -21,6 +23,53 @@ mantendo governanca documental auditavel.
 Dependencias:
 
 - M2-025.1 a M2-025.14
+
+Escopo documental ampliado:
+
+- docs/ADRS.md
+- docs/DIAGRAMAS.md
+- docs/MODELAGEM_DE_DADOS.md
+- docs/PRD.md
+- docs/REGRAS_DE_NEGOCIO.md
+
+PO: Fechar M2-025.15 para consolidar arquitetura, regras, runbook e trilha
+SYNC sem divergencia documental. Ao fim deste desenvolvimento estarei feliz se
+os quatro artefatos ficarem sincronizados e auditaveis no mesmo ciclo.
+SA: Escopo ampliado: sync auditavel de
+ARQUITETURA/ADRS/DIAGRAMAS/MODELAGEM/PRD/REGRAS/RUNBOOK/SYNC
+com checklist por logs do iniciar.bat.
+
+QA: Suite RED em tests/test_model2_m2_025_15_docs_governance.py com 8 testes
+unitarios de governanca documental cross-doc e rastreio [SYNC].
+Comando de validacao: pytest -q tests/test_model2_m2_025_15_docs_governance.py
+tests/test_docs_model2_sync.py
+
+SE: GREEN concluido em 2026-03-29 com sincronizacao de ARQUITETURA/ADRS/
+DIAGRAMAS/MODELAGEM/PRD/REGRAS/RUNBOOK e trilha [SYNC-283]. Evidencias:
+`pytest -q tests/test_model2_m2_025_15_docs_governance.py
+tests/test_docs_model2_sync.py` -> 21 passed; `mypy --strict
+tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+-> Success; `pytest -q tests/` -> 3 falhas pre-existentes fora do escopo.
+TL: DEVOLVIDO. M2-025.15 verde local, mas gate TL bloqueado por 3 falhas
+em `pytest -q tests/`; aprovar somente com regressao global zerada.
+SE: Retorno da devolucao TL concluido em 2026-03-29. Corrigido parser de
+`created_at` em `collect_training_info` e restaurada compatibilidade legada de
+`_build_symbol_line` para frescor de candle. Evidencias: `pytest -q
+tests/test_cycle_report.py::TestCollectTrainingInfo::test_collect_training_info_le_training_episodes_nao_rl_episodes
+tests/test_cycle_report.py::TestCollectTrainingInfo::test_pendentes_decaem_apos_treino_registrado
+tests/test_model2_blid_082_candle_status.py::test_build_symbol_line_live_com_candle_fresco_exibe_candle_atualizado`
+-> 3 passed; `mypy --strict core/model2/cycle_report.py
+scripts/model2/operator_cycle_status.py` -> Success; `pytest -q
+tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+-> 21 passed; `mypy --strict tests/test_model2_m2_025_15_docs_governance.py
+tests/test_docs_model2_sync.py` -> Success; `pytest -q tests/` -> 332 passed.
+TL: APROVADO. Reproducao local verde (task+suite), guardrails preservados e
+governanca documental M2-025.15 pronta para Doc Advocate.
+DOC: Governanca documental final concluida; docs sincronizadas no escopo
+M2-025.15 e trilha registrada em [SYNC-285] para aceite executivo.
+PM: ACEITE em 2026-03-29. Valor PO ENTREGUE com sincronizacao auditavel de
+arquitetura/regras/runbook/SYNC no escopo ampliado, validacoes verdes
+(`markdownlint` e `pytest docs`) e trilha final [SYNC-286].
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 

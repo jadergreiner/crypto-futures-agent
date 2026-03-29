@@ -217,3 +217,25 @@ flowchart TD
   F -->|nao| H
   H --> I[Fail-safe sem bypass de guardrails]
 ```
+
+## 11) Governanca documental do pacote M2-025 (M2-025.15)
+
+Fechamento auditavel da trilha documental sem mudanca de runtime.
+
+```mermaid
+flowchart LR
+  A[docs/ARQUITETURA_ALVO.md] --> H[Checklist de coerencia M2-025.15]
+  B[docs/ADRS.md] --> H
+  C[docs/DIAGRAMAS.md] --> H
+  D[docs/MODELAGEM_DE_DADOS.md] --> H
+  E[docs/PRD.md] --> H
+  F[docs/REGRAS_DE_NEGOCIO.md] --> H
+  G[docs/RUNBOOK_M2_OPERACAO.md] --> H
+  H --> I[docs/SYNCHRONIZATION.md]
+```
+
+Invariantes:
+
+1. `risk_gate=ATIVO`
+2. `circuit_breaker=ATIVO`
+3. `decision_id=IDEMPOTENTE`

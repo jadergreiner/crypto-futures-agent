@@ -23,6 +23,126 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-286] M2-025.15 Fechamento Project Manager (ACEITE) - 2026-03-29
+
+- Agente: 8.project-manager
+- Item: M2-025.15
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: consolidar arquitetura, regras, runbook e trilha SYNC
+    sem divergencia documental, com governanca auditavel.
+  - Valor entregue: sincronizacao documental concluida no escopo ampliado
+    (ARQUITETURA/ADRS/DIAGRAMAS/MODELAGEM/PRD/REGRAS/RUNBOOK/SYNC) com
+    rastreabilidade final em [SYNC-285] e [SYNC-286].
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` com comentario `PM:`
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `pytest -q tests/` -> 332 passed
+
+### [SYNC-285] M2-025.15 Governanca final de docs (Doc Advocate) - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: M2-025.15
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrado comentario `DOC:` no item M2-025.15 com referencia
+    de trilha final para aceite executivo.
+  - SYNCHRONIZATION: consolidada trilha de fechamento documental apos
+    aprovacao TL e reproducao completa verde.
+- Validacao de valor PO:
+  - Valor prometido: sincronizar arquitetura, regras, runbook e trilha SYNC
+    com governanca auditavel.
+  - Valor entregue: docs sincronizadas no escopo expandido e rastreabilidade
+    objetiva por `BACKLOG + SYNC` com validacoes verdes.
+- Validacoes:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+
+### [SYNC-284] M2-025.15 Revisao Tech Lead (APROVADO) - 2026-03-29
+
+- Agente: 6.tech-lead
+- Item: M2-025.15
+- Status backlog: REVISADO_APROVADO
+- Evidencias de reproducao:
+  - `pytest -q tests/test_model2_m2_025_15_docs_governance.py
+    tests/test_docs_model2_sync.py` -> 21 passed
+  - `mypy --strict tests/test_model2_m2_025_15_docs_governance.py
+    tests/test_docs_model2_sync.py` -> Success
+  - `pytest -q tests/` -> 332 passed
+- Guardrails:
+  - `risk_gate=ATIVO`
+  - `circuit_breaker=ATIVO`
+  - `decision_id=IDEMPOTENTE`
+
+### [SYNC-282] M2-025.15 QA-TDD suite RED de governanca documental - 2026-03-29
+
+- Agente: 4.qa-tdd
+- Item: M2-025.15
+- Status backlog: TESTES_PRONTOS
+- Arquivos atualizados:
+  - tests/test_model2_m2_025_15_docs_governance.py
+  - tests/test_docs_model2_sync.py
+  - docs/ARQUITETURA_ALVO.md
+  - docs/ADRS.md
+  - docs/DIAGRAMAS.md
+  - docs/MODELAGEM_DE_DADOS.md
+  - docs/PRD.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/RUNBOOK_M2_OPERACAO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - criada suite RED com 8 testes para validar consistencia documental entre
+    ARQUITETURA/ADRS/DIAGRAMAS/MODELAGEM/PRD/REGRAS/RUNBOOK/SYNC no
+    fechamento da M2-025.15;
+  - adicionado teste em `test_docs_model2_sync.py` para escopo documental
+    ampliado da M2-025.15 no backlog;
+  - sincronizadas as fontes canonicas de governanca: arquitetura, ADRs,
+    diagramas, modelagem de dados, PRD, regras e runbook para fechamento
+    auditavel do pacote;
+  - backlog atualizado para `TESTES_PRONTOS` com referencia explicita da suite.
+- Validacoes:
+  - `pytest -q tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+    -> RED esperado (docs alvo ainda nao sincronizadas para M2-025.15)
+  - `mypy --strict tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+    -> Success
+
+### [SYNC-283] M2-025.15 GREEN documental cross-doc (Software Engineer) - 2026-03-29
+
+- Agente: 5.software-engineer
+- Item: M2-025.15
+- Status backlog: IMPLEMENTADO
+- Arquivos atualizados:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/ADRS.md
+  - docs/DIAGRAMAS.md
+  - docs/MODELAGEM_DE_DADOS.md
+  - docs/PRD.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/RUNBOOK_M2_OPERACAO.md
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - adicionadas secoes explicitas da M2-025.15 com governanca documental
+    auditavel entre arquitetura, ADRs, diagramas, modelagem, PRD, regras e
+    runbook;
+  - formalizada regra RN-040 em REGRAS_DE_NEGOCIO para fechamento documental
+    do pacote M2-025;
+  - runbook expandido com checklist de troubleshooting vinculado a
+    `iniciar.bat`, `logs/startup_log.txt` e `logs/m2_cycle.log`;
+  - backlog promovido para `IMPLEMENTADO` com evidencia de validacao.
+- Validacoes:
+  - `pytest -q tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+    -> 21 passed
+  - `mypy --strict tests/test_model2_m2_025_15_docs_governance.py tests/test_docs_model2_sync.py`
+    -> Success
+  - `pytest -q tests/` -> 3 falhas pre-existentes fora do escopo da M2-025.15
+
 ### [SYNC-279] M2-020.7 governanca final de reward operar vs HOLD - 2026-03-29
 
 - Agente: 7.doc-advocate

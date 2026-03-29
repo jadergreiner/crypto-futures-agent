@@ -399,6 +399,7 @@ com:
 | P1 | persistir episodios e rewards para operar e nao operar |
 | P1 | ativar retreino automatico governado com rollback |
 | P1 | reforcar gate de risco de modelo com criterio formal de bloqueio |
+| P1 | concluir M2-025.15 com governanca documental auditavel cross-doc |
 | P2 | especializacao de modelos por simbolo |
 | P2 | migracao para PostgreSQL quando o volume operacional justificar |
 
@@ -467,3 +468,14 @@ operacao do projeto com assistentes locais.
   incidentes.
 4. /create-prompt preflight-live-check
   Uso pratico: checklist rapido antes de promover de shadow para live.
+
+### 12.3 Governanca documental M2-025.15
+
+Para fechamento da M2-025.15, o PRD exige sincronizacao explicita com:
+`docs/ARQUITETURA_ALVO.md`, `docs/ADRS.md`, `docs/DIAGRAMAS.md`,
+`docs/MODELAGEM_DE_DADOS.md`, `docs/REGRAS_DE_NEGOCIO.md`,
+`docs/RUNBOOK_M2_OPERACAO.md` e trilha `[SYNC]` em
+`docs/SYNCHRONIZATION.md`.
+
+Invariantes do produto preservados nesta governanca:
+`risk_gate=ATIVO`, `circuit_breaker=ATIVO`, `decision_id=IDEMPOTENTE`.

@@ -107,3 +107,23 @@ Componentes:
 2. `agent/episode_loader.py` — Carregamento de episodios (futura)
 3. `scripts/model2/train_entry_agents.py` — Treino diario (futura)
 4. `scripts/model2/entry_rl_filter.py` — Filter stage (futura)
+
+## ADR-040 - Governanca documental auditavel do pacote M2-025 (M2-025.15)
+
+**Status:** ACEITO
+
+Decisao:
+
+1. Formalizar fechamento documental do pacote M2-025 com rastreabilidade
+   explicita por item e trilha em `docs/SYNCHRONIZATION.md`.
+2. Exigir coerencia entre referencias tecnicas de `docs/ARQUITETURA_ALVO.md`
+   e `docs/DIAGRAMAS.md` para evitar contradicoes operacionais.
+3. Consolidar alinhamento de escopo em `docs/PRD.md` e contratos em
+   `docs/REGRAS_DE_NEGOCIO.md`, mantendo `docs/MODELAGEM_DE_DADOS.md`
+   sem alteracao de schema para esta task.
+
+Guardrails:
+
+1. `risk_gate` permanece ativo em todos os fluxos.
+2. `circuit_breaker` permanece ativo em todos os fluxos.
+3. `decision_id` permanece como invariante idempotente e auditavel.

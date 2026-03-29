@@ -101,3 +101,22 @@ Fase 3 — Producao Plena (Ciclos 21+):
 
 **Reversao de Fase**: Se qualquer criterio violar, retornar para
 Fase 1 imediatamente com playbook de incidente
+
+## M2-025.15 - Checklist de troubleshooting documental
+
+Objetivo: conectar sinais operacionais de `iniciar.bat` com a trilha de
+governanca documental do pacote M2-025.
+
+Checklist:
+
+1. Confirmar startup recente no `iniciar.bat` via `logs/startup_log.txt`
+   contendo modo e simbolos ativos.
+2. Confirmar atividade do ciclo em `logs/m2_cycle.log` com timestamp BRT e
+   status operacional.
+3. Mapear leitura operacional em `docs/ARQUITETURA_ALVO.md` e
+   `docs/DIAGRAMAS.md` sem contradicao.
+4. Confirmar regras vigentes em `docs/REGRAS_DE_NEGOCIO.md` (incluindo
+   guardrails `risk_gate`, `circuit_breaker`, `decision_id`).
+5. Confirmar trilha `[SYNC]` em `docs/SYNCHRONIZATION.md` para a M2-025.15.
+6. Em ambiguidade documental, aplicar fail-safe: nao promover fechamento sem
+   alinhamento entre docs.

@@ -109,6 +109,18 @@ def test_backlog_sa_comment_limit_when_status_is_em_analise() -> None:
 
 
 @pytest.mark.docs
+def test_m2_025_15_backlog_scope_lists_expanded_docs() -> None:
+    text = BACKLOG_PATH.read_text(encoding="utf-8")
+    assert "### TAREFA M2-025.15 - Governanca e auditoria documental do pacote" in text
+    assert "Escopo documental ampliado:" in text
+    assert "- docs/ADRS.md" in text
+    assert "- docs/DIAGRAMAS.md" in text
+    assert "- docs/MODELAGEM_DE_DADOS.md" in text
+    assert "- docs/PRD.md" in text
+    assert "- docs/REGRAS_DE_NEGOCIO.md" in text
+
+
+@pytest.mark.docs
 def test_m2_006_subtasks_declared_in_backlog() -> None:
     text = BACKLOG_PATH.read_text(encoding="utf-8")
     assert "INICIATIVA M2-006 - Ponte de Sinal" in text
