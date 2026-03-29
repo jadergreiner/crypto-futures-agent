@@ -101,10 +101,20 @@ Comandos de referencia:
 git status
 pytest -q
 git add -A
-git commit -m "[SYNC] Fechamento BLID-XXX com aceite do PM"
+git commit -m "[SYNC-XXX] Fechamento BLID-XXX com aceite do PM"
 git push origin main
 git status
 ```
+
+Padrao obrigatorio de commit para fechamento PM:
+
+1. Se houver mudanca em qualquer `docs/*.md`, a mensagem DEVE conter tag
+   `[SYNC]` ou `[SYNC-XXX]` (preferir `[SYNC-XXX]` com o id registrado em
+   `docs/SYNCHRONIZATION.md`).
+2. Se o push falhar por ausencia de `[SYNC]`, corrigir imediatamente com:
+   `git commit --amend -m "[SYNC-XXX] ..."` e repetir `git push`.
+3. Evitar mensagem generica `[TAG]`; usar tag semantica coerente com os
+   arquivos alterados.
 
 ## Guardrails Inviolaveis
 
@@ -124,7 +134,8 @@ git status
 - ✅ Valor prometido pelo Product Owner validado como entregue.
 - ✅ Backlog atualizado para `CONCLUIDO` quando houver ACEITE.
 - ✅ Commit e push para `main` executados em caso de ACEITE.
-- ✅ Mensagem de commit no padrao `[TAG] Descricao`.
+- ✅ Mensagem de commit no padrao `[SYNC-XXX] Descricao` quando houver
+  alteracoes em `docs/*.md`.
 - ✅ `git status` final limpo.
 - ✅ Comunicado final objetivo para inicio do proximo item.
 

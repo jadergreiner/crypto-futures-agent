@@ -120,6 +120,20 @@ O reward deve considerar:
 3. risco assumido
 4. qualidade da decisao de aguardar
 
+Contrato vigente (M2-020.7):
+
+1. `EXECUTED/EXITED`: base em PnL percentual realizado; custo operacional
+   aplicado em modo opt-in de `_reward_label(..., apply_operational_cost=True)`.
+2. Compatibilidade legado preservada por default em `_reward_label`:
+   reward bruto e classificacao `breakeven` nao regressiva.
+3. `HOLD_DECISION/BLOCKED`: reward counterfactual deterministico para
+   `hold_correct` vs `hold_opportunity_missed`, incluindo branch `NEUTRAL`.
+4. Treino PPO (`incremental` e `lstm`): penalidades deterministicas para
+   `overtrading`, `risk_gate` adverso, `circuit_breaker` aberto e contexto
+   duplicado de `decision_id`.
+5. Fail-safe obrigatorio: ausencia de metadata nao quebra dataset nem runtime;
+   em ambiguidade, manter comportamento deterministico conservador.
+
 ### RN-011 - Retreino automatico governado
 
 Retreino pode ser automatico, mas com governanca:

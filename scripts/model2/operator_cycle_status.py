@@ -231,11 +231,30 @@ def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, fl
                 "ORDER BY id DESC LIMIT 1",
                 (symbol,),
             ).fetchone()
-        if row:
-            ep_id = int(row[0])
-            persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT", "CYCLE_CONTEXT")
-            reward = float(row[2])
-            return ep_id, persisted, reward
+            if row:
+                ep_id = int(row[0])
+                persisted = str(row[1] or "").upper() not in ("", "PENDING", "CONTEXT", "CYCLE_CONTEXT")
+                reward = float(row[2])
+
+                # M2-020.7: evita vies operacional para reward neutro cronico.
+                # Se o episodio mais recente tiver reward neutro, busca o mais recente
+                # com reward informativo nao-neutro para exibicao no status.
+                if abs(reward) <= 1e-12:
+                    non_zero_row = conn.execute(
+                        "SELECT id, status, reward_proxy FROM training_episodes "
+                        "WHERE symbol = ? AND reward_proxy IS NOT NULL "
+                        "AND ABS(reward_proxy) > 1e-12 "
+                        "AND status NOT IN ('CYCLE_CONTEXT') "
+                        "AND (execution_id > 0 OR status = 'HOLD_DECISION') "
+                        "ORDER BY id DESC LIMIT 1",
+                        (symbol,),
+                    ).fetchone()
+                    if non_zero_row:
+                        ep_id = int(non_zero_row[0])
+                        persisted = str(non_zero_row[1] or "").upper() not in ("", "PENDING", "CONTEXT", "CYCLE_CONTEXT")
+                        reward = float(non_zero_row[2])
+
+                return ep_id, persisted, reward
     except Exception:
         pass
     return None, False, 0.0

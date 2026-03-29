@@ -1029,7 +1029,9 @@ seguranca operacional.
 
 ### TAREFA M2-020.7 - Definir reward para operar e nao operar
 
-Status: Em analise
+Status: CONCLUIDO
+
+Score PO: 3.55 (ValorReal=3, Valor=4, Urg=3, Risco=4, Esf=2)
 
 Entrega:
 
@@ -1040,6 +1042,79 @@ Critérios de aceite:
 
 1. Reward reproduzivel em replay.
 2. Penalidade para overtrading e risco excessivo definida.
+
+PO: Score 3.55. Priorizado para alinhar reward de operar/HOLD ao valor
+economico real. Ao fim deste desenvolvimento estarei feliz se iniciar.bat
+mostrar episodios com reward nao-zero reproduzivel e penalidade objetiva de
+overtrading e risco excessivo.
+
+SA: Refinar reward de trade/HOLD com custo e penalidade de overtrading/risco,
+reproduzivel em replay e auditavel no iniciar.bat.
+
+QA: Suite RED criada em `tests/test_model2_m2_020_7_reward_contract.py` com
+15 casos (8 unitarios, 4 integracao, 3 regressao_risco). Evidencia RED:
+`pytest -q tests/test_model2_m2_020_7_reward_contract.py` => 12 failed, 3 passed.
+Cobertura inclui PnL liquido com custo, penalidades overtrading/risco e
+priorizacao de reward nao-neutro no `operator_cycle_status`. TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR M2-020.7 em 2026-03-29.
+
+SE: GREEN concluido em 2026-03-29. Reward de EXECUTED/EXITED agora usa PnL
+liquido com custo operacional; `_compute_reward` (incremental/lstm) aplica
+penalidades deterministicas de overtrading/risco/circuit_breaker e contexto
+duplicado; `operator_cycle_status` prioriza reward nao-neutro quando ultimo
+episodio vier neutro. Evidencias: `pytest -q
+tests/test_model2_m2_020_7_reward_contract.py` 15/15 PASS; `pytest -q
+tests/test_blid099_hold_learning.py` 16/16 PASS; `pytest -q
+tests/test_train_ppo_lstm.py` 2/2 PASS; `pytest -q tests/ -k "m2_020_7 or
+hold_learning or train_ppo"` 1 PASS (330 deselected); `mypy --strict
+scripts/model2/train_ppo_incremental.py scripts/model2/train_ppo_lstm.py
+scripts/model2/persist_training_episodes.py
+scripts/model2/operator_cycle_status.py` Success.
+
+TL: DEVOLVIDO_PARA_REVISAO. Reproducao independente confirma regressao em
+tests legados de reward bruto/breakeven (`test_blid091_reward_source.py`
+5 falhas; `test_model2_blid_072_persist_episodes.py` 7 falhas). Ajustar
+contrato com migracao segura e alinhar suites legadas para aprovar.
+
+SE: Correcao da devolucao TL concluida em 2026-03-29. `_reward_label` voltou
+ao contrato legado por default (bruto + breakeven), com custo operacional em
+modo opt-in (`apply_operational_cost=True`); `cycle_report` ajustado para
+contagem robusta de `created_at` numerico legado. Evidencias: `pytest -q
+tests/test_model2_m2_020_7_reward_contract.py` 15/15 PASS; `pytest -q
+tests/test_blid091_reward_source.py` 17/17 PASS; `pytest -q
+tests/test_model2_blid_072_persist_episodes.py` 18/18 PASS; `pytest -q
+tests/test_blid099_hold_learning.py` 16/16 PASS; `pytest -q
+tests/test_train_ppo_lstm.py` 2/2 PASS; `pytest -q tests/ -k
+"m2_020_7 or hold_learning or train_ppo"` 1 PASS (330 deselected);
+`mypy --strict scripts/model2/train_ppo_incremental.py
+scripts/model2/train_ppo_lstm.py scripts/model2/persist_training_episodes.py
+scripts/model2/operator_cycle_status.py` Success.
+
+TL: APROVADO em 2026-03-29. Reproducao independente validada:
+`pytest -q tests/test_model2_m2_020_7_reward_contract.py` 15/15 PASS;
+`pytest -q tests/test_blid091_reward_source.py` 17/17 PASS; `pytest -q
+tests/test_model2_blid_072_persist_episodes.py` 18/18 PASS; `pytest -q
+tests/test_blid099_hold_learning.py` 16/16 PASS; `pytest -q
+tests/test_train_ppo_lstm.py` 2/2 PASS; `pytest -q tests/ -k
+"m2_020_7 or hold_learning or train_ppo"` 1 PASS (330 deselected);
+`mypy --strict scripts/model2/train_ppo_incremental.py
+scripts/model2/train_ppo_lstm.py scripts/model2/persist_training_episodes.py
+scripts/model2/operator_cycle_status.py` Success. Guardrails `risk_gate`,
+`circuit_breaker` e idempotencia por `decision_id` preservados.
+
+DOC: Governanca final aplicada em 2026-03-29. REGRAS_DE_NEGOCIO e
+ARQUITETURA_ALVO sincronizadas para contrato M2-020.7 (legado preservado por
+default em `_reward_label`, custo operacional opt-in, penalidades
+deterministicas no treino e observabilidade sem vies neutro cronico).
+SYNCHRONIZATION registrada em [SYNC-279] com handoff executivo ao PM focado em
+valor PO entregue no `iniciar.bat`.
+
+PM: ACEITE em 2026-03-29. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC->PM). Valor prometido pelo PO entregue com
+evidencia objetiva: reward nao-neutro reproduzivel e penalidade operacional de
+overtrading/risco ativa, mantendo `risk_gate`, `circuit_breaker` e
+idempotencia por `decision_id`.
 
 ### TAREFA M2-020.8 - Reforcar reconciliacao model-driven
 

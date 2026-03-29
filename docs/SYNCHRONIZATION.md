@@ -23,6 +23,37 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-279] M2-020.7 governanca final de reward operar vs HOLD - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: M2-020.7
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - REGRAS_DE_NEGOCIO: RN-010 detalhada com contrato vigente da M2-020.7,
+    incluindo compatibilidade legado de `_reward_label` por default,
+    custo operacional em opt-in, regra HOLD counterfactual reproduzivel e
+    penalidades deterministicas em `_compute_reward` (incremental/lstm);
+  - ARQUITETURA_ALVO: Camada 5 expandida com fluxo persist -> treino ->
+    status operacional (`_query_episode_info`) e compatibilidade de
+    `created_at` numerico no `cycle_report`;
+  - BACKLOG: comentario `DOC:` registrado no item M2-020.7 com referencia
+    explicita ao [SYNC-279] e foco no valor operacional prometido pelo PO;
+  - SYNCHRONIZATION: trilha documental consolidada para handoff ao PM.
+- Validacao de valor PO:
+  - Valor prometido: reward informativo (nao-neutro cronico) e penalidade
+    objetiva para overtrading/risco no fluxo do `iniciar.bat`.
+  - Valor entregue (evidencias TL): suites M2-020.7 + legadas verdes e mypy
+    strict sem erros nos modulos de reward/status.
+- Guardrails:
+  - `risk_gate=ATIVO`
+  - `circuit_breaker=ATIVO`
+  - `decision_id=IDEMPOTENTE`
+
 ### [SYNC-278] BLID-083 valor PO comprovado com medicao objetiva - 2026-03-29
 
 - Agente: 7.doc-advocate

@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from time import perf_counter
 import numpy as np
+from numpy.typing import NDArray
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -58,6 +59,11 @@ TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
     "EXECUTED",
     "EXITED",
 )
+
+_OVERTRADING_PENALTY = 0.10
+_RISK_GATE_PENALTY = 0.12
+_CIRCUIT_BREAKER_PENALTY = 0.20
+_DUPLICATE_DECISION_PENALTY = 0.25
 
 
 def _json_default(value: Any) -> Any:
@@ -107,8 +113,8 @@ class PPOTrainer:
 
         self.ppo_model: Optional[Any] = None
         self.episodes_data: Optional[List[Dict[str, Any]]] = None
-        self.obs_data: Optional[Any] = None
-        self.rewards_data: Optional[Any] = None
+        self.obs_data: Optional[NDArray[np.float32]] = None
+        self.rewards_data: Optional[NDArray[np.float32]] = None
 
     def _episodes_count_by_symbol(self) -> dict[str, int]:
         """Conta episodios carregados por simbolo (normalizado em uppercase)."""
@@ -211,7 +217,7 @@ class PPOTrainer:
             return {"status": "error", "error": "No episodes loaded"}
 
         try:
-            observations_list: List[np.ndarray] = []
+            observations_list: List[NDArray[np.float32]] = []
             rewards_list: List[float] = []
 
             for ep in self.episodes_data:
@@ -232,8 +238,8 @@ class PPOTrainer:
                     reward = self._compute_reward(ep, features)
                     rewards_list.append(reward)
 
-            observations: np.ndarray = np.array(observations_list, dtype=np.float32)
-            rewards: np.ndarray = np.array(rewards_list, dtype=np.float32)
+            observations: NDArray[np.float32] = np.array(observations_list, dtype=np.float32)
+            rewards: NDArray[np.float32] = np.array(rewards_list, dtype=np.float32)
 
             self.obs_data = observations
             self.rewards_data = rewards
@@ -256,7 +262,7 @@ class PPOTrainer:
             logger.error(f"[PPO] Erro ao preparar dataset: {e}")
             return {"status": "error", "error": str(e)}
 
-    def _build_observation(self, features: Dict[str, Any], episode: Dict[str, Any]) -> Optional[np.ndarray]:
+    def _build_observation(self, features: Dict[str, Any], episode: Dict[str, Any]) -> Optional[NDArray[np.float32]]:
         """Construir vetor de observação a partir de features reais do episódio."""
         try:
             # Extrair features reais de features_json
@@ -301,18 +307,51 @@ class PPOTrainer:
         try:
             # Priority 1: use explicit reward_proxy
             if episode['reward_proxy'] is not None:
-                return float(episode['reward_proxy'])
-
-            # Priority 2: infer from label
-            label = episode.get('label', 'context')
-            if label == 'win':
-                return 1.0
-            elif label == 'loss':
-                return -0.5
-            elif label == 'breakeven':
-                return 0.0
+                base_reward = float(episode['reward_proxy'])
             else:
-                return 0.1  # context/neutral
+                # Priority 2: infer from label
+                label = episode.get('label', 'context')
+                if label == 'win':
+                    base_reward = 1.0
+                elif label == 'loss':
+                    base_reward = -0.5
+                elif label == 'breakeven':
+                    base_reward = 0.0
+                else:
+                    base_reward = 0.1  # context/neutral
+
+            reward = float(base_reward)
+            ops_flags = features.get("ops_flags", {})
+            risk_state = features.get("risk_state", {})
+            decision_context = features.get("decision_context", {})
+            overtrading_active = False
+            risk_gate_blocked = False
+            circuit_breaker_tripped = False
+
+            if isinstance(ops_flags, dict) and bool(ops_flags.get("overtrading")):
+                reward -= _OVERTRADING_PENALTY
+                overtrading_active = True
+
+            if isinstance(risk_state, dict):
+                risk_gate_status = str(risk_state.get("risk_gate_status", "")).upper()
+                if risk_gate_status in {"RISKY", "BLOCKED"}:
+                    reward -= _RISK_GATE_PENALTY
+                    risk_gate_blocked = (risk_gate_status == "BLOCKED")
+
+                circuit_breaker_state = str(risk_state.get("circuit_breaker_state", "")).upper()
+                if circuit_breaker_state in {"OPEN", "TRIPPED", "LOCKED"}:
+                    reward -= _CIRCUIT_BREAKER_PENALTY
+                    circuit_breaker_tripped = True
+
+            if isinstance(decision_context, dict) and bool(decision_context.get("duplicate_decision_id")):
+                reward -= _DUPLICATE_DECISION_PENALTY
+
+            if circuit_breaker_tripped:
+                reward = min(reward, -0.01)
+            if overtrading_active and risk_gate_blocked:
+                reward = min(reward, -0.01)
+
+            return float(reward)
 
         except Exception as e:
             logger.debug(f"[PPO] Erro ao calcular reward: {e}")
@@ -352,7 +391,12 @@ class PPOTrainer:
             class HistoricalDataEnv(gym.Env):  # type: ignore[type-arg]
                 """Environment que simula trading com dados históricos."""
 
-                def __init__(self, observations: np.ndarray, rewards: np.ndarray, max_steps: int = 1000) -> None:
+                def __init__(
+                    self,
+                    observations: NDArray[np.float32],
+                    rewards: NDArray[np.float32],
+                    max_steps: int = 1000,
+                ) -> None:
                     self.observations = observations
                     self.rewards = rewards
                     self.max_steps = max_steps
@@ -487,12 +531,13 @@ class PPOTrainer:
         # Simular treinamento (placeholder para demonstração)
         start_time = perf_counter()
 
+        rewards_arr = self.rewards_data if self.rewards_data is not None else np.array([], dtype=np.float32)
         result = {
             "status": "ok",
             "training_mode": "simulated",
             "timesteps_trained": len(self.obs_data),
             "total_timesteps": timesteps,
-            "mean_reward_during_training": float(np.mean(self.rewards_data)),
+            "mean_reward_during_training": float(np.mean(rewards_arr)) if len(rewards_arr) > 0 else 0.0,
             "training_duration_seconds": perf_counter() - start_time,
             "checkpoint_path": str(self.checkpoint_dir / "ppo_model.zip"),
             "note": "Treinamento simulado (SB3/Gymnasium não disponível)",
@@ -748,7 +793,7 @@ class PPOTrainer:
             conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN created_at TEXT")
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description='Treinamento incremental de modelo PPO'
     )

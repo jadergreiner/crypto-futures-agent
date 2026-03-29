@@ -217,6 +217,25 @@ Persistencia de decisao no estado atual:
 1. Tabela `model_decisions` para trilha da inferencia.
 2. Vinculo opcional `signal_executions.decision_id` para correlacao.
 
+**M2-020.7 (Reward deterministico operar vs HOLD)**:
+
+1. `scripts/model2/persist_training_episodes.py`:
+   - `_reward_label` preserva contrato legado por default (reward bruto +
+     `breakeven`) e permite custo operacional em opt-in
+     (`apply_operational_cost=True`);
+   - `_reward_counterfactual` mantem regra deterministica para HOLD/BLOCKED.
+2. `scripts/model2/train_ppo_incremental.py` e
+   `scripts/model2/train_ppo_lstm.py`:
+   - `_compute_reward` aplica penalidades deterministicas por episodio
+     (`overtrading`, `risk_gate`, `circuit_breaker`, duplicidade de
+     `decision_id`) no consumo de dataset de treino.
+3. `scripts/model2/operator_cycle_status.py`:
+   - `_query_episode_info` prioriza reward nao-neutro mais recente quando o
+     ultimo episodio tiver reward neutro cronico.
+4. `core/model2/cycle_report.py`:
+   - compatibilidade com legado de `created_at` numerico preservada para
+     manter contagem de pendentes reproduzivel no ciclo operacional.
+
 ## Camada 6 - Observabilidade e Reporting
 
 Responsavel por:

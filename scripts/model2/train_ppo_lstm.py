@@ -31,6 +31,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+_OVERTRADING_PENALTY = 0.10
+_RISK_GATE_PENALTY = 0.12
+_CIRCUIT_BREAKER_PENALTY = 0.20
+_DUPLICATE_DECISION_PENALTY = 0.25
+
 
 def validate_m2_016_2_dependency_gate(validation_gate_status: str) -> Dict[str, Any]:
     """Bloqueia fechamento da Fase E sem validacao operacional previa da M2-016.2."""
@@ -185,12 +190,54 @@ class PPOLstmTrainer:
         return features
 
     def _compute_reward(self, episode: Dict[str, Any], features: Dict[str, Any]) -> float:
-        if episode.get('reward_proxy') is not None:
-            return float(episode['reward_proxy'])
-        label = episode.get('label', 'context')
-        if label == 'win': return 1.0
-        elif label == 'loss': return -0.5
-        return 0.1
+        try:
+            if episode.get('reward_proxy') is not None:
+                base_reward = float(episode['reward_proxy'])
+            else:
+                label = episode.get('label', 'context')
+                if label == 'win':
+                    base_reward = 1.0
+                elif label == 'loss':
+                    base_reward = -0.5
+                elif label == 'breakeven':
+                    base_reward = 0.0
+                else:
+                    base_reward = 0.1
+
+            reward = float(base_reward)
+            ops_flags = features.get("ops_flags", {})
+            risk_state = features.get("risk_state", {})
+            decision_context = features.get("decision_context", {})
+            overtrading_active = False
+            risk_gate_blocked = False
+            circuit_breaker_tripped = False
+
+            if isinstance(ops_flags, dict) and bool(ops_flags.get("overtrading")):
+                reward -= _OVERTRADING_PENALTY
+                overtrading_active = True
+
+            if isinstance(risk_state, dict):
+                risk_gate_status = str(risk_state.get("risk_gate_status", "")).upper()
+                if risk_gate_status in {"RISKY", "BLOCKED"}:
+                    reward -= _RISK_GATE_PENALTY
+                    risk_gate_blocked = (risk_gate_status == "BLOCKED")
+
+                circuit_breaker_state = str(risk_state.get("circuit_breaker_state", "")).upper()
+                if circuit_breaker_state in {"OPEN", "TRIPPED", "LOCKED"}:
+                    reward -= _CIRCUIT_BREAKER_PENALTY
+                    circuit_breaker_tripped = True
+
+            if isinstance(decision_context, dict) and bool(decision_context.get("duplicate_decision_id")):
+                reward -= _DUPLICATE_DECISION_PENALTY
+
+            if circuit_breaker_tripped:
+                reward = min(reward, -0.01)
+            if overtrading_active and risk_gate_blocked:
+                reward = min(reward, -0.01)
+
+            return float(reward)
+        except Exception:
+            return 0.0
 
     def train(self, timesteps: int = 10000) -> Dict[str, Any]:
         from stable_baselines3 import PPO

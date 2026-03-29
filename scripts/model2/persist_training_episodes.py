@@ -68,6 +68,7 @@ def _lookup_at_ms(event_timestamp_ms: int, timeframe: str) -> int:
 
 
 _HOLD_NEUTRAL_THRESHOLD = 0.002  # 0.2%: variacao abaixo = mercado quieto
+_ROUNDTRIP_OPERATIONAL_COST = 0.002  # 20 bps (entrada + saida)
 
 
 def _reward_counterfactual(
@@ -95,21 +96,35 @@ def _reward_counterfactual(
 
 
 def _reward_label(
-    side: str, entry_price: float | None, exit_price: float | None
+    side: str,
+    entry_price: float | None,
+    exit_price: float | None,
+    *,
+    apply_operational_cost: bool = False,
 ) -> tuple[float | None, str, str]:
     if entry_price is None or exit_price is None or entry_price <= 0:
         return None, "pending", "none"
 
     if str(side).upper() == "SHORT":
-        reward = (entry_price - exit_price) / entry_price
+        raw_reward = (entry_price - exit_price) / entry_price
     else:
-        reward = (exit_price - entry_price) / entry_price
+        raw_reward = (exit_price - entry_price) / entry_price
 
-    if reward > 0:
-        return reward, "win", "pnl_realized"
-    if reward < 0:
-        return reward, "loss", "pnl_realized"
-    return reward, "breakeven", "pnl_realized"
+    # Compatibilidade legada: classificacao por reward bruto (win/loss/breakeven).
+    if raw_reward > 0:
+        label = "win"
+    elif raw_reward < 0:
+        label = "loss"
+    else:
+        label = "breakeven"
+
+    # M2-020.7 opt-in: custo operacional apenas quando requisitado e sem penalizar breakeven.
+    if apply_operational_cost and label != "breakeven":
+        reward = float(raw_reward - _ROUNDTRIP_OPERATIONAL_COST)
+    else:
+        reward = float(raw_reward)
+
+    return reward, label, "pnl_realized"
 
 
 def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dict[str, Any] | None:
