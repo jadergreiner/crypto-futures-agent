@@ -23,6 +23,86 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-272] Project Manager vira gate final de valor entregue - 2026-03-29
+
+- Agentes: 7.doc-advocate + 8.project-manager
+- Escopo:
+  - ultimo gate de aceite passa a validar o valor prometido pelo Product Owner
+  - handoff DA -> PM passa a carregar status e evidencia de entrega de valor
+- Arquivos atualizados:
+  - `.github/agents/8.project-manager.agent.md`
+  - `.github/skills/8.project-manager/SKILL.md`
+  - `.github/agents/7.doc-advocate.agent.md`
+  - `.github/skills/7.doc-advocate/SKILL.md`
+  - `.claude/commands/8.project-manager.md`
+  - `.claude/commands/7.doc-advocate.md`
+  - `.claude/commands/dev-cycle.md`
+  - `AGENTS.md`
+  - `docs/SYNCHRONIZATION.md`
+- Alteracoes:
+  - Project Manager passa a comparar explicitamente o valor prometido pelo PO
+    com a evidencia final antes de emitir `ACEITE`;
+  - `validacao_valor != ENTREGUE` vira impeditivo para fechamento;
+  - Doc Advocate passa a entregar no handoff os campos `valor_po`,
+    `validacao_valor` e `evidencia_valor` para suportar o ultimo gate.
+- Validacoes:
+  - revisao manual dos contratos de agente, skill e comandos `.claude`
+  - busca cruzada para `valor_po`, `validacao_valor`, `evidencia_valor` e
+    `ENTREGUE|PARCIAL|NAO_COMPROVADO`
+
+### [SYNC-271] Harmonizacao canonica do Product Owner - 2026-03-29
+
+- Agente: 2.product-owner
+- Escopo:
+  - skill canonica do Product Owner
+  - templates PO -> SA
+  - comandos `.claude` do stage 2 e do orquestrador
+- Arquivos atualizados:
+  - `.github/skills/2.product-owner/SKILL.md`
+  - `.github/skills/2.product-owner/templates.md`
+  - `.claude/commands/2.product-owner.md`
+  - `.claude/commands/dev-cycle.md`
+- Alteracoes:
+  - score do PO consolidado com peso para `Valor Real Capturado`;
+  - comentario `PO:` consolidado com frase obrigatoria
+    `Ao fim deste desenvolvimento estarei feliz se` e limite de 260
+    caracteres;
+  - handoff PO -> SA consolidado com bloco obrigatorio
+    `Valor real capturado em iniciar.bat`;
+  - uso da skill `14.production-value-review` consolidado para contestacao de
+    valor fraco, tecnico ou nao comprovado e escalonamento ao usuario humano
+    quando a lacuna for de negocio.
+- Validacoes:
+  - busca de referencias cruzadas para score, comentario `PO:` e bloco de
+    valor real em `iniciar.bat`
+  - revisao manual da coerencia entre skill, templates e comandos
+  - nenhuma divergencia remanescente encontrada nos arquivos canonicos do PO
+
+### [SYNC-270] Skill critica de valor real em producao para o Product Owner - 2026-03-29
+
+- Agente: 2.product-owner
+- Escopo:
+  - nova skill de apoio `14.production-value-review`
+  - endurecimento do fluxo de valor real do Product Owner
+- Arquivos atualizados:
+  - `.github/skills/14.production-value-review/SKILL.md`
+  - `.github/skills/README.md`
+  - `.github/skills/2.product-owner/SKILL.md`
+  - `.github/agents/2.product-owner.agent.md`
+  - `AGENTS.md`
+  - `docs/SYNCHRONIZATION.md`
+- Alteracoes:
+  - criada skill para validar se um item de backlog muda algo perceptivel,
+    auditavel ou fail-safe ao rodar `iniciar.bat`;
+  - Product Owner passa a consultar a skill quando o valor estiver indireto,
+    puramente tecnico ou nao comprovado por evidencia operacional;
+  - fluxo passa a explicitar contestacao ao agente virtual e escalonamento ao
+    usuario humano quando a lacuna for de negocio, nao tecnica.
+- Validacoes:
+  - revisao manual da coerencia entre agente, skill principal e skill de apoio
+  - busca de referencias cruzadas para `14.production-value-review`,
+    `valor real` e `escalar ao usuario humano`
+
 ### [SYNC-269] M2-020.8 Reconciliacao model-driven fail-safe - 2026-03-29
 
 - Agente: 7.doc-advocate

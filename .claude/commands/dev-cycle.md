@@ -1,5 +1,5 @@
 ---
-description: "Orquestrador do ciclo completo de desenvolvimento: executa automaticamente os agentes 1-8 em sequencia (Backlog → PO → SA → QA → SE → TL → DA → PM). Para em DEVOLVIDO e aguarda correcao antes de continuar. Entrada opcional: contexto ou BLID especifico."
+description: "Orquestrador do ciclo completo de desenvolvimento: executa automaticamente os agentes 1-8 em sequencia (Backlog → PO → SA → QA → SE → TL → DA → PM). No stage 2 aplica o gate de valor real em producao via `iniciar.bat` e no stage 8 exige que o Project Manager valide que o valor prometido pelo PO foi entregue. Para em DEVOLVIDO e aguarda correcao antes de continuar. Entrada opcional: contexto ou BLID especifico."
 ---
 
 Voce e o **orquestrador do ciclo de desenvolvimento** deste projeto.
@@ -47,11 +47,16 @@ Atue como o agente **1.backlog-development** seguindo `.github/agents/1.backlog-
 
 Atue como o agente **2.product-owner** seguindo `.github/agents/2.product-owner.agent.md`:
 - Entrada: BLID ou contexto do stage anterior
-- Calcular score: `(Valor*0.45) + (Urgencia*0.25) + (ReducaoRisco*0.20) - (Esforco*0.10)`
-- Atualizar `docs/BACKLOG.md`: status `Em analise` + `PO: <ate 150 chars>`
-- Produzir handoff PO->SA (schema obrigatorio, ate 1200 chars):
-  - id, score, objetivo (ate 200), escopo (ate 200), restricoes (ate 150),
-    criterio_aceite (ate 150), guardrails, Gate_payload
+- Responder objetivamente: `Qual o valor real capturado pela operacao em iniciar.bat?`
+- Se o valor estiver indireto, fraco, puramente tecnico ou contestado, aplicar
+  `.github/skills/14.production-value-review/SKILL.md` antes de seguir
+- Se a skill concluir que a lacuna e de negocio, PARAR e escalar ao usuario
+  humano com pergunta objetiva antes de continuar o ciclo
+- Calcular score: `(Valor Real Capturado*0.35) + (Valor*0.25) + (Urgencia*0.20) + (ReducaoRisco*0.15) - (Esforco*0.05)`
+- Atualizar `docs/BACKLOG.md`: status `Em analise` +
+  `PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.`
+- Produzir handoff PO->SA com bloco obrigatorio `Valor real capturado em iniciar.bat`
+  e contexto de lacuna/evidencia quando aplicavel
 
 ---
 
@@ -119,10 +124,12 @@ Atue como o agente **7.doc-advocate** seguindo `.github/agents/7.doc-advocate.ag
 - Atualizar `docs/SYNCHRONIZATION.md` com `[SYNC]`
 - Executar: `markdownlint docs/*.md` + `pytest -q tests/test_docs_model2_sync.py`
 - Registrar `DOC: <resumo curto>` no rodape do item no backlog
+- Produzir handoff DA->PM com `valor_po`, `validacao_valor` e `evidencia_valor`
 - Produzir handoff DA->PM (schema obrigatorio, ate 1800 chars):
   - id, status_backlog (REVISADO_APROVADO), recomendacao,
-    resumo_executivo (ate 350), docs_atualizadas (1-10),
-    sync (sim|nao + referencia), validacoes (ate 6 linhas), pendencias, Gate_payload
+    resumo_executivo (ate 350), valor_po, validacao_valor, evidencia_valor,
+    docs_atualizadas (1-10), sync (sim|nao + referencia),
+    validacoes (ate 6 linhas), pendencias, Gate_payload
 
 ---
 
@@ -131,6 +138,8 @@ Atue como o agente **7.doc-advocate** seguindo `.github/agents/7.doc-advocate.ag
 Atue como o agente **8.project-manager** seguindo `.github/agents/8.project-manager.agent.md`:
 - Entrada: handoff DA->PM do stage anterior
 - Validar trilha completa: BLID → testes → codigo → docs → sync
+- Comparar o valor prometido pelo PO com `valor_po`, `validacao_valor` e `evidencia_valor`
+- Se `validacao_valor` nao for `ENTREGUE`, tratar como impeditivo e devolver
 - Decisao final:
   - **DEVOLVER_PARA_AJUSTE** → PARAR. Exibir motivo. Aguardar instrucao do usuario.
   - **ACEITE** →

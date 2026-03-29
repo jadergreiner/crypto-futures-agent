@@ -38,7 +38,10 @@ Prioriza itens do backlog com score simples. Transforma demanda bruta em
 handoff estruturado para o Solution Architect.
 Ao finalizar, marca o item em `Em analise` no backlog e registra comentario
 `PO:` com frase obrigatoria de sucesso e foco em valor real capturado via
-operacao do `iniciar.bat`.
+operacao do `iniciar.bat`. Quando o valor real nao estiver comprovado,
+contesta a tese, usa a skill de apoio
+`.github/skills/14.production-value-review/SKILL.md` e escala ao usuario
+humano quando a decisao sair do campo tecnico.
 
 **Entrada**
 - Lista de issues/backlog
@@ -214,7 +217,8 @@ docs existentes sem criar documentação nova.
 **Saída**
 - Revisão/atualização de docs existentes em `docs/`
 - Registro `[SYNC]` em `docs/SYNCHRONIZATION.md`
-- Relatório executivo acionável para o agente `8.project-manager`
+- Relatório executivo acionável para o agente `8.project-manager`, incluindo
+  validação do valor prometido pelo Product Owner
 
 **Acionamento**
 - Invocado automaticamente pelo Tech Lead quando APROVADO
@@ -233,7 +237,8 @@ docs existentes sem criar documentação nova.
 **Descrição**
 Valida a atividade ponta-a-ponta e decide o `ACEITE` final para fechamento.
 Executa ajustes finais quando necessário, atualiza backlog para `CONCLUIDO`,
-realiza commit/push para `main` e garante árvore local limpa.
+realiza commit/push para `main`, garante árvore local limpa e assegura que o
+valor capturado pelo Product Owner foi de fato entregue.
 
 **Entrada**
 - Relatório executivo do Doc Advocate
@@ -242,6 +247,7 @@ realiza commit/push para `main` e garante árvore local limpa.
 
 **Saída**
 - Decisão final: `ACEITE` ou `DEVOLVER_PARA_AJUSTE`
+- Validação explícita do valor prometido pelo Product Owner versus valor entregue
 - Backlog atualizado para `CONCLUIDO` (quando ACEITE)
 - Commit e push para `main`
 - Confirmação de árvore local limpa
@@ -253,6 +259,7 @@ realiza commit/push para `main` e garante árvore local limpa.
 
 **Guardrails**
 - Não emitir ACEITE sem validar trilha completa da demanda
+- Não emitir ACEITE sem validar que o valor prometido pelo Product Owner foi entregue
 - Não fechar atividade sem atualizar backlog para `CONCLUIDO`
 - Não encerrar com árvore local suja
 - Em dúvida de conformidade: DEVOLVER para ajuste
@@ -416,7 +423,8 @@ resultado = runSubagent(
 
 ---
 
-**Última atualização**: 2026-03-22
-**Alterações mais recentes**: Doc Advocate passou a emitir relatório executivo
-para novo agente Project Manager (stage 8), responsável por aceite final,
-fechamento no backlog e publicação em main com árvore limpa.
+**Última atualização**: 2026-03-29
+**Alterações mais recentes**: o último gate do Project Manager passou a exigir
+validação explícita de que o valor prometido pelo Product Owner foi entregue,
+com handoff do Doc Advocate carregando status e evidência desse valor para o
+ACEITE final.

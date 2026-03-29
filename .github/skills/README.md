@@ -11,7 +11,8 @@ Este indice usa dois campos diferentes:
 
 1. WF-01 | `backlog-development` (pasta `1.backlog-development`) — criar,
   atualizar ou sincronizar backlog.
-2. WF-02 | `2.product-owner` — escolher o proximo item ou pacote.
+2. WF-02 | `2.product-owner` — escolher o proximo item ou pacote com foco em
+  valor real capturado em producao via `iniciar.bat`.
 3. WF-03 | `3.solution-architect` — refinar demanda do PO para o QA-TDD.
 4. WF-04 | `4.qa-tdd` — escrever suite RED e entregar handoff de
   implementacao.
@@ -32,6 +33,9 @@ Este indice usa dois campos diferentes:
   ou NO_GO.
 6. AUX-06 | `9.commit` — uso complementar de commit/push fora do fluxo principal.
 7. AUX-07 | `10.close` — encerramento leve de sessao quando aplicavel.
+8. AUX-08 | `14.production-value-review` — skill de apoio do PO/PM para
+  desafiar se um item gera valor real e perceptivel em producao ao rodar
+  `iniciar.bat`.
 
 ## Encadeamento Recomendado
 

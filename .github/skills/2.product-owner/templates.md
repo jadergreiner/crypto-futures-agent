@@ -12,19 +12,21 @@ user-invocable: false
 Formato obrigatorio no rodape do item priorizado:
 
 ```text
-PO: <resumo_em_ate_150_caracteres>
+PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.
 ```
 
 Regras:
 - Prefixo literal obrigatorio: `PO:`
-- Limite maximo: 150 caracteres no resumo
+- Frase literal obrigatoria: `Ao fim deste desenvolvimento estarei feliz se`
+- Limite maximo: 260 caracteres no comentario completo
 - Linguagem objetiva, sem multiline
 - Nao incluir markdown extra, bullets ou tags
 
 Checklist rapido:
 1. O item foi marcado como `Em analise`.
 2. O comentario comeca com `PO:`.
-3. O resumo tem no maximo 150 caracteres.
+3. A frase obrigatoria esta presente.
+4. O comentario completo tem no maximo 260 caracteres.
 
 ## 2) Bloco Padrao de Handoff PO -> SA
 
@@ -38,9 +40,13 @@ Contexto de priorizacao do PO:
 - Referencia do backlog: <BLID/ID>
 - Titulo do item: <titulo>
 - Objetivo de negocio: <resultado esperado>
-- Justificativa de prioridade: <valor, urgencia, risco e esforco>
+- Justificativa de prioridade: <valor real, valor, urgencia, risco e esforco>
+- Valor real capturado em iniciar.bat:
+  - Mudanca perceptivel: <o que muda no fluxo do operador>
+  - Evidencias ou lacuna: <logs, status, artefatos ou lacuna declarada>
+  - Contestacao restante: <nenhuma ou pergunta objetiva>
 - Status aplicado no backlog: Em analise
-- Comentario PO (<=150): PO: <resumo>
+- Comentario PO (<=260): PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.
 
 Escopo para refinamento tecnico:
 - Escopo fechado (entra): <lista objetiva>

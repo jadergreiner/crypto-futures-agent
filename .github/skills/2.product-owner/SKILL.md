@@ -1,13 +1,17 @@
 ---
 name: 2.product-owner
 description: |
-  Prioriza o proximo item ou pacote do backlog com score simples.
-  Entrega prompt acionavel para o agente Arquiteto de Solucoes.
+  Prioriza o proximo item ou pacote do backlog com foco em valor real
+  capturado em producao via `iniciar.bat`. Usa a skill
+  `14.production-value-review` quando a evidencia for fraca, contesta lacunas
+  de valor e entrega prompt acionavel para o agente Arquiteto de Solucoes.
 metadata:
   workflow-stage: 2
   focus:
     - priorizacao
     - valor
+    - valor-real
+    - iniciar-bat
     - handoff-arquiteto
 user-invocable: true
 ---
@@ -16,13 +20,16 @@ user-invocable: true
 
 ## Objetivo
 
-Escolher o proximo item ou pacote em `docs/BACKLOG.md` com criterio objetivo.
+Escolher o proximo item ou pacote em `docs/BACKLOG.md` com criterio objetivo,
+sem confundir implementacao tecnica com valor real de producao.
 
 ## Entradas Minimas
 
 - objetivo atual de produto
 - horizonte: 1 sprint ou 2-3 sprints
 - restricoes: prazo, risco, dependencia ou compliance
+- contexto operacional do `iniciar.bat` quando existir
+- evidencias observaveis: log, status, artefato, bloqueio fail-safe ou lacuna
 
 Se faltar contexto, agir em modo conservador: priorizar risco operacional e
 desbloqueio de fluxo critico.
@@ -33,35 +40,46 @@ desbloqueio de fluxo critico.
 2. Ler `docs/PRD.md` so se houver duvida de alinhamento.
 3. Ler `docs/REGRAS_DE_NEGOCIO.md` ou `docs/ARQUITETURA_ALVO.md` so se o item
    tocar regra critica ou mudanca estrutural.
+4. Se o valor real em `iniciar.bat` estiver indireto, fraco ou puramente
+   tecnico, usar `.github/skills/14.production-value-review/SKILL.md` antes de
+   pontuar.
 
 ## Score
 
-`Score Final = (Valor * 0.45) + (Urgencia * 0.25) + (Reducao de Risco * 0.20) - (Esforco * 0.10)`
+`Score Final = (Valor Real Capturado * 0.35) + (Valor * 0.25) + (Urgencia * 0.20) + (Reducao de Risco * 0.15) - (Esforco * 0.05)`
 
-Escala 1-5 para Valor, Urgencia, Reducao de Risco e Esforco.
+Escala 1-5 para Valor Real Capturado, Valor, Urgencia, Reducao de Risco e
+Esforco.
 
 ## Regras
 
 - Se o item mexe em seguranca operacional, exigir risco explicitado.
 - Se depende de item nao concluido, marcar como bloqueado.
 - Se criterio de aceite estiver vago, reduzir urgencia em 1 ponto.
+- Se o valor real em `iniciar.bat` nao estiver comprovado, registrar a lacuna
+  ou escalar ao usuario; nao inferir beneficio por simpatia tecnica.
+- Se o valor estiver indireto, puramente tecnico ou contestado, usar
+  `.github/skills/14.production-value-review/SKILL.md` antes de pontuar.
 - Em empate: maior reducao de risco, depois menor esforco, depois maior
   alinhamento ao objetivo atual.
 - Ao priorizar, atualizar no backlog o status exato: `Em analise`.
-- No rodape do item, registrar `PO: <resumo>` com ate 150 caracteres.
+- No rodape do item, registrar:
+  `PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.`
+- Nao ultrapassar 260 caracteres no comentario `PO:`.
 
 ## Template de Comentario PO
 
 Usar formato fixo no rodape do item priorizado:
 
 ```text
-PO: <resumo_em_ate_150_caracteres>
+PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.
 ```
 
 Validacao minima antes da saida:
 1. Status aplicado no item: `Em analise` (exato, sem acento).
 2. Comentario iniciado por `PO:`.
-3. Tamanho maximo de 150 caracteres no resumo.
+3. Comentario contem literalmente `Ao fim deste desenvolvimento estarei feliz se`.
+4. Tamanho maximo de 260 caracteres no comentario completo.
 
 ## Saida
 
@@ -78,9 +96,13 @@ Contexto de priorizacao do PO:
 - Referencia do backlog: <BLID/ID>
 - Titulo do item: <titulo>
 - Objetivo de negocio: <resultado esperado>
-- Justificativa de prioridade: <valor, urgencia, risco e esforco>
+- Justificativa de prioridade: <valor real, valor, urgencia, risco e esforco>
+- Valor real capturado em iniciar.bat:
+  - Mudanca perceptivel: <o que muda no terminal, log, status ou runtime>
+  - Evidencias ou lacuna: <logs, artefatos, bloqueios ou lacuna declarada>
+  - Contestacao restante: <nenhuma ou pergunta objetiva>
 - Status aplicado no backlog: Em analise
-- Comentario PO (<=150): PO: <resumo>
+- Comentario PO (<=260): PO: <resumo>. Ao fim deste desenvolvimento estarei feliz se <resultado mensuravel>.
 
 Escopo para refinamento tecnico:
 - Escopo fechado (entra): <lista objetiva>
@@ -111,4 +133,6 @@ Sua tarefa como Arquiteto de Solucoes:
 - Nunca recomendar item bloqueado sem alternativa executavel.
 - Em duvida sobre risco operacional, retornar `NO_GO`.
 - Nunca usar variante de status diferente de `Em analise`.
-- Nunca exceder 150 caracteres no comentario `PO:`.
+- Nunca afirmar valor real sem evidencia operacional ou lacuna declarada.
+- Se a lacuna for de negocio, escalar ao usuario humano com pergunta objetiva.
+- Nunca exceder 260 caracteres no comentario `PO:`.

@@ -45,6 +45,9 @@ Campos obrigatorios no handoff:
 - `status_backlog` (`REVISADO_APROVADO`)
 - `recomendacao` (`ACEITE_RECOMENDADO` ou `DEVOLVER_PARA_AJUSTE`)
 - `resumo_executivo` (ate 350 chars)
+- `valor_po` (ate 180 chars)
+- `validacao_valor` (`ENTREGUE|PARCIAL|NAO_COMPROVADO`)
+- `evidencia_valor` (ate 220 chars)
 - `docs_atualizadas` (1 a 10)
 - `sync` (sim/nao + referencia curta)
 - `validacoes` (ate 6 linhas)
@@ -58,6 +61,7 @@ Checklist de rejeicao (payload invalido):
 - [ ] Campo obrigatorio ausente
 - [ ] `status_backlog` diferente de `REVISADO_APROVADO`
 - [ ] `recomendacao` fora de `ACEITE_RECOMENDADO|DEVOLVER_PARA_AJUSTE`
+- [ ] `validacao_valor` fora de `ENTREGUE|PARCIAL|NAO_COMPROVADO`
 - [ ] Payload acima de 1800 chars
 - [ ] `docs_atualizadas` fora de 1..10
 - [ ] `validacoes` fora de 1..6
@@ -103,6 +107,8 @@ Checklist de rejeicao (payload invalido):
    ```bash
    pytest -q tests/test_docs_model2_sync.py
    ```
+4. Explicitar no handoff o valor prometido pelo Product Owner e se a
+   evidencia final mostra `ENTREGUE`, `PARCIAL` ou `NAO_COMPROVADO`.
 
 ## Guardrails Inviolaveis
 
@@ -121,6 +127,7 @@ Checklist de rejeicao (payload invalido):
 - ✅ `markdownlint docs/*.md` sem erros.
 - ✅ `pytest -q tests/test_docs_model2_sync.py` sem falhas (quando aplicavel).
 - ✅ Relatorio executivo acionavel para `8.project-manager`.
+- ✅ Handoff explicita se o valor prometido pelo Product Owner foi entregue.
 
 ## Saida Obrigatoria
 
@@ -135,6 +142,9 @@ Handoff:
 - status_backlog: REVISADO_APROVADO
 - recomendacao: <ACEITE_RECOMENDADO|DEVOLVER_PARA_AJUSTE>
 - resumo_executivo: <ate 350 chars>
+- valor_po: <o que o PO prometeu capturar em producao>
+- validacao_valor: <ENTREGUE|PARCIAL|NAO_COMPROVADO>
+- evidencia_valor: <log, status, artefato, bloqueio ou lacuna objetiva>
 - docs_atualizadas: <doc1>; <doc2>
 - sync: <sim|nao> (<referencia curta>)
 - validacoes: <markdownlint>; <pytest_docs_sync>
