@@ -199,6 +199,9 @@ Resiliencia e fail-safe de pipeline (M2-027):
   - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
   - validacao de runbook (`validate_contingency_runbook`)
   - validacao de schema por conjunto de tabelas (`validate_schema_tables`)
+  - reconciliacao fail-safe de lado/quantidade da posicao em
+    `core/model2/live_service.py`, com `FAILED` auditavel quando a
+    exchange diverge do `signal_side` esperado
 
 ## Camada 5 - Persistencia e Aprendizado Continuo
 

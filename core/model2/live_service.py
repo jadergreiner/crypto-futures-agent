@@ -2227,12 +2227,74 @@ class Model2LiveExecutionService:
         except Exception:
             return 0
 
+    @staticmethod
+    def _normalize_position_side(position: dict[str, Any]) -> str:
+        raw_side = (
+            position.get("position_side")
+            or position.get("direction")
+            or position.get("side")
+            or ""
+        )
+        normalized = str(raw_side).strip().upper()
+        if normalized in {"BUY", "LONG"}:
+            return "LONG"
+        if normalized in {"SELL", "SHORT"}:
+            return "SHORT"
+        return normalized
+
+    def _detect_position_divergence(
+        self,
+        *,
+        execution: dict[str, Any],
+        position: dict[str, Any] | None,
+        now_ms: int,
+    ) -> dict[str, Any] | None:
+        if position is None:
+            return None
+
+        signal_side = str(execution.get("signal_side") or "").strip().upper()
+        exchange_position_side = self._normalize_position_side(position)
+        if signal_side and exchange_position_side and exchange_position_side != signal_side:
+            return self._mark_reconciliation_divergence(
+                execution=execution,
+                now_ms=now_ms,
+                reason="reconciliation_divergence_position_side_mismatch",
+                metadata={
+                    "source": "reconcile_position_side_mismatch",
+                    "symbol": str(execution.get("symbol") or ""),
+                    "expected_signal_side": signal_side,
+                    "exchange_position_side": exchange_position_side,
+                },
+            )
+
+        position_qty = self._to_float(position.get("position_size_qty"))
+        if position_qty is not None and position_qty <= 0:
+            return self._mark_reconciliation_divergence(
+                execution=execution,
+                now_ms=now_ms,
+                reason="reconciliation_divergence_non_positive_position_qty",
+                metadata={
+                    "source": "reconcile_non_positive_position_qty",
+                    "symbol": str(execution.get("symbol") or ""),
+                    "expected_signal_side": signal_side,
+                    "exchange_position_qty": position_qty,
+                },
+            )
+        return None
+
     def _reconcile_single_execution(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
         execution_id = int(execution["id"])
         symbol = str(execution["symbol"])
         signal_side = str(execution["signal_side"])
         position = exchange.get_open_position(symbol)
+        divergence = self._detect_position_divergence(
+            execution=execution,
+            position=position,
+            now_ms=now_ms,
+        )
+        if divergence is not None:
+            return divergence
 
         if execution["status"] == SIGNAL_EXECUTION_STATUS_READY:
             if position is None:

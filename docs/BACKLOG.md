@@ -40,16 +40,8 @@ Criterio da fila ativa:
 
 Em progresso:
 
-- M2-025.14 - Preflight de consistencia de dados M2.
-   Status: Em analise | Score PO: 3.85
-   Dependencia minima: M2-025.1 e M2-025.4 concluidas.
-   Impacto: bloquear live com inconsistencias de dados, episodio e treino.
-- BLID-089 - Captura e persistencia de candles D1.
-   Status: Em analise | Prioridade proposta: Media | Score PO: 3.85
-   Dependencia minima: BLID-088 concluida + H1 ja incluido no `iniciar.bat`.
-   Impacto: completar cobertura multi-timeframe operacional com D1.
 - M2-020.8 - Reforcar reconciliacao model-driven.
-   Status: Em analise
+   Status: CONCLUIDO
    Dependencia minima: trilha model-driven M2-020 ativa.
    Impacto: registrar divergencias criticas e impedir transicao final sem
    reconciliacao minima.
@@ -97,7 +89,7 @@ incremental e observabilidade operacional com foco em fail-safe.
 
 ### TAREFA M2-025.14 - Preflight de consistencia de dados M2
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.85 (Valor=4, Urg=4, Risco=4, Esf=2)
 
@@ -115,6 +107,29 @@ Alta prioridade para Go/No-Go seguro.
 
 SA: Expandir go_live_preflight.py com checks de episodio, treino e
 consistencia candle; bloquear se falhar; reason_code DATA_CONSISTENCY_FAIL.
+
+QA: Suite RED em `tests/test_model2_m2_025_14_preflight_data.py` com 4
+cenarios cobrindo frescor de candle, checkpoint, baseline de treino e
+contrato fail-safe `DATA_CONSISTENCY_FAIL`. TESTES_PRONTOS.
+
+SE: GREEN validado em `scripts/model2/go_live_preflight.py` com
+`_check_candle_freshness`, `_check_train_checkpoint` e
+`_check_train_episodes`, retrocompat `db_path`/`model2_db_path` e summary
+com `DATA_CONSISTENCY_FAIL`. Evidencias: `pytest -q
+tests/test_model2_m2_025_14_preflight_data.py` -> 4 passed; `pytest -q
+tests/test_model2_go_live_preflight.py` -> 22 passed; `mypy --strict
+scripts/model2/go_live_preflight.py tests/test_model2_go_live_preflight.py
+tests/test_model2_m2_025_14_preflight_data.py` -> Success.
+
+TL: APROVADO. Reproducao local: 4/4 task, 22/22 preflight, 316/316 suite
+verde e mypy strict OK; guardrails preservados e `DATA_CONSISTENCY_FAIL`
+auditavel.
+
+DOC: REGRAS_DE_NEGOCIO (RN-036), BACKLOG e SYNCHRONIZATION alinhados ao gate
+de consistencia de dados; trilha documental [SYNC-261].
+
+PM: ACEITE em 2026-03-28. Trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC),
+suite 316/316 verde e backlog concluido.
 
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
@@ -972,7 +987,7 @@ Critérios de aceite:
 
 ### TAREFA M2-020.8 - Reforcar reconciliacao model-driven
 
-Status: Em analise
+Status: CONCLUIDO
 
 Entrega:
 
@@ -983,6 +998,35 @@ Critérios de aceite:
 
 1. Divergencias banco vs exchange detectadas e auditadas.
 2. Nao existe transicao final sem reconciliacao minima.
+
+PO: Priorizar reconciliacao model-driven para bloquear falso positivo
+operacional. Ao fim deste desenvolvimento estarei feliz se divergencias
+criticas virarem falha rastreavel antes do fechamento.
+
+SA: Divergencia entre `signal_side` esperado e posicao real da exchange
+deve falhar em `FAILED` com auditoria de reconciliacao.
+
+QA: Suite RED criada para mismatch entre `signal_side` e posicao real,
+exigindo bloqueio `FAILED`, alerta critico e trilha auditavel.
+
+SE: GREEN concluido em `core/model2/live_service.py` com guardrail para
+`position_side` divergente e quantidade nao positiva na reconciliacao.
+
+TL: APROVADO - mismatch de lado agora falha com auditoria e preserva
+bloqueio antes de transicao final.
+
+DOC: Backlog, arquitetura alvo e regras de negocio sincronizados com
+divergencia critica de reconciliacao por lado da posicao.
+
+PM: ACEITE em 2026-03-29. Trilha ponta-a-ponta validada
+(PO->SA->QA->SE->TL->DOC), criterios cumpridos e fechamento concluido.
+
+Evidencias de implementacao:
+
+1. `pytest -q tests/test_model2_live_execution.py` -> 20 passed.
+2. `pytest -q tests/test_model2_live_execution.py -k
+   "position_side_mismatch or reconcile"` -> 3 passed.
+3. `mypy --strict core/model2/live_service.py` -> Success.
 
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
@@ -1809,7 +1853,7 @@ carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
 
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
-Status: Em analise
+Status: REVISADO_APROVADO
 
 Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
 
@@ -1847,11 +1891,38 @@ com validacao de `ohlcv_d1` e regressao da trilha M2 em modo conservador.
 SA: Handoff QA preparado para RED de sync D1, execucao no iniciar.bat e
 leitura scanner com regressao controlada.
 
+QA: Suites RED em `tests/test_blid089_d1_enablement.py` e
+`tests/test_blid089_d1_pipeline_integration.py` com 5 testes cobrindo parser
+de sync D1, pipeline com `ohlcv_d1` e sequencia operacional do orquestrador
+Python. RED confirmado por 2 falhas iniciais (CLI anexando H4 e loop Python
+sem D1/M5). TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR em 2026-03-28. Foco em alinhar o
+`LiveCycleOrchestrator` ao `iniciar.bat` e corrigir a CLI de
+`sync_ohlcv_from_binance.py` para respeitar `--timeframe D1` sem H4 implicito.
+
+SE: GREEN concluido em 2026-03-28. `core/live_cycle_orchestrator.py` agora
+executa D1 -> H4 -> H1 -> M5 antes do `live_cycle`; a CLI de
+`scripts/model2/sync_ohlcv_from_binance.py` nao injeta H4 quando timeframe
+explicito e a regressao D1 foi coberta com fixture real de `ohlcv_d1`.
+Evidencias: `pytest -q tests/test_blid089_d1_enablement.py
+tests/test_blid089_d1_pipeline_integration.py` -> 5 passed; `mypy --strict
+core/live_cycle_orchestrator.py scripts/model2/sync_ohlcv_from_binance.py
+tests/test_blid089_d1_enablement.py tests/test_blid089_d1_pipeline_integration.py`
+-> Success; `pytest -q tests/` -> 316 passed.
+
+TL: APROVADO. Reproducao local: 5/5 task, 316/316 suite verde e mypy strict
+OK; loop Python ficou alinhado ao `iniciar.bat` e `--timeframe D1` opera sem
+H4 implicito.
+
+DOC: BACKLOG, README e SYNCHRONIZATION alinhados ao loop multi-timeframe
+operacional do D1; trilha documental [SYNC-268].
+
 **Criterio de aceite:**
 
-1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [ ]
-2. `iniciar.bat` executa pipeline D1 no loop [ ]
-3. `pytest -q tests/` passa [ ]
+1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [x]
+2. `iniciar.bat` executa pipeline D1 no loop [x]
+3. `pytest -q tests/` passa [x]
 
 ---
 

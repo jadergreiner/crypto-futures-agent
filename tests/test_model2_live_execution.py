@@ -946,6 +946,89 @@ def test_live_reconcile_external_close_does_not_emit_critical_alert(tmp_path: Pa
     assert not any(event == "reconciliation_critical_divergence" for event, _ in captured)
 
 
+def test_live_reconcile_position_side_mismatch_marks_failed_and_audits_divergence(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    repository, signal_id = _create_consumed_signal(db_path)
+    exchange = FakeExchange(available_balance=100.0, protection_works=True)
+    captured: list[tuple[str, dict]] = []
+
+    def _capture_alert(self, event_type: str, details: dict) -> bool:
+        captured.append((event_type, details))
+        return True
+
+    monkeypatch.setattr(
+        "core.model2.live_service.Model2LiveAlertPublisher.publish_critical",
+        _capture_alert,
+    )
+
+    execute_summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+    assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
+
+    exchange.positions["BTCUSDT"]["direction"] = "LONG"
+
+    reconcile_summary = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert reconcile_summary["reconciled"][0]["status"] == "FAILED"
+    assert (
+        reconcile_summary["reconciled"][0]["reason"]
+        == "reconciliation_divergence_position_side_mismatch"
+    )
+    assert any(event == "reconciliation_critical_divergence" for event, _ in captured)
+
+    execution = repository.list_signal_executions(limit=10)[0]
+    assert int(execution["technical_signal_id"]) == signal_id
+    assert execution["status"] == "FAILED"
+
+    with sqlite3.connect(db_path) as conn:
+        payload_row = conn.execute(
+            """
+            SELECT payload_json
+            FROM signal_execution_events
+            WHERE signal_execution_id = ?
+              AND event_type = 'RECONCILIATION'
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (int(execution["id"]),),
+        ).fetchone()
+
+    assert payload_row is not None
+    payload = json.loads(str(payload_row[0]))
+    assert payload["result"] == "critical_divergence"
+    assert payload["reason"] == "reconciliation_divergence_position_side_mismatch"
+    assert payload["exchange_position_side"] == "LONG"
+    assert payload["expected_signal_side"] == "SHORT"
+
+
 def test_log_operational_status_redispara_treino_incremental_apos_termino_sem_duplicar_concorrencia(
     tmp_path: Path,
     monkeypatch,

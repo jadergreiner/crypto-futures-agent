@@ -56,6 +56,9 @@ O sistema nao pode gerar ordem duplicada para a mesma decisao efetiva.
 Estados de banco e exchange devem ser reconciliados continuamente.
 Divergencias criticas devem gerar falha segura (`FAILED`) e evento
 auditavel.
+Mismatch entre `signal_side` esperado e lado real da posicao na exchange,
+assim como quantidade de posicao nao positiva, sao divergencias criticas
+bloqueantes e nao podem seguir para transicao final.
 
 ### RN-008 - Auditoria obrigatoria
 

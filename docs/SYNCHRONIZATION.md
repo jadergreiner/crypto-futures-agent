@@ -23,6 +23,107 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-269] M2-020.8 Reconciliacao model-driven fail-safe - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: M2-020.8
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrada trilha PO -> SA -> QA -> SE -> TL -> DOC com
+    evidencias da suite de reconciliacao model-driven.
+  - ARQUITETURA_ALVO: documentado guardrail fail-safe para mismatch entre
+    `signal_side` esperado e lado real da posicao.
+  - REGRAS_DE_NEGOCIO: formalizado que mismatch de lado e quantidade nao
+    positiva sao divergencias criticas bloqueantes.
+- Validacoes:
+  - `pytest -q tests/test_model2_live_execution.py` -> 20 passed
+  - `mypy --strict core/model2/live_service.py` -> Success
+
+### [SYNC-268] BLID-089 Governanca final de docs (Doc Advocate) - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: BLID-089
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - README.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrada trilha QA -> SE -> TL -> DOC do BLID-089 com
+    evidencias do parser D1, pipeline `ohlcv_d1` e alinhamento do loop Python.
+  - README: documentada a sequencia operacional D1 -> H4 -> H1 -> M5 antes do
+    `live_cycle` no loop M2.
+- Validacoes:
+  - markdownlint docs/*.md README.md
+  - pytest -q tests/test_docs_model2_sync.py
+
+### [SYNC-267] BLID-089 Revisao Tech Lead (APROVADO) - 2026-03-28
+
+- Agente: 6.tech-lead
+- Item: BLID-089
+- Decisao: APROVADO
+- Status backlog: REVISADO_APROVADO
+- Validacoes reproduzidas:
+  - pytest -q tests/test_blid089_d1_enablement.py
+    tests/test_blid089_d1_pipeline_integration.py -> 5 passed
+  - mypy --strict core/live_cycle_orchestrator.py
+    scripts/model2/sync_ohlcv_from_binance.py
+    tests/test_blid089_d1_enablement.py
+    tests/test_blid089_d1_pipeline_integration.py -> Success
+  - pytest -q tests/ -> 316 passed
+- Resultado da revisao:
+  - `LiveCycleOrchestrator` alinhado ao `iniciar.bat` com D1 -> H4 -> H1 -> M5.
+  - `sync_ohlcv_from_binance.py` respeita `--timeframe D1` sem H4 implicito.
+
+### [SYNC-266] BLID-089 GREEN/REFACTOR D1 no loop operacional - 2026-03-28
+
+- Agente: 5.software-engineer
+- Item: BLID-089
+- Status backlog: IMPLEMENTADO
+- Codigo alterado:
+  - core/live_cycle_orchestrator.py
+  - scripts/model2/sync_ohlcv_from_binance.py
+  - tests/test_blid089_d1_enablement.py
+  - tests/test_blid089_d1_pipeline_integration.py
+- Implementacao:
+  - `LiveCycleOrchestrator` passou a executar `daily_pipeline.py` em D1, H4,
+    H1 e M5 antes do `live_cycle`, replicando o `iniciar.bat`.
+  - A CLI de `sync_ohlcv_from_binance.py` deixou de anexar H4 quando o
+    operador informa timeframe explicito.
+  - Regressao D1 coberta com fixture real para `ohlcv_d1` e checks do loop.
+- Validacoes:
+  - pytest -q tests/test_blid089_d1_enablement.py
+    tests/test_blid089_d1_pipeline_integration.py -> 5 passed
+  - mypy --strict core/live_cycle_orchestrator.py
+    scripts/model2/sync_ohlcv_from_binance.py
+    tests/test_blid089_d1_enablement.py
+    tests/test_blid089_d1_pipeline_integration.py -> Success
+  - pytest -q tests/ -> 316 passed
+
+### [SYNC-265] BLID-089 Suite RED QA-TDD D1 - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Item: BLID-089
+- Status backlog: TESTES_PRONTOS
+- Codigo alterado:
+  - tests/test_blid089_d1_enablement.py
+  - tests/test_blid089_d1_pipeline_integration.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Validacoes:
+  - pytest -q tests/test_blid089_d1_enablement.py -> 2 failed, 2 passed
+  - pytest -q tests/test_blid089_d1_pipeline_integration.py -> 1 passed
+- Gap confirmado:
+  - `sync_ohlcv_from_binance.py` anexava `H4` ao parser quando o operador
+    solicitava apenas `D1`.
+  - `core/live_cycle_orchestrator.py` ainda executava somente H4 no loop
+    Python, divergindo do `iniciar.bat`.
+
 ### [SYNC-263] M2-016.2 Governanca final de docs para persisted_artifacts - 2026-03-28
 
 - Agente: 7.doc-advocate
