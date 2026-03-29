@@ -182,6 +182,123 @@ def _get_required_migration_versions() -> list[int]:
     return sorted(versions)
 
 
+def _build_schema_scope_boundary() -> dict[str, list[str]]:
+    return {
+        "owns": ["tables", "columns", "migrations", "foreign_keys", "coverage"],
+        "excludes": ["candle_freshness", "train_checkpoint", "train_episodes"],
+    }
+
+
+def _empty_schema_severity_counts() -> dict[str, int]:
+    return {
+        "CRITICAL": 0,
+        "HIGH": 0,
+        "MEDIUM": 0,
+        "LOW": 0,
+    }
+
+
+def _get_schema_max_severity(severity_counts: dict[str, int]) -> str:
+    for severity in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
+        if severity_counts.get(severity, 0) > 0:
+            return severity
+    return "LOW"
+
+
+def _build_schema_coverage(
+    *,
+    required_tables: set[str],
+    found_tables: set[str],
+    required_columns: dict[str, set[str]],
+    missing_columns: dict[str, list[str]],
+) -> dict[str, Any]:
+    tables_present = sorted(required_tables & found_tables)
+    required_columns_total = sum(len(columns) for columns in required_columns.values())
+    missing_required_columns = 0
+
+    for table_name, columns in required_columns.items():
+        if table_name not in found_tables:
+            missing_required_columns += len(columns)
+            continue
+        missing_required_columns += len(missing_columns.get(table_name, []))
+
+    required_columns_present = max(0, required_columns_total - missing_required_columns)
+    total_contract_items = len(required_tables) + required_columns_total
+    present_contract_items = len(tables_present) + required_columns_present
+    coverage_pct = 100.0
+    if total_contract_items > 0:
+        coverage_pct = round((present_contract_items / total_contract_items) * 100.0, 2)
+
+    return {
+        "required_tables": sorted(required_tables),
+        "tables_present": tables_present,
+        "required_columns_total": required_columns_total,
+        "required_columns_present": required_columns_present,
+        "coverage_pct": coverage_pct,
+    }
+
+
+def _run_schema_foreign_key_check(conn: sqlite3.Connection) -> dict[str, Any]:
+    try:
+        rows = conn.execute("PRAGMA foreign_key_check").fetchall()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "reason": "foreign_key_check_error",
+            "violations": [],
+            "error": str(exc),
+        }
+
+    violations: list[dict[str, Any]] = []
+    for row in rows:
+        violations.append(
+            {
+                "table": str(row[0]),
+                "rowid": int(row[1]) if row[1] is not None else None,
+                "parent": str(row[2]),
+                "fkid": int(row[3]) if row[3] is not None else None,
+            }
+        )
+
+    return {
+        "ok": len(violations) == 0,
+        "reason": "ok" if len(violations) == 0 else "foreign_key_violations",
+        "violations": violations,
+    }
+
+
+def _classify_schema_contract_severity(
+    *,
+    reason_code: str | None,
+    missing_tables: list[str],
+    missing_columns: dict[str, list[str]],
+    missing_migrations: list[int],
+    foreign_key_check: dict[str, Any],
+) -> tuple[dict[str, int], str]:
+    severity_counts = _empty_schema_severity_counts()
+
+    if reason_code == "db_not_found":
+        severity_counts["CRITICAL"] += 1
+
+    if missing_tables:
+        severity_counts["CRITICAL"] += len(missing_tables)
+
+    if missing_columns:
+        severity_counts["HIGH"] += sum(len(columns) for columns in missing_columns.values())
+
+    if missing_migrations:
+        severity_counts["HIGH"] += len(missing_migrations)
+
+    fk_reason = str(foreign_key_check.get("reason", ""))
+    fk_violations = foreign_key_check.get("violations", [])
+    if fk_reason == "foreign_key_violations" and isinstance(fk_violations, list):
+        severity_counts["HIGH"] += len(fk_violations)
+    elif fk_reason == "foreign_key_check_error":
+        severity_counts["HIGH"] += 1
+
+    return severity_counts, _get_schema_max_severity(severity_counts)
+
+
 def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
     required_tables = {
         "schema_migrations",
@@ -209,8 +326,20 @@ def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
         "audit_decision_execution": {"id", "decision_id", "execution_id", "signal_id", "timestamp_utc", "decision_status", "execution_status"},
     }
     expected_versions = _get_required_migration_versions()
+    scope_boundary = _build_schema_scope_boundary()
 
     if not db_path.exists():
+        severity_counts, max_severity = _classify_schema_contract_severity(
+            reason_code="db_not_found",
+            missing_tables=sorted(required_tables),
+            missing_columns={},
+            missing_migrations=expected_versions,
+            foreign_key_check={
+                "ok": False,
+                "reason": "skipped_db_not_found",
+                "violations": [],
+            },
+        )
         return {
             "ok": False,
             "reason_code": "db_not_found",
@@ -219,6 +348,20 @@ def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
             "missing_migrations": expected_versions,
             "applied_migrations": [],
             "expected_latest_migration": max(expected_versions) if expected_versions else None,
+            "severity_counts": severity_counts,
+            "max_severity": max_severity,
+            "foreign_key_check": {
+                "ok": False,
+                "reason": "skipped_db_not_found",
+                "violations": [],
+            },
+            "scope_boundary": scope_boundary,
+            **_build_schema_coverage(
+                required_tables=required_tables,
+                found_tables=set(),
+                required_columns=required_columns,
+                missing_columns={},
+            ),
         }
 
     with sqlite3.connect(db_path) as conn:
@@ -244,20 +387,42 @@ def _validate_schema_contract(db_path: Path) -> dict[str, Any]:
             missing = sorted(col for col in columns if col.lower() not in existing_columns)
             if missing:
                 missing_columns[table_name] = missing
+        foreign_key_check = _run_schema_foreign_key_check(conn)
 
     expected_latest = max(expected_versions) if expected_versions else None
+    coverage = _build_schema_coverage(
+        required_tables=required_tables,
+        found_tables=found_tables,
+        required_columns=required_columns,
+        missing_columns=missing_columns,
+    )
+    severity_counts, max_severity = _classify_schema_contract_severity(
+        reason_code=None,
+        missing_tables=missing_tables,
+        missing_columns=missing_columns,
+        missing_migrations=missing_migrations,
+        foreign_key_check=foreign_key_check,
+    )
+    ok = max_severity not in {"CRITICAL", "HIGH"}
+    if missing_tables or missing_columns or foreign_key_check.get("reason") in {"foreign_key_violations", "foreign_key_check_error"}:
+        reason_code: str | None = "schema_divergence"
+    elif missing_migrations:
+        reason_code = "missing_migrations"
+    else:
+        reason_code = None
     return {
-        "ok": not missing_tables and not missing_columns and not missing_migrations,
-        "reason_code": (
-            "schema_divergence"
-            if missing_tables or missing_columns
-            else ("missing_migrations" if missing_migrations else None)
-        ),
+        "ok": ok,
+        "reason_code": reason_code,
         "missing_tables": missing_tables,
         "missing_columns": missing_columns,
         "missing_migrations": missing_migrations,
         "applied_migrations": applied_migrations,
         "expected_latest_migration": expected_latest,
+        "severity_counts": severity_counts,
+        "max_severity": max_severity,
+        "foreign_key_check": foreign_key_check,
+        "scope_boundary": scope_boundary,
+        **coverage,
     }
 
 
@@ -1082,6 +1247,16 @@ def run_go_live_preflight(
         overall_status = "alert"
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     timestamp_utc_ms = _utc_now_ms()
+    check3 = next((item for item in checks if item.get("id") == "3"), {})
+    check3_evidence = check3.get("evidence") if isinstance(check3, dict) else {}
+    schema_contract_evidence = (
+        check3_evidence.get("schema_contract", {}) if isinstance(check3_evidence, dict) else {}
+    )
+    schema_reason_code = ""
+    if isinstance(schema_contract_evidence, dict):
+        max_severity = str(schema_contract_evidence.get("max_severity", ""))
+        if max_severity in {"CRITICAL", "HIGH"}:
+            schema_reason_code = "schema_divergence"
     check6 = next((item for item in checks if item.get("id") == "6"), {})
     check6_evidence = check6.get("evidence") if isinstance(check6, dict) else {}
     testnet_credentials_evidence = (
@@ -1096,7 +1271,7 @@ def run_go_live_preflight(
     }
     summary: dict[str, Any] = {
         "status": overall_status,
-        "reason_code": "DATA_CONSISTENCY_FAIL" if data_consistency_fail else "",
+        "reason_code": "DATA_CONSISTENCY_FAIL" if data_consistency_fail else schema_reason_code,
         "run_id": run_id,
         "timestamp_utc_ms": timestamp_utc_ms,
         "model2_db_path": str(resolved_db),

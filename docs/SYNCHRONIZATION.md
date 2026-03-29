@@ -6710,3 +6710,47 @@ REVISADO_APROVADO
     core/model2/cycle_report.py core/model2/training_load_regression.py
     scripts/model2/operator_cycle_status.py -> Success
   - pytest -q tests/ -> 308 passed
+
+### [SYNC-261] M2-022.1 QA-TDD RED phase - 2026-03-28
+
+- Agente: 4.qa-tdd
+- Item: M2-022.1
+- Status backlog: TESTES_PRONTOS
+- Suite RED:
+  - Atualizada `tests/test_model2_go_live_preflight.py` com 8 cenarios novos
+    para severidade, coverage, foreign keys, reason_code de summary e fronteira
+    com `M2-025.14`.
+- Evidencias:
+  - `mypy --strict tests/test_model2_go_live_preflight.py` -> Success
+  - `pytest -q tests/test_model2_go_live_preflight.py` -> 8 failed, 14 passed
+- Gap confirmado:
+  - `check3` ainda nao expõe `severity_counts`, `coverage_pct`,
+    `scope_boundary` nem validacao estruturada de foreign keys.
+  - `summary["reason_code"]` ainda nao sobe `schema_divergence` para alertas
+    de schema em `check3`.
+
+### [SYNC-264] M2-022.1 Doc Advocate sync final - 2026-03-28
+
+- Agente: 7.doc-advocate
+- Item: M2-022.1
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Sincronizacao aplicada:
+  - `ARQUITETURA_ALVO`: check 3 do preflight agora documenta
+    `severity_counts`, `max_severity`, `coverage_pct`, `foreign_key_check`,
+    `scope_boundary` e a fronteira com `M2-025.14`.
+  - `REGRAS_DE_NEGOCIO`: RN-020 ampliada para catalogo de severidade,
+    coverage auditavel, bloqueio por `schema_divergence` e separacao de
+    `DATA_CONSISTENCY_FAIL`.
+  - `BACKLOG`: criterio legado alinhado da suite inexistente
+    `tests/test_model2_schema_validation.py` para a suite real
+    `tests/test_model2_go_live_preflight.py`; comentario `DOC:` registrado.
+- Validacoes:
+  - `markdownlint docs/*.md` -> OK
+  - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
+- Pendencias documentais:
+  - Nenhuma

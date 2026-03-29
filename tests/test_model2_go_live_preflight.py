@@ -122,6 +122,70 @@ def _create_min_live_schema(db_path: Path) -> None:
         conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
 
 
+def _create_live_schema_with_signal_execution_fk(db_path: Path) -> None:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY);
+            CREATE TABLE IF NOT EXISTS technical_signals(
+                id INTEGER PRIMARY KEY,
+                symbol TEXT,
+                timeframe TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER,
+                updated_at INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS signal_executions(
+                id INTEGER PRIMARY KEY,
+                technical_signal_id INTEGER,
+                symbol TEXT,
+                execution_mode TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER,
+                updated_at INTEGER,
+                decision_id INTEGER,
+                FOREIGN KEY(technical_signal_id) REFERENCES technical_signals(id)
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_events(
+                id INTEGER PRIMARY KEY,
+                signal_execution_id INTEGER,
+                event_type TEXT,
+                event_timestamp INTEGER,
+                rule_id TEXT,
+                payload_json TEXT
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_snapshots(
+                id INTEGER PRIMARY KEY,
+                run_id TEXT,
+                snapshot_timestamp INTEGER,
+                ready_count INTEGER,
+                blocked_count INTEGER,
+                created_at INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS audit_decision_execution(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                decision_id INTEGER NOT NULL,
+                execution_id INTEGER NOT NULL,
+                signal_id INTEGER NOT NULL,
+                timestamp_utc TEXT NOT NULL,
+                decision_status TEXT NOT NULL,
+                execution_status TEXT NOT NULL,
+                error_reason TEXT,
+                additional_context TEXT
+            );
+            """
+        )
+        max_version = max(
+            int(p.name.split("_", 1)[0])
+            for p in MODEL2_MIGRATIONS_DIR.glob("*.sql")
+            if p.name.split("_", 1)[0].isdigit()
+        )
+        conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
+
+
 def test_go_live_preflight_happy_path_writes_summary(tmp_path: Path) -> None:
     db_path = tmp_path / "db" / "modelo2.db"
     env_file = tmp_path / ".env"
@@ -482,6 +546,17 @@ def test_check3_alert_when_required_column_missing(tmp_path: Path) -> None:
                 blocked_count INTEGER,
                 created_at INTEGER
             );
+            CREATE TABLE IF NOT EXISTS audit_decision_execution(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                decision_id INTEGER NOT NULL,
+                execution_id INTEGER NOT NULL,
+                signal_id INTEGER NOT NULL,
+                timestamp_utc TEXT NOT NULL,
+                decision_status TEXT NOT NULL,
+                execution_status TEXT NOT NULL,
+                error_reason TEXT,
+                additional_context TEXT
+            );
             """
         )
         max_version = max(
@@ -539,3 +614,334 @@ def test_check3_schema_contract_returns_structured_evidence(tmp_path: Path) -> N
     check3 = next(item for item in summary["checks"] if item["id"] == "3")
     contract = check3["evidence"]["schema_contract"]
     assert {"missing_tables", "missing_columns", "missing_migrations", "applied_migrations", "expected_latest_migration"}.issubset(contract.keys())
+
+
+def test_check3_schema_contract_includes_severity_and_coverage_report(tmp_path: Path) -> None:
+    """R1: check3 expõe severidade por violacao e relatorio de coverage auditavel."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert {
+        "severity_counts",
+        "required_tables",
+        "tables_present",
+        "required_columns_total",
+        "required_columns_present",
+        "coverage_pct",
+    }.issubset(contract.keys())
+
+
+def test_check3_missing_db_maps_to_critical_severity(tmp_path: Path) -> None:
+    """R2: banco ausente vira CRITICAL no check3 com evidência estruturada."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert contract["reason_code"] == "db_not_found"
+    assert contract["severity_counts"]["CRITICAL"] >= 1
+    assert contract["max_severity"] == "CRITICAL"
+
+
+def test_check3_missing_tables_map_to_critical_severity(tmp_path: Path) -> None:
+    """R3: tabela ausente é classificada como CRITICAL e bloqueia o gate."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY)")
+        max_version = max(
+            int(p.name.split("_", 1)[0])
+            for p in MODEL2_MIGRATIONS_DIR.glob("*.sql")
+            if p.name.split("_", 1)[0].isdigit()
+        )
+        conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert contract["severity_counts"]["CRITICAL"] >= 1
+    assert contract["max_severity"] == "CRITICAL"
+
+
+def test_check3_missing_migration_maps_to_high_severity(tmp_path: Path) -> None:
+    """R4: migration faltante é HIGH e aparece na contagem de severidade."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    _create_min_live_schema(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DELETE FROM schema_migrations")
+        conn.execute("INSERT INTO schema_migrations(version) VALUES (1)")
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert contract["reason_code"] == "missing_migrations"
+    assert contract["severity_counts"]["HIGH"] >= 1
+    assert contract["max_severity"] == "HIGH"
+
+
+def test_check3_missing_column_maps_to_high_severity(tmp_path: Path) -> None:
+    """R5: coluna obrigatória ausente é HIGH no catálogo do check3."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY);
+            CREATE TABLE IF NOT EXISTS technical_signals(
+                id INTEGER PRIMARY KEY,
+                symbol TEXT,
+                timeframe TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS signal_executions(
+                id INTEGER PRIMARY KEY,
+                technical_signal_id INTEGER,
+                symbol TEXT,
+                execution_mode TEXT,
+                status TEXT,
+                payload_json TEXT,
+                created_at INTEGER,
+                updated_at INTEGER,
+                decision_id INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_events(
+                id INTEGER PRIMARY KEY,
+                signal_execution_id INTEGER,
+                event_type TEXT,
+                event_timestamp INTEGER,
+                rule_id TEXT,
+                payload_json TEXT
+            );
+            CREATE TABLE IF NOT EXISTS signal_execution_snapshots(
+                id INTEGER PRIMARY KEY,
+                run_id TEXT,
+                snapshot_timestamp INTEGER,
+                ready_count INTEGER,
+                blocked_count INTEGER,
+                created_at INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS audit_decision_execution(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                decision_id INTEGER NOT NULL,
+                execution_id INTEGER NOT NULL,
+                signal_id INTEGER NOT NULL,
+                timestamp_utc TEXT NOT NULL,
+                decision_status TEXT NOT NULL,
+                execution_status TEXT NOT NULL,
+                error_reason TEXT,
+                additional_context TEXT
+            );
+            """
+        )
+        max_version = max(
+            int(p.name.split("_", 1)[0])
+            for p in MODEL2_MIGRATIONS_DIR.glob("*.sql")
+            if p.name.split("_", 1)[0].isdigit()
+        )
+        conn.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (?)", (max_version,))
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert contract["reason_code"] == "schema_divergence"
+    assert contract["severity_counts"]["HIGH"] >= 1
+    assert contract["max_severity"] == "HIGH"
+
+
+def test_check3_foreign_key_violation_is_reported_as_high_severity(tmp_path: Path) -> None:
+    """R6: foreign_key_check com orfandade bloqueia check3 com severidade HIGH."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    _create_live_schema_with_signal_execution_fk(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.execute(
+            """
+            INSERT INTO signal_executions(
+                id, technical_signal_id, symbol, execution_mode, status,
+                payload_json, created_at, updated_at, decision_id
+            ) VALUES (1, 999, 'BTCUSDT', 'shadow', 'READY', '{}', 1, 1, 1)
+            """
+        )
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert check3["status"] == "alert"
+    assert contract["foreign_key_check"]["violations"] != []
+    assert contract["severity_counts"]["HIGH"] >= 1
+    assert contract["max_severity"] == "HIGH"
+
+
+def test_preflight_schema_alert_sets_summary_reason_code_to_schema_divergence(tmp_path: Path) -> None:
+    """R7: violação HIGH/CRITICAL em check3 sobe reason_code schema_divergence no summary."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    _create_live_schema_with_signal_execution_fk(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys = OFF")
+        conn.execute(
+            """
+            INSERT INTO signal_executions(
+                id, technical_signal_id, symbol, execution_mode, status,
+                payload_json, created_at, updated_at, decision_id
+            ) VALUES (1, 999, 'BTCUSDT', 'shadow', 'READY', '{}', 1, 1, 1)
+            """
+        )
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    assert summary["status"] == "alert"
+    assert summary["reason_code"] == "schema_divergence"
+
+
+def test_check3_exposes_scope_boundary_for_data_consistency_extensions(tmp_path: Path) -> None:
+    """R8: check3 deixa explícito que stale/checkpoint/train pertencem a M2-025.14."""
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text("M2_LIVE_SYMBOLS=BTCUSDT\n", encoding="utf-8")
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check3 = next(item for item in summary["checks"] if item["id"] == "3")
+    contract = check3["evidence"]["schema_contract"]
+
+    assert contract["scope_boundary"]["owns"] == ["tables", "columns", "migrations", "foreign_keys", "coverage"]
+    assert contract["scope_boundary"]["excludes"] == ["candle_freshness", "train_checkpoint", "train_episodes"]

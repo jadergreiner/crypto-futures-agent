@@ -139,6 +139,12 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   `schema_migrations`). Em divergencia, bloqueia com evidencia estruturada
   (`missing_tables`, `missing_columns`, `missing_migrations`,
   `applied_migrations`, `expected_latest_migration`).
+- Endurecimento do check 3 no warm-up (M2-022.1): o contrato de schema agora
+  tambem expõe `severity_counts`, `max_severity`, `coverage_pct`,
+  `foreign_key_check` e `scope_boundary`. Violacoes `CRITICAL` ou `HIGH`
+  propagam `summary.reason_code='schema_divergence'` antes do live, enquanto
+  `candle_freshness`, `train_checkpoint` e `train_episodes` permanecem fora do
+  check 3 e seguem na trilha `M2-025.14` (`DATA_CONSISTENCY_FAIL`).
 - Contrato de erro de execucao auditavel (M2-024.10): `LiveExecutionErrorContract`
   frozen dataclass em `live_execution.py` com campos obrigatorios `decision_id`,
   `execution_id`, `reason_code`, `severity`, `recommended_action` e campo

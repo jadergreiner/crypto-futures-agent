@@ -218,6 +218,19 @@ O schema do modelo2.db deve ser validado antes de cada ciclo live:
    obrigatorias das tabelas criticas e bloqueia em divergencia.
 6. O preflight deve validar migracao alvo (ultima versao em
    `scripts/model2/migrations`) presente em `schema_migrations`.
+7. No warm-up endurecido de `M2-022.1`, o check 3 deve classificar
+   severidade por violacao: `db_not_found` e `missing_tables` => `CRITICAL`;
+   `missing_columns`, `missing_migrations` e `foreign_key_violations` =>
+   `HIGH`.
+8. O check 3 deve expor relatorio auditavel de coverage (`required_tables`,
+   `tables_present`, `required_columns_total`, `required_columns_present`,
+   `coverage_pct`, `severity_counts`) e evidencia estruturada de
+   `foreign_key_check`.
+9. Se o `max_severity` do check 3 for `CRITICAL` ou `HIGH`, o warm-up deve
+   bloquear o go-live com `summary.reason_code='schema_divergence'`.
+10. `candle_freshness`, `train_checkpoint` e `train_episodes` nao pertencem
+    ao check 3; esses controles continuam na trilha de consistencia operacional
+    `M2-025.14` e usam `reason_code='DATA_CONSISTENCY_FAIL'` quando aplicavel.
 
 ### RN-021 - Posicoes Orfas e Saida Segura (M2-027.3)
 
