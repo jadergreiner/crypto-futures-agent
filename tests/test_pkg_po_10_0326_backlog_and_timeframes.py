@@ -30,6 +30,6 @@ def test_blid088_quando_entrega_m5_concluida_entao_status_concluido() -> None:
     assert "Status: CONCLUIDO" in chunk
 
 
-def test_blid075_quando_top10_priorizado_entao_status_em_analise() -> None:
+def test_blid075_quando_devcycle_finalizado_entao_status_concluido() -> None:
     chunk = BACKLOG.split("### TAREFA BLID-075")[1].split("### TAREFA")[0]
-    assert "Status: Em analise" in chunk
+    assert "Status: CONCLUIDO" in chunk
