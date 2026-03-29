@@ -7184,3 +7184,31 @@ REVISADO_APROVADO
 - Observacao de risco residual:
   - Persistem 2 falhas preexistentes fora do escopo em
     `tests/test_cycle_report.py` (`TestCollectTrainingInfo`).
+
+### [SYNC-281] BLID-102 Doc Advocate sync final - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: BLID-102
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Sincronizacao aplicada:
+  - `ARQUITETURA_ALVO`: adicionada secao BLID-102 para contrato dual
+    (tecnico + humano) no `operator_cycle_status`, com clareza de
+    `episode_type`, `eligibility_for_training`, `human_reason`,
+    `eligibility_rule`, `cutoff_ms`, `timeframe` e `aud24h_human`.
+  - `REGRAS_DE_NEGOCIO`: adicionada `RN-039` formalizando camada humana
+    obrigatoria no status operacional sem perder trilha tecnica e
+    preservando guardrails.
+  - `BACKLOG`: registrado comentario `DOC:` no item BLID-102 com referencia
+    [SYNC-281].
+- Evidencias tecnicas de base (validadas no gate TL):
+  - `pytest -q tests/test_model2_blid_102_status_clarity.py` -> 9 passed
+  - `pytest -q tests/test_operator_cycle_status.py tests/test_model2_blid_101_status_traceability.py` -> 33 passed
+  - `mypy --strict scripts/model2/operator_cycle_status.py core/model2/cycle_report.py` -> Success
+- Observacao de risco residual:
+  - Persistem 2 falhas preexistentes fora do escopo em
+    `tests/test_cycle_report.py` (`TestCollectTrainingInfo`).

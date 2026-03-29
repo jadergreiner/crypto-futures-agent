@@ -573,6 +573,99 @@ def _query_episode_info(symbol: str, db_path: str) -> tuple[int | None, bool, fl
     return None, False, 0.0
 
 
+def _query_episode_metadata(
+    *,
+    symbol: str,
+    episode_id: int | None,
+    db_path: str,
+) -> dict[str, Any]:
+    """Busca metadados do episodio exibido na linha Episodio."""
+    if episode_id is None:
+        return {}
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            row = conn.execute(
+                "SELECT status, execution_id, label, timeframe FROM training_episodes "
+                "WHERE symbol = ? AND id = ? LIMIT 1",
+                (symbol, int(episode_id)),
+            ).fetchone()
+            if row is None:
+                return {}
+            return {
+                "status": str(row[0] or ""),
+                "execution_id": _to_int_or_none(row[1]),
+                "label": str(row[2] or ""),
+                "timeframe": str(row[3] or ""),
+            }
+    except Exception:
+        return {}
+
+
+def _derive_episode_type(status: str, label: str, execution_id: int | None) -> str:
+    """Classifica tipo do episodio para leitura operacional."""
+    normalized_status = str(status or "").upper()
+    normalized_label = str(label or "").lower()
+    if normalized_status == "CYCLE_CONTEXT" or normalized_label == "context" or int(execution_id or 0) <= 0:
+        return "CYCLE_CONTEXT"
+    return "TRADE_EPISODE"
+
+
+def _derive_training_eligibility(
+    *,
+    episode_type: str,
+    persisted: bool,
+    reward: float,
+) -> str:
+    """Determina se o episodio exibido e elegivel para treino incremental."""
+    if episode_type != "TRADE_EPISODE":
+        return "NOT_ELIGIBLE"
+    if not persisted:
+        return "NOT_ELIGIBLE"
+    # Episodio de trade exibido no status sempre possui reward_proxy.
+    _ = reward
+    return "ELIGIBLE"
+
+
+def _query_training_cutoff_ms(db_path: str) -> int:
+    """Retorna cutoff de treino (ms) para explicar pendencias no status."""
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            try:
+                row = conn.execute(
+                    "SELECT MAX(completed_at_ms) FROM rl_training_log"
+                ).fetchone()
+                if row and row[0] is not None:
+                    return int(row[0])
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                row = conn.execute(
+                    "SELECT MAX(completed_at) FROM rl_training_log"
+                ).fetchone()
+                if row and row[0]:
+                    cutoff_dt = datetime.strptime(str(row[0]), "%Y-%m-%d %H:%M:%S").replace(
+                        tzinfo=timezone.utc
+                    )
+                    return int(cutoff_dt.timestamp() * 1000)
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return 0
+
+
+def _build_aud24h_human(*, started: int, running_block: int, conclusive: bool) -> str:
+    """Gera resumo humano de auditoria das ultimas 24h."""
+    if started > 0:
+        return "treino iniciou na janela"
+    if running_block > 0:
+        return "houve bloqueio por treino em execucao"
+    if not conclusive:
+        return "nenhum treino iniciado nas ultimas 24h"
+    return "janela sem anomalias"
+
+
 # ---------------------------------------------------------------------------
 # Construção do relatório por símbolo
 # ---------------------------------------------------------------------------
@@ -631,6 +724,7 @@ def _build_symbol_report(
     exchange: Any | None = None,
     last_train_time: str = "N/A",
     pending_episodes: int = 0,
+    training_timeframe: str = "H4",
     db_path: str = "",
 ) -> str:
     """Constroi bloco de status rico para um simbolo com contrato multi-timeframe."""
@@ -743,27 +837,66 @@ def _build_symbol_report(
         and execution_trace.get("decision_id") == decision_trace.get("decision_id")
         and episode_trace.get("execution_id") == execution_trace.get("execution_id")
     ):
+        technical_decision_id = decision_trace.get("decision_id")
+        technical_execution_id = execution_trace.get("execution_id")
+        technical_episode_id = episode_trace.get("episode_id")
         persist_line = (
-            f"model_decisions={decision_trace['decision_id']} | "
-            f"signal_execution={execution_trace['execution_id']} | "
-            f"episode=#{episode_trace['episode_id']} | symbol={symbol}"
+            f"model_decisions={technical_decision_id} | "
+            f"signal_execution={technical_execution_id} | "
+            f"episode=#{technical_episode_id} | "
+            "human_reason=correlacao completa decisao->execucao->episodio | "
+            f"symbol={symbol}"
         )
     else:
-        episode_label = (
-            f"#{episode_trace['episode_id']}"
+        technical_decision_id = (
+            decision_trace.get("decision_id")
+            if decision_trace is not None
+            else "N/A"
+        )
+        technical_execution_id = (
+            execution_trace.get("execution_id")
+            if execution_trace is not None
+            else "N/A"
+        )
+        technical_episode_id = (
+            episode_trace.get("episode_id")
             if episode_trace is not None and episode_trace.get("episode_id") is not None
             else "N/A"
         )
         persist_line = (
-            f"episode={episode_label} | LEGACY_NO_DECISION_LINK | symbol={symbol}"
+            f"model_decisions={technical_decision_id} | "
+            f"signal_execution={technical_execution_id} | "
+            f"episode={technical_episode_id} | "
+            "LEGACY_NO_DECISION_LINK | "
+            "human_reason=registro existe mas sem vinculo completo decisao->execucao->episodio | "
+            f"symbol={symbol}"
         )
 
     # --- Episódio / Reward ---
     ep_id, ep_persisted, reward = _query_episode_info(symbol, db_path)
+    episode_metadata = _query_episode_metadata(
+        symbol=symbol,
+        episode_id=ep_id,
+        db_path=db_path,
+    )
+    episode_type = _derive_episode_type(
+        str(episode_metadata.get("status") or ""),
+        str(episode_metadata.get("label") or ""),
+        _to_int_or_none(episode_metadata.get("execution_id")),
+    )
+    eligibility_for_training = _derive_training_eligibility(
+        episode_type=episode_type,
+        persisted=ep_persisted,
+        reward=reward,
+    )
     ep_label = f"#{ep_id}" if ep_id else "N/A"
     ep_status = "persistido" if ep_persisted else "nao persistido"
     reward_sign = "+" if reward >= 0 else ""
-    episode_line = f"{ep_label} {ep_status} | reward: {reward_sign}{reward:.4f}"
+    episode_line = (
+        f"{ep_label} {ep_status} | reward: {reward_sign}{reward:.4f} | "
+        f"episode_type={episode_type} | "
+        f"eligibility_for_training={eligibility_for_training}"
+    )
 
     # --- Treino ---
     from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, _progress_bar
@@ -774,9 +907,18 @@ def _build_symbol_report(
     train_line = (
         f"ultimo: {last_train_time} | "
         f"pendentes: {pending_episodes}/{thresh} {bar} "
-        f"(faltam {episodes_restantes} para retreino)"
+        f"(faltam {episodes_restantes} para retreino) | "
+        "eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,created_at>cutoff | "
+        f"cutoff_ms={_query_training_cutoff_ms(db_path)} | "
+        f"timeframe={str(training_timeframe).upper()}"
     )
-    audit_train_line = "aud24h: started=0 | running_block=0 | conclusivo=nao"
+    audit_started = 0
+    audit_running_block = 0
+    audit_conclusive = False
+    audit_train_line = (
+        "aud24h: started=0 | running_block=0 | conclusivo=nao | "
+        "aud24h_human=nenhum treino iniciado nas ultimas 24h"
+    )
     try:
         with sqlite3.connect(db_path, timeout=5) as conn:
             now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -784,10 +926,14 @@ def _build_symbol_report(
                 conn,
                 since_ms=now_ms - (24 * 60 * 60 * 1000),
             )
+            audit_started = int(summary["started_events"])
+            audit_running_block = int(summary["blocked_running_events"])
+            audit_conclusive = bool(summary["conclusive"])
             audit_train_line = (
-                f"aud24h: started={int(summary['started_events'])} | "
-                f"running_block={int(summary['blocked_running_events'])} | "
-                f"conclusivo={'sim' if bool(summary['conclusive']) else 'nao'}"
+                f"aud24h: started={audit_started} | "
+                f"running_block={audit_running_block} | "
+                f"conclusivo={'sim' if audit_conclusive else 'nao'} | "
+                f"aud24h_human={_build_aud24h_human(started=audit_started, running_block=audit_running_block, conclusive=audit_conclusive)}"
             )
     except Exception:
         pass
@@ -996,6 +1142,7 @@ def main() -> int:
             exchange=exchange,
             last_train_time=symbol_last_train,
             pending_episodes=symbol_pending,
+            training_timeframe=(training_timeframe or "ALL"),
             db_path=db_path,
         )
         print(line, flush=True)

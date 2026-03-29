@@ -1288,6 +1288,92 @@ PM: ACEITE em 2026-03-29. Valor PO entregue no iniciar.bat com contrato
 BLID-101-v1 verificavel por simbolo (origem ML/RL, frescor objetivo,
 persistencia correlacionada e fallback legado explicito).
 
+### TAREFA BLID-102 - Tornar status de episodio e treino claro para operador
+
+Status: CONCLUIDO
+
+Sprint: S-2
+Prioridade: P0
+
+Descricao:
+Eliminar ambiguidade operacional no bloco por simbolo do `iniciar.bat` quando
+`Episodio`, `Persist.` e `Treino` exibem informacoes aparentemente
+contraditorias (ids diferentes, legado sem link e 0/100 com rewards
+persistidos).
+
+Criterios de Aceite:
+
+- [ ] Linha `Episodio` explicita tipo do registro exibido (`TRADE_EPISODE`
+      vs `CYCLE_CONTEXT`) para evitar leitura equivocada
+- [ ] Linha `Persist.` explica em linguagem de operador quando houver
+      `LEGACY_NO_DECISION_LINK` e exibe causa objetiva da lacuna
+- [ ] Linha `Treino` explica por que `pendentes=0/100` mesmo com episodios
+      e rewards no banco (regra de elegibilidade + cutoff do ultimo treino)
+- [ ] Linha `Aud24h` traduzida para linguagem acessivel sem perder contrato
+      tecnico (`started`, `running_block`, `conclusivo`)
+- [ ] Bloco por simbolo preserva trilha auditavel por ids/timestamps sem
+      exigir consulta manual ao DB
+- [ ] Testes de contrato validam cenarios: episodio real + contexto legado,
+      sem `decision_id` vinculado, threshold_not_reached e ausencia de treino
+      iniciado em 24h
+
+Dependencias:
+
+- BLID-101
+- BLID-100
+- BLID-090
+
+Impacto:
+
+- Operador entende rapidamente se houve trade real, contexto tecnico ou lacuna
+  de correlacao
+- Reduz risco de decisao operacional incorreta por interpretacao ambigua do
+  status textual
+- Aumenta confianca no runtime sem abrir banco manualmente
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Valor prometido: leitura confiavel e autoexplicativa de episodio,
+  persistencia e treino por simbolo durante o ciclo live/shadow.
+- Evidencia atual: o log pode mostrar `Episodio #A` e `Persist. #B` no mesmo
+  bloco e `0/100` com rewards persistidos sem explicacao acessivel.
+- Contestacao PO: enquanto o operador precisar conhecimento tecnico de schema
+  para interpretar `LEGACY_NO_DECISION_LINK` e `aud24h`, o valor segue
+  parcial.
+- Meta de fechamento: operador comprova origem, lacuna e estado de treino em
+  linguagem operacional clara no proprio terminal.
+
+PO: Priorizar clareza operacional do bloco de status por simbolo. Ao fim deste
+desenvolvimento estarei feliz se o operador entender, sem abrir DB, por que os
+ids de episodio diferem, o que significa LEGACY_NO_DECISION_LINK e por que o
+treino esta 0/100.
+SA: Contrato dual (tecnico+operador) com tipagem de episodio, causa do legado,
+elegibilidade de treino e traducao aud24h sem perder rastreabilidade.
+QA: Suite RED criada em `tests/test_model2_blid_102_status_clarity.py`
+com 9 casos (6 requisitos de clareza + 1 determinismo + 2 regressao).
+Evidencias: `pytest -q tests/test_model2_blid_102_status_clarity.py`
+-> 6 failed, 3 passed (RED esperado). Falhas cobrem lacunas de contrato:
+`episode_type`, `eligibility_for_training`, `human_reason` no legado,
+traducao acessivel de `LEGACY_NO_DECISION_LINK`, `eligibility_rule/cutoff`
+em `Treino` e `aud24h_human`.
+SE: Inicio GREEN-REFACTOR BLID-102 em 2026-03-29.
+SE: GREEN concluido em 2026-03-29. `scripts/model2/operator_cycle_status.py`
+enriquecido com camada humana no contrato:
+`episode_type`, `eligibility_for_training`, `human_reason` em legado,
+`eligibility_rule/cutoff_ms/timeframe` em `Treino` e `aud24h_human`.
+Evidencias: `pytest -q tests/test_model2_blid_102_status_clarity.py`
+-> 9 passed; `pytest -q tests/test_operator_cycle_status.py
+tests/test_model2_blid_101_status_traceability.py` -> 33 passed;
+`mypy --strict scripts/model2/operator_cycle_status.py
+core/model2/cycle_report.py` -> Success.
+TL: APROVADO. Reproducao local: BLID-102 (9/9), regressao status (33/33) e
+mypy strict sem erros; clareza operacional preservando trilha tecnica.
+DOC: Sincronizacao documental BLID-102 concluida (camada tecnica+humana em
+ARQUITETURA_ALVO/RN-039 + trilha [SYNC-281]).
+PM: ACEITE em 2026-03-29. Valor PO entregue no iniciar.bat com status
+autoexplicativo de Episodio/Persist./Treino/Aud24h, preservando trilha
+tecnica e explicando legado sem abrir DB.
+
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
 
 Status: CONCLUIDA (2026-03-22)

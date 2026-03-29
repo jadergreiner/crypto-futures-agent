@@ -556,3 +556,23 @@ Para eliminar ambiguidade operacional no `iniciar.bat` sem consulta manual ao DB
    explicitar `window_ms` da janela de classificacao fresh/stale.
 8. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-039 - Camada Humana no Status Operacional (BLID-102)
+
+Para reduzir ambiguidade no `iniciar.bat` sem perder auditabilidade tecnica:
+
+1. A linha `Episodio` deve publicar `episode_type` e
+   `eligibility_for_training`.
+2. A linha `Persist.` deve manter trilha tecnica por ids e incluir
+   `human_reason` quando houver lacuna de correlacao.
+3. Quando ocorrer `LEGACY_NO_DECISION_LINK`, a saida deve traduzir em
+   linguagem de operador: registro existente sem vinculo completo
+   `decisao -> execucao -> episodio`.
+4. A linha `Treino` deve explicitar `eligibility_rule`, `cutoff_ms` e
+   `timeframe` aplicado na contagem de pendencias.
+5. A linha `Aud24h` deve manter `started`, `running_block`, `conclusivo`
+   e adicionar `aud24h_human` para leitura operacional imediata.
+6. Em erro de consulta/DB, o status deve permanecer renderizavel
+   (fail-safe) com lacuna explicita e sem mascarar causa.
+7. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

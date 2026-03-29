@@ -300,6 +300,25 @@ Componentes:
   `LEGACY_NO_DECISION_LINK` sem mascarar lacuna.
 - Linha `Candles` preserva contrato anterior e inclui `window_ms` explicito.
 
+**BLID-102 (Clareza operacional de episodio e treino)**:
+
+- O `operator_cycle_status` adota camada dupla no status por simbolo:
+  tecnica (ids/campos auditaveis) e humana (explicacao operacional curta).
+- Linha `Episodio` passa a explicitar:
+  `episode_type` (`TRADE_EPISODE` ou `CYCLE_CONTEXT`) e
+  `eligibility_for_training` (`ELIGIBLE`/`NOT_ELIGIBLE`).
+- Linha `Persist.` em legado preserva trilha tecnica
+  (`model_decisions`, `signal_execution`, `episode`) e adiciona
+  `human_reason` para traduzir `LEGACY_NO_DECISION_LINK`.
+- Linha `Treino` passa a explicitar regra de elegibilidade
+  (`eligibility_rule`), ponto de corte (`cutoff_ms`) e `timeframe`
+  aplicado na contagem de pendencias.
+- Linha `Aud24h` mantem contrato tecnico
+  (`started`, `running_block`, `conclusivo`) e adiciona
+  `aud24h_human` para leitura imediata do operador.
+- Em indisponibilidade de DB/consulta, o contrato mantem fail-safe:
+  bloco renderizavel com lacuna explicita e sem mascaramento.
+
 **M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
 
 - `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`
