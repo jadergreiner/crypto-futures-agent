@@ -40,62 +40,6 @@ Criterio da fila ativa:
 
 Em progresso:
 
-- M2-020.8 - Reforcar reconciliacao model-driven.
-   Status: CONCLUIDO
-   Dependencia minima: trilha model-driven M2-020 ativa.
-   Impacto: registrar divergencias criticas e impedir transicao final sem
-   reconciliacao minima.
-- M2-020.11 - Definir gate de promocao GO/NO-GO.
-   Status: CONCLUIDO | Score PO: 3.70
-   Dependencia minima: criterios minimos de risco, estabilidade e
-   consistencia definidos.
-   Impacto: forcar decisao GO/NO-GO rastreavel e bloquear promocao sem
-   evidencia suficiente.
-- BLID-075 - Concluir onboarding operacional de FLUXUSDT.
-   Status: CONCLUIDO | Score PO: 3.05
-   Dependencia minima: M2-017.1 concluida + janela minima com episodios
-   validados para FLUXUSDT.
-   Impacto: fechar onboarding com evidencias operacionais ponta a ponta.
-- BLID-083 - Estratificar suite de testes por etapa do workflow.
-   Status: CONCLUIDO | Score PO: 2.95
-   Dependencia minima: baseline atual de `pytest -q tests/`, contratos M2
-   preservados e guardrails ativos.
-   Impacto: reduzir lead time local sem perder cobertura critica.
-   PO: BLID-083 priorizado para reduzir lead time sem abrir risco.
-   Ao fim deste desenvolvimento estarei feliz se o stage default cair
-   para <=45s e os gates contract/risk/docs ficarem 100% verdes.
-   QA: Suite RED criada em
-   `tests/test_model2_blid_083_stage_workflow_matrix.py` com 13 testes;
-   13 failed (API de matriz por stage/perfil ainda ausente).
-   TESTES_PRONTOS.
-   SE: IMPLEMENTADO com `core/model2/stage_test_matrix.py`; BLID-083
-   GREEN 13/13, mypy strict OK e regressao `pytest -q tests/`
-   330/330 PASS.
-   TL: DEVOLVIDO_PARA_REVISAO. build_stage_command("6.tech-lead")
-   aplica -k e deselecta 260/330; perfil completo precisa equivaler
-   a pytest -q tests/.
-   SE: Correcao DEVOLVIDO concluida:
-   `build_stage_command("6.tech-lead")` sem `-k`; suite BLID-083 14/14,
-   mypy strict OK e regressao 331/331 PASS.
-   TL: APROVADO. Correcao validada: perfil completo em 6.tech-lead
-   manteve pytest -q tests/ sem -k; 14/14 task, mypy strict e
-   331/331 suite.
-   PM: DEVOLVER_PARA_AJUSTE em 2026-03-29. Qualidade tecnica validada,
-   mas valor prometido pelo PO segue PARCIAL por falta de medicao
-   objetiva do tempo do perfil rapido <=45s no ambiente de referencia.
-   SE: Medicao objetiva registrada em 2026-03-29 para o perfil `rapido`.
-   Comando: `pytest -q tests/ -m "unit or contract or docs" -k
-   "risk_gate or circuit_breaker or risk"`. Tempos: 26.77s, 24.14s e
-   24.82s (meta <=45s: ATINGIDA).
-   TL: APROVADO em 2026-03-29. Reproducao local confirmou perfil rapido
-   <=45s (22.30s, 20.92s, 21.06s), suites 14/14, 5/5 e 331/331 verdes,
-   mypy strict OK e guardrails preservados.
-   DOC: BACKLOG e SYNCHRONIZATION ressincronizados apos validacao
-   objetiva do perfil rapido <=45s; trilha registrada em [SYNC-278].
-   PM: ACEITE em 2026-03-29. Valor PO ENTREGUE com medicao objetiva
-   do perfil rapido <=45s; trilha ponta-a-ponta validada e item
-   encerrado como CONCLUIDO.
-
 Trilha aberta complementar:
 
 - M2-020.7 - Definir reward para operar e nao operar.
@@ -7918,3 +7862,63 @@ TL: APROVADO. Governanca de lote reproduzida ponta a ponta sem regressao.
 DOC: BACKLOG e SYNCHRONIZATION sincronizados; pytest -q
 tests/test_docs_model2_sync.py -> 12 passed.
 PM: ACEITE em 2026-03-27 para os itens M2-031.12..20.
+
+---
+
+## HISTORICO DE ITENS CONCLUIDOS (MOVIDOS DA FILA ATIVA)
+
+- M2-020.8 - Reforcar reconciliacao model-driven.
+   Status: CONCLUIDO
+   Dependencia minima: trilha model-driven M2-020 ativa.
+   Impacto: registrar divergencias criticas e impedir transicao final sem
+   reconciliacao minima.
+- M2-020.11 - Definir gate de promocao GO/NO-GO.
+   Status: CONCLUIDO | Score PO: 3.70
+   Dependencia minima: criterios minimos de risco, estabilidade e
+   consistencia definidos.
+   Impacto: forcar decisao GO/NO-GO rastreavel e bloquear promocao sem
+   evidencia suficiente.
+- BLID-075 - Concluir onboarding operacional de FLUXUSDT.
+   Status: CONCLUIDO | Score PO: 3.05
+   Dependencia minima: M2-017.1 concluida + janela minima com episodios
+   validados para FLUXUSDT.
+   Impacto: fechar onboarding com evidencias operacionais ponta a ponta.
+- BLID-083 - Estratificar suite de testes por etapa do workflow.
+   Status: CONCLUIDO | Score PO: 2.95
+   Dependencia minima: baseline atual de `pytest -q tests/`, contratos M2
+   preservados e guardrails ativos.
+   Impacto: reduzir lead time local sem perder cobertura critica.
+   PO: BLID-083 priorizado para reduzir lead time sem abrir risco.
+   Ao fim deste desenvolvimento estarei feliz se o stage default cair
+   para <=45s e os gates contract/risk/docs ficarem 100% verdes.
+   QA: Suite RED criada em
+   `tests/test_model2_blid_083_stage_workflow_matrix.py` com 13 testes;
+   13 failed (API de matriz por stage/perfil ainda ausente).
+   TESTES_PRONTOS.
+   SE: IMPLEMENTADO com `core/model2/stage_test_matrix.py`; BLID-083
+   GREEN 13/13, mypy strict OK e regressao `pytest -q tests/`
+   330/330 PASS.
+   TL: DEVOLVIDO_PARA_REVISAO. build_stage_command("6.tech-lead")
+   aplica -k e deselecta 260/330; perfil completo precisa equivaler
+   a pytest -q tests/.
+   SE: Correcao DEVOLVIDO concluida:
+   `build_stage_command("6.tech-lead")` sem `-k`; suite BLID-083 14/14,
+   mypy strict OK e regressao 331/331 PASS.
+   TL: APROVADO. Correcao validada: perfil completo em 6.tech-lead
+   manteve pytest -q tests/ sem -k; 14/14 task, mypy strict e
+   331/331 suite.
+   PM: DEVOLVER_PARA_AJUSTE em 2026-03-29. Qualidade tecnica validada,
+   mas valor prometido pelo PO segue PARCIAL por falta de medicao
+   objetiva do tempo do perfil rapido <=45s no ambiente de referencia.
+   SE: Medicao objetiva registrada em 2026-03-29 para o perfil `rapido`.
+   Comando: `pytest -q tests/ -m "unit or contract or docs" -k
+   "risk_gate or circuit_breaker or risk"`. Tempos: 26.77s, 24.14s e
+   24.82s (meta <=45s: ATINGIDA).
+   TL: APROVADO em 2026-03-29. Reproducao local confirmou perfil rapido
+   <=45s (22.30s, 20.92s, 21.06s), suites 14/14, 5/5 e 331/331 verdes,
+   mypy strict OK e guardrails preservados.
+   DOC: BACKLOG e SYNCHRONIZATION ressincronizados apos validacao
+   objetiva do perfil rapido <=45s; trilha registrada em [SYNC-278].
+   PM: ACEITE em 2026-03-29. Valor PO ENTREGUE com medicao objetiva
+   do perfil rapido <=45s; trilha ponta-a-ponta validada e item
+   encerrado como CONCLUIDO.
