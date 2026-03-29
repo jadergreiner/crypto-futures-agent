@@ -3830,6 +3830,14 @@ Criterios de Aceite:
 - [ ] Quando nao houver candle fresco, a mensagem explicita estado stale sem
    marcar sucesso ambiguo.
 - [ ] Evidencia da correcao fica registrada no backlog ou em log operacional.
+- [ ] Linha `Candles` lista todos os timeframes executados pelo `iniciar.bat`
+  para o simbolo (`D1`, `H4`, `H1`, `M5`, enquanto esse for o contrato do
+  loop).
+- [ ] Cada timeframe exibe timestamp do ultimo candle e contagem verificavel
+  de persistencia por simbolo, sem numero fixo enganoso quando o DB apontar
+  outra realidade.
+- [ ] `N/A` so aparece com motivo explicito (`nao executado`, `sem artefato`
+  ou `sem persistencia`) e nunca quando houver dados persistidos no DB.
 
 Dependencias:
 
@@ -3841,6 +3849,16 @@ Impacto:
 
 - Restaura leitura operacional do frescor de mercado por simbolo
 - Reduz risco de decisao com contexto incompleto e status enganoso
+
+Reabertura PO (2026-03-29):
+
+- `iniciar.bat` executa D1, H4, H1 e M5, mas o bloco `Candles` ainda mostra
+  `H4/H1` com `120 candles` fixos e `M5: N/A`.
+- `db/crypto_agent.db` confirma persistencia por simbolo em `ohlcv_d1`,
+  `ohlcv_h4`, `ohlcv_h1` e `ohlcv_m5`; a mensagem atual nao comprova isso no
+  terminal.
+- A leitura operacional segue ambigua: o operador nao consegue verificar no
+  `iniciar.bat` se cada timeframe foi capturado e persistido corretamente.
 
 PO: Priorizar Candle Atualizado no [SYM] para restaurar leitura de dado
 fresco e evitar status de sucesso ambiguo no live.
@@ -3862,6 +3880,42 @@ consistentes para fechamento do BLID-082.
 
 PM: ACEITE final aprovado; fechamento ponta-a-ponta concluido e pronto
 para publicacao em main.
+
+PO: Reabrir BLID-082 para contrato multi-timeframe auditavel no [SYM]. Ao fim
+deste desenvolvimento estarei feliz se cada simbolo exibir D1/H4/H1/M5 com
+timestamp e contagem persistidos, sem `M5: N/A` quando houver dados.
+SA: Separar scan vs persistencia no Candles; exibir D1/H4/H1/M5 por simbolo
+com estado explicito e sem N/A indevido.
+QA: Suite RED da reabertura criada em
+`tests/test_model2_blid_082_candles_multitimeframe_contract.py` com 6 testes
+cobrindo D1/H4/H1/M5, separacao `scan` vs `db`, regra de `M5` sem `N/A`
+quando houver persistencia, estados `nao_executado`/`sem_persistencia` e
+fail-safe degradado. Evidencias: `pytest -q
+tests/test_model2_blid_082_candles_multitimeframe_contract.py` -> 6 failed
+(RED esperado); `mypy --strict
+tests/test_model2_blid_082_candles_multitimeframe_contract.py` -> Success.
+SE: GREEN concluido em 2026-03-29. `scripts/model2/operator_cycle_status.py`
+agora aplica contrato multi-timeframe (D1/H4/H1/M5) com `scan=<n>` e `db=<n>`,
+estados explicitos (`fresh`, `stale`, `absent`, `nao_executado`,
+`sem_persistencia`, `degradado`) e `M5` sem `N/A` indevido quando houver
+persistencia. Mantida compatibilidade legada de leitura (`Candle Atualizado`,
+`stale/absent`) em fluxos antigos.
+Evidencias: `pytest -q tests/test_model2_blid_082_candles_multitimeframe_contract.py`
+-> 6 passed; `pytest -q tests/test_operator_cycle_status.py` -> 19 passed;
+`pytest -q tests/test_model2_blid_082_candle_status.py tests/test_model2_m2_025_1_candle_freshness_contract.py`
+-> 25 passed; `mypy --strict scripts/model2/operator_cycle_status.py tests/test_model2_blid_082_candles_multitimeframe_contract.py`
+-> Success; `pytest -q tests/` -> 329 passed, 2 failed fora do escopo em
+`tests/test_cycle_report.py` (collect_training_info pendentes).
+TL: APROVADO em 2026-03-29. Reproducao local confirma contrato Candles
+auditavel D1/H4/H1/M5 com separacao `scan` vs `db`, sem `M5: N/A` indevido e
+sem regressao no escopo alterado. Pendencia global fora do escopo mantida:
+2 falhas pre-existentes em `tests/test_cycle_report.py` (collect_training_info).
+DOC: ARQUITETURA_ALVO, BACKLOG e SYNCHRONIZATION sincronizados para o contrato
+Candles auditavel por simbolo (`scan` vs `db`) com trilha [SYNC-266].
+PM: ACEITE em 2026-03-29. Valor prometido pelo PO entregue no `iniciar.bat`
+com linha Candles auditavel por simbolo (D1/H4/H1/M5, `scan` vs `db`, sem
+`M5: N/A` indevido quando houver persistencia). Trilha validada
+PO->SA->QA->SE->TL->DOC; item encerrado como CONCLUIDO.
 
 Evidencias de implementacao:
 

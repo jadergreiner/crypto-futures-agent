@@ -269,6 +269,19 @@ Componentes:
   `alert_message`. Nunca levanta excecao (fail-safe conservador).
   `DEFAULT_GAP_WINDOW_MS=300_000` exportado do modulo.
 
+**BLID-082 reabertura (Contrato Candles auditavel no iniciar.bat)**:
+
+- `scripts/model2/operator_cycle_status.py` aplica contrato multi-timeframe por
+  simbolo para `D1/H4/H1/M5` na linha `Candles`.
+- A exibicao separa explicitamente origem de contagem:
+  - `scan=<n>`: janela operacional do scanner/runtime
+  - `db=<n>`: total persistido em `db/crypto_agent.db` (`ohlcv_*`)
+- Estados operacionais explicitos por timeframe:
+  `fresh`, `stale`, `absent`, `nao_executado`, `sem_persistencia`,
+  `degradado` (fail-safe em indisponibilidade de fonte).
+- Regra de auditabilidade: `M5: N/A` nao pode aparecer quando houver
+  persistencia em `ohlcv_m5` para o simbolo.
+
 **M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
 
 - `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`

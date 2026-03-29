@@ -11,6 +11,7 @@ import os
 import sqlite3
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, cast
@@ -27,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.model2.time_utils import now_brt_str, posix_to_brt_str
+from core.model2.time_utils import now_brt_str, posix_to_brt_str, ts_ms_to_brt_str
 from core.model2.io_retry import read_json_with_retry
 from core.model2.cycle_report import (
     DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
@@ -152,6 +153,135 @@ def _get_last_train_time_from_checkpoint() -> str:
 
 def _get_model2_db_path() -> str:
     return str(REPO_ROOT / "db" / "modelo2.db")
+
+
+def _get_legacy_market_db_path() -> str:
+    return str(REPO_ROOT / "db" / "crypto_agent.db")
+
+
+@dataclass(frozen=True)
+class TimeframeCandleStatus:
+    timeframe: str
+    display_time: str
+    scan_count: int
+    persisted_count: int
+    state: str
+
+
+def _query_persisted_ohlcv_stats(
+    *,
+    symbol: str,
+    timeframe: str,
+    db_path: str,
+) -> tuple[int, str, bool]:
+    """Retorna (count, last_brt, degraded) para o timeframe informado.
+
+    degraded=True quando a fonte de persistencia nao pode ser consultada.
+    """
+    table_by_timeframe = {
+        "D1": "ohlcv_d1",
+        "H4": "ohlcv_h4",
+        "H1": "ohlcv_h1",
+        "M5": "ohlcv_m5",
+    }
+    table_name = table_by_timeframe.get(str(timeframe).upper())
+    if not table_name:
+        return 0, "N/A", False
+
+    candidates: list[Path] = [Path(db_path)]
+    # Fallback apenas no caminho canonico do status em runtime
+    # (modelo2 -> crypto_agent legado com ohlcv_*).
+    try:
+        if Path(db_path).resolve() == Path(_get_model2_db_path()).resolve():
+            candidates.append(Path(_get_legacy_market_db_path()))
+    except Exception:
+        pass
+
+    checked_any = False
+    had_io_error = False
+    for candidate in candidates:
+        if str(candidate) in ("", "."):
+            continue
+        checked_any = True
+        try:
+            with sqlite3.connect(str(candidate), timeout=5) as conn:
+                row = conn.execute(
+                    f"SELECT COUNT(*), MAX(timestamp) FROM {table_name} WHERE symbol = ?",
+                    (symbol,),
+                ).fetchone()
+            count = int(row[0]) if row and row[0] is not None else 0
+            last_ts = int(row[1]) if row and row[1] is not None else 0
+            if last_ts > 0:
+                # Compatibilidade defensiva: segundos POSIX legados.
+                if last_ts < 1_000_000_000_000:
+                    last_ts *= 1000
+                return count, ts_ms_to_brt_str(last_ts), False
+            return count, "N/A", False
+        except sqlite3.OperationalError as exc:
+            msg = str(exc).lower()
+            if "no such table" in msg:
+                continue
+            had_io_error = True
+        except Exception:
+            had_io_error = True
+
+    if had_io_error or checked_any:
+        # checked_any=True e sem retorno indica tabela ausente em todas as fontes
+        # ou erro de leitura. A distinção é feita no nível de estado final.
+        return 0, "N/A", had_io_error
+    return 0, "N/A", False
+
+
+def _resolve_timeframe_candle_status(
+    *,
+    symbol: str,
+    timeframe: str,
+    scan_summary: dict[str, Any] | None,
+    db_path: str,
+) -> TimeframeCandleStatus:
+    scan_count, scan_last = _get_candle_info_for_timeframe(scan_summary, symbol)
+    has_scan_entry = _has_scan_entry_for_symbol(scan_summary, symbol)
+    persisted_count, persisted_last, degraded = _query_persisted_ohlcv_stats(
+        symbol=symbol,
+        timeframe=timeframe,
+        db_path=db_path,
+    )
+
+    display_time = scan_last if has_scan_entry else (persisted_last if persisted_count > 0 else "N/A")
+
+    if degraded:
+        state = "degradado"
+    elif not has_scan_entry:
+        # Sem artefato de runtime: distinguir entre nao executado e sem persistencia.
+        state = "nao_executado" if persisted_count > 0 else "sem_persistencia"
+    elif not display_time or display_time == "N/A":
+        # Compatibilidade legada BLID-082/025.1: sem timestamp deve sinalizar stale+absent.
+        state = "stale/absent"
+    else:
+        freshness = resolve_candle_freshness_contract(
+            last_candle_time=display_time,
+            signal_age_ms=None,
+            max_signal_age_ms=DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
+        )
+        state = str(freshness["candle_state"])
+
+    return TimeframeCandleStatus(
+        timeframe=str(timeframe).upper(),
+        display_time=display_time or "N/A",
+        scan_count=max(0, int(scan_count)),
+        persisted_count=max(0, int(persisted_count)),
+        state=state,
+    )
+
+
+def _format_candle_status_contract(status: TimeframeCandleStatus) -> str:
+    state = status.state
+    if state == "fresh":
+        state = "fresh [Candle Atualizado]"
+    return (
+        f"{status.timeframe}: {status.display_time} | "
+        f"scan={status.scan_count} | db={status.persisted_count} | {state}"
+    )
 
 
 def _query_confidence_from_db(symbol: str, db_path: str) -> float | None:
@@ -289,46 +419,71 @@ def _get_candle_info_for_timeframe(
     return 0, ""
 
 
+def _has_scan_entry_for_symbol(
+    scan_summary: dict[str, Any] | None,
+    symbol: str,
+) -> bool:
+    """Indica se o artefato de scan contem entrada explicita para o simbolo."""
+    if not scan_summary:
+        return False
+    symbols_dict = scan_summary.get("symbols") or {}
+    if isinstance(symbols_dict, dict):
+        if symbol in symbols_dict:
+            return True
+    items = scan_summary.get("items") or []
+    for item in items:
+        if isinstance(item, dict) and str(item.get("symbol", "")).upper() == symbol:
+            return True
+    return False
+
+
 def _build_symbol_report(
     *,
     symbol: str,
-    scan_h4: dict[str, Any] | None,
-    scan_h1: dict[str, Any] | None,
-    live_execute_summary: dict[str, Any] | None,
-    exchange: Any | None,
-    last_train_time: str,
-    pending_episodes: int,
-    db_path: str,
+    scan_d1: dict[str, Any] | None = None,
+    scan_h4: dict[str, Any] | None = None,
+    scan_h1: dict[str, Any] | None = None,
+    scan_m5: dict[str, Any] | None = None,
+    live_execute_summary: dict[str, Any] | None = None,
+    exchange: Any | None = None,
+    last_train_time: str = "N/A",
+    pending_episodes: int = 0,
+    db_path: str = "",
 ) -> str:
-    """Constrói bloco de status rico para um símbolo com H4 + H1."""
+    """Constroi bloco de status rico para um simbolo com contrato multi-timeframe."""
     from core.model2.time_utils import now_brt_str as _now_brt
 
     sep = "─" * 56
     mode_tag = f"[{M2_EXECUTION_MODE.upper()}]"
 
-    # --- Candles H4 ---
-    h4_count, h4_time = _get_candle_info_for_timeframe(scan_h4, symbol)
-    # --- Candles H1 ---
-    h1_count, h1_time = _get_candle_info_for_timeframe(scan_h1, symbol)
-
-    def _fmt_candle(count: int, last_time: str, tf: str) -> str:
-        if not last_time:
-            return f"{tf}: stale/absent (sem dados)"
-        contract = resolve_candle_freshness_contract(
-            last_candle_time=last_time,
-            signal_age_ms=None,
-            max_signal_age_ms=DEFAULT_REPORT_FRESHNESS_WINDOW_MS,
-        )
-        state = contract["candle_state"]
-        if state == "fresh":
-            return f"{tf}: {last_time} ({count} candles) [Candle Atualizado ✓]"
-        return f"{tf}: {last_time} ({count} candles) [{state}]"
-
-    candles_line = "  ".join([
-        _fmt_candle(h4_count, h4_time, "H4"),
-        _fmt_candle(h1_count, h1_time, "H1"),
-        "M5: N/A",  # M5 não é rodado no pipeline atual
-    ])
+    # --- Candles D1/H4/H1/M5 ---
+    tf_statuses = [
+        _resolve_timeframe_candle_status(
+            symbol=symbol,
+            timeframe="D1",
+            scan_summary=scan_d1,
+            db_path=db_path,
+        ),
+        _resolve_timeframe_candle_status(
+            symbol=symbol,
+            timeframe="H4",
+            scan_summary=scan_h4,
+            db_path=db_path,
+        ),
+        _resolve_timeframe_candle_status(
+            symbol=symbol,
+            timeframe="H1",
+            scan_summary=scan_h1,
+            db_path=db_path,
+        ),
+        _resolve_timeframe_candle_status(
+            symbol=symbol,
+            timeframe="M5",
+            scan_summary=scan_m5,
+            db_path=db_path,
+        ),
+    ]
+    candles_line = "  ".join(_format_candle_status_contract(item) for item in tf_statuses)
 
     # --- Decisão e confiança ---
     # Prioridade: model_decisions DB > live_execute JSON
@@ -488,8 +643,10 @@ def _build_symbol_line(
     """Compatibilidade: mapeia interface legada para _build_symbol_report."""
     return _build_symbol_report(
         symbol=symbol,
+        scan_d1=scan_summary,
         scan_h4=scan_summary,
         scan_h1=scan_summary,
+        scan_m5=scan_summary,
         live_execute_summary=live_execute_summary,
         exchange=exchange,
         last_train_time=last_train_time,
@@ -539,8 +696,10 @@ def main() -> int:
     max_age_seconds = max(60, int(args.max_age_minutes) * 60)
 
     # Carregar artefatos por timeframe
+    scan_d1 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "D1", max_age_seconds)
     scan_h4 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "H4", max_age_seconds)
     scan_h1 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "H1", max_age_seconds)
+    scan_m5 = _load_latest_json_by_timeframe(runtime_dir, "model2_scan", "M5", max_age_seconds)
     live_execute_summary = _load_latest_json(runtime_dir, "model2_live_execute", max_age_seconds)
 
     # DB path
@@ -576,8 +735,10 @@ def main() -> int:
 
         line = _build_symbol_report(
             symbol=symbol,
+            scan_d1=scan_d1,
             scan_h4=scan_h4,
             scan_h1=scan_h1,
+            scan_m5=scan_m5,
             live_execute_summary=live_execute_summary,
             exchange=exchange,
             last_train_time=symbol_last_train,

@@ -7132,3 +7132,28 @@ REVISADO_APROVADO
   - `mypy --strict core/model2/promotion_gate.py scripts/model2/healthcheck_live_execution.py tests/test_model2_m2_020_11_promotion_gate_evidence.py` -> Success
   - `pytest -q tests/` -> 317 passed
   - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
+
+### [SYNC-266] BLID-082 Reabertura Doc Advocate - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: BLID-082
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Sincronizacao aplicada:
+  - `ARQUITETURA_ALVO`: documentado contrato canonico da linha `Candles` no
+    `operator_cycle_status` com cobertura `D1/H4/H1/M5`, separacao de origem
+    `scan=<n>` vs `db=<n>` e estados explicitos por timeframe.
+  - `BACKLOG`: registrado comentario `DOC:` no BLID-082 com referencia
+    [SYNC-266] apos aprovacao do Tech Lead.
+  - `SYNCHRONIZATION`: trilha documental consolidada para handoff executivo ao
+    Project Manager.
+- Validacoes:
+  - `pytest -q tests/test_model2_blid_082_candles_multitimeframe_contract.py` -> 6 passed
+  - `pytest -q tests/test_operator_cycle_status.py` -> 19 passed
+  - `mypy --strict scripts/model2/operator_cycle_status.py tests/test_model2_blid_082_candles_multitimeframe_contract.py` -> Success
+- Observacao de risco residual:
+  - Persistem 2 falhas globais fora do escopo em `tests/test_cycle_report.py`
+    relacionadas a `collect_training_info` (ja registradas no backlog).
