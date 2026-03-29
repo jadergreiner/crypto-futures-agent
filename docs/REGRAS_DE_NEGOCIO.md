@@ -533,3 +533,26 @@ Quando a operacao em producao ja tiver acumulado evidencia suficiente:
    rastreabilidade por `decision_id`.
 7. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-038 - Contrato Verificavel do Status M2 por Simbolo (BLID-101)
+
+Para eliminar ambiguidade operacional no `iniciar.bat` sem consulta manual ao DB:
+
+1. O bloco por simbolo deve publicar versao de contrato textual:
+   `contract=BLID-101-v1`.
+2. Quando houver decisao correlacionada, a linha `Decisao` deve expor:
+   `decision_id`, `model_version`, `reason`, `source` e `confianca`.
+3. A linha `Frescor` deve expor, no minimo:
+   `signal_ts`, `signal_age_ms`, `max_signal_age_ms`,
+   `M5_last`, `H1_last`, `H4_last`, `D1_last`.
+4. A linha `Features` deve explicitar features-chave de inferencia e
+   `snapshot_at` rastreavel.
+5. A linha `Persist.` deve correlacionar
+   `model_decisions`, `signal_executions` e `training_episodes`
+   por simbolo, com ids auditaveis.
+6. Em legado sem vinculo por `decision_id`, a saida deve exibir
+   `LEGACY_NO_DECISION_LINK` de forma explicita (sem mascarar lacuna).
+7. A linha `Candles` deve manter a semantica multi-timeframe vigente e
+   explicitar `window_ms` da janela de classificacao fresh/stale.
+8. Guardrails obrigatorios permanecem inviolaveis:
+   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.

@@ -1216,6 +1216,78 @@ Impacto Arquitetural:
 - MODELAGEM_DE_DADOS.md: Novo schema (rl_training_log, rl_episodes)
 - (Nenhum conflito com ADRS ativos)
 
+### TAREFA BLID-101 - Tornar decisao do status M2 verificavel por evidencia
+
+Status: CONCLUIDO
+
+Sprint: S-2
+Prioridade: P0
+
+Descricao:
+Eliminar ambiguidade no bloco de status exibido pelo `iniciar.bat`, provando
+origem da decisao, frescor de candle e persistencia por simbolo sem exigir
+consulta manual ao banco.
+
+Criterios de Aceite:
+
+- [ ] Linha `Decisao` inclui `decision_id`, `model_version`, `reason_code` e
+      origem da inferencia (`RL_MODEL` vs fallback)
+- [ ] Linha `Decisao` inclui `signal_timestamp`, `signal_age_ms` e
+      `max_signal_age_ms` para validar frescor da decisao
+- [ ] Linha `Candles` mostra timestamp por timeframe (D1/H4/H1/M5) e estado
+      fresh/stale com janela explicita
+- [ ] Linha `Features` lista features-chave usadas na inferencia e horario do
+      snapshot aplicado
+- [ ] Linha `Persistencia` comprova `model_decisions`, `signal_executions` e
+      `training_episodes` por simbolo com ids/timestamps correlacionaveis
+- [ ] Quando episodio nao tiver `decision_id` (legado), status sinaliza
+      `LEGACY_NO_DECISION_LINK` sem mascarar lacuna
+- [ ] Testes de contrato do status cobrindo caminho feliz e lacunas
+      (`decision_id` ausente, candle stale, feature snapshot ausente)
+
+Dependencias:
+
+- BLID-073
+- BLID-090
+- M2-025.14
+
+Impacto:
+
+- Operador confirma no terminal se a decisao veio do modelo e se os dados
+  estavam frescos no momento da inferencia
+- Auditoria reduz tempo de investigacao e evita leitura manual ad hoc no DB
+- Lacunas de rastreabilidade passam a ser visiveis e acionaveis
+
+PO: Priorizar trilha verificavel de decisao e persistencia por simbolo.
+Ao fim deste desenvolvimento estarei feliz se o status exibir origem ML/RL,
+timestamps e ids auditaveis por simbolo.
+SA: Contrato de status com correlacao decisao->execucao->episodio,
+frescor por timestamp e fallback LEGACY_NO_DECISION_LINK.
+QA: Suite RED criada em `tests/test_model2_blid_101_status_traceability.py`
+com 14 casos (8 unitarios, 3 integracao, 3 regressao_risco). Evidencias:
+`pytest -q tests/test_model2_blid_101_status_traceability.py` -> 11 failed,
+3 passed (RED esperado); `mypy --strict tests/test_model2_blid_101_status_traceability.py`
+-> Success.
+SE: Inicio GREEN-REFACTOR BLID-101 em 2026-03-29.
+SE: GREEN concluido em 2026-03-29. `scripts/model2/operator_cycle_status.py`
+implementado com contrato `BLID-101-v1`, correlacao
+`model_decisions->signal_executions->training_episodes`, linhas `Frescor`,
+`Features`, `Persist.` e fallback `LEGACY_NO_DECISION_LINK`. Evidencias:
+`pytest -q tests/test_model2_blid_101_status_traceability.py
+tests/test_operator_cycle_status.py
+tests/test_model2_blid_082_candles_multitimeframe_contract.py` -> 39 passed;
+`mypy --strict scripts/model2/operator_cycle_status.py
+core/model2/cycle_report.py core/model2/repository.py` -> Success.
+Observacao: `pytest -q tests/test_cycle_report.py` permaneceu com 2 falhas
+pre-existentes em `TestCollectTrainingInfo` (fora do escopo BLID-101).
+TL: APROVADO. BLID-101-v1 validado (39 testes + mypy strict). 2 falhas em
+`test_cycle_report.py` permanecem pre-existentes e fora do escopo.
+DOC: Sincronizacao documental BLID-101 concluida (contrato BLID-101-v1 em
+ARQUITETURA_ALVO/RN-038 + trilha [SYNC-280]).
+PM: ACEITE em 2026-03-29. Valor PO entregue no iniciar.bat com contrato
+BLID-101-v1 verificavel por simbolo (origem ML/RL, frescor objetivo,
+persistencia correlacionada e fallback legado explicito).
+
 ### TAREFA BLID-072 - Garantir captura continua de episodios e rewards
 
 Status: CONCLUIDA (2026-03-22)

@@ -282,6 +282,24 @@ Componentes:
 - Regra de auditabilidade: `M5: N/A` nao pode aparecer quando houver
   persistencia em `ohlcv_m5` para o simbolo.
 
+**BLID-101 (Contrato verificavel de decisao no iniciar.bat)**:
+
+- `scripts/model2/operator_cycle_status.py` publica `contract=BLID-101-v1`
+  no bloco por simbolo para versionar o contrato textual de auditoria.
+- Linha `Decisao` (quando correlacionada) deve incluir:
+  `decision_id`, `model_version`, `reason`, `source` e `confianca`.
+- Linha `Frescor` deve incluir:
+  `signal_ts`, `signal_age_ms`, `max_signal_age_ms`,
+  `M5_last`, `H1_last`, `H4_last`, `D1_last`.
+- Linha `Features` deve explicitar vetor usado na inferencia e
+  `snapshot_at` da decisao.
+- Linha `Persist.` deve correlacionar ponta a ponta:
+  `model_decisions -> signal_executions -> training_episodes` por simbolo.
+- Fallback legado obrigatorio:
+  quando nao houver vinculo por `decision_id`, expor
+  `LEGACY_NO_DECISION_LINK` sem mascarar lacuna.
+- Linha `Candles` preserva contrato anterior e inclui `window_ms` explicito.
+
 **M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
 
 - `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`

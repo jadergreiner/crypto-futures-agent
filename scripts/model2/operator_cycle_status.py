@@ -168,6 +168,189 @@ class TimeframeCandleStatus:
     state: str
 
 
+BLID_101_STATUS_CONTRACT = "BLID-101-v1"
+
+
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    """Retorna colunas de uma tabela em lowercase; fail-safe retorna set vazio."""
+    try:
+        rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+        return {str(row[1]).lower() for row in rows}
+    except Exception:
+        return set()
+
+
+def _has_table(conn: sqlite3.Connection, table_name: str) -> bool:
+    """Indica se tabela existe no schema atual."""
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+            (table_name,),
+        ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _normalize_ts_ms(raw_value: Any) -> int | None:
+    """Normaliza timestamp para ms quando possivel."""
+    try:
+        if raw_value is None:
+            return None
+        ts = int(raw_value)
+        if ts <= 0:
+            return None
+        if ts < 1_000_000_000_000:
+            ts *= 1000
+        return ts
+    except Exception:
+        return None
+
+
+def _to_int_or_none(raw_value: Any) -> int | None:
+    """Converte valor para int quando possivel."""
+    try:
+        if raw_value is None:
+            return None
+        return int(raw_value)
+    except Exception:
+        return None
+
+
+def _safe_json_loads(raw_value: Any) -> dict[str, Any]:
+    """Parse defensivo de JSON para dict."""
+    try:
+        parsed = json.loads(raw_value or "{}")
+    except Exception:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | None:
+    """Busca trilha detalhada da decisao mais recente por simbolo."""
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            if not _has_table(conn, "model_decisions"):
+                return None
+            cols = _table_columns(conn, "model_decisions")
+            select_cols: list[str] = ["id", "action"]
+            if "confidence" in cols:
+                select_cols.append("confidence")
+            if "model_version" in cols:
+                select_cols.append("model_version")
+            if "reason_code" in cols:
+                select_cols.append("reason_code")
+            if "decision_timestamp" in cols:
+                select_cols.append("decision_timestamp")
+            if "input_json" in cols:
+                select_cols.append("input_json")
+            row = conn.execute(
+                f"SELECT {', '.join(select_cols)} FROM model_decisions "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
+                (symbol,),
+            ).fetchone()
+            if row is None:
+                return None
+            payload = dict(zip(select_cols, row))
+            input_json = _safe_json_loads(payload.get("input_json"))
+            raw_market_state = input_json.get("market_state")
+            raw_risk_state = input_json.get("risk_state")
+            market_state: dict[str, Any] = raw_market_state if isinstance(raw_market_state, dict) else {}
+            risk_state: dict[str, Any] = raw_risk_state if isinstance(raw_risk_state, dict) else {}
+            signal_ts_ms = _normalize_ts_ms(market_state.get("signal_timestamp"))
+            decision_ts_ms = _normalize_ts_ms(payload.get("decision_timestamp"))
+            return {
+                "decision_id": _to_int_or_none(payload.get("id")),
+                "action": str(payload.get("action") or "HOLD"),
+                "confidence": float(payload.get("confidence") or 0.0),
+                "model_version": str(payload.get("model_version") or "N/A"),
+                "reason_code": str(payload.get("reason_code") or "N/A"),
+                "decision_timestamp_ms": decision_ts_ms,
+                "signal_timestamp_ms": signal_ts_ms,
+                "signal_age_ms": _to_int_or_none(risk_state.get("signal_age_ms")),
+                "max_signal_age_ms": _to_int_or_none(risk_state.get("max_signal_age_ms")),
+                "source": "RL_MODEL",
+            }
+    except Exception:
+        return None
+
+
+def _query_last_execution_trace(
+    *,
+    symbol: str,
+    db_path: str,
+    decision_id: int | None,
+) -> dict[str, Any] | None:
+    """Busca execucao mais recente correlacionada (ou fallback por simbolo)."""
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            if not _has_table(conn, "signal_executions"):
+                return None
+            cols = _table_columns(conn, "signal_executions")
+            select_cols = ["id"]
+            if "decision_id" in cols:
+                select_cols.append("decision_id")
+            if "created_at" in cols:
+                select_cols.append("created_at")
+            if "updated_at" in cols:
+                select_cols.append("updated_at")
+
+            sql = (
+                f"SELECT {', '.join(select_cols)} FROM signal_executions "
+                "WHERE symbol = ?"
+            )
+            params: list[Any] = [symbol]
+            if "decision_id" in cols and decision_id is not None:
+                sql += " AND decision_id = ?"
+                params.append(int(decision_id))
+            sql += " ORDER BY id DESC LIMIT 1"
+            row = conn.execute(sql, tuple(params)).fetchone()
+            if row is None:
+                return None
+            payload = dict(zip(select_cols, row))
+            return {
+                "execution_id": _to_int_or_none(payload.get("id")),
+                "decision_id": _to_int_or_none(payload.get("decision_id")),
+                "created_at_ms": _normalize_ts_ms(payload.get("created_at")),
+                "updated_at_ms": _normalize_ts_ms(payload.get("updated_at")),
+            }
+    except Exception:
+        return None
+
+
+def _query_last_episode_trace(*, symbol: str, db_path: str) -> dict[str, Any] | None:
+    """Busca episodio mais recente por simbolo com contexto minimo de correlacao."""
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            if not _has_table(conn, "training_episodes"):
+                return None
+            cols = _table_columns(conn, "training_episodes")
+            select_cols = ["id", "execution_id"]
+            if "status" in cols:
+                select_cols.append("status")
+            if "event_timestamp" in cols:
+                select_cols.append("event_timestamp")
+            if "created_at" in cols:
+                select_cols.append("created_at")
+            sql = (
+                f"SELECT {', '.join(select_cols)} FROM training_episodes "
+                "WHERE symbol = ? ORDER BY id DESC LIMIT 1"
+            )
+            row = conn.execute(sql, (symbol,)).fetchone()
+            if row is None:
+                return None
+            payload = dict(zip(select_cols, row))
+            return {
+                "episode_id": _to_int_or_none(payload.get("id")),
+                "execution_id": _to_int_or_none(payload.get("execution_id")),
+                "status": str(payload.get("status") or ""),
+                "event_timestamp_ms": _normalize_ts_ms(payload.get("event_timestamp")),
+                "created_at_ms": _normalize_ts_ms(payload.get("created_at")),
+            }
+    except Exception:
+        return None
+
+
 def _query_persisted_ohlcv_stats(
     *,
     symbol: str,
@@ -484,12 +667,20 @@ def _build_symbol_report(
         ),
     ]
     candles_line = "  ".join(_format_candle_status_contract(item) for item in tf_statuses)
+    candles_line = f"{candles_line} | window_ms={DEFAULT_REPORT_FRESHNESS_WINDOW_MS}"
 
     # --- Decisão e confiança ---
     # Prioridade: model_decisions DB > live_execute JSON
     action_db, confidence_db = _query_last_decision_from_db(symbol, db_path)
     decision = action_db
     confidence: float = confidence_db
+    decision_trace = _query_last_decision_trace(symbol, db_path)
+    execution_trace = _query_last_execution_trace(
+        symbol=symbol,
+        db_path=db_path,
+        decision_id=(int(decision_trace["decision_id"]) if decision_trace is not None else None),
+    )
+    episode_trace = _query_last_episode_trace(symbol=symbol, db_path=db_path)
 
     # Verificar se live_execute traz decisão mais recente
     if live_execute_summary:
@@ -507,7 +698,65 @@ def _build_symbol_report(
     icons = {"OPEN_LONG": "🟢", "OPEN_SHORT": "🔴", "HOLD": "⏸", "REDUCE": "🟡", "CLOSE": "⛔"}
     icon = icons.get(decision, "❓")
     conf_str = f"{confidence:.0%}" if confidence else "N/A"
-    decision_line = f"{icon} {decision} (confianca: {conf_str})"
+    decision_parts = [f"{icon} {decision} (confianca: {conf_str})"]
+    if decision_trace is not None:
+        decision_parts.extend(
+            [
+                f"decision_id={decision_trace['decision_id']}",
+                f"model_version={decision_trace['model_version']}",
+                f"reason={decision_trace['reason_code']}",
+                f"source={decision_trace['source']}",
+            ]
+        )
+    else:
+        decision_parts.append("source=FALLBACK")
+    decision_line = " | ".join(decision_parts)
+
+    # --- Frescor verificavel ---
+    tf_map = {item.timeframe: item.display_time for item in tf_statuses}
+    signal_ts_ms = decision_trace.get("signal_timestamp_ms") if decision_trace is not None else None
+    signal_ts = ts_ms_to_brt_str(signal_ts_ms) if signal_ts_ms else "N/A"
+    signal_age_ms = decision_trace.get("signal_age_ms") if decision_trace is not None else None
+    max_signal_age_ms = decision_trace.get("max_signal_age_ms") if decision_trace is not None else None
+    frescor_line = (
+        f"signal_ts={signal_ts} | "
+        f"signal_age_ms={signal_age_ms if signal_age_ms is not None else 'N/A'} | "
+        f"max_signal_age_ms={max_signal_age_ms if max_signal_age_ms is not None else 'N/A'} | "
+        f"M5_last={tf_map.get('M5', 'N/A')} | H1_last={tf_map.get('H1', 'N/A')} | "
+        f"H4_last={tf_map.get('H4', 'N/A')} | D1_last={tf_map.get('D1', 'N/A')}"
+    )
+
+    # --- Features usadas na inferencia ---
+    snapshot_ts_ms = decision_trace.get("decision_timestamp_ms") if decision_trace is not None else None
+    snapshot_at = ts_ms_to_brt_str(snapshot_ts_ms) if snapshot_ts_ms else "N/A"
+    features_line = (
+        "[close, sl, tp, rr_ratio, funding_rate, basis, signal_age_h, open_position_qty] "
+        f"| snapshot_at={snapshot_at}"
+    )
+
+    # --- Persistencia correlacionada ---
+    persist_line = ""
+    if (
+        decision_trace is not None
+        and execution_trace is not None
+        and episode_trace is not None
+        and execution_trace.get("decision_id") == decision_trace.get("decision_id")
+        and episode_trace.get("execution_id") == execution_trace.get("execution_id")
+    ):
+        persist_line = (
+            f"model_decisions={decision_trace['decision_id']} | "
+            f"signal_execution={execution_trace['execution_id']} | "
+            f"episode=#{episode_trace['episode_id']} | symbol={symbol}"
+        )
+    else:
+        episode_label = (
+            f"#{episode_trace['episode_id']}"
+            if episode_trace is not None and episode_trace.get("episode_id") is not None
+            else "N/A"
+        )
+        persist_line = (
+            f"episode={episode_label} | LEGACY_NO_DECISION_LINK | symbol={symbol}"
+        )
 
     # --- Episódio / Reward ---
     ep_id, ep_persisted, reward = _query_episode_info(symbol, db_path)
@@ -614,9 +863,13 @@ def _build_symbol_report(
         sep,
         f"  {symbol} | {_now_brt()} {mode_tag}",
         sep,
+        f"  Contrato : contract={BLID_101_STATUS_CONTRACT}",
         f"  Candles  : {candles_line}",
         f"  Decisao  : {decision_line}",
         f"  Episodio : {episode_line}",
+        f"  Frescor  : {frescor_line}",
+        f"  Features : {features_line}",
+        f"  Persist. : {persist_line}",
         f"  Treino   : {train_line} | {audit_train_line}",
         f"  Posicao  : {position_line}",
         f"  Risk     : {risk_line}",
