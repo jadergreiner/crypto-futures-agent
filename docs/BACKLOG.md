@@ -57,10 +57,44 @@ Em progresso:
    validados para FLUXUSDT.
    Impacto: fechar onboarding com evidencias operacionais ponta a ponta.
 - BLID-083 - Estratificar suite de testes por etapa do workflow.
-   Status: Em analise | Score PO: 2.95
+   Status: CONCLUIDO | Score PO: 2.95
    Dependencia minima: baseline atual de `pytest -q tests/`, contratos M2
    preservados e guardrails ativos.
    Impacto: reduzir lead time local sem perder cobertura critica.
+   PO: BLID-083 priorizado para reduzir lead time sem abrir risco.
+   Ao fim deste desenvolvimento estarei feliz se o stage default cair
+   para <=45s e os gates contract/risk/docs ficarem 100% verdes.
+   QA: Suite RED criada em
+   `tests/test_model2_blid_083_stage_workflow_matrix.py` com 13 testes;
+   13 failed (API de matriz por stage/perfil ainda ausente).
+   TESTES_PRONTOS.
+   SE: IMPLEMENTADO com `core/model2/stage_test_matrix.py`; BLID-083
+   GREEN 13/13, mypy strict OK e regressao `pytest -q tests/`
+   330/330 PASS.
+   TL: DEVOLVIDO_PARA_REVISAO. build_stage_command("6.tech-lead")
+   aplica -k e deselecta 260/330; perfil completo precisa equivaler
+   a pytest -q tests/.
+   SE: Correcao DEVOLVIDO concluida:
+   `build_stage_command("6.tech-lead")` sem `-k`; suite BLID-083 14/14,
+   mypy strict OK e regressao 331/331 PASS.
+   TL: APROVADO. Correcao validada: perfil completo em 6.tech-lead
+   manteve pytest -q tests/ sem -k; 14/14 task, mypy strict e
+   331/331 suite.
+   PM: DEVOLVER_PARA_AJUSTE em 2026-03-29. Qualidade tecnica validada,
+   mas valor prometido pelo PO segue PARCIAL por falta de medicao
+   objetiva do tempo do perfil rapido <=45s no ambiente de referencia.
+   SE: Medicao objetiva registrada em 2026-03-29 para o perfil `rapido`.
+   Comando: `pytest -q tests/ -m "unit or contract or docs" -k
+   "risk_gate or circuit_breaker or risk"`. Tempos: 26.77s, 24.14s e
+   24.82s (meta <=45s: ATINGIDA).
+   TL: APROVADO em 2026-03-29. Reproducao local confirmou perfil rapido
+   <=45s (22.30s, 20.92s, 21.06s), suites 14/14, 5/5 e 331/331 verdes,
+   mypy strict OK e guardrails preservados.
+   DOC: BACKLOG e SYNCHRONIZATION ressincronizados apos validacao
+   objetiva do perfil rapido <=45s; trilha registrada em [SYNC-278].
+   PM: ACEITE em 2026-03-29. Valor PO ENTREGUE com medicao objetiva
+   do perfil rapido <=45s; trilha ponta-a-ponta validada e item
+   encerrado como CONCLUIDO.
 
 Trilha aberta complementar:
 
@@ -910,9 +944,25 @@ Dependencias:
 
 ### TAREFA BLID-083 - Estratificar suite de testes por etapa do workflow
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 2.95 (Valor=4, Urg=3, Risco=3, Esf=2)
+
+PO: BLID-083 priorizado para reduzir tempo de feedback por etapa sem abrir
+risco operacional. Ao fim deste desenvolvimento estarei feliz se o stage
+default cair de 66.99s para <=45s e os gates contract/risk/docs
+permanecerem 100% verdes.
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Mudanca perceptivel: menor tempo para validar correcoes de incidentes
+  antes de retomar a operacao.
+- Evidencias ou lacuna: PROVAVEL_MAS_NAO_COMPROVADO. Nao ha metrica
+  objetiva em `logs/startup_log.txt` ou `logs/m2_cycle.log` conectando a
+  estratificacao de testes ao runtime; falta medir ganho de tempo por
+  ciclo de correcao.
+- Contestacao: se nada mudar no tempo de resposta operacional apos falha,
+  o item deve ser tratado como habilitador e nao como valor final.
 
 PO: Suite estratificada reduz tempo de CI e foco de regressao por agente.
 Sem dependencias bloqueantes. Menor score do lote mas valor de processo.
@@ -964,6 +1014,68 @@ gates criticos (`contract`, `risk`, `docs`) e depois expandir para suite complet
 
 SA: Handoff QA pronto para matriz por etapa com gates criticos e comandos
 objetivos, preservando risk_gate/circuit_breaker.
+
+SA: MVP seguro: matriz por stage + marcadores pytest + gate
+contract/risk/docs, sem mudar runtime nem schema; alvo <=45s no fluxo
+default.
+
+QA: Suite RED criada em `tests/test_model2_blid_083_stage_workflow_matrix.py`
+com 13 testes; 13 failed (atributos/funcoes ausentes em
+`core/model2/stage_test_matrix.py`). TESTES_PRONTOS.
+QA: `mypy --strict tests/test_model2_blid_083_stage_workflow_matrix.py`
+-> Success (0 erros).
+SE: Inicio GREEN-REFACTOR BLID-083 em 2026-03-29; foco em matriz por stage
+1-8, perfis rapido/completo/regressao e gate contract/risk/docs.
+SE: GREEN concluido em 2026-03-29. `core/model2/stage_test_matrix.py`
+ganhou API de matriz por workflow/perfil/gate com compatibilidade legado;
+`pytest -q tests/test_model2_blid_083_stage_workflow_matrix.py`
+13/13 PASS; `mypy --strict` OK; `pytest -q tests/` 330/330 PASS.
+TL: DEVOLVIDO_PARA_REVISAO. build_stage_command("6.tech-lead")
+aplica -k e executa 70/330; perfil completo deve manter `pytest -q tests/`.
+SE: Correcao DEVOLVIDO concluida em 2026-03-29.
+`build_stage_command()` nao adiciona `-k` para perfil `completo`;
+novo teste
+`test_build_stage_command_tech_lead_keeps_full_suite_without_k_filter`
+validado. Evidencias:
+`pytest -q tests/test_model2_blid_083_stage_workflow_matrix.py`
+14/14 PASS; `mypy --strict` OK; `pytest -q tests/` 331/331 PASS.
+TL: APROVADO. Correcao reproduzida localmente: stage `6.tech-lead`
+sem `-k`, suite BLID-083 14/14, mypy strict e regressao 331/331 verdes.
+DOC: BACKLOG e SYNCHRONIZATION sincronizados no fechamento documental do
+BLID-083 (revisao TL), trilha registrada em [SYNC-277].
+PM: DEVOLVER_PARA_AJUSTE em 2026-03-29. Trilha tecnica e documental
+validadas, porem o valor PO para lead time <=45s permanece PARCIAL sem
+evidencia objetiva no fluxo operacional.
+SE: Medicao objetiva da devolucao PM concluida em 2026-03-29.
+Comando de perfil rapido:
+`pytest -q tests/ -m "unit or contract or docs" -k
+"risk_gate or circuit_breaker or risk"`.
+Tempos no ambiente de referencia (3 execucoes): 26.77s, 24.14s e 24.82s.
+Resultado frente a meta PO (`<=45s`): ATINGIDA.
+SE: Revalidacao tecnica da rodada apos medicao objetiva:
+`pytest -q tests/test_model2_blid_083_stage_workflow_matrix.py` 14/14 PASS;
+`pytest -q tests/test_m2_029_1_stage_test_matrix.py` 5/5 PASS;
+`mypy --strict core/model2/stage_test_matrix.py
+tests/test_model2_blid_083_stage_workflow_matrix.py` Success;
+`pytest -q tests/` 331/331 PASS.
+TL: APROVADO em 2026-03-29. Reproducao independente do TL:
+comando do perfil rapido
+`pytest -q tests/ -m "unit or contract or docs" -k
+"risk_gate or circuit_breaker or risk"` executado 3x com 22.30s, 20.92s
+e 21.06s (meta `<=45s` atendida). Revalidacao adicional:
+`pytest -q tests/test_model2_blid_083_stage_workflow_matrix.py` 14/14 PASS;
+`pytest -q tests/test_m2_029_1_stage_test_matrix.py` 5/5 PASS;
+`mypy --strict core/model2/stage_test_matrix.py
+tests/test_model2_blid_083_stage_workflow_matrix.py` Success;
+`pytest -q tests/` 331/331 PASS. Guardrails `risk_gate`,
+`circuit_breaker` e `decision_id` preservados.
+DOC: Fechamento documental atualizado apos comprovacao do valor PO
+(perfil rapido <=45s com reproducao TL); BACKLOG e SYNCHRONIZATION
+alinhados na trilha [SYNC-278].
+PM: ACEITE em 2026-03-29. Valor prometido pelo PO entregue com evidencia
+objetiva no perfil rapido (`22.30s`, `20.92s`, `21.06s` <= `45s`);
+trilha PO->SA->QA->SE->TL->DOC->PM validada e BLID-083 encerrada como
+CONCLUIDO.
 
 ## INICIATIVA M2-020 - Arquitetura Model-Driven de Decisao
 
