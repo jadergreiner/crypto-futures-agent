@@ -46,7 +46,7 @@ Em progresso:
    Impacto: registrar divergencias criticas e impedir transicao final sem
    reconciliacao minima.
 - M2-020.11 - Definir gate de promocao GO/NO-GO.
-   Status: Em analise
+   Status: CONCLUIDO | Score PO: 3.70
    Dependencia minima: criterios minimos de risco, estabilidade e
    consistencia definidos.
    Impacto: forcar decisao GO/NO-GO rastreavel e bloquear promocao sem
@@ -1059,7 +1059,9 @@ Critérios de aceite:
 
 ### TAREFA M2-020.11 - Definir gate de promocao GO/NO-GO
 
-Status: Em analise
+Status: CONCLUIDO
+
+Score PO: 3.70 (ValorReal=4, Valor=4, Urg=3, Risco=4, Esf=3)
 
 Entrega:
 
@@ -1070,6 +1072,45 @@ Critérios de aceite:
 
 1. Decisao GO/NO-GO rastreavel.
 2. Falha em criterio retorna NO_GO automaticamente.
+
+PO: Priorizado para tornar o gate de promocao rastreavel na operacao.
+Ao fim deste desenvolvimento estarei feliz se o healthcheck em iniciar.bat
+exibir decisao GO/NO_GO com motivo objetivo quando faltar evidencia.
+
+SA: Expandir promotion_gate com contrato de evidencia minima e integrar
+resultado no healthcheck live para rastreabilidade operacional.
+
+QA: Suite RED em `tests/test_model2_m2_020_11_promotion_gate_evidence.py`
+com 4 testes; 4 failed (evaluate_evidence_gate inexistente e healthcheck sem
+campo promotion_gate). TESTES_PRONTOS.
+
+SE: GREEN concluido em 2026-03-29. `core/model2/promotion_gate.py` recebeu
+`PromotionEvidenceResult` + `evaluate_evidence_gate()` com fail-safe e
+`decision_id` obrigatorio. `scripts/model2/healthcheck_live_execution.py`
+passou a publicar `promotion_gate` (decision, reasons, evidence_sufficient)
+no summary consumido pelo `iniciar.bat`.
+Evidencias:
+
+1. `pytest -q tests/test_model2_m2_020_11_promotion_gate_evidence.py`
+   -> 4 passed.
+2. `pytest -q tests/test_model2_m2_028_1_promotion_gate.py`
+   `tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed.
+3. `mypy --strict core/model2/promotion_gate.py`
+   `scripts/model2/healthcheck_live_execution.py`
+   `tests/test_model2_m2_020_11_promotion_gate_evidence.py` -> Success.
+4. `pytest -q tests/` -> 317 passed.
+
+TL: APROVADO. Reproducao local concluida (4/4 task, 20/20 promocao e 317/317
+suite), guardrails preservados e gate com NO_GO conservador por evidencia
+insuficiente.
+
+DOC: REGRAS_DE_NEGOCIO (RN-024), ARQUITETURA_ALVO, BACKLOG e
+SYNCHRONIZATION alinhados ao gate de evidencia minima em promocao; trilha
+[SYNC-265].
+
+PM: ACEITE em 2026-03-29. Valor PO entregue no `iniciar.bat` via
+`healthcheck_live_execution` com decisao GO/NO_GO auditavel e motivos
+explicitos; item encerrado como CONCLUIDO.
 
 ### TAREFA M2-020.12 - Migrar live para decisao unica do modelo
 

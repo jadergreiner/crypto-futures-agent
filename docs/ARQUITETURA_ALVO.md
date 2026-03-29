@@ -392,6 +392,18 @@ Componentes:
    - `PromotionEvaluator`: avalia criterios de forma fail-safe (nunca lanca excecao)
    - Defaults conservadores: win_rate >= 55%, episodes >= 30, drawdown <= 5%
 
+**M2-020.11 (Gate de evidencia minima GO/NO-GO)**:
+
+1. `core/model2/promotion_gate.py` expandido com:
+   - `PromotionEvidenceResult` (frozen dataclass): `decision`, `reasons`,
+     `decision_id`, flags de evidencia e `evaluated_at`
+   - `PromotionEvaluator.evaluate_evidence_gate(...)`: fail-safe conservador
+     para risco/estabilidade/consistencia com bloqueio automatico (NO_GO)
+     quando qualquer evidencia estiver ausente
+2. `scripts/model2/healthcheck_live_execution.py` passa a gerar bloco
+   `promotion_gate` no summary de runtime com decisao GO/NO_GO e motivos,
+   tornando a trilha observavel no ciclo operacional iniciado por `iniciar.bat`.
+
 **M2-022.5 (Validacao de carga shadow multi-simbolo)**:
 
 1. `core/model2/shadow_load_validation.py` consolida validacao de carga em

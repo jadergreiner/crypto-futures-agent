@@ -88,6 +88,22 @@ class LivePromotionResult:
     evaluated_at: str
 
 
+@dataclass(frozen=True)
+class PromotionEvidenceResult:
+    """Resultado imutavel do gate minimo de evidencias para promocao."""
+
+    decision: str
+    go: bool
+    reasons: List[str]
+    decision_id: str
+    evidence_ref: str | None
+    risk_evidence_ok: bool
+    stability_evidence_ok: bool
+    consistency_evidence_ok: bool
+    evidence_sufficient: bool
+    evaluated_at: str
+
+
 # ---------------------------------------------------------------------------
 # Avaliador principal
 # ---------------------------------------------------------------------------
@@ -270,6 +286,62 @@ class PromotionEvaluator:
             approver_id=_approver_id if "_approver_id" in locals() else None,
             approval_justification=_justification if "_justification" in locals() else None,
             rollback_to_paper=rollback_to_paper,
+            evaluated_at=evaluated_at,
+        )
+
+    def evaluate_evidence_gate(
+        self,
+        *,
+        decision_id: str,
+        risk_evidence_ok: bool,
+        stability_evidence_ok: bool,
+        consistency_evidence_ok: bool,
+        evidence_ref: str | None = None,
+    ) -> PromotionEvidenceResult:
+        """Avalia evidencia minima para gate GO/NO-GO rastreavel (M2-020.11).
+
+        Guardrails:
+        - Em ausencia de qualquer evidencia obrigatoria retorna NO_GO.
+        - Em ausencia de decision_id valido retorna NO_GO.
+        - Nunca lanca excecao; falha interna gera NO_GO conservador.
+        """
+        evaluated_at = datetime.now(tz=timezone.utc).isoformat()
+        reasons: List[str] = []
+        normalized_decision_id = str(decision_id or "").strip()
+        normalized_evidence_ref = (
+            str(evidence_ref).strip() if isinstance(evidence_ref, str) and str(evidence_ref).strip() else None
+        )
+        _risk_ok = bool(risk_evidence_ok)
+        _stability_ok = bool(stability_evidence_ok)
+        _consistency_ok = bool(consistency_evidence_ok)
+
+        try:
+            if not normalized_decision_id:
+                reasons.append("decision_id_missing")
+
+            if not _risk_ok:
+                reasons.append("risk_evidence_missing")
+            if not _stability_ok:
+                reasons.append("stability_evidence_missing")
+            if not _consistency_ok:
+                reasons.append("consistency_evidence_missing")
+            if normalized_evidence_ref is None:
+                reasons.append("evidence_ref_missing")
+        except Exception as exc:  # guardrail: nunca lanca
+            reasons.append(f"erro_interno: {exc}")
+
+        go = len(reasons) == 0
+        decision = "GO" if go else "NO_GO"
+        return PromotionEvidenceResult(
+            decision=decision,
+            go=go,
+            reasons=reasons,
+            decision_id=normalized_decision_id,
+            evidence_ref=normalized_evidence_ref,
+            risk_evidence_ok=_risk_ok,
+            stability_evidence_ok=_stability_ok,
+            consistency_evidence_ok=_consistency_ok,
+            evidence_sufficient=go,
             evaluated_at=evaluated_at,
         )
 

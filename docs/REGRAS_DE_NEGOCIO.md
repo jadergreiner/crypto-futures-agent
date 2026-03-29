@@ -270,6 +270,22 @@ de criterios via `PromotionEvaluator` em `core/model2/promotion_gate.py`:
 5. `PromotionResult` e imutavel (frozen dataclass) com `evaluated_at` ISO UTC.
 6. `evaluate()` nunca lanca excecao; entrada invalida resulta em NO-GO com reason.
 
+### RN-024 - Gate de Evidencia Minima para Promocao (M2-020.11)
+
+Toda decisao de promocao deve bloquear quando faltar evidencia operacional
+minima de risco, estabilidade ou consistencia:
+
+1. `PromotionEvaluator.evaluate_evidence_gate(...)` em
+   `core/model2/promotion_gate.py` e o contrato canonico.
+2. `decision_id` valido e obrigatorio para rastreabilidade; ausencia retorna NO_GO.
+3. `risk_evidence_ok`, `stability_evidence_ok` e `consistency_evidence_ok`
+   devem estar todos verdadeiros para GO.
+4. `evidence_ref` obrigatorio para trilha auditavel; ausencia retorna NO_GO.
+5. Resultado imutavel em `PromotionEvidenceResult` inclui `decision`,
+   `reasons`, `evidence_sufficient` e `evaluated_at` ISO UTC.
+6. `scripts/model2/healthcheck_live_execution.py` deve publicar bloco
+   `promotion_gate` no summary para consumo operacional via `iniciar.bat`.
+
 ### RN-025 - Timeout por Etapa de Execucao (M2-024.5)
 
 Cada etapa do ciclo de execucao live possui timeout configuravel definido em

@@ -7014,3 +7014,29 @@ REVISADO_APROVADO
   - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
 - Pendencias documentais:
   - Nenhuma
+
+### [SYNC-265] M2-020.11 Gate de evidencia minima GO/NO-GO - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: M2-020.11
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/BACKLOG.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/SYNCHRONIZATION.md`
+- Sincronizacao aplicada:
+  - `BACKLOG`: trilha completa PO->SA->QA->SE->TL->DOC->PM para M2-020.11,
+    incluindo evidencias de RED/GREEN, mypy strict e regressao completa.
+  - `REGRAS_DE_NEGOCIO`: adicionada RN-024 com contrato de evidencia minima
+    (`risk_evidence_ok`, `stability_evidence_ok`, `consistency_evidence_ok`,
+    `decision_id` e `evidence_ref`) para decisao GO/NO_GO.
+  - `ARQUITETURA_ALVO`: documentada expansao de `promotion_gate.py` com
+    `PromotionEvidenceResult` e integracao de
+    `healthcheck_live_execution.py` no fluxo operacional do `iniciar.bat`.
+- Validacoes:
+  - `pytest -q tests/test_model2_m2_020_11_promotion_gate_evidence.py` -> 4 passed
+  - `pytest -q tests/test_model2_m2_028_1_promotion_gate.py tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed
+  - `mypy --strict core/model2/promotion_gate.py scripts/model2/healthcheck_live_execution.py tests/test_model2_m2_020_11_promotion_gate_evidence.py` -> Success
+  - `pytest -q tests/` -> 317 passed
+  - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed

@@ -18,6 +18,7 @@ DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
 from scripts.model2.io_utils import atomic_write_json
 from core.model2.io_retry import read_json_with_retry
+from core.model2.promotion_gate import PromotionEvaluator
 
 
 def _utc_now_ms() -> int:
@@ -125,8 +126,27 @@ def run_live_healthcheck(
                 }
             )
 
-    status = "ok" if not violations else "alert"
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    violation_codes = {str(item.get("code", "")) for item in violations if isinstance(item, dict)}
+    gate_result = PromotionEvaluator().evaluate_evidence_gate(
+        decision_id=f"m2-healthcheck-{run_id}",
+        risk_evidence_ok=(
+            "unprotected_positions" not in violation_codes
+            and "position_mismatches" not in violation_codes
+        ),
+        stability_evidence_ok=(
+            "stale_dashboard" not in violation_codes
+            and "stale_entries" not in violation_codes
+        ),
+        consistency_evidence_ok=(
+            latest_path is not None
+            and latest_payload is not None
+            and "missing_live_dashboard" not in violation_codes
+            and "invalid_live_dashboard" not in violation_codes
+        ),
+        evidence_ref=str(latest_path) if latest_path else None,
+    )
+    status = "ok" if not violations and gate_result.go else "alert"
     summary: dict[str, Any] = {
         "status": status,
         "run_id": run_id,
@@ -138,6 +158,18 @@ def run_live_healthcheck(
         "max_position_mismatches": int(max_position_mismatches),
         "latest_live_dashboard_file": str(latest_path) if latest_path else None,
         "violations": violations,
+        "promotion_gate": {
+            "decision": gate_result.decision,
+            "go": gate_result.go,
+            "reasons": gate_result.reasons,
+            "decision_id": gate_result.decision_id,
+            "evidence_ref": gate_result.evidence_ref,
+            "risk_evidence_ok": gate_result.risk_evidence_ok,
+            "stability_evidence_ok": gate_result.stability_evidence_ok,
+            "consistency_evidence_ok": gate_result.consistency_evidence_ok,
+            "evidence_sufficient": gate_result.evidence_sufficient,
+            "evaluated_at": gate_result.evaluated_at,
+        },
     }
     if status == "alert" and alert_command:
         summary["alert_command_result"] = _run_alert_command(alert_command, summary)
