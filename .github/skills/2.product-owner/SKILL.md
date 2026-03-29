@@ -136,3 +136,5 @@ Sua tarefa como Arquiteto de Solucoes:
 - Nunca afirmar valor real sem evidencia operacional ou lacuna declarada.
 - Se a lacuna for de negocio, escalar ao usuario humano com pergunta objetiva.
 - Nunca exceder 260 caracteres no comentario `PO:`.
+- Ao editar `docs/*.md`, preservar wrapping, indentacao e listas para nao
+  introduzir erro de `markdownlint` nos arquivos alterados.

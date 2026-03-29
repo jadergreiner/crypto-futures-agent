@@ -24,7 +24,8 @@ omitir validacao obrigatoria.
 2. Rodar `pytest -q` uma vez.
 3. Rodar `mypy --strict` apenas nos modulos Python alterados.
 4. Se `docs/` mudou, garantir atualizacao de
-   `docs/SYNCHRONIZATION.md` antes do commit.
+   `docs/SYNCHRONIZATION.md` e `markdownlint` verde nos docs alterados antes
+   do commit.
 5. Fazer `git add -A`.
 6. Gerar mensagem no formato
    `[TAG] Descricao breve em portugues ASCII puro (max 72 chars)`.
@@ -40,3 +41,4 @@ omitir validacao obrigatoria.
   arquivos afetados e acao corretiva.
 - Nao pedir confirmacao para incluir deletados: usar `git add -A`.
 - Tags validas: `[FEAT]`, `[FIX]`, `[SYNC]`, `[DOCS]`, `[TEST]`.
+- Se `docs/*.md` mudou, nao fechar o commit com erro de `markdownlint`.

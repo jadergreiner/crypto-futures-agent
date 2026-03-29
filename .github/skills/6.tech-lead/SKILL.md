@@ -183,6 +183,8 @@ Ao devolver:
 - Decisao binaria: APROVADO ou DEVOLVIDO (nao existe aprovacao parcial)
 - Em duvida sobre comportamento de risco: DEVOLVIDO
 - Sempre padronizar comentario no backlog com `TL:` e ate 150 caracteres
+- Ao revisar ou editar `docs/*.md`, preservar wrapping, indentacao e listas
+  para nao deixar erro de `markdownlint` para o stage seguinte.
 
 ## Criterio de Qualidade da Skill
 

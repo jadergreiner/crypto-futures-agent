@@ -219,6 +219,8 @@ pytest -q tests/test_<modulo>.py   # deve continuar passando
 - Toda migracao de schema deve ser retroativamente compativel OU ter plano
   de rollback documentado em `docs/ARQUITETURA_ALVO.md`
 - Nenhuma alteracao de API publica de modulo sem atualizacao dos chamadores
+- Ao editar `docs/*.md`, preservar wrapping, indentacao e listas para manter
+  `markdownlint` verde nos arquivos alterados.
 
 ## Criterio de Qualidade da Skill
 

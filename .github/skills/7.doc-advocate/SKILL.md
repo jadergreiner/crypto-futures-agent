@@ -116,6 +116,8 @@ Checklist de rejeicao (payload invalido):
 - Nao executar etapa final sem `APROVADO` do Tech Lead.
 - Nao contradizer `docs/BACKLOG.md` e `docs/PRD.md`.
 - Nao alterar arquitetura global para corrigir problema local.
+- Ao editar `docs/*.md`, ajustar wrapping, indentacao e listas para manter
+  `markdownlint` verde, especialmente em `docs/BACKLOG.md`.
 - Em ambiguidade documental, registrar pendencia e adotar modo conservador.
 
 ## Criterio de Qualidade da Skill

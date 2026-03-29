@@ -42,6 +42,8 @@ Criar, atualizar, consultar e sincronizar backlog com o menor contexto util.
 - Nao citar `docs/TRACKER.md` ou `docs/ROADMAP.md` como dependencias.
 - Gerar novo BLID usando o maior numero existente + 1.
 - Nao reformatar secoes antigas sem necessidade.
+- Se editar `docs/*.md`, preservar wrapping, indentacao e listas para manter
+  `markdownlint` verde nos arquivos alterados.
 - Se a mudanca veio de RL/live, exigir evidencia minima: metrica, janela,
   impacto e acao proposta.
 

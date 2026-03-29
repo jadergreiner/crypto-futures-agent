@@ -149,6 +149,8 @@ Se incompleto, operar em modo conservador:
 - Docstring em cada função de teste explicando o quê e por quê.
 - Comentários em lógica não-óbvia.
 - Nenhum teste oculto; todos com nome descritivo.
+- Ao editar `docs/BACKLOG.md` ou `docs/SYNCHRONIZATION.md`, preservar
+  wrapping, indentacao e listas para nao quebrar `markdownlint`.
 
 ## Critério de Qualidade da Skill
 

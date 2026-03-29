@@ -114,6 +114,8 @@ git status
 - Nao fechar sem atualizar `docs/BACKLOG.md` para `CONCLUIDO`.
 - Nao pular commit/push em caso de `ACEITE`.
 - Nao encerrar com arvore local suja.
+- Se ajustar `docs/*.md` no fechamento, corrigir o que for necessario para
+  manter `markdownlint` verde antes do commit final.
 - Em duvida de conformidade, `DEVOLVER_PARA_AJUSTE`.
 
 ## Criterio de Qualidade da Skill

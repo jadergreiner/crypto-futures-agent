@@ -77,6 +77,8 @@ Template canonico: ver `.github/skills/3.solution-architect/templates.md`.
 - Nao assumir schema/tabela sem evidencia em docs ou codigo existente.
 - Nao usar variante de status diferente de `Em analise`.
 - Nao exceder 150 caracteres no comentario `SA:`.
+- Ao editar `docs/*.md`, preservar wrapping, indentacao e listas para manter
+  `markdownlint` verde no backlog e nas docs alteradas.
 
 ## Saida Obrigatoria
 

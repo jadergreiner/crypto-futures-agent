@@ -23,6 +23,67 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-278] BLID-083 valor PO comprovado com medicao objetiva - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: BLID-083
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: adicionados comentarios `DOC:` no BLID-083 apos reproducao TL
+    confirmando perfil `rapido` abaixo de 45s com evidencias objetivas;
+  - BACKLOG: consolidado fechamento da devolucao PM com valor PO marcado
+    como comprovado por medicao local rastreavel;
+  - SYNCHRONIZATION: registrada trilha [SYNC-278] para handoff final ao
+    Project Manager.
+- Validacoes:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 12 passed
+
+### [SYNC-277] BLID-083 Governanca final apos aprovacao TL - 2026-03-29
+
+- Agente: 7.doc-advocate
+- Item: BLID-083
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: registrado comentario `DOC:` no item BLID-083 apos validacao da
+    correcao TL sobre perfil `completo` sem filtro `-k` no stage
+    `6.tech-lead`;
+  - SYNCHRONIZATION: adicionada trilha [SYNC-277] com evidencias de
+    validacao documental e estado final da task.
+- Validacoes:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 1 passed
+
+### [SYNC-276] QA-TDD BLID-083: suite RED por stage/perfil de testes - 2026-03-29
+
+- Agente: 4.qa-tdd
+- Item: BLID-083
+- Status backlog: TESTES_PRONTOS
+- Arquivos atualizados:
+  - tests/test_model2_blid_083_stage_workflow_matrix.py
+  - tests/conftest.py
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - criada suite RED com 13 testes cobrindo matriz por stage 1-8,
+    perfis `rapido/completo/regressao`, gate obrigatorio `contract/risk/docs`
+    e fail-safe para stage invalido;
+  - whitelist de coleta model-driven atualizada em `tests/conftest.py` para
+    incluir a suite BLID-083;
+  - backlog BLID-083 atualizado para `TESTES_PRONTOS` com rastreio QA.
+- Validacoes:
+  - `pytest -q tests/test_model2_blid_083_stage_workflow_matrix.py`
+    -> 13 failed (esperado, RED: API alvo ausente em
+    `core/model2/stage_test_matrix.py`)
+  - `mypy --strict tests/test_model2_blid_083_stage_workflow_matrix.py`
+    -> Success
+
 ### [SYNC-275] BLID-075 concluido no dev-cycle com gate automatizado - 2026-03-29
 
 - Agentes: 3.solution-architect -> 4.qa-tdd -> 5.software-engineer ->
