@@ -21,7 +21,7 @@ from scripts.model2.export_signals import run_export_signals
 from scripts.model2.entry_rl_filter import run_entry_rl_filter
 from scripts.model2.migrate import run_up
 from scripts.model2.order_layer import run_order_layer
-from scripts.model2.persist_training_episodes import run_persist_training_episodes
+from scripts.model2.persist_training_episodes import run_persist_training_episodes, flush_deferred_rewards
 from scripts.model2.resolve import run_resolution
 from scripts.model2.scan import run_scan
 from scripts.model2.sync_ohlcv_from_binance import sync_ohlcv_from_binance
@@ -232,6 +232,15 @@ def run_daily_pipeline(
                 "symbols": symbols_to_use,
                 "timeframe": timeframe,
                 "output_dir": resolved_output_dir,
+            },
+        ),
+        (
+            "flush_deferred_rewards",
+            flush_deferred_rewards,
+            {
+                "model2_db_path": resolved_model2_db,
+                "source_db_path": resolved_source_db,
+                "now_ms": _utc_now_ms(),
             },
         ),
         (
