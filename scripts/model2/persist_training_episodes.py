@@ -453,7 +453,7 @@ def flush_deferred_rewards(
                 continue
 
             candle_row = src_conn.execute(
-                f"SELECT close FROM {table} WHERE symbol = ? AND timestamp = ? LIMIT 1",
+                f"SELECT close FROM {table} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
                 (symbol, lookup_ms),
             ).fetchone()
 
