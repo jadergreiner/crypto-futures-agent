@@ -18,7 +18,7 @@ from core.model2.time_utils import now_brt_str
 logger = logging.getLogger(__name__)
 
 # Limite de episodios para disparo de retreino
-RETRAIN_EPISODE_THRESHOLD = 100
+RETRAIN_EPISODE_THRESHOLD = 1
 DEFAULT_REPORT_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
     "FILLED",
