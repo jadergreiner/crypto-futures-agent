@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Constantes de calibração
 OPPORTUNITY_LOOKBACK_CANDLES = 20  # Quantos candles observar oportunidade
-OPPORTUNITY_MIN_CONFLUENCE = 6.0   # Só rastrear signals com min confluence
+OPPORTUNITY_MIN_CONFLUENCE = 5.0   # Só rastrear signals com min confluence
 OPPORTUNITY_MIN_PRICE_MOVE_PCT = 1.0  # Movimento mínimo para avaliar
 
 # Pesos de aprendizado
@@ -33,7 +33,7 @@ OPPORTUNITY_REWARD_BAD_MOVE = 0.20    # Se não entrar evitou perda
 OPPORTUNITY_PENALTY_BAD_MOVE = -0.02   # Penalidade mínima por ser conservador demais
 
 DRAWDOWN_THRESHOLD_FOR_WISDOM = 3.0   # Drawdown >= 3% = stay out é sábio
-CONFLUENCE_THRESHOLD_FOR_RISK = 8.0   # Confluence < 8 = alto risco mesmo sem drawdown
+CONFLUENCE_THRESHOLD_FOR_RISK = 7.0   # Confluence < 8 = alto risco mesmo sem drawdown
 
 
 @dataclass

@@ -190,3 +190,6 @@ CLEANUP_DAYS_KEEP = 90  # Keep data for 90 days
 MONITOR_MIN_CANDLES_H4 = 700  # Para cobrir EMA(610) com margem
 MONITOR_MIN_CANDLES_H1 = 250  # Para cobrir EMA(144) e SMC com margem
 MONITOR_FRESH_CANDLES = 50    # Candles frescos a buscar da API
+
+# Default loop time for M2 cycle (in seconds)
+M2_LOOP_SECONDS = int(os.getenv("M2_LOOP_SECONDS", 300))

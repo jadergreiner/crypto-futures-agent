@@ -134,7 +134,8 @@ def diagnose_signals(db_path: str = "db/crypto_agent.db") -> None:
         print("-" * 100)
         for sig in cancelled:
             reason = (sig['exit_reason'] or "—")[:30]
-            print(f"{sig['symbol']:<12} {sig['direction']:<6} {sig['confluence_score']:<6.1f} {sig['exit_timestamp']:<20} {reason:<30}")
+            exit_timestamp = sig['exit_timestamp'] if sig['exit_timestamp'] else "N/A"
+            print(f"{sig['symbol']:<12} {sig['direction']:<6} {sig['confluence_score']:<6.1f} {exit_timestamp:<20} {reason:<30}")
     else:
         print("[INFO] Nenhum sinal foi cancelado")
 
