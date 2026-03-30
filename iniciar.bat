@@ -93,7 +93,7 @@ python scripts/model2/live_cycle.py --execution-mode !M2_MODE! !LIVE_SYMBOL_ARGS
 
 call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Persistindo episodios de treino..."
-python scripts/model2/persist_training_episodes.py !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
+python scripts/model2/persist_training_episodes.py --timeframe M5 !PIPELINE_SYMBOL_ARGS! >> "!CYCLE_LOG!" 2>&1
 
 call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Healthcheck..."
@@ -101,7 +101,7 @@ python scripts/model2/healthcheck_live_execution.py --runtime-dir results/model2
 
 call :GET_BRT_TIMESTAMP 2>nul
 call :LOG_AND_ECHO "[M2] Status por simbolo..."
-python scripts/model2/operator_cycle_status.py --runtime-dir results/model2/runtime --max-age-minutes 60 --symbols-csv "!M2_SYMBOLS!" > "!STATUS_TMP!" 2>&1
+python scripts/model2/operator_cycle_status.py --training-timeframe M5 --runtime-dir results/model2/runtime --max-age-minutes 60 --symbols-csv "!M2_SYMBOLS!" > "!STATUS_TMP!" 2>&1
 if exist "!STATUS_TMP!" (
     type "!STATUS_TMP!"
     (type "!STATUS_TMP!") >> "!CYCLE_LOG!" 2>nul

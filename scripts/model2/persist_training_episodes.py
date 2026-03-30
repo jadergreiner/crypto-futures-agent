@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from config.settings import DB_PATH, MODEL2_DB_PATH
+from config.settings import DB_PATH, MODEL2_DB_PATH, M2_SYMBOLS
 from scripts.model2.feature_enricher import FeatureEnricher
 from scripts.model2.binance_funding_api_client import BinanceFundingAPIClient
 from core.model2.io_retry import read_json_with_retry, write_json_with_retry
@@ -24,6 +24,7 @@ TIMEFRAME_TO_TABLE = {
     "D1": "ohlcv_d1",
     "H4": "ohlcv_h4",
     "H1": "ohlcv_h1",
+    "M5": "ohlcv_m5",
 }
 
 
@@ -50,12 +51,14 @@ _MS_PER_CANDLE: dict[str, int] = {
     "H4": 14_400_000,
     "H1": 3_600_000,
     "D1": 86_400_000,
+    "M5": 300_000,
 }
 
 _LOOKUP_N: dict[str, int] = {
     "H4": 4,
     "H1": 24,
     "D1": 3,
+    "M5": 1,
 }
 
 
@@ -630,10 +633,13 @@ def run_persist_training_episodes(
 
         symbol_filter = list(dict.fromkeys(symbols))
         if not symbol_filter:
-            rows = model2_conn.execute(
-                "SELECT DISTINCT symbol FROM signal_executions ORDER BY symbol"
-            ).fetchall()
-            symbol_filter = [str(row[0]) for row in rows]
+            if M2_SYMBOLS:
+                symbol_filter = list(M2_SYMBOLS)
+            else:
+                rows = model2_conn.execute(
+                    "SELECT DISTINCT symbol FROM signal_executions ORDER BY symbol"
+                ).fetchall()
+                symbol_filter = [str(row[0]) for row in rows]
 
         # Episodios HOLD_DECISION: uma entrada por ciclo para cada decisao HOLD do modelo
         _persist_hold_decision_episodes(
