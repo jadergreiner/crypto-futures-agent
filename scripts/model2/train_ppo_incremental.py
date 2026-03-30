@@ -92,7 +92,7 @@ class PPOTrainer:
         self,
         model2_db_path: Path,
         checkpoint_dir: Optional[Path] = None,
-        timeframe: str = "H4",
+        timeframe: str = "M5",
         initial_model: Optional[str] = None,
     ):
         """
@@ -812,7 +812,7 @@ def main() -> int:
     parser.add_argument(
         '--timeframe',
         type=str,
-        default='H4',
+        default='M5',
         choices=['D1', 'H4', 'H1', 'M5'],
         help='Timeframe'
     )

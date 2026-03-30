@@ -412,7 +412,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timeframe",
-        default="H4",
+        default="M5",
         choices=["D1", "H4", "H1", "M5"],
         help="Timeframe used by all pipeline stages.",
     )

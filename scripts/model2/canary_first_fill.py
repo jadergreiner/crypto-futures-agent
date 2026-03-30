@@ -360,7 +360,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model2-canary-db-path", default=M2_CANARY_DB_PATH)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--symbol", action="append", default=[])
-    parser.add_argument("--timeframe", default="H4", choices=["D1", "H4", "H1"])
+    parser.add_argument("--timeframe", default="M5", choices=["D1", "H4", "H1", "M5"])
     parser.add_argument("--clean-db", action="store_true", default=True)
     parser.add_argument("--no-clean-db", action="store_true")
     parser.add_argument("--injection-enabled", action="store_true", default=M2_INJECTION_ENABLED)

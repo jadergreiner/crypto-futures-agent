@@ -127,7 +127,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Model 2.0 live cycle runner")
     parser.add_argument("--model2-db-path", default=MODEL2_DB_PATH)
     parser.add_argument("--symbol", default=None)
-    parser.add_argument("--timeframe", default=None)
+    parser.add_argument("--timeframe", default="M5")
     parser.add_argument("--limit", type=int, default=200)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--execution-mode", default=M2_EXECUTION_MODE)

@@ -470,7 +470,7 @@ class Model2LiveExecutionService:
         candles_count: int = 0,
         last_candle_time: str = "",
         decision_fresh: bool | None = None,
-        timeframe: str = "H4",
+        timeframe: str = "M5",
     ) -> None:
         """Formata status operacional usando novo padrao cycle_report."""
         try:
@@ -1298,7 +1298,7 @@ class Model2LiveExecutionService:
                 candles_count=candles_count,
                 last_candle_time=last_candle_time,
                 decision_fresh=decision_fresh,
-                timeframe=str(candidate.get("timeframe") or "H4"),
+                timeframe=str(candidate.get("timeframe") or "M5"),
             )
             # <<< Fim da instrumentacao
 

@@ -402,7 +402,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--model2-db-path", default=DEFAULT_MODEL2_SHORT_DB_PATH)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--symbol", action="append", default=[])
-    parser.add_argument("--timeframe", default="H1", choices=("D1", "H4", "H1"))
+    parser.add_argument("--timeframe", default="M5", choices=("D1", "H4", "H1", "M5"))
     parser.add_argument("--execution-mode", default=M2_EXECUTION_MODE)
     parser.add_argument("--loop-seconds", type=int, default=300)
     parser.add_argument("--run-once", action="store_true")

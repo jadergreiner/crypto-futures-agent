@@ -584,7 +584,7 @@ def _build_real_observation(
 def run_ensemble_signal_generation(
     *,
     model2_db_path: str,
-    timeframe: str = 'H4',
+    timeframe: str = 'M5',
     symbols: list[str] | None = None,
     voting_method: str = 'soft',
     min_confidence: float = 0.6,

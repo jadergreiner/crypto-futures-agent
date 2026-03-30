@@ -30,9 +30,9 @@ def get_symbol_status(cursor, symbol: str) -> dict:
         status["price"] = "NA"
 
     try:
-        # Últimos indicadores (H4)
+        # Últimos indicadores (M5)
         cursor.execute(
-            "SELECT confluence, direction, regime FROM indicator_cache WHERE symbol=? AND timeframe='H4' ORDER BY timestamp DESC LIMIT 1",
+            "SELECT confluence, direction, regime FROM indicator_cache WHERE symbol=? AND timeframe='M5' ORDER BY timestamp DESC LIMIT 1",
             (symbol,)
         )
         indicators = cursor.fetchone()

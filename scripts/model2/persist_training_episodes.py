@@ -930,7 +930,7 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timeframe",
-        default="H4",
+        default="M5",
         choices=sorted(TIMEFRAME_TO_TABLE.keys()),
         help="Timeframe for episode extraction and latest candle snapshot.",
     )

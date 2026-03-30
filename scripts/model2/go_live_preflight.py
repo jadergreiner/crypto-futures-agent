@@ -1084,7 +1084,7 @@ def run_go_live_preflight(
                 M2_CANARY_LEVERAGE,
             )
 
-            execute_action = "python scripts/model2/live_execute.py --timeframe H4 --execution-mode shadow"
+            execute_action = "python scripts/model2/live_execute.py --timeframe M5 --execution-mode shadow"
             try:
                 execute_summary = live_execute_fn(
                     model2_db_path=resolved_db,
@@ -1122,7 +1122,7 @@ def run_go_live_preflight(
             if not continue_on_error and checks[-1]["status"] != "ok":
                 should_stop = True
 
-            reconcile_action = "python scripts/model2/live_reconcile.py --timeframe H4 --execution-mode shadow"
+            reconcile_action = "python scripts/model2/live_reconcile.py --timeframe M5 --execution-mode shadow"
             if should_stop:
                 add_check(
                     check_id="8",

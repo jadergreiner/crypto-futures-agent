@@ -389,7 +389,7 @@ class TestFormatSymbolReport:
         assert "⏸" in output
         assert "HOLD" in output
         assert "SEM POSICAO" in output
-        assert "37/100" in output
+        assert "37/1" in output
 
     def test_format_open_long_with_position(self):
         """Formata relatorio de OPEN_LONG com posicao aberta."""

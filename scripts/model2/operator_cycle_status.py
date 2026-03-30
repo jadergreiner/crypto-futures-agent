@@ -1071,7 +1071,7 @@ def _build_symbol_line(
     )
     report = SymbolReport(
         symbol=symbol,
-        timeframe="H4",
+        timeframe="M5",
         timestamp=now_brt_str(),
         candles_count=candles_count,
         last_candle_time=last_candle_time,
