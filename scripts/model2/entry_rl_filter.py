@@ -78,12 +78,34 @@ def _signal_side_to_expected_action(signal_side: str) -> int | None:
 
 
 def _build_observation(signal: Mapping[str, Any]) -> list[float]:
-    return [
-        float(signal.get("entry_price", 0.0) or 0.0),
-        float(signal.get("stop_loss", 0.0) or 0.0),
-        float(signal.get("take_profit", 0.0) or 0.0),
-        float(signal.get("signal_timestamp", 0) or 0),
+    entry = float(signal.get("entry_price", 0.0) or 0.0)
+    stop = float(signal.get("stop_loss", 0.0) or 0.0)
+    take = float(signal.get("take_profit", 0.0) or 0.0)
+    signal_side = str(signal.get("signal_side") or "").upper()
+
+    # Normalizacao simples e deterministica para manter observacao estavel em [-1, 1].
+    def _squash(value: float, scale: float) -> float:
+        if scale <= 0:
+            return 0.0
+        normalized = value / scale
+        if normalized > 1.0:
+            return 1.0
+        if normalized < -1.0:
+            return -1.0
+        return float(normalized)
+
+    risk_distance = abs(entry - stop)
+    reward_distance = abs(take - entry)
+    rr_ratio = (reward_distance / risk_distance) if risk_distance > 0 else 0.0
+
+    base = [
+        _squash(entry, 1_000.0),
+        _squash(stop, 1_000.0),
+        _squash(take, 1_000.0),
+        _squash(rr_ratio, 5.0),
+        1.0 if signal_side == "LONG" else (-1.0 if signal_side == "SHORT" else 0.0),
     ]
+    return base + ([0.0] * (36 - len(base)))
 
 
 def _build_rl_audit_payload(

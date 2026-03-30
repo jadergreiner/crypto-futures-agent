@@ -115,6 +115,28 @@ def test_predict_entry_modelo_existente_retorna_acao_valida(
     assert isinstance(confidence, float)
 
 
+def test_predict_entry_adapta_observacao_para_shape_do_modelo(
+    manager: SubAgentManager,
+) -> None:
+    class _StrictShapeModel(_FakePPO):
+        def __init__(self) -> None:
+            super().__init__()
+            self.observation_space = SimpleNamespace(shape=(36,))
+
+        def predict(self, observation, deterministic: bool = True):
+            _ = deterministic
+            assert hasattr(observation, "shape")
+            assert tuple(observation.shape) == (36,)
+            return 1, None
+
+    manager._entry_agents["BTCUSDT"] = _StrictShapeModel()
+
+    action, confidence = manager.predict_entry("BTCUSDT", [0.0, 0.1, 0.2, 0.3])
+
+    assert action == 1
+    assert isinstance(confidence, float)
+
+
 def test_predict_entry_modelo_ausente_retorna_neutral(
     manager: SubAgentManager,
 ) -> None:

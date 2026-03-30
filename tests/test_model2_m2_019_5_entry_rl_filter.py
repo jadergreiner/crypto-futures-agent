@@ -368,3 +368,39 @@ def test_entry_rl_filter_saida_json_contem_todas_as_categorias(tmp_path: Path) -
         "erro",
     ):
         assert key in payload
+
+
+def test_entry_rl_filter_monta_observacao_com_36_features(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _seed_created_signal(db_path=db_path, symbol="BTCUSDT", side="LONG")
+
+    module = _load_entry_rl_filter_module()
+    observed_lengths: list[int] = []
+
+    class _FakeManager:
+        def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+            _ = args
+            _ = kwargs
+
+        def load_all(self) -> None:
+            return None
+
+        def predict_entry(self, symbol: str, observation: list[float]) -> tuple[int, float]:
+            _ = symbol
+            observed_lengths.append(len(observation))
+            return 1, 0.90
+
+    summary = module.run_entry_rl_filter(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=20,
+        dry_run=False,
+        output_dir=tmp_path / "results" / "model2" / "runtime",
+        threshold=0.55,
+        manager_cls=_FakeManager,
+    )
+
+    assert summary["status"] == "ok"
+    assert observed_lengths
+    assert all(length == 36 for length in observed_lengths)

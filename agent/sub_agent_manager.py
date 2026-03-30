@@ -306,7 +306,7 @@ class SubAgentManager:
             return 0, 0.0
 
         try:
-            obs = np.asarray(observation, dtype=np.float32)
+            obs = self._adapt_entry_observation(entry_agent=entry_agent, observation=observation)
             action_raw, _ = entry_agent.predict(obs, deterministic=True)
             action = int(action_raw)
             if action not in (0, 1, 2):
@@ -326,6 +326,30 @@ class SubAgentManager:
         except Exception as exc:
             logger.error("Erro em predict_entry(%s): %s", symbol, exc)
             return 0, 0.0
+
+    @staticmethod
+    def _adapt_entry_observation(entry_agent: Any, observation: List[float]) -> np.ndarray:
+        """Adapta observacao para o shape esperado pelo entry-agent."""
+        obs = np.asarray(observation, dtype=np.float32).reshape(-1)
+        expected_size = 0
+
+        try:
+            shape = getattr(getattr(entry_agent, "observation_space", None), "shape", None)
+            if isinstance(shape, tuple) and len(shape) == 1 and int(shape[0]) > 0:
+                expected_size = int(shape[0])
+        except Exception:
+            expected_size = 0
+
+        if expected_size <= 0:
+            # Fallback conservador: EntryDecisionEnv usa 36 features.
+            expected_size = 36
+
+        if obs.size < expected_size:
+            obs = np.pad(obs, (0, expected_size - obs.size), mode="constant")
+        elif obs.size > expected_size:
+            obs = obs[:expected_size]
+
+        return obs
 
     def save_all(self) -> None:
         """Salva todos os sub-agentes e suas estatísticas."""
