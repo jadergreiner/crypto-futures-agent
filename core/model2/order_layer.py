@@ -61,6 +61,7 @@ def evaluate_signal_for_order_layer(
     authorized_symbols: Collection[str] | None = None,
     short_only: bool = False,
     drawdown_gate: Any | None = None,
+    correlation_gate: Any | None = None,
     timeout_policy: Any | None = None,
     now_ms: int | None = None,
 ) -> OrderLayerDecision:
@@ -142,6 +143,29 @@ def evaluate_signal_for_order_layer(
                     "reason_code": reason,
                     "frozen": bool(getattr(gate_decision, "frozen", False)),
                     "current_drawdown_pct": float(getattr(gate_decision, "current_drawdown_pct", 0.0)),
+                },
+            )
+
+    # Gate de concentracao por correlacao de portfolio (M2-028.5)
+    if correlation_gate is not None:
+        _execution_mode = str(order_input.payload.get("execution_mode", "live"))
+        corr_decision = correlation_gate.evaluate(
+            symbol=order_input.symbol,
+            execution_mode=_execution_mode,
+        )
+        if corr_decision is not None and not corr_decision.allowed:
+            _reason = "portfolio_correlation_limit"
+            _reason_alias = REASON_CODE_CATALOG.get(_reason, _reason)
+            return OrderLayerDecision(
+                should_transition=False,
+                target_status=TECHNICAL_SIGNAL_STATUS_CANCELLED,
+                reason=_reason_alias,
+                rule_id=M2_007_1_RULE_ID,
+                details={
+                    "reason_code": _reason,
+                    "blocked_group": corr_decision.blocked_group,
+                    "open_count": corr_decision.open_count,
+                    "max_per_group": corr_decision.max_per_group,
                 },
             )
 

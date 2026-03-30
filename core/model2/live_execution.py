@@ -123,6 +123,8 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "MARKET_READ_PERMANENT_FAILURE": "ops.market_read_permanent_failure",
     # M2-028.4: Drawdown diario como gate de admissao
     "daily_drawdown_limit": "ops.daily_drawdown_limit",
+    # M2-028.5: Gate de concentracao por correlacao de portfolio
+    "portfolio_correlation_limit": "ops.portfolio_correlation_limit",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
@@ -170,6 +172,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "MARKET_READ_RETRY_EXHAUSTED": "HIGH",
     "MARKET_READ_PERMANENT_FAILURE": "HIGH",
     "daily_drawdown_limit": "HIGH",
+    "portfolio_correlation_limit": "HIGH",
 }
 
 REASON_CODE_ACTION: dict[str, str] = {
@@ -217,6 +220,7 @@ REASON_CODE_ACTION: dict[str, str] = {
     "MARKET_READ_RETRY_EXHAUSTED": "bloquear_operacao",
     "MARKET_READ_PERMANENT_FAILURE": "bloquear_operacao",
     "daily_drawdown_limit": "bloquear_operacao",
+    "portfolio_correlation_limit": "bloquear_operacao",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"

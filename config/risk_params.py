@@ -28,7 +28,9 @@ RISK_PARAMS: Dict[str, Any] = {
     "trailing_stop_atr_multiplier": 1.0,
 
     # Correlation & Diversification
-    "max_correlation_overlap": 0.8,  # Don't open correlated positions
+    "max_correlation_overlap": 0.8,           # Don't open correlated positions
+    "max_positions_per_corr_group": 2,        # max posicoes abertas por grupo correlacionado
+    "btc_correlation_high_threshold": 0.75,   # limiar para correlacao BTC ser considerada alta
 
     # Overtrading Protection
     "overtrading_max_trades_24h": 3,
@@ -59,4 +61,9 @@ RISK_PARAMS: Dict[str, Any] = {
     "learning_profile_adverse_avg_reward_threshold": -1.0,
     "learning_profile_dominant_share_threshold": 0.70,
     "learning_profile_dominant_min_samples": 20,
+
+    # RL Model Degradation
+    "degradation_threshold_win_rate": 0.40,  # Below 40% win rate triggers degradation
+    "degradation_min_samples": 3,
+    "degradation_eval_window": 10,  # Evaluate last 10 episodes
 }
