@@ -64,14 +64,52 @@ def test_validate_monitoring_fails_when_trigger_not_broken_after_monitoring() ->
     assert decision.reason == "trigger_not_broken_after_monitoring"
 
 
-def test_validate_monitoring_fails_with_unsupported_side() -> None:
+def test_validate_monitoring_long_accepted() -> None:
+    """Test that LONG side is now accepted in monitoring validation."""
+    # For LONG: trigger_price is the resistance level, we look for HIGH > trigger_price
+    candles = [
+        {"timestamp": 49, "high": 96.0},
+        {"timestamp": 51, "high": 97.5},  # HIGH breaks above trigger_price (97.0)
+    ]
+    # For LONG, rejection_candle should be above zone_low with visible lower wicks
+    # (pattern of being rejected from lower prices)
+    long_metadata = {
+        "rejection_candle": {
+            "timestamp": 40,
+            "open": 110.0,
+            "high": 115.0,  # High wick
+            "low": 100.0,   # Very strong lower wick (rejected from below)
+            "close": 112.0,  # Closed near the top, above zone
+        }
+    }
+    long_input = ValidationInput(
+        opportunity_id=10,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        side="LONG",
+        trigger_price=97.0,  # For LONG, this is the breakout level
+        zone_low=105.0,  # For LONG, rejection must be ABOVE this (close > zone_low)
+        monitoring_started_at=50,
+        metadata=long_metadata,
+        candles=candles,
+        validation_timestamp=1000,
+    )
+    decision = evaluate_monitoring_validation(long_input)
+
+    # LONG should now be accepted (same logic as SHORT, but with HIGH instead of LOW)
+    assert decision.is_validated is True
+    assert decision.reason == "ok"
+
+
+def test_validate_monitoring_fails_with_invalid_side() -> None:
+    """Test that truly invalid sides are still rejected."""
     candles = [{"timestamp": 51, "low": 96.0}]
     base = _base_input(candles)
     invalid_side = ValidationInput(
         opportunity_id=base.opportunity_id,
         symbol=base.symbol,
         timeframe=base.timeframe,
-        side="LONG",
+        side="NEUTRAL",  # Invalid side
         trigger_price=base.trigger_price,
         zone_low=base.zone_low,
         monitoring_started_at=base.monitoring_started_at,

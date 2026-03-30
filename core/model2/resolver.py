@@ -58,6 +58,7 @@ def _find_invalidation_after_monitoring(
     *,
     invalidation_price: float,
     monitoring_started_at: int,
+    side: str,
 ) -> dict[str, Any] | None:
     for candle in candles:
         ts = _to_int(candle.get("timestamp"))
@@ -66,18 +67,28 @@ def _find_invalidation_after_monitoring(
             continue
         if ts <= monitoring_started_at:
             continue
-        if close_price > invalidation_price:
-            return {
-                "timestamp": ts,
-                "close": close_price,
-            }
+
+        if side == "SHORT":
+            # SHORT invalidation: price breaks above invalidation_price
+            if close_price > invalidation_price:
+                return {
+                    "timestamp": ts,
+                    "close": close_price,
+                }
+        elif side == "LONG":
+            # LONG invalidation: price breaks below invalidation_price
+            if close_price < invalidation_price:
+                return {
+                    "timestamp": ts,
+                    "close": close_price,
+                }
     return None
 
 
 def evaluate_monitoring_resolution(resolution_input: ResolutionInput) -> ResolutionDecision:
     """Evaluate if a MONITORANDO thesis must be INVALIDADA or EXPIRADA."""
 
-    if resolution_input.side != "SHORT":
+    if resolution_input.side not in {"LONG", "SHORT"}:
         return ResolutionDecision(
             action=RESOLUTION_ACTION_NONE,
             reason="unsupported_side",
@@ -96,6 +107,7 @@ def evaluate_monitoring_resolution(resolution_input: ResolutionInput) -> Resolut
         resolution_input.candles,
         invalidation_price=resolution_input.invalidation_price,
         monitoring_started_at=monitoring_started_at,
+        side=resolution_input.side,
     )
 
     expires_at = resolution_input.expires_at

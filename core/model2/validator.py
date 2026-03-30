@@ -49,7 +49,7 @@ def _to_int(value: Any) -> int | None:
         return None
 
 
-def _visible_rejection(rejection: Mapping[str, Any], zone_low: float) -> bool:
+def _visible_rejection(rejection: Mapping[str, Any], zone_low: float, side: str = "SHORT") -> bool:
     open_price = _to_float(rejection.get("open"))
     close_price = _to_float(rejection.get("close"))
     high_price = _to_float(rejection.get("high"))
@@ -57,13 +57,29 @@ def _visible_rejection(rejection: Mapping[str, Any], zone_low: float) -> bool:
     if None in (open_price, close_price, high_price, low_price):
         return False
 
-    if close_price >= zone_low:
+    if side == "SHORT":
+        # For SHORT: rejection should be below zone_low
+        if close_price >= zone_low:
+            return False
+    elif side == "LONG":
+        # For LONG: rejection should be above zone_low
+        if close_price <= zone_low:
+            return False
+    else:
         return False
 
     body = abs(close_price - open_price)
     upper_wick = high_price - max(open_price, close_price)
     lower_wick = min(open_price, close_price) - low_price
-    return upper_wick > body and upper_wick > lower_wick and upper_wick > 0
+
+    if side == "SHORT":
+        # SHORT rejection: requires strong upper wick (rejected from above)
+        return upper_wick > body and upper_wick > lower_wick and upper_wick > 0
+    elif side == "LONG":
+        # LONG rejection: requires strong lower wick (rejected from below)
+        return lower_wick > body and lower_wick > upper_wick and lower_wick > 0
+    else:
+        return False
 
 
 def _find_trigger_break_after_monitoring(
@@ -71,26 +87,38 @@ def _find_trigger_break_after_monitoring(
     *,
     trigger_price: float,
     monitoring_started_at: int,
+    side: str,
 ) -> dict[str, Any] | None:
     for candle in candles:
         ts = _to_int(candle.get("timestamp"))
-        low_price = _to_float(candle.get("low"))
-        if ts is None or low_price is None:
+        if ts is None or ts <= monitoring_started_at:
             continue
-        if ts <= monitoring_started_at:
-            continue
-        if low_price < trigger_price:
-            return {
-                "timestamp": ts,
-                "low": low_price,
-            }
+
+        if side == "SHORT":
+            low_price = _to_float(candle.get("low"))
+            if low_price is None:
+                continue
+            if low_price < trigger_price:
+                return {
+                    "timestamp": ts,
+                    "low": low_price,
+                }
+        elif side == "LONG":
+            high_price = _to_float(candle.get("high"))
+            if high_price is None:
+                continue
+            if high_price > trigger_price:
+                return {
+                    "timestamp": ts,
+                    "high": high_price,
+                }
     return None
 
 
 def evaluate_monitoring_validation(validation_input: ValidationInput) -> ValidationDecision:
     """Evaluate if a MONITORANDO thesis can transition to VALIDADA."""
 
-    if validation_input.side != "SHORT":
+    if validation_input.side not in {"LONG", "SHORT"}:
         return ValidationDecision(
             is_validated=False,
             reason="unsupported_side",
@@ -113,7 +141,7 @@ def evaluate_monitoring_validation(validation_input: ValidationInput) -> Validat
             details={},
         )
 
-    if not _visible_rejection(rejection, zone_low=validation_input.zone_low):
+    if not _visible_rejection(rejection, zone_low=validation_input.zone_low, side=validation_input.side):
         return ValidationDecision(
             is_validated=False,
             reason="invalid_rejection_candle",
@@ -124,6 +152,7 @@ def evaluate_monitoring_validation(validation_input: ValidationInput) -> Validat
         validation_input.candles,
         trigger_price=validation_input.trigger_price,
         monitoring_started_at=monitoring_started_at,
+        side=validation_input.side,
     )
     if trigger_break is None:
         return ValidationDecision(

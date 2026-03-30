@@ -86,14 +86,41 @@ def test_resolver_keeps_monitoring_when_no_conditions_met() -> None:
     assert decision.reason == "no_resolution"
 
 
-def test_resolver_rejects_unsupported_side() -> None:
-    base = _base_input([{"timestamp": 120, "close": 120.0}])
+def test_resolver_long_accepted() -> None:
+    """Test that LONG side is now accepted in monitoring resolution."""
+    base = _base_input(
+        candles=[
+            {"timestamp": 120, "close": 109.0},  # Below invalidation for LONG
+        ]
+    )
+    # For LONG with invalidation_price=110.0, close=109.0 means invalidation occurred
     decision = evaluate_monitoring_resolution(
         ResolutionInput(
             opportunity_id=base.opportunity_id,
             symbol=base.symbol,
             timeframe=base.timeframe,
             side="LONG",
+            invalidation_price=base.invalidation_price,
+            expires_at=base.expires_at,
+            monitoring_started_at=base.monitoring_started_at,
+            candles=base.candles,
+            resolution_timestamp=base.resolution_timestamp,
+        )
+    )
+    # LONG invalidation: close < invalidation_price (109 < 110)
+    assert decision.action == RESOLUTION_ACTION_INVALIDATED
+    assert decision.reason == "premise_broken"
+
+
+def test_resolver_rejects_invalid_side() -> None:
+    """Test that truly invalid sides are still rejected."""
+    base = _base_input([{"timestamp": 120, "close": 120.0}])
+    decision = evaluate_monitoring_resolution(
+        ResolutionInput(
+            opportunity_id=base.opportunity_id,
+            symbol=base.symbol,
+            timeframe=base.timeframe,
+            side="NEUTRAL",  # Invalid side
             invalidation_price=base.invalidation_price,
             expires_at=base.expires_at,
             monitoring_started_at=base.monitoring_started_at,
