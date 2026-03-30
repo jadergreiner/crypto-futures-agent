@@ -173,6 +173,43 @@ def test_create_standard_signal_from_validated_is_idempotent(tmp_path: Path) -> 
         assert count == 1
 
 
+def test_create_standard_signal_from_validated_refreshes_consumed_signal_timestamp(
+    tmp_path: Path,
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    repository = Model2ThesisRepository(str(db_path))
+    detection = _build_detection_result()
+    created = repository.create_initial_thesis(detection, now_ms=1_700_000_010_000)
+    repository.transition_to_monitoring(opportunity_id=created.opportunity_id, now_ms=1_700_000_020_000)
+    repository.transition_to_validated(opportunity_id=created.opportunity_id, now_ms=1_700_000_030_000)
+
+    first = repository.create_standard_signal_from_validated(
+        opportunity_id=created.opportunity_id,
+        now_ms=1_700_000_040_000,
+    )
+    assert first.signal_id is not None
+    consumed = repository.consume_created_signal_for_order_layer(
+        signal_id=int(first.signal_id),
+        now_ms=1_700_000_050_000,
+    )
+    assert consumed.current_status == "CONSUMED"
+
+    refreshed = repository.create_standard_signal_from_validated(
+        opportunity_id=created.opportunity_id,
+        now_ms=1_700_000_060_000,
+    )
+    assert refreshed.created is True
+    assert refreshed.reason == "refreshed"
+    assert refreshed.signal_id == first.signal_id
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            "SELECT status, signal_timestamp FROM technical_signals WHERE id = ?",
+            (int(first.signal_id),),
+        ).fetchone()
+    assert row == ("CREATED", 1_700_000_060_000)
+
+
 def test_create_standard_signal_from_validated_rejects_non_validated_status(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     repository = Model2ThesisRepository(str(db_path))
@@ -313,3 +350,48 @@ def test_list_consumed_technical_signals_and_mark_export(tmp_path: Path) -> None
             (int(signal.signal_id),),
         ).fetchone()[0]
     assert '"legacy_trade_signal_id": 321' in (payload_raw or "")
+
+
+def test_list_consumed_technical_signals_latest_per_contract_returns_only_newest(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    repository = Model2ThesisRepository(str(db_path))
+
+    detection_old = _build_detection_result(rejection_ts=1_700_000_000_000)
+    created_old = repository.create_initial_thesis(detection_old, now_ms=1_700_000_010_000)
+    repository.transition_to_monitoring(opportunity_id=created_old.opportunity_id, now_ms=1_700_000_020_000)
+    repository.transition_to_validated(opportunity_id=created_old.opportunity_id, now_ms=1_700_000_030_000)
+    signal_old = repository.create_standard_signal_from_validated(
+        opportunity_id=created_old.opportunity_id,
+        now_ms=1_700_000_040_000,
+    )
+    assert signal_old.signal_id is not None
+    repository.consume_created_signal_for_order_layer(
+        signal_id=int(signal_old.signal_id),
+        now_ms=1_700_000_050_000,
+    )
+
+    detection_new = _build_detection_result(rejection_ts=1_700_000_100_000)
+    created_new = repository.create_initial_thesis(detection_new, now_ms=1_700_000_110_000)
+    repository.transition_to_monitoring(opportunity_id=created_new.opportunity_id, now_ms=1_700_000_120_000)
+    repository.transition_to_validated(opportunity_id=created_new.opportunity_id, now_ms=1_700_000_130_000)
+    signal_new = repository.create_standard_signal_from_validated(
+        opportunity_id=created_new.opportunity_id,
+        now_ms=1_700_000_140_000,
+    )
+    assert signal_new.signal_id is not None
+    repository.consume_created_signal_for_order_layer(
+        signal_id=int(signal_new.signal_id),
+        now_ms=1_700_000_150_000,
+    )
+
+    all_consumed = repository.list_consumed_technical_signals(symbol="BTCUSDT", timeframe="H4", limit=10)
+    newest_only = repository.list_consumed_technical_signals(
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=10,
+        latest_per_contract=True,
+    )
+
+    assert len(all_consumed) == 2
+    assert len(newest_only) == 1
+    assert int(newest_only[0]["id"]) == int(signal_new.signal_id)

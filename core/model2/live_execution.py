@@ -347,6 +347,7 @@ class LiveExecutionGateInput:
     max_daily_entries: int
     symbol_active_execution_count: int
     open_position_qty: float
+    open_position_side: str
     cooldown_active: bool
     signal_age_ms: int
     max_signal_age_ms: int
@@ -497,14 +498,21 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             max_signal_age_ms=int(gate_input.max_signal_age_ms),
         )
 
-    if gate_input.symbol_active_execution_count > 0:
+    normalized_open_side = str(gate_input.open_position_side or "").strip().upper()
+    has_opposite_open_position = (
+        gate_input.open_position_qty > 0
+        and normalized_open_side in {"LONG", "SHORT"}
+        and normalized_open_side != gate_input.signal_side
+    )
+
+    if gate_input.symbol_active_execution_count > 0 and not has_opposite_open_position:
         return _blocked(
             "active_execution_exists",
             symbol=gate_input.symbol,
             active_count=int(gate_input.symbol_active_execution_count),
         )
 
-    if gate_input.open_position_qty > 0:
+    if gate_input.open_position_qty > 0 and not has_opposite_open_position:
         return _blocked(
             "open_position_exists",
             symbol=gate_input.symbol,
@@ -567,5 +575,7 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             "max_margin_per_position_usd": float(gate_input.max_margin_per_position_usd),
             "recent_entries_today": int(gate_input.recent_entries_today),
             "signal_age_ms": int(gate_input.signal_age_ms),
+            "reverse_position_required": bool(has_opposite_open_position),
+            "open_position_side": normalized_open_side,
         },
     )

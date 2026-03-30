@@ -249,6 +249,57 @@ def test_run_live_execute_shadow_creates_ready_candidate_without_real_order(tmp_
     assert int(decision_row[1]) >= 0
 
 
+def test_run_live_execute_stages_only_latest_consumed_signal_per_contract(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    repository = Model2ThesisRepository(str(db_path))
+
+    detection_old = _build_detection_result(symbol="BTCUSDT", rejection_ts=1_700_000_000_000)
+    created_old = repository.create_initial_thesis(detection_old, now_ms=1_700_000_010_000)
+    repository.transition_to_monitoring(opportunity_id=created_old.opportunity_id, now_ms=1_700_000_020_000)
+    repository.transition_to_validated(opportunity_id=created_old.opportunity_id, now_ms=1_700_000_030_000)
+    signal_old = repository.create_standard_signal_from_validated(
+        opportunity_id=created_old.opportunity_id,
+        now_ms=1_700_000_040_000,
+    )
+    assert signal_old.signal_id is not None
+    repository.consume_created_signal_for_order_layer(
+        signal_id=int(signal_old.signal_id),
+        now_ms=1_700_000_050_000,
+    )
+
+    detection_new = _build_detection_result(symbol="BTCUSDT", rejection_ts=1_700_000_100_000)
+    created_new = repository.create_initial_thesis(detection_new, now_ms=1_700_000_110_000)
+    repository.transition_to_monitoring(opportunity_id=created_new.opportunity_id, now_ms=1_700_000_120_000)
+    repository.transition_to_validated(opportunity_id=created_new.opportunity_id, now_ms=1_700_000_130_000)
+    signal_new = repository.create_standard_signal_from_validated(
+        opportunity_id=created_new.opportunity_id,
+        now_ms=1_700_000_140_000,
+    )
+    assert signal_new.signal_id is not None
+    repository.consume_created_signal_for_order_layer(
+        signal_id=int(signal_new.signal_id),
+        now_ms=1_700_000_150_000,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+
+    assert summary["status"] == "ok"
+    assert len(summary["staged"]) == 1
+    assert int(summary["staged"][0]["technical_signal_id"]) == int(signal_new.signal_id)
+
+
 def test_run_live_execute_persists_complete_inference_state_in_model_decisions(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     _, signal_id = _create_consumed_signal(db_path)
@@ -340,6 +391,144 @@ def test_run_live_execute_uses_model_action_as_execution_origin(tmp_path: Path, 
     assert payload["signal_snapshot"]["signal_side"] == "LONG"
     assert payload["signal_snapshot"]["source_signal_side"] == "SHORT"
     assert payload["model_decision"]["action"] == ACTION_OPEN_LONG
+
+
+def test_run_live_execute_reverses_short_position_when_model_decides_open_long(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _repository, _signal_id = _create_consumed_signal(db_path, symbol="BTCUSDT")
+    exchange = FakeExchange(available_balance=100.0, protection_works=True)
+    exchange.positions["BTCUSDT"] = {
+        "symbol": "BTCUSDT",
+        "direction": "SHORT",
+        "position_size_qty": 1.25,
+        "entry_price": 98.0,
+        "mark_price": 97.5,
+    }
+
+    def _force_open_long(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_OPEN_LONG,
+            reason="force_open_long",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_open_long,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["processed_ready"][0]["status"] == "PROTECTED"
+    assert exchange.close_calls == 1
+    assert exchange.market_calls == 1
+    assert exchange.positions["BTCUSDT"]["direction"] == "LONG"
+
+
+def test_run_live_execute_creates_new_candidate_for_new_decision_after_final_status(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path, symbol="BTCUSDT")
+
+    def _force_hold(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_HOLD,
+            reason="force_hold",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_hold,
+    )
+
+    first = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+    assert first["status"] == "ok"
+    assert first["staged"][0]["status"] == "BLOCKED"
+    assert first["staged"][0]["reason"] == "model_action_hold"
+
+    def _force_open_long(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_OPEN_LONG,
+            reason="force_open_long",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_open_long,
+    )
+
+    second = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="shadow",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+    )
+    assert second["status"] == "ok"
+    assert second["staged"][0]["status"] == "READY"
+    assert second["processed_ready"][0]["reason"] == "shadow_mode_no_order_sent"
+
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            """
+            SELECT id, status, decision_id
+            FROM signal_executions
+            WHERE technical_signal_id = ?
+            ORDER BY id ASC
+            """,
+            (signal_id,),
+        ).fetchall()
+        transitions = conn.execute(
+            """
+            SELECT from_status, to_status
+            FROM signal_execution_events
+            WHERE signal_execution_id = ?
+              AND event_type = 'STATUS_TRANSITION'
+            ORDER BY id ASC
+            """,
+            (int(rows[0][0]),),
+        ).fetchall()
+    assert len(rows) == 1
+    assert rows[0][1] == "READY"
+    assert int(rows[0][2]) > 0
+    assert ("BLOCKED", "READY") in transitions
 
 
 def test_run_live_execute_accepts_hold_without_order(tmp_path: Path, monkeypatch) -> None:

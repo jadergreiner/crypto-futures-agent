@@ -34,6 +34,15 @@ from .live_execution import (
     LiveExecutionGateDecision,
 )
 
+ACTIVE_SIGNAL_EXECUTION_STATUSES = frozenset(
+    {
+        SIGNAL_EXECUTION_STATUS_READY,
+        SIGNAL_EXECUTION_STATUS_ENTRY_SENT,
+        SIGNAL_EXECUTION_STATUS_ENTRY_FILLED,
+        SIGNAL_EXECUTION_STATUS_PROTECTED,
+    }
+)
+
 
 DEFAULT_EXPIRATION_MS = 24 * 60 * 60 * 1000
 INITIAL_EVENT_TYPE = "STATUS_TRANSITION"
@@ -533,6 +542,7 @@ class Model2ThesisRepository:
         timeframe: str | None = None,
         limit: int = 200,
         exclude_with_signal_execution: bool = False,
+        latest_per_contract: bool = False,
     ) -> list[dict[str, Any]]:
         """Return technical signals in CONSUMED status (eligible for legacy adapter)."""
 
@@ -558,6 +568,22 @@ class Model2ThesisRepository:
                 "AND NOT EXISTS ("
                 "  SELECT 1 FROM signal_executions se "
                 "  WHERE se.technical_signal_id = technical_signals.id"
+                ")"
+            )
+        if latest_per_contract:
+            query.append(
+                "AND NOT EXISTS ("
+                "  SELECT 1 FROM technical_signals newer "
+                "  WHERE newer.status = technical_signals.status "
+                "    AND newer.symbol = technical_signals.symbol "
+                "    AND newer.timeframe = technical_signals.timeframe "
+                "    AND ("
+                "      newer.signal_timestamp > technical_signals.signal_timestamp "
+                "      OR ("
+                "        newer.signal_timestamp = technical_signals.signal_timestamp "
+                "        AND newer.id > technical_signals.id"
+                "      )"
+                "    )"
                 ")"
             )
 
@@ -1000,19 +1026,6 @@ class Model2ThesisRepository:
                     )
 
                 current_status = str(row["status"])
-                existing = conn.execute(
-                    "SELECT id FROM technical_signals WHERE opportunity_id = ?",
-                    (opportunity_id,),
-                ).fetchone()
-                if existing is not None:
-                    conn.execute("COMMIT")
-                    return CreateStandardSignalResult(
-                        opportunity_id=opportunity_id,
-                        signal_id=int(existing["id"]),
-                        created=False,
-                        reason="already_exists",
-                        current_status=current_status,
-                    )
 
                 try:
                     metadata = json.loads(row["metadata_json"] or "{}")
@@ -1042,6 +1055,65 @@ class Model2ThesisRepository:
                         signal_id=None,
                         created=False,
                         reason=bridge_result.reason,
+                        current_status=current_status,
+                    )
+
+                existing = conn.execute(
+                    "SELECT id, status FROM technical_signals WHERE opportunity_id = ?",
+                    (opportunity_id,),
+                ).fetchone()
+                if existing is not None:
+                    existing_status = str(existing["status"] or "")
+                    if existing_status == TECHNICAL_SIGNAL_STATUS_CREATED:
+                        conn.execute("COMMIT")
+                        return CreateStandardSignalResult(
+                            opportunity_id=opportunity_id,
+                            signal_id=int(existing["id"]),
+                            created=False,
+                            reason="already_exists",
+                            current_status=current_status,
+                        )
+
+                    conn.execute(
+                        """
+                        UPDATE technical_signals
+                        SET
+                            symbol = ?,
+                            timeframe = ?,
+                            signal_side = ?,
+                            entry_type = ?,
+                            entry_price = ?,
+                            stop_loss = ?,
+                            take_profit = ?,
+                            signal_timestamp = ?,
+                            status = ?,
+                            rule_id = ?,
+                            payload_json = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            str(row["symbol"]),
+                            str(row["timeframe"]),
+                            bridge_result.signal_side,
+                            bridge_result.entry_type,
+                            bridge_result.entry_price,
+                            bridge_result.stop_loss,
+                            bridge_result.take_profit,
+                            now_ms,
+                            TECHNICAL_SIGNAL_STATUS_CREATED,
+                            bridge_result.rule_id,
+                            json.dumps(bridge_result.payload, ensure_ascii=True, sort_keys=True),
+                            now_ms,
+                            int(existing["id"]),
+                        ),
+                    )
+                    conn.execute("COMMIT")
+                    return CreateStandardSignalResult(
+                        opportunity_id=opportunity_id,
+                        signal_id=int(existing["id"]),
+                        created=True,
+                        reason="refreshed",
                         current_status=current_status,
                     )
 
@@ -1900,22 +1972,52 @@ class Model2ThesisRepository:
                         reason="signal_not_found",
                     )
 
-                existing = conn.execute(
+                if decision_id is not None:
+                    existing_same_decision = conn.execute(
+                        """
+                        SELECT id, status
+                        FROM signal_executions
+                        WHERE technical_signal_id = ?
+                          AND decision_id = ?
+                        ORDER BY id DESC
+                        LIMIT 1
+                        """,
+                        (int(technical_signal_id), int(decision_id)),
+                    ).fetchone()
+                    if existing_same_decision is not None:
+                        conn.execute("COMMIT")
+                        return CreateSignalExecutionResult(
+                            execution_id=int(existing_same_decision["id"]),
+                            created=False,
+                            current_status=str(existing_same_decision["status"]),
+                            reason="already_exists",
+                        )
+
+                latest_existing = conn.execute(
                     """
-                    SELECT id, status
+                    SELECT id, status, decision_id
                     FROM signal_executions
                     WHERE technical_signal_id = ?
+                    ORDER BY id DESC
+                    LIMIT 1
                     """,
                     (int(technical_signal_id),),
                 ).fetchone()
-                if existing is not None:
-                    conn.execute("COMMIT")
-                    return CreateSignalExecutionResult(
-                        execution_id=int(existing["id"]),
-                        created=False,
-                        current_status=str(existing["status"]),
-                        reason="already_exists",
-                    )
+                if latest_existing is not None:
+                    latest_status = str(latest_existing["status"] or "")
+                    if latest_status in ACTIVE_SIGNAL_EXECUTION_STATUSES:
+                        conn.execute("COMMIT")
+                        return CreateSignalExecutionResult(
+                            execution_id=int(latest_existing["id"]),
+                            created=False,
+                            current_status=latest_status,
+                            reason="already_exists",
+                        )
+                reusable_execution_id: int | None = None
+                reusable_from_status: str | None = None
+                if latest_existing is not None:
+                    reusable_execution_id = int(latest_existing["id"])
+                    reusable_from_status = str(latest_existing["status"] or "")
 
                 if str(signal_row["status"]) != TECHNICAL_SIGNAL_STATUS_CONSUMED:
                     conn.execute("COMMIT")
@@ -1952,49 +2054,102 @@ class Model2ThesisRepository:
                 if decision_trace:
                     payload["model_decision"] = dict(decision_trace)
 
-                cursor = conn.execute(
-                    """
-                    INSERT INTO signal_executions (
-                        technical_signal_id,
-                        opportunity_id,
-                        symbol,
-                        timeframe,
-                        signal_side,
-                        execution_mode,
-                        status,
-                        entry_order_type,
-                        gate_reason,
-                        decision_id,
-                        payload_json,
-                        created_at,
-                        updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        int(technical_signal_id),
-                        int(opportunity_id),
-                        str(symbol),
-                        str(timeframe),
-                        str(signal_side),
-                        str(execution_mode),
-                        str(gate_decision.target_status),
-                        ENTRY_ORDER_TYPE_MARKET,
-                        str(gate_decision.reason),
-                        int(decision_id) if decision_id is not None else None,
-                        json.dumps(payload, ensure_ascii=True, sort_keys=True),
-                        int(now_ms),
-                        int(now_ms),
-                    ),
-                )
-                raw_execution_id = cursor.lastrowid
-                if raw_execution_id is None:
-                    raise RuntimeError("falha ao obter execution_id apos insert")
-                execution_id = int(raw_execution_id)
+                if reusable_execution_id is not None:
+                    conn.execute(
+                        """
+                        UPDATE signal_executions
+                        SET
+                            opportunity_id = ?,
+                            symbol = ?,
+                            timeframe = ?,
+                            signal_side = ?,
+                            execution_mode = ?,
+                            status = ?,
+                            entry_order_type = ?,
+                            gate_reason = ?,
+                            decision_id = ?,
+                            exchange_order_id = NULL,
+                            client_order_id = NULL,
+                            requested_qty = NULL,
+                            filled_qty = NULL,
+                            filled_price = NULL,
+                            stop_order_id = NULL,
+                            take_profit_order_id = NULL,
+                            entry_sent_at = NULL,
+                            entry_filled_at = NULL,
+                            protected_at = NULL,
+                            exited_at = NULL,
+                            exit_reason = NULL,
+                            exit_price = NULL,
+                            failure_reason = NULL,
+                            payload_json = ?,
+                            created_at = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (
+                            int(opportunity_id),
+                            str(symbol),
+                            str(timeframe),
+                            str(signal_side),
+                            str(execution_mode),
+                            str(gate_decision.target_status),
+                            ENTRY_ORDER_TYPE_MARKET,
+                            str(gate_decision.reason),
+                            int(decision_id) if decision_id is not None else None,
+                            json.dumps(payload, ensure_ascii=True, sort_keys=True),
+                            int(now_ms),
+                            int(now_ms),
+                            int(reusable_execution_id),
+                        ),
+                    )
+                    execution_id = int(reusable_execution_id)
+                    from_status = reusable_from_status
+                else:
+                    cursor = conn.execute(
+                        """
+                        INSERT INTO signal_executions (
+                            technical_signal_id,
+                            opportunity_id,
+                            symbol,
+                            timeframe,
+                            signal_side,
+                            execution_mode,
+                            status,
+                            entry_order_type,
+                            gate_reason,
+                            decision_id,
+                            payload_json,
+                            created_at,
+                            updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            int(technical_signal_id),
+                            int(opportunity_id),
+                            str(symbol),
+                            str(timeframe),
+                            str(signal_side),
+                            str(execution_mode),
+                            str(gate_decision.target_status),
+                            ENTRY_ORDER_TYPE_MARKET,
+                            str(gate_decision.reason),
+                            int(decision_id) if decision_id is not None else None,
+                            json.dumps(payload, ensure_ascii=True, sort_keys=True),
+                            int(now_ms),
+                            int(now_ms),
+                        ),
+                    )
+                    raw_execution_id = cursor.lastrowid
+                    if raw_execution_id is None:
+                        raise RuntimeError("falha ao obter execution_id apos insert")
+                    execution_id = int(raw_execution_id)
+                    from_status = None
                 self._insert_signal_execution_event(
                     conn,
                     execution_id=execution_id,
                     event_type="STATUS_TRANSITION",
-                    from_status=None,
+                    from_status=from_status,
                     to_status=str(gate_decision.target_status),
                     event_timestamp=int(now_ms),
                     rule_id=str(gate_decision.rule_id),

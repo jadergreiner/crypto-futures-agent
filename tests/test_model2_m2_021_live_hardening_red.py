@@ -406,6 +406,7 @@ def _build_gate_input_for_regression() -> LiveExecutionGateInput:
         max_daily_entries=10,
         symbol_active_execution_count=0,
         open_position_qty=0.0,
+        open_position_side="",
         cooldown_active=False,
         signal_age_ms=1,
         max_signal_age_ms=1_000_000,

@@ -908,6 +908,7 @@ class Model2LiveExecutionService:
                 execution_mode=self.config.execution_mode,
             ),
             open_position_qty=float(position["position_size_qty"]) if position else 0.0,
+            open_position_side=self._normalize_position_side(position) if position else "",
             cooldown_active=self.repository.has_recent_live_entry_for_symbol(
                 symbol=str(candidate["symbol"]),
                 execution_mode=self.config.execution_mode,
@@ -1165,6 +1166,7 @@ class Model2LiveExecutionService:
             timeframe=timeframe,
             limit=limit,
             exclude_with_signal_execution=False,
+            latest_per_contract=True,
         ):
             position_state: dict[str, Any] = {
                 "has_open_position": False,
@@ -1879,11 +1881,86 @@ class Model2LiveExecutionService:
         # `exchange.calculate_entry_quantity()`; se a quantidade retornada
         # for 0.0, tratamos como `invalid_requested_quantity` acima.
 
+        symbol = str(execution["symbol"])
+        desired_side = str(execution.get("signal_side") or "").strip().upper()
+        current_position = exchange.get_open_position(symbol)
+        current_side = self._normalize_position_side(current_position) if current_position else ""
+        reverse_metadata: dict[str, Any] = {}
+        if (
+            current_position is not None
+            and current_side in {"LONG", "SHORT"}
+            and desired_side in {"LONG", "SHORT"}
+            and current_side != desired_side
+        ):
+            open_qty = self._to_float(current_position.get("position_size_qty"))
+            if open_qty is None or open_qty <= 0.0:
+                failed = self.repository.mark_signal_execution_failed(
+                    execution_id=int(execution["id"]),
+                    now_ms=now_ms,
+                    reason="invalid_open_position_qty",
+                    rule_id=M2_009_3_RULE_ID,
+                    metadata={
+                        "reverse_position_close": True,
+                        "symbol": symbol,
+                        "current_side": current_side,
+                        "desired_side": desired_side,
+                        "open_position_qty": current_position.get("position_size_qty"),
+                    },
+                )
+                return {
+                    "execution_id": int(execution["id"]),
+                    "status": failed.current_status,
+                    "reason": failed.reason,
+                }
+
+            try:
+                close_response = exchange.close_position_market(
+                    symbol=symbol,
+                    signal_side=current_side,
+                    quantity=float(open_qty),
+                )
+                reverse_metadata = {
+                    "reverse_position_close": True,
+                    "current_side": current_side,
+                    "desired_side": desired_side,
+                    "closed_qty": float(open_qty),
+                    "close_response": close_response,
+                }
+            except Exception as exc:
+                failed = self.repository.mark_signal_execution_failed(
+                    execution_id=int(execution["id"]),
+                    now_ms=now_ms,
+                    reason="exchange_error",
+                    rule_id=M2_009_3_RULE_ID,
+                    metadata={
+                        "reverse_position_close": True,
+                        "symbol": symbol,
+                        "current_side": current_side,
+                        "desired_side": desired_side,
+                        "open_position_qty": float(open_qty),
+                        "error": str(exc),
+                    },
+                )
+                self._emit_operational_alert(
+                    "reverse_position_close_failed",
+                    {
+                        "execution_id": int(execution["id"]),
+                        "symbol": symbol,
+                        "reason": failed.reason,
+                        "error": str(exc),
+                    },
+                )
+                return {
+                    "execution_id": int(execution["id"]),
+                    "status": failed.current_status,
+                    "reason": failed.reason,
+                }
+
         client_order_id = self._client_order_id(int(execution["id"]))
         # Enviar ordem com tratamento de excecoes para evitar crash do ciclo
         try:
             order_response = exchange.place_market_entry(
-                symbol=str(execution["symbol"]),
+                symbol=symbol,
                 signal_side=str(execution["signal_side"]),
                 quantity=quantity,
                 client_order_id=client_order_id,
@@ -1899,13 +1976,14 @@ class Model2LiveExecutionService:
                     "error": str(exc),
                     "effective_margin_usd": effective_margin,
                     "bbapt": bbapt,
+                    **reverse_metadata,
                 },
             )
             self._emit_operational_alert(
                 "exchange_error",
                 {
                     "execution_id": int(execution["id"]),
-                    "symbol": str(execution.get("symbol") or ""),
+                    "symbol": symbol,
                     "reason": failed.reason,
                     "error": str(exc),
                 },
@@ -1926,6 +2004,7 @@ class Model2LiveExecutionService:
                 "order_response": order_response,
                 "effective_margin_usd": effective_margin,
                 "bbapt": bbapt,
+                **reverse_metadata,
             },
         )
 

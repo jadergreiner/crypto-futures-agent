@@ -23,6 +23,7 @@ def _base_gate_input() -> LiveExecutionGateInput:
         max_daily_entries=3,
         symbol_active_execution_count=0,
         open_position_qty=0.0,
+        open_position_side="",
         cooldown_active=False,
         signal_age_ms=1_000,
         max_signal_age_ms=240_000,
@@ -93,3 +94,21 @@ def test_circuit_breaker_explicit_state_blocks_entry() -> None:
     decision = evaluate_live_execution_gate(gate_input)
     assert decision.allow_execution is False
     assert decision.reason == "circuit_breaker_blocked"
+
+
+def test_gate_allows_reverse_when_open_position_is_opposite_side() -> None:
+    gate_input = _base_gate_input()
+    gate_input = LiveExecutionGateInput(
+        **{
+            **gate_input.__dict__,
+            "short_only": False,
+            "signal_side": "LONG",
+            "open_position_qty": 10.0,
+            "open_position_side": "SHORT",
+            "symbol_active_execution_count": 1,
+        }
+    )
+    decision = evaluate_live_execution_gate(gate_input)
+    assert decision.allow_execution is True
+    assert decision.reason == "ready_for_live_execution"
+    assert decision.details.get("reverse_position_required") is True
