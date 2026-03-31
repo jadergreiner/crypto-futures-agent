@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Resumo operacional por simbolo para cada ciclo M2."""
-
 from __future__ import annotations
+"""Resumo operacional por simbolo para cada ciclo M2."""
 
 import argparse
 import io

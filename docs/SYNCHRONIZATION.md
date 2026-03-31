@@ -23,6 +23,39 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-303] M2-020.9 Refinamento tecnico Solution Architect - 2026-03-31
+
+- Agente: 3.solution-architect
+- Item: M2-020.9
+- Status backlog: Em analise
+- Escopo tecnico refinado:
+  - confirmar a origem nominal da decisao no fluxo `shadow`;
+  - impedir mascaramento de `signal_side`/`rl_fallback` como decisao do
+    modelo no status operacional;
+  - tornar auditavel o comparativo baseline vs modelo sem tocar `live`.
+- Impacto esperado:
+  - `iniciar.bat -> live_cycle -> operator_cycle_status` com trilha objetiva
+    da origem da decisao para o operador.
+  - sem alteracao de schema; reuso de `model_decisions`, `technical_signals`
+    e `signal_executions`.
+
+### [SYNC-302] M2-020.9 Priorizacao Product Owner - 2026-03-31
+
+- Agente: 2.product-owner
+- Item: M2-020.9
+- Status backlog: Em analise
+- Decisao PO: GO_COM_RESTRICOES
+- Escopo:
+  - priorizacao do shadow como decisor unico antes da promocao para live;
+  - valor condicionado a evidencia no `iniciar.bat` de origem da decisao;
+  - exigencia de comparativo auditavel entre baseline e modelo;
+  - sem expandir escopo para live, retreino ou consolidacao documental ampla.
+- Validacao de valor PO:
+  - Mudanca perceptivel esperada: o operador deve ver no status/log que a
+    decisao em `shadow` veio do modelo, sem `fallback`/legado mascarado.
+  - Lacuna declarada: se nada mudar em terminal, log ou artefato
+    operacional, o item deve ser tratado como preparatorio.
+
 ### [SYNC-301] M2-028.3 Fechamento da task - 2026-03-31
 
 - Agente: 5.software-engineer

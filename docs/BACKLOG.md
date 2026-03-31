@@ -607,7 +607,12 @@ Dependencias:
 
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
-Status: Em analise
+Status: EM_DESENVOLVIMENTO
+
+- Desenvolvedor: Software Engineer
+- Inicio: 2026-03-31
+
+Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
 
 Entrega:
 
@@ -618,6 +623,33 @@ Critérios de aceite:
 
 1. Shadow gera decisoes completas para todos os sinais.
 2. Sem fallback estrategico antigo na decisao.
+
+PO: Priorizar M2-020.9 para provar no iniciar.bat que o shadow decide
+via modelo, sem fallback legado oculto e com comparativo auditavel. Ao
+fim deste desenvolvimento estarei feliz se o status exibir
+source=modelo nos sinais relevantes e baseline comparavel.
+SA: Shadow unico com origem auditavel da decisao, sem signal_side no
+caminho nominal, e comparativo baseline vs modelo no status.
+
+- Testes em: tests/test_model2_model_inference_service.py,
+  tests/test_operator_cycle_status.py,
+  tests/test_operator_cycle_status_extended.py,
+  tests/test_model2_regressao_risco.py
+- Suite: 4 testes unitarios + 3 integracao + 5 regressao/fail-safe
+- Comando validacao: pytest -q tests/test_model2_model_inference_service.py
+  tests/test_operator_cycle_status.py tests/test_model2_regressao_risco.py
+
+QA: Suite RED criada com 12 testes cobrindo origem de decisao (RL_MODEL vs
+FALLBACK), campo `contaminated` quando action_source=signal_side ou
+rl_fallback=True, baseline_comparative auditavel, e fail-safe/idempotencia
+por decision_id. Resultado: 12 passed, 6 failed (bloqueadas por contrato nao
+implementado). Status: TESTES_PRONTOS.
+
+- Bloqueadores SE: implementar contrato de auditoria (origin,
+  contaminated, baseline_comparative, decision_id) no payload do
+  provider ou em ModelInferenceService.infer() e persistir em
+  model_decisions.payload_json sem schema change.
+- Guardrails preservados: risk_gate, circuit_breaker, fail-safe.
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 

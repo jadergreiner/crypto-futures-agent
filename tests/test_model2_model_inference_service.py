@@ -1,3 +1,46 @@
+import pytest
+from core.model2.model_inference_service import TechnicalSignalInferenceProvider
+
+
+@pytest.fixture
+def provider():
+    return TechnicalSignalInferenceProvider()
+
+
+def test_shadow_decision_model_origin_true_when_rl_model(provider):
+    """
+    Deve marcar origem RL_MODEL apenas quando action_source='rl_model' e rl_fallback=False.
+    """
+    result = provider.infer(signal={'mode': 'shadow', 'action_source': 'rl_model', 'rl_fallback': False})
+    assert result['origin'] == 'RL_MODEL'
+    assert not result.get('contaminated', False)
+
+
+def test_shadow_decision_model_origin_false_when_signal_side(provider):
+    """
+    Nao pode marcar RL_MODEL se action_source='signal_side' (mesmo em shadow).
+    """
+    result = provider.infer(signal={'mode': 'shadow', 'action_source': 'signal_side', 'rl_fallback': False})
+    assert result['origin'] != 'RL_MODEL'
+    assert result.get('contaminated', False)
+
+
+def test_shadow_decision_model_origin_false_when_rl_fallback(provider):
+    """
+    Nao pode marcar RL_MODEL se rl_fallback=True (mesmo em shadow).
+    """
+    result = provider.infer(signal={'mode': 'shadow', 'action_source': 'rl_model', 'rl_fallback': True})
+    assert result['origin'] != 'RL_MODEL'
+    assert result.get('contaminated', True)
+
+
+def test_shadow_decision_baseline_comparative_available(provider):
+    """
+    Comparativo baseline vs modelo deve estar presente e auditavel no resultado.
+    """
+    result = provider.infer(signal={'mode': 'shadow', 'action_source': 'rl_model', 'rl_fallback': False})
+    assert 'baseline_comparative' in result
+    assert isinstance(result['baseline_comparative'], dict)
 from typing import Any, Mapping
 
 import numpy as np

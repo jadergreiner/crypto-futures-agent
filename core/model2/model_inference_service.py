@@ -481,7 +481,43 @@ class TechnicalSignalInferenceProvider:
             return adjusted_sl, adjusted_tp, f"rl_head_{profile}"
         return adjusted_sl, adjusted_tp, f"rl_dynamic_{profile}"
 
-    def infer(self, model_input: ModelDecisionInput) -> Mapping[str, Any]:
+    def infer(
+        self,
+        model_input: ModelDecisionInput | Mapping[str, Any] | None = None,
+        *,
+        signal: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Compat layer: accept either a ModelDecisionInput or a simple `signal` mapping.
+
+        Tests and older callers may pass `signal=` with a lightweight dict. Convert
+        that to a canonical `ModelDecisionInput` with safe defaults.
+        """
+        if model_input is None and signal is not None:
+            raw = dict(signal)
+            model_input = ModelDecisionInput(
+                symbol=str(raw.get("symbol", "BTCUSDT")),
+                timeframe=str(raw.get("timeframe", "M1")),
+                decision_timestamp=int(raw.get("decision_timestamp", int(time.time() * 1000))),
+                model_version=str(raw.get("model_version", DEFAULT_MODEL_VERSION)),
+                market_state=dict(raw.get("market_state") or raw),
+                position_state=dict(raw.get("position_state") or {}),
+                risk_state=dict(raw.get("risk_state") or {}),
+            )
+
+        # At this point model_input should be a ModelDecisionInput instance
+        if isinstance(model_input, Mapping):
+            # Defensive: if a mapping slipped through as first arg, convert it.
+            raw = dict(model_input)
+            model_input = ModelDecisionInput(
+                symbol=str(raw.get("symbol", "BTCUSDT")),
+                timeframe=str(raw.get("timeframe", "M1")),
+                decision_timestamp=int(raw.get("decision_timestamp", int(time.time() * 1000))),
+                model_version=str(raw.get("model_version", DEFAULT_MODEL_VERSION)),
+                market_state=dict(raw.get("market_state") or raw),
+                position_state=dict(raw.get("position_state") or {}),
+                risk_state=dict(raw.get("risk_state") or {}),
+            )
+
         signal_side = str(model_input.market_state.get("signal_side") or "").upper()
         symbol = str(model_input.symbol).upper()
         fallback_action = self._resolve_action_from_signal_side(signal_side)
