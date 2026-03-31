@@ -24,6 +24,8 @@ from risk.states import CircuitBreakerState
 from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetryRecorder
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
+from config.risk_params import RISK_PARAMS
+from core.model2.model_degradation_monitor import ModelDegradationMonitor
 from .cycle_report import (
     SymbolReport,
     collect_training_info,
@@ -392,7 +394,27 @@ class Model2LiveExecutionService:
             "--timeframe",
             str(timeframe),
         ]
-        self._incremental_training_process = subprocess.Popen(command)
+        
+        # Para evitar aborto em broken pipe ou kill pelo parent loop (iniciar.bat -> live_cycle.py loop)
+        creationflags = 0
+        if sys.platform == "win32":
+            creationflags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 512) | getattr(subprocess, 'DETACHED_PROCESS', 8)
+            
+        try:
+            self._incremental_training_process = subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creationflags,
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "Falha ao lancar treinamento detached: %s", exc
+            )
+            self._incremental_training_process = None
+            return
+
         logging.getLogger(__name__).info(
             "[TREINO] Retreino iniciado: %d ep / threshold %d",
             pending_episodes,
@@ -1037,6 +1059,33 @@ class Model2LiveExecutionService:
                 "circuit_breaker_drawdown_pct": None,
             }
 
+    def _check_model_degradation(self, execution: dict[str, Any]) -> tuple[bool, float]:
+        """Evaluates ModelDegradationMonitor based on risk_params threshold/samples."""
+        try:
+            threshold = float(RISK_PARAMS.get("degradation_threshold_win_rate", 0.40))
+            samples = int(RISK_PARAMS.get("degradation_min_samples", 3))
+            window = int(RISK_PARAMS.get("degradation_eval_window", 10))
+            
+            # Use the repository's database path to open a read-only or standard connection
+            # ModelDegradationMonitor receives connection and then uses it
+            conn = getattr(self.repository, "_connect", None)
+            if not conn:
+                return False, 0.0
+
+            symbol = str(execution.get("symbol", ""))
+            timeframe = str(execution.get("timeframe", "M5"))
+            
+            with conn() as db_conn:
+                monitor = ModelDegradationMonitor(
+                    db_conn=db_conn, 
+                    symbol=symbol, 
+                    timeframe=timeframe
+                )
+                return monitor.check_degradation(threshold, window, samples)
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Error checking model degradation: {e}")
+            return False, 0.0
+
     def _enforce_guardrails_before_order(
         self,
         execution: dict[str, Any],
@@ -1044,6 +1093,32 @@ class Model2LiveExecutionService:
     ) -> dict[str, Any] | None:
         if self.config.execution_mode != "live":
             return None
+
+        # --- MODEL DEGRADATION GUARDRAIL ---
+        is_degraded, win_rate = self._check_model_degradation(execution)
+        if is_degraded:
+            failed = self.repository.mark_signal_execution_failed(
+                execution_id=int(execution["id"]),
+                now_ms=now_ms,
+                reason="MODEL_DEGRADATION",
+                rule_id=M2_009_3_RULE_ID,
+                metadata={"degradation_win_rate": win_rate},
+            )
+            self._emit_operational_alert(
+                "MODEL_DEGRADATION",
+                {
+                    "execution_id": int(execution["id"]),
+                    "symbol": str(execution.get("symbol") or ""),
+                    "reason": failed.reason,
+                    "win_rate": win_rate,
+                },
+            )
+            return {
+                "execution_id": int(execution["id"]),
+                "status": failed.current_status,
+                "reason": failed.reason,
+            }
+        # -----------------------------------
 
         exchange = self._ensure_live_exchange()
         available_balance = self._fetch_available_balance_with_retry(exchange)

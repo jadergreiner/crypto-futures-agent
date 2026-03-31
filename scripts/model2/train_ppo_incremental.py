@@ -611,8 +611,11 @@ class PPOTrainer:
     def record_training_log(self, *, episodes_used: int, status: str) -> Dict[str, Any]:
         """Registra conclusao de treino em rl_training_log."""
         try:
-            completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-            completed_at_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            from datetime import timedelta
+            now_utc = datetime.now(timezone.utc)
+            now_brt = now_utc.astimezone(timezone(timedelta(hours=-3)))
+            completed_at = now_brt.strftime("%Y-%m-%d %H:%M:%S")
+            completed_at_ms = int(now_utc.timestamp() * 1000)
             symbols_logged = 0
             with sqlite3.connect(str(self.model2_db_path)) as conn:
                 self._ensure_rl_training_log_schema(conn)
