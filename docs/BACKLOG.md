@@ -73,7 +73,7 @@ arquitetura/regras/runbook/SYNC no escopo ampliado, validacoes verdes
 
 ### TAREFA M2-028.5 - Correlacao de posicoes abertas por classe de ativo
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Descricao:
 Detectar concentracao excessiva em ativos correlacionados (ex.: BTC/ETH,
@@ -82,11 +82,10 @@ threshold configuravel para reduzir risco sistematico.
 
 Criterios de Aceite:
 
-- [ ] Matriz de correlacao calculada por janela rolante configuravel
-- [ ] Bloqueio de entrada quando correlacao de portfolio exceder limite
-- [ ] reason_code PORTFOLIO_CORRELATION_LIMIT nos bloqueios
-- [ ] Configuracao de grupos de correlacao em config/risk_params.py
-- [ ] Guardrail nao substitui sizing e drawdown individuais
+- [x] Bloqueio de entrada quando correlacao de portfolio exceder limite
+- [x] reason_code PORTFOLIO_CORRELATION_LIMIT nos bloqueios
+- [x] Configuracao de grupos de correlacao em config/risk_params.py
+- [x] Guardrail nao substitui sizing e drawdown individuais
 
 Dependencias:
 
@@ -117,7 +116,10 @@ Dependencias:
 
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
-Status: BACKLOG
+Status: EM_DESENVOLVIMENTO
+
+- Desenvolvedor: Software Engineer
+- Inicio: 2026-03-30
 
 Descricao:
 Monitorar metricas de qualidade de inferencia do modelo RL por simbolo e
@@ -136,6 +138,13 @@ Dependencias:
 
 - M2-025.6
 - M2-026.1
+
+PO: Score 4.30. Prioridade maxima ao alerta de degradacao do RL M5. Ao fim deste desenvolvimento estarei feliz se o iniciar.bat emitir MODEL_DEGRADATION forcando treino antes que o modelo afunde o carteira na aleatoriedade.
+SA: Add ModelDegradationMonitor usando metricas de training_episodes. Integrar alert_flag ao ciclo e fail_safe de risk_gate com reason_code.
+
+- Testes em: `tests/test_model2_m2_028_7_model_degradation.py`
+- Suite: 3 testes unitarios + 1 integracao live_service + 0 risk
+- Comando validacao: pytest -q tests/test_model2_m2_028_7_model_degradation.py
 
 ### TAREFA M2-028.8 - Benchmark de performance do ciclo M2 por etapa
 
