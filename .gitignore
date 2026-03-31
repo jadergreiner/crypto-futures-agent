@@ -86,6 +86,7 @@ backtest/cache/
 # Model 2.0 runtime outputs and analysis artifacts
 results/model2/runtime/**
 !results/model2/runtime/.gitkeep
+results/model2/reports/
 results/model2/*.json
 results/model2/analysis/
 results/model2/ppo_grid_search_*.json
