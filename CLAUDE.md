@@ -12,22 +12,32 @@ técnicos sem tradução consagrada (ex.: `trailing stop`, `candlestick`).
 
 ```bash
 # Setup
-setup.bat                                        # Cria venv, instala deps, inicia DB
+setup.bat                                        # Windows: cria venv, instala deps
+make setup                                       # Linux/CI: equivalente ao setup.bat
 
 # Execução
+iniciar.bat                                      # Menu interativo (loop M2 model-driven)
 python main.py --mode paper                      # Modo paper trading
 python main.py --mode live                       # Modo live trading
 python main.py --setup                           # Inicia DB + coleta dados históricos
 python main.py --train                           # Treina modelo RL
 
-# Pipeline diário (Modelo 2.0)
-python scripts/model2/daily_pipeline.py          # Ciclo completo M2
+# Pipeline Modelo 2.0
+python scripts/model2/daily_pipeline.py --timeframe M5 --symbol BTCUSDT
+python scripts/model2/live_cycle.py --execution-mode shadow --live-symbol BTCUSDT
 python scripts/model2/scan.py                   # Escaneia oportunidades
 python scripts/model2/track.py                  # Rastreia teses
 python scripts/model2/validate.py               # Valida teses
 python scripts/model2/resolve.py                # Resolve/invalida teses
 python scripts/model2/migrate.py up             # Executa migrações do DB
-python scripts/model2/go_live_preflight.py      # Checagens pré-live
+python scripts/model2/go_live_preflight.py      # Checagens pré-live (obrigatório antes de live)
+
+# Monitoramento e diagnóstico
+python status.py                                 # Status de posições e ciclo
+python status_realtime.py                        # Monitoramento em tempo real
+python posicoes.py                               # Breakdown de posições
+python diagnostico_sinais.py                     # Diagnóstico de sinais
+mlflow ui                                        # Dashboard MLflow (http://localhost:5000)
 
 # Testes
 pip install -r requirements-test.txt
@@ -41,6 +51,11 @@ mypy --strict core/model2/scanner.py            # Módulo específico
 
 # Lint de documentação
 markdownlint docs/*.md
+# Atenção: docs/*.md tem limite de 80 colunas (MD013)
+
+# Docker (Linux/CI)
+make docker-build                                # Constrói imagem
+make docker-paper                                # Container em paper trading
 ```
 
 ## Formato de Commits
@@ -52,10 +67,10 @@ Padrão obrigatório: `[TAG] Descricao breve em portugues`
 - Qualquer commit que altere docs deve atualizar `docs/SYNCHRONIZATION.md`
   com a tag `[SYNC]`
 
-## Arquitetura — Modelo 2.0 (5 Camadas)
+## Arquitetura — Modelo 2.0
 
-O sistema é um pipeline de decisão em camadas para negociação de futuros cripto
-na Binance:
+O sistema é um pipeline model-driven de decisão em camadas para negociação de
+futuros cripto na Binance:
 
 ```
 Binance API → Cache OHLCV → Scanner → Rastreador/Validador → Ponte de Sinal
@@ -63,6 +78,17 @@ Binance API → Cache OHLCV → Scanner → Rastreador/Validador → Ponte de Si
                                                         Camada de Ordem (admissão)
                                                                     ↓
                                                       Executor Live → Reconciliação
+```
+
+**Fluxo model-driven (ciclo de vida runtime via `iniciar.bat`):**
+
+```
+daily_pipeline.py → live_cycle.py → persist_training_episodes.py → healthcheck
+     ↓                  ↓                     ↓
+  scan/track/       model_state →         episódios →
+  validate/resolve  policy inference →    treino RL por símbolo
+                    safety envelope →
+                    execução + reconciliação
 ```
 
 **Camada 1 — Scanner** (`core/model2/scanner.py`, `scripts/model2/scan.py`)
@@ -79,10 +105,16 @@ Converte teses validadas em registros padronizados de `technical_signals`
 
 **Camada 4 — Camada de Ordem** (`core/model2/order_layer.py`)
 Gate de admissão. Consome `technical_signals` e registra `CONSUMED` ou `CANCELLED`.
+Idempotência garantida por `decision_id`.
 
 **Camada 5 — Execução Live** (`core/model2/live_exchange.py`, `core/model2/live_execution.py`, `core/model2/live_service.py`)
 Envia ordens MARKET, arma proteções STOP_MARKET + TAKE_PROFIT_MARKET, reconcilia
 fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer ordem.
+
+**Componentes model-driven transversais:**
+- `core/model2/model_state_builder.py` — consolida OHLCV, técnicos, posição e risco
+- `core/model2/model_inference_service.py` — inferência do policy model (OPEN_LONG | OPEN_SHORT | HOLD | REDUCE | CLOSE)
+- `core/model2/promotion_gate.py` — validação de promoção shadow → live
 
 **Utilitários transversais:**
 - `core/model2/time_utils.py` — conversão canônica de timestamps para BRT; usar sempre que formatar datas/horas
@@ -98,11 +130,16 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 
 ## Componentes RL
 
-- `agent/trainer.py` — Núcleo de treinamento PPO
+- `agent/trainer.py` — Núcleo de treinamento PPO (integrado com MLflow)
+- `agent/sub_agent_manager.py` — Orquestração de agentes RL por símbolo
+- `agent/entry_decision_env.py` — Gym environment para decisões de entrada
+- `agent/opportunity_learning.py` — Aprendizado com resultados de oportunidades
 - `agent/lstm_environment.py` — Wrapper LSTM (seq_len=10, n_features=20)
+- `agent/convergence_monitor.py` — Monitor de convergência do treinamento
 - `scripts/model2/ensemble_voting_ppo.py` — Votação em ensemble de sinais
 - `scripts/model2/optuna_grid_search_ppo.py` — Busca de hiperparâmetros (Optuna)
 - `scripts/model2/retrain_ppo_with_optuna_params.py` — Retreino com melhores params
+- `scripts/model2/persist_training_episodes.py` — Persiste episódios para treino
 - Checkpoints em `checkpoints/`, modelos treinados em `models/`
 
 ## Regras de Risco (Invioláveis)
@@ -113,6 +150,8 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 - Em dúvida: bloquear a operação, nunca assumir risco.
 - `risk/circuit_breaker.py` e `risk/risk_gate.py` devem permanecer ativos em
   todos os caminhos de execução.
+- Preservar idempotência por `decision_id` em decisão e execução.
+- Antes de qualquer deploy live, rodar `scripts/model2/go_live_preflight.py`.
 
 ## Configuração Principal
 
@@ -136,6 +175,10 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 - **`docs/REGRAS_DE_NEGOCIO.md`** — Regras de negócio para validação de teses e
   transições de estado
 - **`docs/ARQUITETURA_ALVO.md`** — Arquitetura alvo e schema do DB M2
+- **`docs/ADRS.md`** — Decisões arquiteturais vigentes (ADRs)
+- **`docs/MODELAGEM_DE_DADOS.md`** — Modelagem de dados e schema
+- **`docs/DIAGRAMAS.md`** — Diagramas de fluxo e componentes
+- **`docs/RUNBOOK_M2_OPERACAO.md`** — Runbook operacional para trading live
 - **`docs/SYNCHRONIZATION.md`** — Trilha de auditoria de sincronização (atualizar
   a cada mudança de doc)
 
@@ -167,6 +210,13 @@ e commitar com a tag correta.
   a menos que haja ambiguidade explícita.
 - Após qualquer alteração em `docs/BACKLOG.md`, atualizar `docs/PRD.md`
   quando houver impacto de escopo e registrar em `docs/SYNCHRONIZATION.md`.
+
+## Armadilhas Frequentes
+
+- `docs/*.md` tem limite de 80 colunas (MD013) — quebrar linhas longas.
+- Não versionar backups temporários de banco (`db/*.bak`).
+- Não alterar arquitetura global para corrigir problema local.
+- Mudança de código sem atualizar docs dependentes invalida o commit.
 
 ## Bootstrap rápido
 
