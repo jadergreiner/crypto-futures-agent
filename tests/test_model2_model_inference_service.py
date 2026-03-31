@@ -1,5 +1,7 @@
 from typing import Any, Mapping
 
+import numpy as np
+
 from core.model2.model_decision import ACTION_OPEN_SHORT, ModelDecisionInput
 from core.model2.model_inference_service import (
     ModelInferenceService,
@@ -198,3 +200,38 @@ def test_provider_model_first_prioriza_acao_rl_sobre_lado_tecnico() -> None:
     assert output["action"] == "OPEN_LONG"
     assert output["metadata"]["action_source"] == "rl_action"
     assert bool(output["metadata"]["model_first"]) is True
+
+
+def test_provider_build_features_gera_vetor_36_com_sinal_util() -> None:
+    model_input = ModelDecisionInput(
+        symbol="BTCUSDT",
+        timeframe="M5",
+        decision_timestamp=1_700_001_000_000,
+        model_version="m2-inference-v1",
+        market_state={
+            "signal_side": "LONG",
+            "entry_price": 100.0,
+            "close_price": 100.5,
+            "stop_loss": 99.0,
+            "take_profit": 102.0,
+            "rsi": 58.0,
+            "macd_line": 0.12,
+            "macd_signal": 0.08,
+            "market_context": {
+                "funding_rate": 0.0002,
+                "basis": 0.0001,
+                "h1_close": 100.4,
+                "h4_close": 99.9,
+                "d1_close": 101.0,
+                "long_short_ratio": 0.62,
+            },
+        },
+        position_state={"position_size_qty": 0.2},
+        risk_state={"signal_age_ms": 600_000},
+    )
+
+    features = TechnicalSignalInferenceProvider._build_features(model_input)
+
+    assert isinstance(features, np.ndarray)
+    assert features.shape == (36,)
+    assert float(np.abs(features).sum()) > 0.5

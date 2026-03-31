@@ -21,7 +21,21 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Importar constante centralizada de threshold
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
+from core.model2.cycle_report import (
+    RETRAIN_EPISODE_THRESHOLD,
+    RETRAIN_WARMUP_EPISODE_THRESHOLD,
+    TRAINING_EPISODE_ELIGIBLE_STATUSES,
+    resolve_retrain_threshold,
+)
+
+try:
+    from config.settings import M2_SYMBOLS
+except Exception:
+    M2_SYMBOLS = ("BTCUSDT",)
+
+WARMUP_RETRAIN_INTERVAL_HOURS = 0.25  # 15 minutos
+DEFAULT_RETRAIN_INTERVAL_HOURS = 2.0
+DEFAULT_TRAINING_TIMEFRAME = "M5"
 
 # Diretórios
 REPO_ROOT = Path(__file__).parent.parent.parent
@@ -42,6 +56,7 @@ def _load_state() -> Dict[str, Any]:
     return {
         "last_continuous_run": None,
         "last_episode_count": 0,
+        "symbol_states": {},
         "runs": []
     }
 
@@ -53,25 +68,71 @@ def _save_state(state: Dict[str, Any]) -> None:
         json.dump(state, f, indent=2, default=str)
 
 
-def _get_episode_count() -> int:
-    """Retorna total de episodes na tabela training_episodes."""
+def _normalize_symbols(symbols: Optional[List[str]] = None) -> List[str]:
+    """Normaliza escopo de símbolos para o controller."""
+    source = symbols if symbols else list(M2_SYMBOLS)
+    normalized = [str(symbol).strip().upper() for symbol in source if str(symbol).strip()]
+    return list(dict.fromkeys(normalized))
+
+
+def _get_symbol_state(state: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+    """Retorna estado de execução do símbolo com fallback retrocompatível."""
+    symbol_states = state.get("symbol_states")
+    if isinstance(symbol_states, dict):
+        raw_state = symbol_states.get(symbol)
+        if isinstance(raw_state, dict):
+            return {
+                "last_continuous_run": raw_state.get("last_continuous_run"),
+                "last_episode_count": int(raw_state.get("last_episode_count") or 0),
+            }
+
+    return {
+        "last_continuous_run": state.get("last_continuous_run"),
+        "last_episode_count": int(state.get("last_episode_count") or 0),
+    }
+
+
+def _get_episode_count(
+    *,
+    symbol: str | None = None,
+    timeframe: str | None = DEFAULT_TRAINING_TIMEFRAME,
+) -> int:
+    """Retorna total de episódios elegíveis para treino, isolado por símbolo."""
     if not DB_PATH.exists():
         return 0
     try:
-        conn = sqlite3.connect(str(DB_PATH))
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(*) FROM training_episodes")
-        result = cur.fetchone()
-        count = result[0] if result else 0
-        conn.close()
-        return int(count)
+        with sqlite3.connect(str(DB_PATH), timeout=5) as conn:
+            status_placeholders = ", ".join("?" for _ in TRAINING_EPISODE_ELIGIBLE_STATUSES)
+            query_parts = [
+                "SELECT COUNT(*) FROM training_episodes",
+                "WHERE reward_proxy IS NOT NULL",
+                f"  AND UPPER(COALESCE(status, '')) IN ({status_placeholders})",
+                "  AND LOWER(COALESCE(label, '')) != 'context'",
+            ]
+            params: List[Any] = [*TRAINING_EPISODE_ELIGIBLE_STATUSES]
+
+            normalized_symbol = str(symbol or "").strip().upper()
+            if normalized_symbol:
+                query_parts.append("  AND symbol = ?")
+                params.append(normalized_symbol)
+
+            normalized_timeframe = str(timeframe or "").strip().upper()
+            if normalized_timeframe and normalized_timeframe != "ALL":
+                query_parts.append("  AND timeframe = ?")
+                params.append(normalized_timeframe)
+
+            result = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
+            count = result[0] if result else 0
+            return int(count)
     except Exception:
         return 0
 
 
 def should_run_continuous_cycle(
-    min_new_episodes: int = RETRAIN_EPISODE_THRESHOLD,
-    min_hours_between_runs: float = 2.0
+    min_new_episodes: int | None = None,
+    min_hours_between_runs: float | None = None,
+    symbols: Optional[List[str]] = None,
+    timeframe: str | None = DEFAULT_TRAINING_TIMEFRAME,
 ) -> Tuple[bool, str]:
     """
     Determina se continuous_learning_cycle.py deve ser executado agora.
@@ -84,67 +145,115 @@ def should_run_continuous_cycle(
         (should_run: bool, reason: str)
     """
     state = _load_state()
-    current_episode_count = _get_episode_count()
+    symbol_scope = _normalize_symbols(symbols)
+    current_counts = {
+        symbol: _get_episode_count(symbol=symbol, timeframe=timeframe)
+        for symbol in symbol_scope
+    }
+    waiting_reasons: List[str] = []
 
-    # Verificação 1: Primeira execução?
-    if state["last_continuous_run"] is None:
-        # Se há episódios suficientes acumulados, rodar agora
-        if current_episode_count >= min_new_episodes:
+    for symbol in symbol_scope:
+        current_episode_count = current_counts[symbol]
+        resolved_threshold, resolved_confidence = resolve_retrain_threshold(
+            str(DB_PATH),
+            symbol=symbol,
+            timeframe=timeframe,
+        )
+        effective_threshold = int(min_new_episodes or resolved_threshold)
+        is_warmup_mode = effective_threshold <= RETRAIN_WARMUP_EPISODE_THRESHOLD
+        effective_min_hours_between_runs = (
+            float(min_hours_between_runs)
+            if min_hours_between_runs is not None
+            else (
+                WARMUP_RETRAIN_INTERVAL_HOURS
+                if is_warmup_mode
+                else DEFAULT_RETRAIN_INTERVAL_HOURS
+            )
+        )
+        symbol_state = _get_symbol_state(state, symbol)
+        last_run_str = symbol_state.get("last_continuous_run")
+        last_episode_count = int(symbol_state.get("last_episode_count") or 0)
+
+        if last_run_str is None:
+            if current_episode_count >= effective_threshold:
+                return (
+                    True,
+                    f"Símbolo {symbol}: primeira execução. Episodes acumulados: "
+                    f"{current_episode_count} (threshold={effective_threshold})"
+                )
+            waiting_reasons.append(
+                f"{symbol}: aguardando {max(0, effective_threshold - current_episode_count)} episódios "
+                f"(atual={current_episode_count}, threshold={effective_threshold})"
+            )
+            continue
+
+        try:
+            last_run_dt = datetime.fromisoformat(str(last_run_str))
+            now = datetime.now()
+            hours_since_last = (now - last_run_dt).total_seconds() / 3600.0
+            if hours_since_last < effective_min_hours_between_runs:
+                time_remaining = effective_min_hours_between_runs - hours_since_last
+                waiting_reasons.append(
+                    f"{symbol}: proxima execução em {time_remaining:.1f}h "
+                    f"({(time_remaining * 60):.0f}m). Episódios={current_episode_count}"
+                )
+                continue
+        except Exception:
+            pass
+
+        new_episodes = current_episode_count - last_episode_count
+        if new_episodes >= effective_threshold:
             return (
                 True,
-                f"Primeira execução. Episodes acumulados: {current_episode_count}"
+                f"Símbolo {symbol}: novos episódios={new_episodes}. "
+                f"Total={current_episode_count}. Threshold: {effective_threshold}"
             )
-        return (
-            False,
-            f"Aguardando {min_new_episodes - current_episode_count} episódios. "
-            f"Atual: {current_episode_count}"
-        )
 
-    # Verificação 2: Tempo mínimo entre execuções?
-    last_run_str = state["last_continuous_run"]
-    try:
-        last_run_dt = datetime.fromisoformat(str(last_run_str))
-        now = datetime.now()
-        hours_since_last = (now - last_run_dt).total_seconds() / 3600.0
-        if hours_since_last < min_hours_between_runs:
-            time_remaining = min_hours_between_runs - hours_since_last
+        if is_warmup_mode and current_episode_count >= effective_threshold:
+            conf_tag = "N/A" if resolved_confidence is None else f"{resolved_confidence:.0%}"
             return (
-                False,
-                f"Próxima execução em {time_remaining:.1f}h ("
-                f"{(time_remaining * 60):.0f}m). "
-                f"Episódios: {current_episode_count}"
+                True,
+                f"Símbolo {symbol}: retreino histórico periódico (15m) em modo aquecimento. "
+                f"Confianca: {conf_tag}. Total: {current_episode_count}."
             )
-    except Exception:
-        pass
 
-    # Verificação 3: Episódios novos desde última execução?
-    new_episodes = current_episode_count - state["last_episode_count"]
-    if new_episodes >= min_new_episodes:
-        return (
-            True,
-            f"Novos episódios: {new_episodes}. "
-            f"Total: {current_episode_count}"
+        waiting_reasons.append(
+            f"{symbol}: insuficientes novos episódios (atual={new_episodes}, "
+            f"necessário={effective_threshold}, total={current_episode_count})"
         )
 
-    return (
-        False,
-        f"Insuficientes novos episódios. "
-        f"Atual: {new_episodes}, Necessário: {min_new_episodes}. "
-        f"Total: {current_episode_count}"
-    )
+    if waiting_reasons:
+        return False, " | ".join(waiting_reasons)
+    return False, "Nenhum símbolo elegível para retreino no momento"
 
 
-def mark_run_executed(symbols: Optional[List[str]] = None) -> None:
+def mark_run_executed(
+    symbols: Optional[List[str]] = None,
+    *,
+    timeframe: str | None = DEFAULT_TRAINING_TIMEFRAME,
+) -> None:
     """Marca ciclo como executado agora."""
     state = _load_state()
     now_str = datetime.now().isoformat()
     state["last_continuous_run"] = now_str
-    state["last_episode_count"] = _get_episode_count()
+    state["last_episode_count"] = _get_episode_count(timeframe=timeframe)
+
+    symbol_scope = _normalize_symbols(symbols)
+    symbol_states = state.get("symbol_states")
+    if not isinstance(symbol_states, dict):
+        symbol_states = {}
+    for symbol in symbol_scope:
+        symbol_states[symbol] = {
+            "last_continuous_run": now_str,
+            "last_episode_count": _get_episode_count(symbol=symbol, timeframe=timeframe),
+        }
+    state["symbol_states"] = symbol_states
 
     state["runs"].append({
         "timestamp": now_str,
         "episode_count": state["last_episode_count"],
-        "symbols": symbols or []
+        "symbols": symbol_scope,
+        "timeframe": str(timeframe or "ALL").upper(),
     })
 
     # Manter apenas últimas 100 execuções no histórico
@@ -193,7 +302,8 @@ def main() -> None:
     elif command == "status":
         # Exibe status détalhado
         state = _load_state()
-        current_count = _get_episode_count()
+        symbol_scope = _normalize_symbols()
+        current_count = _get_episode_count(timeframe=DEFAULT_TRAINING_TIMEFRAME)
         should_run, reason = should_run_continuous_cycle()
 
         print("\n" + "=" * 80)
@@ -204,6 +314,23 @@ def main() -> None:
         print(f"Episodes atuais no DB: {current_count}")
         print(f"Episodes novos desde última execução: "
               f"{current_count - state['last_episode_count']}")
+
+        print("\nPor símbolo:")
+        for symbol in symbol_scope:
+            symbol_state = _get_symbol_state(state, symbol)
+            symbol_count = _get_episode_count(symbol=symbol, timeframe=DEFAULT_TRAINING_TIMEFRAME)
+            threshold_atual, confidence_atual = resolve_retrain_threshold(
+                str(DB_PATH),
+                symbol=symbol,
+                timeframe=DEFAULT_TRAINING_TIMEFRAME,
+            )
+            confidence_tag = "N/A" if confidence_atual is None else f"{confidence_atual:.0%}"
+            print(
+                f"  {symbol}: last_run={symbol_state['last_continuous_run'] or 'Nunca'} | "
+                f"episodes={symbol_count} | last_mark={symbol_state['last_episode_count']} | "
+                f"threshold={threshold_atual} | confianca={confidence_tag}"
+            )
+
         print(f"\nDecisão: {'SIM - Executar ciclo' if should_run else 'NÃO - Aguardar'}")
         print(f"Motivo: {reason}")
 

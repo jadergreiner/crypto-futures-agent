@@ -59,6 +59,64 @@ class TechnicalSignalInferenceProvider:
         self._protection_heads = ProtectionHeadRegistry(repo_root=self._repo_root)
         self._loaders_by_symbol: dict[str, RLModelLoader] = {}
 
+    _FEATURE_BOUNDS: dict[str, tuple[float, float]] = {
+        "open_norm": (-0.5, 0.5),
+        "high_norm": (-0.5, 0.5),
+        "low_norm": (-0.5, 0.5),
+        "close_norm": (-0.5, 0.5),
+        "volume_norm": (0.0, 1.0),
+        "rsi": (0.0, 100.0),
+        "macd_line": (-1.0, 1.0),
+        "macd_signal": (-1.0, 1.0),
+        "bb_upper": (-0.5, 0.5),
+        "bb_lower": (-0.5, 0.5),
+        "atr_norm": (0.0, 1.0),
+        "h1_open_norm": (-0.5, 0.5),
+        "h1_close_norm": (-0.5, 0.5),
+        "h1_volume_norm": (0.0, 1.0),
+        "h4_open_norm": (-0.5, 0.5),
+        "h4_close_norm": (-0.5, 0.5),
+        "h4_volume_norm": (0.0, 1.0),
+        "d1_open_norm": (-0.5, 0.5),
+        "d1_close_norm": (-0.5, 0.5),
+        "d1_volume_norm": (0.0, 1.0),
+        "fr_sentiment": (-1.0, 1.0),
+        "oi_sentiment": (-1.0, 1.0),
+        "ls_ratio": (0.0, 1.0),
+        "smc_zone_proximity": (0.0, 1.0),
+        "smc_rejection_strength": (0.0, 1.0),
+        "smc_direction_bias": (-1.0, 1.0),
+    }
+
+    _FEATURE_KEYS: tuple[str, ...] = (
+        "open_norm",
+        "high_norm",
+        "low_norm",
+        "close_norm",
+        "volume_norm",
+        "rsi",
+        "macd_line",
+        "macd_signal",
+        "bb_upper",
+        "bb_lower",
+        "atr_norm",
+        "h1_open_norm",
+        "h1_close_norm",
+        "h1_volume_norm",
+        "h4_open_norm",
+        "h4_close_norm",
+        "h4_volume_norm",
+        "d1_open_norm",
+        "d1_close_norm",
+        "d1_volume_norm",
+        "fr_sentiment",
+        "oi_sentiment",
+        "ls_ratio",
+        "smc_zone_proximity",
+        "smc_rejection_strength",
+        "smc_direction_bias",
+    )
+
     @staticmethod
     def _resolve_action_from_signal_side(signal_side: str) -> str:
         normalized = str(signal_side).strip().upper()
@@ -78,6 +136,49 @@ class TechnicalSignalInferenceProvider:
         return ACTION_HOLD
 
     @staticmethod
+    def _normalize_value(value: float | None, min_bound: float, max_bound: float) -> float:
+        if value is None:
+            return 0.0
+        clamped = max(min_bound, min(max_bound, float(value)))
+        range_size = max_bound - min_bound
+        if range_size == 0:
+            return 0.0
+        normalized = (clamped - min_bound) / range_size * 2.0 - 1.0
+        return float(max(-1.0, min(1.0, normalized)))
+
+    @staticmethod
+    def _pick_float(*candidates: Any) -> float | None:
+        for candidate in candidates:
+            parsed = TechnicalSignalInferenceProvider._to_safe_float(candidate)
+            if parsed is not None:
+                return parsed
+        return None
+
+    @staticmethod
+    def _sentiment_to_numeric(value: Any) -> float:
+        normalized = str(value or "").strip().lower()
+        if normalized in {"bullish", "positive", "accumulating", "up", "increasing"}:
+            return 1.0
+        if normalized in {"bearish", "negative", "distribution", "down", "decreasing"}:
+            return -1.0
+        return 0.0
+
+    @staticmethod
+    def _direction_to_bias(value: Any) -> float:
+        normalized = str(value or "").strip().upper()
+        if normalized in {"LONG", "BUY"}:
+            return 1.0
+        if normalized in {"SHORT", "SELL"}:
+            return -1.0
+        return 0.0
+
+    @staticmethod
+    def _relative_delta(base: float, candidate: float) -> float:
+        if base <= 0:
+            return 0.0
+        return float((candidate - base) / base)
+
+    @staticmethod
     def _build_features(model_input: ModelDecisionInput) -> NDArray[np.float64]:
         market_state = dict(model_input.market_state)
         risk_state = dict(model_input.risk_state)
@@ -85,19 +186,38 @@ class TechnicalSignalInferenceProvider:
         market_context = market_state.get("market_context")
         market_context_dict = dict(market_context) if isinstance(market_context, Mapping) else {}
 
-        close_price = float(market_state.get("close_price") or market_state.get("entry_price") or 0.0)
-        stop_loss = float(market_state.get("stop_loss") or 0.0)
-        take_profit = float(market_state.get("take_profit") or 0.0)
-        funding_rate = float(
-            market_state.get("funding_rate")
-            or market_context_dict.get("funding_rate")
-            or 0.0
-        )
-        basis = float(
-            market_state.get("basis")
-            or market_context_dict.get("basis")
-            or 0.0
-        )
+        entry_price = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("entry_price"),
+            market_state.get("close_price"),
+            market_context_dict.get("entry_price"),
+        ) or 0.0
+        if entry_price <= 0:
+            entry_price = 1.0
+        close_price = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("close_price"),
+            market_context_dict.get("close_price"),
+            entry_price,
+        ) or entry_price
+        stop_loss = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("stop_loss"),
+            market_context_dict.get("stop_loss"),
+            close_price,
+        ) or close_price
+        take_profit = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("take_profit"),
+            market_context_dict.get("take_profit"),
+            close_price,
+        ) or close_price
+
+        funding_rate = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("funding_rate"),
+            market_context_dict.get("funding_rate"),
+            market_context_dict.get("latest_funding_rate"),
+        ) or 0.0
+        basis = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("basis"),
+            market_context_dict.get("basis"),
+        ) or 0.0
         signal_age_ms = float(risk_state.get("signal_age_ms") or 0.0)
         if signal_age_ms <= 0:
             signal_timestamp = market_state.get("signal_timestamp")
@@ -109,25 +229,132 @@ class TechnicalSignalInferenceProvider:
                     )
             except (TypeError, ValueError):
                 signal_age_ms = 0.0
-        open_position_qty = float(position_state.get("position_size_qty") or 0.0)
+        open_position_qty = TechnicalSignalInferenceProvider._pick_float(
+            position_state.get("position_size_qty"),
+            position_state.get("open_position_qty"),
+        ) or 0.0
 
-        risk_distance = abs(stop_loss - close_price)
-        reward_distance = abs(take_profit - close_price)
+        risk_distance = abs(stop_loss - entry_price)
+        reward_distance = abs(take_profit - entry_price)
         rr_ratio = reward_distance / risk_distance if risk_distance > 0 else 0.0
 
-        features = np.array(
-            [
-                close_price,
-                stop_loss,
-                take_profit,
-                rr_ratio,
-                funding_rate,
-                basis,
-                signal_age_ms / 3_600_000.0,  # horas
-                open_position_qty,
-            ],
-            dtype=float,
+        h1_close = TechnicalSignalInferenceProvider._pick_float(
+            market_context_dict.get("h1_close"),
+            market_context_dict.get("close_h1"),
+            market_context_dict.get("mtf_h1_close"),
+            close_price,
+        ) or close_price
+        h4_close = TechnicalSignalInferenceProvider._pick_float(
+            market_context_dict.get("h4_close"),
+            market_context_dict.get("close_h4"),
+            market_context_dict.get("mtf_h4_close"),
+            close_price,
+        ) or close_price
+        d1_close = TechnicalSignalInferenceProvider._pick_float(
+            market_context_dict.get("d1_close"),
+            market_context_dict.get("close_d1"),
+            market_context_dict.get("mtf_d1_close"),
+            close_price,
+        ) or close_price
+
+        volume_norm = max(
+            0.0,
+            min(
+                1.0,
+                (
+                    TechnicalSignalInferenceProvider._pick_float(
+                        market_state.get("volume_norm"),
+                        market_state.get("volume"),
+                        market_context_dict.get("volume"),
+                    )
+                    or 0.0
+                ) / 1_000_000.0,
+            ),
         )
+
+        atr_raw = TechnicalSignalInferenceProvider._pick_float(
+            market_state.get("atr_normalized"),
+            market_state.get("atr_normalized_pct"),
+            market_context_dict.get("atr_normalized"),
+        )
+        atr_norm = 0.0 if atr_raw is None else (atr_raw / 100.0 if atr_raw > 1.0 else atr_raw)
+
+        signal_side = str(market_state.get("signal_side") or "").upper()
+        age_hours = max(0.0, signal_age_ms / 3_600_000.0)
+
+        raw_features: dict[str, float] = {
+            "open_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, entry_price),
+            "high_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, max(entry_price, take_profit, stop_loss)),
+            "low_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, min(entry_price, take_profit, stop_loss)),
+            "close_norm": 0.0,
+            "volume_norm": volume_norm,
+            "rsi": TechnicalSignalInferenceProvider._pick_float(
+                market_state.get("rsi"),
+                market_state.get("rsi_14"),
+                market_context_dict.get("rsi"),
+            ) or 50.0,
+            "macd_line": TechnicalSignalInferenceProvider._pick_float(
+                market_state.get("macd_line"),
+                market_context_dict.get("macd_line"),
+            ) or 0.0,
+            "macd_signal": TechnicalSignalInferenceProvider._pick_float(
+                market_state.get("macd_signal"),
+                market_context_dict.get("macd_signal"),
+            ) or 0.0,
+            "bb_upper": TechnicalSignalInferenceProvider._relative_delta(close_price, max(close_price, take_profit)),
+            "bb_lower": TechnicalSignalInferenceProvider._relative_delta(close_price, min(close_price, stop_loss)),
+            "atr_norm": atr_norm,
+            "h1_open_norm": TechnicalSignalInferenceProvider._relative_delta(h1_close, close_price),
+            "h1_close_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, h1_close),
+            "h1_volume_norm": volume_norm,
+            "h4_open_norm": TechnicalSignalInferenceProvider._relative_delta(h4_close, close_price),
+            "h4_close_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, h4_close),
+            "h4_volume_norm": volume_norm,
+            "d1_open_norm": TechnicalSignalInferenceProvider._relative_delta(d1_close, close_price),
+            "d1_close_norm": TechnicalSignalInferenceProvider._relative_delta(close_price, d1_close),
+            "d1_volume_norm": volume_norm,
+            "fr_sentiment": TechnicalSignalInferenceProvider._sentiment_to_numeric(
+                market_context_dict.get("funding_sentiment")
+            ) if market_context_dict.get("funding_sentiment") is not None else (
+                1.0 if funding_rate > 0 else -1.0 if funding_rate < 0 else 0.0
+            ),
+            "oi_sentiment": TechnicalSignalInferenceProvider._sentiment_to_numeric(
+                market_context_dict.get("oi_sentiment")
+            ) if market_context_dict.get("oi_sentiment") is not None else (
+                1.0 if basis > 0 else -1.0 if basis < 0 else 0.0
+            ),
+            "ls_ratio": max(
+                0.0,
+                min(
+                    1.0,
+                    TechnicalSignalInferenceProvider._pick_float(
+                        market_context_dict.get("long_short_ratio"),
+                        market_context_dict.get("ls_ratio"),
+                    ) or 0.5,
+                ),
+            ),
+            "smc_zone_proximity": max(0.0, min(1.0, rr_ratio / 3.0)),
+            "smc_rejection_strength": max(0.0, min(1.0, age_hours / 24.0)),
+            "smc_direction_bias": TechnicalSignalInferenceProvider._direction_to_bias(signal_side),
+        }
+
+        normalized: list[float] = []
+        for key in TechnicalSignalInferenceProvider._FEATURE_KEYS:
+            bounds = TechnicalSignalInferenceProvider._FEATURE_BOUNDS[key]
+            normalized.append(
+                TechnicalSignalInferenceProvider._normalize_value(
+                    raw_features.get(key),
+                    bounds[0],
+                    bounds[1],
+                )
+            )
+
+        while len(normalized) < 36:
+            normalized.append(0.0)
+
+        normalized[26] = float(max(-1.0, min(1.0, open_position_qty)))
+
+        features = np.array(normalized[:36], dtype=float)
         return features
 
     def _resolve_loader_for_symbol(self, symbol: str) -> RLModelLoader:
@@ -156,18 +383,19 @@ class TechnicalSignalInferenceProvider:
         rl_confidence: float,
         rl_action: str,
     ) -> tuple[float, str]:
+        normalized_confidence = max(0.0, min(1.0, float(rl_confidence)))
         if action == ACTION_HOLD:
-            return 0.50, "inference_hold_signal"
+            return normalized_confidence, "inference_hold_raw_confidence"
 
         expected_side = "LONG" if action == ACTION_OPEN_LONG else "SHORT"
         normalized_rl_action = str(rl_action).strip().upper()
 
-        base = max(0.0, min(1.0, float(rl_confidence)))
+        base = normalized_confidence
         if normalized_rl_action == expected_side:
-            return max(0.55, min(0.95, base)), "inference_from_symbol_model_agreement"
+            return base, "inference_from_symbol_model_agreement_raw"
         if normalized_rl_action == "HOLD":
-            return max(0.45, min(0.75, base)), "inference_from_symbol_model_neutral"
-        return max(0.30, min(0.65, base)), "inference_from_symbol_model_divergence"
+            return base, "inference_from_symbol_model_neutral_raw"
+        return base, "inference_from_symbol_model_divergence_raw"
 
     @staticmethod
     def _to_safe_float(raw_value: Any) -> float | None:
@@ -282,8 +510,8 @@ class TechnicalSignalInferenceProvider:
             size_fraction = 0.0
             sl_value = None
             tp_value = None
-            confidence = 0.50
-            reason = "inference_hold_signal"
+            confidence = max(0.0, min(1.0, float(rl_confidence)))
+            reason = "inference_hold_raw_confidence"
             if not self._model_first:
                 rl_confidence = confidence
                 rl_action = "HOLD"

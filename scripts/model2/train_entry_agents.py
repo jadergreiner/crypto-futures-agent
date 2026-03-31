@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,156 @@ logger = logging.getLogger(__name__)
 
 # Usar constante centralizada de threshold de episódios
 MIN_EPISODES_FOR_TRAINING = RETRAIN_EPISODE_THRESHOLD
+
+
+def _ensure_rl_training_log_schema(conn: sqlite3.Connection) -> None:
+    """Garante schema minimo da auditoria global de treino."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rl_training_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            episodes_used INTEGER NOT NULL,
+            avg_reward REAL,
+            completed_at TEXT NOT NULL,
+            model_version TEXT,
+            status TEXT,
+            created_at TEXT,
+            completed_at_ms INTEGER
+        )
+        """
+    )
+    cols = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(rl_training_log)").fetchall()
+    }
+    if "completed_at_ms" not in cols:
+        conn.execute("ALTER TABLE rl_training_log ADD COLUMN completed_at_ms INTEGER")
+    if "status" not in cols:
+        conn.execute("ALTER TABLE rl_training_log ADD COLUMN status TEXT")
+    if "avg_reward" not in cols:
+        conn.execute("ALTER TABLE rl_training_log ADD COLUMN avg_reward REAL")
+    if "model_version" not in cols:
+        conn.execute("ALTER TABLE rl_training_log ADD COLUMN model_version TEXT")
+    if "created_at" not in cols:
+        conn.execute("ALTER TABLE rl_training_log ADD COLUMN created_at TEXT")
+
+
+def _ensure_rl_training_log_by_symbol_schema(conn: sqlite3.Connection) -> None:
+    """Garante schema minimo da auditoria de treino por simbolo."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rl_training_log_by_symbol (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            timeframe TEXT,
+            episodes_used INTEGER NOT NULL,
+            completed_at TEXT NOT NULL,
+            completed_at_ms INTEGER,
+            status TEXT,
+            model_version TEXT,
+            created_at TEXT
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_rl_training_log_by_symbol_lookup
+        ON rl_training_log_by_symbol (symbol, timeframe, completed_at_ms DESC, id DESC)
+        """
+    )
+    cols = {
+        str(row[1])
+        for row in conn.execute("PRAGMA table_info(rl_training_log_by_symbol)").fetchall()
+    }
+    if "timeframe" not in cols:
+        conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN timeframe TEXT")
+    if "completed_at_ms" not in cols:
+        conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN completed_at_ms INTEGER")
+    if "status" not in cols:
+        conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN status TEXT")
+    if "model_version" not in cols:
+        conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN model_version TEXT")
+    if "created_at" not in cols:
+        conn.execute("ALTER TABLE rl_training_log_by_symbol ADD COLUMN created_at TEXT")
+
+
+def _record_training_logs(
+    *,
+    db_path: Path,
+    timeframe: str,
+    trained_results: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Registra auditoria de treino global e por simbolo para status operacional."""
+    if not trained_results:
+        return {"recorded": False, "symbols": []}
+
+    now_utc = datetime.now(timezone.utc)
+    now_brt = now_utc.astimezone(timezone(timedelta(hours=-3)))
+    completed_at = now_brt.strftime("%Y-%m-%d %H:%M:%S")
+    completed_at_ms = int(now_utc.timestamp() * 1000)
+    episodes_total = sum(
+        int(result.get("episodes_used") or 0)
+        for result in trained_results.values()
+    )
+
+    with sqlite3.connect(str(db_path), timeout=5) as conn:
+        _ensure_rl_training_log_schema(conn)
+        _ensure_rl_training_log_by_symbol_schema(conn)
+        conn.execute(
+            """
+            INSERT INTO rl_training_log (
+                episodes_used,
+                completed_at,
+                completed_at_ms,
+                status,
+                model_version,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                int(episodes_total),
+                completed_at,
+                int(completed_at_ms),
+                "ok",
+                "ppo_incremental_entry_agent",
+                completed_at,
+            ),
+        )
+
+        for symbol, result in trained_results.items():
+            conn.execute(
+                """
+                INSERT INTO rl_training_log_by_symbol (
+                    symbol,
+                    timeframe,
+                    episodes_used,
+                    completed_at,
+                    completed_at_ms,
+                    status,
+                    model_version,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(symbol).upper(),
+                    str(timeframe).upper(),
+                    int(result.get("episodes_used") or 0),
+                    completed_at,
+                    int(completed_at_ms),
+                    "ok",
+                    "ppo_incremental_entry_agent",
+                    completed_at,
+                ),
+            )
+        conn.commit()
+
+    return {
+        "recorded": True,
+        "completed_at": completed_at,
+        "completed_at_ms": int(completed_at_ms),
+        "episodes_total": int(episodes_total),
+        "symbols": sorted(str(symbol).upper() for symbol in trained_results),
+    }
 
 
 def run_train_entry_agents(
@@ -62,6 +213,7 @@ def run_train_entry_agents(
     trained_count = 0
     skipped_count = 0
     error_count = 0
+    trained_results: dict[str, dict[str, Any]] = {}
 
     for symbol in symbol_list:
         try:
@@ -106,6 +258,10 @@ def run_train_entry_agents(
                     "episodes_used": episode_count,
                     "steps_run": int(total_timesteps),
                 }
+                trained_results[symbol] = {
+                    "episodes_used": episode_count,
+                    "steps_run": int(total_timesteps),
+                }
                 trained_count += 1
             else:
                 reason = str(
@@ -132,6 +288,11 @@ def run_train_entry_agents(
 
     if not dry_run and trained_count > 0:
         manager.save_all()
+        summary["training_log"] = _record_training_logs(
+            db_path=db_path_obj,
+            timeframe=timeframe,
+            trained_results=trained_results,
+        )
 
     summary["summary_stats"] = {
         "trained": trained_count,

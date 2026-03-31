@@ -58,6 +58,178 @@ class EpisodeNormalizer:
         "smc_direction_bias": (-1, 1),
     }
 
+    FEATURE_KEYS = [
+        "open_norm",
+        "high_norm",
+        "low_norm",
+        "close_norm",
+        "volume_norm",
+        "rsi",
+        "macd_line",
+        "macd_signal",
+        "bb_upper",
+        "bb_lower",
+        "atr_norm",
+        "h1_open_norm",
+        "h1_close_norm",
+        "h1_volume_norm",
+        "h4_open_norm",
+        "h4_close_norm",
+        "h4_volume_norm",
+        "d1_open_norm",
+        "d1_close_norm",
+        "d1_volume_norm",
+        "fr_sentiment",
+        "oi_sentiment",
+        "ls_ratio",
+        "smc_zone_proximity",
+        "smc_rejection_strength",
+        "smc_direction_bias",
+    ]
+
+    @staticmethod
+    def _to_float(value: Any) -> float | None:
+        try:
+            if value is None:
+                return None
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _to_ratio(value: Any, *, default: float = 0.5) -> float:
+        parsed = EpisodeNormalizer._to_float(value)
+        if parsed is None:
+            return float(default)
+        return float(max(0.0, min(1.0, parsed)))
+
+    @staticmethod
+    def _sentiment_to_numeric(value: Any) -> float:
+        normalized = str(value or "").strip().lower()
+        if normalized in {"bullish", "positive", "accumulating", "up", "increasing"}:
+            return 1.0
+        if normalized in {"bearish", "negative", "distribution", "down", "decreasing"}:
+            return -1.0
+        return 0.0
+
+    @staticmethod
+    def _direction_to_bias(value: Any) -> float:
+        normalized = str(value or "").strip().upper()
+        if normalized in {"LONG", "BUY"}:
+            return 1.0
+        if normalized in {"SHORT", "SELL"}:
+            return -1.0
+        return 0.0
+
+    @staticmethod
+    def _relative_delta(base: float, candidate: float) -> float:
+        if base <= 0:
+            return 0.0
+        return float((candidate - base) / base)
+
+    @classmethod
+    def _flatten_feature_schema(cls, features_dict: dict[str, Any]) -> dict[str, Any]:
+        if any(key in features_dict for key in cls.FEATURE_KEYS):
+            return dict(features_dict)
+
+        latest_candle = features_dict.get("latest_candle")
+        volatility = features_dict.get("volatility")
+        multi_tf = features_dict.get("multi_timeframe_context")
+        funding_rates = features_dict.get("funding_rates")
+        open_interest = features_dict.get("open_interest")
+        opportunities = features_dict.get("opportunities_by_status")
+
+        latest_candle = latest_candle if isinstance(latest_candle, dict) else {}
+        volatility = volatility if isinstance(volatility, dict) else {}
+        multi_tf = multi_tf if isinstance(multi_tf, dict) else {}
+        funding_rates = funding_rates if isinstance(funding_rates, dict) else {}
+        open_interest = open_interest if isinstance(open_interest, dict) else {}
+        opportunities = opportunities if isinstance(opportunities, dict) else {}
+
+        close_price = cls._to_float(
+            latest_candle.get("close")
+            if latest_candle.get("close") is not None
+            else features_dict.get("close_t")
+        )
+        if close_price is None or close_price <= 0:
+            close_price = 1.0
+
+        open_price = cls._to_float(latest_candle.get("open")) or close_price
+        high_price = cls._to_float(latest_candle.get("high")) or close_price
+        low_price = cls._to_float(latest_candle.get("low")) or close_price
+        volume_raw = cls._to_float(latest_candle.get("volume"))
+        volume_norm = min(1.0, max(0.0, (volume_raw or 0.0) / 1_000_000.0))
+
+        atr_raw = cls._to_float(
+            volatility.get("atr_normalized")
+            if volatility.get("atr_normalized") is not None
+            else features_dict.get("atr_norm")
+        )
+        atr_norm = 0.0 if atr_raw is None else (atr_raw / 100.0 if atr_raw > 1.0 else atr_raw)
+
+        def _tf_values(tf_key: str) -> tuple[float, float, float]:
+            tf_payload = multi_tf.get(tf_key)
+            if not isinstance(tf_payload, dict):
+                return 0.0, 0.0, 0.0
+            tf_close = cls._to_float(tf_payload.get("current_close")) or close_price
+            tf_ma = cls._to_float(tf_payload.get("ma_20")) or tf_close
+            tf_count = cls._to_float(tf_payload.get("count")) or 0.0
+            return (
+                cls._relative_delta(tf_close, tf_ma),
+                cls._relative_delta(close_price, tf_close),
+                max(0.0, min(1.0, tf_count / 240.0)),
+            )
+
+        h1_open_norm, h1_close_norm, h1_volume_norm = _tf_values("H1")
+        h4_open_norm, h4_close_norm, h4_volume_norm = _tf_values("H4")
+        d1_open_norm, d1_close_norm, d1_volume_norm = _tf_values("D1")
+
+        validada = cls._to_float(opportunities.get("VALIDADA")) or 0.0
+        invalidada = cls._to_float(opportunities.get("INVALIDADA")) or 0.0
+        monitorando = cls._to_float(opportunities.get("MONITORANDO")) or 0.0
+        total_opportunities = max(1.0, validada + invalidada + monitorando)
+
+        return {
+            "open_norm": cls._relative_delta(close_price, open_price),
+            "high_norm": cls._relative_delta(close_price, high_price),
+            "low_norm": cls._relative_delta(close_price, low_price),
+            "close_norm": 0.0,
+            "volume_norm": volume_norm,
+            "rsi": cls._to_float(volatility.get("rsi_14")) or 50.0,
+            "macd_line": cls._to_float(volatility.get("macd_line")) or 0.0,
+            "macd_signal": cls._to_float(volatility.get("macd_signal")) or 0.0,
+            "bb_upper": cls._relative_delta(close_price, cls._to_float(volatility.get("bb_upper")) or close_price),
+            "bb_lower": cls._relative_delta(close_price, cls._to_float(volatility.get("bb_lower")) or close_price),
+            "atr_norm": atr_norm,
+            "h1_open_norm": h1_open_norm,
+            "h1_close_norm": h1_close_norm,
+            "h1_volume_norm": h1_volume_norm,
+            "h4_open_norm": h4_open_norm,
+            "h4_close_norm": h4_close_norm,
+            "h4_volume_norm": h4_volume_norm,
+            "d1_open_norm": d1_open_norm,
+            "d1_close_norm": d1_close_norm,
+            "d1_volume_norm": d1_volume_norm,
+            "fr_sentiment": cls._sentiment_to_numeric(
+                funding_rates.get("sentiment_24h")
+                if funding_rates.get("sentiment_24h") is not None
+                else funding_rates.get("trend")
+            ),
+            "oi_sentiment": cls._sentiment_to_numeric(
+                open_interest.get("oi_sentiment")
+                if open_interest.get("oi_sentiment") is not None
+                else open_interest.get("oi_change_direction")
+            ),
+            "ls_ratio": cls._to_ratio(
+                funding_rates.get("estimated_leverage")
+                if funding_rates.get("estimated_leverage") is not None
+                else features_dict.get("ls_ratio")
+            ),
+            "smc_zone_proximity": max(0.0, min(1.0, validada / total_opportunities)),
+            "smc_rejection_strength": max(0.0, min(1.0, invalidada / total_opportunities)),
+            "smc_direction_bias": cls._direction_to_bias(features_dict.get("signal_side")),
+        }
+
     @staticmethod
     def normalize_value(
         value: float | None, min_bound: float, max_bound: float
@@ -95,40 +267,15 @@ class EpisodeNormalizer:
         """
         if not isinstance(features_dict, dict):
             return [0.0] * 36
+        if not features_dict:
+            return [0.0] * 36
 
-        feature_keys = [
-            "open_norm",
-            "high_norm",
-            "low_norm",
-            "close_norm",
-            "volume_norm",
-            "rsi",
-            "macd_line",
-            "macd_signal",
-            "bb_upper",
-            "bb_lower",
-            "atr_norm",
-            "h1_open_norm",
-            "h1_close_norm",
-            "h1_volume_norm",
-            "h4_open_norm",
-            "h4_close_norm",
-            "h4_volume_norm",
-            "d1_open_norm",
-            "d1_close_norm",
-            "d1_volume_norm",
-            "fr_sentiment",
-            "oi_sentiment",
-            "ls_ratio",
-            "smc_zone_proximity",
-            "smc_rejection_strength",
-            "smc_direction_bias",
-        ]
+        flattened = EpisodeNormalizer._flatten_feature_schema(features_dict)
 
         result = []
-        for key in feature_keys:
+        for key in EpisodeNormalizer.FEATURE_KEYS:
             bounds = EpisodeNormalizer.FEATURE_BOUNDS.get(key, (-1, 1))
-            value = features_dict.get(key)
+            value = flattened.get(key)
             normalized = EpisodeNormalizer.normalize_value(
                 value, bounds[0], bounds[1]
             )

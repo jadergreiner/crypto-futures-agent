@@ -456,8 +456,8 @@ def flush_deferred_rewards(
                 continue
 
             candle_row = src_conn.execute(
-                f"SELECT close FROM {table} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
-                (symbol, lookup_ms),
+                f"SELECT close FROM {table} WHERE symbol = ? AND timestamp > ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                (symbol, event_ts, lookup_ms),
             ).fetchone()
 
             if candle_row is None:
@@ -484,6 +484,170 @@ def flush_deferred_rewards(
         m2_conn.commit()
 
     return {"flushed": flushed, "pending": pending, "skipped": skipped}
+
+
+def backfill_legacy_pending_counterfactuals(
+    model2_db_path: str | Path,
+    source_db_path: str | Path,
+    *,
+    symbols: list[str] | None = None,
+    timeframe: str | None = None,
+) -> dict[str, int]:
+    """Backfill fail-safe para episodios legados BLOCKED/FAILED pendentes.
+
+    Objetivo:
+    - preencher reward_lookup_at_ms quando ausente
+    - garantir features_json com close_t e signal_side para flush diferido
+    """
+    resolved_model2 = _resolve_repo_path(model2_db_path)
+    resolved_source = _resolve_repo_path(source_db_path)
+
+    candidates = 0
+    updated = 0
+    lookup_filled = 0
+    features_filled = 0
+    skipped = 0
+
+    with sqlite3.connect(resolved_model2) as m2_conn, sqlite3.connect(resolved_source) as src_conn:
+        m2_conn.row_factory = sqlite3.Row
+
+        query_parts = [
+            "SELECT id, execution_id, symbol, timeframe, status, event_timestamp,",
+            "       reward_lookup_at_ms, features_json",
+            "FROM training_episodes",
+            "WHERE reward_proxy IS NULL",
+            "  AND UPPER(COALESCE(status, '')) IN ('BLOCKED', 'FAILED')",
+            "  AND LOWER(COALESCE(label, '')) = 'pending'",
+        ]
+        params: list[Any] = []
+
+        if symbols:
+            placeholders = ", ".join("?" for _ in symbols)
+            query_parts.append(f"  AND symbol IN ({placeholders})")
+            params.extend([str(s).strip().upper() for s in symbols if str(s).strip()])
+        if timeframe is not None:
+            query_parts.append("  AND UPPER(timeframe) = ?")
+            params.append(str(timeframe).strip().upper())
+
+        rows = m2_conn.execute("\n".join(query_parts), tuple(params)).fetchall()
+        candidates = len(rows)
+
+        for row in rows:
+            episode_id = int(row["id"])
+            execution_id = int(row["execution_id"] or 0)
+            symbol = str(row["symbol"])
+            row_timeframe = str(row["timeframe"]).upper()
+            event_ts = int(row["event_timestamp"])
+
+            if row_timeframe not in TIMEFRAME_TO_TABLE:
+                skipped += 1
+                continue
+
+            features = _safe_json_dict(row["features_json"])
+            changed = False
+
+            lookup_at_ms: int | None
+            if row["reward_lookup_at_ms"] is None:
+                lookup_at_ms = _lookup_at_ms(event_ts, row_timeframe)
+                lookup_filled += 1
+                changed = True
+            else:
+                lookup_at_ms = int(row["reward_lookup_at_ms"])
+
+            raw_signal_snapshot = features.get("signal_snapshot")
+            signal_snapshot = raw_signal_snapshot if isinstance(raw_signal_snapshot, dict) else {}
+
+            signal_side = str(features.get("signal_side") or "").strip().upper()
+            if signal_side not in {"LONG", "SHORT", "NEUTRAL"}:
+                signal_side = str(signal_snapshot.get("signal_side") or "").strip().upper()
+            if signal_side not in {"LONG", "SHORT", "NEUTRAL"} and execution_id > 0:
+                exec_row = m2_conn.execute(
+                    """
+                    SELECT se.signal_side
+                    FROM signal_executions se
+                    WHERE se.id = ?
+                    LIMIT 1
+                    """,
+                    (execution_id,),
+                ).fetchone()
+                if exec_row and exec_row[0]:
+                    signal_side = str(exec_row[0]).strip().upper()
+            if signal_side not in {"LONG", "SHORT", "NEUTRAL"}:
+                signal_side = "LONG"
+
+            close_t = features.get("close_t")
+            try:
+                close_t_value = float(close_t) if close_t is not None else 0.0
+            except Exception:
+                close_t_value = 0.0
+
+            if close_t_value <= 0:
+                # Prioridade: signal_snapshot.entry_price -> latest_candle.close -> ohlcv base candle
+                entry_price = signal_snapshot.get("entry_price")
+                try:
+                    close_t_value = float(entry_price) if entry_price is not None else 0.0
+                except Exception:
+                    close_t_value = 0.0
+
+            if close_t_value <= 0:
+                latest_candle = features.get("latest_candle")
+                if isinstance(latest_candle, dict):
+                    try:
+                        close_t_value = float(latest_candle.get("close") or 0.0)
+                    except Exception:
+                        close_t_value = 0.0
+
+            if close_t_value <= 0:
+                table_name = TIMEFRAME_TO_TABLE.get(row_timeframe)
+                if table_name:
+                    base_row = src_conn.execute(
+                        f"SELECT close FROM {table_name} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                        (symbol, event_ts),
+                    ).fetchone()
+                    if base_row is not None and base_row[0] is not None:
+                        close_t_value = float(base_row[0])
+
+            existing_signal_side = str(features.get("signal_side") or "").strip().upper()
+            if existing_signal_side != signal_side:
+                features["signal_side"] = signal_side
+                changed = True
+
+            existing_close_t = features.get("close_t")
+            try:
+                existing_close_t_value = float(existing_close_t) if existing_close_t is not None else 0.0
+            except Exception:
+                existing_close_t_value = 0.0
+            if existing_close_t_value <= 0 and close_t_value > 0:
+                features["close_t"] = float(close_t_value)
+                changed = True
+
+            if changed:
+                if "signal_side" in features and "close_t" in features:
+                    features_filled += 1
+                m2_conn.execute(
+                    """
+                    UPDATE training_episodes
+                    SET reward_lookup_at_ms = ?,
+                        features_json = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        lookup_at_ms,
+                        json.dumps(features, ensure_ascii=True, sort_keys=True),
+                        episode_id,
+                    ),
+                )
+                updated += 1
+
+        m2_conn.commit()
+
+    return {
+        "candidates": int(candidates),
+        "updated": int(updated),
+        "lookup_filled": int(lookup_filled),
+        "features_filled": int(features_filled),
+        "skipped": int(skipped),
+    }
 
 
 def _latest_execution_episode_by_symbol(
@@ -692,7 +856,7 @@ def run_persist_training_episodes(
             entry_price = float(row["entry_price"]) if row["entry_price"] is not None else None
             exit_price = float(row["exit_price"]) if row["exit_price"] is not None else None
 
-            if status == "BLOCKED":
+            if status in {"BLOCKED", "FAILED"} and exit_price is None:
                 episode_key = f"hold:{execution_id}:{updated_at}"
                 reward_proxy = None
                 label = "pending"
@@ -721,6 +885,8 @@ def run_persist_training_episodes(
                     "latest_candle": latest_candle,
                     "signal_snapshot": signal_snapshot,
                     "gate": gate_payload,
+                    "signal_side": str(row["signal_side"]),
+                    "close_t": entry_price,
                 },
                 "target": {
                     "final_status": status,
@@ -953,11 +1119,18 @@ def main() -> int:
         timeframe=args.timeframe,
         output_dir=args.output_dir,
     )
+    backfill_result = backfill_legacy_pending_counterfactuals(
+        model2_db_path=args.model2_db_path,
+        source_db_path=args.source_db_path,
+        symbols=list(args.symbol or []),
+        timeframe=args.timeframe,
+    )
     flush_result = flush_deferred_rewards(
         model2_db_path=args.model2_db_path,
         source_db_path=args.source_db_path,
         now_ms=_utc_now_ms(),
     )
+    summary["legacy_pending_backfill"] = backfill_result
     summary["flush_deferred_rewards"] = flush_result
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0

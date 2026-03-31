@@ -8,7 +8,7 @@ from pathlib import Path
 state_file = Path('results/model2/learning_state.json')
 with open(state_file) as f:
     state = json.load(f)
-    
+
 print('='*60)
 print('BOOTSTRAP TRAINING - RESULTADO')
 print('='*60)

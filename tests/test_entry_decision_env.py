@@ -469,3 +469,102 @@ class TestEntryDecisionEnvIntegration:
             assert info["action"] == env.action_to_str[action]
 
         env.close()
+
+
+class TestEntryDecisionEnvLoadEpisodesSchema:
+    """Testes para schema de load_episodes (features + reward_proxy)."""
+
+    def _make_load_episode(
+        self,
+        nonzero: bool = True,
+        reward_proxy: float | None = 0.5,
+    ) -> dict:
+        """Constroi episodio no schema retornado por load_episodes."""
+        features = [float(i) / 36.0 for i in range(36)] if nonzero else [0.0] * 36
+        ep: dict = {
+            "id": 1,
+            "symbol": "BTCUSDT",
+            "timeframe": "H4",
+            "label": "hold_correct",
+            "reward_proxy": reward_proxy,
+            "features": features,
+            "metadata": {"status": "BLOCKED", "created_at": 0, "raw_features": {}},
+        }
+        return ep
+
+    def test_reset_com_schema_load_episodes_retorna_features_nao_zero(self):
+        """reset() deve usar a chave 'features' quando state_t_json ausente."""
+        episodes = [self._make_load_episode(nonzero=True)]
+        env = EntryDecisionEnv(episodes=episodes, symbol="BTCUSDT")
+        obs, _ = env.reset()
+        assert obs.shape == (36,)
+        assert float(np.abs(obs).sum()) > 0.5, "obs deve ser nao-zero"
+        env.close()
+
+    def test_step_com_schema_load_episodes_retorna_reward_proxy(self):
+        """step() deve usar 'reward_proxy' quando 'reward_t' ausente."""
+        episodes = [self._make_load_episode(reward_proxy=0.75)]
+        env = EntryDecisionEnv(episodes=episodes)
+        env.reset()
+        _, reward, _, _, _ = env.step(1)
+        assert reward == pytest.approx(0.75)
+        env.close()
+
+    def test_step_com_reward_proxy_none_retorna_zero(self):
+        """step() deve retornar 0.0 quando reward_proxy e None."""
+        episodes = [self._make_load_episode(reward_proxy=None)]
+        env = EntryDecisionEnv(episodes=episodes)
+        env.reset()
+        _, reward, _, _, _ = env.step(0)
+        assert reward == pytest.approx(0.0)
+        env.close()
+
+    def test_get_observation_from_episode_schema_load_episodes(self):
+        """_get_observation_from_episode deve extrair features do schema novo."""
+        env = EntryDecisionEnv()
+        ep = self._make_load_episode(nonzero=True)
+        obs = env._get_observation_from_episode(ep)
+        assert obs.shape == (36,)
+        assert float(np.abs(obs).sum()) > 0.5
+        env.close()
+
+    def test_get_observation_from_episode_schema_legado(self):
+        """_get_observation_from_episode deve suportar schema legado."""
+        import json as _json
+        env = EntryDecisionEnv()
+        ep = {
+            "state_t_json": _json.dumps([0.3] * 36),
+            "reward_t": 0.1,
+            "done": True,
+        }
+        obs = env._get_observation_from_episode(ep)
+        assert obs.shape == (36,)
+        assert float(np.abs(obs).sum()) > 0.5
+        env.close()
+
+    def test_get_reward_schema_load_episodes_positivo(self):
+        """_get_reward_from_episode deve retornar reward_proxy positivo."""
+        env = EntryDecisionEnv()
+        ep = self._make_load_episode(reward_proxy=0.42)
+        assert env._get_reward_from_episode(ep) == pytest.approx(0.42)
+        env.close()
+
+    def test_get_reward_schema_load_episodes_negativo(self):
+        """_get_reward_from_episode deve retornar reward_proxy negativo."""
+        env = EntryDecisionEnv()
+        ep = self._make_load_episode(reward_proxy=-0.15)
+        assert env._get_reward_from_episode(ep) == pytest.approx(-0.15)
+        env.close()
+
+    def test_loop_completo_schema_load_episodes(self):
+        """Loop reset->step deve funcionar ponta-a-ponta com schema novo."""
+        episodes = [self._make_load_episode(nonzero=True, reward_proxy=0.6)]
+        env = EntryDecisionEnv(episodes=episodes, symbol="BTCUSDT")
+        obs, _ = env.reset()
+        assert float(np.abs(obs).sum()) > 0.5
+        next_obs, reward, done, truncated, info = env.step(1)
+        assert next_obs.shape == (36,)
+        assert reward == pytest.approx(0.6)
+        assert done is True
+        env.close()
+

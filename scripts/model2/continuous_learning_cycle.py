@@ -25,7 +25,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import DB_PATH, M2_SYMBOLS, MODEL2_DB_PATH
-from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
+from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, resolve_retrain_threshold
 from core.model2.model_decision import ModelDecisionInput
 from core.model2.model_degradation_monitor import (
     ModelDegradationMonitor,
@@ -213,7 +213,7 @@ def run_continuous_learning_cycle_once(
     continue_on_error: bool = True,
     model_first: bool = True,
     retrain_timesteps: int = 5000,
-    min_episodes_for_retrain: int = RETRAIN_EPISODE_THRESHOLD,
+    min_episodes_for_retrain: int | None = None,
     min_samples_protection_head: int = 50,
     drift_window: int = 30,
     drift_min_samples: int = 10,
@@ -229,6 +229,12 @@ def run_continuous_learning_cycle_once(
     symbol_scope = [str(item).strip().upper() for item in symbols if str(item).strip()]
     if not symbol_scope:
         symbol_scope = [str(item).strip().upper() for item in list(M2_SYMBOLS) if str(item).strip()]
+
+    effective_min_episodes_for_retrain = int(
+        min_episodes_for_retrain
+        if min_episodes_for_retrain is not None
+        else resolve_retrain_threshold(str(resolved_model2_db))[0]
+    )
 
     thresholds = ModelDegradationThresholds(
         min_avg_confidence=float(drift_min_confidence),
@@ -317,7 +323,7 @@ def run_continuous_learning_cycle_once(
                 "dry_run": False,
                 "total_timesteps": int(retrain_timesteps),
                 "continue_on_error": True,
-                "min_episodes": int(min_episodes_for_retrain),
+                "min_episodes": effective_min_episodes_for_retrain,
             },
         )
         _execute_stage(
@@ -487,7 +493,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--stop-on-error", action="store_true")
     parser.add_argument("--signal-first", action="store_true", help="Desativa model-first no decision probe")
     parser.add_argument("--retrain-timesteps", type=int, default=5000)
-    parser.add_argument("--min-episodes-for-retrain", type=int, default=RETRAIN_EPISODE_THRESHOLD)
+    parser.add_argument("--min-episodes-for-retrain", type=int, default=None)
     parser.add_argument("--min-samples-protection-head", type=int, default=50)
     parser.add_argument("--drift-window", type=int, default=30)
     parser.add_argument("--drift-min-samples", type=int, default=10)
@@ -515,7 +521,7 @@ def main() -> int:
         continue_on_error=not bool(args.stop_on_error),
         model_first=not bool(args.signal_first),
         retrain_timesteps=int(args.retrain_timesteps),
-        min_episodes_for_retrain=int(args.min_episodes_for_retrain),
+        min_episodes_for_retrain=args.min_episodes_for_retrain,
         min_samples_protection_head=int(args.min_samples_protection_head),
         drift_window=int(args.drift_window),
         drift_min_samples=int(args.drift_min_samples),

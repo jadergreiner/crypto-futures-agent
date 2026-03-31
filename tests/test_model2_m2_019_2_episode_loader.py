@@ -138,6 +138,49 @@ class TestEpisodeNormalizer(unittest.TestCase):
         self.assertEqual(len(result), 36)
         self.assertTrue(all(f == 0.0 for f in result))
 
+    def test_normalize_features_nested_schema(self):
+        """Schema aninhado atual deve gerar features informativas não zeradas."""
+        nested = {
+            "latest_candle": {
+                "open": 100.0,
+                "high": 101.0,
+                "low": 99.5,
+                "close": 100.5,
+                "volume": 850_000.0,
+            },
+            "volatility": {
+                "rsi_14": 62.0,
+                "macd_line": 0.15,
+                "macd_signal": 0.10,
+                "bb_upper": 102.0,
+                "bb_lower": 98.5,
+                "atr_normalized": 1.8,
+            },
+            "multi_timeframe_context": {
+                "H1": {"count": 180, "current_close": 100.2, "ma_20": 99.9},
+                "H4": {"count": 220, "current_close": 99.7, "ma_20": 100.1},
+                "D1": {"count": 200, "current_close": 101.2, "ma_20": 100.8},
+            },
+            "funding_rates": {
+                "sentiment_24h": "bullish",
+                "estimated_leverage": 0.72,
+            },
+            "open_interest": {
+                "oi_sentiment": "accumulating",
+            },
+            "opportunities_by_status": {
+                "VALIDADA": 15,
+                "INVALIDADA": 5,
+                "MONITORANDO": 10,
+            },
+            "signal_side": "LONG",
+        }
+
+        result = EpisodeNormalizer.normalize_features(nested)
+
+        self.assertEqual(len(result), 36)
+        self.assertGreater(sum(abs(v) for v in result[:26]), 0.5)
+
 
 class TestEpisodeLoader(unittest.TestCase):
     """Testa carregamento de episódios."""

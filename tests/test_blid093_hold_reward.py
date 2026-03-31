@@ -674,6 +674,49 @@ class TestPersistBlockedEpisode:
 
         assert count == 1, f"Esperado 1 episodio BLOCKED (idempotente), obtido: {count}"
 
+    def test_failed_episode_inserido_com_lookup_at_ms(self, tmp_path: Path) -> None:
+        """Execucao FAILED sem exit_price deve gerar episodio contrafactual com lookup."""
+        from scripts.model2.persist_training_episodes import run_persist_training_episodes
+
+        source_db = str(tmp_path / "source_failed.db")
+        model2_db = str(tmp_path / "model2_failed.db")
+        output_dir = str(tmp_path / "output_failed")
+
+        _make_source_db(source_db)
+        m2_conn = _make_model2_db(model2_db)
+        sig_id = _insert_signal(m2_conn, symbol="BTCUSDT", timeframe="H4", signal_side="LONG")
+        _insert_execution(
+            m2_conn, sig_id,
+            symbol="BTCUSDT", timeframe="H4",
+            signal_side="LONG", status="FAILED",
+            updated_at=1700000000000,
+            exit_price=None,
+        )
+        m2_conn.close()
+
+        run_persist_training_episodes(
+            source_db_path=source_db,
+            model2_db_path=model2_db,
+            symbols=["BTCUSDT"],
+            timeframe="H4",
+            output_dir=output_dir,
+        )
+
+        conn = sqlite3.connect(model2_db)
+        row = conn.execute(
+            "SELECT episode_key, reward_lookup_at_ms, label FROM training_episodes "
+            "WHERE status='FAILED' AND symbol='BTCUSDT' LIMIT 1"
+        ).fetchone()
+        conn.close()
+
+        assert row is not None, "Episodio FAILED nao foi inserido"
+        episode_key, reward_lookup_at_ms, label = row
+        assert episode_key.startswith("hold:"), (
+            f"episode_key deve comecar com 'hold:' para FAILED sem fill, obtido: {episode_key}"
+        )
+        assert reward_lookup_at_ms is not None, "reward_lookup_at_ms deve ser NOT NULL para FAILED contrafactual"
+        assert label == "pending"
+
 
 # ---------------------------------------------------------------------------
 # Classe TestFlushDeferredRewards
@@ -874,6 +917,119 @@ class TestFlushDeferredRewards:
             f"reward_proxy nao deve ser alterado se ja preenchido, obtido: {row[0]}"
         )
 
+    def test_flush_preenche_reward_para_failed_quando_candle_disponivel(self, tmp_path: Path) -> None:
+        """FAILED contrafactual deve receber reward_proxy e label apos flush."""
+        from scripts.model2.persist_training_episodes import flush_deferred_rewards
+
+        source_db = str(tmp_path / "source_failed_flush.db")
+        model2_db = str(tmp_path / "model2_failed_flush.db")
+
+        _make_source_db(source_db)
+        conn_m2 = _make_model2_db(model2_db)
+        _insert_episode(
+            conn_m2,
+            episode_key="hold:9:1700000000000",
+            execution_id=9,
+            symbol="BTCUSDT",
+            timeframe="H4",
+            status="FAILED",
+            event_timestamp=1_700_000_000_000,
+            label="pending",
+            reward_proxy=None,
+            reward_source="none",
+            reward_lookup_at_ms=1_700_057_600_000,
+            features_json='{"signal_side": "LONG", "close_t": 42000.0}',
+            created_at=1_700_000_000_000,
+        )
+        conn_m2.close()
+
+        flush_deferred_rewards(
+            model2_db_path=model2_db,
+            source_db_path=source_db,
+            now_ms=1_700_057_600_001,
+        )
+
+        conn = sqlite3.connect(model2_db)
+        row = conn.execute(
+            "SELECT reward_proxy, label, reward_source FROM training_episodes WHERE episode_key='hold:9:1700000000000'"
+        ).fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[0] is not None, "FAILED contrafactual deve receber reward_proxy"
+        assert row[1] in ("hold_correct", "hold_opportunity_missed")
+        assert row[2] == "counterfactual"
+
+
+class TestBackfillLegacyPendingCounterfactuals:
+    """Testa backfill de episodios legados pendentes sem lookup/metadados."""
+
+    def test_backfill_preenche_lookup_close_t_e_signal_side(self, tmp_path: Path) -> None:
+        """Backfill deve preencher reward_lookup_at_ms e features minimas para flush."""
+        from scripts.model2.persist_training_episodes import backfill_legacy_pending_counterfactuals
+
+        source_db = str(tmp_path / "source_backfill.db")
+        model2_db = str(tmp_path / "model2_backfill.db")
+
+        _make_source_db(source_db)
+        conn = _make_model2_db(model2_db)
+        sig_id = _insert_signal(
+            conn,
+            symbol="BTCUSDT",
+            timeframe="H4",
+            signal_side="LONG",
+            entry_price=42000.0,
+            signal_timestamp=1_700_000_000_000,
+        )
+        exec_id = _insert_execution(
+            conn,
+            sig_id,
+            symbol="BTCUSDT",
+            timeframe="H4",
+            signal_side="LONG",
+            status="FAILED",
+            updated_at=1_700_000_000_000,
+            exit_price=None,
+        )
+        _insert_episode(
+            conn,
+            episode_key="hold:legacy:1",
+            execution_id=exec_id,
+            symbol="BTCUSDT",
+            timeframe="H4",
+            status="FAILED",
+            event_timestamp=1_700_000_000_000,
+            label="pending",
+            reward_proxy=None,
+            reward_lookup_at_ms=None,
+            features_json='{"signal_snapshot": {"entry_price": 42000.0, "signal_side": "LONG"}}',
+            target_json="{}",
+            created_at=1_700_000_000_000,
+        )
+        conn.close()
+
+        result = backfill_legacy_pending_counterfactuals(
+            model2_db_path=model2_db,
+            source_db_path=source_db,
+            symbols=["BTCUSDT"],
+            timeframe="H4",
+        )
+
+        assert result["updated"] >= 1
+        assert result["lookup_filled"] >= 1
+
+        conn = sqlite3.connect(model2_db)
+        row = conn.execute(
+            "SELECT reward_lookup_at_ms, features_json FROM training_episodes WHERE episode_key='hold:legacy:1'"
+        ).fetchone()
+        conn.close()
+
+        assert row is not None
+        assert row[0] is not None
+        features_json = str(row[1] or "{}")
+        assert '"close_t"' in features_json
+        assert '"signal_side"' in features_json
+
 
 # ---------------------------------------------------------------------------
 # Classe TestCollectTrainingInfoComHold
@@ -991,4 +1147,31 @@ class TestCollectTrainingInfoComHold:
 
         assert pending == 1, (
             f"Apenas o episodio counterfactual deve ser contado (nao CYCLE_CONTEXT), pending={pending}"
+        )
+
+    def test_conta_failed_counterfactual_como_treinavel(self, tmp_path: Path) -> None:
+        """FAILED com reward counterfactual pronto deve contar como treinavel."""
+        from core.model2.cycle_report import collect_training_info
+
+        db_path = str(tmp_path / "train_failed.db")
+        self._setup_db(db_path)
+
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            """
+            INSERT INTO training_episodes
+                (episode_key, cycle_run_id, execution_id, symbol, timeframe, status,
+                 event_timestamp, label, reward_proxy, reward_source, reward_lookup_at_ms,
+                 features_json, target_json, created_at)
+            VALUES ('hold:99:1000','r1',99,'BTCUSDT','H4','FAILED',1000,
+                    'hold_opportunity_missed',-0.05,'counterfactual',2000,'{}','{}',1000)
+            """
+        )
+        conn.commit()
+        conn.close()
+
+        _, pending = collect_training_info(db_path)
+
+        assert pending >= 1, (
+            f"FAILED counterfactual com reward_proxy deve ser contado, pending={pending}"
         )

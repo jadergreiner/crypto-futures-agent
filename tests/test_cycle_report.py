@@ -10,6 +10,8 @@ from core.model2.cycle_report import (
     collect_training_info,
     format_symbol_report,
     format_cycle_summary,
+    resolve_retrain_threshold,
+    resolve_training_cutoff_ms,
     _decision_icon,
     _progress_bar,
 )
@@ -124,7 +126,44 @@ def _criar_db_treino(db_path: Path) -> None:
                 episodes_used INTEGER,
                 status TEXT
             );
+            CREATE TABLE IF NOT EXISTS model_decisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT,
+                timeframe TEXT,
+                confidence REAL,
+                decision_timestamp INTEGER,
+                created_at TEXT
+            );
             """
+        )
+
+
+def _inserir_model_decision(
+    db_path: Path,
+    *,
+    confidence: float,
+    symbol: str = "BTCUSDT",
+    timeframe: str = "M5",
+    decision_timestamp: int = 1_700_000_000_000,
+) -> None:
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO model_decisions (
+                symbol,
+                timeframe,
+                confidence,
+                decision_timestamp,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                symbol,
+                timeframe,
+                confidence,
+                decision_timestamp,
+                "2026-03-31 10:00:00",
+            ),
         )
 
 
@@ -266,6 +305,76 @@ class TestCollectTrainingInfo:
         assert pending_antes == 2
         assert pending_depois == 1
 
+    def test_collect_training_info_ignora_log_sem_episodios_no_cutoff(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        db_path = tmp_path / "modelo2.db"
+        _criar_db_treino(db_path)
+
+        _inserir_episodio_treino(
+            db_path,
+            status="win",
+            created_at="2026-03-22 10:30:00",
+        )
+
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO rl_training_log (completed_at, episodes_used, status)
+                VALUES (?, ?, ?)
+                """,
+                ("2026-03-22 09:00:00", 5, "ok"),
+            )
+            conn.execute(
+                """
+                INSERT INTO rl_training_log (completed_at, episodes_used, status)
+                VALUES (?, ?, ?)
+                """,
+                ("2026-03-22 11:00:00", 0, "ok"),
+            )
+
+        _, pending = collect_training_info(str(db_path))
+
+        assert pending == 1
+
+
+class TestResolveTrainingCutoffMs:
+    """Testes para cutoff de treino considerar somente logs conclusivos."""
+
+    def test_cutoff_ignora_ultimo_log_sem_episodios(self, tmp_path: Path) -> None:
+        db_path = tmp_path / "modelo2.db"
+        _criar_db_treino(db_path)
+
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("ALTER TABLE rl_training_log ADD COLUMN completed_at_ms INTEGER")
+            conn.execute(
+                """
+                INSERT INTO rl_training_log (
+                    completed_at,
+                    completed_at_ms,
+                    episodes_used,
+                    status
+                ) VALUES (?, ?, ?, ?)
+                """,
+                ("2026-03-22 09:00:00", 1000, 5, "ok"),
+            )
+            conn.execute(
+                """
+                INSERT INTO rl_training_log (
+                    completed_at,
+                    completed_at_ms,
+                    episodes_used,
+                    status
+                ) VALUES (?, ?, ?, ?)
+                """,
+                ("2026-03-22 11:00:00", 2000, 0, "ok"),
+            )
+
+        cutoff_ms = resolve_training_cutoff_ms(str(db_path))
+
+        assert cutoff_ms == 1000
+
     def test_collect_training_info_fallback_seguro_tabela_ausente(
         self,
         tmp_path: Path,
@@ -277,6 +386,48 @@ class TestCollectTrainingInfo:
 
         assert last_train == "nunca"
         assert pending == 0
+
+
+class TestResolveRetrainThreshold:
+    """Testes para threshold dinâmico de retreino."""
+
+    def test_fallback_seguro_quando_sem_model_decisions(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        db_path = tmp_path / "modelo2.db"
+        _criar_db_treino(db_path)
+
+        threshold, confidence = resolve_retrain_threshold(str(db_path))
+
+        assert threshold == 100
+        assert confidence is None
+
+    def test_modo_aquecimento_quando_confianca_abaixo_de_65(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        db_path = tmp_path / "modelo2.db"
+        _criar_db_treino(db_path)
+        _inserir_model_decision(db_path, confidence=0.34)
+
+        threshold, confidence = resolve_retrain_threshold(str(db_path))
+
+        assert threshold == 3
+        assert confidence == pytest.approx(0.34)
+
+    def test_threshold_padrao_quando_confianca_atinge_meta(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        db_path = tmp_path / "modelo2.db"
+        _criar_db_treino(db_path)
+        _inserir_model_decision(db_path, confidence=0.72)
+
+        threshold, confidence = resolve_retrain_threshold(str(db_path))
+
+        assert threshold == 100
+        assert confidence == pytest.approx(0.72)
 
 
 class TestFormatSymbolReport:
@@ -382,6 +533,7 @@ class TestFormatSymbolReport:
             reward=-0.0030,
             last_train_time="2026-03-15 17:22:40",
             pending_episodes=37,
+            retrain_threshold=100,
             execution_mode="shadow"
         )
         output = format_symbol_report(r)
@@ -389,7 +541,7 @@ class TestFormatSymbolReport:
         assert "⏸" in output
         assert "HOLD" in output
         assert "SEM POSICAO" in output
-        assert "37/20" in output
+        assert "37/100" in output
 
     def test_format_open_long_with_position(self):
         """Formata relatorio de OPEN_LONG com posicao aberta."""

@@ -36,6 +36,8 @@ from core.model2.cycle_report import (
     collect_training_info,
     collect_training_info_for_symbol,
     format_symbol_report,
+    resolve_training_cutoff_ms,
+    resolve_retrain_threshold,
     resolve_candle_freshness_contract,
 )
 from core.model2.training_audit import summarize_training_audit_window
@@ -147,6 +149,27 @@ def _get_last_train_time_from_checkpoint() -> str:
     return posix_to_brt_str(latest_time) if latest_time > 0.0 else "N/A"
 
 
+def _get_last_train_time_from_symbol_checkpoint(symbol: str) -> str:
+    """Fallback para mtime do checkpoint dedicado do símbolo."""
+    normalized_symbol = str(symbol).strip().upper()
+    if not normalized_symbol:
+        return "N/A"
+
+    latest_time = 0.0
+    candidates = [
+        REPO_ROOT / "models" / "sub_agents" / f"{normalized_symbol}_entry_ppo.zip",
+        REPO_ROOT / "models" / "sub_agents" / f"{normalized_symbol}_ppo.zip",
+    ]
+    for path in candidates:
+        for alias in _checkpoint_aliases(path):
+            if alias.exists():
+                latest_time = max(latest_time, alias.stat().st_mtime)
+
+    if latest_time <= 0.0:
+        return "N/A"
+    return posix_to_brt_str(latest_time)
+
+
 # ---------------------------------------------------------------------------
 # Helpers de DB
 # ---------------------------------------------------------------------------
@@ -217,6 +240,16 @@ def _to_int_or_none(raw_value: Any) -> int | None:
         return None
 
 
+def _to_float_or_none(raw_value: Any) -> float | None:
+    """Converte valor para float quando possivel."""
+    try:
+        if raw_value is None:
+            return None
+        return float(raw_value)
+    except Exception:
+        return None
+
+
 def _safe_json_loads(raw_value: Any) -> dict[str, Any]:
     """Parse defensivo de JSON para dict."""
     try:
@@ -267,21 +300,9 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
                 "decision_id": _to_int_or_none(payload.get("id")),
                 "action": str(payload.get("action") or "HOLD"),
                 "confidence": float(payload.get("confidence") or 0.0),
-                "sl_target": (
-                    float(payload.get("sl_target"))
-                    if payload.get("sl_target") is not None
-                    else None
-                ),
-                "tp_target": (
-                    float(payload.get("tp_target"))
-                    if payload.get("tp_target") is not None
-                    else None
-                ),
-                "entry_price": (
-                    float(market_state.get("entry_price"))
-                    if market_state.get("entry_price") is not None
-                    else None
-                ),
+                "sl_target": _to_float_or_none(payload.get("sl_target")),
+                "tp_target": _to_float_or_none(payload.get("tp_target")),
+                "entry_price": _to_float_or_none(market_state.get("entry_price")),
                 "targets_origin": str(market_state.get("source_rule_id") or "N/A"),
                 "model_version": str(payload.get("model_version") or "N/A"),
                 "reason_code": str(payload.get("reason_code") or "N/A"),
@@ -352,11 +373,25 @@ def _query_last_episode_trace(*, symbol: str, db_path: str) -> dict[str, Any] | 
                 select_cols.append("event_timestamp")
             if "created_at" in cols:
                 select_cols.append("created_at")
-            sql = (
-                f"SELECT {', '.join(select_cols)} FROM training_episodes "
-                "WHERE symbol = ? ORDER BY id DESC LIMIT 1"
-            )
-            row = conn.execute(sql, (symbol,)).fetchone()
+            query_parts = [
+                f"SELECT {', '.join(select_cols)} FROM training_episodes",
+                "WHERE symbol = ?",
+            ]
+            params: list[Any] = [symbol]
+
+            # Evita falso LEGACY: ignora episodios de contexto quando houver dados reais.
+            if "status" in cols:
+                query_parts.append("AND UPPER(COALESCE(status, '')) != 'CYCLE_CONTEXT'")
+            if "execution_id" in cols:
+                if "status" in cols:
+                    query_parts.append(
+                        "AND (COALESCE(execution_id, 0) > 0 OR UPPER(COALESCE(status, '')) = 'HOLD_DECISION')"
+                    )
+                else:
+                    query_parts.append("AND COALESCE(execution_id, 0) > 0")
+
+            query_parts.append("ORDER BY id DESC LIMIT 1")
+            row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
             if row is None:
                 return None
             payload = dict(zip(select_cols, row))
@@ -646,33 +681,18 @@ def _derive_training_eligibility(
     return "ELIGIBLE"
 
 
-def _query_training_cutoff_ms(db_path: str) -> int:
-    """Retorna cutoff de treino (ms) para explicar pendencias no status."""
-    try:
-        with sqlite3.connect(db_path, timeout=5) as conn:
-            try:
-                row = conn.execute(
-                    "SELECT MAX(completed_at_ms) FROM rl_training_log"
-                ).fetchone()
-                if row and row[0] is not None:
-                    return int(row[0])
-            except sqlite3.OperationalError:
-                pass
-
-            try:
-                row = conn.execute(
-                    "SELECT MAX(completed_at) FROM rl_training_log"
-                ).fetchone()
-                if row and row[0]:
-                    cutoff_dt = datetime.strptime(str(row[0]), "%Y-%m-%d %H:%M:%S").replace(
-                        tzinfo=timezone.utc
-                    )
-                    return int(cutoff_dt.timestamp() * 1000)
-            except Exception:
-                pass
-    except Exception:
-        pass
-    return 0
+def _query_training_cutoff_ms(
+    db_path: str,
+    *,
+    symbol: str | None = None,
+    timeframe: str | None = None,
+) -> int:
+    """Retorna cutoff de treino em ms, isolado por símbolo quando possível."""
+    return resolve_training_cutoff_ms(
+        db_path,
+        symbol=symbol,
+        timeframe=timeframe,
+    )
 
 
 def _build_aud24h_human(*, started: int, running_block: int, conclusive: bool) -> str:
@@ -948,17 +968,23 @@ def _build_symbol_report(
     )
 
     # --- Treino ---
-    from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD, _progress_bar
-    thresh = RETRAIN_EPISODE_THRESHOLD
+    from core.model2.cycle_report import _progress_bar
+    thresh, train_confidence = resolve_retrain_threshold(
+        db_path,
+        symbol=symbol,
+        timeframe=training_timeframe,
+    )
     pct = pending_episodes / thresh if thresh > 0 else 0.0
     bar = _progress_bar(pct, width=10)
     episodes_restantes = max(0, thresh - pending_episodes)
+    confidence_tag = "N/A" if train_confidence is None else f"{train_confidence:.0%}"
     train_line = (
         f"ultimo: {last_train_time} | "
         f"pendentes: {pending_episodes}/{thresh} {bar} "
         f"(faltam {episodes_restantes} para retreino) | "
+        f"confidence_gate={confidence_tag} | "
         "eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,created_at>cutoff | "
-        f"cutoff_ms={_query_training_cutoff_ms(db_path)} | "
+        f"cutoff_ms={_query_training_cutoff_ms(db_path, symbol=symbol, timeframe=training_timeframe)} | "
         f"timeframe={str(training_timeframe).upper()}"
     )
     audit_started = 0
@@ -1198,14 +1224,7 @@ def main() -> int:
     # DB path
     db_path = _get_model2_db_path()
 
-    # Treino (global): fallback para simbolos sem log dedicado
     training_timeframe = None if str(args.training_timeframe).upper() == "ALL" else str(args.training_timeframe).upper()
-    global_last_train_time, global_pending_episodes = collect_training_info(
-        db_path,
-        timeframe=training_timeframe,
-    )
-    if global_last_train_time == "nunca":
-        global_last_train_time = _get_last_train_time_from_checkpoint()
 
     # Exchange (todos os modos — para posições reais na Binance)
     exchange = None
@@ -1223,8 +1242,9 @@ def main() -> int:
             timeframe=training_timeframe,
         )
         if symbol_last_train == "nunca":
-            symbol_last_train = global_last_train_time
-            symbol_pending = global_pending_episodes
+            symbol_last_train = _get_last_train_time_from_symbol_checkpoint(symbol)
+            if symbol_last_train == "N/A":
+                symbol_last_train = _get_last_train_time_from_checkpoint()
 
         line = _build_symbol_report(
             symbol=symbol,

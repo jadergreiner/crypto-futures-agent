@@ -82,6 +82,7 @@ def test_runner_skipa_simbolos_com_menos_de_20_episodios(
         timeframe="H4",
         dry_run=False,
         total_timesteps=1000,
+        min_episodes=20,
     )
 
     assert summary["results"]["BTCUSDT"]["status"] == "skipped"
@@ -123,6 +124,7 @@ def test_runner_treina_simbolo_com_30_episodios(
         timeframe="H4",
         dry_run=False,
         total_timesteps=1000,
+        min_episodes=20,
     )
 
     assert summary["results"]["BTCUSDT"]["status"] == "trained"
@@ -209,6 +211,7 @@ def test_output_json_contem_status_por_simbolo(
         timeframe="H4",
         dry_run=False,
         total_timesteps=1000,
+        min_episodes=20,
     )
 
     output_file = Path(summary["output_file"])
@@ -255,7 +258,72 @@ def test_continue_on_error_nao_aborta_restante_em_falha(
         dry_run=False,
         total_timesteps=1000,
         continue_on_error=True,
+        min_episodes=20,
     )
 
     assert summary["results"]["BTCUSDT"]["status"] == "error"
     assert summary["results"]["ETHUSDT"]["status"] == "trained"
+
+
+def test_runner_registra_rl_training_log_e_log_por_simbolo(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    db_path = tmp_path / "modelo2.db"
+    _criar_db_episodios(db_path, symbol="BTCUSDT", total=30)
+    monkeypatch.setattr(train_entry_agents_module, "REPO_ROOT", tmp_path)
+
+    class _FakeManager:
+        def __init__(self, base_dir: str = "") -> None:
+            self.base_dir = base_dir
+
+        def train_entry_agent(self, symbol, episodes, total_timesteps):
+            return {
+                "success": True,
+                "symbol": symbol,
+                "episodes_used": len(episodes),
+                "total_timesteps": total_timesteps,
+            }
+
+        def save_all(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        train_entry_agents_module,
+        "SubAgentManager",
+        _FakeManager,
+        raising=False,
+    )
+
+    summary = train_entry_agents_module.run_train_entry_agents(
+        symbols=["BTCUSDT"],
+        db_path=db_path,
+        timeframe="H4",
+        dry_run=False,
+        total_timesteps=1000,
+        min_episodes=20,
+    )
+
+    assert summary.get("training_log", {}).get("recorded") is True
+
+    with sqlite3.connect(db_path) as conn:
+        global_row = conn.execute(
+            "SELECT episodes_used, status, model_version, completed_at_ms FROM rl_training_log ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        symbol_row = conn.execute(
+            "SELECT symbol, timeframe, episodes_used, status, model_version, completed_at_ms FROM rl_training_log_by_symbol ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+
+    assert global_row is not None
+    assert int(global_row[0]) == 30
+    assert str(global_row[1]) == "ok"
+    assert str(global_row[2]) == "ppo_incremental_entry_agent"
+    assert int(global_row[3]) > 0
+
+    assert symbol_row is not None
+    assert str(symbol_row[0]) == "BTCUSDT"
+    assert str(symbol_row[1]) == "H4"
+    assert int(symbol_row[2]) == 30
+    assert str(symbol_row[3]) == "ok"
+    assert str(symbol_row[4]) == "ppo_incremental_entry_agent"
+    assert int(symbol_row[5]) > 0

@@ -165,6 +165,51 @@ class EntryDecisionEnv(gym.Env):
             )
             return np.zeros(36, dtype=np.float32)
 
+    def _get_observation_from_episode(
+        self, episode: Dict[str, Any]
+    ) -> np.ndarray:
+        """
+        Extrai observacao de um episodio suportando dois schemas:
+        - Schema legado: chave 'state_t_json' com JSON serializado
+        - Schema load_episodes: chave 'features' com lista de floats
+
+        Args:
+            episode: Dict do episodio (legado ou load_episodes)
+
+        Returns:
+            Array np.ndarray de shape (36,) com valores em [-1, 1]
+        """
+        # Schema load_episodes (preferencial): usa lista de floats diretamente
+        features = episode.get("features")
+        if features is not None and isinstance(features, list):
+            obs = np.array(features[:36], dtype=np.float32)
+            while obs.shape[0] < 36:
+                obs = np.append(obs, 0.0)
+            obs = np.nan_to_num(obs, nan=0.0)
+            return np.clip(obs, -1.0, 1.0)
+
+        # Schema legado: chave state_t_json com JSON serializado
+        state_json = episode.get("state_t_json", "{}")
+        return self._extract_observation(str(state_json))
+
+    def _get_reward_from_episode(self, episode: Dict[str, Any]) -> float:
+        """
+        Extrai reward de um episodio suportando dois schemas:
+        - Schema legado: chave 'reward_t'
+        - Schema load_episodes: chave 'reward_proxy'
+
+        Args:
+            episode: Dict do episodio
+
+        Returns:
+            Reward float
+        """
+        # Schema legado
+        if "reward_t" in episode:
+            return float(episode["reward_t"] or 0.0)
+        # Schema load_episodes
+        return float(episode.get("reward_proxy") or 0.0)
+
     def reset(
         self,
         seed: Optional[int] = None,
@@ -196,10 +241,8 @@ class EntryDecisionEnv(gym.Env):
 
         self.step_count = 0
 
-        # Extrair estado inicial
-        obs = self._extract_observation(
-            self.current_episode.get("state_t_json", "{}")
-        )
+        # Extrair estado inicial (suporta schema legado e load_episodes)
+        obs = self._get_observation_from_episode(self.current_episode)
 
         info = {
             "episode": self.episode_count,
@@ -227,20 +270,22 @@ class EntryDecisionEnv(gym.Env):
         if self.current_episode is None:
             raise RuntimeError("Chamar reset() antes de step()")
 
-        # Extrair reward retroativo do episodio
-        reward = float(
-            self.current_episode.get("reward_t", 0.0)
-        )
+        # Extrair reward retroativo (suporta schema legado e load_episodes)
+        reward = self._get_reward_from_episode(self.current_episode)
 
         # Verificar se episodio ja terminou
         done = bool(
             self.current_episode.get("done", True)
         )
 
-        # Próximo estado
-        next_obs = self._extract_observation(
-            self.current_episode.get("state_t1_json", "{}")
-        )
+        # Próximo estado (suporta schema legado e load_episodes)
+        if "state_t1_json" in self.current_episode:
+            next_obs = self._extract_observation(
+                str(self.current_episode["state_t1_json"])
+            )
+        else:
+            # Schema load_episodes: episodio single-step, proximo = atual
+            next_obs = self._get_observation_from_episode(self.current_episode)
 
         self.step_count += 1
 

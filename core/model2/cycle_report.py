@@ -24,16 +24,29 @@ logger = logging.getLogger(__name__)
 #   - train_entry_agents.py (módulo de treino)
 # Valor: 100 episódios = ponto equilíbrio entre feedback rápido e estabilidade
 RETRAIN_EPISODE_THRESHOLD = 100
+RETRAIN_WARMUP_EPISODE_THRESHOLD = 3
+RETRAIN_TARGET_CONFIDENCE = 0.65
 DEFAULT_REPORT_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 TRAINING_EPISODE_ELIGIBLE_STATUSES: tuple[str, ...] = (
     "FILLED",
     "BLOCKED",
+    "FAILED",
     "HOLD_DECISION",
     "EXECUTED",
     "EXITED",
     "WIN",
     "LOSS",
 )
+
+
+def _append_conclusive_training_filters(
+    query_parts: list[str],
+    *,
+    columns_lower: set[str],
+) -> None:
+    """Restringe cutoff a treinos conclusivos (com episodios consumidos)."""
+    if "episodes_used" in columns_lower:
+        query_parts.append("AND COALESCE(episodes_used, 0) > 0")
 
 # M2-025.3 — janela padrao para deteccao de lacuna de candles (5 minutos)
 DEFAULT_GAP_WINDOW_MS = 300_000
@@ -362,6 +375,76 @@ def _parse_candle_timestamp(raw_value: str) -> datetime | None:
     return None
 
 
+def resolve_retrain_threshold(
+    db_path: str,
+    *,
+    symbol: str | None = None,
+    timeframe: str | None = None,
+) -> tuple[int, float | None]:
+    """Resolve threshold de retreino a partir da confianca mais recente.
+
+    Enquanto a confianca mais recente do modelo estiver abaixo de 65%, o
+    sistema opera em modo de aquecimento e retreina a cada 3 episodios.
+    Sem confianca confiavel no banco, faz fallback seguro para o threshold
+    padrao de 100 episodios.
+    """
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            table_row = conn.execute(
+                """
+                SELECT 1 FROM sqlite_master
+                WHERE type = 'table' AND name = 'model_decisions'
+                LIMIT 1
+                """
+            ).fetchone()
+            if table_row is None:
+                return RETRAIN_EPISODE_THRESHOLD, None
+
+            column_rows = conn.execute("PRAGMA table_info(model_decisions)").fetchall()
+            columns = {str(row[1]).lower() for row in column_rows}
+            if "confidence" not in columns:
+                return RETRAIN_EPISODE_THRESHOLD, None
+
+            query_parts = [
+                "SELECT confidence FROM model_decisions",
+                "WHERE confidence IS NOT NULL",
+            ]
+            params: list[Any] = []
+
+            normalized_symbol = str(symbol or "").strip().upper()
+            if normalized_symbol and "symbol" in columns:
+                query_parts.append("AND UPPER(symbol) = ?")
+                params.append(normalized_symbol)
+
+            normalized_timeframe = str(timeframe or "").strip().upper()
+            if normalized_timeframe and normalized_timeframe != "ALL" and "timeframe" in columns:
+                query_parts.append("AND UPPER(timeframe) = ?")
+                params.append(normalized_timeframe)
+
+            order_by: list[str] = []
+            if "decision_timestamp" in columns:
+                order_by.append("decision_timestamp DESC")
+            if "created_at" in columns:
+                order_by.append("created_at DESC")
+            if "id" in columns:
+                order_by.append("id DESC")
+            if not order_by:
+                order_by.append("ROWID DESC")
+
+            query_parts.append(f"ORDER BY {', '.join(order_by)} LIMIT 1")
+            row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
+            if row is None or row[0] is None:
+                return RETRAIN_EPISODE_THRESHOLD, None
+
+            confidence = float(row[0])
+            if confidence < RETRAIN_TARGET_CONFIDENCE:
+                return RETRAIN_WARMUP_EPISODE_THRESHOLD, confidence
+            return RETRAIN_EPISODE_THRESHOLD, confidence
+    except Exception as exc:
+        logger.warning("Falha ao resolver threshold de retreino: %s", exc)
+        return RETRAIN_EPISODE_THRESHOLD, None
+
+
 # Helpers de coleta de dados
 
 
@@ -391,34 +474,7 @@ def collect_training_info(
             # Episodios elegiveis para treino apos ultimo retreino.
             # Usa cutoff em milissegundos para comparacao numerica consistente.
             try:
-                cutoff_ms: int | None = None
-
-                # Caminho preferido: completed_at_ms
-                try:
-                    r = conn.execute(
-                        "SELECT MAX(completed_at_ms) FROM rl_training_log"
-                    ).fetchone()
-                    if r and r[0] is not None:
-                        cutoff_ms = int(r[0])
-                except sqlite3.OperationalError:
-                    cutoff_ms = None
-
-                # Fallback retrocompativel: parse completed_at (texto UTC) para ms.
-                if cutoff_ms is None:
-                    try:
-                        r = conn.execute(
-                            "SELECT MAX(completed_at) FROM rl_training_log"
-                        ).fetchone()
-                        if r and r[0]:
-                            cutoff_dt = datetime.strptime(str(r[0]), "%Y-%m-%d %H:%M:%S").replace(
-                                tzinfo=timezone.utc
-                            )
-                            cutoff_ms = int(cutoff_dt.timestamp() * 1000)
-                    except Exception:
-                        cutoff_ms = None
-
-                if cutoff_ms is None:
-                    cutoff_ms = 0
+                cutoff_ms = resolve_training_cutoff_ms(db_path, timeframe=timeframe)
 
                 status_placeholders = ", ".join("?" for _ in TRAINING_EPISODE_ELIGIBLE_STATUSES)
                 query_parts = [
@@ -460,6 +516,115 @@ def collect_training_info(
     return last_train, pending
 
 
+def resolve_training_cutoff_ms(
+    db_path: str,
+    *,
+    symbol: str | None = None,
+    timeframe: str | None = None,
+) -> int:
+    """Resolve cutoff de treino em ms, preferindo log dedicado por símbolo.
+
+    Quando existe `rl_training_log_by_symbol`, o cutoff é isolado por símbolo e
+    timeframe. Sem essa tabela, faz fallback seguro para o log global.
+    """
+    normalized_symbol = str(symbol or "").strip().upper()
+    normalized_timeframe = str(timeframe or "").strip().upper()
+
+    try:
+        with sqlite3.connect(db_path, timeout=5) as conn:
+            if normalized_symbol:
+                try:
+                    by_symbol_columns = {
+                        str(row[1]).strip().lower()
+                        for row in conn.execute(
+                            "PRAGMA table_info(rl_training_log_by_symbol)"
+                        ).fetchall()
+                    }
+                    query_parts = [
+                        "SELECT completed_at_ms, completed_at",
+                        "FROM rl_training_log_by_symbol",
+                        "WHERE symbol = ?",
+                    ]
+                    _append_conclusive_training_filters(
+                        query_parts,
+                        columns_lower=by_symbol_columns,
+                    )
+                    params: list[Any] = [normalized_symbol]
+                    if normalized_timeframe and normalized_timeframe != "ALL":
+                        query_parts.append("AND timeframe = ?")
+                        params.append(normalized_timeframe)
+                    query_parts.append("ORDER BY completed_at_ms DESC, id DESC LIMIT 1")
+                    row = conn.execute(" ".join(query_parts), tuple(params)).fetchone()
+                    if row:
+                        if row[0] is not None:
+                            return int(row[0])
+                        if row[1]:
+                            cutoff_dt = datetime.strptime(
+                                str(row[1]),
+                                "%Y-%m-%d %H:%M:%S",
+                            ).replace(tzinfo=timezone.utc)
+                            return int(cutoff_dt.timestamp() * 1000)
+                except sqlite3.OperationalError:
+                    pass
+                except Exception:
+                    pass
+
+            try:
+                global_columns = {
+                    str(row[1]).strip().lower()
+                    for row in conn.execute(
+                        "PRAGMA table_info(rl_training_log)"
+                    ).fetchall()
+                }
+                query_parts = [
+                    "SELECT MAX(completed_at_ms)",
+                    "FROM rl_training_log",
+                    "WHERE 1 = 1",
+                ]
+                _append_conclusive_training_filters(
+                    query_parts,
+                    columns_lower=global_columns,
+                )
+                row = conn.execute(" ".join(query_parts)).fetchone()
+                if row and row[0] is not None:
+                    return int(row[0])
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                query_parts = [
+                    "SELECT MAX(completed_at)",
+                    "FROM rl_training_log",
+                    "WHERE 1 = 1",
+                ]
+                try:
+                    global_columns
+                except NameError:
+                    global_columns = {
+                        str(row[1]).strip().lower()
+                        for row in conn.execute(
+                            "PRAGMA table_info(rl_training_log)"
+                        ).fetchall()
+                    }
+                _append_conclusive_training_filters(
+                    query_parts,
+                    columns_lower=global_columns,
+                )
+                row = conn.execute(" ".join(query_parts)).fetchone()
+                if row and row[0]:
+                    cutoff_dt = datetime.strptime(
+                        str(row[0]),
+                        "%Y-%m-%d %H:%M:%S",
+                    ).replace(tzinfo=timezone.utc)
+                    return int(cutoff_dt.timestamp() * 1000)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return 0
+
+
 def collect_training_info_for_symbol(
     db_path: str,
     *,
@@ -475,23 +640,16 @@ def collect_training_info_for_symbol(
     if not normalized_symbol:
         return collect_training_info(db_path, timeframe=timeframe)
 
-    global_last_train, global_pending = collect_training_info(db_path, timeframe=timeframe)
-    last_train = global_last_train
-    pending = global_pending
-    cutoff_ms = 0
+    last_train = "nunca"
+    pending = 0
+    cutoff_ms = resolve_training_cutoff_ms(
+        db_path,
+        symbol=normalized_symbol,
+        timeframe=timeframe,
+    )
 
     try:
         with sqlite3.connect(db_path, timeout=5) as conn:
-            # cutoff global como fallback
-            try:
-                row = conn.execute(
-                    "SELECT MAX(completed_at_ms) FROM rl_training_log"
-                ).fetchone()
-                if row and row[0] is not None:
-                    cutoff_ms = int(row[0])
-            except sqlite3.OperationalError:
-                cutoff_ms = 0
-
             # preferir log por simbolo (se existir)
             try:
                 query_parts = [
@@ -508,8 +666,6 @@ def collect_training_info_for_symbol(
                 if row:
                     if row[0]:
                         last_train = str(row[0])
-                    if row[1] is not None:
-                        cutoff_ms = int(row[1])
             except sqlite3.OperationalError:
                 pass
 

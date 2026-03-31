@@ -19,7 +19,9 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.model2.operator_cycle_status import (
     _build_symbol_report,
+    _query_last_episode_trace,
     _query_risk_state_from_db,
+    _query_training_cutoff_ms,
 )
 
 
@@ -188,6 +190,7 @@ def _build_report_minimal(symbol: str = "BTCUSDT", db_path: str | None = None) -
         patch("scripts.model2.operator_cycle_status._query_last_decision_from_db", return_value=("HOLD", 0.0)),
         patch("scripts.model2.operator_cycle_status._query_episode_info", return_value=(None, False, 0.0)),
         patch("scripts.model2.operator_cycle_status._query_risk_state_from_db", return_value=None),
+        patch("scripts.model2.operator_cycle_status.resolve_retrain_threshold", return_value=(100, None)),
         patch("core.model2.cycle_report.collect_training_info", return_value=("nunca", 0)),
     ):
         return _build_symbol_report(
@@ -238,6 +241,32 @@ def test_build_symbol_report_risk_exibe_na_quando_sem_dados():
     assert "N/A" in lines[0]
 
 
+def test_build_symbol_report_exibe_threshold_dinamico_de_treino() -> None:
+    """Quando a confiança estiver baixa, o status deve expor threshold 3."""
+    db_path = _create_empty_db()
+
+    with (
+        patch("scripts.model2.operator_cycle_status._query_last_decision_from_db", return_value=("HOLD", 0.34)),
+        patch("scripts.model2.operator_cycle_status._query_episode_info", return_value=(None, False, 0.0)),
+        patch("scripts.model2.operator_cycle_status._query_risk_state_from_db", return_value=None),
+        patch("scripts.model2.operator_cycle_status.resolve_retrain_threshold", return_value=(3, 0.34)),
+        patch("core.model2.cycle_report.collect_training_info", return_value=("2026-03-31 10:00:00", 5)),
+    ):
+        report = _build_symbol_report(
+            symbol="BTCUSDT",
+            scan_h4=None,
+            scan_h1=None,
+            live_execute_summary=None,
+            exchange=None,
+            last_train_time="2026-03-31 10:00:00",
+            pending_episodes=5,
+            db_path=db_path,
+        )
+
+    assert "pendentes: 5/3" in report
+    assert "confidence_gate=34%" in report
+
+
 def test_build_symbol_report_exibe_protecao_quando_decisao_abertura_tem_alvos() -> None:
     """Linha Protecao deve exibir entry/sl/tp/rr para OPEN_SHORT com geometria valida."""
     db_path = _create_empty_db()
@@ -285,6 +314,93 @@ def test_build_symbol_report_exibe_protecao_quando_decisao_abertura_tem_alvos() 
     assert "rr=" in protection_line
     assert "geometria=ok" in protection_line
     assert "origem=M2-006.1-RULE-STANDARD-SIGNAL" in protection_line
+
+
+def test_query_last_episode_trace_ignora_cycle_context_quando_ha_trade_episode() -> None:
+    """Deve priorizar episodio real e evitar falso LEGACY com CYCLE_CONTEXT mais novo."""
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+
+    conn = sqlite3.connect(tmp.name)
+    conn.execute(
+        """
+        CREATE TABLE training_episodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            execution_id INTEGER NOT NULL,
+            symbol TEXT NOT NULL,
+            timeframe TEXT NOT NULL,
+            status TEXT NOT NULL,
+            event_timestamp INTEGER,
+            created_at INTEGER
+        )
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO training_episodes (execution_id, symbol, timeframe, status, event_timestamp, created_at)
+        VALUES (108, 'BTCUSDT', 'M5', 'FAILED', 1774933282140, 1774933290000)
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO training_episodes (execution_id, symbol, timeframe, status, event_timestamp, created_at)
+        VALUES (0, 'BTCUSDT', 'M5', 'CYCLE_CONTEXT', 1774933299043, 1774933299043)
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    trace = _query_last_episode_trace(symbol="BTCUSDT", db_path=tmp.name)
+
+    assert trace is not None
+    assert trace["execution_id"] == 108
+    assert str(trace["status"]).upper() == "FAILED"
+
+
+def test_query_training_cutoff_ms_isola_por_simbolo() -> None:
+    """Status deve explicar cutoff usando auditoria dedicada do símbolo."""
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+
+    conn = sqlite3.connect(tmp.name)
+    conn.execute(
+        """
+        CREATE TABLE rl_training_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            completed_at TEXT,
+            completed_at_ms INTEGER
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE rl_training_log_by_symbol (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            timeframe TEXT,
+            completed_at TEXT,
+            completed_at_ms INTEGER
+        )
+        """
+    )
+    conn.execute(
+        "INSERT INTO rl_training_log (completed_at, completed_at_ms) VALUES (?, ?)",
+        ("2026-03-31 02:33:40", 1000),
+    )
+    conn.execute(
+        "INSERT INTO rl_training_log_by_symbol (symbol, timeframe, completed_at, completed_at_ms) VALUES (?, ?, ?, ?)",
+        ("BTCUSDT", "M5", "2026-03-31 02:33:41", 2000),
+    )
+    conn.execute(
+        "INSERT INTO rl_training_log_by_symbol (symbol, timeframe, completed_at, completed_at_ms) VALUES (?, ?, ?, ?)",
+        ("ETHUSDT", "M5", "2026-03-31 02:33:42", 3000),
+    )
+    conn.commit()
+    conn.close()
+
+    assert _query_training_cutoff_ms(tmp.name, symbol="BTCUSDT", timeframe="M5") == 2000
+    assert _query_training_cutoff_ms(tmp.name, symbol="ETHUSDT", timeframe="M5") == 3000
+    assert _query_training_cutoff_ms(tmp.name, symbol="XRPUSDT", timeframe="M5") == 1000
 
 
 # ---------------------------------------------------------------------------
