@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Mapping, cast
+
+import pytz
 
 from .order_layer import (
     OrderLayerInput,
@@ -1543,9 +1546,23 @@ class Model2ThesisRepository:
         execution_mode: str,
         now_ms: int,
     ) -> int:
-        """Count live/shadow execution rows created since UTC day start."""
+        """Count live/shadow execution rows CONFIRMED on Binance since BRT day start.
 
-        day_start_ms = (int(now_ms) // 86_400_000) * 86_400_000
+        Only counts ENTRY_FILLED status (confirmed in Binance + local DB).
+        Excludes FAILED, READY, ENTRY_SENT, BLOCKED, CANCELLED.
+        """
+
+        # Use BRT day start (UTC-3) for consistency with trading operations
+        # Convert now_ms (UTC ms) to BRT, get BRT day start, convert back to UTC ms
+        now_utc_s = int(now_ms) // 1000
+        now_utc_dt = datetime.utcfromtimestamp(now_utc_s)
+        now_brt_dt = pytz.utc.localize(now_utc_dt).astimezone(
+            pytz.timezone('America/Sao_Paulo')
+        )
+        brt_day_start = now_brt_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        brt_day_start_utc = brt_day_start.astimezone(pytz.utc).replace(tzinfo=None)
+        day_start_ms = int(brt_day_start_utc.timestamp() * 1000)
+
         with self._connect() as conn:
             row = conn.execute(
                 """
@@ -1553,13 +1570,12 @@ class Model2ThesisRepository:
                 FROM signal_executions
                 WHERE execution_mode = ?
                   AND created_at >= ?
-                  AND status NOT IN (?, ?)
+                  AND status = ?
                 """,
                 (
                     str(execution_mode),
                     int(day_start_ms),
-                    SIGNAL_EXECUTION_STATUS_BLOCKED,
-                    SIGNAL_EXECUTION_STATUS_CANCELLED,
+                    SIGNAL_EXECUTION_STATUS_ENTRY_FILLED,
                 ),
             ).fetchone()
             return int(row[0]) if row is not None else 0

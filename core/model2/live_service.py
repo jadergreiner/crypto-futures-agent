@@ -2037,6 +2037,26 @@ class Model2LiveExecutionService:
             leverage=self.config.leverage,
         )
         if quantity <= 0:
+            # Calcular notional para diagnóstico
+            notional_target = effective_margin * self.config.leverage
+            symbol_info = exchange._get_symbol_precision_info(str(execution["symbol"]))
+            min_notional = symbol_info.get("min_notional")
+
+            logging.getLogger(__name__).warning(
+                "BLOQUEIO QUANTIDADE INVÁLIDA: symbol=%s entry_price=%.8f effective_margin=$%.2f "
+                "notional_target=$%.2f min_notional=$%.2f leverage=%dx bbapt_factor=%.2f "
+                "loss_streak=%d recent_failure_ratio=%.2f",
+                str(execution["symbol"]),
+                float(execution["entry_price"]),
+                effective_margin,
+                notional_target,
+                min_notional or 0.0,
+                self.config.leverage,
+                float(bbapt["bbapt_factor"]),
+                int(bbapt.get("loss_streak", 0)),
+                float(bbapt.get("recent_failure_ratio", 0.0)),
+            )
+
             failed = self.repository.mark_signal_execution_failed(
                 execution_id=int(execution["id"]),
                 now_ms=now_ms,
@@ -2045,6 +2065,8 @@ class Model2LiveExecutionService:
                 metadata={
                     "entry_price": float(execution["entry_price"]),
                     "effective_margin_usd": effective_margin,
+                    "notional_target_usd": notional_target,
+                    "min_notional_required_usd": min_notional,
                     "bbapt": bbapt,
                 },
             )

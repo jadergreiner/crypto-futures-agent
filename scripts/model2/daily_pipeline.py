@@ -32,6 +32,10 @@ from scripts.model2.validate import run_validation
 from scripts.model2.rl_signal_generation_wrapper import run_rl_signal_generation
 from scripts.model2.ensemble_signal_generation_wrapper import run_ensemble_signal_generation
 from scripts.model2.io_utils import atomic_write_json
+from core.model2.latency_metrics import (
+    record_cycle_latencies,
+    summarize_pipeline_benchmark,
+)
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -408,6 +412,25 @@ def run_daily_pipeline(
         stage_errors.append(_rpt_error)
     summary["stages"] = stage_summaries
     summary["stage_errors"] = stage_errors
+
+    # Benchmark M2-028.8: percentis por etapa + baseline P95 + alerta 2x.
+    try:
+        resolved_model2_db.parent.mkdir(parents=True, exist_ok=True)
+        record_cycle_latencies(
+            str(resolved_model2_db),
+            cycle_summary=summary,
+        )
+        stage_summaries["performance_benchmark"] = summarize_pipeline_benchmark(
+            str(resolved_model2_db),
+            regression_multiplier=2.0,
+        )
+    except Exception as exc:
+        stage_summaries["performance_benchmark"] = {
+            "status": "error",
+            "error": str(exc),
+            "has_regression_alerts": False,
+            "alerts": [],
+        }
 
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_daily_pipeline_{run_id}.json"

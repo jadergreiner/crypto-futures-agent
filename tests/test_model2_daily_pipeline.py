@@ -298,3 +298,94 @@ def test_daily_pipeline_continues_after_error_when_flag_enabled(
     assert summary["status"] == "partial"
     assert len(summary["stage_errors"]) == 1
     assert summary["stage_errors"][0]["stage"] == "scan"
+
+
+def test_daily_pipeline_benchmark_records_baseline_and_flags_regression(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stage_elapsed_first = {
+        "sync_ohlcv": 40,
+        "migrate": 30,
+        "scan": 100,
+        "track": 60,
+        "validate": 80,
+        "resolve": 50,
+        "bridge": 70,
+        "persist_training_episodes": 20,
+        "flush_deferred_rewards": 20,
+        "train_entry_agents": 20,
+        "entry_rl_filter": 20,
+        "order_layer": 90,
+        "export_signals": 20,
+        "rl_signal_generation": 20,
+        "ensemble_signal_generation": 20,
+        "export_dashboard": 20,
+        "daily_report": 20,
+    }
+    stage_elapsed_second = dict(stage_elapsed_first)
+    stage_elapsed_second["scan"] = 250
+
+    state = {"run": 0}
+
+    def _fake_run_stage(*, stage_name, stage_callable, stage_kwargs):  # type: ignore[no-untyped-def]
+        del stage_callable
+        del stage_kwargs
+        if state["run"] == 0:
+            elapsed = stage_elapsed_first[stage_name]
+        else:
+            elapsed = stage_elapsed_second[stage_name]
+        return {"status": "ok", "stage_elapsed_ms": elapsed}, None
+
+    monkeypatch.setattr(daily_pipeline, "_run_stage", _fake_run_stage)
+
+    first = daily_pipeline.run_daily_pipeline(
+        source_db_path=tmp_path / "db" / "source.db",
+        model2_db_path=tmp_path / "db" / "modelo2.db",
+        legacy_db_path=tmp_path / "db" / "legacy.db",
+        symbols=["BTCUSDT"],
+        timeframe="M5",
+        scan_candles_limit=120,
+        validation_candles_limit=240,
+        resolution_candles_limit=240,
+        limit=200,
+        dry_run=False,
+        continue_on_error=False,
+        retention_days=30,
+        output_dir=tmp_path / "results",
+    )
+
+    first_benchmark = first["stages"]["performance_benchmark"]
+    assert first_benchmark["status"] == "ok"
+    assert first_benchmark["stages"]["scan"]["baseline_created"] is True
+    assert first_benchmark["stages"]["scan"]["baseline_p95_ms"] == 100.0
+    assert first_benchmark["has_regression_alerts"] is False
+
+    state["run"] = 1
+    second = daily_pipeline.run_daily_pipeline(
+        source_db_path=tmp_path / "db" / "source.db",
+        model2_db_path=tmp_path / "db" / "modelo2.db",
+        legacy_db_path=tmp_path / "db" / "legacy.db",
+        symbols=["BTCUSDT"],
+        timeframe="M5",
+        scan_candles_limit=120,
+        validation_candles_limit=240,
+        resolution_candles_limit=240,
+        limit=200,
+        dry_run=False,
+        continue_on_error=False,
+        retention_days=30,
+        output_dir=tmp_path / "results",
+    )
+
+    second_benchmark = second["stages"]["performance_benchmark"]
+    assert second_benchmark["status"] == "ok"
+    assert second_benchmark["stages"]["scan"]["baseline_created"] is False
+    assert second_benchmark["stages"]["scan"]["baseline_p95_ms"] == 100.0
+    assert second_benchmark["stages"]["scan"]["has_regression_alert"] is True
+    assert second_benchmark["has_regression_alerts"] is True
+    assert any(
+        alert.get("benchmark_stage") == "scan"
+        for alert in second_benchmark["alerts"]
+    )
+    assert second_benchmark["stages"]["signal_bridge"]["sample_stage"] == "bridge"

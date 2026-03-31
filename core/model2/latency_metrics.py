@@ -22,6 +22,25 @@ CREATE TABLE IF NOT EXISTS m2_latency_samples (
 CREATE INDEX IF NOT EXISTS idx_latency_stage ON m2_latency_samples (stage, created_at DESC);
 """
 
+_SCHEMA_LATENCY_BASELINES = """
+CREATE TABLE IF NOT EXISTS m2_latency_baselines (
+    stage TEXT PRIMARY KEY,
+    baseline_p95_ms REAL NOT NULL,
+    sample_count INTEGER NOT NULL,
+    first_recorded_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+"""
+
+_DEFAULT_BENCHMARK_STAGES: dict[str, str] = {
+    "scan": "scan",
+    "track": "track",
+    "validate": "validate",
+    "signal_bridge": "bridge",
+    "order_layer": "order_layer",
+    "live_execution": "live_execution",
+}
+
 
 def _utc_now_ms() -> int:
     return int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -29,6 +48,7 @@ def _utc_now_ms() -> int:
 
 def _ensure_table(conn: sqlite3.Connection) -> None:
     conn.executescript(_SCHEMA_LATENCY_SAMPLES)
+    conn.executescript(_SCHEMA_LATENCY_BASELINES)
 
 
 def record_latency(db_path: str, *, stage: str, elapsed_ms: int) -> None:
@@ -126,3 +146,128 @@ def record_cycle_latencies(
         elapsed = stage_data.get("stage_elapsed_ms")
         if elapsed is not None:
             record_latency(db_path, stage=stage_name, elapsed_ms=int(elapsed))
+
+
+def _load_stage_samples(
+    conn: sqlite3.Connection,
+    *,
+    stage: str,
+    limit: int = 500,
+) -> list[float]:
+    rows = conn.execute(
+        "SELECT elapsed_ms FROM m2_latency_samples "
+        "WHERE stage = ? ORDER BY created_at DESC LIMIT ?",
+        (stage, int(limit)),
+    ).fetchall()
+    return [float(row[0]) for row in rows]
+
+
+def summarize_stage_benchmark(
+    db_path: str,
+    *,
+    stage: str,
+    regression_multiplier: float = 2.0,
+) -> dict[str, Any]:
+    """Resume benchmark da etapa com baseline P95 e alerta de regressao."""
+    now_ms = _utc_now_ms()
+
+    with sqlite3.connect(db_path, timeout=5) as conn:
+        _ensure_table(conn)
+
+        samples = _load_stage_samples(conn, stage=stage)
+        percentiles = compute_percentiles(samples)
+        sample_count = len(samples)
+
+        baseline_row = conn.execute(
+            "SELECT baseline_p95_ms, sample_count FROM m2_latency_baselines "
+            "WHERE stage = ?",
+            (stage,),
+        ).fetchone()
+
+        baseline_created = False
+        if baseline_row is None and sample_count > 0:
+            baseline_p95_ms = float(percentiles["p95"])
+            conn.execute(
+                "INSERT INTO m2_latency_baselines "
+                "(stage, baseline_p95_ms, sample_count, first_recorded_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    stage,
+                    baseline_p95_ms,
+                    sample_count,
+                    now_ms,
+                    now_ms,
+                ),
+            )
+            conn.commit()
+            baseline_created = True
+        elif baseline_row is not None:
+            baseline_p95_ms = float(baseline_row[0])
+        else:
+            baseline_p95_ms = 0.0
+
+    p95 = float(percentiles.get("p95", 0.0))
+    has_regression_alert = (
+        baseline_p95_ms > 0.0 and p95 > baseline_p95_ms * float(regression_multiplier)
+    )
+
+    alert = None
+    if has_regression_alert:
+        alert = {
+            "stage": stage,
+            "metric": "p95",
+            "message": (
+                f"Regressao de latencia em {stage}: "
+                f"p95={p95:.1f}ms > {regression_multiplier:.1f}x "
+                f"baseline({baseline_p95_ms:.1f}ms)"
+            ),
+            "p95_ms": p95,
+            "baseline_p95_ms": baseline_p95_ms,
+            "regression_multiplier": float(regression_multiplier),
+        }
+
+    return {
+        "stage": stage,
+        "sample_count": sample_count,
+        "percentiles_ms": percentiles,
+        "baseline_p95_ms": round(float(baseline_p95_ms), 1),
+        "baseline_created": baseline_created,
+        "regression_multiplier": float(regression_multiplier),
+        "has_regression_alert": has_regression_alert,
+        "alert": alert,
+    }
+
+
+def summarize_pipeline_benchmark(
+    db_path: str,
+    *,
+    stage_aliases: dict[str, str] | None = None,
+    regression_multiplier: float = 2.0,
+) -> dict[str, Any]:
+    """Consolida benchmark por etapa do ciclo M2 para uso no summary."""
+    aliases = stage_aliases or _DEFAULT_BENCHMARK_STAGES
+
+    stage_summaries: dict[str, dict[str, Any]] = {}
+    alerts: list[dict[str, Any]] = []
+
+    for stage_name, sample_stage in aliases.items():
+        summary = summarize_stage_benchmark(
+            db_path,
+            stage=sample_stage,
+            regression_multiplier=regression_multiplier,
+        )
+        if sample_stage != stage_name:
+            summary["sample_stage"] = sample_stage
+        stage_summaries[stage_name] = summary
+        if summary.get("alert") is not None:
+            alert = dict(summary["alert"])
+            alert["benchmark_stage"] = stage_name
+            alerts.append(alert)
+
+    return {
+        "status": "ok",
+        "regression_multiplier": float(regression_multiplier),
+        "stages": stage_summaries,
+        "alerts": alerts,
+        "has_regression_alerts": bool(alerts),
+    }

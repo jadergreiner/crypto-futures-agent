@@ -23,6 +23,30 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-293] M2-028.8 Benchmark por etapa (ACEITE) - 2026-03-31
+
+- Agente: 9.dev-cycle
+- Item: M2-028.8
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: detectar regressao de latencia por etapa antes de
+    degradar a operacao no `iniciar.bat`.
+  - Valor entregue: o summary do pipeline publica percentis p50/p95/p99,
+    baseline P95 da primeira execucao e alerta quando p95 excede 2x baseline.
+- Evidencias de fechamento:
+  - `core/model2/latency_metrics.py` com baseline persistido em
+    `m2_latency_baselines` e consolidacao por etapa.
+  - `scripts/model2/daily_pipeline.py` com stage
+    `performance_benchmark` nao bloqueante.
+  - `tests/test_model2_daily_pipeline.py` com teste de integracao de
+    baseline + regressao 2x.
+  - `pytest -q tests/test_model2_daily_pipeline.py
+    tests/test_model2_latency_metrics.py` -> 14 passed.
+  - `mypy --strict core/model2/latency_metrics.py
+    scripts/model2/daily_pipeline.py tests/test_model2_daily_pipeline.py`
+    -> Success.
+
 ### [SYNC-292] M2-028.7 Fechamento Project Manager (ACEITE) - 2026-03-30
 
 - Agente: 8.project-manager

@@ -559,8 +559,8 @@ def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]
 def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | None:
     """Extrai campos de risk_state do input_json da decisao mais recente.
 
-    Retorna dict com os campos presentes em input_json, ou None se nao houver
-    dados (DB inexistente, tabela ausente, symbol sem decisao).
+    Retorna dict com os campos presentes em input_json["risk_state"], ou None
+    se nao houver dados (DB inexistente, tabela ausente, symbol sem decisao).
     Nunca levanta excecao.
     """
     try:
@@ -578,7 +578,11 @@ def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | Non
         data = json.loads(raw)
         if not isinstance(data, dict):
             return {}
-        return data
+        # Extrair risk_state aninhado em input_json
+        risk_state_payload = data.get("risk_state", {})
+        if not isinstance(risk_state_payload, dict):
+            return {}
+        return risk_state_payload
     except Exception:
         return None
 

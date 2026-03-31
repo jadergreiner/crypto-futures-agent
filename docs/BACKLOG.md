@@ -213,7 +213,40 @@ documental final em [SYNC-292].
 
 ### TAREFA M2-028.8 - Benchmark de performance do ciclo M2 por etapa
 
-Status: BACKLOG
+Status: CONCLUIDO
+
+PO: Score 4.10. Priorizar benchmark por etapa para detectar regressao de
+latencia antes de impacto no `iniciar.bat`; valor real capturado quando o
+operador recebe alerta objetivo de p95 > 2x baseline por etapa.
+
+SA: Reusar `core/model2/latency_metrics.py` para baseline por etapa e
+comparativo em cada ciclo, integrando no summary de
+`scripts/model2/daily_pipeline.py` com alias canonico `signal_bridge`.
+
+QA: Suite RED/contrato em `tests/test_model2_daily_pipeline.py` para validar
+baseline na primeira execucao e alerta de regressao quando p95 da etapa
+`scan` excede 2x o baseline persistido.
+
+SE: GREEN concluido em 2026-03-31. `core/model2/latency_metrics.py`
+ampliado com baseline `m2_latency_baselines`, resumo de benchmark por etapa
+e alerta de regressao; `scripts/model2/daily_pipeline.py` passou a registrar
+latencias e publicar `performance_benchmark` no summary final.
+Evidencias: `pytest -q tests/test_model2_daily_pipeline.py
+tests/test_model2_latency_metrics.py` -> 14 passed; `mypy --strict
+core/model2/latency_metrics.py scripts/model2/daily_pipeline.py
+tests/test_model2_daily_pipeline.py` -> Success.
+
+TL: APROVADO. Reproducao local verde, baseline por etapa persistido,
+regressao p95 > 2x validada em teste de integracao e guardrails
+(`risk_gate`, `circuit_breaker`) preservados.
+
+DOC: Governanca documental final concluida para M2-028.8 com sincronizacao
+de BACKLOG e trilha `SYNCHRONIZATION` sobre benchmark por etapa
+e alerta de regressao [SYNC-293].
+
+PM: ACEITE em 2026-03-31. Valor PO ENTREGUE com benchmark auditavel por etapa
+no ciclo M2, baseline persistido e alerta objetivo de regressao antes de
+producao.
 
 Descricao:
 Instrumentar benchmarks automaticos por etapa do pipeline (scan, track,
@@ -222,11 +255,11 @@ baseline para detectar regressoes de latencia antes de producao.
 
 Criterios de Aceite:
 
-- [ ] Tempo de execucao por etapa medido com percentis p50/p95/p99
-- [ ] Baseline registrado em primeira execucao e comparado nas seguintes
-- [ ] Alerta quando p95 exceder 2x o baseline da etapa
-- [ ] Benchmark executado como parte da suite de testes de integracao
-- [ ] Compativel com telemetria M2-024.6 quando implementada
+- [x] Tempo de execucao por etapa medido com percentis p50/p95/p99
+- [x] Baseline registrado em primeira execucao e comparado nas seguintes
+- [x] Alerta quando p95 exceder 2x o baseline da etapa
+- [x] Benchmark executado como parte da suite de testes de integracao
+- [x] Compativel com telemetria M2-024.6 quando implementada
 
 Dependencias:
 
@@ -274,6 +307,63 @@ Criterios de Aceite:
 Dependencias:
 
 - M2-028.1 a M2-028.9
+
+---
+
+## TAREFA M2-029.1 - Corrigir bloqueio de entrada por margem insuficiente
+
+Status: IMPLEMENTADO
+
+Descricao:
+Aumentar margem minima por posicao e corrigir display de guardrails para
+permitir que sinais OPEN_LONG/OPEN_SHORT sejam executados mesmo em cenarios
+de loss_streak elevado (6+) e failure_ratio alto (85%+).
+
+Causa raiz:
+
+- M2_MAX_MARGIN_PER_POSITION_USD estava em $1.00
+- BBAPT factor com loss_streak=6 + failure_ratio=85.7% resultava em 0.56x
+- Effective margin = $1.00 × 0.56 = $0.56 USD
+- Para ETHUSDT @ ~$1991: qty ≈ 0.00028 ETH (~$0.56 notional)
+- Binance mínimo notional: ~$5-100 dependendo símbolo
+- Resultado: `invalid_requested_quantity` na Binance
+
+Correções implementadas:
+
+1. Aumentar M2_MAX_MARGIN_PER_POSITION_USD de $1.00 para $15.00
+   - Risk gate e circuit breaker continuam ativos
+   - Fail-safe preservado para decisões criticas
+   - Com fator BBAPT 0.56: effective_margin = $15 × 0.56 = $8.4
+   - Notional para ETHUSDT: ~$8.4 ✓ acima do mínimo
+
+2. Corrigir bug de display em operator_cycle_status.py
+   - _query_risk_state_from_db agora extrai risk_state do nested input_json["risk_state"]
+   - Antes: CB:N/A / RG:N/A (falsa indicação de indisponibilidade)
+   - Depois: CB:normal / RG:ativo (estado real)
+
+3. Adicionar logging melhorado em live_service._execute_ready_signal
+   - Registra notional_target vs min_notional_required quando qty=0
+   - Facilita diagnóstico de futuros problemas de sizing
+
+Validacoes:
+
+- Python syntax: ✓ OK
+- Imports: ✓ OK
+- Pre-commit checks: ✓ OK (markdownlint + docstrings)
+- Git commit: f328066
+
+Criterios de Aceite:
+
+- [x] M2_MAX_MARGIN_PER_POSITION_USD aumentado para $15
+- [x] Display de CB/RG mostra estado real (não N/A falso)
+- [x] Logging melhorado documenta notional vs mínimo
+- [x] Guardrails permanecem ativos (risk_gate, circuit_breaker)
+- [x] Fail-safe preservado em decisões criticas
+
+Dependencias:
+
+- M2-028.8 (benchmark)
+- M2-021 e M2-022 (hardening operacional)
 
 ---
 
