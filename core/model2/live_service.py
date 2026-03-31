@@ -25,7 +25,10 @@ from core.model2.risk_gate_telemetry import RiskGateBlockEvent, RiskGateTelemetr
 
 from config.execution_config import AUTHORIZED_SYMBOLS, EXECUTION_CONFIG
 from config.risk_params import RISK_PARAMS
-from core.model2.model_degradation_monitor import ModelDegradationMonitor
+from core.model2.model_degradation_monitor import (
+    ModelDegradationMonitor,
+    ModelDegradationThresholds,
+)
 from .cycle_report import (
     SymbolReport,
     collect_training_info,
@@ -394,12 +397,12 @@ class Model2LiveExecutionService:
             "--timeframe",
             str(timeframe),
         ]
-        
+
         # Para evitar aborto em broken pipe ou kill pelo parent loop (iniciar.bat -> live_cycle.py loop)
         creationflags = 0
         if sys.platform == "win32":
             creationflags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 512) | getattr(subprocess, 'DETACHED_PROCESS', 8)
-            
+
         try:
             self._incremental_training_process = subprocess.Popen(
                 command,
@@ -484,6 +487,73 @@ class Model2LiveExecutionService:
         except Exception:
             # Alertas nunca podem interromper o fluxo principal.
             return
+
+    def _resolve_model_degradation_thresholds(
+        self,
+        *,
+        symbol: str,
+    ) -> ModelDegradationThresholds:
+        defaults_raw = RISK_PARAMS.get("model_degradation_defaults", {})
+        defaults = defaults_raw if isinstance(defaults_raw, dict) else {}
+
+        by_symbol_raw = RISK_PARAMS.get("model_degradation_thresholds_by_symbol", {})
+        by_symbol = by_symbol_raw if isinstance(by_symbol_raw, dict) else {}
+        symbol_overrides_raw = by_symbol.get(str(symbol).upper()) or by_symbol.get(str(symbol))
+        symbol_overrides = symbol_overrides_raw if isinstance(symbol_overrides_raw, dict) else {}
+
+        legacy_hit_rate = float(RISK_PARAMS.get("degradation_threshold_win_rate", 0.40))
+        legacy_window = int(RISK_PARAMS.get("degradation_eval_window", 10))
+        legacy_samples = int(RISK_PARAMS.get("degradation_min_samples", 3))
+
+        def _float_value(key: str, fallback: float) -> float:
+            if key in symbol_overrides:
+                return float(symbol_overrides[key])
+            if key in defaults:
+                return float(defaults[key])
+            return float(fallback)
+
+        def _int_value(key: str, fallback: int) -> int:
+            if key in symbol_overrides:
+                return int(symbol_overrides[key])
+            if key in defaults:
+                return int(defaults[key])
+            return int(fallback)
+
+        return ModelDegradationThresholds(
+            min_avg_confidence=_float_value("min_avg_confidence", 0.55),
+            min_hit_rate=_float_value("min_hit_rate", legacy_hit_rate),
+            min_hit_rate_delta=_float_value("min_hit_rate_delta", -0.20),
+            evaluation_window=_int_value("evaluation_window", legacy_window),
+            min_samples=_int_value("min_samples", legacy_samples),
+        )
+
+    def _record_model_degradation_priority(
+        self,
+        *,
+        execution: dict[str, Any],
+        now_ms: int,
+        degradation: dict[str, Any],
+    ) -> None:
+        symbol = str(execution.get("symbol") or "")
+        timeframe = str(execution.get("timeframe") or "M5")
+        decision_id_raw = execution.get("decision_id")
+        decision_id = (
+            str(decision_id_raw)
+            if decision_id_raw is not None and str(decision_id_raw).strip()
+            else None
+        )
+        concurrency_key = (
+            f"model_degradation:{symbol}:{timeframe}:{decision_id or 'sem_decision'}"
+        )
+        self._record_training_audit(
+            triggered_at_ms=int(now_ms),
+            trigger_reason="model_degradation_priority",
+            episodes_count=int(degradation.get("recent_samples") or 0),
+            status="priority_requested",
+            model_id_after=None,
+            decision_id=decision_id,
+            concurrency_key=concurrency_key,
+        )
 
     def _log_operational_status(
         self,
@@ -1059,32 +1129,54 @@ class Model2LiveExecutionService:
                 "circuit_breaker_drawdown_pct": None,
             }
 
-    def _check_model_degradation(self, execution: dict[str, Any]) -> tuple[bool, float]:
-        """Evaluates ModelDegradationMonitor based on risk_params threshold/samples."""
+    def _check_model_degradation(self, execution: dict[str, Any]) -> dict[str, Any]:
+        """Avalia degradacao do RL por simbolo com thresholds configuraveis."""
         try:
-            threshold = float(RISK_PARAMS.get("degradation_threshold_win_rate", 0.40))
-            samples = int(RISK_PARAMS.get("degradation_min_samples", 3))
-            window = int(RISK_PARAMS.get("degradation_eval_window", 10))
-            
-            # Use the repository's database path to open a read-only or standard connection
-            # ModelDegradationMonitor receives connection and then uses it
             conn = getattr(self.repository, "_connect", None)
             if not conn:
-                return False, 0.0
+                return {
+                    "is_degraded": False,
+                    "reason_code": None,
+                    "trigger_reason": "healthy",
+                    "recent_hit_rate": 0.0,
+                    "previous_hit_rate": None,
+                    "hit_rate_delta": None,
+                    "avg_confidence": None,
+                    "recent_samples": 0,
+                    "previous_samples": 0,
+                    "confidence_samples": 0,
+                    "thresholds": {},
+                }
 
             symbol = str(execution.get("symbol", ""))
             timeframe = str(execution.get("timeframe", "M5"))
-            
+            thresholds = self._resolve_model_degradation_thresholds(symbol=symbol)
+
             with conn() as db_conn:
                 monitor = ModelDegradationMonitor(
-                    db_conn=db_conn, 
-                    symbol=symbol, 
+                    db_conn=db_conn,
+                    symbol=symbol,
                     timeframe=timeframe
                 )
-                return monitor.check_degradation(threshold, window, samples)
-        except Exception as e:
-            logging.getLogger(__name__).error(f"Error checking model degradation: {e}")
-            return False, 0.0
+                return monitor.evaluate(thresholds).as_dict()
+        except Exception as exc:
+            logging.getLogger(__name__).error(
+                "Erro ao avaliar degradacao do modelo: %s",
+                exc,
+            )
+            return {
+                "is_degraded": False,
+                "reason_code": None,
+                "trigger_reason": "healthy",
+                "recent_hit_rate": 0.0,
+                "previous_hit_rate": None,
+                "hit_rate_delta": None,
+                "avg_confidence": None,
+                "recent_samples": 0,
+                "previous_samples": 0,
+                "confidence_samples": 0,
+                "thresholds": {},
+            }
 
     def _enforce_guardrails_before_order(
         self,
@@ -1094,31 +1186,41 @@ class Model2LiveExecutionService:
         if self.config.execution_mode != "live":
             return None
 
-        # --- MODEL DEGRADATION GUARDRAIL ---
-        is_degraded, win_rate = self._check_model_degradation(execution)
-        if is_degraded:
-            failed = self.repository.mark_signal_execution_failed(
-                execution_id=int(execution["id"]),
+        degradation = self._check_model_degradation(execution)
+        if bool(degradation.get("is_degraded")):
+            symbol = str(execution.get("symbol") or "")
+            timeframe = str(execution.get("timeframe") or "M5")
+            reason_code = str(degradation.get("reason_code") or "MODEL_DEGRADATION")
+            logging.getLogger(__name__).warning(
+                "MODEL_DEGRADATION symbol=%s timeframe=%s trigger=%s hit_rate=%.3f previous=%.3f delta=%.3f confidence=%.3f",
+                symbol,
+                timeframe,
+                str(degradation.get("trigger_reason") or "unknown"),
+                float(degradation.get("recent_hit_rate") or 0.0),
+                float(degradation.get("previous_hit_rate") or 0.0),
+                float(degradation.get("hit_rate_delta") or 0.0),
+                float(degradation.get("avg_confidence") or 0.0),
+            )
+            self._record_model_degradation_priority(
+                execution=execution,
                 now_ms=now_ms,
-                reason="MODEL_DEGRADATION",
-                rule_id=M2_009_3_RULE_ID,
-                metadata={"degradation_win_rate": win_rate},
+                degradation=degradation,
             )
             self._emit_operational_alert(
                 "MODEL_DEGRADATION",
                 {
                     "execution_id": int(execution["id"]),
-                    "symbol": str(execution.get("symbol") or ""),
-                    "reason": failed.reason,
-                    "win_rate": win_rate,
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "reason_code": reason_code,
+                    "trigger_reason": str(degradation.get("trigger_reason") or "unknown"),
+                    "recent_hit_rate": degradation.get("recent_hit_rate"),
+                    "previous_hit_rate": degradation.get("previous_hit_rate"),
+                    "hit_rate_delta": degradation.get("hit_rate_delta"),
+                    "avg_confidence": degradation.get("avg_confidence"),
+                    "thresholds": dict(degradation.get("thresholds") or {}),
                 },
             )
-            return {
-                "execution_id": int(execution["id"]),
-                "status": failed.current_status,
-                "reason": failed.reason,
-            }
-        # -----------------------------------
 
         exchange = self._ensure_live_exchange()
         available_balance = self._fetch_available_balance_with_retry(exchange)

@@ -66,4 +66,27 @@ RISK_PARAMS: Dict[str, Any] = {
     "degradation_threshold_win_rate": 0.40,  # Below 40% win rate triggers degradation
     "degradation_min_samples": 3,
     "degradation_eval_window": 10,  # Evaluate last 10 episodes
+    "model_degradation_defaults": {
+        "min_avg_confidence": 0.55,
+        "min_hit_rate": 0.40,
+        "min_hit_rate_delta": -0.20,
+        "evaluation_window": 10,
+        "min_samples": 3,
+    },
+    "model_degradation_thresholds_by_symbol": {
+        "BTCUSDT": {
+            "min_avg_confidence": 0.58,
+            "min_hit_rate": 0.42,
+            "min_hit_rate_delta": -0.18,
+            "evaluation_window": 12,
+            "min_samples": 4,
+        },
+        "ETHUSDT": {
+            "min_avg_confidence": 0.56,
+            "min_hit_rate": 0.40,
+            "min_hit_rate_delta": -0.20,
+            "evaluation_window": 10,
+            "min_samples": 3,
+        },
+    },
 }

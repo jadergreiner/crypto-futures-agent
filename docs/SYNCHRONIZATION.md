@@ -23,6 +23,63 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-292] M2-028.7 Fechamento Project Manager (ACEITE) - 2026-03-30
+
+- Agente: 8.project-manager
+- Item: M2-028.7
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: emitir `MODEL_DEGRADATION` no fluxo do `iniciar.bat`
+    antes de degradacao silenciosa do RL afundar a operacao em aleatoriedade.
+  - Valor entregue: o ciclo detecta confianca media baixa ou regressao de
+    hit rate por simbolo, alerta com `MODEL_DEGRADATION` e registra
+    prioridade de retreino sem bloquear a admissao.
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` com comentarios `TL:`,
+    `DOC:` e `PM:`
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed
+  - `pytest -q tests/` -> 341 passed
+
+### [SYNC-291] M2-028.7 Governanca final de docs (Doc Advocate) - 2026-03-30
+
+- Agente: 7.doc-advocate
+- Item: M2-028.7
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: consolidado handoff final com evidencias QA/SE/TL e aceite PM.
+  - ARQUITETURA_ALVO: documentado monitor por simbolo baseado em
+    `model_decisions + training_episodes` e flag em `rl_training_audit`.
+  - REGRAS_DE_NEGOCIO: formalizada RN-041 para alerta nao bloqueante com
+    `MODEL_DEGRADATION` e thresholds por simbolo.
+  - SYNCHRONIZATION: registrada trilha documental final do item.
+- Validacoes:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed
+
+### [SYNC-290] M2-028.7 Revisao Tech Lead (APROVADO) - 2026-03-30
+
+- Agente: 6.tech-lead
+- Item: M2-028.7
+- Status backlog: REVISADO_APROVADO
+- Evidencias de reproducao:
+  - `pytest -q tests/test_model2_m2_028_7_model_degradation.py`
+    -> 5 passed
+  - `mypy --strict core/model2/model_degradation_monitor.py`
+    `core/model2/live_service.py core/model2/live_execution.py`
+    `tests/test_model2_m2_028_7_model_degradation.py` -> Success
+  - `pytest -q tests/` -> 341 passed
+- Guardrails:
+  - `risk_gate=ATIVO`
+  - `circuit_breaker=ATIVO`
+  - `decision_id=IDEMPOTENTE`
+
 ### [SYNC-289] M2-028.6 Fechamento Project Manager (ACEITE) - 2026-03-30
 
 - Agente: 8.project-manager

@@ -592,3 +592,18 @@ Para o fechamento do pacote M2-025 com auditoria documental:
    comportamento ainda nao implementado no runtime.
 5. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+
+### RN-041 - Alerta de Degradacao do Modelo RL por Simbolo (M2-028.7)
+
+Quando o desempenho do RL degradar por simbolo:
+
+1. O runtime deve combinar media de confianca recente (`model_decisions`)
+   com hit rate e regressao entre janelas (`training_episodes`).
+2. O threshold deve ser resolvido por simbolo em `config/risk_params.py`,
+   com fallback para defaults conservadores.
+3. Ao detectar degradacao, o sistema deve emitir alerta com
+   `reason_code='MODEL_DEGRADATION'` e incluir simbolo, janela e metricas.
+4. O alerta nao pode bloquear a admissao nem bypassar `risk_gate` ou
+   `circuit_breaker`; ele apenas registra e notifica.
+5. A prioridade de retreino deve ser persistida em `rl_training_audit` com
+   rastreabilidade por simbolo/timeframe e, quando houver, `decision_id`.

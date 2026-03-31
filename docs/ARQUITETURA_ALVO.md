@@ -217,6 +217,17 @@ Persistencia de decisao no estado atual:
 1. Tabela `model_decisions` para trilha da inferencia.
 2. Vinculo opcional `signal_executions.decision_id` para correlacao.
 
+**M2-028.7 (Alerta de degradacao RL por simbolo)**:
+
+1. `core/model2/model_degradation_monitor.py` combina duas fontes:
+  `model_decisions` para media de confianca recente e
+  `training_episodes` para hit rate e regressao entre janelas.
+2. `core/model2/live_service.py` resolve thresholds por simbolo via
+  `config/risk_params.py`, publica alerta `MODEL_DEGRADATION` e registra
+  flag `model_degradation_priority` em `rl_training_audit`.
+3. O alerta e nao bloqueante: a admissao segue o fluxo normal, enquanto o
+  backlog operacional de treino ganha prioridade auditavel por simbolo.
+
 **M2-020.7 (Reward deterministico operar vs HOLD)**:
 
 1. `scripts/model2/persist_training_episodes.py`:

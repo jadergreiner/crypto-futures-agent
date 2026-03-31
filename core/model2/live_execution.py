@@ -125,6 +125,8 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "daily_drawdown_limit": "ops.daily_drawdown_limit",
     # M2-028.5: Gate de concentracao por correlacao de portfolio
     "portfolio_correlation_limit": "ops.portfolio_correlation_limit",
+    # M2-028.7: alerta nao bloqueante de degradacao do modelo RL
+    "MODEL_DEGRADATION": "ops.model_degradation",
 }
 
 REASON_CODE_SEVERITY: dict[str, str] = {
@@ -173,6 +175,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "MARKET_READ_PERMANENT_FAILURE": "HIGH",
     "daily_drawdown_limit": "HIGH",
     "portfolio_correlation_limit": "HIGH",
+    "MODEL_DEGRADATION": "HIGH",
 }
 
 REASON_CODE_ACTION: dict[str, str] = {
@@ -221,6 +224,7 @@ REASON_CODE_ACTION: dict[str, str] = {
     "MARKET_READ_PERMANENT_FAILURE": "bloquear_operacao",
     "daily_drawdown_limit": "bloquear_operacao",
     "portfolio_correlation_limit": "bloquear_operacao",
+    "MODEL_DEGRADATION": "priorizar_retreino",
 }
 
 TECHNICAL_SIGNAL_STATUS_CONSUMED = "CONSUMED"

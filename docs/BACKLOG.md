@@ -148,7 +148,7 @@ documental final em [SYNC-289].
 
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
-Status: EM_DESENVOLVIMENTO
+Status: CONCLUIDO
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-03-30
@@ -160,11 +160,11 @@ acerto por janela regredir, acionando flag de retreino prioritario.
 
 Criterios de Aceite:
 
-- [ ] Confianca media e taxa de acerto monitoradas por simbolo por janela
-- [ ] Alerta emitido com reason_code MODEL_DEGRADATION e simbolo afetado
-- [ ] Flag de retreino prioritario registrado em backlog operacional
-- [ ] Threshold configuravel por simbolo em config/risk_params.py
-- [ ] Alerta nao bloqueia execucao; apenas registra e notifica
+- [x] Confianca media e taxa de acerto monitoradas por simbolo por janela
+- [x] Alerta emitido com reason_code MODEL_DEGRADATION e simbolo afetado
+- [x] Flag de retreino prioritario registrado em backlog operacional
+- [x] Threshold configuravel por simbolo em config/risk_params.py
+- [x] Alerta nao bloqueia execucao; apenas registra e notifica
 
 Dependencias:
 
@@ -175,12 +175,41 @@ PO: Score 4.30. Prioridade maxima ao alerta de degradacao do RL M5.
 Ao fim deste desenvolvimento estarei feliz se o iniciar.bat emitir
 MODEL_DEGRADATION forcando treino antes que o modelo afunde o carteira na
 aleatoriedade.
-SA: Add ModelDegradationMonitor usando metricas de training_episodes.
-Integrar alert_flag ao ciclo e fail_safe de risk_gate com reason_code.
+SA: Integrar `ModelDegradationMonitor` usando `model_decisions` para media
+de confianca e `training_episodes` para regressao por janela, emitindo alerta
+nao bloqueante com `MODEL_DEGRADATION` e flag de retreino prioritario.
 
 - Testes em: `tests/test_model2_m2_028_7_model_degradation.py`
-- Suite: 3 testes unitarios + 1 integracao live_service + 0 risk
+- Suite: 4 testes unitarios + 1 integracao live_service + 0 risk
 - Comando validacao: pytest -q tests/test_model2_m2_028_7_model_degradation.py
+
+QA: Suite RED alinhada ao contrato oficial com 5 testes cobrindo hit rate,
+confianca media, regressao entre janelas e integracao nao bloqueante do
+live_service para `MODEL_DEGRADATION`.
+
+SE: GREEN concluido em 2026-03-30. `core/model2/model_degradation_monitor.py`
+reescrito com thresholds tipados, media de confianca por simbolo e delta de
+hit rate por janela; `core/model2/live_service.py` agora registra prioridade
+de retreino em `rl_training_audit` e emite alerta `MODEL_DEGRADATION` sem
+bloquear a admissao; `config/risk_params.py` ganhou overrides por simbolo e
+`core/model2/live_execution.py` recebeu catalogo canonico do reason_code.
+Evidencias: `pytest -q tests/test_model2_m2_028_7_model_degradation.py` ->
+5 passed; `mypy --strict core/model2/model_degradation_monitor.py
+core/model2/live_service.py core/model2/live_execution.py
+tests/test_model2_m2_028_7_model_degradation.py` -> Success; `pytest -q
+tests/` -> 341 passed.
+
+TL: APROVADO. Reproducao local verde, alert_flag nao bloqueante confirmado,
+guardrails (`risk_gate`, `circuit_breaker`) preservados e trilha de retreino
+prioritario pronta para governanca documental [SYNC-290].
+
+DOC: Governanca documental final concluida para M2-028.7 com alinhamento de
+BACKLOG, ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION sobre alerta
+`MODEL_DEGRADATION` nao bloqueante [SYNC-291].
+
+PM: ACEITE em 2026-03-30. Valor PO ENTREGUE com alerta auditavel por simbolo
+no fluxo do `iniciar.bat`, priorizacao objetiva de retreino e fechamento
+documental final em [SYNC-292].
 
 ### TAREFA M2-028.8 - Benchmark de performance do ciclo M2 por etapa
 
