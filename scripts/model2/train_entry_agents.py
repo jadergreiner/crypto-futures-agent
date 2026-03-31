@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 from agent.episode_loader import load_episodes
 from agent.sub_agent_manager import SubAgentManager
 from config.settings import M2_SYMBOLS, MODEL2_DB_PATH
+from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +25,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MIN_EPISODES_FOR_TRAINING = 20
+# Usar constante centralizada de threshold de episódios
+MIN_EPISODES_FOR_TRAINING = RETRAIN_EPISODE_THRESHOLD
 
 
 def run_train_entry_agents(

@@ -19,6 +19,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Importar constante centralizada de threshold
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
+
 # Diretórios
 REPO_ROOT = Path(__file__).parent.parent.parent
 STATE_FILE = REPO_ROOT / "results" / "model2" / "learning_state.json"
@@ -66,7 +70,7 @@ def _get_episode_count() -> int:
 
 
 def should_run_continuous_cycle(
-    min_new_episodes: int = 100,
+    min_new_episodes: int = RETRAIN_EPISODE_THRESHOLD,
     min_hours_between_runs: float = 2.0
 ) -> Tuple[bool, str]:
     """

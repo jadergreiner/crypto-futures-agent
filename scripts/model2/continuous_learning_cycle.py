@@ -25,6 +25,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from config.settings import DB_PATH, M2_SYMBOLS, MODEL2_DB_PATH
+from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
 from core.model2.model_decision import ModelDecisionInput
 from core.model2.model_degradation_monitor import (
     ModelDegradationMonitor,
@@ -212,7 +213,7 @@ def run_continuous_learning_cycle_once(
     continue_on_error: bool = True,
     model_first: bool = True,
     retrain_timesteps: int = 5000,
-    min_episodes_for_retrain: int = 20,
+    min_episodes_for_retrain: int = RETRAIN_EPISODE_THRESHOLD,
     min_samples_protection_head: int = 50,
     drift_window: int = 30,
     drift_min_samples: int = 10,
@@ -486,7 +487,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--stop-on-error", action="store_true")
     parser.add_argument("--signal-first", action="store_true", help="Desativa model-first no decision probe")
     parser.add_argument("--retrain-timesteps", type=int, default=5000)
-    parser.add_argument("--min-episodes-for-retrain", type=int, default=20)
+    parser.add_argument("--min-episodes-for-retrain", type=int, default=RETRAIN_EPISODE_THRESHOLD)
     parser.add_argument("--min-samples-protection-head", type=int, default=50)
     parser.add_argument("--drift-window", type=int, default=30)
     parser.add_argument("--drift-min-samples", type=int, default=10)
