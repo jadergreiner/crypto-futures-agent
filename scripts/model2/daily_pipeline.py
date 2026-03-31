@@ -261,6 +261,7 @@ def run_daily_pipeline(
                 "timeframe": timeframe,
                 "dry_run": bool(dry_run),
                 "continue_on_error": True,
+                "require_pending_threshold": True,
             },
         ),
         (

@@ -18,7 +18,11 @@ if str(REPO_ROOT) not in sys.path:
 from agent.episode_loader import load_episodes
 from agent.sub_agent_manager import SubAgentManager
 from config.settings import M2_SYMBOLS, MODEL2_DB_PATH
-from core.model2.cycle_report import RETRAIN_EPISODE_THRESHOLD
+from core.model2.cycle_report import (
+    RETRAIN_EPISODE_THRESHOLD,
+    collect_training_info_for_symbol,
+    resolve_retrain_threshold,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -189,6 +193,7 @@ def run_train_entry_agents(
     total_timesteps: int = 5000,
     continue_on_error: bool = False,
     min_episodes: int = MIN_EPISODES_FOR_TRAINING,
+    require_pending_threshold: bool = False,
 ) -> dict[str, Any]:
     """Executa treino de entry agents por simbolo e salva resumo em JSON."""
     db_path_obj = Path(db_path)
@@ -206,6 +211,7 @@ def run_train_entry_agents(
         "dry_run": dry_run,
         "total_timesteps": int(total_timesteps),
         "continue_on_error": continue_on_error,
+        "require_pending_threshold": bool(require_pending_threshold),
         "results": {},
     }
 
@@ -217,6 +223,36 @@ def run_train_entry_agents(
 
     for symbol in symbol_list:
         try:
+            if require_pending_threshold:
+                resolved_threshold, resolved_confidence = resolve_retrain_threshold(
+                    str(db_path_obj),
+                    symbol=symbol,
+                    timeframe=timeframe,
+                )
+                _, pending_episodes = collect_training_info_for_symbol(
+                    str(db_path_obj),
+                    symbol=symbol,
+                    timeframe=timeframe,
+                )
+                if int(pending_episodes) < int(resolved_threshold):
+                    conf_tag = (
+                        "N/A"
+                        if resolved_confidence is None
+                        else f"{float(resolved_confidence):.2%}"
+                    )
+                    summary["results"][symbol] = {
+                        "status": "skipped",
+                        "reason": (
+                            "insufficient_pending_episodes_after_cutoff: "
+                            f"{int(pending_episodes)} < {int(resolved_threshold)}"
+                        ),
+                        "pending_episodes": int(pending_episodes),
+                        "resolved_threshold": int(resolved_threshold),
+                        "resolved_confidence": conf_tag,
+                    }
+                    skipped_count += 1
+                    continue
+
             episodes = load_episodes(
                 db_path=db_path_obj,
                 symbol=symbol,
@@ -335,6 +371,14 @@ def main() -> int:
         type=int,
         default=MIN_EPISODES_FOR_TRAINING,
     )
+    parser.add_argument(
+        "--require-pending-threshold",
+        action="store_true",
+        help=(
+            "Treina apenas quando episodios pendentes apos cutoff atingirem o "
+            "threshold resolvido por confianca"
+        ),
+    )
     args = parser.parse_args()
 
     symbols = args.symbol if args.symbol else list(M2_SYMBOLS)
@@ -346,6 +390,7 @@ def main() -> int:
         total_timesteps=int(args.total_timesteps),
         continue_on_error=bool(args.continue_on_error),
         min_episodes=int(args.min_episodes),
+        require_pending_threshold=bool(args.require_pending_threshold),
     )
 
     print(json.dumps(summary, indent=2, ensure_ascii=False))

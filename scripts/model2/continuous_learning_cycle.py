@@ -324,6 +324,7 @@ def run_continuous_learning_cycle_once(
                 "total_timesteps": int(retrain_timesteps),
                 "continue_on_error": True,
                 "min_episodes": effective_min_episodes_for_retrain,
+                "require_pending_threshold": True,
             },
         )
         _execute_stage(
