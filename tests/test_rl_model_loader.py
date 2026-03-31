@@ -146,6 +146,24 @@ class TestComModeloCarregado:
         assert action == "HOLD"
         assert confidence == 0.55
 
+    def test_predicao_usa_probabilidade_da_policy_quando_disponivel(self) -> None:
+        """Quando policy expõe probabilidades, confiança deve refletir a ação prevista."""
+        mock_model = MagicMock()
+        mock_model.predict.return_value = (np.array([2]), None)  # SHORT
+
+        loader = RLModelLoader.__new__(RLModelLoader)
+        loader._model = mock_model
+        loader._fallback_mode = False
+        loader._fallback_reason = ""
+        loader._checkpoint_path = None
+
+        features = np.zeros(5, dtype=np.float32)
+        with patch.object(loader, "_extract_action_probability", return_value=0.77):
+            confidence, action = loader.predict_confidence(features, signal_side="BUY")
+
+        assert action == "SHORT"
+        assert confidence == 0.77
+
     def test_fallback_em_erro_de_predicao(self) -> None:
         """Erro durante predict ativa fallback automaticamente."""
         mock_model = MagicMock()

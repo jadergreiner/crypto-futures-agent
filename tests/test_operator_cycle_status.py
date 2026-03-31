@@ -238,6 +238,55 @@ def test_build_symbol_report_risk_exibe_na_quando_sem_dados():
     assert "N/A" in lines[0]
 
 
+def test_build_symbol_report_exibe_protecao_quando_decisao_abertura_tem_alvos() -> None:
+    """Linha Protecao deve exibir entry/sl/tp/rr para OPEN_SHORT com geometria valida."""
+    db_path = _create_empty_db()
+
+    decision_trace = {
+        "decision_id": 42728,
+        "action": "OPEN_SHORT",
+        "confidence": 0.34,
+        "sl_target": 66386.1,
+        "tp_target": 66304.1,
+        "entry_price": 66358.7,
+        "targets_origin": "M2-006.1-RULE-STANDARD-SIGNAL",
+        "model_version": "m2-inference-v1",
+        "reason_code": "inference_from_symbol_model_divergence",
+        "decision_timestamp_ms": 1774925959000,
+        "signal_timestamp_ms": 1774925935000,
+        "signal_age_ms": 24000,
+        "max_signal_age_ms": 14400000,
+        "source": "RL_MODEL",
+    }
+
+    with (
+        patch("scripts.model2.operator_cycle_status._query_last_decision_from_db", return_value=("OPEN_SHORT", 0.34)),
+        patch("scripts.model2.operator_cycle_status._query_last_decision_trace", return_value=decision_trace),
+        patch("scripts.model2.operator_cycle_status._query_last_execution_trace", return_value=None),
+        patch("scripts.model2.operator_cycle_status._query_last_episode_trace", return_value=None),
+        patch("scripts.model2.operator_cycle_status._query_episode_info", return_value=(None, False, 0.0)),
+        patch("scripts.model2.operator_cycle_status._query_risk_state_from_db", return_value=None),
+    ):
+        report = _build_symbol_report(
+            symbol="BTCUSDT",
+            scan_h4=None,
+            scan_h1=None,
+            live_execute_summary=None,
+            exchange=None,
+            last_train_time="N/A",
+            pending_episodes=0,
+            db_path=db_path,
+        )
+
+    protection_line = next(line for line in report.splitlines() if "Protecao :" in line)
+    assert "entry=66358.7000" in protection_line
+    assert "sl=66386.1000" in protection_line
+    assert "tp=66304.1000" in protection_line
+    assert "rr=" in protection_line
+    assert "geometria=ok" in protection_line
+    assert "origem=M2-006.1-RULE-STANDARD-SIGNAL" in protection_line
+
+
 # ---------------------------------------------------------------------------
 # Testes: _build_symbol_report — conteudo da linha Risk
 # ---------------------------------------------------------------------------
@@ -304,6 +353,47 @@ def test_build_symbol_report_risk_exibe_cb_trancado_quando_estado_halted():
 
     # Assert
     assert "[CB TRANCADO]" in risk_line
+
+
+def test_build_symbol_report_posicao_exibe_tamanho_nocional_e_roi_sobre_margem() -> None:
+    """Posicao deve refletir nocional em USDT e ROI calculado sobre margem."""
+    db_path = _create_empty_db()
+    exchange = MagicMock()
+    exchange.get_open_position.return_value = {
+        "symbol": "BTCUSDT",
+        "direction": "SHORT",
+        "position_size_qty": 0.001,
+        "position_size_usdt": 67.9830077,
+        "entry_price": 70637.75,
+        "mark_price": 67983.0077,
+        "margin_invested": 6.79830077,
+        "leverage": 10,
+        "unrealized_pnl": 2.65,
+        "unrealized_pnl_pct": 38.98,
+    }
+
+    with (
+        patch("scripts.model2.operator_cycle_status._query_last_decision_from_db", return_value=("OPEN_SHORT", 0.30)),
+        patch("scripts.model2.operator_cycle_status._query_episode_info", return_value=(None, False, 0.0)),
+        patch("scripts.model2.operator_cycle_status._query_risk_state_from_db", return_value=None),
+    ):
+        report = _build_symbol_report(
+            symbol="BTCUSDT",
+            scan_h4=None,
+            scan_h1=None,
+            live_execute_summary=None,
+            exchange=exchange,
+            last_train_time="N/A",
+            pending_episodes=0,
+            db_path=db_path,
+        )
+
+    position_line = next(line for line in report.splitlines() if "Posicao  :" in line)
+    assert "SHORT 67.98 USDT @ 70637.7500" in position_line
+    assert "mark: 67983.0077" in position_line
+    assert "margem: $6.80" in position_line
+    assert "alavancagem: 10x" in position_line
+    assert "PnL: +38.98% (+$2.65)" in position_line
 
 
 def test_build_symbol_report_risk_exibe_long_bloqueado_quando_short_only_e_open_long():

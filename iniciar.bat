@@ -110,6 +110,45 @@ if exist "!STATUS_TMP!" (
     call :LOG_AND_ECHO "[M2][SYM] WARN: nenhum status gerado pelo operator_cycle_status.py"
 )
 
+REM ======================================================================
+REM ETAPA AUTOMATICA: Ciclo Continuo de Autoaprendizado
+REM Verifica automaticamente se deve executar retreino + drift analysis
+REM Zero intervencao do usuario. Totalmente transparente.
+REM ======================================================================
+call :GET_BRT_TIMESTAMP 2>nul
+call :LOG_AND_ECHO "[M2][LEARNING] Verificando condicoes para ciclo continuo..."
+set "LEARNING_CHECK_TMP=logs\learning_check_!RANDOM!_!RANDOM!.tmp"
+python scripts/model2/continuous_learning_controller.py check > "!LEARNING_CHECK_TMP!" 2>&1
+set "LEARNING_CHECK_RESULT=%ERRORLEVEL%"
+
+if "!LEARNING_CHECK_RESULT!"=="0" (
+    call :GET_BRT_TIMESTAMP 2>nul
+    call :LOG_AND_ECHO "[M2][LEARNING] *** INICIANDO ETAPA DE AUTOAPRENDIZADO CONTINUO ***"
+    call :LOG_AND_ECHO "[M2][LEARNING] Coleta completada. Iniciando retreino + analise de drift..."
+
+    REM Executar ciclo com flags otimizadas:
+    REM --no-collection: ja foi feito no live_cycle.py
+    REM --signal-first: para nao quebrar fluxo normal
+    REM Simbolos: usar os mesmos da operacao
+    python scripts/model2/continuous_learning_cycle.py ^
+        --no-collection ^
+        --timeframe M5 ^
+        !PIPELINE_SYMBOL_ARGS! ^
+        >> "!CYCLE_LOG!" 2>&1
+
+    if %errorlevel% equ 0 (
+        call :GET_BRT_TIMESTAMP 2>nul
+        call :LOG_AND_ECHO "[M2][LEARNING] *** CICLO DE AUTOAPRENDIZADO CONCLUIDO COM SUCESSO ***"
+        python scripts/model2/continuous_learning_controller.py mark --symbols "!M2_SYMBOLS!" >> "!CYCLE_LOG!" 2>&1
+    ) else (
+        call :GET_BRT_TIMESTAMP 2>nul
+        call :LOG_AND_ECHO "[M2][LEARNING] WARN: ciclo de autoaprendizado com erro (nao afeta fluxo operacional)"
+    )
+) else (
+    type "!LEARNING_CHECK_TMP!" >> "!CYCLE_LOG!" 2>nul
+)
+del /q "!LEARNING_CHECK_TMP!" >nul 2>&1
+
 call :GET_BRT_TIMESTAMP 2>nul
 call :GET_BRT_TIMESTAMP_PLUS_SECONDS !M2_LOOP_SECONDS! 2>nul
 if "!TS_BRT_PLUS!"=="" set "TS_BRT_PLUS=!TS_BRT!"

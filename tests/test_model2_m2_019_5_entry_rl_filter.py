@@ -228,6 +228,54 @@ def test_entry_rl_filter_contradicao_com_confianca_alta_cancela_sinal(tmp_path: 
     assert int(summary["cancelled_contradiction"]) == 1
 
 
+def test_entry_rl_filter_contradicao_com_autonomia_habilitada_preserva_created(tmp_path: Path) -> None:
+    """Com autonomia habilitada, contradição não cancela; sinal segue para decisão model-first."""
+    db_path = _prepare_model2_db(tmp_path)
+    signal_id = _seed_created_signal(db_path=db_path, symbol="BTCUSDT", side="LONG")
+
+    module = _load_entry_rl_filter_module()
+
+    class _FakeManager:
+        def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+            _ = args
+            _ = kwargs
+
+        def load_all(self) -> None:
+            return None
+
+        def predict_entry(self, symbol: str, observation: list[float]) -> tuple[int, float]:
+            _ = symbol
+            _ = observation
+            return 2, 0.92
+
+    summary = module.run_entry_rl_filter(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=20,
+        dry_run=False,
+        output_dir=tmp_path / "results" / "model2" / "runtime",
+        threshold=0.55,
+        manager_cls=_FakeManager,
+        allow_contradiction_pass_through=True,
+    )
+
+    with sqlite3.connect(db_path) as conn:
+        status = conn.execute(
+            "SELECT status FROM technical_signals WHERE id = ?",
+            (signal_id,),
+        ).fetchone()
+    assert status is not None
+    assert status[0] == "CREATED"
+    _assert_rl_audit_payload(
+        db_path=db_path,
+        signal_id=signal_id,
+        expected_reason="rl_entry_contradiction",
+    )
+    assert int(summary["cancelled_contradiction"]) == 0
+    assert int(summary["pass_through"]) == 1
+
+
 def test_entry_rl_filter_match_enriquece_payload_sem_cancelamento(tmp_path: Path) -> None:
     """Requisito: match de direcao enriquece payload e preserva CREATED."""
     db_path = _prepare_model2_db(tmp_path)

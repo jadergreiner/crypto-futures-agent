@@ -19,9 +19,10 @@ from core.model2 import Model2ThesisRepository
 from scripts.model2.io_utils import atomic_write_json
 
 try:
-    from config.settings import MODEL2_DB_PATH
+    from config.settings import MODEL2_DB_PATH, M2_ENTRY_RL_ALLOW_CONTRADICTION
 except Exception:
     MODEL2_DB_PATH = "db/modelo2.db"
+    M2_ENTRY_RL_ALLOW_CONTRADICTION = False
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 DEFAULT_THRESHOLD = 0.55
@@ -166,6 +167,7 @@ def run_entry_rl_filter(
     output_dir: str | Path,
     threshold: float = DEFAULT_THRESHOLD,
     manager_cls: Callable[..., Any] | None = None,
+    allow_contradiction_pass_through: bool = False,
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
@@ -307,10 +309,10 @@ def run_entry_rl_filter(
                 items.append(item)
                 continue
 
-            cancelled_contradiction += 1
             reason = "rl_entry_contradiction"
-            item["result"] = "cancelled"
+            contradiction_mode = "pass_through" if bool(allow_contradiction_pass_through) else "cancelled"
             item["reason"] = reason
+            item["contradiction_mode"] = contradiction_mode
             rl_audit = _build_rl_audit_payload(
                 action=normalized_action,
                 confidence=normalized_confidence,
@@ -319,16 +321,32 @@ def run_entry_rl_filter(
                 decision_timestamp=decision_timestamp,
                 agent_version=agent_version,
             )
-            if not dry_run:
-                _write_rl_audit(
-                    conn,
-                    signal_id=signal_id,
-                    previous_status=from_status,
-                    target_status="CANCELLED",
-                    rl_audit=rl_audit,
-                    payload_base=raw_payload,
-                    now_ms=_utc_now_ms(),
-                )
+            if bool(allow_contradiction_pass_through):
+                pass_through += 1
+                item["result"] = "pass_through"
+                if not dry_run:
+                    _write_rl_audit(
+                        conn,
+                        signal_id=signal_id,
+                        previous_status=from_status,
+                        target_status=from_status,
+                        rl_audit=rl_audit,
+                        payload_base=raw_payload,
+                        now_ms=_utc_now_ms(),
+                    )
+            else:
+                cancelled_contradiction += 1
+                item["result"] = "cancelled"
+                if not dry_run:
+                    _write_rl_audit(
+                        conn,
+                        signal_id=signal_id,
+                        previous_status=from_status,
+                        target_status="CANCELLED",
+                        rl_audit=rl_audit,
+                        payload_base=raw_payload,
+                        now_ms=_utc_now_ms(),
+                    )
             items.append(item)
 
     summary = {
@@ -341,6 +359,7 @@ def run_entry_rl_filter(
             "timeframe": timeframe,
             "limit": int(limit),
             "threshold": float(threshold),
+            "allow_contradiction_pass_through": bool(allow_contradiction_pass_through),
         },
         "eligible_created_signals": len(candidates),
         "fallback": int(fallback),
@@ -404,6 +423,7 @@ def main() -> int:
         dry_run=bool(args.dry_run),
         output_dir=args.output_dir,
         threshold=float(args.threshold),
+        allow_contradiction_pass_through=bool(M2_ENTRY_RL_ALLOW_CONTRADICTION),
     )
     print(json.dumps(summary, indent=2, ensure_ascii=True))
     return 0

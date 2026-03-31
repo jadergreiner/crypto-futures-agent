@@ -236,6 +236,10 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
             select_cols: list[str] = ["id", "action"]
             if "confidence" in cols:
                 select_cols.append("confidence")
+            if "sl_target" in cols:
+                select_cols.append("sl_target")
+            if "tp_target" in cols:
+                select_cols.append("tp_target")
             if "model_version" in cols:
                 select_cols.append("model_version")
             if "reason_code" in cols:
@@ -263,6 +267,22 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
                 "decision_id": _to_int_or_none(payload.get("id")),
                 "action": str(payload.get("action") or "HOLD"),
                 "confidence": float(payload.get("confidence") or 0.0),
+                "sl_target": (
+                    float(payload.get("sl_target"))
+                    if payload.get("sl_target") is not None
+                    else None
+                ),
+                "tp_target": (
+                    float(payload.get("tp_target"))
+                    if payload.get("tp_target") is not None
+                    else None
+                ),
+                "entry_price": (
+                    float(market_state.get("entry_price"))
+                    if market_state.get("entry_price") is not None
+                    else None
+                ),
+                "targets_origin": str(market_state.get("source_rule_id") or "N/A"),
                 "model_version": str(payload.get("model_version") or "N/A"),
                 "reason_code": str(payload.get("reason_code") or "N/A"),
                 "decision_timestamp_ms": decision_ts_ms,
@@ -828,6 +848,35 @@ def _build_symbol_report(
         f"| snapshot_at={snapshot_at}"
     )
 
+    # --- Protecao (SL/TP) ---
+    protection_line = "N/A"
+    if decision_trace is not None and decision in {"OPEN_LONG", "OPEN_SHORT"}:
+        entry_price = decision_trace.get("entry_price")
+        sl_target = decision_trace.get("sl_target")
+        tp_target = decision_trace.get("tp_target")
+        targets_origin = str(decision_trace.get("targets_origin") or "N/A")
+
+        if entry_price is not None and sl_target is not None and tp_target is not None:
+            risk_distance = abs(float(entry_price) - float(sl_target))
+            reward_distance = abs(float(entry_price) - float(tp_target))
+            rr_ratio = (reward_distance / risk_distance) if risk_distance > 0 else None
+
+            if decision == "OPEN_LONG":
+                geometry_ok = float(sl_target) < float(entry_price) < float(tp_target)
+            else:
+                geometry_ok = float(tp_target) < float(entry_price) < float(sl_target)
+
+            rr_text = f"{rr_ratio:.2f}" if rr_ratio is not None else "N/A"
+            geometry_text = "ok" if geometry_ok else "invalida"
+            protection_line = (
+                f"entry={float(entry_price):.4f} | "
+                f"sl={float(sl_target):.4f} | "
+                f"tp={float(tp_target):.4f} | "
+                f"rr={rr_text} | geometria={geometry_text} | origem={targets_origin}"
+            )
+        else:
+            protection_line = f"alvos indisponiveis na decisao | origem={targets_origin}"
+
     # --- Persistencia correlacionada ---
     persist_line = ""
     if (
@@ -980,25 +1029,36 @@ def _build_symbol_report(
                 has_position = True
                 direction = str(position.get("direction", "")).upper()
                 qty = float(position.get("position_size_qty", 0))
+                size_usdt = float(position.get("position_size_usdt", 0) or 0)
                 entry = float(position.get("entry_price", 0))
                 mark = float(position.get("mark_price", 0))
-                margin = float(position.get("initial_margin", position.get("margin", 0)))
+                margin = float(
+                    position.get(
+                        "margin_invested",
+                        position.get("initial_margin", position.get("margin", 0)),
+                    )
+                    or 0
+                )
                 leverage = position.get("leverage", "N/A")
+                pnl_usd = float(position.get("unrealized_pnl", 0) or 0)
+                pnl_pct = float(position.get("unrealized_pnl_pct", 0) or 0)
 
-                if entry > 0 and qty > 0:
+                if pnl_usd == 0.0 and entry > 0 and qty > 0:
                     if direction == "LONG":
                         pnl_usd = (mark - entry) * qty
                     else:
                         pnl_usd = (entry - mark) * qty
-                    pnl_pct = (pnl_usd / (entry * qty)) * 100 if entry > 0 else 0.0
-                else:
-                    pnl_usd = 0.0
-                    pnl_pct = 0.0
+                if pnl_pct == 0.0 and margin > 0:
+                    pnl_pct = (pnl_usd / margin) * 100
+
+                display_size = size_usdt if size_usdt > 0 else qty
+                display_unit = "USDT" if size_usdt > 0 else "qty"
 
                 pnl_sign = "+" if pnl_pct >= 0 else ""
                 usd_sign = "+" if pnl_usd >= 0 else ""
                 position_line = (
-                    f"{direction} {qty} @ {entry:.4f} | mark: {mark:.4f} | "
+                    f"{direction} {display_size:.2f} {display_unit} @ {entry:.4f} | "
+                    f"mark: {mark:.4f} | "
                     f"margem: ${margin:.2f} | alavancagem: {leverage}x | "
                     f"PnL: {pnl_sign}{pnl_pct:.2f}% ({usd_sign}${pnl_usd:.2f})"
                 )
@@ -1015,6 +1075,7 @@ def _build_symbol_report(
         f"  Episodio : {episode_line}",
         f"  Frescor  : {frescor_line}",
         f"  Features : {features_line}",
+        f"  Protecao : {protection_line}",
         f"  Persist. : {persist_line}",
         f"  Treino   : {train_line} | {audit_train_line}",
         f"  Posicao  : {position_line}",

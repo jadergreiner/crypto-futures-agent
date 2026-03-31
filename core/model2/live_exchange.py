@@ -227,15 +227,62 @@ class Model2LiveExchange:
             if position_amt == 0:
                 continue
             direction = "LONG" if position_amt > 0 else "SHORT"
+            entry_price = float(self._safe_get(row, ["entry_price", "entryPrice"], 0) or 0)
+            mark_price = float(self._safe_get(row, ["mark_price", "markPrice"], 0) or 0)
+            leverage = int(self._safe_get(row, ["leverage"], self._leverage) or self._leverage)
+            unrealized_pnl = float(
+                self._safe_get(row, ["un_realized_profit", "unRealizedProfit"], 0) or 0
+            )
+            isolated_wallet = float(
+                self._safe_get(row, ["isolated_wallet", "isolatedWallet"], 0) or 0
+            )
+            position_size_qty = abs(position_amt)
+            position_size_usdt = position_size_qty * mark_price if mark_price > 0 else 0.0
+
+            raw_initial_margin = self._safe_get(
+                row,
+                [
+                    "initial_margin",
+                    "initialMargin",
+                    "position_initial_margin",
+                    "positionInitialMargin",
+                ],
+                None,
+            )
+            try:
+                initial_margin = (
+                    float(raw_initial_margin) if raw_initial_margin is not None else 0.0
+                )
+            except (TypeError, ValueError):
+                initial_margin = 0.0
+
+            if initial_margin <= 0 and position_size_usdt > 0:
+                if leverage > 0:
+                    initial_margin = position_size_usdt / leverage
+                else:
+                    initial_margin = position_size_usdt
+
+            unrealized_pnl_pct = 0.0
+            if initial_margin > 0:
+                unrealized_pnl_pct = (unrealized_pnl / initial_margin) * 100
+
             positions.append(
                 {
                     "symbol": str(self._safe_get(row, ["symbol"], "")),
                     "direction": direction,
-                    "position_size_qty": abs(position_amt),
-                    "entry_price": float(self._safe_get(row, ["entry_price", "entryPrice"], 0) or 0),
-                    "mark_price": float(self._safe_get(row, ["mark_price", "markPrice"], 0) or 0),
-                    "leverage": int(self._safe_get(row, ["leverage"], self._leverage) or self._leverage),
+                    "position_size_qty": position_size_qty,
+                    "position_size_usdt": position_size_usdt,
+                    "entry_price": entry_price,
+                    "mark_price": mark_price,
+                    "leverage": leverage,
                     "margin_type": str(self._safe_get(row, ["margin_type", "marginType"], "CROSS") or "CROSS"),
+                    "unrealized_pnl": unrealized_pnl,
+                    "unrealized_pnl_pct": unrealized_pnl_pct,
+                    "initial_margin": initial_margin,
+                    "margin": initial_margin,
+                    "margin_invested": initial_margin,
+                    "margin_balance": isolated_wallet,
+                    "isolated_wallet": isolated_wallet,
                 }
             )
         return positions

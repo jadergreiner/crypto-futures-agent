@@ -173,8 +173,16 @@ class RLModelLoader:
                 adapted_features,
                 deterministic=True,
             )
+            action_idx = int(np.asarray(action_id).flat[0])
             action_map = {0: "HOLD", 1: "LONG", 2: "SHORT"}
-            action = action_map.get(int(action_id.flat[0]), "HOLD")
+            action = action_map.get(action_idx, "HOLD")
+
+            probability_confidence = self._extract_action_probability(
+                adapted_features=adapted_features,
+                action_idx=action_idx,
+            )
+            if probability_confidence is not None:
+                return probability_confidence, action
 
             expected = (
                 "LONG"
@@ -193,6 +201,51 @@ class RLModelLoader:
         except Exception as exc:
             logger.error("[RL] Erro em predict_confidence: %s", exc)
             return self._deterministic_fallback(signal_side)
+
+    def _extract_action_probability(
+        self,
+        *,
+        adapted_features: np.ndarray,
+        action_idx: int,
+    ) -> float | None:
+        """Extrai probabilidade da acao escolhida quando o policy expõe distribuição.
+
+        Retorna None quando o checkpoint/policy nao suporta acesso a probabilidades,
+        preservando o fluxo legado de confiança discreta.
+        """
+        try:
+            policy = getattr(self._model, "policy", None)
+            if policy is None:
+                return None
+
+            import torch
+
+            features_array = np.asarray(adapted_features, dtype=np.float32)
+            if features_array.ndim == 1:
+                features_array = features_array.reshape(1, -1)
+
+            with torch.no_grad():
+                obs_tensor = torch.as_tensor(features_array, device=policy.device)
+                distribution = policy.get_distribution(obs_tensor)
+                probs_tensor = getattr(distribution.distribution, "probs", None)
+                if probs_tensor is None:
+                    return None
+                probs = probs_tensor.detach().cpu().numpy()
+
+            if probs.ndim == 2:
+                probs = probs[0]
+
+            if action_idx < 0 or action_idx >= int(probs.shape[0]):
+                return None
+
+            probability = float(probs[action_idx])
+            if probability < 0.0:
+                return 0.0
+            if probability > 1.0:
+                return 1.0
+            return probability
+        except Exception:
+            return None
 
     def _adapt_features_for_model(self, features: np.ndarray) -> np.ndarray:
         """Adapta o vetor de features ao shape esperado pelo checkpoint carregado."""

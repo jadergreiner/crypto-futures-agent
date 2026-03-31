@@ -36,11 +36,19 @@ from scripts.model2.io_utils import atomic_write_json
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
 try:
-    from config.settings import DB_PATH, M2_SHORT_ONLY, M2_SYMBOLS, MODEL2_DB_PATH, _normalize_symbol_scope
+    from config.settings import (
+        DB_PATH,
+        M2_ENTRY_RL_ALLOW_CONTRADICTION,
+        M2_SHORT_ONLY,
+        M2_SYMBOLS,
+        MODEL2_DB_PATH,
+        _normalize_symbol_scope,
+    )
 except Exception:
     DB_PATH = "db/crypto_agent.db"
     MODEL2_DB_PATH = "db/modelo2.db"
     M2_SHORT_ONLY = False
+    M2_ENTRY_RL_ALLOW_CONTRADICTION = False
     M2_SYMBOLS = ("BTCUSDT",)
     def _normalize_symbol_scope(
         raw_value: str | None,
@@ -265,6 +273,7 @@ def run_daily_pipeline(
                 "limit": int(limit),
                 "dry_run": bool(dry_run),
                 "output_dir": resolved_output_dir,
+                "allow_contradiction_pass_through": bool(M2_ENTRY_RL_ALLOW_CONTRADICTION),
             },
         ),
         (

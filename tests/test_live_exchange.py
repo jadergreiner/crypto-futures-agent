@@ -107,6 +107,26 @@ class _FakeClientForProtectiveFail:
         self.rest_api = _FakeRestApiForProtectiveFail()
 
 
+class _FakeRestApiForPositions:
+    def position_information_v2(self, symbol=None, recv_window=None):  # type: ignore[no-untyped-def]
+        return [
+            {
+                "symbol": symbol or "BTCUSDT",
+                "positionAmt": "-0.001",
+                "entryPrice": "70637.75",
+                "markPrice": "67983.0077",
+                "unRealizedProfit": "2.65",
+                "leverage": "10",
+                "marginType": "CROSS",
+            }
+        ]
+
+
+class _FakeClientForPositions:
+    def __init__(self) -> None:
+        self.rest_api = _FakeRestApiForPositions()
+
+
 def test_calculate_entry_quantity_respects_precision_and_rounding(monkeypatch):
     ex = Model2LiveExchange(DummyClient())
 
@@ -178,3 +198,18 @@ def test_place_protective_order_does_not_fallback_to_market_close(monkeypatch) -
             order_type="STOP_MARKET",
         )
     assert close_called["value"] is False
+
+
+def test_list_open_positions_deriva_nocional_margem_e_roi_da_posicao() -> None:
+    ex = Model2LiveExchange(_FakeClientForPositions())
+
+    positions = ex.list_open_positions(symbol="BTCUSDT")
+
+    assert len(positions) == 1
+    position = positions[0]
+    assert position["direction"] == "SHORT"
+    assert position["position_size_qty"] == pytest.approx(0.001)
+    assert position["position_size_usdt"] == pytest.approx(67.9830077)
+    assert position["margin_invested"] == pytest.approx(6.79830077)
+    assert position["unrealized_pnl"] == pytest.approx(2.65)
+    assert position["unrealized_pnl_pct"] == pytest.approx(38.98, rel=0.01)
