@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.model2.bridge import run_bridge
+from scripts.model2.daily_report import run_daily_report
 from scripts.model2.export_dashboard import run_export_dashboard
 from scripts.model2.export_signals import run_export_signals
 from scripts.model2.entry_rl_filter import run_entry_rl_filter
@@ -379,6 +380,24 @@ def run_daily_pipeline(
         "stages": stage_summaries,
         "stage_errors": stage_errors,
     }
+
+    # Stage 17: relatorio diario (sempre executa, nao-bloqueante)
+    _rpt_summary, _rpt_error = _run_stage(
+        stage_name="daily_report",
+        stage_callable=run_daily_report,
+        stage_kwargs={
+            "model2_db_path": resolved_model2_db,
+            "data_ref_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "run_id": run_id,
+            "reports_dir": resolved_output_dir.parent / "reports",
+        },
+    )
+    if _rpt_summary is not None:
+        stage_summaries["daily_report"] = _rpt_summary
+    elif _rpt_error is not None:
+        stage_errors.append(_rpt_error)
+    summary["stages"] = stage_summaries
+    summary["stage_errors"] = stage_errors
 
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_daily_pipeline_{run_id}.json"

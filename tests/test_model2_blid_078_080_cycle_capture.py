@@ -331,6 +331,7 @@ def test_log_operational_status_com_episodio_persistido_reflete_reward(
         decision=_criar_decisao(),
         candles_count=12,
         last_candle_time="2026-03-22 18:00 UTC",
+        timeframe="H4",
     )
 
     assert "report" in captured

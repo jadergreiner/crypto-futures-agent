@@ -1,0 +1,12 @@
+════════════════════════════════════════════════
+  RELATORIO DIARIO M2 | 2026-03-31 | 2026-03-30 22:21:33 BRT
+════════════════════════════════════════════════
+  PnL Realizado  : +$0.00  (0 encerradas)
+  Win-rate       : N/A  (sem episodios)
+  Drawdown Max.  : -$0.00 acumulado
+────────────────────────────────────────────────
+  Operacoes      : 0 admitidas | 6 bloqueadas
+  Alertas        : INFO=6
+────────────────────────────────────────────────
+  Episodios RL   : 0 capturados (0W / 0L)
+════════════════════════════════════════════════

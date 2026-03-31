@@ -94,7 +94,7 @@ Dependencias:
 
 ### TAREFA M2-028.6 - Relatorio diario automatico de performance
 
-Status: BACKLOG
+Status: REVISADO_APROVADO
 
 Descricao:
 Gerar relatorio diario consolidado com PnL realizado, episodios capturados,
@@ -103,16 +103,42 @@ severidade, persistido em arquivo e exibido no log de encerramento do ciclo.
 
 Criterios de Aceite:
 
-- [ ] Relatorio gerado automaticamente ao encerrar ciclo diario
-- [ ] Campos: PnL, win-rate, episodios, drawdown, admitidas/bloqueadas
-- [ ] Persistido em reports/daily/ com timestamp BRT no nome
-- [ ] Compativel com M2-026.4 (dashboard operacional)
-- [ ] Nenhum dado pessoal ou chave API incluido no relatorio
+- [x] Relatorio gerado automaticamente ao encerrar ciclo diario
+- [x] Campos: PnL, win-rate, episodios, drawdown, admitidas/bloqueadas
+- [x] Persistido em `results/model2/reports/` com data de referencia no nome
+- [x] Compativel com M2-026.4 (dashboard operacional)
+- [x] Nenhum dado pessoal ou chave API incluido no relatorio
 
 Dependencias:
 
 - M2-026.4
 - M2-028.4
+
+QA: Suite GREEN em `tests/test_model2_daily_report.py` com 8 casos
+unitarios cobrindo coleta, severidade, persistencia e formatacao do relatorio
+diario; regressao de stage coberta em
+`tests/test_model2_daily_pipeline.py` e
+`tests/test_model2_m2_019_6_019_7_pipeline_integration.py`.
+Comandos de validacao: `pytest -q tests/test_model2_daily_report.py
+tests/test_model2_daily_pipeline.py
+tests/test_model2_m2_019_6_019_7_pipeline_integration.py` -> 18 passed.
+
+SE: Implementacao concluida em 2026-03-30 com `DailyReportData`,
+`DailyReportService` e `formatar_relatorio_diario` em
+`core/model2/daily_report.py`; runner standalone em
+`scripts/model2/daily_report.py`; integracao no stage 17 pos-loop em
+`scripts/model2/daily_pipeline.py`; suite nova em
+`tests/test_model2_daily_report.py`.
+Evidencias: `pytest -q tests/` -> 341 passed; `mypy --strict
+core/model2/daily_report.py scripts/model2/daily_report.py
+scripts/model2/daily_pipeline.py tests/test_model2_daily_report.py
+tests/test_model2_daily_pipeline.py
+tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+-> Success.
+
+TL: APROVADO. Reproducao local verde, stage 17 nao bloqueante preservado,
+guardrails (`risk_gate`, `circuit_breaker`) ativos e trilha de relatorio
+diario pronta para governanca documental [SYNC-287].
 
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
@@ -139,8 +165,12 @@ Dependencias:
 - M2-025.6
 - M2-026.1
 
-PO: Score 4.30. Prioridade maxima ao alerta de degradacao do RL M5. Ao fim deste desenvolvimento estarei feliz se o iniciar.bat emitir MODEL_DEGRADATION forcando treino antes que o modelo afunde o carteira na aleatoriedade.
-SA: Add ModelDegradationMonitor usando metricas de training_episodes. Integrar alert_flag ao ciclo e fail_safe de risk_gate com reason_code.
+PO: Score 4.30. Prioridade maxima ao alerta de degradacao do RL M5.
+Ao fim deste desenvolvimento estarei feliz se o iniciar.bat emitir
+MODEL_DEGRADATION forcando treino antes que o modelo afunde o carteira na
+aleatoriedade.
+SA: Add ModelDegradationMonitor usando metricas de training_episodes.
+Integrar alert_flag ao ciclo e fail_safe de risk_gate com reason_code.
 
 - Testes em: `tests/test_model2_m2_028_7_model_degradation.py`
 - Suite: 3 testes unitarios + 1 integracao live_service + 0 risk

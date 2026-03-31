@@ -23,6 +23,42 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-287] M2-028.6 Relatorio diario automatico (TL APROVADO) - 2026-03-30
+
+- Agente: 6.tech-lead
+- Item: M2-028.6
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: tarefa M2-028.6 promovida para `REVISADO_APROVADO` com
+    criterios de aceite marcados, evidencias QA/SE e decisao TL;
+  - BACKLOG: consolidado escopo tecnico com
+    `core/model2/daily_report.py`, `scripts/model2/daily_report.py`,
+    stage `daily_report` em `scripts/model2/daily_pipeline.py` e suite
+    `tests/test_model2_daily_report.py` (8 casos);
+  - SYNC: registrada trilha de aprovacao com validacoes globais e de tipagem.
+- Validacao de valor PO:
+  - Valor prometido: consolidar metricas diarias (PnL, win-rate, drawdown,
+    admitidas/bloqueadas e alertas) no encerramento do ciclo com persistencia
+    em arquivo auditavel;
+  - Valor entregue: relatorio diario executa no stage 17 do pipeline,
+    persiste JSON/TXT em `results/model2/reports/` e exibe bloco legivel no
+    log operacional.
+- Validacoes:
+  - `pytest -q tests/test_model2_daily_report.py`
+    `tests/test_model2_daily_pipeline.py`
+    `tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+    -> 18 passed
+  - `pytest -q tests/` -> 341 passed
+  - `mypy --strict core/model2/daily_report.py`
+    `scripts/model2/daily_report.py scripts/model2/daily_pipeline.py`
+    `tests/test_model2_daily_report.py`
+    `tests/test_model2_daily_pipeline.py`
+    `tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
+    -> Success
+
 ### [SYNC-286] M2-025.15 Fechamento Project Manager (ACEITE) - 2026-03-29
 
 - Agente: 8.project-manager

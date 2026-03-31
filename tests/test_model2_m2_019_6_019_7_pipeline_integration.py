@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+import pytest
+
 import scripts.model2.daily_pipeline as daily_pipeline
 
 
@@ -27,7 +29,10 @@ def _fake_stage_raise(calls: list[str], name: str) -> Callable[..., dict[str, An
     return _runner
 
 
-def _base_monkeypatch_pipeline(calls: list[str], monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def _base_monkeypatch_pipeline(
+    calls: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         daily_pipeline,
         "sync_ohlcv_from_binance",
@@ -44,6 +49,12 @@ def _base_monkeypatch_pipeline(calls: list[str], monkeypatch) -> None:  # type: 
         daily_pipeline,
         "run_persist_training_episodes",
         _fake_stage(calls, "persist_training_episodes"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        daily_pipeline,
+        "flush_deferred_rewards",
+        _fake_stage(calls, "flush_deferred_rewards"),
         raising=False,
     )
     monkeypatch.setattr(
@@ -88,6 +99,12 @@ def _base_monkeypatch_pipeline(calls: list[str], monkeypatch) -> None:  # type: 
         _fake_stage(calls, "export_dashboard"),
         raising=False,
     )
+    monkeypatch.setattr(
+        daily_pipeline,
+        "run_daily_report",
+        _fake_stage(calls, "daily_report"),
+        raising=False,
+    )
 
 
 def _run_pipeline(tmp_path: Path, *, continue_on_error: bool, dry_run: bool = False) -> dict[str, Any]:
@@ -114,8 +131,8 @@ def _idx(calls: list[str], name: str) -> int:
 
 def test_daily_pipeline_ordena_stages_bridge_persist_train_filter_order_layer(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: ordem obrigatoria dos novos stages no pipeline."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)
@@ -130,8 +147,8 @@ def test_daily_pipeline_ordena_stages_bridge_persist_train_filter_order_layer(
 
 def test_daily_pipeline_continue_on_error_true_novos_stages_nao_abortam(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: novos stages devem manter comportamento continue_on_error=True."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)
@@ -152,8 +169,8 @@ def test_daily_pipeline_continue_on_error_true_novos_stages_nao_abortam(
 
 def test_daily_pipeline_persist_training_episodes_antes_do_treino_no_mesmo_ciclo(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: episodios devem ser persistidos antes de treinar no mesmo run."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)
@@ -165,8 +182,8 @@ def test_daily_pipeline_persist_training_episodes_antes_do_treino_no_mesmo_ciclo
 
 def test_daily_pipeline_entry_rl_filter_executa_antes_da_order_layer(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: filtro RL deve preceder consumo da camada de ordem."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)
@@ -178,8 +195,8 @@ def test_daily_pipeline_entry_rl_filter_executa_antes_da_order_layer(
 
 def test_daily_pipeline_output_json_por_run_contem_stages_novos(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: output de execucao deve expor novos stages no resumo."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)
@@ -196,8 +213,8 @@ def test_daily_pipeline_output_json_por_run_contem_stages_novos(
 
 def test_daily_pipeline_migrate_up_e2e_em_db_novo_e_existente(
     tmp_path: Path,
-    monkeypatch,
-) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Requisito: migracao segue idempotente em banco novo e existente."""
     calls: list[str] = []
     _base_monkeypatch_pipeline(calls, monkeypatch)

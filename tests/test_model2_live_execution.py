@@ -1263,7 +1263,13 @@ def test_log_operational_status_redispara_treino_incremental_apos_termino_sem_du
     )
     monkeypatch.setattr(
         "core.model2.live_service.subprocess",
-        SimpleNamespace(Popen=_capture_subprocess, run=_capture_subprocess),
+        SimpleNamespace(
+            Popen=_capture_subprocess,
+            run=_capture_subprocess,
+            DEVNULL=object(),
+            CREATE_NEW_PROCESS_GROUP=512,
+            DETACHED_PROCESS=8,
+        ),
         raising=False,
     )
 
