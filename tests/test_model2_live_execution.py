@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from core.model2.model_decision import (
     ACTION_CLOSE,
     ACTION_HOLD,
@@ -201,6 +203,21 @@ def _forced_inference_result(model_input, *, action: str, reason: str) -> Infere
         reason=reason,
         rule_id="TEST-M2-020.4",
         details={"origin": "test"},
+    )
+
+
+@pytest.fixture(autouse=True)
+def _default_model_inference_open_long(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _force_open_long(self, model_input):
+        return _forced_inference_result(
+            model_input,
+            action=ACTION_OPEN_LONG,
+            reason="force_open_long_default",
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_open_long,
     )
 
 
@@ -1169,7 +1186,11 @@ def test_live_reconcile_position_side_mismatch_marks_failed_and_audits_divergenc
     )
     assert execute_summary["processed_ready"][0]["status"] == "PROTECTED"
 
-    exchange.positions["BTCUSDT"]["direction"] = "LONG"
+    executed_side = str(exchange.positions["BTCUSDT"]["direction"])
+    mismatched_side = (
+        "SHORT" if executed_side == "LONG" else "LONG"
+    )
+    exchange.positions["BTCUSDT"]["direction"] = mismatched_side
 
     reconcile_summary = run_live_reconcile(
         model2_db_path=db_path,
@@ -1214,8 +1235,8 @@ def test_live_reconcile_position_side_mismatch_marks_failed_and_audits_divergenc
     payload = json.loads(str(payload_row[0]))
     assert payload["result"] == "critical_divergence"
     assert payload["reason"] == "reconciliation_divergence_position_side_mismatch"
-    assert payload["exchange_position_side"] == "LONG"
-    assert payload["expected_signal_side"] == "SHORT"
+    assert payload["exchange_position_side"] == mismatched_side
+    assert payload["expected_signal_side"] == executed_side
 
 
 def test_log_operational_status_redispara_treino_incremental_apos_termino_sem_duplicar_concorrencia(

@@ -70,7 +70,10 @@ from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
 from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
 from .market_reader import RetryPolicy, read_market_with_retry
-from .volatility_sizing import adjust_size_for_volatility
+from .volatility_sizing import (
+    adjust_size_for_volatility,
+    resolve_volatility_sizing_config,
+)
 from .training_audit import (
     detect_training_stale,
     evaluate_training_trigger_audit,
@@ -487,6 +490,78 @@ class Model2LiveExecutionService:
         except Exception:
             # Alertas nunca podem interromper o fluxo principal.
             return
+
+    def _apply_volatility_sizing(
+        self,
+        *,
+        inferred_decision: ModelDecision,
+        candidate: dict[str, Any],
+        atr_normalized_pct: float | None,
+        now_ms: int,
+    ) -> ModelDecision:
+        if inferred_decision.action not in {ACTION_OPEN_LONG, ACTION_OPEN_SHORT}:
+            return inferred_decision
+
+        symbol = str(candidate.get("symbol") or inferred_decision.symbol)
+        sizing_config = resolve_volatility_sizing_config(
+            symbol=symbol,
+            risk_params=RISK_PARAMS,
+        )
+        sizing_result = adjust_size_for_volatility(
+            base_size_fraction=float(inferred_decision.size_fraction),
+            atr_normalized_pct=atr_normalized_pct,
+            execution_mode=str(self.config.execution_mode),
+            config=sizing_config,
+        )
+
+        volatility_metadata: dict[str, Any] = {
+            "applied": bool(sizing_result.applied),
+            "multiplier": float(sizing_result.multiplier),
+            "atr_normalized_pct": sizing_result.atr_normalized_pct,
+            "base_size_fraction": float(inferred_decision.size_fraction),
+            "adjusted_size_fraction": float(sizing_result.adjusted_size_fraction),
+        }
+
+        signal_id_raw = candidate.get("id")
+        try:
+            if signal_id_raw is None:
+                raise ValueError("technical_signal id ausente")
+            signal_id = int(signal_id_raw)
+            self.repository.mark_technical_signal_volatility_sizing(
+                signal_id=signal_id,
+                now_ms=int(now_ms),
+                atr_normalized_pct=volatility_metadata["atr_normalized_pct"],
+                multiplier=float(volatility_metadata["multiplier"]),
+                base_size_fraction=float(volatility_metadata["base_size_fraction"]),
+                adjusted_size_fraction=float(volatility_metadata["adjusted_size_fraction"]),
+                applied=bool(volatility_metadata["applied"]),
+            )
+        except (TypeError, ValueError):
+            logging.getLogger(__name__).warning(
+                "technical_signal invalido para registrar volatility_sizing: symbol=%s id=%s",
+                symbol,
+                signal_id_raw,
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "Falha ao registrar volatility_sizing em technical_signals: %s",
+                exc,
+            )
+
+        metadata = dict(inferred_decision.metadata)
+        metadata["volatility_sizing"] = volatility_metadata
+        return ModelDecision(
+            action=inferred_decision.action,
+            confidence=inferred_decision.confidence,
+            size_fraction=float(sizing_result.adjusted_size_fraction),
+            sl_target=inferred_decision.sl_target,
+            tp_target=inferred_decision.tp_target,
+            reason_code=inferred_decision.reason_code,
+            decision_timestamp=inferred_decision.decision_timestamp,
+            symbol=inferred_decision.symbol,
+            model_version=inferred_decision.model_version,
+            metadata=metadata,
+        )
 
     def _resolve_model_degradation_thresholds(
         self,
@@ -1484,32 +1559,12 @@ class Model2LiveExecutionService:
                 if model_input is not None
                 else None
             )
-            sizing_result = adjust_size_for_volatility(
-                base_size_fraction=float(inferred_decision.size_fraction),
+            inferred_decision = self._apply_volatility_sizing(
+                inferred_decision=inferred_decision,
+                candidate=candidate,
                 atr_normalized_pct=atr_normalized_pct,
-                execution_mode=str(self.config.execution_mode),
+                now_ms=int(now_ms),
             )
-            if inferred_decision.action in {ACTION_OPEN_LONG, ACTION_OPEN_SHORT}:
-                metadata = dict(inferred_decision.metadata)
-                metadata["volatility_sizing"] = {
-                    "applied": bool(sizing_result.applied),
-                    "multiplier": float(sizing_result.multiplier),
-                    "atr_normalized_pct": sizing_result.atr_normalized_pct,
-                    "base_size_fraction": float(inferred_decision.size_fraction),
-                    "adjusted_size_fraction": float(sizing_result.adjusted_size_fraction),
-                }
-                inferred_decision = ModelDecision(
-                    action=inferred_decision.action,
-                    confidence=inferred_decision.confidence,
-                    size_fraction=float(sizing_result.adjusted_size_fraction),
-                    sl_target=inferred_decision.sl_target,
-                    tp_target=inferred_decision.tp_target,
-                    reason_code=inferred_decision.reason_code,
-                    decision_timestamp=inferred_decision.decision_timestamp,
-                    symbol=inferred_decision.symbol,
-                    model_version=inferred_decision.model_version,
-                    metadata=metadata,
-                )
 
             gate_input: LiveExecutionGateInput | None = None
             created_decision = self.repository.create_model_decision(

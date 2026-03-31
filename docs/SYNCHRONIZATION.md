@@ -23,6 +23,59 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-301] M2-028.3 Fechamento da task - 2026-03-31
+
+- Agente: 5.software-engineer
+- Item: M2-028.3
+- Status backlog: CONCLUIDO
+- Arquivos alterados:
+  - `config/risk_params.py`
+  - `core/model2/volatility_sizing.py`
+  - `core/model2/live_service.py`
+  - `core/model2/repository.py`
+  - `tests/test_model2_m2_028_3_volatility_sizing.py`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Escopo:
+  - configuracao de volatility sizing por simbolo com fallback global;
+  - persistencia idempotente em `technical_signals.payload_json` com
+    `atr_normalized_pct`, `multiplier`, `base_size_fraction`,
+    `adjusted_size_fraction` e `applied`;
+  - contrato shadow preservado como informativo (sem ajuste efetivo).
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_028_3_volatility_sizing.py`
+    -> 9 passed
+  - `mypy --strict core/model2/volatility_sizing.py`
+    `core/model2/live_service.py` -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+
+### [SYNC-300] M2-028.2 Fechamento da pendencia auditavel - 2026-03-31
+
+- Agente: 5.software-engineer
+- Item: M2-028.2
+- Status backlog: CONCLUIDO
+- Arquivos alterados:
+  - `scripts/model2/migrations/0015_create_promotion_history.sql`
+  - `core/model2/promotion_gate.py`
+  - `tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Escopo:
+  - tabela `promotion_history` criada para trilha auditavel paper->live;
+  - persistencia por `decision_id` com idempotencia por unique conflict;
+  - registro de GO/NO-GO com motivos, aprovacao manual e rollback;
+  - rollback pos-promocao registrado como `event_type=ROLLBACK_EVENT`.
+- Evidencias:
+  - `python scripts/model2/migrate.py up` -> applied_now [15]
+  - `pytest -q tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
+    -> 12 passed
+  - `mypy --strict core/model2/promotion_gate.py`
+    `tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/` -> 338 passed, 15 failed (fora do escopo M2-028.2)
+
 ### [SYNC-299] M2-029.1 Fechamento Project Manager (ACEITE) - 2026-03-31
 
 - Agente: 8.project-manager

@@ -19,6 +19,34 @@ RISK_PARAMS: Dict[str, Any] = {
     "max_leverage": 10,  # Isolated margin — atualizado para 10x
     "max_margin_per_position_usd": 15.0,
 
+    # Volatility Sizing (M2-028.3)
+    "volatility_sizing_defaults": {
+        "min_multiplier": 0.35,
+        "max_multiplier": 0.55,
+        "low_vol_threshold_pct": 2.0,
+        "high_vol_threshold_pct": 6.0,
+        "min_size_fraction": 0.01,
+        "max_size_fraction": 1.0,
+    },
+    "volatility_sizing_by_symbol": {
+        "BTCUSDT": {
+            "min_multiplier": 0.33,
+            "max_multiplier": 0.52,
+            "low_vol_threshold_pct": 1.8,
+            "high_vol_threshold_pct": 5.8,
+            "min_size_fraction": 0.01,
+            "max_size_fraction": 0.95,
+        },
+        "ETHUSDT": {
+            "min_multiplier": 0.34,
+            "max_multiplier": 0.54,
+            "low_vol_threshold_pct": 2.0,
+            "high_vol_threshold_pct": 6.2,
+            "min_size_fraction": 0.01,
+            "max_size_fraction": 0.90,
+        },
+    },
+
     # Stop Loss & Take Profit
     "stop_loss_atr_multiplier": 1.5,
     "take_profit_atr_multiplier": 3.0,

@@ -153,6 +153,15 @@ class MarkTechnicalSignalExportErrorResult:
 
 
 @dataclass(frozen=True)
+class MarkTechnicalSignalVolatilitySizingResult:
+    """Result of volatility sizing marker update in technical_signals payload."""
+
+    signal_id: int
+    updated: bool
+    reason: str
+
+
+@dataclass(frozen=True)
 class CreateSignalExecutionResult:
     """Result of initial live execution candidate creation."""
 
@@ -1302,6 +1311,90 @@ class Model2ThesisRepository:
                     previous_status=previous_status,
                     current_status=decision.target_status,
                     reason=decision.reason,
+                )
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+    def mark_technical_signal_volatility_sizing(
+        self,
+        *,
+        signal_id: int,
+        now_ms: int,
+        atr_normalized_pct: float | None,
+        multiplier: float,
+        base_size_fraction: float,
+        adjusted_size_fraction: float,
+        applied: bool,
+    ) -> MarkTechnicalSignalVolatilitySizingResult:
+        """Persist marker de volatility sizing em payload_json de technical_signals."""
+
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute(
+                    """
+                    SELECT id, payload_json
+                    FROM technical_signals
+                    WHERE id = ?
+                    """,
+                    (signal_id,),
+                ).fetchone()
+                if row is None:
+                    conn.execute("COMMIT")
+                    return MarkTechnicalSignalVolatilitySizingResult(
+                        signal_id=signal_id,
+                        updated=False,
+                        reason="not_found",
+                    )
+
+                try:
+                    payload = json.loads(row["payload_json"] or "{}")
+                except json.JSONDecodeError:
+                    payload = {}
+                if not isinstance(payload, dict):
+                    payload = {}
+
+                volatility_sizing_payload: dict[str, Any] = {
+                    "atr_normalized_pct": (
+                        float(atr_normalized_pct)
+                        if atr_normalized_pct is not None
+                        else None
+                    ),
+                    "multiplier": float(multiplier),
+                    "base_size_fraction": float(base_size_fraction),
+                    "adjusted_size_fraction": float(adjusted_size_fraction),
+                    "applied": bool(applied),
+                }
+
+                current = payload.get("volatility_sizing")
+                if isinstance(current, dict) and current == volatility_sizing_payload:
+                    conn.execute("COMMIT")
+                    return MarkTechnicalSignalVolatilitySizingResult(
+                        signal_id=signal_id,
+                        updated=False,
+                        reason="already_marked",
+                    )
+
+                payload["volatility_sizing"] = volatility_sizing_payload
+
+                conn.execute(
+                    """
+                    UPDATE technical_signals
+                    SET payload_json = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        json.dumps(payload, ensure_ascii=True, sort_keys=True),
+                        int(now_ms),
+                        int(signal_id),
+                    ),
+                )
+                conn.execute("COMMIT")
+                return MarkTechnicalSignalVolatilitySizingResult(
+                    signal_id=signal_id,
+                    updated=True,
+                    reason="ok",
                 )
             except Exception:
                 conn.execute("ROLLBACK")

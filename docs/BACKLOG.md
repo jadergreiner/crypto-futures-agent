@@ -425,7 +425,7 @@ Dependencias:
 
 ### TAREFA M2-028.2 - Contrato de promocao GO/NO-GO paper→live
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 PO: Priorizar M2-028.2 para gate paper→live com aprovacao manual e rollback
 pos-promocao em evento critico.
@@ -447,6 +447,28 @@ tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> 20 passed;
 `mypy --strict core/model2/promotion_gate.py
 tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success.
 
+SE: Pendencia de trilha auditavel concluida em 2026-03-31 com migration
+`scripts/model2/migrations/0015_create_promotion_history.sql` e
+persistencia idempotente por `decision_id` em
+`core/model2/promotion_gate.py` para GO/NO-GO e rollback pos-promocao.
+Evidencias: `python scripts/model2/migrate.py up` -> applied_now [15];
+`pytest -q tests/test_model2_m2_028_2_promotion_gate_paper_live.py`
+-> 12 passed; `mypy --strict core/model2/promotion_gate.py
+tests/test_model2_m2_028_2_promotion_gate_paper_live.py` -> Success.
+
+TL: APROVADO. Persistencia auditavel reproduzida em tabela
+`promotion_history`, idempotencia por `decision_id` validada e rollback
+paper auditavel sem bypass de guardrails.
+
+DOC: Governanca documental concluida com fechamento da task M2-028.2,
+criterios de aceite sincronizados no backlog e trilha registrada em
+`docs/SYNCHRONIZATION.md` ([SYNC-300]).
+
+PM: ACEITE do escopo M2-028.2 em 2026-03-31. Valor PO ENTREGUE com
+registro auditavel de promocao/reversao paper->live por `decision_id` e
+cobertura automatizada de persistencia. Observacao: `pytest -q tests/`
+permaneceu com 15 falhas fora do escopo desta task.
+
 Descricao:
 Definir criterios objetivos para promover paper para live, incluindo Sharpe
 minimo, taxa de reconciliacao correta, ausencia de erros criticos e aprovacao
@@ -454,11 +476,11 @@ manual com registro auditavel.
 
 Criterios de Aceite:
 
-- [ ] Criterios GO/NO-GO paper→live com thresholds distintos do shadow→paper
-- [ ] Aprovacao manual obrigatoria registrada com decisor e justificativa
-- [ ] Historico de promovocoes e reversoes em tabela auditavel
-- [ ] Rollback automatico para paper em evento critico pos-promocao
-- [ ] Compatibilidade com go_live_preflight.py
+- [x] Criterios GO/NO-GO paper→live com thresholds distintos do shadow→paper
+- [x] Aprovacao manual obrigatoria registrada com decisor e justificativa
+- [x] Historico de promocoes e reversoes em tabela auditavel
+- [x] Rollback automatico para paper em evento critico pos-promocao
+- [x] Compatibilidade com go_live_preflight.py
 
 Dependencias:
 
@@ -466,7 +488,7 @@ Dependencias:
 
 ### TAREFA M2-028.3 - Sizing dinamico por volatilidade de simbolo
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 PO: Priorizar M2-028.3 para reduzir risco sistematico via sizing dinamico por
 volatilidade sem quebrar guardrails atuais.
@@ -488,6 +510,30 @@ core/model2/volatility_sizing.py core/model2/live_service.py
 tests/test_model2_m2_028_2_promotion_gate_paper_live.py
 tests/test_model2_m2_028_3_volatility_sizing.py` -> Success.
 
+SE: Fechamento de pendencias concluido em 2026-03-31 para config por simbolo
+e rastreio auditavel em `technical_signals`. `config/risk_params.py` recebeu
+`volatility_sizing_defaults` + `volatility_sizing_by_symbol`; o
+`core/model2/live_service.py` passou a persistir marker idempotente com
+`atr_normalized_pct`, `multiplier`, `base_size_fraction`,
+`adjusted_size_fraction` e `applied`; `core/model2/repository.py` ganhou
+update deterministico de `payload_json`. Evidencias:
+`pytest -q tests/test_model2_m2_028_3_volatility_sizing.py` -> 9 passed;
+`mypy --strict core/model2/volatility_sizing.py core/model2/live_service.py`
+-> Success.
+
+TL: APROVADO. Reproducao local verde para M2-028.3 (suite 9/9 + mypy
+strict), override por simbolo confirmado, metadata em `technical_signals`
+auditavel e contrato shadow informativo preservado sem bypass de guardrails.
+
+DOC: Governanca documental final concluida para M2-028.3 com criterios de
+aceite marcados no backlog e trilha `[SYNC-301]` registrada com evidencias
+de codigo, testes e tipagem.
+
+PM: ACEITE em 2026-03-31. Valor PO ENTREGUE com sizing dinamico governado
+por simbolo no fluxo do `iniciar.bat`, persistencia auditavel no
+`technical_signals.payload_json` e comportamento fail-safe preservado em
+shadow/live.
+
 Descricao:
 Ajustar tamanho de posicao dinamicamente com base em volatilidade recente
 (ATR normalizado) por simbolo, mantendo risco por trade constante mesmo
@@ -495,11 +541,11 @@ em condicoes de mercado variavel.
 
 Criterios de Aceite:
 
-- [ ] Sizing ajustado inversamente proporcional ao ATR do simbolo
-- [ ] Limite minimo e maximo de posicao configuravel por simbolo
-- [ ] Ajuste registrado em technical_signals com factor e ATR snapshot
-- [ ] Guardrail de tamanho maximo absoluto permanece inviolavel
-- [ ] Sem impacto em modos shadow (apenas informativo)
+- [x] Sizing ajustado inversamente proporcional ao ATR do simbolo
+- [x] Limite minimo e maximo de posicao configuravel por simbolo
+- [x] Ajuste registrado em technical_signals com factor e ATR snapshot
+- [x] Guardrail de tamanho maximo absoluto permanece inviolavel
+- [x] Sem impacto em modos shadow (apenas informativo)
 
 Dependencias:
 

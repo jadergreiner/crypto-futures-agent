@@ -288,10 +288,38 @@ def test_fluxo_testnet_criticidade_sem_metricas_por_etapa_falha_red(
 
 def test_reconciliacao_saida_externa_sem_payload_auditavel_completo_falha_red(
     m2_db_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """R2/R5: payload de reconciliacao precisa reason_code/status/timestamp/metadata."""
     repository, _signal_id = _seed_consumed_signal(m2_db_path, symbol="BTCUSDT")
     exchange: Any = _ExchangeStub(available_balance=100.0, protection_works=True)
+
+    def _force_open_long(self, model_input: Any) -> InferenceServiceResult:
+        return InferenceServiceResult(
+            accepted=True,
+            decision=ModelDecision(
+                action=ACTION_OPEN_LONG,
+                confidence=0.88,
+                size_fraction=0.4,
+                sl_target=95.0,
+                tp_target=110.0,
+                reason_code="force_open_long",
+                decision_timestamp=int(model_input.decision_timestamp),
+                symbol=str(model_input.symbol),
+                model_version=str(model_input.model_version),
+                metadata={"origin": "test"},
+            ),
+            model_version=str(model_input.model_version),
+            inference_latency_ms=1,
+            reason="force_open_long",
+            rule_id="TEST-M2-021",
+            details={"origin": "test"},
+        )
+
+    monkeypatch.setattr(
+        "core.model2.live_service.ModelInferenceService.infer",
+        _force_open_long,
+    )
 
     execute_summary = run_live_execute(
         model2_db_path=m2_db_path,

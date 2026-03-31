@@ -13,10 +13,15 @@ Guardrails:
 
 from __future__ import annotations
 
+import json
 import math
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, List
+
+from config.settings import MODEL2_DB_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -123,9 +128,72 @@ class PromotionEvaluator:
         self,
         config: PromotionConfig | None = None,
         live_config: LivePromotionConfig | None = None,
+        model2_db_path: str | Path = MODEL2_DB_PATH,
     ) -> None:
         self._config = config or PromotionConfig()
         self._live_config = live_config or LivePromotionConfig()
+        self._model2_db_path = Path(model2_db_path)
+
+    def _persist_paper_to_live_evaluation(
+        self,
+        *,
+        decision_id: str,
+        result: LivePromotionResult,
+        db_path: str | Path | None = None,
+    ) -> bool:
+        """Persiste avaliacao paper→live de forma idempotente por decision_id.
+
+        Retorna True quando uma nova linha e inserida e False quando a linha
+        ja existia (caminho idempotente por conflito de unique).
+        """
+        normalized_decision_id = str(decision_id).strip()
+        if not normalized_decision_id:
+            raise ValueError("decision_id_required")
+
+        resolved_db_path = Path(db_path) if db_path is not None else self._model2_db_path
+        event_type = "ROLLBACK_EVENT" if result.rollback_to_paper else "EVALUATION"
+
+        with sqlite3.connect(resolved_db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = ON")
+            cursor = conn.execute(
+                """
+                INSERT INTO promotion_history (
+                    decision_id,
+                    evaluated_at,
+                    go_no_go,
+                    reasons,
+                    sharpe_ratio,
+                    reconciliation_rate,
+                    critical_errors,
+                    manual_approved,
+                    approver_id,
+                    approval_justification,
+                    rollback_to_paper,
+                    event_type,
+                    created_at_ms
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(decision_id) DO NOTHING
+                """,
+                (
+                    normalized_decision_id,
+                    result.evaluated_at,
+                    "GO" if result.go else "NO_GO",
+                    json.dumps(result.reasons, ensure_ascii=True),
+                    result.sharpe_ratio,
+                    result.reconciliation_rate,
+                    result.critical_errors,
+                    1 if result.manual_approved else 0,
+                    result.approver_id,
+                    result.approval_justification,
+                    1 if result.rollback_to_paper else 0,
+                    event_type,
+                    int(datetime.now(tz=timezone.utc).timestamp() * 1000),
+                ),
+            )
+            conn.commit()
+
+        return int(cursor.rowcount) == 1
 
     def evaluate(
         self,
@@ -204,6 +272,7 @@ class PromotionEvaluator:
     def evaluate_paper_to_live(
         self,
         *,
+        decision_id: str,
         sharpe_ratio: float,
         reconciliation_rate: float,
         critical_errors: int,
@@ -211,6 +280,7 @@ class PromotionEvaluator:
         approver_id: str | None,
         approval_justification: str | None,
         post_promotion_critical_event: bool = False,
+        db_path: str | Path | None = None,
     ) -> LivePromotionResult:
         """Avalia promocao paper→live com aprovacao manual obrigatoria.
 
@@ -275,8 +345,7 @@ class PromotionEvaluator:
 
         if rollback_to_paper:
             reasons.append("post_promotion_critical_event_detected")
-
-        return LivePromotionResult(
+        result = LivePromotionResult(
             go=len(reasons) == 0,
             reasons=reasons,
             sharpe_ratio=_sharpe,
@@ -288,6 +357,30 @@ class PromotionEvaluator:
             rollback_to_paper=rollback_to_paper,
             evaluated_at=evaluated_at,
         )
+        try:
+            self._persist_paper_to_live_evaluation(
+                decision_id=decision_id,
+                result=result,
+                db_path=db_path,
+            )
+        except Exception as exc:
+            # Fail-safe: sem trilha auditavel de promocao, bloqueia GO.
+            persistent_reasons = list(result.reasons)
+            persistent_reasons.append(f"promotion_audit_persist_failed: {exc}")
+            return LivePromotionResult(
+                go=False,
+                reasons=persistent_reasons,
+                sharpe_ratio=result.sharpe_ratio,
+                reconciliation_rate=result.reconciliation_rate,
+                critical_errors=result.critical_errors,
+                manual_approved=result.manual_approved,
+                approver_id=result.approver_id,
+                approval_justification=result.approval_justification,
+                rollback_to_paper=result.rollback_to_paper,
+                evaluated_at=result.evaluated_at,
+            )
+
+        return result
 
     def evaluate_evidence_gate(
         self,
