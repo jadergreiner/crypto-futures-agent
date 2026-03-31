@@ -167,6 +167,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "HIGH",
     "STOP_LOSS_TOO_LOOSE": "HIGH",
+    "orphan_position": "HIGH",
     # M2-024.5: Timeout por etapa de execucao
     "TIMEOUT_ADMISSION": "HIGH",
     "TIMEOUT_SEND": "HIGH",
@@ -216,6 +217,7 @@ REASON_CODE_ACTION: dict[str, str] = {
     # M2-026.1: Observabilidade de risk_gate
     "SIZE_EXCEEDS_LIMIT": "bloquear_operacao",
     "STOP_LOSS_TOO_LOOSE": "bloquear_operacao",
+    "orphan_position": "reconciliar_posicao",
     # M2-024.5: Timeout por etapa de execucao
     "TIMEOUT_ADMISSION": "bloquear_operacao",
     "TIMEOUT_SEND": "bloquear_operacao",

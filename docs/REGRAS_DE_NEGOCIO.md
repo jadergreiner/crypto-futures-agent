@@ -365,6 +365,27 @@ fail-safe para validacao de runtime:
 9. Runbook ausente/invalido retorna `runbook_missing_or_invalid`.
 10. Schema incompleto bloqueia com `reason_code='schema_divergence'`.
 
+#### Consolidacao M2-028.10 (RN-023 a RN-028)
+
+Para fechamento do pacote M2-028, as RN-023..RN-028 devem permanecer
+coerentes e sem contradicao com backlog, arquitetura e runbook:
+
+1. Promocao GO/NO-GO sempre exige evidencia minima e trilha auditavel
+   com `decision_id` (RN-023 e RN-024).
+2. Timeout por etapa e timezone canonico continuam obrigatorios para
+   rastreabilidade operacional (RN-025 e RN-026).
+3. Evidencia testnet e contrato canonico em shadow devem manter os
+   mesmos campos de correlacao exigidos no preflight (RN-027).
+4. Controles de resiliencia de runtime permanecem fail-safe e
+   deterministas em todas as etapas do ciclo (RN-028).
+5. Na promocao paper->live, alem das regras acima, validar
+   reconciliacao, ausencia de erro critico e aprovacao manual
+   registrada.
+6. Risco dinamico do pacote exige combinacao de sizing por
+   volatilidade e bloqueio por correlacao, sem bypass de guardrails.
+7. Qualidade minima do pacote exige benchmark por etapa com alerta
+   p95>2x baseline e gate de cobertura critica por modulo.
+
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
 Logs devem ser rotacionados e retidos conforme política centralizada por severidade:

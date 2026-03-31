@@ -268,7 +268,7 @@ Dependencias:
 
 ### TAREFA M2-028.9 - Cobertura minima de testes por modulo critico
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Descricao:
 Definir e enforcar cobertura minima de testes (linha e branch) para modulos
@@ -277,19 +277,41 @@ live_execution, cycle_watchdog), bloqueando CI quando threshold nao atingido.
 
 Criterios de Aceite:
 
-- [ ] Cobertura minima de 80% linha e 70% branch nos modulos criticos
-- [ ] Relatorio de cobertura gerado em htmlcov/ a cada execucao
-- [ ] CI bloqueia merge quando cobertura cair abaixo do minimo
-- [ ] Exclusoes documentadas em .coveragerc com justificativa
-- [ ] Compativel com estratificacao de suite M2-083
+- [x] Cobertura minima de 80% linha e 70% branch nos modulos criticos
+- [x] Relatorio de cobertura gerado em htmlcov/ a cada execucao
+- [x] CI bloqueia merge quando cobertura cair abaixo do minimo
+- [x] Exclusoes documentadas em .coveragerc com justificativa
+- [x] Compativel com estratificacao de suite M2-083
 
 Dependencias:
 
 - BLID-083
 
+SE: Implementado em 2026-03-31 com gate por modulo critico em
+`core/model2/critical_module_coverage.py` e runner
+`scripts/model2/check_critical_module_coverage.py`.
+
+Evidencias:
+
+- `python scripts/model2/check_critical_module_coverage.py` -> OK em
+   scanner 90.16/78.75, validator 91.11/86.36, signal_bridge 90.62/71.43,
+   order_layer 96.55/86.11, live_execution 93.68/92.00 e cycle_watchdog
+   97.30/91.67 (linha/branch).
+- `htmlcov/index.html` gerado a cada execucao com JSON consolidado em
+   `htmlcov/coverage-critical.json`.
+- CI adicionado em `.github/workflows/model2-critical-coverage.yml` com
+   falha automatica abaixo do threshold.
+- Exclusoes documentadas em `.coveragerc` para `TYPE_CHECKING`, bootstrap
+   `__main__` e `NotImplementedError`.
+- Suites estaveis por modulo preservam a estratificacao M2-083 sem forcar
+   `pytest -q tests/` como gate unico.
+
+PM: ACEITE em 2026-03-31. Valor PO ENTREGUE com gate por modulo critico,
+bloqueio de CI abaixo do threshold e trilha auditavel em htmlcov/.
+
 ### TAREFA M2-028.10 - Governanca e runbook do pacote M2-028
 
-Status: BACKLOG
+Status: IMPLEMENTADO
 
 Descricao:
 Sincronizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION apos
@@ -298,15 +320,27 @@ GO/NO-GO, risco dinamico e automacao de qualidade.
 
 Criterios de Aceite:
 
-- [ ] ARQUITETURA_ALVO.md atualizado com GO/NO-GO, sizing dinamico e benchmark
-- [ ] REGRAS_DE_NEGOCIO.md com regras RN-023 a RN-028 cobrindo invariantes
-- [ ] Runbook de operacao para promocao GO/NO-GO documentado em docs/
-- [ ] SYNCHRONIZATION.md atualizado com trilha SYNC do pacote
-- [ ] markdownlint docs/*.md sem erros
+- [x] ARQUITETURA_ALVO.md atualizado com GO/NO-GO, sizing dinamico e benchmark
+- [x] REGRAS_DE_NEGOCIO.md com regras RN-023 a RN-028 cobrindo invariantes
+- [x] Runbook de operacao para promocao GO/NO-GO documentado em docs/
+- [x] SYNCHRONIZATION.md atualizado com trilha SYNC do pacote
+- [x] markdownlint docs/*.md sem erros
 
 Dependencias:
 
 - M2-028.1 a M2-028.9
+
+SE: Inicio em 2026-03-31 com status operacional EM_DESENVOLVIMENTO para
+consolidar governanca documental do pacote M2-028 sem alteracao de codigo
+live, schema ou criacao de novo arquivo em docs.
+
+SE: IMPLEMENTADO em 2026-03-31. Escopo consolidado em
+`docs/ARQUITETURA_ALVO.md`, `docs/REGRAS_DE_NEGOCIO.md`,
+`docs/RUNBOOK_M2_OPERACAO.md` e `docs/SYNCHRONIZATION.md` com contrato
+GO/NO-GO (shadow->paper e paper->live), risco dinamico (volatilidade e
+correlacao) e gates de qualidade (benchmark p95 e cobertura critica).
+Evidencias: `markdownlint docs/*.md` -> sem erros; `pytest -q
+tests/test_docs_model2_sync.py` -> passed.
 
 ---
 

@@ -73,6 +73,52 @@ Referencia de playbook:
 4. Reconciliacao atualizada e auditavel.
 5. Logs e artefatos JSON parseaveis.
 
+## Procedimento de promocao GO/NO-GO (M2-028)
+
+### Pre-condicoes obrigatorias
+
+1. `risk_gate=ATIVO` e `circuit_breaker=ATIVO` no ambiente alvo.
+2. Idempotencia por `decision_id` validada no ciclo atual.
+3. Sem incidente critico aberto em reconciliacao.
+4. Evidencia minima disponivel para shadow->paper e paper->live.
+
+### Comandos de validacao
+
+```bash
+python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
+python scripts/model2/healthcheck_live_execution.py
+python scripts/model2/daily_pipeline.py --timeframe M5 --symbol BTCUSDT
+python scripts/model2/check_critical_module_coverage.py
+pytest -q tests/test_docs_model2_sync.py
+```
+
+### Criterios de bloqueio (NO_GO)
+
+1. Preflight com erro bloqueante.
+2. Evidencia minima incompleta no gate de promocao.
+3. Falha de reconciliacao critica ou protecao ausente.
+4. Regressao de benchmark com p95 > 2x baseline por etapa critica.
+5. Cobertura critica abaixo de 80% linha ou 70% branch.
+6. Ausencia de aprovacao manual para paper->live.
+
+### Acao de rollback e degradacao segura
+
+1. Em NO_GO paper->live: manter operacao em `paper`.
+2. Em degradacao de latencia: entrar em modo `degraded`.
+3. Em drift/risco nao classificado: bloquear novas entradas.
+4. Preservar trilha auditavel com reason_code e timestamp.
+
+### Checklist de evidencia minima para decisao
+
+1. GO/NO-GO shadow->paper com criterios de win_rate, episodios e
+   drawdown registrados.
+2. GO/NO-GO paper->live com aprovacao manual e reconciliacao validada.
+3. Risco dinamico ativo:
+   sizing por volatilidade + bloqueio por correlacao.
+4. Qualidade ativa:
+   benchmark por etapa + gate de cobertura critica por modulo.
+5. Evidencia de validacao anexada no backlog e em SYNCHRONIZATION.
+
 ## Thresholds de Escalonamento Progressivo (M2-018.3)
 
 Fase 1 — Estreia Conservadora (Ciclos 1-5):

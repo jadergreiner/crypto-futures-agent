@@ -23,6 +23,81 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-296] M2-028.10 Governanca e runbook do pacote - 2026-03-31
+
+- Agente: 5.software-engineer
+- Item: M2-028.10
+- Status backlog: IMPLEMENTADO
+- Resumo tecnico:
+  - Consolidacao documental do pacote M2-028 em arquitetura, regras,
+    runbook e trilha de sync.
+  - Contratos GO/NO-GO alinhados para shadow->paper e paper->live,
+    com evidencia minima, bloqueios objetivos e rollback seguro.
+  - Risco dinamico consolidado por sizing de volatilidade e controle de
+    correlacao sem bypass de guardrails.
+  - Qualidade consolidada por benchmark p95 por etapa e gate de
+    cobertura critica por modulo.
+- Docs afetadas:
+  - `docs/BACKLOG.md`
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/RUNBOOK_M2_OPERACAO.md`
+  - `docs/SYNCHRONIZATION.md`
+- Validacoes executadas:
+  - `markdownlint docs/*.md` -> sem erros.
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed.
+- Valor entregue:
+  - Operacao passa a ter fluxo objetivo e auditavel para decisao GO/NO-GO,
+    com criterios de bloqueio e evidencias minimas alinhadas ao
+    `iniciar.bat`.
+
+### [SYNC-295] M2-028.9 Fechamento Project Manager (ACEITE) - 2026-03-31
+
+- Agente: 8.project-manager
+- Item: M2-028.9
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: bloquear regressao de qualidade com cobertura minima
+    por modulo critico no ciclo M2.
+  - Valor entregue: gate por modulo com minimo de 80% linha e 70% branch,
+    relatorio `htmlcov/` por execucao e bloqueio automatico de CI abaixo
+    do threshold.
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` no item M2-028.9.
+  - `markdownlint docs/*.md` -> sem erros.
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed.
+
+### [SYNC-294] M2-028.9 Gate de cobertura critica por modulo - 2026-03-31
+
+- Agente: 5.software-engineer
+- Item: M2-028.9
+- Status backlog: CONCLUIDO
+- Codigo alterado:
+  - `.coveragerc`
+  - `.github/workflows/model2-critical-coverage.yml`
+  - `core/model2/critical_module_coverage.py`
+  - `core/model2/live_execution.py`
+  - `scripts/model2/check_critical_module_coverage.py`
+  - `tests/test_model2_m2_028_9_critical_coverage_gate.py`
+  - `tests/test_model2_m2_028_9_coverage_targets.py`
+- Validacoes:
+  - `python scripts/model2/check_critical_module_coverage.py` -> OK para
+    scanner, validator, signal_bridge, order_layer, live_execution e
+    cycle_watchdog com minimo 80% linha / 70% branch.
+  - `pytest -q tests/test_model2_m2_028_9_critical_coverage_gate.py`
+    `tests/test_model2_m2_028_9_coverage_targets.py`
+    `tests/test_model2_validator.py tests/test_model2_validation_flow.py`
+    `tests/test_model2_live_gate_short_only.py`
+    `tests/test_model2_m2_023_1_error_contract.py`
+    `tests/test_model2_m2_024_1_decision_contract.py`
+    `tests/test_model2_m2_024_2_reason_code_catalog.py`
+    `tests/test_model2_m2_024_2_catalog_unification.py`
+    `tests/test_model2_m2_024_10_error_contract.py` -> 105 passed.
+  - `mypy --strict core/model2/critical_module_coverage.py`
+    `scripts/model2/check_critical_module_coverage.py`
+    `core/model2/live_execution.py` -> Success.
+
 ### [SYNC-293] M2-028.8 Benchmark por etapa (ACEITE) - 2026-03-31
 
 - Agente: 9.dev-cycle

@@ -1,0 +1,20 @@
+[run]
+branch = True
+relative_files = True
+
+[report]
+show_missing = True
+skip_empty = True
+precision = 2
+
+# Exclusoes canônicas e justificadas:
+# - TYPE_CHECKING: blocos apenas para tipagem estaticas.
+# - __main__: bootstrap manual nao exercitado pelos testes do CI.
+# - NotImplementedError: contratos abstratos ou placeholders explicitos.
+exclude_also =
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+    raise NotImplementedError
+
+[html]
+directory = htmlcov

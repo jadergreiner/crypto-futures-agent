@@ -484,6 +484,29 @@ Componentes:
    `promotion_gate` no summary de runtime com decisao GO/NO_GO e motivos,
    tornando a trilha observavel no ciclo operacional iniciado por `iniciar.bat`.
 
+**M2-028.10 (Governanca e runbook do pacote M2-028)**:
+
+1. Consolidacao de promocao GO/NO-GO em dois gates auditaveis:
+   - shadow->paper: `PromotionEvaluator.evaluate()` com thresholds de
+     win_rate, episodios e drawdown (RN-023).
+   - paper->live: `PromotionEvaluator.evaluate_paper_to_live()` com
+     aprovacao manual, reconciliacao e erros criticos (M2-028.2).
+2. Risco dinamico padronizado no ciclo:
+   - sizing por volatilidade via `core/model2/volatility_sizing.py`
+     integrado no `live_service` (M2-028.3).
+   - bloqueio por concentracao de correlacao via config e
+     `reason_code=PORTFOLIO_CORRELATION_LIMIT` (M2-028.5).
+3. Automacao de qualidade no fluxo operacional:
+   - benchmark por etapa com baseline e alerta de regressao p95>
+     2x em `core/model2/latency_metrics.py` e
+     `scripts/model2/daily_pipeline.py` (M2-028.8).
+   - gate de cobertura critica por modulo com minimo 80% linha e
+     70% branch via
+     `scripts/model2/check_critical_module_coverage.py` (M2-028.9).
+4. Invariantes preservados no pacote:
+   `risk_gate=ATIVO`, `circuit_breaker=ATIVO` e
+   `decision_id=IDEMPOTENTE`.
+
 **M2-022.5 (Validacao de carga shadow multi-simbolo)**:
 
 1. `core/model2/shadow_load_validation.py` consolida validacao de carga em
