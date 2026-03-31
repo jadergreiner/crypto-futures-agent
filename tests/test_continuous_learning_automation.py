@@ -104,13 +104,21 @@ def test_should_run_usa_threshold_dinamico_quando_confianca_baixa(monkeypatch):
         "last_episode_count": 10,
         "runs": [],
     })
-    monkeypatch.setattr(controller, "_get_episode_count", lambda: 13)
-    monkeypatch.setattr(controller, "resolve_retrain_threshold", lambda _db_path: (3, 0.34))
+    monkeypatch.setattr(
+        controller,
+        "collect_training_info_for_symbol",
+        lambda _db_path, symbol=None, timeframe=None: ("2026-01-01 00:00:00", 3),
+    )
+    monkeypatch.setattr(
+        controller,
+        "resolve_retrain_threshold",
+        lambda _db_path, symbol=None, timeframe=None: (3, 0.34),
+    )
 
     should_run, reason = controller.should_run_continuous_cycle(min_hours_between_runs=0.0)
 
     assert should_run is True
-    assert "Threshold: 3" in reason
+    assert "Threshold=3" in reason
 
 
 def test_should_run_mantem_threshold_padrao_quando_confianca_alta(monkeypatch):
@@ -120,13 +128,21 @@ def test_should_run_mantem_threshold_padrao_quando_confianca_alta(monkeypatch):
         "last_episode_count": 10,
         "runs": [],
     })
-    monkeypatch.setattr(controller, "_get_episode_count", lambda: 13)
-    monkeypatch.setattr(controller, "resolve_retrain_threshold", lambda _db_path: (100, 0.72))
+    monkeypatch.setattr(
+        controller,
+        "collect_training_info_for_symbol",
+        lambda _db_path, symbol=None, timeframe=None: ("2026-01-01 00:00:00", 13),
+    )
+    monkeypatch.setattr(
+        controller,
+        "resolve_retrain_threshold",
+        lambda _db_path, symbol=None, timeframe=None: (100, 0.72),
+    )
 
     should_run, reason = controller.should_run_continuous_cycle(min_hours_between_runs=0.0)
 
     assert should_run is False
-    assert "Necessário: 100" in reason
+    assert "necessário=100" in reason
 
 
 def test_should_run_bloqueia_cooldown_de_15min_em_modo_aquecimento(monkeypatch):
@@ -137,30 +153,46 @@ def test_should_run_bloqueia_cooldown_de_15min_em_modo_aquecimento(monkeypatch):
         "last_episode_count": 23425,
         "runs": [],
     })
-    monkeypatch.setattr(controller, "_get_episode_count", lambda: 23436)
-    monkeypatch.setattr(controller, "resolve_retrain_threshold", lambda _db_path: (3, 0.34))
+    monkeypatch.setattr(
+        controller,
+        "collect_training_info_for_symbol",
+        lambda _db_path, symbol=None, timeframe=None: ("2026-01-01 00:00:00", 11),
+    )
+    monkeypatch.setattr(
+        controller,
+        "resolve_retrain_threshold",
+        lambda _db_path, symbol=None, timeframe=None: (3, 0.34),
+    )
 
     should_run, reason = controller.should_run_continuous_cycle()
 
     assert should_run is False
-    assert "Próxima execução" in reason
+    assert "proxima execução" in reason
 
 
-def test_should_run_retreino_historico_apos_15min_sem_novos_episodios(monkeypatch):
-    """Em aquecimento, após 15min deve retreinar histórico mesmo sem novos episódios."""
+def test_should_run_nao_retreina_sem_pendentes_suficientes_apos_15min(monkeypatch):
+    """Mesmo após 15min, sem pendentes suficientes não deve iniciar ciclo."""
     old_iso = (controller.datetime.now() - timedelta(minutes=16)).isoformat()
     monkeypatch.setattr(controller, "_load_state", lambda: {
         "last_continuous_run": old_iso,
         "last_episode_count": 23436,
         "runs": [],
     })
-    monkeypatch.setattr(controller, "_get_episode_count", lambda: 23436)
-    monkeypatch.setattr(controller, "resolve_retrain_threshold", lambda _db_path: (3, 0.34))
+    monkeypatch.setattr(
+        controller,
+        "collect_training_info_for_symbol",
+        lambda _db_path, symbol=None, timeframe=None: ("2026-01-01 00:00:00", 2),
+    )
+    monkeypatch.setattr(
+        controller,
+        "resolve_retrain_threshold",
+        lambda _db_path, symbol=None, timeframe=None: (3, 0.34),
+    )
 
     should_run, reason = controller.should_run_continuous_cycle()
 
-    assert should_run is True
-    assert "Retreino histórico periódico" in reason
+    assert should_run is False
+    assert "insuficientes episódios pendentes" in reason
 
 
 def test_should_run_usa_estado_independente_por_simbolo(monkeypatch):
@@ -184,14 +216,18 @@ def test_should_run_usa_estado_independente_por_simbolo(monkeypatch):
         "runs": [],
     })
 
-    def fake_episode_count(*, symbol=None, timeframe=None):
+    def fake_collect_training_info_for_symbol(_db_path, symbol=None, timeframe=None):
         if symbol == "BTCUSDT":
-            return 12
+            return ("2026-01-01 00:00:00", 2)
         if symbol == "ETHUSDT":
-            return 3
-        return 15
+            return ("2026-01-01 00:00:00", 3)
+        return ("2026-01-01 00:00:00", 0)
 
-    monkeypatch.setattr(controller, "_get_episode_count", fake_episode_count)
+    monkeypatch.setattr(
+        controller,
+        "collect_training_info_for_symbol",
+        fake_collect_training_info_for_symbol,
+    )
     monkeypatch.setattr(
         controller,
         "resolve_retrain_threshold",

@@ -25,6 +25,7 @@ from core.model2.cycle_report import (
     RETRAIN_EPISODE_THRESHOLD,
     RETRAIN_WARMUP_EPISODE_THRESHOLD,
     TRAINING_EPISODE_ELIGIBLE_STATUSES,
+    collect_training_info_for_symbol,
     resolve_retrain_threshold,
 )
 
@@ -146,14 +147,14 @@ def should_run_continuous_cycle(
     """
     state = _load_state()
     symbol_scope = _normalize_symbols(symbols)
-    current_counts = {
-        symbol: _get_episode_count(symbol=symbol, timeframe=timeframe)
-        for symbol in symbol_scope
-    }
     waiting_reasons: List[str] = []
 
     for symbol in symbol_scope:
-        current_episode_count = current_counts[symbol]
+        _, pending_episodes = collect_training_info_for_symbol(
+            str(DB_PATH),
+            symbol=symbol,
+            timeframe=timeframe,
+        )
         resolved_threshold, resolved_confidence = resolve_retrain_threshold(
             str(DB_PATH),
             symbol=symbol,
@@ -172,18 +173,18 @@ def should_run_continuous_cycle(
         )
         symbol_state = _get_symbol_state(state, symbol)
         last_run_str = symbol_state.get("last_continuous_run")
-        last_episode_count = int(symbol_state.get("last_episode_count") or 0)
 
         if last_run_str is None:
-            if current_episode_count >= effective_threshold:
+            if int(pending_episodes) >= effective_threshold:
+                conf_tag = "N/A" if resolved_confidence is None else f"{resolved_confidence:.0%}"
                 return (
                     True,
-                    f"Símbolo {symbol}: primeira execução. Episodes acumulados: "
-                    f"{current_episode_count} (threshold={effective_threshold})"
+                    f"Símbolo {symbol}: primeira execução. Pendentes={int(pending_episodes)} "
+                    f"(threshold={effective_threshold}, confianca={conf_tag})"
                 )
             waiting_reasons.append(
-                f"{symbol}: aguardando {max(0, effective_threshold - current_episode_count)} episódios "
-                f"(atual={current_episode_count}, threshold={effective_threshold})"
+                f"{symbol}: aguardando {max(0, effective_threshold - int(pending_episodes))} episódios "
+                f"(pendentes={int(pending_episodes)}, threshold={effective_threshold})"
             )
             continue
 
@@ -195,31 +196,23 @@ def should_run_continuous_cycle(
                 time_remaining = effective_min_hours_between_runs - hours_since_last
                 waiting_reasons.append(
                     f"{symbol}: proxima execução em {time_remaining:.1f}h "
-                    f"({(time_remaining * 60):.0f}m). Episódios={current_episode_count}"
+                    f"({(time_remaining * 60):.0f}m). pendentes={int(pending_episodes)}"
                 )
                 continue
         except Exception:
             pass
 
-        new_episodes = current_episode_count - last_episode_count
-        if new_episodes >= effective_threshold:
-            return (
-                True,
-                f"Símbolo {symbol}: novos episódios={new_episodes}. "
-                f"Total={current_episode_count}. Threshold: {effective_threshold}"
-            )
-
-        if is_warmup_mode and current_episode_count >= effective_threshold:
+        if int(pending_episodes) >= effective_threshold:
             conf_tag = "N/A" if resolved_confidence is None else f"{resolved_confidence:.0%}"
             return (
                 True,
-                f"Símbolo {symbol}: retreino histórico periódico (15m) em modo aquecimento. "
-                f"Confianca: {conf_tag}. Total: {current_episode_count}."
+                f"Símbolo {symbol}: pendentes pós-cutoff={int(pending_episodes)}. "
+                f"Threshold={effective_threshold}. Confianca={conf_tag}"
             )
 
         waiting_reasons.append(
-            f"{symbol}: insuficientes novos episódios (atual={new_episodes}, "
-            f"necessário={effective_threshold}, total={current_episode_count})"
+            f"{symbol}: insuficientes episódios pendentes (pendentes={int(pending_episodes)}, "
+            f"necessário={effective_threshold})"
         )
 
     if waiting_reasons:
