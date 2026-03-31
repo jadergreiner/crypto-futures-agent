@@ -311,7 +311,7 @@ bloqueio de CI abaixo do threshold e trilha auditavel em htmlcov/.
 
 ### TAREFA M2-028.10 - Governanca e runbook do pacote M2-028
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Descricao:
 Sincronizar ARQUITETURA_ALVO, REGRAS_DE_NEGOCIO e SYNCHRONIZATION apos
@@ -341,6 +341,17 @@ GO/NO-GO (shadow->paper e paper->live), risco dinamico (volatilidade e
 correlacao) e gates de qualidade (benchmark p95 e cobertura critica).
 Evidencias: `markdownlint docs/*.md` -> sem erros; `pytest -q
 tests/test_docs_model2_sync.py` -> passed.
+
+TL: APROVADO. Revisao cruzada sem contradicao entre backlog, arquitetura,
+regras, runbook e sync; validacoes documentais reproduzidas com sucesso.
+
+DOC: Governanca documental final concluida para M2-028.10 com trilha
+auditavel em `docs/SYNCHRONIZATION.md` e sem criacao de novos arquivos em
+`docs/`.
+
+PM: ACEITE em 2026-03-31. Valor PO ENTREGUE com fluxo GO/NO-GO
+operacionalmente verificavel no `iniciar.bat`, criterios de bloqueio
+objetivos e fechamento documental sincronizado.
 
 ---
 

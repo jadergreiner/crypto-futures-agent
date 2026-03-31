@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-297] M2-028.10 Fechamento Project Manager (ACEITE) - 2026-03-31
+
+- Agente: 8.project-manager
+- Item: M2-028.10
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: consolidar governanca documental do pacote M2-028 com
+    runbook objetivo de promocao GO/NO-GO, risco dinamico e gates de
+    qualidade auditaveis.
+  - Valor entregue: fluxo operacional documentado com pre-condicoes,
+    validacoes, bloqueios e rollback; regras RN-023..RN-028 coerentes;
+    arquitetura e trilha SYNC sincronizadas sem contradicao.
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` com registros TL/DOC/PM.
+  - `markdownlint docs/*.md` -> sem erros.
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed.
+
 ### [SYNC-296] M2-028.10 Governanca e runbook do pacote - 2026-03-31
 
 - Agente: 5.software-engineer
