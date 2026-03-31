@@ -83,6 +83,7 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "circuit_breaker_blocked": "ops.circuit_breaker_blocked",
     "signal_expired": "ops.signal_expired",
     "insufficient_balance": "ops.insufficient_balance",
+    "invalid_requested_quantity": "ops.invalid_requested_quantity",
     "timeout": "ops.timeout",
     "reconciliation_divergence": "ops.reconciliation_divergence",
     # Expansão M2-024.2: 11+ entries adicionais
@@ -137,6 +138,7 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "circuit_breaker_blocked": "HIGH",
     "signal_expired": "MEDIUM",
     "insufficient_balance": "MEDIUM",
+    "invalid_requested_quantity": "HIGH",
     "timeout": "HIGH",
     "reconciliation_divergence": "CRITICAL",
     # Expansão M2-024.2
@@ -187,6 +189,7 @@ REASON_CODE_ACTION: dict[str, str] = {
     "circuit_breaker_blocked": "bloquear_operacao",
     "signal_expired": "descartar_sinal",
     "insufficient_balance": "ajustar_margem_ou_aguardar",
+    "invalid_requested_quantity": "bloquear_operacao",
     "timeout": "aplicar_retry_controlado",
     "reconciliation_divergence": "interromper_e_reconciliar",
     # Expansão M2-024.2

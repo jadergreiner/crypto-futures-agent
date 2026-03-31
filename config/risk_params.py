@@ -17,6 +17,7 @@ RISK_PARAMS: Dict[str, Any] = {
     # Position Limits
     "max_simultaneous_positions": 3,
     "max_leverage": 10,  # Isolated margin — atualizado para 10x
+    "max_margin_per_position_usd": 15.0,
 
     # Stop Loss & Take Profit
     "stop_loss_atr_multiplier": 1.5,

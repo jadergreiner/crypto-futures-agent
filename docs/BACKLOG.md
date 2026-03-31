@@ -357,7 +357,7 @@ objetivos e fechamento documental sincronizado.
 
 ## TAREFA M2-029.1 - Corrigir bloqueio de entrada por margem insuficiente
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Descricao:
 Aumentar margem minima por posicao e corrigir display de guardrails para
@@ -404,6 +404,17 @@ Criterios de Aceite:
 - [x] Logging melhorado documenta notional vs mínimo
 - [x] Guardrails permanecem ativos (risk_gate, circuit_breaker)
 - [x] Fail-safe preservado em decisões criticas
+
+TL: APROVADO. Zero regressoes introduzidas; guardrails ativos; mypy strict
+verde em 6 modulos; falhas pre-existentes documentadas fora do escopo
+M2-029.1.
+
+DOC: Governanca documental concluida; impactos em config e display de risco
+registrados em [SYNC-298].
+
+PM: ACEITE em 2026-03-31. Valor PO ENTREGUE: margem efetiva 15x maior garante
+notional acima do minimo da exchange com fator BBAPT 0.56x; CB/RG exibem
+estado real; log de qty=0 auditavel com decision_id [SYNC-299].
 
 Dependencias:
 

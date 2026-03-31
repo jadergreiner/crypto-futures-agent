@@ -23,6 +23,47 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-299] M2-029.1 Fechamento Project Manager (ACEITE) - 2026-03-31
+
+- Agente: 8.project-manager
+- Item: M2-029.1
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: sinais OPEN_LONG/OPEN_SHORT executados mesmo com
+    loss_streak=6+ e failure_ratio=85%+, sem bloqueio por notional insuficiente.
+  - Valor entregue: margem efetiva $8.4 (15×0.56) acima do minimo da
+    exchange; CB/RG exibem estado real no status operacional; log de
+    qty=0 registra decision_id e notional_target para auditoria.
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` com TL:/DOC:/PM:.
+  - `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md` → sem erros.
+  - `mypy --strict` em 5 modulos alterados → Success.
+  - `pytest -q tests/test_operator_cycle_status.py` → 24 passed.
+  - Zero regressoes introduzidas pela M2-029.1.
+
+### [SYNC-298] M2-029.1 Corrigir bloqueio margem insuficiente - 2026-03-31
+
+- Agente: 7.doc-advocate
+- Item: M2-029.1
+- Decisao TL: APROVADO
+- Status backlog: REVISADO_APROVADO
+- Arquivos alterados:
+  - `config/settings.py` — default M2_MAX_MARGIN_PER_POSITION_USD 1.0→15.0
+  - `config/execution_config.py` — max_margin 1.0→15.0, max_exposure 10→150
+  - `config/risk_params.py` — max_margin_per_position_usd: 15.0 adicionado
+  - `core/model2/live_execution.py` — reason_code invalid_requested_quantity
+  - `core/model2/live_service.py` — log enriquecido qty=0 com decision_id
+  - `scripts/model2/operator_cycle_status.py` — parser risk_state retro-compat
+- Impacto documental:
+  - `docs/BACKLOG.md` — status REVISADO_APROVADO com TL: e DOC:
+  - `docs/SYNCHRONIZATION.md` — trilha [SYNC-298]
+- Guardrails: risk_gate e circuit_breaker preservados; sem bypass
+- Evidencias:
+  - `mypy --strict` em 5 modulos alterados → Success
+  - `pytest -q tests/test_operator_cycle_status.py` → 24 passed
+  - Zero regressoes introduzidas (19 falhas globais pre-existentes confirmadas)
+
 ### [SYNC-297] M2-028.10 Fechamento Project Manager (ACEITE) - 2026-03-31
 
 - Agente: 8.project-manager

@@ -30,23 +30,23 @@ EXECUTION_CONFIG: Dict[str, Any] = {
     "cooldown_per_symbol_seconds": 900,
 
     # Allowed actions — Allow OPEN, CLOSE, and REDUCE_50
-    # Phase 1: Testing with 10x leverage, $1 margin per position
+    # Phase 1: Testing with 10x leverage, $15 margin per position
     "allowed_actions": ["OPEN", "CLOSE", "REDUCE_50"],
 
     # Reduce percentage for REDUCE_50 action
     "reduce_50_pct": 0.50,
 
     # ========================================================================
-    # POSITION SIZING — $1 margin per position, 10x leverage
+    # POSITION SIZING — $15 margin por posição, 10x leverage
     # ========================================================================
     # Margem máxima por posição em USD (Binance USDS-M Futures)
-    "max_margin_per_position_usd": 1.0,
+    "max_margin_per_position_usd": 15.0,
 
     # Alavancagem fixa para todas posições
     "leverage": 10,
 
     # Exposição máxima por posição (margem × leverage)
-    "max_exposure_per_position_usd": 10.0,  # $1 × 10 = $10
+    "max_exposure_per_position_usd": 150.0,  # $15 × 10 = $150
 
     # Máximo de posições simultâneas (com $420 margem, pode ter ~40)
     "max_concurrent_positions": 30,

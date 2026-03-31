@@ -578,11 +578,13 @@ def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | Non
         data = json.loads(raw)
         if not isinstance(data, dict):
             return {}
-        # Extrair risk_state aninhado em input_json
-        risk_state_payload = data.get("risk_state", {})
-        if not isinstance(risk_state_payload, dict):
-            return {}
-        return risk_state_payload
+        # Extrair risk_state aninhado em input_json.
+        # Compatibilidade legada: quando os campos vierem na raiz do payload,
+        # retornamos o próprio dict para evitar regressao na leitura do status.
+        risk_state_payload = data.get("risk_state")
+        if isinstance(risk_state_payload, dict):
+            return risk_state_payload
+        return data
     except Exception:
         return None
 

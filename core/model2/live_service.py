@@ -2041,11 +2041,18 @@ class Model2LiveExecutionService:
             notional_target = effective_margin * self.config.leverage
             symbol_info = exchange._get_symbol_precision_info(str(execution["symbol"]))
             min_notional = symbol_info.get("min_notional")
+            decision_id = int(execution.get("decision_id") or 0)
+            reason_code = REASON_CODE_CATALOG.get(
+                "invalid_requested_quantity",
+                "ops.invalid_requested_quantity",
+            )
 
             logging.getLogger(__name__).warning(
-                "BLOQUEIO QUANTIDADE INVÁLIDA: symbol=%s entry_price=%.8f effective_margin=$%.2f "
+                "BLOQUEIO QUANTIDADE INVÁLIDA: decision_id=%s reason_code=%s symbol=%s entry_price=%.8f effective_margin=$%.2f "
                 "notional_target=$%.2f min_notional=$%.2f leverage=%dx bbapt_factor=%.2f "
                 "loss_streak=%d recent_failure_ratio=%.2f",
+                decision_id if decision_id > 0 else "N/A",
+                reason_code,
                 str(execution["symbol"]),
                 float(execution["entry_price"]),
                 effective_margin,
@@ -2063,6 +2070,8 @@ class Model2LiveExecutionService:
                 reason="invalid_requested_quantity",
                 rule_id=M2_009_3_RULE_ID,
                 metadata={
+                    "decision_id": decision_id if decision_id > 0 else None,
+                    "reason_code": reason_code,
                     "entry_price": float(execution["entry_price"]),
                     "effective_margin_usd": effective_margin,
                     "notional_target_usd": notional_target,
