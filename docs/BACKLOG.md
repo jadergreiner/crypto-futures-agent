@@ -146,6 +146,55 @@ PM: ACEITE em 2026-03-30. Valor PO ENTREGUE com relatorio diario consolidado
 em arquivo auditavel e exibicao no encerramento do ciclo, com fechamento
 documental final em [SYNC-289].
 
+### TAREFA ALGO-CICLO - Incluir ALGOUSDT no ciclo M2
+
+Status: REVISADO_APROVADO
+
+- Desenvolvedor: Software Engineer
+- Inicio: 2026-03-31
+
+Descricao:
+Preparar suite RED para onboarding de ALGOUSDT no ciclo M2, cobrindo
+cadastro em `config/symbols.py`, propagacao automatica para ALL_SYMBOLS,
+AUTHORIZED_SYMBOLS e fallback de settings, alem de playbook dedicado.
+
+Criterios de Aceite:
+
+- [x] ALGOUSDT definido em `config/symbols.py` com campos obrigatorios
+- [x] ALGOUSDT propaga para ALL_SYMBOLS e AUTHORIZED_SYMBOLS
+- [x] `ALGOPlaybook` dedicado registrado em `playbooks/__init__.py`
+- [x] Teste de integracao dedicado verde apos implementacao
+
+Dependencias:
+
+- nenhuma
+
+- Testes em: `tests/test_algousdt_integration.py`
+- Suite: 8 testes unitarios + 4 integracao + 0 risk
+- Comando validacao: pytest -q tests/test_algousdt_integration.py
+
+QA: Suite RED criada em `tests/test_algousdt_integration.py` com 12 testes;
+11 failed e 1 passed enquanto faltam cadastro do simbolo, modulo
+`playbooks/algo_playbook.py` e export `ALGOPlaybook`. Status:
+TESTES_PRONTOS.
+
+SE: GREEN concluido em 2026-03-31. `config/symbols.py` agora inclui
+`ALGOUSDT` como fonte unica de verdade; `playbooks/algo_playbook.py` foi
+adicionado com `ALGOPlaybook`; `playbooks/__init__.py` exporta o novo
+playbook e `README.md` foi sincronizado com a regra de onboarding por
+simbolo. Evidencias: `pytest -q tests/test_algousdt_integration.py` ->
+12 passed; `mypy --strict playbooks/algo_playbook.py` -> Success;
+`mypy --strict config/symbols.py playbooks/__init__.py` -> Success;
+`pytest -q tests/test_docs_model2_sync.py` -> 13 passed;
+`pytest -q tests/` -> 353 passed.
+
+TL: APROVADO. ALGOUSDT onboarded com propagacao automatica, playbook
+dedicado e reproducao verde da task, docs e suite completa.
+
+DOC: BACKLOG e SYNCHRONIZATION alinhados ao onboarding de ALGOUSDT no ciclo
+M2; valor operacional prometido em iniciar.bat segue nao comprovado por
+ausencia de evidencia de execucao shadow/live nesta task.
+
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
 Status: CONCLUIDO

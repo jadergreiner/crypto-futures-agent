@@ -11,6 +11,7 @@ from .bnb_playbook import BNBPlaybook
 from .doge_playbook import DOGEPlaybook
 from .xrp_playbook import XRPPlaybook
 from .ltc_playbook import LTCPlaybook
+from .algo_playbook import ALGOPlaybook
 from .zerog_playbook import ZeroGPlaybook
 from .kaia_playbook import KAIAPlaybook
 from .axl_playbook import AXLPlaybook
@@ -49,7 +50,7 @@ BONKPlaybook = _1000bonk_module.BONKPlaybook
 __all__ = [
     'BasePlaybook', 'SMCRules',
     'BTCPlaybook', 'ETHPlaybook', 'SOLPlaybook', 'BNBPlaybook',
-    'DOGEPlaybook', 'XRPPlaybook', 'LTCPlaybook',
+    'DOGEPlaybook', 'XRPPlaybook', 'LTCPlaybook', 'ALGOPlaybook',
     'ZeroGPlaybook', 'KAIAPlaybook', 'AXLPlaybook', 'NILPlaybook', 'FOGOPlaybook',
     'DASHPlaybook', 'ZKPlaybook', 'WHYPlaybook', 'XAIPlaybook', 'GTCPlaybook',
     'CELOPlaybook', 'HYPERPlaybook', 'MTLPlaybook', 'POLYXPlaybook', 'BONKPlaybook',

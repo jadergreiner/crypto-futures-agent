@@ -75,6 +75,11 @@ Pipeline diario M2 (stages RL de entrada):
 python scripts/model2/daily_pipeline.py --timeframe H4 --symbol BTCUSDT
 ```
 
+O universo de simbolos operacionais fica centralizado em `config/symbols.py`.
+Onboardings como `ALGOUSDT` devem ser refletidos no playbook dedicado em
+`playbooks/` e passam a propagar automaticamente para `ALL_SYMBOLS`,
+`AUTHORIZED_SYMBOLS` e fallback de `M2_SYMBOLS`.
+
 Ordem relevante no runtime:
 
 1. `persist_training_episodes`

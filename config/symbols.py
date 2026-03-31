@@ -91,6 +91,22 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "stable_correlation"
         ]
     },
+    "ALGOUSDT": {
+        "papel": "Layer 1 focada em pagamentos, tokenizacao e infraestrutura institucional.",
+        "ciclo_proprio": (
+            "Segue o ciclo geral das altcoins com maior aderencia a narrativas de "
+            "tokenizacao, pagamentos e parcerias institucionais."
+        ),
+        "correlacao_btc": [0.65, 0.85],
+        "beta_estimado": 1.4,
+        "classificacao": "alta_cap_l1",
+        "caracteristicas": [
+            "payments",
+            "tokenization",
+            "institutional_adoption",
+            "layer1"
+        ]
+    },
     "C98USDT": {
         "papel": "Token DeFi (Coin98). Multi-chain wallet/DeFi gateway.",
         "ciclo_proprio": "Segue ciclo altcoin geral. Sensível a narrativa DeFi.",
