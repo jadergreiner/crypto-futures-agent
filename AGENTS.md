@@ -266,7 +266,39 @@ valor capturado pelo Product Owner foi de fato entregue.
 
 ---
 
-### 9. Agent: QA-Live (Futura — Stage 9)
+### 9. Agent: Dev Cycle (`.github/agents/9.dev-cycle.agent.md`)
+
+**Descrição**
+Orquestra ponta-a-ponta o fluxo completo de desenvolvimento (stages 1-8),
+recebendo uma task de backlog e executando automaticamente Backlog
+Development -> Product Owner -> Solution Architect -> QA-TDD ->
+Software Engineer -> Tech Lead -> Doc Advocate -> Project Manager.
+Aplica gate de valor real em `iniciar.bat`, interrompe em devolucao e
+retoma no stage correto apos correcao.
+
+**Entrada**
+- BLID/tarefa existente no backlog
+- Contexto bruto de demanda
+- Ou vazio (PO seleciona proxima prioridade)
+
+**Saída**
+- Resumo executivo do ciclo com stage final e decisao
+- Decisao final: `ACEITE` ou `DEVOLVER_PARA_AJUSTE`
+- Validacao explicita do valor prometido pelo Product Owner
+
+**Acionamento**
+- Via slash command `/dev-cycle` ou invocação direta
+- User-invocable: ✅ Sim
+
+**Guardrails**
+- Nunca bypass de `risk_gate` ou `circuit_breaker`
+- Preservar idempotência por `decision_id`
+- Parada imediata em `DEVOLVIDO_PARA_REVISAO` ou `DEVOLVER_PARA_AJUSTE`
+- Retomada localizada no stage devolvido
+
+---
+
+### 10. Agent: QA-Live (Futura — Stage 9)
 
 **Status**: Planejado
 **Descrição**: Validará qualidade, risco e decidirá GO/NO-GO para live
@@ -351,6 +383,7 @@ Backlog Development
 /tech-lead <paste do prompt do Software Engineer>
 /doc-advocate <paste do APROVADO do Tech Lead>
 /project-manager <paste do relatorio executivo do Doc Advocate>
+/dev-cycle <BLID/tarefa de backlog para execucao ponta-a-ponta>
 ```
 
 ### Via Subagent (Programaticamente)
@@ -387,6 +420,12 @@ resultado = runSubagent(
      agentName="8.project-manager",
      prompt="Aqui vai o relatorio executivo do Doc Advocate...",
      description="Aceite final e fechamento da feature X"
+)
+
+resultado = runSubagent(
+     agentName="9.dev-cycle",
+     prompt="BLID-123 ou contexto da task para execucao E2E...",
+     description="Orquestrar ciclo completo 1-8"
 )
 ```
 

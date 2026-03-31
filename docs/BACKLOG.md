@@ -94,7 +94,7 @@ Dependencias:
 
 ### TAREFA M2-028.6 - Relatorio diario automatico de performance
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Descricao:
 Gerar relatorio diario consolidado com PnL realizado, episodios capturados,
@@ -139,6 +139,12 @@ tests/test_model2_m2_019_6_019_7_pipeline_integration.py`
 TL: APROVADO. Reproducao local verde, stage 17 nao bloqueante preservado,
 guardrails (`risk_gate`, `circuit_breaker`) ativos e trilha de relatorio
 diario pronta para governanca documental [SYNC-287].
+DOC: Governanca documental final concluida para M2-028.6 com validacao de
+sincronizacao entre backlog e trilha SYNC, pronta para aceite executivo
+[SYNC-288].
+PM: ACEITE em 2026-03-30. Valor PO ENTREGUE com relatorio diario consolidado
+em arquivo auditavel e exibicao no encerramento do ciclo, com fechamento
+documental final em [SYNC-289].
 
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 

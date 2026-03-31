@@ -23,6 +23,44 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-289] M2-028.6 Fechamento Project Manager (ACEITE) - 2026-03-30
+
+- Agente: 8.project-manager
+- Item: M2-028.6
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Validacao de valor PO:
+  - Valor prometido: gerar relatorio diario consolidado com metricas
+    operacionais e persistencia em arquivo no encerramento do ciclo.
+  - Valor entregue: pipeline publica relatorio diario em
+    `results/model2/reports/` (JSON/TXT) e exibe resumo no log de fechamento.
+- Evidencias de fechamento:
+  - `docs/BACKLOG.md` atualizado para `CONCLUIDO` com comentarios `DOC:` e
+    `PM:`
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed
+  - `pytest -q tests/` -> passed
+
+### [SYNC-288] M2-028.6 Governanca final de docs (Doc Advocate) - 2026-03-30
+
+- Agente: 7.doc-advocate
+- Item: M2-028.6
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - docs/BACKLOG.md
+  - docs/SYNCHRONIZATION.md
+- Alteracoes:
+  - BACKLOG: adicionado comentario `DOC:` no item M2-028.6 para handoff ao PM.
+  - SYNCHRONIZATION: registrada trilha documental final para fechamento.
+- Validacao de valor PO:
+  - Valor prometido: consolidar metricas diarias e visibilidade operacional no
+    encerramento do ciclo.
+  - Valor entregue: relatorio diario persistido e exibido no fluxo oficial do
+    pipeline com rastreabilidade por data de referencia.
+- Validacoes:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> passed
+
 ### [SYNC-287] M2-028.6 Relatorio diario automatico (TL APROVADO) - 2026-03-30
 
 - Agente: 6.tech-lead
