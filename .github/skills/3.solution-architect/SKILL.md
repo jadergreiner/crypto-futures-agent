@@ -41,7 +41,9 @@ Se a entrada estiver incompleta, operar em modo conservador:
 4. Ler `docs/MODELAGEM_DE_DADOS.md` quando houver mudanca de schema,
    contratos ou persistencia.
 5. Ler `docs/REGRAS_DE_NEGOCIO.md` quando houver regra operacional/risco.
-6. Ler codigo alvo apenas nos modulos citados no handoff do PO.
+6. Executar obrigatoriamente a skill `15.adr-analysis` usando
+  `docs/ADRS.md` como fonte de verdade.
+7. Ler codigo alvo apenas nos modulos citados no handoff do PO.
 
 ## Fluxo de Refinamento
 
@@ -49,10 +51,13 @@ Se a entrada estiver incompleta, operar em modo conservador:
 2. Derivar requisitos funcionais e nao funcionais verificaveis.
 3. Avaliar aderencia a arquitetura vigente e definir pontos de extensao.
 4. Mapear impacto de dados: entidades, tabelas, campos, migracoes e contratos.
-5. Definir plano incremental de entrega com fatias pequenas e testaveis.
-6. Identificar riscos e controles (tecnico, operacional e regressao).
-7. Manter item em `Em analise` no backlog e registrar `SA: <resumo>`.
-8. Emitir prompt unico e acionavel para o agente `4.qa-tdd`.
+5. Rodar gate ADR obrigatorio via skill `15.adr-analysis`.
+6. Se `BLOQUEADO_SEM_ADR`, interromper fluxo e escalar criacao de ADR.
+7. Se `BLOQUEADO_CONFLITO_ADR`, bloquear merge e escalar revisao de ADR.
+8. Definir plano incremental de entrega com fatias pequenas e testaveis.
+9. Identificar riscos e controles (tecnico, operacional e regressao).
+10. Manter item em `Em analise` no backlog e registrar `SA: <resumo>`.
+11. Emitir prompt unico e acionavel para o agente `4.qa-tdd`.
 
 ## Atualizacao de Backlog (Obrigatoria)
 
@@ -75,6 +80,8 @@ Template canonico: ver `.github/skills/3.solution-architect/templates.md`.
 - Em ambiguidade operacional, escolher fail-safe.
 - Nao inventar arquitetura global nova para resolver problema local.
 - Nao assumir schema/tabela sem evidencia em docs ou codigo existente.
+- Nao seguir implementacao sem ADR aplicavel em `docs/ADRS.md`.
+- Em conflito com ADR vigente, bloquear merge ate revisao arquitetural.
 - Nao usar variante de status diferente de `Em analise`.
 - Nao exceder 150 caracteres no comentario `SA:`.
 - Ao editar `docs/*.md`, preservar wrapping, indentacao e listas para manter
