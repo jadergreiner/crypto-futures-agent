@@ -171,19 +171,25 @@ Regras de integracao:
 Implementacao de referencia:
 
 1. `scripts/model2/train_entry_agents.py` (treino diario por simbolo)
-2. `scripts/model2/entry_rl_filter.py` (threshold, fallback e cancelamento)
-3. `scripts/model2/daily_pipeline.py` (ordem: persist -> train -> filter -> order)
+2. `scripts/model2/entry_rl_filter.py`
+   (threshold, fallback e cancelamento)
+3. `scripts/model2/daily_pipeline.py`
+   (ordem: persist -> train -> filter -> order)
 
 ### RN-017 - Observabilidade de Circuit Breaker (M2-026.2)
 
-Transições de estado do circuit_breaker (CLOSED→OPEN→HALF_OPEN→CLOSED) devem
-ser registradas com auditoria imutável:
+Transições de estado do circuit_breaker
+(`CLOSED→OPEN→HALF_OPEN→CLOSED`) devem ser registradas com auditoria
+imutável:
 
-1. Cada transição registra: timestamp_utc, from_state, to_state, reason, reactivation_time_utc
-2. Estrutura é append-only: nenhuma alteração retroativa permitida (frozen dataclass)
-3. Query rápida: estado atual, histórico 24h (DESC por timestamp)
-4. Comportamento de decisão do circuit_breaker permanece inviolável
-5. Falha em logging de evento não bloqueia decisão (fail-safe com try/except)
+1. Cada transição registra: `timestamp_utc`, `from_state`, `to_state`,
+   `reason` e `reactivation_time_utc`.
+2. Estrutura e append-only: nenhuma alteração retroativa permitida
+   (frozen dataclass).
+3. Query rápida: estado atual e histórico 24h (DESC por timestamp).
+4. Comportamento de decisão do circuit_breaker permanece inviolável.
+5. Falha em logging de evento não bloqueia decisão
+   (fail-safe com try/except).
 
 ### RN-024 - Maquina de estados do Circuit Breaker (BLID-092)
 
@@ -195,14 +201,19 @@ O circuit_breaker opera com tres estados canonicos expostos em `risk/states.py`:
 
 Transicoes e responsaveis:
 
-1. `CLOSED -> OPEN`: automatica via `trip(reason)` quando drawdown <= threshold
-2. `OPEN -> HALF_OPEN`: via `attempt_recovery()` ou `reset_manual(operator=...)`
-3. `HALF_OPEN -> CLOSED`: automatica via `attempt_recovery()` se drawdown recuperado
-4. `HALF_OPEN -> OPEN`: automatica via `attempt_recovery()` se drawdown ainda critico
+1. `CLOSED -> OPEN`: automatica via `trip(reason)` quando
+   `drawdown <= threshold`.
+2. `OPEN -> HALF_OPEN`: via `attempt_recovery()` ou
+   `reset_manual(operator=...)`.
+3. `HALF_OPEN -> CLOSED`: automatica via `attempt_recovery()` se o
+   drawdown recuperar.
+4. `HALF_OPEN -> OPEN`: automatica via `attempt_recovery()` se o
+   drawdown continuar critico.
 
 Regras de reset manual com operador:
 
-1. `reset_manual(operator=<nome>)` exige identificacao auditavel do operador humano
+1. `reset_manual(operator=<nome>)` exige identificacao auditavel do
+   operador humano
 2. Forca transicao OPEN->HALF_OPEN->CLOSED independente do drawdown atual
 3. Registro obrigatorio: `reason=reset_manual:operador=<nome>`,
    `from_state`, `to_state`, `timestamp_utc`
@@ -219,14 +230,16 @@ progressao dentro de janela configuravel (padrao 300s):
 2. Fail-safe de interrupcao preserva estado do ciclo sem corromper execucao
    em andamento.
 3. risk_gate e circuit_breaker NUNCA sao desabilitados pelo watchdog.
-4. Todo acionamento de fail-safe gera audit_event com decision_id e timestamp_utc.
+4. Todo acionamento de fail-safe gera `audit_event` com `decision_id`
+   e `timestamp_utc`.
 
 ### RN-020 - Validacao de Schema Pre-Execucao (M2-027.2)
 
 O schema do modelo2.db deve ser validado antes de cada ciclo live:
 
-1. Tabelas obrigatorias: schema_migrations, technical_signals, signal_executions,
-   signal_execution_events, signal_execution_snapshots, audit_decision_execution.
+1. Tabelas obrigatorias: `schema_migrations`, `technical_signals`,
+   `signal_executions`, `signal_execution_events`,
+   `signal_execution_snapshots` e `audit_decision_execution`.
 2. Divergencia bloqueia ciclo com `reason_code='schema_divergence'` e lista
    de tabelas ausentes.
 3. Banco inexistente bloqueia com `reason_code='db_not_found'`.
@@ -280,9 +293,12 @@ de criterios via `PromotionEvaluator` em `core/model2/promotion_gate.py`:
 1. `win_rate` observado >= `min_win_rate` (padrao: 55%).
 2. `episode_count` >= `min_episodes` (padrao: 30 episodios).
 3. `max_drawdown_pct` observado <= `max_drawdown_pct` configurado (padrao: 5%).
-4. Todos os motivos de bloqueio sao acumulados e reportados (nao apenas o primeiro).
-5. `PromotionResult` e imutavel (frozen dataclass) com `evaluated_at` ISO UTC.
-6. `evaluate()` nunca lanca excecao; entrada invalida resulta em NO-GO com reason.
+4. Todos os motivos de bloqueio sao acumulados e reportados
+   (nao apenas o primeiro).
+5. `PromotionResult` e imutavel (frozen dataclass) com
+   `evaluated_at` ISO UTC.
+6. `evaluate()` nunca lanca excecao; entrada invalida resulta em
+   NO-GO com `reason`.
 
 ### RN-024 - Gate de Evidencia Minima para Promocao (M2-020.11)
 
@@ -291,9 +307,10 @@ minima de risco, estabilidade ou consistencia:
 
 1. `PromotionEvaluator.evaluate_evidence_gate(...)` em
    `core/model2/promotion_gate.py` e o contrato canonico.
-2. `decision_id` valido e obrigatorio para rastreabilidade; ausencia retorna NO_GO.
-3. `risk_evidence_ok`, `stability_evidence_ok` e `consistency_evidence_ok`
-   devem estar todos verdadeiros para GO.
+2. `decision_id` valido e obrigatorio para rastreabilidade;
+   ausencia retorna `NO_GO`.
+3. `risk_evidence_ok`, `stability_evidence_ok` e
+   `consistency_evidence_ok` devem estar todos verdadeiros para GO.
 4. `evidence_ref` obrigatorio para trilha auditavel; ausencia retorna NO_GO.
 5. Resultado imutavel em `PromotionEvidenceResult` inclui `decision`,
    `reasons`, `evidence_sufficient` e `evaluated_at` ISO UTC.
@@ -388,7 +405,8 @@ coerentes e sem contradicao com backlog, arquitetura e runbook:
 
 ### RN-018 - Retenção Determinística de Logs (M2-026.5)
 
-Logs devem ser rotacionados e retidos conforme política centralizada por severidade:
+Logs devem ser rotacionados e retidos conforme politica centralizada
+por severidade:
 
 1. CRITICAL: retido por 365 dias (1 ano) para compliance
 2. ERROR: retido por 90 dias
@@ -557,7 +575,8 @@ Quando a operacao em producao ja tiver acumulado evidencia suficiente:
 
 ### RN-038 - Contrato Verificavel do Status M2 por Simbolo (BLID-101)
 
-Para eliminar ambiguidade operacional no `iniciar.bat` sem consulta manual ao DB:
+Para eliminar ambiguidade operacional no `iniciar.bat` sem consulta
+manual ao DB:
 
 1. O bloco por simbolo deve publicar versao de contrato textual:
    `contract=BLID-101-v1`.
@@ -628,3 +647,20 @@ Quando o desempenho do RL degradar por simbolo:
    `circuit_breaker`; ele apenas registra e notifica.
 5. A prioridade de retreino deve ser persistida em `rl_training_audit` com
    rastreabilidade por simbolo/timeframe e, quando houver, `decision_id`.
+
+### RN-042 - Isolamento de Contexto por Modo Operacional (M2-022.6)
+
+Os modos `live`, `shadow` e `paper` devem operar em contexto isolado,
+com comportamento fail-safe e sem compartilhamento ambiguo de credenciais,
+ordens ou decisoes em execucao.
+
+1. `live` usa somente credencial e telemetria do ambiente real, com
+   `risk_gate` e `circuit_breaker` ativos em todo o ciclo.
+2. `shadow` replica decisao e reconciliacao sem enviar ordem real; em
+   ambiguidade de contexto, deve bloquear e registrar evidencias.
+3. `paper` opera em simulacao controlada, sem reutilizar credencial live
+   e sem mascarar lacunas de auditoria.
+4. Qualquer mistura entre `live`, `shadow` e `paper` viola o isolamento
+   operacional e exige bloqueio fail-safe imediato.
+5. Toda triagem ou escalada deve preservar rastreabilidade por
+   `decision_id`, `reason_code` e modo operacional.

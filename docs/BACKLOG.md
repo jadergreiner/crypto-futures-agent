@@ -58,7 +58,7 @@ Impacto Arquitetural:
 
 ### TAREFA M2-022.6 - Consolidar documentacao de arquitetura live
 
-Status: BACKLOG
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P1
@@ -83,8 +83,30 @@ Impacto:
 - Documentacao sincronizada para onboard e operacao
 - Auditoria completa de decisoes arquiteturais vigentes
 
-PO: Consolidar docs de arquitetura para operacao clara e auditavel do
-ciclo M2 hardened com cache, retry e escalabilidade.
+PO: Consolidar arquitetura live para reduzir ambiguidade operacional no
+ciclo M2. Ao fim deste desenvolvimento estarei feliz se o operador
+localizar fluxo, guardrails e procedimentos em ate 5 min com docs
+sincronizados.
+
+SA: Escopo documental live refinado com triagem fail-safe, metricas de
+tempo e trilha auditavel; sem mudanca de schema ou logica de execucao.
+
+QA: Suite RED criada em tests/test_docs_m2_022_6_live_consolidation.py
+(9 failed, 2 passed). Testes cobrem RF-001 a RF-007 e RNF-001/004/005.
+
+SE: Consolidacao documental implementada em 2026-04-01 com atualizacao de
+ARQUITETURA_ALVO.md, REGRAS_DE_NEGOCIO.md, RUNBOOK_M2_OPERACAO.md e
+SYNCHRONIZATION.md. Evidencias verificadas: `pytest -q
+tests/test_docs_m2_022_6_live_consolidation.py tests/test_docs_model2_sync.py`
+=> 24 passed; `pytest -q tests/` => 361 passed; `markdownlint docs/*.md`
+sem erros.
+
+TL: APROVADO. Docs live consolidadas com triagem fail-safe, metricas e
+[SYNC]; testes, lint e regressao reproduzidos localmente.
+
+PM: ACEITE. Valor do PO entregue com fluxo live, guardrails e triagem
+operacional consolidados em docs auditaveis, com baseline <= 5 min e
+trilha final registrada em [SYNC].
 
 ---
 

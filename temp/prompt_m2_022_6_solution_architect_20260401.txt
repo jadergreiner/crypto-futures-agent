@@ -1,0 +1,59 @@
+Voce e o agente 3.solution-architect desta task.
+
+Contexto de priorizacao do PO:
+- DECISAO_PO: GO_COM_RESTRICOES
+- Referencia do backlog: M2-022.6
+- Titulo do item: Consolidar documentacao de arquitetura live
+- Objetivo de negocio: reduzir ambiguidade operacional no live e acelerar
+diagnostico em incidentes do ciclo M2.
+- Justificativa de prioridade: item P1 com alto impacto em operacao e risco;
+valor direto em runtime ainda parcial, mas com ganho esperado de resposta
+operacional e auditoria. Score PO (1-5): valor real 3, valor 4, urgencia 4,
+reducao de risco 4, esforco 2. Score final aproximado: 3,55.
+- Valor real capturado em iniciar.bat:
+- Mudanca perceptivel: operador consegue localizar arquitetura, guardrails e
+procedimentos de warm-up/escalada em fluxo unico e auditavel.
+- Evidencias ou lacuna: logs/m2_cycle.log#L1 mostra ciclo
+live ativo com ruido operacional; logs/m2_cycle.log#L20
+mostra erro recorrente de votacao; logs/m2_cycle.log#L472
+mostra status por simbolo com M2_SYMBOLS:, indicando necessidade de referencia
+arquitetural/operacional consolidada para triagem.
+- Contestacao restante: falta metrica antes/depois de tempo de diagnostico no
+fluxo do operador; definir como medir no desenho tecnico.
+- Status aplicado no backlog: Em analise
+- Comentario PO (<=260): PO: Consolidar arquitetura live para reduzir
+ambiguidade operacional no ciclo M2. Ao fim deste desenvolvimento estarei
+feliz se o operador localizar fluxo, guardrails e procedimentos em ate 5 min
+com docs sincronizados.
+
+Escopo para refinamento tecnico:
+- Escopo fechado (entra): atualizar
+docs/ARQUITETURA_ALVO.md,
+docs/REGRAS_DE_NEGOCIO.md,
+docs/RUNBOOK_M2_OPERACAO.md e trilha em
+docs/SYNCHRONIZATION.md; consolidar idempotencia,
+retry, metricas, healthcheck, isolamento de risco e escalabilidade.
+- Fora de escopo (nao entra): mudanca de logica de execucao live, alteracao de
+schema, bypass de guardrails, refatoracao ampla de codigo.
+- Restricoes: manter consistencia com backlog M2-021/M2-022; respeitar MD013
+(80 colunas); nao criar arquitetura nova fora da vigente.
+- Premissas do PO: dependencias BLID-084 a M2-022.5 ja concluidas.
+
+Criterios de sucesso orientados a produto:
+1. Operador encontra fluxo live ponta-a-ponta em documentacao unica, sem
+ambiguidades entre arquitetura, regras e runbook.
+2. Procedimento de triagem para erros recorrentes do ciclo live fica explicito
+e acionavel, com passos fail-safe e evidencias minimas.
+3. Trilha [SYNC] registra a consolidacao e permite auditoria de decisao.
+
+Riscos e guardrails obrigatorios:
+- Risco operacional principal: documentacao inconsistente levar a resposta
+lenta/incorreta em incidente live.
+- Controles obrigatorios: manter risk_gate e circuit_breaker ativos.
+- Em duvida operacional: fail-safe.
+
+Sua tarefa como Arquiteto de Solucoes:
+1. Refinar requisitos funcionais e nao funcionais verificaveis.
+2. Revisar aderencia arquitetural e pontos de extensao.
+3. Revisar impacto de modelagem de dados e contratos.
+4. Gerar prompt final acionavel para o agente 4.qa-tdd.

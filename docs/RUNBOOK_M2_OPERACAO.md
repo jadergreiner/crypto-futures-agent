@@ -71,6 +71,24 @@ Monitorar continuamente:
 4. posicoes sem protecao;
 5. falhas de idempotencia.
 
+## Triagem de Erros Recorrentes do Ciclo Live
+
+Tempo de diagnostico baseline para um incidente padrao: <= 5 min,
+consultando no maximo esta secao e o summary do runtime.
+
+1. Erro de votacao ou `voting` inconsistente:
+   - confirmar o shape da observacao e o simbolo afetado;
+   - bloquear nova entrada no simbolo ate o contexto ficar consistente;
+   - preservar evidencias em log e seguir em fail-safe.
+2. Timeout de reconciliacao:
+   - revisar divergence banco x exchange e ultimo `decision_id`;
+   - manter o simbolo sem novas entradas ate reconciliar o estado;
+   - escalar como incidente se o timeout persistir por mais de um ciclo.
+3. Posicao sem protecao:
+   - tratar como alerta critico imediato;
+   - bloquear novas entradas e reconciliar stop/take profit;
+   - se houver ambiguidade, encerrar a exposicao em modo fail-safe.
+
 ## Resposta a incidente
 
 Quando detectar risco critico:

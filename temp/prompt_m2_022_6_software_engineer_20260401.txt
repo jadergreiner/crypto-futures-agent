@@ -1,0 +1,355 @@
+================================================================================
+PROMPT PARA: Software Engineer (Agente 5)
+TASK: M2-022.6 — Consolidar documentacao de arquitetura live
+FASE: GREEN → REFACTOR (TDD)
+DATA: 2026-04-01
+GERADO POR: QA-TDD (Agente 4)
+================================================================================
+
+## 1. CONTEXTO DA TASK
+
+### Objetivo
+Consolidar e sincronizar a documentacao da arquitetura live do Modelo 2.0
+tornando os documentos tecnicos coerentes, completos e auditaveis para o
+operador localizar fluxo, guardrails e procedimentos em ate 5 minutos.
+
+### Item de Backlog
+- BLID: M2-022.6
+- Sprint: M2-022
+- Prioridade: P1
+- Status atual: TESTES_PRONTOS
+- Arquivo de suite: tests/test_docs_m2_022_6_live_consolidation.py
+
+### Restricoes Criticas
+- Escopo EXCLUSIVAMENTE documental: nenhuma alteracao de codigo Python
+- Sem mudanca de schema em modelo2.db ou crypto_agent.db
+- Sem alteracao da logica de execucao live
+- Preservar idempotencia por decision_id em todos os documentos
+- Nunca desabilitar ou sugerir bypass de risk_gate ou circuit_breaker
+- docs/*.md tem limite de 80 colunas (MD013)
+
+---
+
+## 2. SUITE COMPLETA DE TESTES (RED PHASE — 9 failed, 2 passed)
+
+Arquivo: tests/test_docs_m2_022_6_live_consolidation.py
+
+```
+FAILED test_arquitetura_alvo_contem_secao_fluxo_live_ponta_a_ponta   [RF-001]
+FAILED test_arquitetura_alvo_documenta_metricas_operacionais          [RF-002]
+FAILED test_arquitetura_alvo_referencia_healthcheck_e_componentes     [RF-003]
+FAILED test_regras_negocio_contem_rn_isolamento_por_modo_operacional  [RF-004]
+FAILED test_runbook_contem_secao_triagem_erros_recorrentes_live       [RF-005a]
+FAILED test_runbook_cobre_votacao_timeout_e_posicao_sem_protecao      [RF-005b]
+FAILED test_runbook_define_metrica_diagnostico_baseline_em_minutos    [RF-006]
+FAILED test_synchronization_registra_sync_consolidacao_m2_022_6       [RF-007]
+FAILED test_docs_alvo_respeitam_md013_80_colunas                      [RNF-001]
+PASSED test_docs_nao_sugerem_bypass_de_guardrails                     [RNF-004]
+PASSED test_docs_alvo_nao_contradizem_fluxo_live_entre_si             [RNF-005]
+```
+
+---
+
+## 3. REQUISITOS A IMPLEMENTAR
+
+### RF-001 — ARQUITETURA_ALVO.md: secao de fluxo live ponta-a-ponta
+
+**Teste que deve passar:** test_arquitetura_alvo_contem_secao_fluxo_live_ponta_a_ponta
+
+**O que faz o teste:**
+- Busca secao de nivel ## com cabecalho contendo "fluxo", "live" e "ponta-a-ponta"
+- Dentro da secao, exige >= 3 das 5 camadas canonicas:
+  warm-up, inferencia, safety, execucao, reconciliacao
+
+**O que adicionar em ARQUITETURA_ALVO.md:**
+Criar secao `## Fluxo Live Ponta-a-Ponta` descrevendo o ciclo completo:
+  warm-up → inferencia de policy → safety envelope → execucao de ordem
+  → reconciliacao de fills + deteccao de saidas externas.
+Incluir ao menos 3 camadas explicitamente no texto da secao.
+
+---
+
+### RF-002 — ARQUITETURA_ALVO.md: metricas operacionais por etapa
+
+**Teste que deve passar:** test_arquitetura_alvo_documenta_metricas_operacionais
+
+**O que faz o teste:**
+- Exige que ARQUITETURA_ALVO.md contenha (case-insensitive) TODOS os 4 termos:
+  - "latencia de inferencia"
+  - "taxa de bloqueio"
+  - "divergencia"
+  - "posicoes sem protecao"
+
+**Observacao:** Estes termos ja existem em RUNBOOK_M2_OPERACAO.md (linhas 70-79).
+Na ARQUITETURA_ALVO.md faltam "latencia de inferencia", "taxa de bloqueio"
+e "posicoes sem protecao". "divergencia" pode ja existir — verificar.
+
+**O que adicionar em ARQUITETURA_ALVO.md:**
+Adicionar referencia cruzada ou subsecao de metricas operacionais dentro
+da secao RF-001 (fluxo live) ou em secao propria, citando os 4 termos.
+
+---
+
+### RF-003 — ARQUITETURA_ALVO.md: secao healthcheck e componentes
+
+**Teste que deve passar:** test_arquitetura_alvo_referencia_healthcheck_e_componentes
+
+**O que faz o teste:**
+- Busca secao ## com cabecalho contendo "healthcheck" + "component" OU
+  "component" + "monitorad" OU "healthcheck" + "monitorad"
+- Dentro da secao, exige referencia a AMBOS:
+  - go_live_preflight.py
+  - healthcheck_live_execution.py
+
+**O que adicionar em ARQUITETURA_ALVO.md:**
+Criar secao `## Healthcheck e Componentes Monitorados` que liste os
+scripts de verificacao go_live_preflight.py e healthcheck_live_execution.py
+com descricao resumida de cada um.
+
+---
+
+### RF-004 — REGRAS_DE_NEGOCIO.md: RN de isolamento por modo
+
+**Teste que deve passar:** test_regras_negocio_contem_rn_isolamento_por_modo_operacional
+
+**O que faz o teste:**
+- Extrai todos os blocos ### RN-xxx
+- Para cada bloco, verifica se contem os 3 modos: live, shadow, paper
+- Tambem verifica presenca de "fail-safe" E "isolamento" no mesmo bloco
+
+**Situacao atual:**
+- Linha 427 tem regra de isolamento shadow/live mas nao menciona "paper"
+  e nao esta sob header ### RN-xxx proprio
+
+**O que adicionar em REGRAS_DE_NEGOCIO.md:**
+Criar regra `### RN-XXX — Isolamento de contexto por modo operacional`
+(XXX = proximo numero da sequencia) que mencione explicitamente:
+  - modo live: credencial real, sem mistura com shadow/paper
+  - modo shadow: nao pode operar com credencial live
+  - modo paper: simulacao local sem credencial real
+  - fail-safe em ambiguidade: bloquear operacao
+  - isolamento: contexto de cada modo e isolado dos demais
+
+---
+
+### RF-005 — RUNBOOK_M2_OPERACAO.md: secao triagem erros ciclo live
+
+**Testes que devem passar:**
+  test_runbook_contem_secao_triagem_erros_recorrentes_live
+  test_runbook_cobre_votacao_timeout_e_posicao_sem_protecao
+
+**O que faz o teste:**
+- Busca secao ## com cabecalho contendo:
+  "triagem" + "erro" + "live" OU
+  "erros recorrentes" + "ciclo" OU
+  "troubleshooting" + "ciclo" + "live"
+- Exige >= 3 items de lista (- ou 1. 2.)
+- Dentro da secao exige: votacao/voting, timeout, "posicao sem protecao"
+
+**Situacao atual:**
+- Secao Troubleshooting existente (linha 55) cobre apenas bootstrap ALGOUSDT
+- Nao ha secao de triagem para erros recorrentes do ciclo live
+
+**O que adicionar em RUNBOOK_M2_OPERACAO.md:**
+Criar secao `## Triagem de Erros Recorrentes do Ciclo Live` com ao menos:
+  1. Erro de votacao (Unexpected observation shape) — causa + acao fail-safe
+  2. Timeout de reconciliacao — causa + acao fail-safe
+  3. Posicao sem protecao detectada — causa + acao (fechar / bloquear novo entry)
+  Cada item deve ter acao de fail-safe explicita.
+
+---
+
+### RF-006 — RUNBOOK_M2_OPERACAO.md: metrica de diagnostico baseline
+
+**Teste que deve passar:** test_runbook_define_metrica_diagnostico_baseline_em_minutos
+
+**O que faz o teste:**
+- Dentro da secao de triagem do ciclo live, busca padrao `\d+ min` OU
+  "diagnostico" seguido de numero
+- Valida que o numero seja <= 5
+
+**O que adicionar:**
+Na secao de triagem criada para RF-005, incluir frase como:
+  "Tempo de triagem esperado: <= 5 min"
+  ou similar que contenha o valor numerico e a unidade "min".
+
+---
+
+### RF-007 — SYNCHRONIZATION.md: SYNC de consolidacao com 3 docs
+
+**Teste que deve passar:** test_synchronization_registra_sync_consolidacao_m2_022_6
+
+**O que faz o teste:**
+- Busca blocos ### [SYNC...] que mencionam M2-022.6
+- Exige que pelo menos um bloco liste TODOS os 3 docs:
+  ARQUITETURA_ALVO.md, REGRAS_DE_NEGOCIO.md, RUNBOOK_M2_OPERACAO.md
+
+**Situacao atual:**
+- [SYNC-312] (PO) e [SYNC-313] (SA) existem para M2-022.6 mas nao listam
+  os 3 docs como atualizados — apenas descrevem as etapas de analise
+
+**O que adicionar em SYNCHRONIZATION.md:**
+O [SYNC-314] ja foi criado pelo QA-TDD mas nao lista os docs como "Docs atualizados".
+Ao concluir a implementacao, o Software Engineer deve criar [SYNC-315] ou
+atualizar o registro existente para incluir:
+```
+### [SYNC-315] M2-022.6 Consolidacao documental implementada - 2026-04-01
+- Agente: 5.software-engineer
+- Item: M2-022.6
+- Docs atualizados:
+  - ARQUITETURA_ALVO.md (RF-001, RF-002, RF-003 + MD013)
+  - REGRAS_DE_NEGOCIO.md (RF-004 + MD013)
+  - RUNBOOK_M2_OPERACAO.md (RF-005, RF-006 + MD013)
+```
+
+---
+
+### RNF-001 — Conformidade MD013: linhas <= 80 colunas
+
+**Teste que deve passar:** test_docs_alvo_respeitam_md013_80_colunas
+
+**Situacao atual (linhas que violam MD013):**
+
+ARQUITETURA_ALVO.md:
+  - Linha 119: 83 cols
+  - Linha 148: 82 cols
+  - Linha 152: 83 cols
+  - Linha 182: 81 cols
+  - Linha 430: 89 cols
+  - Linha 431: 82 cols
+  - Linha 469: 95 cols
+  - Linha 472: 84 cols
+  - Linha 580: 81 cols
+
+REGRAS_DE_NEGOCIO.md (parcial — ha mais):
+  - Linha 175: 82 cols
+  - Linha 182: 94 cols
+  - Linha 183: 85 cols
+  - Linha 200: 84 cols
+  - Linha 201: 85 cols
+  - Linha 205: 83 cols
+  - Linha 222: 82 cols
+  - Linha 228-229: 81 cols
+  - Linha 283-285: 82-84 cols
+
+**O que corrigir:**
+Ao adicionar o novo conteudo nos 3 docs, garantir que TODAS as novas linhas
+tenham <= 80 colunas. Clivar linhas longas existentes nas mesmas secoes
+editadas (escopo conservador: corrigir pelo menos as linhas violadoras
+listadas). O teste verifica o doc inteiro.
+
+**Excecoes aceitas pelo teste:**
+  - Linhas de code fence (``` ou ~~~) e conteudo dentro delas
+  - Linhas que sao apenas uma URL (https://...)
+  - Linhas em branco
+
+---
+
+## 4. GUARDRAILS E INVARIANTES
+
+- Escopo: APENAS docs/*.md — nenhum arquivo .py deve ser alterado
+- Idempotencia: nao criar duplicatas de secoes ja existentes
+- Fail-safe documental: em ambiguidade de onde inserir, preferir secao nova
+  separada a modificar secao critica existente
+- Nunca adicionar instrucao que sugira desabilitar risk_gate ou circuit_breaker
+  (teste RNF-004 detecta isso e deve continuar passando)
+- Commits: usar tag [DOCS] no formato "[DOCS] M2-022.6 consolidar docs live"
+- Apos implementar: rodar pytest -q tests/ completo e corrigir falhas antes
+  de emitir handoff para Tech Lead
+
+---
+
+## 5. PLANO GREEN-REFACTOR
+
+### Ordem recomendada de implementacao
+
+**Passo 1 — ARQUITETURA_ALVO.md (RF-001, RF-002, RF-003)**
+1. Localizar posicao ideal para inserir as secoes novas (apos a descricao
+   do pipeline existente, antes de secoes de componentes individuais)
+2. Adicionar `## Fluxo Live Ponta-a-Ponta` com as 5 camadas
+3. Dentro ou logo apos, adicionar metricas operacionais (RF-002)
+4. Adicionar `## Healthcheck e Componentes Monitorados` (RF-003)
+5. Corrigir linhas MD013 violadoras nas secoes editadas (RNF-001)
+
+**Passo 2 — REGRAS_DE_NEGOCIO.md (RF-004)**
+1. Verificar ultimo numero de RN no doc
+2. Adicionar `### RN-XXX — Isolamento de contexto por modo operacional`
+3. Corrigir linhas MD013 violadoras nas secoes editadas
+
+**Passo 3 — RUNBOOK_M2_OPERACAO.md (RF-005, RF-006)**
+1. Adicionar secao `## Triagem de Erros Recorrentes do Ciclo Live`
+   com 3+ itens cobrindo votacao, timeout e posicao sem protecao
+2. Incluir metrica "<= 5 min" na secao
+3. Corrigir linhas MD013 violadoras
+
+**Passo 4 — SYNCHRONIZATION.md (RF-007)**
+1. Adicionar [SYNC-315] listando os 3 docs atualizados
+
+**Passo 5 — Validacao final**
+```bash
+pytest -q tests/test_docs_m2_022_6_live_consolidation.py
+# Esperado: 11 passed, 0 failed
+
+pytest -q tests/
+# Esperado: todas as suites passando
+```
+
+---
+
+## 6. CHECKLIST DE ACEITE
+
+- [ ] pytest -q tests/test_docs_m2_022_6_live_consolidation.py: 11 passed
+- [ ] pytest -q tests/: sem regressoes (suite completa verde)
+- [ ] Nenhum arquivo .py alterado
+- [ ] MD013: nenhuma linha > 80 colunas nos 3 docs alvo (exceto excecoes)
+- [ ] ARQUITETURA_ALVO.md: secao ## Fluxo Live Ponta-a-Ponta com >= 3 camadas
+- [ ] ARQUITETURA_ALVO.md: 4 metricas operacionais presentes
+- [ ] ARQUITETURA_ALVO.md: secao ## Healthcheck e Componentes Monitorados
+- [ ] REGRAS_DE_NEGOCIO.md: RN-xxx com live + shadow + paper + fail-safe
+- [ ] RUNBOOK_M2_OPERACAO.md: secao triagem ciclo live com 3+ passos
+- [ ] RUNBOOK_M2_OPERACAO.md: metrica "<= 5 min" presente
+- [ ] SYNCHRONIZATION.md: [SYNC-315] com 3 docs listados
+- [ ] docs/BACKLOG.md: M2-022.6 status atualizado para IMPLEMENTADO
+- [ ] Commit com tag [DOCS] antes de emitir handoff
+
+---
+
+## 7. COMANDOS DE VALIDACAO
+
+```bash
+# Validar suite RED (deve passar 100% apos implementacao)
+pytest -q tests/test_docs_m2_022_6_live_consolidation.py
+
+# Validar suite completa (sem regressoes)
+pytest -q tests/
+
+# Validar MD013 via markdownlint (opcional, confirma < 80 cols)
+markdownlint docs/ARQUITETURA_ALVO.md docs/REGRAS_DE_NEGOCIO.md docs/RUNBOOK_M2_OPERACAO.md
+
+# Verificar violacoes de MD013 em arquivo especifico
+python -c "
+from pathlib import Path
+import re
+for p in ['docs/ARQUITETURA_ALVO.md', 'docs/REGRAS_DE_NEGOCIO.md', 'docs/RUNBOOK_M2_OPERACAO.md']:
+    lines = Path(p).read_text('utf-8').splitlines()
+    in_cb = False
+    for i, l in enumerate(lines, 1):
+        if re.match(r'^```|^~~~', l):
+            in_cb = not in_cb
+            continue
+        if in_cb or not l.strip():
+            continue
+        if len(l) > 80:
+            print(f'{p}:{i}: {len(l)} cols')
+"
+```
+
+---
+
+Apos implementacao, emitir handoff para Tech Lead (Agente 6) com:
+  - Lista de arquivos alterados
+  - Saida de pytest (todos passando)
+  - Mapeamento requisito -> secao adicionada/editada
+  - Impactos de documentacao para o Doc Advocate
+
+================================================================================

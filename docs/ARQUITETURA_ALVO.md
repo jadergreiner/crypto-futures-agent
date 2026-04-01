@@ -24,6 +24,43 @@ Decisao do modelo (acoes permitidas):
 3. Em duvida operacional, bloquear operacao (fail-safe).
 4. Toda decisao e evento relevante devem ser auditaveis.
 
+## Fluxo Live Ponta-a-Ponta
+
+O ciclo live segue um fluxo unico, auditavel e ponta-a-ponta entre as
+camadas principais do Modelo 2.0:
+
+1. warm-up e construcao do estado de mercado multi-timeframe;
+2. inferencia da policy com `model_inference_service.py`;
+3. validacao do safety envelope via `risk_gate` e `circuit_breaker`;
+4. execucao de ordem permitida pela camada live;
+5. reconciliacao de fills, protecoes e saidas externas.
+
+Metricas operacionais por etapa critica:
+
+1. latencia de inferencia para detectar degradacao de resposta;
+2. taxa de bloqueio por risco para monitorar pressao do safety envelope;
+3. divergencia de reconciliacao entre banco e exchange;
+4. posicoes sem protecao como alerta critico de operacao;
+5. falhas de idempotencia por `decision_id` para auditoria.
+
+A referencia cruzada operacional destas metricas fica em
+`docs/RUNBOOK_M2_OPERACAO.md`, onde a triagem de incidente detalha a
+acao fail-safe por etapa.
+
+## Healthcheck e Componentes Monitorados
+
+Os componentes abaixo devem permanecer monitorados antes e durante a
+operacao live:
+
+1. `scripts/model2/go_live_preflight.py` — valida pre-condicoes, risco,
+   schema e evidencia minima antes do go-live;
+2. `scripts/model2/healthcheck_live_execution.py` — verifica a saude da
+   execucao, reconciliacao e promocao GO/NO-GO no runtime;
+3. `core/model2/live_service.py` — aplica guardrails antes do envio de
+   ordens e publica trilha auditavel da execucao;
+4. `core/model2/live_execution.py` — consolida `reason_code`, severidade
+   e `recommended_action` para falhas e bloqueios.
+
 ## Componentes principais
 
 ## Camada 1 - Coleta de Estado de Mercado
@@ -116,10 +153,12 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   Apos CONSUMED, `mark_decision_id_processed` registra o decision_id.
   Fluxo legado (decision_id=None) nao e afetado.
 - Retry controlado de exchange (M2-024.4): `io_retry.py` fornece
-  `classify_exchange_exception` (transient|permanent), `exchange_retry_with_budget`
-  (max 3 tentativas, backoff exponencial) e `ExchangeRetryBudgetError`.
-  `live_service.py` expoe `_place_market_entry_with_retry` que aplica o retry
-  e retorna None (fail-safe) apos budget esgotado. Guardrails intactos.
+  `classify_exchange_exception` (transient|permanent),
+  `exchange_retry_with_budget` (max 3 tentativas, backoff exponencial)
+  e `ExchangeRetryBudgetError`.
+  `live_service.py` expoe `_place_market_entry_with_retry` que aplica o
+  retry e retorna None (fail-safe) apos budget esgotado.
+  Guardrails intactos.
 - Timeout por etapa (M2-024.5): `core/model2/execution_timeout.py` fornece
   `StageTimeoutPolicy` (frozen dataclass, defaults: admissao=5s, envio=10s,
   reconciliacao=30s), `check_admission_timeout`, `check_send_timeout`,
@@ -145,12 +184,14 @@ Contrato unificado de erros (M2-023.1, estendido em M2-024.1):
   propagam `summary.reason_code='schema_divergence'` antes do live, enquanto
   `candle_freshness`, `train_checkpoint` e `train_episodes` permanecem fora do
   check 3 e seguem na trilha `M2-025.14` (`DATA_CONSISTENCY_FAIL`).
-- Contrato de erro de execucao auditavel (M2-024.10): `LiveExecutionErrorContract`
-  frozen dataclass em `live_execution.py` com campos obrigatorios `decision_id`,
-  `execution_id`, `reason_code`, `severity`, `recommended_action` e campo
-  opcional `additional_context`. Imutabilidade garantida por frozen=True.
-  Toda falha/bloqueio deve ser representada por esta estrutura para rastreabilidade
-  ponta a ponta.
+- Contrato de erro de execucao auditavel (M2-024.10):
+  `LiveExecutionErrorContract` frozen dataclass em
+  `live_execution.py` com campos obrigatorios `decision_id`,
+  `execution_id`, `reason_code`, `severity`, `recommended_action`
+  e campo opcional `additional_context`.
+  Imutabilidade garantida por frozen=True.
+  Toda falha ou bloqueio deve ser representada por esta estrutura para
+  rastreabilidade ponta a ponta.
 
 Politica de rollback por severidade (M2-024.14):
 
@@ -178,8 +219,9 @@ Resiliencia e fail-safe de pipeline (M2-027):
   - `CycleWatchdog`: detecta travamento por ausencia de progressao em janela
     configuravel (padrao 300s); aciona fail-safe preservando estado sem
     desabilitar risk_gate ou circuit_breaker.
-  - `validate_schema_pre_exec`: valida tabelas obrigatorias no modelo2.db antes
-    de cada ciclo; bloqueia com `reason_code='schema_divergence'` em divergencia.
+  - `validate_schema_pre_exec`: valida tabelas obrigatorias no
+    modelo2.db antes de cada ciclo; bloqueia com
+    `reason_code='schema_divergence'` em divergencia.
   - `detect_orphan_positions`: compara posicoes abertas na exchange vs
     signal_executions IN_PROGRESS; identifica posicoes sem monitoramento.
   - `build_orphan_exit_order`: constroi ordem de saida orfa com STOP_MARKET
@@ -427,9 +469,11 @@ Componentes:
 
 **M2-026 (Observabilidade + Auditoria + Conformidade)**:
 
-1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do risk_gate (M2-026.1)
-   - `RiskGateBlockEvent` (frozen dataclass): reason_code, condition, limit_value,
-     actual_value, decision_id, timestamp_ms — imutavel e auditavel
+1. `core/model2/risk_gate_telemetry.py` — Telemetria de bloqueios do
+   `risk_gate` (M2-026.1)
+   - `RiskGateBlockEvent` (frozen dataclass): `reason_code`,
+     `condition`, `limit_value`, `actual_value`, `decision_id`,
+     `timestamp_ms` — imutavel e auditavel
    - `RiskGateTelemetryRecorder`: append-only; metodos record(), total_events(),
      all_events(), query_by_reason() com count e percentual por reason_code
    - Hook em `live_service._enforce_guardrails_before_order`: registra bloqueio
@@ -466,11 +510,14 @@ Componentes:
 **M2-028.1 (Gate de Promocao GO/NO-GO shadow→paper)**:
 
 1. `core/model2/promotion_gate.py` — contrato de avaliacao de promocao
-   - `PromotionConfig`: thresholds configuráveis (min_win_rate, min_episodes, max_drawdown_pct)
-   - `PromotionResult` (frozen dataclass): decisao GO/NO-GO, reasons,
-     evaluated_at ISO UTC
-   - `PromotionEvaluator`: avalia criterios de forma fail-safe (nunca lanca excecao)
-   - Defaults conservadores: win_rate >= 55%, episodes >= 30, drawdown <= 5%
+   - `PromotionConfig`: thresholds configuraveis (`min_win_rate`,
+     `min_episodes`, `max_drawdown_pct`)
+   - `PromotionResult` (frozen dataclass): decisao GO/NO-GO,
+     `reasons` e `evaluated_at` ISO UTC
+   - `PromotionEvaluator`: avalia criterios de forma fail-safe
+     (nunca lanca excecao)
+   - Defaults conservadores: `win_rate >= 55%`, `episodes >= 30`,
+     `drawdown <= 5%`
 
 **M2-020.11 (Gate de evidencia minima GO/NO-GO)**:
 
@@ -577,8 +624,9 @@ Dados coletados por simbolo:
    - sem bypass de `risk_gate`/`circuit_breaker`;
    - idempotencia por `decision_id` mantida no caminho de trigger/auditoria.
 5. Fechamento da devolucao PM (valor operacional em `iniciar.bat`):
-   - `core/model2/training_audit.py` expõe `summarize_training_audit_window(...)`
-     para consolidar janela 24h (`started`, `training_already_running`,
+   - `core/model2/training_audit.py` expoe
+     `summarize_training_audit_window(...)` para consolidar janela 24h
+     (`started`, `training_already_running`,
      `threshold_not_reached`, `conclusive`);
    - `core/model2/live_service.py` injeta no `SymbolReport` os campos
      `training_audit_started_24h`, `training_audit_running_blocks_24h` e

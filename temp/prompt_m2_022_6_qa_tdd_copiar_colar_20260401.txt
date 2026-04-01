@@ -1,0 +1,165 @@
+Você é o agente 4.qa-tdd desta task.
+
+## Contexto
+
+- id: M2-022.6
+- titulo: Consolidar documentacao de arquitetura live
+- sprint: M2-022
+- status_backlog: Em analise
+- gate_adr: APROVADO_POR_ADR (ADR-002, ADR-004, ADR-009, ADR-040)
+- objetivo: Reduzir ambiguidade operacional no live M2 consolidando fluxo,
+  guardrails e procedimentos de triagem em docs unicos e auditaveis.
+- criterio_po: operador localiza fluxo, guardrails e procedimentos em ate
+  5 min com docs sincronizados.
+
+## Escopo
+
+ENTRA:
+- Testes RED (suite que falha antes da implementacao) para verificar que
+  os 4 documentos abaixo contem as secoes e conteudos exigidos:
+  - docs/ARQUITETURA_ALVO.md
+  - docs/REGRAS_DE_NEGOCIO.md
+  - docs/RUNBOOK_M2_OPERACAO.md
+  - docs/SYNCHRONIZATION.md
+
+NAO ENTRA:
+- Mudanca de logica de execucao live
+- Mudanca de schema de banco
+- Bypass de guardrails
+- Criacao de novos arquivos em docs/
+
+## Requisitos Funcionais Verificaveis
+
+RF-001 — ARQUITETURA_ALVO.md deve conter secao explicita de fluxo live
+ponta-a-ponta conectando Camadas 1-5 em diagrama ou lista de ciclo:
+warm-up -> inferencia -> safety envelope -> execucao -> reconciliacao.
+
+RF-002 — ARQUITETURA_ALVO.md deve documentar metricas operacionais por
+etapa critica: latencia de inferencia, taxa de bloqueio de risco,
+divergencia reconciliacao, posicoes sem protecao — com referencia cruzada
+ao Runbook.
+
+RF-003 — ARQUITETURA_ALVO.md deve documentar criterios de healthcheck e
+componentes monitorados com referencia a go_live_preflight.py e
+healthcheck_live_execution.py.
+
+RF-004 — REGRAS_DE_NEGOCIO.md deve incluir regra explicita de isolamento
+de risco por modo operacional (live/shadow/paper) com referencia ao safety
+envelope e comportamento fail-safe por modo.
+
+RF-005 — RUNBOOK_M2_OPERACAO.md deve incluir secao de triagem de erros
+recorrentes do ciclo live com passos fail-safe para: erro de votacao,
+timeout de reconciliacao, posicao sem protecao.
+
+RF-006 — RUNBOOK_M2_OPERACAO.md deve definir metrica de diagnostico
+baseline: estimativa de tempo para triagem de incidente padrao (valor
+numerico em minutos, alvo <= 5 min) e numero de secoes necessarias.
+
+RF-007 — SYNCHRONIZATION.md deve conter token [SYNC] com referencia
+explicita a M2-022.6 e lista dos 3 docs atualizados.
+
+## Requisitos Nao-Funcionais
+
+RNF-001: Todas as linhas em docs/*.md atualizado <= 80 colunas (MD013).
+RNF-002: Zero mudanca de schema em modelo2.db ou crypto_agent.db.
+RNF-003: Zero mudanca em codigo de execucao live.
+RNF-004: Sem bypass ou desativacao de risk_gate/circuit_breaker nos docs.
+RNF-005: Consistencia entre ARQUITETURA_ALVO.md, REGRAS_DE_NEGOCIO.md e
+          RUNBOOK_M2_OPERACAO.md apos atualizacao (sem contradicoes).
+
+## Arquivos de Teste
+
+Criar suite em: tests/test_docs_m2_022_6_live_consolidation.py
+
+Aproveitar padroes de tests/test_docs_model2_sync.py como referencia.
+
+## Suite de Testes Obrigatoria (RED phase)
+
+Todos os testes abaixo devem FALHAR antes da implementacao.
+
+Bloco 1 — ARQUITETURA_ALVO.md:
+
+test_arquitetura_alvo_contem_secao_fluxo_live_ponta_a_ponta
+  Verifica presenca de header ou texto contendo "fluxo" e "ponta" e ao
+  menos 3 das 5 camadas (inferencia, safety, execucao, reconciliacao,
+  coleta) mencionadas na mesma secao.
+
+test_arquitetura_alvo_documenta_metricas_operacionais
+  Verifica presenca dos termos canonicos: "latencia de inferencia",
+  "taxa de bloqueio", "divergencia" e "posicoes sem protecao" em
+  ARQUITETURA_ALVO.md.
+
+test_arquitetura_alvo_referencia_healthcheck_components
+  Verifica que "go_live_preflight.py" e "healthcheck" aparecem em
+  ARQUITETURA_ALVO.md (referencia cruzada ao Runbook).
+
+Bloco 2 — REGRAS_DE_NEGOCIO.md:
+
+test_regras_negocio_contem_rn_isolamento_por_modo_operacional
+  Verifica presenca de regra (padrao "RN-\d+") que menciona os tres
+  modos: "live", "shadow" e "paper" no mesmo bloco de regra.
+
+Bloco 3 — RUNBOOK_M2_OPERACAO.md:
+
+test_runbook_contem_secao_triagem_erros_recorrentes
+  Verifica presenca de secao contendo "triagem" ou "erros recorrentes"
+  ou "troubleshooting" com pelo menos 3 passos numerados ou em lista.
+
+test_runbook_cobre_erro_votacao_timeout_posicao
+  Verifica presenca dos termos: "votacao" (ou "voting"), "timeout" e
+  "protecao" na secao de triagem do Runbook.
+
+test_runbook_define_metrica_de_diagnostico_baseline
+  Verifica presenca de valor numerico de minutos associado a metrica de
+  tempo de diagnostico (padrao: "\d+\s*min" ou "menos de \d+" no doc).
+
+Bloco 4 — SYNCHRONIZATION.md:
+
+test_synchronization_registra_sync_m2_022_6
+  Verifica presenca do token "[SYNC]" e da string "M2-022.6" no mesmo
+  bloco/paragrafo em SYNCHRONIZATION.md.
+
+Bloco 5 — Conformidade e consistencia:
+
+test_docs_arquivos_alvo_respeitam_md013_80_colunas
+  Verifica que nenhuma linha em ARQUITETURA_ALVO.md,
+  REGRAS_DE_NEGOCIO.md e RUNBOOK_M2_OPERACAO.md excede 80 caracteres.
+  Excecoes: linhas de codigo (``` ou ~~~), URLs nuas, linhas em branco.
+
+test_docs_nao_contradizem_guardrails
+  Verifica que nenhum dos 3 docs contem frases que sugiram bypass de
+  risk_gate ou circuit_breaker (padroes: "desabilitar risk_gate",
+  "bypass circuit_breaker", "skip risk_gate").
+
+## Guardrails dos Testes
+
+- Nunca mockar risk_gate nem circuit_breaker.
+- Preservar decision_id como invariante idempotente.
+- Cada teste = um requisito RF ou RNF.
+- Nomenclatura: test_<doc>_<condicao>_<resultado>.
+- Sem testes de logica de execucao live nesta suite.
+
+## Plano Green-Refactor (para Software Engineer)
+
+RED (voce, QA-TDD): escrever suite acima com testes falhando.
+
+GREEN (Software Engineer): atualizar os 4 documentos para que todos os
+testes passem:
+  1. ARQUITETURA_ALVO.md: adicionar secao de fluxo live ponta-a-ponta
+     com metricas e referencia a healthcheck.
+  2. REGRAS_DE_NEGOCIO.md: adicionar RN de isolamento por modo operacional.
+  3. RUNBOOK_M2_OPERACAO.md: adicionar secao de triagem de erros recorrentes
+     com passos fail-safe e metrica de diagnostico baseline.
+  4. SYNCHRONIZATION.md: registrar [SYNC] M2-022.6.
+
+REFACTOR: verificar consistencia cruzada entre os 3 docs e corrigir
+contradicoes. Conformidade MD013 em todo o escopo.
+
+## Criterio de Done (para sua fase RED)
+
+- [ ] Suite em tests/test_docs_m2_022_6_live_consolidation.py criada.
+- [ ] Todos os testes listados acima implementados em fase RED (falham).
+- [ ] pytest -q tests/test_docs_m2_022_6_live_consolidation.py mostra
+      11 failed, 0 passed (ou variante conforme suite final).
+- [ ] Backlog M2-022.6 atualizado para TESTES_PRONTOS.
+- [ ] Prompt executavel para Software Engineer emitido.

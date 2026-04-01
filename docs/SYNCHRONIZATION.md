@@ -23,6 +23,85 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-316] M2-022.6 Fechamento Project Manager - 2026-04-01
+
+- Agente: 8.project-manager
+- Item: M2-022.6
+- Status backlog: CONCLUIDO
+- Decisao final: ACEITE
+- Valor entregue: operador agora localiza fluxo live, guardrails e
+  triagem fail-safe em docs sincronizadas, com baseline `<= 5 min`.
+- Evidencias finais:
+  - `python -m pytest -q tests/` => 361 passed
+  - `python -m pytest -q tests/test_docs_model2_sync.py` => 13 passed
+  - `markdownlint docs/*.md` => sem erros
+- Fechamento: pronto para commit/push em `main` com arvore limpa.
+
+### [SYNC-315] M2-022.6 Consolidacao documental implementada - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-022.6
+- Status backlog: IMPLEMENTADO
+- Docs atualizados:
+  - `ARQUITETURA_ALVO.md` — fluxo live ponta-a-ponta, metricas
+    operacionais e healthcheck/componentes monitorados.
+  - `REGRAS_DE_NEGOCIO.md` — regra RN-042 de isolamento por modo
+    operacional (`live`, `shadow`, `paper`) com fail-safe.
+  - `RUNBOOK_M2_OPERACAO.md` — triagem de erros recorrentes do ciclo
+    live com baseline de diagnostico `<= 5 min`.
+- Guardrails preservados: `risk_gate`, `circuit_breaker` e idempotencia
+  por `decision_id` permanecem ativos e sem bypass.
+- Validacao concluida:
+  - `pytest -q tests/test_docs_m2_022_6_live_consolidation.py
+    tests/test_docs_model2_sync.py` => 24 passed
+  - `pytest -q tests/` => 361 passed
+  - `markdownlint docs/*.md` => sem erros
+
+### [SYNC-314] M2-022.6 Suite RED QA-TDD - 2026-04-01
+
+- Agente: 4.qa-tdd
+- Item: M2-022.6
+- Status backlog: TESTES_PRONTOS
+- Arquivo de teste: tests/test_docs_m2_022_6_live_consolidation.py
+- Resultado RED: 9 failed, 2 passed
+- Testes criados (RF-001..RF-007, RNF-001/004/005):
+  - RF-001: secao fluxo live ponta-a-ponta em ARQUITETURA_ALVO.md
+  - RF-002: metricas operacionais em ARQUITETURA_ALVO.md
+  - RF-003: secao healthcheck e componentes em ARQUITETURA_ALVO.md
+  - RF-004: RN-xxx isolamento live/shadow/paper em REGRAS_DE_NEGOCIO.md
+  - RF-005a/b: secao triagem erros ciclo live em RUNBOOK_M2_OPERACAO.md
+  - RF-006: metrica diagnostico baseline (<= 5 min) em RUNBOOK
+  - RF-007: SYNC consolidacao com 3 docs em SYNCHRONIZATION.md
+  - RNF-001: conformidade MD013 (falha — docs com linhas > 80 cols)
+  - RNF-004: ausencia de bypass de guardrails (passa — regressao)
+  - RNF-005: consistencia cruzada etapas live (passa — regressao)
+
+### [SYNC-313] M2-022.6 Refinamento tecnico Solution Architect - 2026-04-01
+
+- Agente: 3.solution-architect
+- Item: M2-022.6
+- Status backlog: Em analise
+- Gate ADR (15.adr-analysis): APROVADO_POR_ADR
+- ADRs aplicaveis: ADR-002, ADR-004, ADR-009
+- Escopo refinado para QA-TDD:
+  - consolidar fluxo live unico entre arquitetura, regras e runbook;
+  - explicitar triagem de erros recorrentes com fail-safe e evidencias;
+  - definir metrica antes/depois de tempo de diagnostico operacional.
+- Restricoes mantidas: sem mudanca de schema e sem alteracao da logica live.
+
+### [SYNC-312] M2-022.6 Priorizacao Product Owner - 2026-04-01
+
+- Agente: 2.product-owner
+- Item: M2-022.6
+- Status backlog: Em analise
+- Decisao PO: GO_COM_RESTRICOES
+- Valor em `iniciar.bat`:
+  - Mudanca perceptivel esperada: menor tempo de triagem operacional com
+    fluxo live, guardrails e procedimentos consolidados em docs.
+  - Evidencia atual: `logs/m2_cycle.log` mostra erros repetidos e status
+    com `M2_SYMBOLS:`; falta evidenciar ganho mensuravel de tempo apos sync.
+  - Lacuna: sem metrica atual de tempo de diagnostico antes/depois.
+
 ### [SYNC-311] M2-ALGO.2 Governanca Doc Advocate - 2026-04-01
 
 - Agente: 7.doc-advocate

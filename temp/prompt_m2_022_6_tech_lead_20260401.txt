@@ -1,0 +1,147 @@
+Voce e o agente 6.tech-lead desta task.
+
+## Contexto
+
+- id: M2-022.6
+- titulo: Consolidar documentacao de arquitetura live
+- sprint: M2-022
+- status_backlog_atual: IMPLEMENTADO
+- gate_adr: APROVADO_POR_ADR (ADR-002, ADR-004, ADR-009, ADR-040)
+- objetivo: reduzir ambiguidade operacional no live M2 consolidando fluxo,
+  guardrails e procedimentos de triagem em docs unicos e auditaveis.
+- valor prometido pelo PO: operador localizar fluxo, guardrails e
+  procedimentos em ate 5 min com docs sincronizados.
+
+## Escopo entregue
+
+Atualizacao exclusivamente documental, sem mudanca de schema e sem alteracao
+na logica de execucao live.
+
+Arquivos alterados nesta etapa:
+- docs/ARQUITETURA_ALVO.md
+- docs/REGRAS_DE_NEGOCIO.md
+- docs/RUNBOOK_M2_OPERACAO.md
+- docs/SYNCHRONIZATION.md
+- docs/BACKLOG.md
+
+Arquivo de teste usado como gate:
+- tests/test_docs_m2_022_6_live_consolidation.py
+
+## Mapeamento requisito -> entrega -> teste
+
+RF-001 / RF-002 / RF-003
+- Entrega: `docs/ARQUITETURA_ALVO.md`
+  - nova secao `## Fluxo Live Ponta-a-Ponta`
+  - metricas operacionais: latencia de inferencia, taxa de bloqueio,
+    divergencia e posicoes sem protecao
+  - nova secao `## Healthcheck e Componentes Monitorados`
+  - referencias a `scripts/model2/go_live_preflight.py` e
+    `scripts/model2/healthcheck_live_execution.py`
+- Testes:
+  - `test_arquitetura_alvo_contem_secao_fluxo_live_ponta_a_ponta`
+  - `test_arquitetura_alvo_documenta_metricas_operacionais`
+  - `test_arquitetura_alvo_referencia_healthcheck_e_componentes`
+
+RF-004
+- Entrega: `docs/REGRAS_DE_NEGOCIO.md`
+  - nova `### RN-042 - Isolamento de Contexto por Modo Operacional`
+  - bloco explicito com `live`, `shadow`, `paper`, `isolamento` e
+    comportamento `fail-safe`
+- Teste:
+  - `test_regras_negocio_contem_rn_isolamento_por_modo_operacional`
+
+RF-005 / RF-006
+- Entrega: `docs/RUNBOOK_M2_OPERACAO.md`
+  - nova secao `## Triagem de Erros Recorrentes do Ciclo Live`
+  - cobertura para erro de votacao, timeout de reconciliacao e posicao sem
+    protecao
+  - baseline operacional: `<= 5 min`
+- Testes:
+  - `test_runbook_contem_secao_triagem_erros_recorrentes_live`
+  - `test_runbook_cobre_votacao_timeout_e_posicao_sem_protecao`
+  - `test_runbook_define_metrica_diagnostico_baseline_em_minutos`
+
+RF-007
+- Entrega: `docs/SYNCHRONIZATION.md`
+  - novo registro `### [SYNC-315] M2-022.6 Consolidacao documental implementada`
+  - lista explicita de `ARQUITETURA_ALVO.md`, `REGRAS_DE_NEGOCIO.md` e
+    `RUNBOOK_M2_OPERACAO.md`
+- Teste:
+  - `test_synchronization_registra_sync_consolidacao_m2_022_6`
+
+RNF-001 / RNF-004 / RNF-005
+- Entrega:
+  - linhas > 80 colunas corrigidas nos docs alvo
+  - sem bypass de `risk_gate` / `circuit_breaker`
+  - consistencia cruzada entre arquitetura, regras e runbook preservada
+- Testes:
+  - `test_docs_alvo_respeitam_md013_80_colunas`
+  - `test_docs_nao_sugerem_bypass_de_guardrails`
+  - `test_docs_alvo_nao_contradizem_fluxo_live_entre_si`
+
+## Evidencias verificadas
+
+### Testes documentais e sincronizacao
+Comando executado:
+```bash
+python -m pytest -q tests/test_docs_m2_022_6_live_consolidation.py tests/test_docs_model2_sync.py
+```
+Resultado:
+```text
+24 passed in 2.08s
+```
+
+### Regressao completa do projeto
+Comando executado:
+```bash
+python -m pytest -q tests/
+```
+Resultado:
+```text
+361 passed in 123.65s (0:02:03)
+```
+
+### Tipagem strict do arquivo de teste
+Comando executado:
+```bash
+mypy --strict tests/test_docs_m2_022_6_live_consolidation.py
+```
+Resultado:
+```text
+Success: no issues found in 1 source file
+```
+
+### Lint de docs
+Comando executado:
+```bash
+markdownlint docs/*.md
+```
+Resultado:
+```text
+sem erros
+```
+
+## Guardrails confirmados
+
+- `risk_gate` permanece ativo e sem bypass nos docs
+- `circuit_breaker` permanece ativo e sem bypass nos docs
+- idempotencia por `decision_id` preservada na narrativa operacional
+- nenhuma mudanca de schema em `modelo2.db` ou `crypto_agent.db`
+- nenhuma mudanca em codigo de execucao live
+
+## Impacto documental para o Doc Advocate
+
+Se aprovado, o handoff para `7.doc-advocate` deve apenas revisar a coerencia
+final das docs ja alteradas e manter a trilha `[SYNC-315]` como registro
+oficial da consolidacao.
+
+## Sua tarefa como Tech Lead
+
+1. Reproduzir os comandos de validacao localmente.
+2. Revisar se a entrega fecha RF-001..RF-007 e RNF-001/004/005.
+3. Confirmar que o valor prometido pelo PO ficou perceptivel no fluxo de
+   consulta operacional.
+4. Decidir binariamente:
+   - `APROVADO` -> atualizar backlog para `REVISADO_APROVADO` e emitir
+     prompt para `7.doc-advocate`
+   - `DEVOLVIDO_PARA_REVISAO` -> listar gaps objetivos por requisito

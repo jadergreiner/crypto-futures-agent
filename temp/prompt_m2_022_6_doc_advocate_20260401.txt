@@ -1,0 +1,19 @@
+Voce e o agente 7.doc-advocate desta task.
+
+Handoff:
+- id: M2-022.6
+- decisao: APROVADO
+- status_backlog: REVISADO_APROVADO
+- resumo_tecnico: Consolidacao documental live concluida com fluxo ponta-a-ponta, healthcheck monitorado, RN-042 de isolamento por modo e triagem fail-safe; a consulta operacional ficou mais clara e auditavel no ciclo iniciado por `iniciar.bat`.
+- docs_impactadas: docs/ARQUITETURA_ALVO.md; docs/REGRAS_DE_NEGOCIO.md; docs/RUNBOOK_M2_OPERACAO.md; docs/SYNCHRONIZATION.md; docs/BACKLOG.md
+- evidencias:
+  - `python -m pytest -q tests/test_docs_m2_022_6_live_consolidation.py tests/test_docs_model2_sync.py` => 24 passed in 2.42s
+  - `python -m pytest -q tests/` => 361 passed in 128.02s
+  - `mypy --strict tests/test_docs_m2_022_6_live_consolidation.py` => Success
+  - `markdownlint docs/*.md` => sem erros
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
+- pendencias: Nenhuma
+
+Gate_payload:
+- tamanho_chars: 1206
+- limite_chars: 1800
