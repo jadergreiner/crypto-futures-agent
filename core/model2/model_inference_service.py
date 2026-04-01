@@ -565,7 +565,7 @@ class TechnicalSignalInferenceProvider:
             # Normalizar: testes usam 'rl_model', código usa 'rl_action'
             test_action_source = "rl_action" if test_action_source == "rl_model" else test_action_source
             action_source = test_action_source
-        
+
         # Se teste injetou rl_fallback, substituir loader por um mock
         if test_rl_fallback is not None:
             class _MockLoader:
