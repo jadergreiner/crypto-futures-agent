@@ -118,13 +118,16 @@ def _update_env_file(env_file: Path, updates: dict[str, str]) -> dict[str, Any]:
             new_lines.append(line)
             continue
         key = match.group(1).strip()
+        if key in seen:
+            changed.append(key)
+            continue
+        seen.add(key)
         if key in updates:
             new_value = str(updates[key])
             new_line = f"{key}={new_value}"
             if line != new_line:
                 changed.append(key)
             new_lines.append(new_line)
-            seen.add(key)
             continue
         new_lines.append(line)
 

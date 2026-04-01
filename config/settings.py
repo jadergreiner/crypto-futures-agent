@@ -84,10 +84,11 @@ M2_CANARY_LEVERAGE = int(os.getenv("M2_CANARY_LEVERAGE", "3"))
 M2_FUNDING_RATE_MAX_FOR_SHORT = float(os.getenv("M2_FUNDING_RATE_MAX_FOR_SHORT", "0.0005"))
 M2_REQUIRE_MAINNET_CONFIRM = _env_bool("M2_REQUIRE_MAINNET_CONFIRM", True)
 M2_MAINNET_CONFIRM_TOKEN = os.getenv("M2_MAINNET_CONFIRM_TOKEN", "").strip()
-# Single source of truth for M2 operational symbol scope.
-# Priority:
-# 1) Explicit .env allow-list (`M2_LIVE_SYMBOLS`)
-# 2) Legacy universe fallback from `config.symbols.ALL_SYMBOLS`
+# Fonte unica de configuracao do escopo operacional do M2.
+# `M2_LIVE_SYMBOLS` e o ponto de configuracao explicito do runtime.
+# `M2_SYMBOLS` permanece apenas como alias derivado para compatibilidade.
+# Quando a allow-list explicita estiver vazia, o runtime usa `ALL_SYMBOLS`
+# como fallback legado.
 try:
     from config.symbols import ALL_SYMBOLS as _ALL_SYMBOLS
 except Exception:
@@ -96,7 +97,8 @@ M2_LIVE_SYMBOLS = _normalize_symbol_scope(
     os.getenv("M2_LIVE_SYMBOLS", ""),
     fallback_symbols=_ALL_SYMBOLS,
 )
-M2_SYMBOLS = M2_LIVE_SYMBOLS if M2_LIVE_SYMBOLS else tuple(_ALL_SYMBOLS)
+M2_RUNTIME_SYMBOLS = M2_LIVE_SYMBOLS if M2_LIVE_SYMBOLS else tuple(_ALL_SYMBOLS)
+M2_SYMBOLS = M2_RUNTIME_SYMBOLS
 M2_MAX_DAILY_ENTRIES = int(os.getenv("M2_MAX_DAILY_ENTRIES", "10"))
 M2_MAX_MARGIN_PER_POSITION_USD = float(os.getenv("M2_MAX_MARGIN_PER_POSITION_USD", "15.0"))
 M2_MAX_SIGNAL_AGE_MINUTES = int(os.getenv("M2_MAX_SIGNAL_AGE_MINUTES", "240"))

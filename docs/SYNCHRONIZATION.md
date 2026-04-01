@@ -7245,6 +7245,30 @@ REVISADO_APROVADO
   - markdownlint docs/*.md -> OK
   - pytest -q tests/test_docs_model2_sync.py -> 13 passed
 
+### [SYNC] 2026-03-31 - ALGO-CICLO evidencia runtime shadow
+
+- Agente: GitHub Copilot
+- Item: ALGO-CICLO
+- Status backlog: REVISADO_APROVADO
+- Evidencias operacionais:
+  - sync_ohlcv_from_binance para `ALGOUSDT` em H4/H1 com candles recentes
+  - `scan` M2 em H4/H1 com ultimo candle de 2026-03-31
+  - `live_cycle` em `shadow` restrito a `ALGOUSDT`, sem ordem real enviada
+- Artefatos:
+  - `results/model2/runtime/sync_ohlcv_from_binance_20260401T010735Z.json`
+  - `results/model2/runtime/model2_scan_20260401T010744Z.json`
+  - `results/model2/runtime/model2_scan_20260401T010748Z.json`
+  - `results/model2/runtime/model2_live_execute_20260401T010818Z.json`
+  - `results/model2/runtime/model2_live_reconcile_20260401T010818Z.json`
+- Resultado:
+  - evidencia runtime em shadow passou a existir para `ALGOUSDT`
+  - nao houve deteccao nova em H4/H1 na janela validada
+  - `live_cycle` processou `ALGOUSDT` em `shadow` com `staged=[]` e
+    `processed_ready=[]`
+- Pendencia remanescente:
+  - registrar aceite final/PM quando o projeto decidir se a ausencia de sinal
+    nesta janela e suficiente para fechar a task
+
 ### [SYNC-237] M2-016.2 + M2-016.3 Revisao Tech Lead (APROVADO) - 2026-03-28
 
 - Agente: 6.tech-lead

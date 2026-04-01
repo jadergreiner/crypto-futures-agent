@@ -155,6 +155,10 @@ class FakeExchange:
     def is_existing_protection_error(error: Exception) -> bool:
         return False
 
+    @staticmethod
+    def is_non_retryable_protection_error(error: Exception) -> bool:
+        return False
+
     def close_position_market(self, *, symbol: str, signal_side: str, quantity: float):
         self.close_calls += 1
         self.positions.pop(symbol, None)
@@ -264,6 +268,24 @@ def test_run_live_execute_shadow_creates_ready_candidate_without_real_order(tmp_
     assert decision_row is not None
     assert decision_row[0] == "m2-inference-v1"
     assert int(decision_row[1]) >= 0
+
+
+def test_build_config_usa_live_symbols_como_autorizacao_padrao() -> None:
+    from core.model2.live_service import Model2LiveExecutionService
+
+    config = Model2LiveExecutionService.build_config(
+        execution_mode="live",
+        live_symbols=("algousdt", "bnbusdt"),
+        short_only=False,
+        max_daily_entries=3,
+        max_margin_per_position_usd=15.0,
+        max_signal_age_ms=240_000,
+        symbol_cooldown_ms=240_000,
+        funding_rate_max_for_short=0.0005,
+    )
+
+    assert config.live_symbols == ("ALGOUSDT", "BNBUSDT")
+    assert config.authorized_symbols == ("ALGOUSDT", "BNBUSDT")
 
 
 def test_run_live_execute_stages_only_latest_consumed_signal_per_contract(tmp_path: Path) -> None:
@@ -995,6 +1017,99 @@ def test_run_live_execute_emits_alert_when_protection_is_not_armed(tmp_path: Pat
     assert any(event == "protection_not_armed" for event, _ in captured)
 
 
+def test_run_live_execute_marks_failed_on_non_retryable_protection_error(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    _, signal_id = _create_consumed_signal(db_path)
+
+    class ExchangeErroEstrutural(FakeExchange):
+        def place_protective_order(
+            self,
+            *,
+            symbol: str,
+            signal_side: str,
+            trigger_price: float,
+            order_type: str,
+        ):
+            _ = symbol
+            _ = signal_side
+            _ = trigger_price
+            _ = order_type
+            raise RuntimeError(
+                "(-4120, 'Order type not supported for this endpoint. "
+                "Please use the Algo Order API endpoints instead.')"
+            )
+
+        @staticmethod
+        def is_non_retryable_protection_error(error: Exception) -> bool:
+            return "-4120" in str(error)
+
+    exchange = ExchangeErroEstrutural(available_balance=100.0, protection_works=False)
+    captured: list[tuple[str, dict]] = []
+
+    def _capture_alert(self, event_type: str, details: dict) -> bool:
+        captured.append((event_type, details))
+        return True
+
+    monkeypatch.setattr(
+        "core.model2.live_service.Model2LiveAlertPublisher.publish_critical",
+        _capture_alert,
+    )
+
+    summary = run_live_execute(
+        model2_db_path=db_path,
+        symbol="BTCUSDT",
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=(),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["processed_ready"][0]["status"] == "FAILED"
+    assert summary["processed_ready"][0]["reason"] == "protection_non_retryable_error"
+    assert any(event == "protection_critical_failure" for event, _ in captured)
+
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT status, failure_reason, stop_order_id, take_profit_order_id
+            FROM signal_executions
+            WHERE technical_signal_id = ?
+            """,
+            (signal_id,),
+        ).fetchone()
+        payload_row = conn.execute(
+            """
+            SELECT payload_json
+            FROM signal_execution_events
+            WHERE signal_execution_id = (
+                SELECT id
+                FROM signal_executions
+                WHERE technical_signal_id = ?
+            )
+              AND event_type = 'RECONCILIATION'
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (signal_id,),
+        ).fetchone()
+
+    assert row == ("FAILED", "protection_non_retryable_error", None, None)
+    assert payload_row is not None
+    payload = json.loads(str(payload_row[0]))
+    assert payload["result"] == "critical_protection_failure"
+    assert payload["reason"] == "protection_non_retryable_error"
+
+
 def test_live_reconcile_restores_protection_and_detects_manual_exit(tmp_path: Path) -> None:
     db_path = _prepare_model2_db(tmp_path)
     repository, signal_id = _create_consumed_signal(db_path)
@@ -1150,6 +1265,58 @@ def test_live_reconcile_external_close_does_not_emit_critical_alert(tmp_path: Pa
     assert second_reconcile["reconciled"][0]["status"] == "EXITED"
     assert second_reconcile["reconciled"][0]["reason"] == "external_close_detected"
     assert not any(event == "reconciliation_critical_divergence" for event, _ in captured)
+
+
+def test_live_reconcile_reports_only_orphans_inside_managed_scope(tmp_path: Path) -> None:
+    db_path = _prepare_model2_db(tmp_path)
+    exchange = FakeExchange(available_balance=100.0, protection_works=True)
+    exchange.positions = {
+        "ETHUSDT": {
+            "symbol": "ETHUSDT",
+            "direction": "LONG",
+            "position_size_qty": 0.012,
+            "entry_price": 2073.1,
+            "mark_price": 2091.27,
+        },
+        "BNBUSDT": {
+            "symbol": "BNBUSDT",
+            "direction": "SHORT",
+            "position_size_qty": 0.04,
+            "entry_price": 619.14,
+            "mark_price": 616.05,
+        },
+        "SOLUSDT": {
+            "symbol": "SOLUSDT",
+            "direction": "LONG",
+            "position_size_qty": 1.5,
+            "entry_price": 140.0,
+            "mark_price": 141.5,
+        },
+    }
+
+    summary = run_live_reconcile(
+        model2_db_path=db_path,
+        symbol=None,
+        timeframe="H4",
+        limit=50,
+        output_dir=tmp_path / "results",
+        execution_mode="live",
+        live_symbols=("ETHUSDT", "BNBUSDT", "ALGOUSDT"),
+        max_daily_entries=10,
+        max_margin_per_position_usd=1.0,
+        max_signal_age_minutes=240,
+        symbol_cooldown_minutes=240,
+        exchange=exchange,
+    )
+
+    assert summary["status"] == "ok"
+    assert summary["managed_scope_status"] == "alert"
+    assert summary["managed_symbols"] == ["ETHUSDT", "BNBUSDT", "ALGOUSDT"]
+    assert summary["scope_open_positions_count"] == 2
+    assert summary["orphan_scope_positions_count"] == 2
+    orphan_symbols = sorted(position["symbol"] for position in summary["orphan_scope_positions"])
+    assert orphan_symbols == ["BNBUSDT", "ETHUSDT"]
+    assert all(position["symbol"] != "SOLUSDT" for position in summary["scope_open_positions"])
 
 
 def test_live_reconcile_position_side_mismatch_marks_failed_and_audits_divergence(

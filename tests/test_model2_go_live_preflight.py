@@ -314,6 +314,36 @@ def test_env_auto_fix_updates_required_keys_and_creates_backup(tmp_path: Path) -
     assert (tmp_path / ".env.bak").exists()
 
 
+def test_env_auto_fix_remove_duplicated_symbol_keys(tmp_path: Path) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "M2_LIVE_SYMBOLS=ETHUSDT\n"
+        "M2_EXECUTION_MODE=live\n",
+        encoding="utf-8",
+    )
+
+    run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=True,
+        continue_on_error=False,
+        live_symbols=("ALGOUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    env_text = env_file.read_text(encoding="utf-8")
+    assert env_text.count("M2_LIVE_SYMBOLS=") == 1
+    assert "M2_LIVE_SYMBOLS=ALGOUSDT" in env_text
+
+
 def test_continue_on_error_controls_followup_execution(tmp_path: Path) -> None:
     db_path = tmp_path / "db" / "modelo2.db"
     env_file = tmp_path / ".env"

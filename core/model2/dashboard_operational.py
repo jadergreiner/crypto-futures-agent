@@ -105,8 +105,15 @@ def query_operational_status(db_path: str, symbol: Optional[str] = None) -> dict
 
             # Reconciliation: última execução aberta sem exit
             try:
+                reconciliation_sym_filter = "AND symbol = ?" if symbol else ""
+                reconciliation_params: list[Any] = [symbol] if symbol else []
                 open_count = conn.execute(
-                    "SELECT COUNT(*) FROM signal_executions WHERE status = 'ENTRY_FILLED'",
+                    (
+                        "SELECT COUNT(*) FROM signal_executions "
+                        "WHERE status = 'ENTRY_FILLED' "
+                        f"{reconciliation_sym_filter}"
+                    ),
+                    reconciliation_params,
                 ).fetchone()
                 result["reconciliation_status"] = "OPEN_POSITIONS" if (open_count and open_count[0] > 0) else "RECONCILED"
             except sqlite3.OperationalError:

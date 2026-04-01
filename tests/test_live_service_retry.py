@@ -16,10 +16,12 @@ from core.model2.live_service import (
 def _make_mock_exchange(
     *,
     is_existing: bool = False,
+    is_non_retryable: bool = False,
     fail_times: int = 0,
 ) -> MagicMock:
     exchange = MagicMock()
     exchange.is_existing_protection_error.return_value = is_existing
+    exchange.is_non_retryable_protection_error.return_value = is_non_retryable
 
     call_count = [0]
 
@@ -92,6 +94,27 @@ def test_retry_nao_ocorre_em_erro_de_protecao_existente() -> None:
 
     # Deve retornar sem erros e sem retry
     assert errors == []
+    assert mock_sleep.call_count == 0
+    assert exchange.place_protective_order.call_count == 1
+
+
+def test_retry_nao_ocorre_em_erro_estrutural_nao_retryable() -> None:
+    """Erro estrutural deve interromper retry e preservar trilha de auditoria."""
+    service = Model2LiveExecutionService.__new__(Model2LiveExecutionService)
+    exchange = _make_mock_exchange(is_non_retryable=True, fail_times=1)
+
+    with patch("time.sleep") as mock_sleep:
+        response, errors = service._place_protective_order_with_retry(
+            exchange,
+            symbol="ETHUSDT",
+            signal_side="SHORT",
+            trigger_price=50000.0,
+            order_type="TAKE_PROFIT_MARKET",
+        )
+
+    assert response is None
+    assert len(errors) == 1
+    assert errors[0]["non_retryable"] == "true"
     assert mock_sleep.call_count == 0
     assert exchange.place_protective_order.call_count == 1
 

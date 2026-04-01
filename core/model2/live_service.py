@@ -873,10 +873,11 @@ class Model2LiveExecutionService:
         leverage: int | None = None,
         authorized_symbols: tuple[str, ...] | None = None,
     ) -> LiveExecutionConfig:
+        normalized_live_symbols = tuple(symbol.upper() for symbol in live_symbols)
         return LiveExecutionConfig(
             execution_mode=str(execution_mode).strip().lower(),
-            live_symbols=tuple(symbol.upper() for symbol in live_symbols),
-            authorized_symbols=authorized_symbols or tuple(sorted(AUTHORIZED_SYMBOLS)),
+            live_symbols=normalized_live_symbols,
+            authorized_symbols=authorized_symbols or normalized_live_symbols,
             short_only=bool(short_only),
             max_daily_entries=int(max_daily_entries),
             max_margin_per_position_usd=float(max_margin_per_position_usd),
@@ -1899,17 +1900,69 @@ class Model2LiveExecutionService:
             except Exception as exc:
                 if exchange.is_existing_protection_error(exc):
                     return None, []
+                is_non_retryable_error = False
+                is_non_retryable = getattr(exchange, "is_non_retryable_protection_error", None)
+                if callable(is_non_retryable):
+                    is_non_retryable_error = bool(is_non_retryable(exc))
                 delay = _PROTECTION_RETRY_BASE_DELAY_S * (2 ** attempt)
                 errors.append(
                     {
                         "order_type": order_type,
                         "attempt": str(attempt + 1),
                         "error": str(exc),
+                        "non_retryable": "true" if is_non_retryable_error else "false",
                     }
                 )
+                if is_non_retryable_error:
+                    return response, errors
                 if attempt < _PROTECTION_MAX_RETRIES - 1:
                     time.sleep(delay)
         return response, errors
+
+    @staticmethod
+    def _has_non_retryable_protection_error(protection_errors: list[dict[str, str]]) -> bool:
+        return any(str(error.get("non_retryable") or "").lower() == "true" for error in protection_errors)
+
+    def _mark_protection_failure(
+        self,
+        *,
+        execution: dict[str, Any],
+        now_ms: int,
+        reason: str,
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        execution_id = int(execution["id"])
+        status_before = str(execution.get("status") or "")
+        event_payload = {
+            "result": "critical_protection_failure",
+            "reason": reason,
+            "status_before": status_before,
+            **metadata,
+        }
+        self._record_reconcile_note(execution_id, now_ms=now_ms, payload=event_payload)
+
+        failed = self.repository.mark_signal_execution_failed(
+            execution_id=execution_id,
+            now_ms=now_ms,
+            reason=reason,
+            rule_id=M2_010_1_RULE_ID,
+            metadata=event_payload,
+        )
+        self._emit_operational_alert(
+            "protection_critical_failure",
+            {
+                "execution_id": execution_id,
+                "symbol": str(execution.get("symbol") or ""),
+                "status_before": status_before,
+                "reason": failed.reason,
+                "metadata": metadata,
+            },
+        )
+        return {
+            "execution_id": execution_id,
+            "status": failed.current_status,
+            "reason": failed.reason,
+        }
 
     def _arm_protection(self, execution: dict[str, Any], now_ms: int) -> dict[str, Any]:
         exchange = self._ensure_live_exchange()
@@ -2001,6 +2054,20 @@ class Model2LiveExecutionService:
                 "stop_order_id": final_state.get("sl_order_id") or sl_order,
                 "take_profit_order_id": final_state.get("tp_order_id") or tp_order,
             }
+
+        if self._has_non_retryable_protection_error(protection_errors):
+            return self._mark_protection_failure(
+                execution=execution,
+                now_ms=now_ms,
+                reason="protection_non_retryable_error",
+                metadata={
+                    "source": "live_execution_service",
+                    "symbol": symbol,
+                    "signal_side": signal_side,
+                    "protection_state": final_state,
+                    "protection_errors": protection_errors,
+                },
+            )
 
         # Protection is best-effort right after fill and should not block acceptance.
         # Keep current status and rely on reconcile retries with full audit trail.

@@ -369,40 +369,6 @@ class Model2LiveExchange:
             except Exception as exc:
                 last_exc = exc
 
-        # Safe fallback: regular conditional order with reduce_only only.
-        # Never degrade into a plain market order here.
-        order_method = getattr(rest_api, "new_order", None)
-        if callable(order_method):
-            try:
-                response = order_method(
-                    symbol=symbol,
-                    side=close_side,
-                    type=order_type,
-                    price=normalized_trigger,
-                    reduce_only="true",
-                    recv_window=self._recv_window,
-                )
-                return self._extract_data(response) or {}
-            except Exception as exc:
-                last_exc = exc
-
-            try:
-                position = self.get_open_position(symbol)
-                qty = float((position or {}).get("position_size_qty") or 0.0)
-                if qty > 0:
-                    response = order_method(
-                        symbol=symbol,
-                        side=close_side,
-                        type=order_type,
-                        quantity=float(qty),
-                        price=normalized_trigger,
-                        reduce_only="true",
-                        recv_window=self._recv_window,
-                    )
-                    return self._extract_data(response) or {}
-            except Exception as exc:
-                last_exc = exc
-
         if last_exc is not None:
             raise last_exc
         raise RuntimeError("protective_order_not_supported_by_sdk")
@@ -414,6 +380,15 @@ class Model2LiveExchange:
             "-4130" in error_text
             or "OPEN STOP OR TAKE PROFIT ORDER" in error_text
             or "CLOSEPOSITION IN THE DIRECTION IS EXISTING" in error_text
+        )
+
+    @staticmethod
+    def is_non_retryable_protection_error(error: Exception) -> bool:
+        error_text = str(error).upper()
+        return (
+            "-4120" in error_text
+            or "ORDER TYPE NOT SUPPORTED FOR THIS ENDPOINT" in error_text
+            or "PLEASE USE THE ALGO ORDER API ENDPOINTS INSTEAD" in error_text
         )
 
     def _flatten_order_payload(self, payload: Any) -> list[dict[str, Any]]:

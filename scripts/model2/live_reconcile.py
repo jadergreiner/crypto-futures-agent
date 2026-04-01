@@ -64,6 +64,98 @@ def _resolve_repo_path(value: str | Path) -> Path:
     return (REPO_ROOT / path).resolve()
 
 
+def _resolve_managed_symbols(
+    *,
+    symbol_filter: str | None,
+    live_symbols: tuple[str, ...],
+) -> tuple[str, ...]:
+    if symbol_filter:
+        return (str(symbol_filter).upper(),)
+    return tuple(dict.fromkeys(str(symbol).upper() for symbol in live_symbols if str(symbol).strip()))
+
+
+def _collect_scope_positions(
+    *,
+    exchange: Any,
+    managed_symbols: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    managed_set = {symbol.upper() for symbol in managed_symbols}
+    list_positions = getattr(exchange, "list_open_positions", None)
+    if callable(list_positions):
+        try:
+            raw_positions = list_positions()
+        except Exception:
+            raw_positions = []
+        scoped_positions: list[dict[str, Any]] = []
+        for position in raw_positions or []:
+            if not isinstance(position, dict):
+                continue
+            symbol = str(position.get("symbol") or "").upper()
+            if symbol not in managed_set:
+                continue
+            try:
+                qty = float(position.get("position_size_qty", 0) or 0)
+            except (TypeError, ValueError):
+                qty = 0.0
+            if qty == 0:
+                continue
+            scoped_positions.append(dict(position))
+        return scoped_positions
+
+    fallback_positions: list[dict[str, Any]] = []
+    for current_symbol in managed_symbols:
+        try:
+            position = exchange.get_open_position(current_symbol)
+        except Exception:
+            position = None
+        if position is None:
+            continue
+        try:
+            qty = float(position.get("position_size_qty", 0) or 0)
+        except (TypeError, ValueError):
+            qty = 0.0
+        if qty == 0:
+            continue
+        fallback_positions.append(dict(position))
+    return fallback_positions
+
+
+def _collect_active_scope_executions(
+    *,
+    repository: Model2ThesisRepository,
+    execution_mode: str,
+    managed_symbols: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    active_statuses = ("READY", "ENTRY_SENT", "ENTRY_FILLED", "PROTECTED")
+    executions = repository.list_signal_executions(
+        statuses=active_statuses,
+        execution_mode=execution_mode,
+        limit=1000,
+    )
+    managed_set = {symbol.upper() for symbol in managed_symbols}
+    return [
+        execution
+        for execution in executions
+        if str(execution.get("symbol") or "").upper() in managed_set
+    ]
+
+
+def _collect_orphan_scope_positions(
+    *,
+    scope_positions: list[dict[str, Any]],
+    active_scope_executions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    covered_symbols = {
+        str(execution.get("symbol") or "").upper()
+        for execution in active_scope_executions
+    }
+    return [
+        dict(position)
+        for position in scope_positions
+        if str(position.get("symbol") or "").upper() not in covered_symbols
+    ]
+
+
 def _ensure_model2_live_reconcile_schema(conn: sqlite3.Connection) -> None:
     required_tables = {
         "schema_migrations",
@@ -104,6 +196,7 @@ def run_live_reconcile(
 ) -> dict[str, Any]:
     resolved_model2_db = _resolve_repo_path(model2_db_path)
     resolved_output_dir = _resolve_repo_path(output_dir)
+    managed_symbols = _resolve_managed_symbols(symbol_filter=symbol, live_symbols=live_symbols)
 
     with sqlite3.connect(resolved_model2_db) as conn:
         _ensure_model2_live_reconcile_schema(conn)
@@ -130,6 +223,19 @@ def run_live_reconcile(
         config=config,
         exchange=exchange,
     )
+    active_scope_executions = _collect_active_scope_executions(
+        repository=service.repository,
+        execution_mode=config.execution_mode,
+        managed_symbols=managed_symbols,
+    )
+    scope_positions = _collect_scope_positions(
+        exchange=exchange,
+        managed_symbols=managed_symbols,
+    )
+    orphan_scope_positions = _collect_orphan_scope_positions(
+        scope_positions=scope_positions,
+        active_scope_executions=active_scope_executions,
+    )
 
     now_ms = _utc_now_ms()
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -151,10 +257,18 @@ def run_live_reconcile(
             "timeframe": timeframe,
             "limit": int(limit),
         },
+        "managed_symbols": list(managed_symbols),
         "short_only": bool(config.short_only),
         "funding_rate_max_for_short": float(config.funding_rate_max_for_short),
         "leverage": int(config.leverage),
         "reconciled": reconcile_result["reconciled"],
+        "active_scope_executions_count": len(active_scope_executions),
+        "active_scope_executions": active_scope_executions,
+        "scope_open_positions_count": len(scope_positions),
+        "scope_open_positions": scope_positions,
+        "orphan_scope_positions_count": len(orphan_scope_positions),
+        "orphan_scope_positions": orphan_scope_positions,
+        "managed_scope_status": "alert" if orphan_scope_positions else "ok",
     }
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     output_file = resolved_output_dir / f"model2_live_reconcile_{run_id}.json"

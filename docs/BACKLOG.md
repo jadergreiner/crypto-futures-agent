@@ -195,6 +195,12 @@ DOC: BACKLOG e SYNCHRONIZATION alinhados ao onboarding de ALGOUSDT no ciclo
 M2; valor operacional prometido em iniciar.bat segue nao comprovado por
 ausencia de evidencia de execucao shadow/live nesta task.
 
+OP: Evidencia runtime em shadow produzida em 2026-03-31 para `ALGOUSDT`
+com `sync_ohlcv_from_binance` em H4/H1, `scan` atualizado e `live_cycle`
+restrito ao simbolo em modo `shadow`. Artefatos gerados em
+`results/model2/runtime/`; nesta janela nao houve deteccao nova nem sinal
+pronto para execucao.
+
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
 Status: CONCLUIDO

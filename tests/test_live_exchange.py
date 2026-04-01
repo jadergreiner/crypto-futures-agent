@@ -198,6 +198,8 @@ def test_place_protective_order_does_not_fallback_to_market_close(monkeypatch) -
             order_type="STOP_MARKET",
         )
     assert close_called["value"] is False
+    assert ex._client.rest_api.new_algo_order_calls == 1
+    assert ex._client.rest_api.new_order_calls == 0
 
 
 def test_list_open_positions_deriva_nocional_margem_e_roi_da_posicao() -> None:
