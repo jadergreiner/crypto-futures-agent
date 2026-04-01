@@ -10,6 +10,1155 @@ Objetivo:
 Criar trilha de 15 tarefas para estabilizar captura de dados, treino
 incremental e observabilidade operacional com foco em fail-safe.
 
+### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
+
+Status: ✅ COMPLETA
+
+Sprint: S-2
+Prioridade: M (Média)
+
+Descrição:
+Migrar a estrutura de mensagem de status do ciclo M2 para padrão aderente
+à arquitetura model-driven. A mensagem atual mistura conceitos antigos
+(scanner/resolver/bridge) que não fazem sentido para operador.
+
+Contexto:
+
+- Logs atuais são densos e técnicos
+- Operador precisa ver: dados frescos → decisão → episódio → treino →
+  posição
+
+Solução:
+
+1. Criar módulo `core/model2/cycle_report.py` com dataclass `SymbolReport`
+2. Implementar formatadores visuais (blocos ASCII claros)
+3. Integrar em `scripts/model2/live_cycle.py` (substituir logs antigos)
+4. Adicionar coleta de info de treino + posições na Binance
+
+Critérios de Aceite:
+
+- [x] Módulo `core/model2/cycle_report.py` criado e testado
+- [x] Integração em `live_cycle.py` + `operator_cycle_status.py`
+- [x] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`) — migração 0009
+- [x] Testes: pytest -q tests/test_cycle_report.py >= 70% (15/15 PASSANDO)
+- [x] Execução com iniciar.bat opcao 1 (shadow mode) — novo padrão exibindo
+- [x] docs/SYNCHRONIZATION.md registrado ([SYNC-031])
+- [x] Markdown lint passou
+
+Dependencias:
+
+- BLID-072 (captura continua de episodios)
+- Risk gate ativo
+
+Impacto Arquitetural:
+
+- ARQUITETURA_ALVO.md: Adicionar Camada 5 (Observabilidade)
+- MODELAGEM_DE_DADOS.md: Novo schema (rl_training_log, rl_episodes)
+- (Nenhum conflito com ADRS ativos)
+
+### TAREFA M2-022.6 - Consolidar documentacao de arquitetura live
+
+Status: BACKLOG
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Consolidar e sincronizar documentacao da arquitetura live (M2-021 + M2-022)
+refletindo idempotencia, retry, metricas, healthcheck e escalabilidade.
+
+Criterios de Aceite:
+
+- [ ] ARQUITETURA_ALVO.md atualizado com cache, retry, metricas, healthcheck.
+- [ ] REGRAS_DE_NEGOCIO.md atualizado com regras de isolamento de risco.
+- [ ] Runbook operacional criado com procedimentos de warm-up e escalada.
+- [ ] docs/SYNCHRONIZATION.md registrado com [SYNC] para trilha auditavel.
+
+Dependencias:
+
+- BLID-084 a M2-022.5 concluidas
+
+Impacto:
+
+- Documentacao sincronizada para onboard e operacao
+- Auditoria completa de decisoes arquiteturais vigentes
+
+PO: Consolidar docs de arquitetura para operacao clara e auditavel do
+ciclo M2 hardened com cache, retry e escalabilidade.
+
+---
+
+## INICIATIVA M2-023 - Resiliencia de Execucao e Governanca Operacional
+
+**Objetivo Estrategico**: reduzir risco operacional no live M2 com foco em
+consistencia de execucao, observabilidade de falhas e resposta fail-safe.
+
+**Horizonte**: 2 a 3 sprints
+
+### TAREFA BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino
+
+Status: CANCELADO
+
+Motivo: Resolvido por BLID-100 (2026-03-26). Causa raiz (int vs string em
+collect_training_info) corrigida com completed_at_ms INTEGER.
+
+**Contexto e motivacao:**
+
+Apos o ciclo de treino PPO, o contador de episodios pendentes nao e zerado
+corretamente. O sistema exibe `101/100` (ou valor acima do limite configurado),
+indicando que o reset pos-treino nao ocorre. Isso causa falso acumulo e pode
+interferir em decisoes de retreino incremental.
+
+**Escopo:**
+
+1. Identificar onde o contador de episodios pendentes e mantido
+   (provavelmente `agent/trainer.py`, `live_service.py` ou JSON de estado)
+2. Diagnosticar por que o reset nao ocorre apos conclusao do treino
+3. Corrigir a logica de reset para zerar o contador ao fim de cada ciclo
+4. Adicionar teste RED: treino concluido → contador == 0
+
+**Criterios de aceite:**
+
+- Apos ciclo de treino, contador de episodios pendentes exibe 0 (ou valor <=
+limite)
+- Teste unitario GREEN cobrindo reset pos-treino
+- Suite completa `pytest -q` sem regressoes
+
+**Dependencias:** nenhuma
+
+**Impacto:** Corrigir contagem erronea de episodios; evitar confusao operacional
+e possivel sobreposicao de ciclos de retreino.
+
+---
+
+### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
+
+**Status: SCRIPTS CONCLUIDOS — AGENDADO EXECUCAO (2026-03-15 17:00 UTC)**
+
+1. Implementar votador ensemble (soft + hard voting). [OK]
+2. Avaliar ensemble vs modelos individuais. [AGENDADO (apos E.8)]
+3. Executar benchmark E.5->E.9 (todas as fases). [AGENDADO (apos E.8)]
+4. Selecionar melhor metodo de voting para producao. [AGENDADO]
+
+Evidencias (Fase E.9 — Scripts Criados):
+
+1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py`
+   (370+ linhas, soft+hard)
+2. Script avaliacao: `scripts/model2/evaluate_ensemble_e9.py`
+   (320+ linhas, 4-vias)
+3. Script benchmark E.5->E.9: `scripts/model2/compare_e5_to_e9_final.py`
+   (280+ linhas)
+4. Commit: 21ef5b4 [FEAT] BLID-067 Votador ensemble para robustez
+5. Docs sincronizados: BACKLOG, RL_SIGNAL_GENERATION, SYNCHRONIZATION
+
+### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
+
+#### E.10 - Sinais ao vivo com votacao ensemble + paper trading (2026-03-15+)
+
+#### BLID-068 (E.10): Integrar Ensemble em Daily Pipeline
+
+1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
+2. Integrar votador em loop operacional (soft + hard). [OK]
+3. Implementar confidence scoring baseado em consenso. [OK]
+4. Fallback automático para determinístico. [OK]
+5. Logging de votação + observabilidade. [OK]
+6. Testes em mock environment. [OK]
+
+Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
+
+1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
+   - EnsembleSignalGenerator class (soft+hard voting)
+   - Confidence scoring (consenso + pesos)
+   - Fallback gracioso
+   - Stats + logging
+2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
+   - Import run_ensemble_signal_generation
+   - Etapa "ensemble_signal_generation" adicionada após RL signals
+   - Configuracao: voting_method='soft', min_confidence=0.6
+3. Testes suite de 12 testes: `tests/test_model2_blid_068_e10_ensemble.py` ✅
+   - 10/12 testes PASSANDO
+   - Soft voting, hard voting, confidence, fallback, normalization
+   - Metadata inclusion, stats tracking
+4. Validação operacional concluída:
+   - Pipeline diário rodando sem erros
+   - Ensemble E.8 (MLP 0.48 + LSTM 0.52) carregado com sucesso
+   - Live cycle em shadow mode operando
+   - Risk gate + circuit breaker armados
+5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
+
+Dependências: BLID-067 (E.9 scripts prontos) ✅
+
+---
+
+## INICIATIVA M2-017 - Adicao de novos simbolos ao pipeline RL
+
+### TAREFA M2-020.13 - Desativar estrategia legada
+
+Status: Em analise
+
+Entrega:
+
+1. Remover acoplamentos legados de estrategia deterministica.
+2. Manter compatibilidade operacional de observabilidade.
+
+Critérios de aceite:
+
+1. Nao ha caminho estrategico antigo interferindo na decisao live.
+2. Regressao funcional ausente em testes relevantes.
+
+### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
+
+Status: Em analise
+
+Entrega:
+
+1. Atualizar docs tecnicos e runbook para fluxo model-driven.
+2. Atualizar trilha de sincronizacao documental.
+
+Critérios de aceite:
+
+1. Arquitetura, regras e operacao estao consistentes entre docs.
+2. Fontes de verdade do M2 refletem decisao direta do modelo.
+
+## INICIATIVA M2-021 - Hardening Operacional do Live M2
+
+### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
+
+Status: Em analise
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Implementar isolamento de risco por contexto operacional:
+
+- Shadow vs Live
+- Modo paper vs real
+- Limite diario vs continuado
+- Por simbolo vs carteira
+
+Criterios de Aceite:
+
+- [ ] Risk gate valida contexto e aplica limite apropriado.
+- [ ] Transicao de shadow para live nao permite degradacao de proteção.
+- [ ] Contexto falso nao permite acesso a chaves reais.
+- [ ] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
+
+Dependencias:
+
+- M2-021 concluida
+- Risk gate em producao
+
+Impacto:
+
+- Previne accidental live trading em shadow
+- Mantém fail-safe em cada mudança de contexto
+
+PO: Isolamento de risco por contexto para evitar acidentes de transicao
+shadow->live e vulnerabilidades operacionais.
+
+### TAREFA M2-022.4 - Padronizar handling de erros e timeouts
+
+Status: Em analise
+
+Sprint: M2-022
+Prioridade: P1
+
+Descricao:
+Criar camada padronizada de error handling com:
+
+- Timeout explicitamente instrumentado
+- Categorias de erro deterministicas (transitorio vs permanente)
+- Code uniformizado para retry, log e fail-safe
+- Correlacao por decision_id e execution_id
+
+Criterios de Aceite:
+
+- [ ] Todas as chamadas API, DB e live têm timeout explícito.
+- [ ] 5 categorias de erro mapeadas e testes verificam comportamento.
+- [ ] Error context preserva decision_id para auditoria.
+- [ ] Cobertura: `tests/test_model2_error_handling.py` >= 85%.
+
+Dependencias:
+
+- BLID-085 concluida (retry logico)
+- Logging estruturado
+
+Impacto:
+
+- Reduz ambiguidade no tratamento de falhas
+- Melhora debugging e auditoria operacional
+
+PO: Padronizar error handling com timeout e categorias para uniformidade
+operacional e auditoria ponta-a-ponta.
+
+### TAREFA M2-ALGO.2 - Persistir episodios para retreino incremental de ALGOUSDT
+
+Status: Em analise
+
+Score PO: 3.55 (ValorReal=4, Valor=4, Urg=4, Risco=3, Esf=2)
+Sprint: S-4
+Prioridade: P0
+
+Descricao:
+ALGOUSDT esta em shadow com dados historicos carregados (M2-ALGO.1), mas o
+ciclo de retreino incremental nao acumula episodios elegíveis. O display mostra
+`pendentes: 0/100` com `eligibility_rule=reward_proxy!=NULL,status_eligivel,
+label!=context,created_at>cutoff` e timeframe=M5. O pipeline de treino
+dispara (aud24h.started=3) mas esgota episodios imediatamente apos cada
+corte, indicando que as decisoes shadow (HOLD/BLOCKED) nao estao gerando
+episodios com `reward_proxy` preenchido para ALGOUSDT.
+
+Criterios de Aceite:
+
+- [ ] `persist_training_episodes.py` gera episodios com `reward_proxy!=NULL`
+      para ALGOUSDT M5 a cada ciclo shadow (HOLD e BLOCKED)
+- [ ] `flush_deferred_rewards` computa reward counterfactual para ALGOUSDT
+      usando candles M5 presentes em `ohlcv_m5` (carregados pelo M2-ALGO.1)
+- [ ] Contador `pendentes` acumula apos cada ciclo shadow; atinge 100 e
+      e dispara retreino sem intervencao manual
+- [ ] Episodios persistidos tem `label != 'context'`, status elegivel e
+      `created_at > cutoff` do ultimo treino
+- [ ] Sem regressao em episodios de outros simbolos (BTCUSDT etc.)
+- [ ] Suite pytest verde; mypy --strict nos modulos alterados sem erros
+
+Dependencias:
+
+- M2-ALGO.1 (CONCLUIDO — ohlcv_m5 populado para ALGOUSDT)
+- BLID-099 (CONCLUIDO — infraestrutura HOLD counterfactual)
+- BLID-094 (CONCLUIDO — retreino automatico ao atingir limiar)
+
+Evidencia operacional (2026-04-01):
+
+```
+
+Treino: ultimo: 2026-04-01 13:19:35 | pendentes: 0/100 (faltam 100)
+eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,
+created_at>cutoff | cutoff_ms=1775060375951 | timeframe=M5
+aud24h: started=3 | running_block=15 | conclusivo=sim
+
+```
+
+Impacto:
+
+- Modelo ALGOUSDT passa a aprender com cada ciclo shadow
+- Pipeline de retreino passa a ser continuo e autonomo para ALGOUSDT
+- Remove necessidade de intervencao manual para desbloquear treino
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Valor direto: `pendentes` para ALGOUSDT sai de 0/100 e acumula
+  ate 100 de forma autonoma, disparando retreino sem intervencao.
+- Evidencia fraca atual: `pendentes: 0/100` com `started=3` indica
+  que o pipeline tenta treinar mas encontra episodios vazios no corte.
+- Meta de fechamento: `iniciar.bat` exibe `pendentes: X/100` crescendo
+  a cada ciclo shadow de ALGOUSDT e retreino autonomo confirmado em
+  `aud24h.conclusivo=sim`.
+
+PO: Garantir persistencia de episodios M5 elegíveis para ALGOUSDT no ciclo
+shadow, desbloqueando retreino incremental autonomo. Ao fim deste
+desenvolvimento estarei feliz se `pendentes` acumular autonomamente ate 100
+e o retreino disparar sem intervencao manual para ALGOUSDT.
+SA: Fallback OHLCV model2_db em flush_deferred_rewards/_latest_candle.
+Sem schema novo. Guardrails intactos. Causa raiz: source_db nao tem M5 ALGO.
+QA: Suite RED criada em
+`tests/test_model2_m2_algo_2_persist_episodes.py` com 8 testes;
+5 failed, 3 passed (RED esperado). Falhas cobrem:
+flush fallback model2_db (RF-ALGO.2.1),_latest_candle fallback_conn
+(RF-ALGO.2.2), close_t fallback, collect_training_info contagem pos-flush
+(RF-ALGO.2.4). Status: TESTES_PRONTOS. Comando validacao:
+`pytest -q tests/test_model2_m2_algo_2_persist_episodes.py`
+SE: Inicio GREEN-REFACTOR M2-ALGO.2 em 2026-04-01.
+SE: GREEN concluido em 2026-04-01. Implementado fallback seguro de OHLCV
+em `scripts/model2/persist_training_episodes.py` para consultar
+`model2_db` somente quando `source_db` nao retorna candle, preservando
+prioridade do source e retrocompatibilidade com ausencia de tabela no
+fallback. Evidencias: `pytest -q tests/test_model2_m2_algo_2_persist_episodes.py`
+-> 8 passed; `mypy --strict scripts/model2/persist_training_episodes.py`
+-> Success; `pytest -q tests/` -> 361 passed.
+TL: APROVADO. Reproducao local verde (8/8 + suite 361 + mypy strict),
+fallback seguro e guardrails de risco preservados.
+DOC: Governanca documental concluida para M2-ALGO.2 com backlog e trilha
+[SYNC-311] sincronizados para aceite executivo.
+PM: ACEITE em 2026-04-01. Valor PO ENTREGUE com fallback seguro de OHLCV
+em M2, acumulacao elegivel destravada para ALGOUSDT e validacoes verdes
+(`pytest` task, `mypy --strict`, `pytest -q tests/`), mantendo guardrails.
+
+**Contexto e motivacao:**
+
+O aprendizado atualmente so ocorre quando ha trade executado (FILLED/EXITED) ou
+bloqueado pelo order layer (BLOCKED, via BLID-093). Quando o modelo decide HOLD
+— a decisao mais frequente — nenhum episodio com reward e gerado. O pipeline de
+treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de
+aprender
+timing de entrada e de saida do mercado.
+
+O display operacional confirma o problema:
+
+```txt
+Episodio : N/A nao persistido | reward: +0.0000
+```
+
+Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
+
+- HOLD correto (mercado desfavoravel): reward positivo
+- HOLD incorreto (oportunidade perdida): reward negativo
+- Cada ciclo sem trade deve produzir pelo menos um episodio treinavel
+
+**Escopo:**
+
+1. Identificar onde decisoes HOLD do modelo sao registradas
+   (tabela `model_decisions`, `live_cycle.py` ou `live_service.py`)
+   e o campo que indica direcao favoravel esperada
+2. Criar episodio de decisao HOLD em `persist_training_episodes.py`
+   a cada ciclo, usando o mecanismo de reward diferido
+   (`reward_lookup_at_ms`) do BLID-093
+3. Calcular reward counterfactual para HOLD: se preco no T+N confirma
+   que ficar fora foi certo → reward positivo; se perdeu oportunidade
+   → reward negativo
+4. Garantir que episodios HOLD sejam incluidos no filtro de treinamento
+   em `train_ppo_incremental.py` (execution_id pode ser 0 para HOLD)
+5. Atualizar `_query_episode_info` em `operator_cycle_status.py` para exibir o
+   episodio HOLD mais recente quando nao houver trade real disponivel
+6. Adicionar testes RED cobrindo: persistencia de episodio HOLD por ciclo,
+calculo
+   de reward counterfactual HOLD, inclusao no dataset de treino
+
+**Criterios de aceite:**
+
+- A cada ciclo HOLD, um episodio e persistido com `reward_lookup_at_ms`
+- Apos T+N candles, reward counterfactual preenchido pelo
+`flush_deferred_rewards`
+- Display exibe episodio HOLD mais recente com reward real (nao +0.0000)
+- O dataset de treino inclui episodios HOLD com reward nao nulo
+- Suite `pytest -q` sem regressoes
+
+**Dependencias:**
+
+- BLID-093 concluido (infraestrutura `flush_deferred_rewards` disponivel)
+- BLID-098 concluido (filtros de dataset e display corrigidos)
+
+**Impacto:** O modelo passa a aprender com cada ciclo, nao apenas com trades.
+Resolve o aprendizado esparso e habilita o modelo a decidir timing de
+entrada/saida com base em evidencia continua. Pre-requisito para qualquer
+melhoria de qualidade de decisao em mercados sem trades frequentes.
+
+---
+
+### TAREFA M2-020.10 - Habilitar retreino automatico governado
+
+Status: EM_DESENVOLVIMENTO
+
+Entrega:
+
+1. Coleta continua de episodios para treino.
+2. Treino em ambiente separado do runtime live.
+3. Promocao com gate e rollback.
+
+Critérios de aceite:
+
+1. Nova versao so promove com criterio de qualidade.
+2. Rollback automatico funcional.
+
+### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Definir taxonomia minima de reason codes para gates e reconciliacao.
+2. Expor reason codes em logs operacionais e eventos persistidos.
+
+Critérios de aceite:
+
+1. Todo bloqueio critico possui reason code univoco e rastreavel.
+2. Operacao consegue diferenciar bloqueio de risco, dados e infraestrutura.
+
+### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Definir politica de retry com limites para chamadas criticas.
+2. Bloquear operacao quando timeout exceder janela segura.
+
+Critérios de aceite:
+
+1. Chamadas instaveis nao degradam para envio de ordem sem confirmacao.
+2. Timeout critico dispara bloqueio auditavel e nao silencioso.
+
+### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Comparar frescor e consistencia de candles por simbolo/timeframe.
+2. Sinalizar drift que invalida decisao em curso.
+
+Critérios de aceite:
+
+1. Drift relevante bloqueia admissao de nova entrada em fail-safe.
+2. Evento de drift fica registrado com simbolo, janela e impacto.
+
+### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Medir latencia de decisao, admissao, envio e reconciliacao.
+2. Definir limites operacionais por etapa do ciclo.
+
+Critérios de aceite:
+
+1. SLOs ficam visiveis em log ou relatorio operacional padronizado.
+2. Violacao de SLO gera alerta rastreavel sem interromper auditoria.
+
+### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Testar saida externa, cancelamento manual e partial fills.
+2. Garantir transicao consistente de estado no banco canonico M2.
+
+Critérios de aceite:
+
+1. Estado final converge com exchange sem falso EXITED.
+2. Divergencias criticas viram evento bloqueante ate conciliacao.
+
+### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Reidratar contexto de posicoes, sinais e execucoes pendentes.
+2. Evitar repeticao de envio de ordem apos reinicio.
+
+Critérios de aceite:
+
+1. Restart nao gera ordens duplicadas nem perda de rastreabilidade.
+2. Estado reidratado preserva continuidade do ciclo por simbolo.
+
+### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Estratificar testes de integracao por criticidade de risco operacional.
+2. Cobrir fluxo completo: decisao, ordem, protecoes e reconciliacao.
+
+Critérios de aceite:
+
+1. Suite critica roda de forma deterministica com evidencias minimas.
+2. Falha critica retorna NO_GO para promocao live.
+
+### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Definir passos de contencao, diagnostico e recuperacao.
+2. Incluir checklist minimo de evidencias para decisao GO/NO-GO.
+
+Critérios de aceite:
+
+1. Operacao executa contencao em tempo alvo com trilha auditavel.
+2. Runbook fica consistente com regras de negocio e arquitetura alvo.
+
+### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
+
+Status: IMPLEMENTADO
+
+Sprint: A definir
+Prioridade: A definir pelo PO
+
+Descricao:
+Mitigar risco comportamental na reconciliacao live e fechar lacunas de
+testes para criterios de aceite/robustez da M2-018.2.
+
+Criterios de Aceite:
+
+- [ ] Evitar transicao imediata para `EXITED` em ausencia transitoria de
+   posicao (confirmacao adicional ou janela de verificacao).
+- [ ] Adicionar teste dedicado de healthcheck pos-ciclo para M2-018.2 sem
+   divergencias criticas.
+- [ ] Adicionar teste de nao-regressao do preflight para modo diferente de
+   `paper` sem bloqueio indevido por credenciais testnet.
+- [ ] Manter guardrails (`risk_gate`, `circuit_breaker`) ativos e sem bypass.
+
+Dependencias:
+
+- M2-018.2 implementada
+- Suite baseline (`pytest -q tests/`) verde
+
+Impacto:
+
+- Reduz risco de falso positivo de saida (`EXITED`) por atraso da exchange
+- Aumenta robustez de aceite operacional em reconciliacao e preflight
+
+PO: Priorizar BLID-076: evitar falso `EXITED` por atraso da exchange e
+fechar lacunas de robustez apos aprovacao do M2-018.2.
+
+SA: Adicionar contagem de confirmacoes (N=2) antes de `EXITED` em
+`_reconcile_single_execution`; testes healthcheck e preflight.
+
+QA: Suite RED em `tests/test_model2_live_execution.py`,
+`tests/test_model2_go_live_preflight.py` e
+`tests/test_model2_m2_018_2_testnet_integration.py` cobre confirmacao
+minima, healthcheck pos-ciclo e preflight nao-paper.
+
+SE: Reconciliacao `PROTECTED` agora confirma ausencia em 2 checks com
+espera e trilha auditavel antes de `EXITED`; preflight nao-paper mantido
+sem bloqueio por credenciais testnet.
+
+---
+
+## INICIATIVA M2-018 - Ativacao do modo live na Binance
+
+Objetivo: ativar `M2_EXECUTION_MODE=live` com confianca, aproveitando
+a integracao ja existente entre `scripts/model2/live_execute.py`,
+`Model2LiveExchange`
+e `BinanceClientFactory`. A Camada 5 esta implementada; o que falta e
+validar o ciclo ponta-a-ponta no testnet e promover para producao.
+
+Contexto:
+
+- `core/model2/live_exchange.py` — adapter completo (394 linhas):
+  `place_market_entry`, `place_protective_order`, `get_available_balance`,
+  `list_open_positions`, `get_protection_state`, `close_position_market`,
+  precisao automatica via `exchange_information()`.
+- `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
+- `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
+  `create_binance_client(mode="live")` quando `execution_mode == "live"`.
+- O pipeline roda em shadow por padrao; trocar para live so requer
+  `M2_EXECUTION_MODE=live` no `.env`.
+
+### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Modificar `agent/sub_agent_manager.py`. [ ]
+2. Adicionar train_entry_agent(symbol, episodes, total_timesteps)
+   usando EntryDecisionEnv. [ ]
+3. Adicionar predict_entry(symbol, observation) retornando
+   Tuple[int, float] (acao, confianca). [ ]
+4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
+5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
+   gestao). [ ]
+6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
+7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [ ]
+
+Dependencias: M2-019.1, M2-019.2
+
+PO: Priorizar M2-019.3: M2-019.1 e M2-019.2 concluidos;
+`SubAgentManager` habilita pipeline RL por simbolo (M2-019.4/.5).
+
+SA: Adicionar `train_entry_agent(symbol, episodes, steps)` e
+`predict_entry(symbol, obs)->Tuple[int,float]`; modelo entry salvo como
+`{sym}_entry_ppo.zip`.
+
+QA: Suite RED em `tests/test_model2_m2_019_3_sub_agent_manager.py`
+cobre treino com `EntryDecisionEnv`, fallback NEUTRAL,
+persistencia `_entry_ppo.zip` e `load_all()`.
+
+SE: `SubAgentManager` implementa `self._entry_agents`,
+`train_entry_agent(...)`, `predict_entry(...) -> tuple[int, float]`,
+fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
+
+---
+
+### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
+
+Status: IMPLEMENTADO
+
+Entrega:
+
+1. Criar `scripts/model2/train_entry_agents.py` compativel com
+   daily_pipeline. [ ]
+2. Para cada simbolo, carregar episodios via EpisodeLoader. [ ]
+3. Se episodios >= 20: treinar (5000 steps por ciclo). [ ]
+4. Se episodios < 20: retornar status=skipped para o simbolo. [ ]
+5. Dry_run nao salva modelos. [ ]
+6. Output JSON em `results/model2/runtime/`. [ ]
+7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
+
+Dependencias: M2-019.2, M2-019.3
+
+PO: Priorizar M2-019.4: runner de treino diario por simbolo apos
+M2-019.3; viabiliza filtro RL no pipeline operacional.
+
+SA: Novo `train_entry_agents.py`; loop por simbolo com
+`EpisodeLoader+train_entry_agent`; skip `< 20` eps; `dry_run` sem
+salvar; JSON em `results/`.
+
+QA: Suite RED em `tests/test_model2_m2_019_4_train_entry_agents.py`
+cobre skip `< 20`, treino `>= 20`, `dry_run`, JSON por simbolo e
+`continue_on_error=True`.
+
+SE: API `run_train_entry_agents(...)` exposta para uso programatico,
+carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
+`dry_run`, grava JSON em `results/model2/runtime/` e suporta
+`continue_on_error=True`.
+
+---
+
+### TAREFA ALGO-CICLO - Incluir ALGOUSDT no ciclo M2
+
+Status: REVISADO_APROVADO
+
+- Desenvolvedor: Software Engineer
+- Inicio: 2026-03-31
+
+Descricao:
+Preparar suite RED para onboarding de ALGOUSDT no ciclo M2, cobrindo
+cadastro em `config/symbols.py`, propagacao automatica para ALL_SYMBOLS,
+AUTHORIZED_SYMBOLS e fallback de settings, alem de playbook dedicado.
+
+Criterios de Aceite:
+
+- [x] ALGOUSDT definido em `config/symbols.py` com campos obrigatorios
+- [x] ALGOUSDT propaga para ALL_SYMBOLS e AUTHORIZED_SYMBOLS
+- [x] `ALGOPlaybook` dedicado registrado em `playbooks/__init__.py`
+- [x] Teste de integracao dedicado verde apos implementacao
+
+Dependencias:
+
+- nenhuma
+
+- Testes em: `tests/test_algousdt_integration.py`
+- Suite: 8 testes unitarios + 4 integracao + 0 risk
+- Comando validacao: pytest -q tests/test_algousdt_integration.py
+
+QA: Suite RED criada em `tests/test_algousdt_integration.py` com 12 testes;
+11 failed e 1 passed enquanto faltam cadastro do simbolo, modulo
+`playbooks/algo_playbook.py` e export `ALGOPlaybook`. Status:
+TESTES_PRONTOS.
+
+SE: GREEN concluido em 2026-03-31. `config/symbols.py` agora inclui
+`ALGOUSDT` como fonte unica de verdade; `playbooks/algo_playbook.py` foi
+adicionado com `ALGOPlaybook`; `playbooks/__init__.py` exporta o novo
+playbook e `README.md` foi sincronizado com a regra de onboarding por
+simbolo. Evidencias: `pytest -q tests/test_algousdt_integration.py` ->
+12 passed; `mypy --strict playbooks/algo_playbook.py` -> Success;
+`mypy --strict config/symbols.py playbooks/__init__.py` -> Success;
+`pytest -q tests/test_docs_model2_sync.py` -> 13 passed;
+`pytest -q tests/` -> 353 passed.
+
+TL: APROVADO. ALGOUSDT onboarded com propagacao automatica, playbook
+dedicado e reproducao verde da task, docs e suite completa.
+
+DOC: BACKLOG e SYNCHRONIZATION alinhados ao onboarding de ALGOUSDT no ciclo
+M2; valor operacional prometido em iniciar.bat segue nao comprovado por
+ausencia de evidencia de execucao shadow/live nesta task.
+
+OP: Evidencia runtime em shadow produzida em 2026-03-31 para `ALGOUSDT`
+com `sync_ohlcv_from_binance` em H4/H1, `scan` atualizado e `live_cycle`
+restrito ao simbolo em modo `shadow`. Artefatos gerados em
+`results/model2/runtime/`; nesta janela nao houve deteccao nova nem sinal
+pronto para execucao.
+
+### TAREFA M2-020.9 - Rodar shadow como decisor unico
+
+Status: REVISADO_APROVADO
+
+- Desenvolvedor: Software Engineer
+- Inicio: 2026-03-31
+
+Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
+
+Entrega:
+
+1. Operar em shadow com modelo decidindo sozinho.
+2. Registrar comparativo de decisoes e resultados.
+
+Critérios de aceite:
+
+1. Shadow gera decisoes completas para todos os sinais.
+2. Sem fallback estrategico antigo na decisao.
+
+PO: Priorizar M2-020.9 para provar no iniciar.bat que o shadow decide
+via modelo, sem fallback legado oculto e com comparativo auditavel. Ao
+fim deste desenvolvimento estarei feliz se o status exibir
+source=modelo nos sinais relevantes e baseline comparavel.
+SA: Shadow unico com origem auditavel da decisao, sem signal_side no
+caminho nominal, e comparativo baseline vs modelo no status.
+
+- Testes em: tests/test_model2_model_inference_service.py,
+  tests/test_operator_cycle_status.py,
+  tests/test_operator_cycle_status_extended.py,
+  tests/test_model2_regressao_risco.py
+- Suite: 4 testes unitarios + 3 integracao + 5 regressao/fail-safe
+- Comando validacao: pytest -q tests/test_model2_model_inference_service.py
+  tests/test_operator_cycle_status.py tests/test_model2_regressao_risco.py
+
+QA: Suite RED criada com 12 testes cobrindo origem de decisao (RL_MODEL vs
+FALLBACK), campo `contaminated` quando action_source=signal_side ou
+rl_fallback=True, baseline_comparative auditavel, e fail-safe/idempotencia
+por decision_id. Resultado: 12 passed, 6 failed (bloqueadas por contrato nao
+implementado). Status: TESTES_PRONTOS.
+
+- Bloqueadores SE: implementar contrato de auditoria (origin,
+  contaminated, baseline_comparative, decision_id) no payload do
+  provider ou em ModelInferenceService.infer() e persistir em
+  model_decisions.payload_json sem schema change.
+- Guardrails preservados: risk_gate, circuit_breaker, fail-safe.
+
+### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
+
+Status: REVISADO_APROVADO
+
+Score PO: 4.60
+PO: Drift gate evita admissao com estado divergente.
+SA: Drift gate pre-admissao com reason_code e trilha por decision_id.
+SE: PKG-PO10-0326 implementado com guardrails e idempotencia.
+
+Sprint: M2-023
+Prioridade: P0
+
+Descricao:
+Bloquear nova admissao quando drift entre estado local e exchange superar
+limiar seguro em runtime.
+
+Criterios de Aceite:
+
+- [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
+- [ ] Reconciliação explicita motivo e acao de recuperacao.
+- [ ] Suite valida comportamento em shadow e live.
+
+### TAREFA M2-023.3 - Politica de degradacao por latencia
+
+Status: REVISADO_APROVADO
+
+Score PO: 4.20
+PO: Degradacao por latencia reduz risco em estresse.
+SA: Faixas P95/P99 com entrada e saida objetiva do modo degradado.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Definir politica deterministica para degradacao controlada quando latencia
+P95/P99 romper SLO do ciclo.
+
+Criterios de Aceite:
+
+- [ ] Regras de degradacao por faixa de latencia documentadas e testadas.
+- [ ] Estado degradado impede ampliacao de risco no ciclo.
+- [ ] Saida do estado degradado exige janela minima estavel.
+
+### TAREFA M2-023.4 - Snapshot de estado para restart seguro
+
+Status: REVISADO_APROVADO
+
+Score PO: 4.00
+PO: Snapshot reduz duplicidade e acelera recuperacao.
+SA: Snapshot com decision_id, fase e heartbeat; replay idempotente.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Criar snapshot minimo de estado operacional para retomada segura apos restart
+sem duplicar execucao.
+
+Criterios de Aceite:
+
+- [ ] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
+- [ ] Restart reaplica estado sem duplicidade de ordem.
+- [ ] Testes cobrem desligamento abrupto e retomada limpa.
+
+### TAREFA M2-023.5 - Fila priorizada para eventos criticos
+
+Status: REVISADO_APROVADO
+
+Score PO: 3.70
+PO: Fila priorizada reduz starvation de eventos criticos.
+SA: Ordem CRITICAL/HIGH/WARN com latencia por classe.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Introduzir fila com prioridade para eventos criticos de risco e reconciliacao,
+evitando starvation por volume de eventos informativos.
+
+Criterios de Aceite:
+
+- [ ] Eventos CRITICAL e HIGH processados antes dos demais.
+- [ ] Ordem de processamento permanece deterministica por prioridade.
+- [ ] Metricas mostram tempo de tratamento por classe.
+
+### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
+
+Status: REVISADO_APROVADO
+
+Score PO: 4.50
+PO: Trilha de bloqueios do risk_gate fecha auditoria.
+SA: Trilha append-only com consulta por decision_id.
+
+Sprint: M2-023
+Prioridade: P0
+
+Descricao:
+Registrar trilha completa dos bloqueios do risk gate com contexto minimo,
+decisao aplicada e resultado final.
+
+Criterios de Aceite:
+
+- [ ] Todo bloqueio gera evento com reason_code e parametros de risco.
+- [ ] Consulta por decision_id retorna trilha ponta a ponta.
+- [ ] Nao ha caminho de execucao sem passagem pelo risk gate.
+
+### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
+
+Status: REVISADO_APROVADO
+
+Score PO: 3.95
+PO: Validacao cruzada reforca admissao conservadora.
+SA: Contradicao critica bloqueia admissao em fail-safe.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Executar validacao cruzada entre sinal tecnico, contexto de mercado e estado
+de posicao imediatamente antes da admissao da ordem.
+
+Criterios de Aceite:
+
+- [ ] Divergencia critica bloqueia admissao com motivo explicito.
+- [ ] Contrato de validacao e deterministico e idempotente.
+- [ ] Cobertura inclui caminhos de contradicao e fallback conservador.
+
+### TAREFA M2-023.8 - Politica de retries orientada a categoria
+
+Status: REVISADO_APROVADO
+
+Score PO: 4.10
+PO: Retry por categoria reduz loops improdutivos.
+SA: Retry so em erro transitorio com budget e acao.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Separar retries por categoria de erro para evitar repeticao inutil em falhas
+permanentes e reduzir ruido operacional.
+
+Criterios de Aceite:
+
+- [ ] Categorias transitoria/permanente orientam retries de forma explicita.
+- [ ] Falha permanente interrompe fluxo sem loop de retry.
+- [ ] Relatorio operacional exibe contagem por categoria.
+
+### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
+
+Status: REVISADO_APROVADO
+
+Score PO: 3.80
+PO: Indicadores de reconciliacao antecipam drift e atraso.
+SA: Expor drift medio, p95 e taxa de ajuste com alerta.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Adicionar indicadores de saude para reconciliacao com foco em drift, atraso
+de confirmacao e taxa de ajuste automatico.
+
+Criterios de Aceite:
+
+- [ ] Dashboard exibe drift medio, P95 de confirmacao e taxa de ajuste.
+- [ ] Alertas acionam quando limite seguro for ultrapassado.
+- [ ] Metricas sao consumidas sem aumentar latencia critica.
+
+### TAREFA M2-023.10 - Runbook de contingencia de execucao live
+
+Status: REVISADO_APROVADO
+
+Score PO: 3.55
+PO: Runbook de contingencia padroniza resposta a incidente.
+SA: Checklist de contencao/recuperacao ligado a preflight.
+
+Sprint: M2-023
+Prioridade: P1
+
+Descricao:
+Consolidar runbook de contingencia para incidentes de execucao live com
+procedimento de contencao, recuperacao e verificacao pos-incidente.
+
+Criterios de Aceite:
+
+- [ ] Fluxo de resposta define gatilho, acao e criterio de saida.
+- [ ] Checklist de recuperacao inclui preflight e reconciliacao final.
+- [ ] Registro [SYNC] cobre atualizacao de docs operacionais afetadas.
+
+- pytest -q tests/test_model2_m2_021_live_hardening_red.py (16 passed)
+- mypy --strict core/model2/model_inference_service.py (success)
+- mypy --strict core/model2/live_service.py
+   core/model2/live_execution.py core/model2/live_exchange.py
+   core/model2/order_layer.py scripts/model2/go_live_preflight.py
+   (success)
+- pytest -q tests/ (234 passed)
+
+TL: APROVADO - coercao silenciosa removida; fail-safe de reconciliacao
+preservado; validacao local completa verde.
+
+DOC: Governanca concluida; backlog e sync alinhados ao rework aprovado,
+sem pendencias documentais para aceite final.
+
+PM: ACEITE final emitido; trilha ponta-a-ponta validada, backlog encerrado
+e liberado para publicacao em main.
+
+### TAREFA BLID-089 - Captura e persistencia de candles D1
+
+Status: REVISADO_APROVADO
+
+Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
+
+Prioridade proposta: Media
+Sprint proposto: A definir pelo PO
+
+**Escopo:**
+
+Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do
+agente:
+
+1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e
+`HISTORICAL_PERIODS`
+2. Confirmar tabela `ohlcv_d1` no schema do banco legado
+3. Adicionar chamada `daily_pipeline.py --timeframe D1` no `iniciar.bat`
+   (hoje apenas H4 e H1 sao executados)
+4. Validar que scanner consegue operar em D1 via `TIMEFRAME_TO_TABLE`
+5. Cobrir com testes: sync D1, tabela populada, leitura pelo scanner
+
+**Impacto:** Completa cobertura multi-dataframe (D1 + H4 + H1 + M5) para
+analises
+estruturais de tendencia de longo prazo integradas ao pipeline M2.
+
+**Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
+
+PO: Preparar expansao D1 no loop diario apos M5 para completar cobertura
+multi-timeframe operacional.
+
+PO: Priorizado no ciclo atual por impacto direto em contexto estrutural de
+tendencia e baixa dependencia tecnica residual.
+
+SA: Habilitar D1 ponta a ponta (settings, pipeline, iniciar.bat e scanner),
+com validacao de `ohlcv_d1` e regressao da trilha M2 em modo conservador.
+
+SA: Handoff QA preparado para RED de sync D1, execucao no iniciar.bat e
+leitura scanner com regressao controlada.
+
+QA: Suites RED em `tests/test_blid089_d1_enablement.py` e
+`tests/test_blid089_d1_pipeline_integration.py` com 5 testes cobrindo parser
+de sync D1, pipeline com `ohlcv_d1` e sequencia operacional do orquestrador
+Python. RED confirmado por 2 falhas iniciais (CLI anexando H4 e loop Python
+sem D1/M5). TESTES_PRONTOS.
+
+SE: Inicio GREEN-REFACTOR em 2026-03-28. Foco em alinhar o
+`LiveCycleOrchestrator` ao `iniciar.bat` e corrigir a CLI de
+`sync_ohlcv_from_binance.py` para respeitar `--timeframe D1` sem H4 implicito.
+
+SE: GREEN concluido em 2026-03-28. `core/live_cycle_orchestrator.py` agora
+executa D1 -> H4 -> H1 -> M5 antes do `live_cycle`; a CLI de
+`scripts/model2/sync_ohlcv_from_binance.py` nao injeta H4 quando timeframe
+explicito e a regressao D1 foi coberta com fixture real de `ohlcv_d1`.
+Evidencias: `pytest -q tests/test_blid089_d1_enablement.py
+tests/test_blid089_d1_pipeline_integration.py` -> 5 passed; `mypy --strict
+core/live_cycle_orchestrator.py scripts/model2/sync_ohlcv_from_binance.py
+tests/test_blid089_d1_enablement.py tests/test_blid089_d1_pipeline_integration.py`
+-> Success; `pytest -q tests/` -> 316 passed.
+
+TL: APROVADO. Reproducao local: 5/5 task, 316/316 suite verde e mypy strict
+OK; loop Python ficou alinhado ao `iniciar.bat` e `--timeframe D1` opera sem
+H4 implicito.
+
+DOC: BACKLOG, README e SYNCHRONIZATION alinhados ao loop multi-timeframe
+operacional do D1; trilha documental [SYNC-268].
+
+**Criterio de aceite:**
+
+1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [x]
+2. `iniciar.bat` executa pipeline D1 no loop [x]
+3. `pytest -q tests/` passa [x]
+
+---
+
+### TAREFA M2-018.2 - Testes de integracao com Binance Testnet
+
+Status: REVISADO_APROVADO (2026-03-22)
+
+Entrega:
+
+1. Configurar chaves de testnet em `.env`
+   (`BINANCE_API_KEY`, `BINANCE_API_SECRET`, `TRADING_MODE=paper`). [ ]
+2. Setar `M2_LIVE_SYMBOLS` com 1 simbolo de baixa liquidez (ex.: BNBUSDT)
+   e `M2_MAX_MARGIN_PER_POSITION_USD=1.0`. [ ]
+3. Executar 1 ciclo live no testnet e confirmar fill real em
+   `signal_executions` (`status=PROTECTED`). [ ]
+4. Simular fechamento externo e confirmar que reconciliacao detecta
+   `EXITED`. [ ]
+5. Confirmar healthcheck sem divergencias apos o ciclo. [ ]
+
+Evidencias:
+
+1. Log do ciclo: `results/model2/runtime/model2_live_execute_*.json`.
+2. Snapshot: `signal_executions` com `status=PROTECTED` + `status=EXITED`.
+3. Healthcheck: `results/model2/runtime/model2_healthcheck_*.json`.
+
+PO: Priorizar validacao testnet para reduzir risco operacional e fechar
+laco de reconciliacao antes de ampliar live.
+
+SA: Escopo fechado para validar ciclo testnet com PROTECTED->EXITED,
+healthcheck limpo e fail-safe em qualquer divergencia.
+
+QA: Suite RED criada e validada; gaps confirmados em reconciliacao para
+EXITED e preflight de credenciais testnet.
+
+SE: Implementacao GREEN iniciada para transicao PROTECTED->EXITED em
+fechamento externo e gate de credenciais testnet no preflight.
+
+SE: Implementacao GREEN concluida com reconciliacao para EXITED e gate
+de credenciais em `TRADING_MODE=paper`.
+
+Evidencias de implementacao (GREEN):
+
+1. `pytest -q tests/test_model2_m2_018_2_testnet_integration.py` -> PASS.
+2. `pytest -q tests/test_model2_live_execution.py
+   tests/test_model2_go_live_preflight.py` -> PASS.
+3. `pytest -q tests/` -> 118 passed.
+4. Reconciliacao `PROTECTED` sem posicao agora finaliza em `EXITED`
+   com `reason=external_close_detected`.
+5. Preflight bloqueia `TRADING_MODE=paper` sem
+   `BINANCE_API_KEY`/`BINANCE_API_SECRET`.
+
+Observacao operacional:
+
+- Validacao com fill real em testnet depende de credenciais reais no `.env`
+  e execucao operacional fora da suite local.
+
+TL: Entrega aprovada; risco residual e lacunas de robustez foram
+decompostos no BLID-076 para hardening posterior.
+
+Suite QA-TDD (RED):
+
+1. Arquivo: `tests/test_model2_m2_018_2_testnet_integration.py`.
+2. Execucao: `pytest -q tests/test_model2_m2_018_2_testnet_integration.py`.
+3. Resultado: 2 failed, 2 passed (estado RED confirmado).
+4. Falha 1: fechamento externo retorna `FAILED`, esperado `EXITED`.
+5. Falha 2: preflight nao bloqueia ausencia de
+   `BINANCE_API_KEY`/`BINANCE_API_SECRET` em `TRADING_MODE=paper`.
+
 ### TAREFA M2-025.15 - Governanca e auditoria documental do pacote
 
 Status: CONCLUIDO
@@ -145,61 +1294,6 @@ sincronizacao entre backlog e trilha SYNC, pronta para aceite executivo
 PM: ACEITE em 2026-03-30. Valor PO ENTREGUE com relatorio diario consolidado
 em arquivo auditavel e exibicao no encerramento do ciclo, com fechamento
 documental final em [SYNC-289].
-
-### TAREFA ALGO-CICLO - Incluir ALGOUSDT no ciclo M2
-
-Status: REVISADO_APROVADO
-
-- Desenvolvedor: Software Engineer
-- Inicio: 2026-03-31
-
-Descricao:
-Preparar suite RED para onboarding de ALGOUSDT no ciclo M2, cobrindo
-cadastro em `config/symbols.py`, propagacao automatica para ALL_SYMBOLS,
-AUTHORIZED_SYMBOLS e fallback de settings, alem de playbook dedicado.
-
-Criterios de Aceite:
-
-- [x] ALGOUSDT definido em `config/symbols.py` com campos obrigatorios
-- [x] ALGOUSDT propaga para ALL_SYMBOLS e AUTHORIZED_SYMBOLS
-- [x] `ALGOPlaybook` dedicado registrado em `playbooks/__init__.py`
-- [x] Teste de integracao dedicado verde apos implementacao
-
-Dependencias:
-
-- nenhuma
-
-- Testes em: `tests/test_algousdt_integration.py`
-- Suite: 8 testes unitarios + 4 integracao + 0 risk
-- Comando validacao: pytest -q tests/test_algousdt_integration.py
-
-QA: Suite RED criada em `tests/test_algousdt_integration.py` com 12 testes;
-11 failed e 1 passed enquanto faltam cadastro do simbolo, modulo
-`playbooks/algo_playbook.py` e export `ALGOPlaybook`. Status:
-TESTES_PRONTOS.
-
-SE: GREEN concluido em 2026-03-31. `config/symbols.py` agora inclui
-`ALGOUSDT` como fonte unica de verdade; `playbooks/algo_playbook.py` foi
-adicionado com `ALGOPlaybook`; `playbooks/__init__.py` exporta o novo
-playbook e `README.md` foi sincronizado com a regra de onboarding por
-simbolo. Evidencias: `pytest -q tests/test_algousdt_integration.py` ->
-12 passed; `mypy --strict playbooks/algo_playbook.py` -> Success;
-`mypy --strict config/symbols.py playbooks/__init__.py` -> Success;
-`pytest -q tests/test_docs_model2_sync.py` -> 13 passed;
-`pytest -q tests/` -> 353 passed.
-
-TL: APROVADO. ALGOUSDT onboarded com propagacao automatica, playbook
-dedicado e reproducao verde da task, docs e suite completa.
-
-DOC: BACKLOG e SYNCHRONIZATION alinhados ao onboarding de ALGOUSDT no ciclo
-M2; valor operacional prometido em iniciar.bat segue nao comprovado por
-ausencia de evidencia de execucao shadow/live nesta task.
-
-OP: Evidencia runtime em shadow produzida em 2026-03-31 para `ALGOUSDT`
-com `sync_ohlcv_from_binance` em H4/H1, `scan` atualizado e `live_cycle`
-restrito ao simbolo em modo `shadow`. Artefatos gerados em
-`results/model2/runtime/`; nesta janela nao houve deteccao nova nem sinal
-pronto para execucao.
 
 ### TAREFA M2-028.7 - Alerta de degradacao de modelo RL por simbolo
 
@@ -611,67 +1705,6 @@ Dependencias:
 
 ## INICIATIVA M2-012 - Suite de Testes Model-Driven (BLID-074)
 
-### TAREFA M2-020.9 - Rodar shadow como decisor unico
-
-Status: REVISADO_APROVADO
-
-- Desenvolvedor: Software Engineer
-- Inicio: 2026-03-31
-
-Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
-
-Entrega:
-
-1. Operar em shadow com modelo decidindo sozinho.
-2. Registrar comparativo de decisoes e resultados.
-
-Critérios de aceite:
-
-1. Shadow gera decisoes completas para todos os sinais.
-2. Sem fallback estrategico antigo na decisao.
-
-PO: Priorizar M2-020.9 para provar no iniciar.bat que o shadow decide
-via modelo, sem fallback legado oculto e com comparativo auditavel. Ao
-fim deste desenvolvimento estarei feliz se o status exibir
-source=modelo nos sinais relevantes e baseline comparavel.
-SA: Shadow unico com origem auditavel da decisao, sem signal_side no
-caminho nominal, e comparativo baseline vs modelo no status.
-
-- Testes em: tests/test_model2_model_inference_service.py,
-  tests/test_operator_cycle_status.py,
-  tests/test_operator_cycle_status_extended.py,
-  tests/test_model2_regressao_risco.py
-- Suite: 4 testes unitarios + 3 integracao + 5 regressao/fail-safe
-- Comando validacao: pytest -q tests/test_model2_model_inference_service.py
-  tests/test_operator_cycle_status.py tests/test_model2_regressao_risco.py
-
-QA: Suite RED criada com 12 testes cobrindo origem de decisao (RL_MODEL vs
-FALLBACK), campo `contaminated` quando action_source=signal_side ou
-rl_fallback=True, baseline_comparative auditavel, e fail-safe/idempotencia
-por decision_id. Resultado: 12 passed, 6 failed (bloqueadas por contrato nao
-implementado). Status: TESTES_PRONTOS.
-
-- Bloqueadores SE: implementar contrato de auditoria (origin,
-  contaminated, baseline_comparative, decision_id) no payload do
-  provider ou em ModelInferenceService.infer() e persistir em
-  model_decisions.payload_json sem schema change.
-- Guardrails preservados: risk_gate, circuit_breaker, fail-safe.
-
-### TAREFA M2-020.10 - Habilitar retreino automatico governado
-
-Status: EM_DESENVOLVIMENTO
-
-Entrega:
-
-1. Coleta continua de episodios para treino.
-2. Treino em ambiente separado do runtime live.
-3. Promocao com gate e rollback.
-
-Critérios de aceite:
-
-1. Nova versao so promove com criterio de qualidade.
-2. Rollback automatico funcional.
-
 ### TAREFA M2-020.12 - Migrar live para decisao unica do modelo
 
 Status: CONCLUIDO
@@ -685,840 +1718,6 @@ Critérios de aceite:
 
 1. Fluxo live nao depende de tese/oportunidade para decidir entrada.
 2. Protecao pos-fill e fail-safe permanecem ativos.
-
-### TAREFA M2-020.13 - Desativar estrategia legada
-
-Status: Em analise
-
-Entrega:
-
-1. Remover acoplamentos legados de estrategia deterministica.
-2. Manter compatibilidade operacional de observabilidade.
-
-Critérios de aceite:
-
-1. Nao ha caminho estrategico antigo interferindo na decisao live.
-2. Regressao funcional ausente em testes relevantes.
-
-### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
-
-Status: Em analise
-
-Entrega:
-
-1. Atualizar docs tecnicos e runbook para fluxo model-driven.
-2. Atualizar trilha de sincronizacao documental.
-
-Critérios de aceite:
-
-1. Arquitetura, regras e operacao estao consistentes entre docs.
-2. Fontes de verdade do M2 refletem decisao direta do modelo.
-
-## INICIATIVA M2-021 - Hardening Operacional do Live M2
-
-### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
-
-Status: Em analise
-
-Sprint: M2-022
-Prioridade: P1
-
-Descricao:
-Implementar isolamento de risco por contexto operacional:
-
-- Shadow vs Live
-- Modo paper vs real
-- Limite diario vs continuado
-- Por simbolo vs carteira
-
-Criterios de Aceite:
-
-- [ ] Risk gate valida contexto e aplica limite apropriado.
-- [ ] Transicao de shadow para live nao permite degradacao de proteção.
-- [ ] Contexto falso nao permite acesso a chaves reais.
-- [ ] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
-
-Dependencias:
-
-- M2-021 concluida
-- Risk gate em producao
-
-Impacto:
-
-- Previne accidental live trading em shadow
-- Mantém fail-safe em cada mudança de contexto
-
-PO: Isolamento de risco por contexto para evitar acidentes de transicao
-shadow->live e vulnerabilidades operacionais.
-
-### TAREFA M2-022.4 - Padronizar handling de erros e timeouts
-
-Status: Em analise
-
-Sprint: M2-022
-Prioridade: P1
-
-Descricao:
-Criar camada padronizada de error handling com:
-
-- Timeout explicitamente instrumentado
-- Categorias de erro deterministicas (transitorio vs permanente)
-- Code uniformizado para retry, log e fail-safe
-- Correlacao por decision_id e execution_id
-
-Criterios de Aceite:
-
-- [ ] Todas as chamadas API, DB e live têm timeout explícito.
-- [ ] 5 categorias de erro mapeadas e testes verificam comportamento.
-- [ ] Error context preserva decision_id para auditoria.
-- [ ] Cobertura: `tests/test_model2_error_handling.py` >= 85%.
-
-Dependencias:
-
-- BLID-085 concluida (retry logico)
-- Logging estruturado
-
-Impacto:
-
-- Reduz ambiguidade no tratamento de falhas
-- Melhora debugging e auditoria operacional
-
-PO: Padronizar error handling com timeout e categorias para uniformidade
-operacional e auditoria ponta-a-ponta.
-
-### TAREFA M2-022.6 - Consolidar documentacao de arquitetura live
-
-Status: BACKLOG
-
-Sprint: M2-022
-Prioridade: P1
-
-Descricao:
-Consolidar e sincronizar documentacao da arquitetura live (M2-021 + M2-022)
-refletindo idempotencia, retry, metricas, healthcheck e escalabilidade.
-
-Criterios de Aceite:
-
-- [ ] ARQUITETURA_ALVO.md atualizado com cache, retry, metricas, healthcheck.
-- [ ] REGRAS_DE_NEGOCIO.md atualizado com regras de isolamento de risco.
-- [ ] Runbook operacional criado com procedimentos de warm-up e escalada.
-- [ ] docs/SYNCHRONIZATION.md registrado com [SYNC] para trilha auditavel.
-
-Dependencias:
-
-- BLID-084 a M2-022.5 concluidas
-
-Impacto:
-
-- Documentacao sincronizada para onboard e operacao
-- Auditoria completa de decisoes arquiteturais vigentes
-
-PO: Consolidar docs de arquitetura para operacao clara e auditavel do
-ciclo M2 hardened com cache, retry e escalabilidade.
-
----
-
-## INICIATIVA M2-023 - Resiliencia de Execucao e Governanca Operacional
-
-**Objetivo Estrategico**: reduzir risco operacional no live M2 com foco em
-consistencia de execucao, observabilidade de falhas e resposta fail-safe.
-
-**Horizonte**: 2 a 3 sprints
-
-### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
-
-Status: REVISADO_APROVADO
-
-Score PO: 4.60
-PO: Drift gate evita admissao com estado divergente.
-SA: Drift gate pre-admissao com reason_code e trilha por decision_id.
-SE: PKG-PO10-0326 implementado com guardrails e idempotencia.
-
-Sprint: M2-023
-Prioridade: P0
-
-Descricao:
-Bloquear nova admissao quando drift entre estado local e exchange superar
-limiar seguro em runtime.
-
-Criterios de Aceite:
-
-- [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
-- [ ] Reconciliação explicita motivo e acao de recuperacao.
-- [ ] Suite valida comportamento em shadow e live.
-
-### TAREFA M2-023.3 - Politica de degradacao por latencia
-
-Status: REVISADO_APROVADO
-
-Score PO: 4.20
-PO: Degradacao por latencia reduz risco em estresse.
-SA: Faixas P95/P99 com entrada e saida objetiva do modo degradado.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Definir politica deterministica para degradacao controlada quando latencia
-P95/P99 romper SLO do ciclo.
-
-Criterios de Aceite:
-
-- [ ] Regras de degradacao por faixa de latencia documentadas e testadas.
-- [ ] Estado degradado impede ampliacao de risco no ciclo.
-- [ ] Saida do estado degradado exige janela minima estavel.
-
-### TAREFA M2-023.4 - Snapshot de estado para restart seguro
-
-Status: REVISADO_APROVADO
-
-Score PO: 4.00
-PO: Snapshot reduz duplicidade e acelera recuperacao.
-SA: Snapshot com decision_id, fase e heartbeat; replay idempotente.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Criar snapshot minimo de estado operacional para retomada segura apos restart
-sem duplicar execucao.
-
-Criterios de Aceite:
-
-- [ ] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
-- [ ] Restart reaplica estado sem duplicidade de ordem.
-- [ ] Testes cobrem desligamento abrupto e retomada limpa.
-
-### TAREFA M2-023.5 - Fila priorizada para eventos criticos
-
-Status: REVISADO_APROVADO
-
-Score PO: 3.70
-PO: Fila priorizada reduz starvation de eventos criticos.
-SA: Ordem CRITICAL/HIGH/WARN com latencia por classe.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Introduzir fila com prioridade para eventos criticos de risco e reconciliacao,
-evitando starvation por volume de eventos informativos.
-
-Criterios de Aceite:
-
-- [ ] Eventos CRITICAL e HIGH processados antes dos demais.
-- [ ] Ordem de processamento permanece deterministica por prioridade.
-- [ ] Metricas mostram tempo de tratamento por classe.
-
-### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
-
-Status: REVISADO_APROVADO
-
-Score PO: 4.50
-PO: Trilha de bloqueios do risk_gate fecha auditoria.
-SA: Trilha append-only com consulta por decision_id.
-
-Sprint: M2-023
-Prioridade: P0
-
-Descricao:
-Registrar trilha completa dos bloqueios do risk gate com contexto minimo,
-decisao aplicada e resultado final.
-
-Criterios de Aceite:
-
-- [ ] Todo bloqueio gera evento com reason_code e parametros de risco.
-- [ ] Consulta por decision_id retorna trilha ponta a ponta.
-- [ ] Nao ha caminho de execucao sem passagem pelo risk gate.
-
-### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
-
-Status: REVISADO_APROVADO
-
-Score PO: 3.95
-PO: Validacao cruzada reforca admissao conservadora.
-SA: Contradicao critica bloqueia admissao em fail-safe.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Executar validacao cruzada entre sinal tecnico, contexto de mercado e estado
-de posicao imediatamente antes da admissao da ordem.
-
-Criterios de Aceite:
-
-- [ ] Divergencia critica bloqueia admissao com motivo explicito.
-- [ ] Contrato de validacao e deterministico e idempotente.
-- [ ] Cobertura inclui caminhos de contradicao e fallback conservador.
-
-### TAREFA M2-023.8 - Politica de retries orientada a categoria
-
-Status: REVISADO_APROVADO
-
-Score PO: 4.10
-PO: Retry por categoria reduz loops improdutivos.
-SA: Retry so em erro transitorio com budget e acao.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Separar retries por categoria de erro para evitar repeticao inutil em falhas
-permanentes e reduzir ruido operacional.
-
-Criterios de Aceite:
-
-- [ ] Categorias transitoria/permanente orientam retries de forma explicita.
-- [ ] Falha permanente interrompe fluxo sem loop de retry.
-- [ ] Relatorio operacional exibe contagem por categoria.
-
-### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
-
-Status: REVISADO_APROVADO
-
-Score PO: 3.80
-PO: Indicadores de reconciliacao antecipam drift e atraso.
-SA: Expor drift medio, p95 e taxa de ajuste com alerta.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Adicionar indicadores de saude para reconciliacao com foco em drift, atraso
-de confirmacao e taxa de ajuste automatico.
-
-Criterios de Aceite:
-
-- [ ] Dashboard exibe drift medio, P95 de confirmacao e taxa de ajuste.
-- [ ] Alertas acionam quando limite seguro for ultrapassado.
-- [ ] Metricas sao consumidas sem aumentar latencia critica.
-
-### TAREFA M2-023.10 - Runbook de contingencia de execucao live
-
-Status: REVISADO_APROVADO
-
-Score PO: 3.55
-PO: Runbook de contingencia padroniza resposta a incidente.
-SA: Checklist de contencao/recuperacao ligado a preflight.
-
-Sprint: M2-023
-Prioridade: P1
-
-Descricao:
-Consolidar runbook de contingencia para incidentes de execucao live com
-procedimento de contencao, recuperacao e verificacao pos-incidente.
-
-Criterios de Aceite:
-
-- [ ] Fluxo de resposta define gatilho, acao e criterio de saida.
-- [ ] Checklist de recuperacao inclui preflight e reconciliacao final.
-- [ ] Registro [SYNC] cobre atualizacao de docs operacionais afetadas.
-
-- pytest -q tests/test_model2_m2_021_live_hardening_red.py (16 passed)
-- mypy --strict core/model2/model_inference_service.py (success)
-- mypy --strict core/model2/live_service.py
-   core/model2/live_execution.py core/model2/live_exchange.py
-   core/model2/order_layer.py scripts/model2/go_live_preflight.py
-   (success)
-- pytest -q tests/ (234 passed)
-
-TL: APROVADO - coercao silenciosa removida; fail-safe de reconciliacao
-preservado; validacao local completa verde.
-
-DOC: Governanca concluida; backlog e sync alinhados ao rework aprovado,
-sem pendencias documentais para aceite final.
-
-PM: ACEITE final emitido; trilha ponta-a-ponta validada, backlog encerrado
-e liberado para publicacao em main.
-
-### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Definir taxonomia minima de reason codes para gates e reconciliacao.
-2. Expor reason codes em logs operacionais e eventos persistidos.
-
-Critérios de aceite:
-
-1. Todo bloqueio critico possui reason code univoco e rastreavel.
-2. Operacao consegue diferenciar bloqueio de risco, dados e infraestrutura.
-
-### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Definir politica de retry com limites para chamadas criticas.
-2. Bloquear operacao quando timeout exceder janela segura.
-
-Critérios de aceite:
-
-1. Chamadas instaveis nao degradam para envio de ordem sem confirmacao.
-2. Timeout critico dispara bloqueio auditavel e nao silencioso.
-
-### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Comparar frescor e consistencia de candles por simbolo/timeframe.
-2. Sinalizar drift que invalida decisao em curso.
-
-Critérios de aceite:
-
-1. Drift relevante bloqueia admissao de nova entrada em fail-safe.
-2. Evento de drift fica registrado com simbolo, janela e impacto.
-
-### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Medir latencia de decisao, admissao, envio e reconciliacao.
-2. Definir limites operacionais por etapa do ciclo.
-
-Critérios de aceite:
-
-1. SLOs ficam visiveis em log ou relatorio operacional padronizado.
-2. Violacao de SLO gera alerta rastreavel sem interromper auditoria.
-
-### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Testar saida externa, cancelamento manual e partial fills.
-2. Garantir transicao consistente de estado no banco canonico M2.
-
-Critérios de aceite:
-
-1. Estado final converge com exchange sem falso EXITED.
-2. Divergencias criticas viram evento bloqueante ate conciliacao.
-
-### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Reidratar contexto de posicoes, sinais e execucoes pendentes.
-2. Evitar repeticao de envio de ordem apos reinicio.
-
-Critérios de aceite:
-
-1. Restart nao gera ordens duplicadas nem perda de rastreabilidade.
-2. Estado reidratado preserva continuidade do ciclo por simbolo.
-
-### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Estratificar testes de integracao por criticidade de risco operacional.
-2. Cobrir fluxo completo: decisao, ordem, protecoes e reconciliacao.
-
-Critérios de aceite:
-
-1. Suite critica roda de forma deterministica com evidencias minimas.
-2. Falha critica retorna NO_GO para promocao live.
-
-### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Definir passos de contencao, diagnostico e recuperacao.
-2. Incluir checklist minimo de evidencias para decisao GO/NO-GO.
-
-Critérios de aceite:
-
-1. Operacao executa contencao em tempo alvo com trilha auditavel.
-2. Runbook fica consistente com regras de negocio e arquitetura alvo.
-
-### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
-
-Status: IMPLEMENTADO
-
-Sprint: A definir
-Prioridade: A definir pelo PO
-
-Descricao:
-Mitigar risco comportamental na reconciliacao live e fechar lacunas de
-testes para criterios de aceite/robustez da M2-018.2.
-
-Criterios de Aceite:
-
-- [ ] Evitar transicao imediata para `EXITED` em ausencia transitoria de
-   posicao (confirmacao adicional ou janela de verificacao).
-- [ ] Adicionar teste dedicado de healthcheck pos-ciclo para M2-018.2 sem
-   divergencias criticas.
-- [ ] Adicionar teste de nao-regressao do preflight para modo diferente de
-   `paper` sem bloqueio indevido por credenciais testnet.
-- [ ] Manter guardrails (`risk_gate`, `circuit_breaker`) ativos e sem bypass.
-
-Dependencias:
-
-- M2-018.2 implementada
-- Suite baseline (`pytest -q tests/`) verde
-
-Impacto:
-
-- Reduz risco de falso positivo de saida (`EXITED`) por atraso da exchange
-- Aumenta robustez de aceite operacional em reconciliacao e preflight
-
-PO: Priorizar BLID-076: evitar falso `EXITED` por atraso da exchange e
-fechar lacunas de robustez apos aprovacao do M2-018.2.
-
-SA: Adicionar contagem de confirmacoes (N=2) antes de `EXITED` em
-`_reconcile_single_execution`; testes healthcheck e preflight.
-
-QA: Suite RED em `tests/test_model2_live_execution.py`,
-`tests/test_model2_go_live_preflight.py` e
-`tests/test_model2_m2_018_2_testnet_integration.py` cobre confirmacao
-minima, healthcheck pos-ciclo e preflight nao-paper.
-
-SE: Reconciliacao `PROTECTED` agora confirma ausencia em 2 checks com
-espera e trilha auditavel antes de `EXITED`; preflight nao-paper mantido
-sem bloqueio por credenciais testnet.
-
----
-
-## INICIATIVA M2-018 - Ativacao do modo live na Binance
-
-Objetivo: ativar `M2_EXECUTION_MODE=live` com confianca, aproveitando
-a integracao ja existente entre `scripts/model2/live_execute.py`,
-`Model2LiveExchange`
-e `BinanceClientFactory`. A Camada 5 esta implementada; o que falta e
-validar o ciclo ponta-a-ponta no testnet e promover para producao.
-
-Contexto:
-
-- `core/model2/live_exchange.py` — adapter completo (394 linhas):
-  `place_market_entry`, `place_protective_order`, `get_available_balance`,
-  `list_open_positions`, `get_protection_state`, `close_position_market`,
-  precisao automatica via `exchange_information()`.
-- `data/binance_client.py` — factory com HMAC + Ed25519, testnet/prod.
-- `scripts/model2/live_execute.py` — instancia `Model2LiveExchange` com
-  `create_binance_client(mode="live")` quando `execution_mode == "live"`.
-- O pipeline roda em shadow por padrao; trocar para live so requer
-  `M2_EXECUTION_MODE=live` no `.env`.
-
-### TAREFA M2-018.2 - Testes de integracao com Binance Testnet
-
-Status: REVISADO_APROVADO (2026-03-22)
-
-Entrega:
-
-1. Configurar chaves de testnet em `.env`
-   (`BINANCE_API_KEY`, `BINANCE_API_SECRET`, `TRADING_MODE=paper`). [ ]
-2. Setar `M2_LIVE_SYMBOLS` com 1 simbolo de baixa liquidez (ex.: BNBUSDT)
-   e `M2_MAX_MARGIN_PER_POSITION_USD=1.0`. [ ]
-3. Executar 1 ciclo live no testnet e confirmar fill real em
-   `signal_executions` (`status=PROTECTED`). [ ]
-4. Simular fechamento externo e confirmar que reconciliacao detecta
-   `EXITED`. [ ]
-5. Confirmar healthcheck sem divergencias apos o ciclo. [ ]
-
-Evidencias:
-
-1. Log do ciclo: `results/model2/runtime/model2_live_execute_*.json`.
-2. Snapshot: `signal_executions` com `status=PROTECTED` + `status=EXITED`.
-3. Healthcheck: `results/model2/runtime/model2_healthcheck_*.json`.
-
-PO: Priorizar validacao testnet para reduzir risco operacional e fechar
-laco de reconciliacao antes de ampliar live.
-
-SA: Escopo fechado para validar ciclo testnet com PROTECTED->EXITED,
-healthcheck limpo e fail-safe em qualquer divergencia.
-
-QA: Suite RED criada e validada; gaps confirmados em reconciliacao para
-EXITED e preflight de credenciais testnet.
-
-SE: Implementacao GREEN iniciada para transicao PROTECTED->EXITED em
-fechamento externo e gate de credenciais testnet no preflight.
-
-SE: Implementacao GREEN concluida com reconciliacao para EXITED e gate
-de credenciais em `TRADING_MODE=paper`.
-
-Evidencias de implementacao (GREEN):
-
-1. `pytest -q tests/test_model2_m2_018_2_testnet_integration.py` -> PASS.
-2. `pytest -q tests/test_model2_live_execution.py
-   tests/test_model2_go_live_preflight.py` -> PASS.
-3. `pytest -q tests/` -> 118 passed.
-4. Reconciliacao `PROTECTED` sem posicao agora finaliza em `EXITED`
-   com `reason=external_close_detected`.
-5. Preflight bloqueia `TRADING_MODE=paper` sem
-   `BINANCE_API_KEY`/`BINANCE_API_SECRET`.
-
-Observacao operacional:
-
-- Validacao com fill real em testnet depende de credenciais reais no `.env`
-  e execucao operacional fora da suite local.
-
-TL: Entrega aprovada; risco residual e lacunas de robustez foram
-decompostos no BLID-076 para hardening posterior.
-
-Suite QA-TDD (RED):
-
-1. Arquivo: `tests/test_model2_m2_018_2_testnet_integration.py`.
-2. Execucao: `pytest -q tests/test_model2_m2_018_2_testnet_integration.py`.
-3. Resultado: 2 failed, 2 passed (estado RED confirmado).
-4. Falha 1: fechamento externo retorna `FAILED`, esperado `EXITED`.
-5. Falha 2: preflight nao bloqueia ausencia de
-   `BINANCE_API_KEY`/`BINANCE_API_SECRET` em `TRADING_MODE=paper`.
-
-### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Modificar `agent/sub_agent_manager.py`. [ ]
-2. Adicionar train_entry_agent(symbol, episodes, total_timesteps)
-   usando EntryDecisionEnv. [ ]
-3. Adicionar predict_entry(symbol, observation) retornando
-   Tuple[int, float] (acao, confianca). [ ]
-4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
-5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
-   gestao). [ ]
-6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
-7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [ ]
-
-Dependencias: M2-019.1, M2-019.2
-
-PO: Priorizar M2-019.3: M2-019.1 e M2-019.2 concluidos;
-`SubAgentManager` habilita pipeline RL por simbolo (M2-019.4/.5).
-
-SA: Adicionar `train_entry_agent(symbol, episodes, steps)` e
-`predict_entry(symbol, obs)->Tuple[int,float]`; modelo entry salvo como
-`{sym}_entry_ppo.zip`.
-
-QA: Suite RED em `tests/test_model2_m2_019_3_sub_agent_manager.py`
-cobre treino com `EntryDecisionEnv`, fallback NEUTRAL,
-persistencia `_entry_ppo.zip` e `load_all()`.
-
-SE: `SubAgentManager` implementa `self._entry_agents`,
-`train_entry_agent(...)`, `predict_entry(...) -> tuple[int, float]`,
-fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
-
----
-
-### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
-
-Status: IMPLEMENTADO
-
-Entrega:
-
-1. Criar `scripts/model2/train_entry_agents.py` compativel com
-   daily_pipeline. [ ]
-2. Para cada simbolo, carregar episodios via EpisodeLoader. [ ]
-3. Se episodios >= 20: treinar (5000 steps por ciclo). [ ]
-4. Se episodios < 20: retornar status=skipped para o simbolo. [ ]
-5. Dry_run nao salva modelos. [ ]
-6. Output JSON em `results/model2/runtime/`. [ ]
-7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
-
-Dependencias: M2-019.2, M2-019.3
-
-PO: Priorizar M2-019.4: runner de treino diario por simbolo apos
-M2-019.3; viabiliza filtro RL no pipeline operacional.
-
-SA: Novo `train_entry_agents.py`; loop por simbolo com
-`EpisodeLoader+train_entry_agent`; skip `< 20` eps; `dry_run` sem
-salvar; JSON em `results/`.
-
-QA: Suite RED em `tests/test_model2_m2_019_4_train_entry_agents.py`
-cobre skip `< 20`, treino `>= 20`, `dry_run`, JSON por simbolo e
-`continue_on_error=True`.
-
-SE: API `run_train_entry_agents(...)` exposta para uso programatico,
-carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
-`dry_run`, grava JSON em `results/model2/runtime/` e suporta
-`continue_on_error=True`.
-
----
-
-### TAREFA BLID-089 - Captura e persistencia de candles D1
-
-Status: REVISADO_APROVADO
-
-Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
-
-Prioridade proposta: Media
-Sprint proposto: A definir pelo PO
-
-**Escopo:**
-
-Garantir coleta e persistencia sistematica do timeframe D1 (diario) no loop do
-agente:
-
-1. Verificar se `D1 → 1d` ja esta mapeado em `config/settings.py` e
-`HISTORICAL_PERIODS`
-2. Confirmar tabela `ohlcv_d1` no schema do banco legado
-3. Adicionar chamada `daily_pipeline.py --timeframe D1` no `iniciar.bat`
-   (hoje apenas H4 e H1 sao executados)
-4. Validar que scanner consegue operar em D1 via `TIMEFRAME_TO_TABLE`
-5. Cobrir com testes: sync D1, tabela populada, leitura pelo scanner
-
-**Impacto:** Completa cobertura multi-dataframe (D1 + H4 + H1 + M5) para
-analises
-estruturais de tendencia de longo prazo integradas ao pipeline M2.
-
-**Dependencias:** BLID-088 (M5), H1 incluido no iniciar.bat (commit 784d507)
-
-PO: Preparar expansao D1 no loop diario apos M5 para completar cobertura
-multi-timeframe operacional.
-
-PO: Priorizado no ciclo atual por impacto direto em contexto estrutural de
-tendencia e baixa dependencia tecnica residual.
-
-SA: Habilitar D1 ponta a ponta (settings, pipeline, iniciar.bat e scanner),
-com validacao de `ohlcv_d1` e regressao da trilha M2 em modo conservador.
-
-SA: Handoff QA preparado para RED de sync D1, execucao no iniciar.bat e
-leitura scanner com regressao controlada.
-
-QA: Suites RED em `tests/test_blid089_d1_enablement.py` e
-`tests/test_blid089_d1_pipeline_integration.py` com 5 testes cobrindo parser
-de sync D1, pipeline com `ohlcv_d1` e sequencia operacional do orquestrador
-Python. RED confirmado por 2 falhas iniciais (CLI anexando H4 e loop Python
-sem D1/M5). TESTES_PRONTOS.
-
-SE: Inicio GREEN-REFACTOR em 2026-03-28. Foco em alinhar o
-`LiveCycleOrchestrator` ao `iniciar.bat` e corrigir a CLI de
-`sync_ohlcv_from_binance.py` para respeitar `--timeframe D1` sem H4 implicito.
-
-SE: GREEN concluido em 2026-03-28. `core/live_cycle_orchestrator.py` agora
-executa D1 -> H4 -> H1 -> M5 antes do `live_cycle`; a CLI de
-`scripts/model2/sync_ohlcv_from_binance.py` nao injeta H4 quando timeframe
-explicito e a regressao D1 foi coberta com fixture real de `ohlcv_d1`.
-Evidencias: `pytest -q tests/test_blid089_d1_enablement.py
-tests/test_blid089_d1_pipeline_integration.py` -> 5 passed; `mypy --strict
-core/live_cycle_orchestrator.py scripts/model2/sync_ohlcv_from_binance.py
-tests/test_blid089_d1_enablement.py tests/test_blid089_d1_pipeline_integration.py`
--> Success; `pytest -q tests/` -> 316 passed.
-
-TL: APROVADO. Reproducao local: 5/5 task, 316/316 suite verde e mypy strict
-OK; loop Python ficou alinhado ao `iniciar.bat` e `--timeframe D1` opera sem
-H4 implicito.
-
-DOC: BACKLOG, README e SYNCHRONIZATION alinhados ao loop multi-timeframe
-operacional do D1; trilha documental [SYNC-268].
-
-**Criterio de aceite:**
-
-1. `ohlcv_d1` populada apos `daily_pipeline.py --timeframe D1` [x]
-2. `iniciar.bat` executa pipeline D1 no loop [x]
-3. `pytest -q tests/` passa [x]
-
----
-
-### TAREFA BLID-096 - Corrigir contador de episodios pendentes nao zerado apos treino
-
-Status: CANCELADO
-
-Motivo: Resolvido por BLID-100 (2026-03-26). Causa raiz (int vs string em
-collect_training_info) corrigida com completed_at_ms INTEGER.
-
-**Contexto e motivacao:**
-
-Apos o ciclo de treino PPO, o contador de episodios pendentes nao e zerado
-corretamente. O sistema exibe `101/100` (ou valor acima do limite configurado),
-indicando que o reset pos-treino nao ocorre. Isso causa falso acumulo e pode
-interferir em decisoes de retreino incremental.
-
-**Escopo:**
-
-1. Identificar onde o contador de episodios pendentes e mantido
-   (provavelmente `agent/trainer.py`, `live_service.py` ou JSON de estado)
-2. Diagnosticar por que o reset nao ocorre apos conclusao do treino
-3. Corrigir a logica de reset para zerar o contador ao fim de cada ciclo
-4. Adicionar teste RED: treino concluido → contador == 0
-
-**Criterios de aceite:**
-
-- Apos ciclo de treino, contador de episodios pendentes exibe 0 (ou valor <=
-limite)
-- Teste unitario GREEN cobrindo reset pos-treino
-- Suite completa `pytest -q` sem regressoes
-
-**Dependencias:** nenhuma
-
-**Impacto:** Corrigir contagem erronea de episodios; evitar confusao operacional
-e possivel sobreposicao de ciclos de retreino.
-
----
-
-### Fase E.9 - BLID-067: Ensemble Voting (MLP + LSTM)
-
-**Status: SCRIPTS CONCLUIDOS — AGENDADO EXECUCAO (2026-03-15 17:00 UTC)**
-
-1. Implementar votador ensemble (soft + hard voting). [OK]
-2. Avaliar ensemble vs modelos individuais. [AGENDADO (apos E.8)]
-3. Executar benchmark E.5->E.9 (todas as fases). [AGENDADO (apos E.8)]
-4. Selecionar melhor metodo de voting para producao. [AGENDADO]
-
-Evidencias (Fase E.9 — Scripts Criados):
-
-1. Votador ensemble: `scripts/model2/ensemble_voting_ppo.py`
-   (370+ linhas, soft+hard)
-2. Script avaliacao: `scripts/model2/evaluate_ensemble_e9.py`
-   (320+ linhas, 4-vias)
-3. Script benchmark E.5->E.9: `scripts/model2/compare_e5_to_e9_final.py`
-   (280+ linhas)
-4. Commit: 21ef5b4 [FEAT] BLID-067 Votador ensemble para robustez
-5. Docs sincronizados: BACKLOG, RL_SIGNAL_GENERATION, SYNCHRONIZATION
-
-### Proxima Fase - BLID-068: Geração de Sinais Ensemble em Operação
-
-#### E.10 - Sinais ao vivo com votacao ensemble + paper trading (2026-03-15+)
-
-#### BLID-068 (E.10): Integrar Ensemble em Daily Pipeline
-
-1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
-2. Integrar votador em loop operacional (soft + hard). [OK]
-3. Implementar confidence scoring baseado em consenso. [OK]
-4. Fallback automático para determinístico. [OK]
-5. Logging de votação + observabilidade. [OK]
-6. Testes em mock environment. [OK]
-
-Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
-
-1. Wrapper ensemble: `scripts/model2/ensemble_signal_generation_wrapper.py` ✅
-   - EnsembleSignalGenerator class (soft+hard voting)
-   - Confidence scoring (consenso + pesos)
-   - Fallback gracioso
-   - Stats + logging
-2. Integração daily_pipeline: `scripts/model2/daily_pipeline.py` ✅
-   - Import run_ensemble_signal_generation
-   - Etapa "ensemble_signal_generation" adicionada após RL signals
-   - Configuracao: voting_method='soft', min_confidence=0.6
-3. Testes suite de 12 testes: `tests/test_model2_blid_068_e10_ensemble.py` ✅
-   - 10/12 testes PASSANDO
-   - Soft voting, hard voting, confidence, fallback, normalization
-   - Metadata inclusion, stats tracking
-4. Validação operacional concluída:
-   - Pipeline diário rodando sem erros
-   - Ensemble E.8 (MLP 0.48 + LSTM 0.52) carregado com sucesso
-   - Live cycle em shadow mode operando
-   - Risk gate + circuit breaker armados
-5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
-
-Dependências: BLID-067 (E.9 scripts prontos) ✅
-
----
-
-## INICIATIVA M2-017 - Adicao de novos simbolos ao pipeline RL
 
 ### TAREFA BLID-074 - Refatorar suite para foco model-driven
 
@@ -1571,52 +1770,6 @@ Evidencias:
    `tests/conftest.py`, mais `tests/test_cycle_report.py` e
    `tests/test_docs_model2_sync.py`.
 3. Escopo oficial da suite: `tests/`.
-
-### TAREFA BLID-073 - Estruturar nova mensagem de status para ciclo M2
-
-Status: ✅ COMPLETA
-
-Sprint: S-2
-Prioridade: M (Média)
-
-Descrição:
-Migrar a estrutura de mensagem de status do ciclo M2 para padrão aderente
-à arquitetura model-driven. A mensagem atual mistura conceitos antigos
-(scanner/resolver/bridge) que não fazem sentido para operador.
-
-Contexto:
-
-- Logs atuais são densos e técnicos
-- Operador precisa ver: dados frescos → decisão → episódio → treino →
-  posição
-
-Solução:
-
-1. Criar módulo `core/model2/cycle_report.py` com dataclass `SymbolReport`
-2. Implementar formatadores visuais (blocos ASCII claros)
-3. Integrar em `scripts/model2/live_cycle.py` (substituir logs antigos)
-4. Adicionar coleta de info de treino + posições na Binance
-
-Critérios de Aceite:
-
-- [x] Módulo `core/model2/cycle_report.py` criado e testado
-- [x] Integração em `live_cycle.py` + `operator_cycle_status.py`
-- [x] Tabelas de suporte DB (`rl_training_log`, `rl_episodes`) — migração 0009
-- [x] Testes: pytest -q tests/test_cycle_report.py >= 70% (15/15 PASSANDO)
-- [x] Execução com iniciar.bat opcao 1 (shadow mode) — novo padrão exibindo
-- [x] docs/SYNCHRONIZATION.md registrado ([SYNC-031])
-- [x] Markdown lint passou
-
-Dependencias:
-
-- BLID-072 (captura continua de episodios)
-- Risk gate ativo
-
-Impacto Arquitetural:
-
-- ARQUITETURA_ALVO.md: Adicionar Camada 5 (Observabilidade)
-- MODELAGEM_DE_DADOS.md: Novo schema (rl_training_log, rl_episodes)
-- (Nenhum conflito com ADRS ativos)
 
 ### TAREFA BLID-101 - Tornar decisao do status M2 verificavel por evidencia
 
@@ -6379,158 +6532,6 @@ scripts/model2/bootstrap_algousdt_data.py scripts/model2/daily_pipeline.py
 tests/test_model2_m2_algo_1_bootstrap_data.py
 tests/test_model2_daily_pipeline.py`. Status final: CONCLUIDO.
 
-### TAREFA M2-ALGO.2 - Persistir episodios para retreino incremental de ALGOUSDT
-
-Status: Em analise
-
-Score PO: 3.55 (ValorReal=4, Valor=4, Urg=4, Risco=3, Esf=2)
-Sprint: S-4
-Prioridade: P0
-
-Descricao:
-ALGOUSDT esta em shadow com dados historicos carregados (M2-ALGO.1), mas o
-ciclo de retreino incremental nao acumula episodios elegíveis. O display mostra
-`pendentes: 0/100` com `eligibility_rule=reward_proxy!=NULL,status_eligivel,
-label!=context,created_at>cutoff` e timeframe=M5. O pipeline de treino
-dispara (aud24h.started=3) mas esgota episodios imediatamente apos cada
-corte, indicando que as decisoes shadow (HOLD/BLOCKED) nao estao gerando
-episodios com `reward_proxy` preenchido para ALGOUSDT.
-
-Criterios de Aceite:
-
-- [ ] `persist_training_episodes.py` gera episodios com `reward_proxy!=NULL`
-      para ALGOUSDT M5 a cada ciclo shadow (HOLD e BLOCKED)
-- [ ] `flush_deferred_rewards` computa reward counterfactual para ALGOUSDT
-      usando candles M5 presentes em `ohlcv_m5` (carregados pelo M2-ALGO.1)
-- [ ] Contador `pendentes` acumula apos cada ciclo shadow; atinge 100 e
-      e dispara retreino sem intervencao manual
-- [ ] Episodios persistidos tem `label != 'context'`, status elegivel e
-      `created_at > cutoff` do ultimo treino
-- [ ] Sem regressao em episodios de outros simbolos (BTCUSDT etc.)
-- [ ] Suite pytest verde; mypy --strict nos modulos alterados sem erros
-
-Dependencias:
-
-- M2-ALGO.1 (CONCLUIDO — ohlcv_m5 populado para ALGOUSDT)
-- BLID-099 (CONCLUIDO — infraestrutura HOLD counterfactual)
-- BLID-094 (CONCLUIDO — retreino automatico ao atingir limiar)
-
-Evidencia operacional (2026-04-01):
-
-```
-
-Treino: ultimo: 2026-04-01 13:19:35 | pendentes: 0/100 (faltam 100)
-eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,
-created_at>cutoff | cutoff_ms=1775060375951 | timeframe=M5
-aud24h: started=3 | running_block=15 | conclusivo=sim
-
-```
-
-Impacto:
-- Modelo ALGOUSDT passa a aprender com cada ciclo shadow
-- Pipeline de retreino passa a ser continuo e autonomo para ALGOUSDT
-- Remove necessidade de intervencao manual para desbloquear treino
-
-Qual o valor real capturado pela operacao em iniciar.bat?
-
-- Valor direto: `pendentes` para ALGOUSDT sai de 0/100 e acumula
-  ate 100 de forma autonoma, disparando retreino sem intervencao.
-- Evidencia fraca atual: `pendentes: 0/100` com `started=3` indica
-  que o pipeline tenta treinar mas encontra episodios vazios no corte.
-- Meta de fechamento: `iniciar.bat` exibe `pendentes: X/100` crescendo
-  a cada ciclo shadow de ALGOUSDT e retreino autonomo confirmado em
-  `aud24h.conclusivo=sim`.
-
-PO: Garantir persistencia de episodios M5 elegíveis para ALGOUSDT no ciclo
-shadow, desbloqueando retreino incremental autonomo. Ao fim deste
-desenvolvimento estarei feliz se `pendentes` acumular autonomamente ate 100
-e o retreino disparar sem intervencao manual para ALGOUSDT.
-SA: Fallback OHLCV model2_db em flush_deferred_rewards/_latest_candle.
-Sem schema novo. Guardrails intactos. Causa raiz: source_db nao tem M5 ALGO.
-QA: Suite RED criada em
-`tests/test_model2_m2_algo_2_persist_episodes.py` com 8 testes;
-5 failed, 3 passed (RED esperado). Falhas cobrem:
-flush fallback model2_db (RF-ALGO.2.1), _latest_candle fallback_conn
-(RF-ALGO.2.2), close_t fallback, collect_training_info contagem pos-flush
-(RF-ALGO.2.4). Status: TESTES_PRONTOS. Comando validacao:
-`pytest -q tests/test_model2_m2_algo_2_persist_episodes.py`
-SE: Inicio GREEN-REFACTOR M2-ALGO.2 em 2026-04-01.
-SE: GREEN concluido em 2026-04-01. Implementado fallback seguro de OHLCV
-em `scripts/model2/persist_training_episodes.py` para consultar
-`model2_db` somente quando `source_db` nao retorna candle, preservando
-prioridade do source e retrocompatibilidade com ausencia de tabela no
-fallback. Evidencias: `pytest -q tests/test_model2_m2_algo_2_persist_episodes.py`
--> 8 passed; `mypy --strict scripts/model2/persist_training_episodes.py`
--> Success; `pytest -q tests/` -> 361 passed.
-TL: APROVADO. Reproducao local verde (8/8 + suite 361 + mypy strict),
-fallback seguro e guardrails de risco preservados.
-DOC: Governanca documental concluida para M2-ALGO.2 com backlog e trilha
-[SYNC-311] sincronizados para aceite executivo.
-PM: ACEITE em 2026-04-01. Valor PO ENTREGUE com fallback seguro de OHLCV
-em M2, acumulacao elegivel destravada para ALGOUSDT e validacoes verdes
-(`pytest` task, `mypy --strict`, `pytest -q tests/`), mantendo guardrails.
-
-**Contexto e motivacao:**
-
-O aprendizado atualmente so ocorre quando ha trade executado (FILLED/EXITED) ou
-bloqueado pelo order layer (BLOCKED, via BLID-093). Quando o modelo decide HOLD
-— a decisao mais frequente — nenhum episodio com reward e gerado. O pipeline de
-treino fica sem sinal durante ciclos inteiros, impossibilitando o modelo de
-aprender
-timing de entrada e de saida do mercado.
-
-O display operacional confirma o problema:
-
-```txt
-Episodio : N/A nao persistido | reward: +0.0000
-```
-
-Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
-
-- HOLD correto (mercado desfavoravel): reward positivo
-- HOLD incorreto (oportunidade perdida): reward negativo
-- Cada ciclo sem trade deve produzir pelo menos um episodio treinavel
-
-**Escopo:**
-
-1. Identificar onde decisoes HOLD do modelo sao registradas
-   (tabela `model_decisions`, `live_cycle.py` ou `live_service.py`)
-   e o campo que indica direcao favoravel esperada
-2. Criar episodio de decisao HOLD em `persist_training_episodes.py`
-   a cada ciclo, usando o mecanismo de reward diferido
-   (`reward_lookup_at_ms`) do BLID-093
-3. Calcular reward counterfactual para HOLD: se preco no T+N confirma
-   que ficar fora foi certo → reward positivo; se perdeu oportunidade
-   → reward negativo
-4. Garantir que episodios HOLD sejam incluidos no filtro de treinamento
-   em `train_ppo_incremental.py` (execution_id pode ser 0 para HOLD)
-5. Atualizar `_query_episode_info` em `operator_cycle_status.py` para exibir o
-   episodio HOLD mais recente quando nao houver trade real disponivel
-6. Adicionar testes RED cobrindo: persistencia de episodio HOLD por ciclo,
-calculo
-   de reward counterfactual HOLD, inclusao no dataset de treino
-
-**Criterios de aceite:**
-
-- A cada ciclo HOLD, um episodio e persistido com `reward_lookup_at_ms`
-- Apos T+N candles, reward counterfactual preenchido pelo
-`flush_deferred_rewards`
-- Display exibe episodio HOLD mais recente com reward real (nao +0.0000)
-- O dataset de treino inclui episodios HOLD com reward nao nulo
-- Suite `pytest -q` sem regressoes
-
-**Dependencias:**
-
-- BLID-093 concluido (infraestrutura `flush_deferred_rewards` disponivel)
-- BLID-098 concluido (filtros de dataset e display corrigidos)
-
-**Impacto:** O modelo passa a aprender com cada ciclo, nao apenas com trades.
-Resolve o aprendizado esparso e habilita o modelo a decidir timing de
-entrada/saida com base em evidencia continua. Pre-requisito para qualquer
-melhoria de qualidade de decisao em mercados sem trades frequentes.
-
----
-
 ### TAREFA BLID-100 - Corrigir contador de episodios pendentes apos retreino
 
 Status: CONCLUIDO
@@ -8935,3 +8936,5 @@ PM: ACEITE em 2026-03-27 para os itens M2-031.12..20.
    PM: ACEITE em 2026-03-29. Valor PO ENTREGUE com medicao objetiva
    do perfil rapido <=45s; trilha ponta-a-ponta validada e item
    encerrado como CONCLUIDO.
+
+
