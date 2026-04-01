@@ -33,6 +33,34 @@ python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
 5. Reconciliar estado com exchange.
 6. Persistir decisao, eventos e episodio.
 
+## Bootstrap historico ALGOUSDT
+
+Use este fluxo quando `ALGOUSDT` ainda nao tiver base historica minima
+para treino ou validacao local.
+
+Comando CLI:
+
+```bash
+python scripts/model2/bootstrap_algousdt_data.py --symbol ALGOUSDT --timeframes D1,H4,H1,M5 --start-date 2025-04-01 --end-date 2026-03-31
+```
+
+Regras operacionais:
+
+1. O DB alvo default do bootstrap e `db/modelo2.db`.
+2. O `daily_pipeline.py` registra `bootstrap_stage_0` antes do `scan`
+   quando `ALGOUSDT` tiver menos de 240 candles em `ohlcv_d1`.
+3. Quando a base ja estiver pronta, o stage aparece no summary com status
+   `skipped` e `reason=algousdt_d1_ready`.
+
+Troubleshooting:
+
+1. Se houver alerta de gap, revisar o summary JSON salvo em
+   `results/model2/runtime/`.
+2. Se a validacao BRT falhar, usar `core/model2/time_utils.py` como fonte
+   canonica para conversao.
+3. Se o stage 0 nao disparar, confirmar que `ALGOUSDT` foi passado no escopo
+   de simbolos do pipeline.
+
 ## Operacao de monitoramento
 
 Monitorar continuamente:

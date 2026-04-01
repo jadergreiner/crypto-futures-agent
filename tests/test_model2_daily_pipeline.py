@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 import scripts.model2.daily_pipeline as daily_pipeline
+from data.database import DatabaseManager
 
 
 def _fake_stage(calls: list[tuple[str, dict[str, object]]], name: str):  # type: ignore[no-untyped-def]
@@ -389,3 +390,83 @@ def test_daily_pipeline_benchmark_records_baseline_and_flags_regression(
         for alert in second_benchmark["alerts"]
     )
     assert second_benchmark["stages"]["signal_bridge"]["sample_stage"] == "bridge"
+
+
+def test_daily_pipeline_stage_0_sincroniza_source_e_model2_quando_dbs_diferem(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+    source_db = tmp_path / "db" / "source.db"
+    model2_db = tmp_path / "db" / "modelo2.db"
+
+    monkeypatch.setattr(daily_pipeline, "sync_ohlcv_from_binance", _fake_stage(calls, "sync_ohlcv"))
+    monkeypatch.setattr(daily_pipeline, "run_up", _fake_stage(calls, "migrate"))
+    monkeypatch.setattr(daily_pipeline, "run_scan", _fake_stage(calls, "scan"))
+    monkeypatch.setattr(daily_pipeline, "run_tracking", _fake_stage(calls, "track"))
+    monkeypatch.setattr(daily_pipeline, "run_validation", _fake_stage(calls, "validate"))
+    monkeypatch.setattr(daily_pipeline, "run_resolution", _fake_stage(calls, "resolve"))
+    monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_stage(calls, "bridge"))
+    monkeypatch.setattr(daily_pipeline, "run_persist_training_episodes", _fake_stage(calls, "persist_training_episodes"))
+    monkeypatch.setattr(daily_pipeline, "flush_deferred_rewards", _fake_stage(calls, "flush_deferred_rewards"))
+    monkeypatch.setattr(daily_pipeline, "run_train_entry_agents", _fake_stage(calls, "train_entry_agents"))
+    monkeypatch.setattr(daily_pipeline, "run_entry_rl_filter", _fake_stage(calls, "entry_rl_filter"))
+    monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage(calls, "order_layer"))
+    monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(daily_pipeline, "run_ensemble_signal_generation", _fake_stage(calls, "ensemble_signal_generation"))
+    monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_stage(calls, "export_dashboard"))
+    monkeypatch.setattr(daily_pipeline, "run_daily_report", _fake_stage(calls, "daily_report"))
+
+    def _bootstrap_fake(**_: object) -> list[dict[str, object]]:
+        rows = [
+            {
+                "symbol": "ALGOUSDT",
+                "timeframe": "D1",
+                "timestamp": 1743465600000,
+                "open": 0.5,
+                "high": 0.52,
+                "low": 0.49,
+                "close": 0.51,
+                "volume": 1000.0,
+                "quote_volume": 510.0,
+                "trades_count": 10,
+            }
+        ]
+        DatabaseManager(str(model2_db)).insert_ohlcv(
+            "d1",
+            [{key: value for key, value in row.items() if key != "timeframe"} for row in rows],
+        )
+        return rows
+
+    monkeypatch.setattr(daily_pipeline, "run_bootstrap_algousdt", _bootstrap_fake)
+
+    summary = daily_pipeline.run_daily_pipeline(
+        source_db_path=source_db,
+        model2_db_path=model2_db,
+        legacy_db_path=tmp_path / "db" / "legacy.db",
+        symbols=["ALGOUSDT"],
+        timeframe="D1",
+        scan_candles_limit=120,
+        validation_candles_limit=240,
+        resolution_candles_limit=240,
+        limit=200,
+        dry_run=False,
+        continue_on_error=False,
+        retention_days=30,
+        output_dir=tmp_path / "results",
+    )
+
+    source_rows = DatabaseManager(str(source_db)).get_ohlcv("d1", "ALGOUSDT")
+    model2_rows = DatabaseManager(str(model2_db)).get_ohlcv("d1", "ALGOUSDT")
+
+    assert len(source_rows) == 1
+    assert len(model2_rows) == 1
+    assert summary["stages"]["bootstrap_stage_0"]["status"] == "ok"
+    assert summary["stages"]["bootstrap_stage_0"]["source_db_synced"] is True
+    assert [name for name, _ in calls][:4] == [
+        "sync_ohlcv",
+        "migrate",
+        "scan",
+        "track",
+    ]

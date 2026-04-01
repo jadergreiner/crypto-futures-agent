@@ -24,6 +24,11 @@ def now_brt_str() -> str:
     return now_brt().strftime(_FMT_DISPLAY)
 
 
+def ts_to_datetime_brt(ts_ms: int | float) -> datetime:
+    """Converte Unix milliseconds para datetime timezone-aware em BRT."""
+    return datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc).astimezone(_BRT)
+
+
 def ts_ms_to_brt_str(ts_ms: int | float, *, short: bool = False) -> str:
     """Converte Unix milliseconds para string BRT de exibicao.
 
@@ -34,7 +39,7 @@ def ts_ms_to_brt_str(ts_ms: int | float, *, short: bool = False) -> str:
     Returns:
         String no formato 'YYYY-MM-DD HH:MM:SS BRT' ou 'YYYY-MM-DD HH:MM BRT'.
     """
-    dt = datetime.fromtimestamp(int(ts_ms) / 1000, tz=timezone.utc).astimezone(_BRT)
+    dt = ts_to_datetime_brt(ts_ms)
     fmt = _FMT_DISPLAY_SHORT if short else _FMT_DISPLAY
     return dt.strftime(fmt)
 

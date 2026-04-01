@@ -18,7 +18,7 @@ import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Iterator, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -34,16 +34,18 @@ except ImportError:
     HistoricalDataBootstrapper = None  # type: ignore
 
 try:
-    from scripts.model2.bootstrap_algousdt_data import (
-        run_bootstrap_algousdt,
-        validate_bootstrap_output,
-    )
+    from scripts.model2.bootstrap_algousdt_data import run_bootstrap_algousdt, validate_bootstrap_output
 except ImportError:
     run_bootstrap_algousdt = None  # type: ignore
     validate_bootstrap_output = None  # type: ignore
 
+import scripts.model2.bootstrap_algousdt_data as bootstrap_algousdt_data
+import scripts.model2.daily_pipeline as daily_pipeline
+
 from data.collector import BinanceCollector
 from data.database import DatabaseManager
+
+Candle = dict[str, Any]
 
 
 # ============================================================================
@@ -52,7 +54,7 @@ from data.database import DatabaseManager
 
 
 @pytest.fixture
-def temp_db_path():
+def temp_db_path() -> Iterator[str]:
     """Cria DB temporario com schema ohlcv_* inicializado."""
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test_modelo2.db"
@@ -61,8 +63,22 @@ def temp_db_path():
         yield str(db_path)
 
 
+def _fake_pipeline_stage(
+    calls: list[str],
+    name: str,
+) -> Callable[..., dict[str, Any]]:
+    """Retorna stage fake para daily_pipeline com rastreio de ordem."""
+
+    def _runner(**kwargs: Any) -> dict[str, Any]:
+        del kwargs
+        calls.append(name)
+        return {"status": "ok", "stage_name": name}
+
+    return _runner
+
+
 @pytest.fixture
-def mock_binance_collector():
+def mock_binance_collector() -> MagicMock:
     """Mock do BinanceCollector que retorna dados simulados."""
     mock = MagicMock(spec=BinanceCollector)
 
@@ -71,14 +87,7 @@ def mock_binance_collector():
         if symbol != "ALGOUSDT":
             return {"data": [], "error": f"Symbol {symbol} not found"}
 
-        timeframe_map = {
-            "1d": "D1",
-            "4h": "H4",
-            "1h": "H1",
-            "5m": "M5",
-        }
-
-        ohlcv_data = []
+        ohlcv_data: list[Candle] = []
         # Gerar 240 candles D1 desde 2025-04-01 até 2026-03-31 (365 dias)
         start_date = datetime(2025, 4, 1, tzinfo=timezone.utc)
 
@@ -159,8 +168,9 @@ def mock_binance_collector():
 
 
 def test_captura_d1_12_meses_retorna_minimo_240_candles(
-    temp_db_path, mock_binance_collector
-):
+    temp_db_path: str,
+    mock_binance_collector: MagicMock,
+) -> None:
     """
     RED: Capturar D1 de 2025-04-01 até 2026-03-31, validar count >= 240.
 
@@ -183,6 +193,7 @@ def test_captura_d1_12_meses_retorna_minimo_240_candles(
 
     assert result is not None, "Bootstrap retornou None"
     assert isinstance(result, list), f"Esperado list, recebido {type(result)}"
+    result = cast(list[Candle], result)
     assert len(result) >= 240, f"Esperado >= 240 D1s, recebido {len(result)}"
 
     # Validar estrutura de cada candle
@@ -197,8 +208,9 @@ def test_captura_d1_12_meses_retorna_minimo_240_candles(
 
 
 def test_captura_h4_h1_m5_com_hierarchia(
-    temp_db_path, mock_binance_collector
-):
+    temp_db_path: str,
+    mock_binance_collector: MagicMock,
+) -> None:
     """
     RED: Validar que 4xM5 = 1xH1, 4xH1 = 1xH4 em dados capturados.
 
@@ -220,6 +232,8 @@ def test_captura_h4_h1_m5_com_hierarchia(
     )
 
     assert result is not None, "Bootstrap retornou None"
+    assert isinstance(result, list), f"Esperado list, recebido {type(result)}"
+    result = cast(list[Candle], result)
 
     # Separar por timeframe
     m5_data = [c for c in result if c["timeframe"] == "M5"]
@@ -237,7 +251,7 @@ def test_captura_h4_h1_m5_com_hierarchia(
     assert len(m5_data) >= len(h1_data) * 10, "Hierarchia M5→H1 inválida"
 
 
-def test_captura_com_range_customizado(temp_db_path):
+def test_captura_com_range_customizado(temp_db_path: str) -> None:
     """
     RED: CLI --start-date/--end-date captura candles no range específico.
 
@@ -259,6 +273,8 @@ def test_captura_com_range_customizado(temp_db_path):
     )
 
     assert result is not None, "Bootstrap retornou None"
+    assert isinstance(result, list), f"Esperado list, recebido {type(result)}"
+    result = cast(list[Candle], result)
     assert len(result) > 0, f"Nenhum candle retornado para range 2026-01-01..2026-03-31"
 
     # Converter range para timestamps em ms
@@ -277,7 +293,7 @@ def test_captura_com_range_customizado(temp_db_path):
 # ============================================================================
 
 
-def test_timestamps_utc_ms_com_conversao_brt(temp_db_path):
+def test_timestamps_utc_ms_com_conversao_brt(temp_db_path: str) -> None:
     """
     RED: Validar timestamps em UTC ms e conversão local BRT sem erro.
 
@@ -289,10 +305,7 @@ def test_timestamps_utc_ms_com_conversao_brt(temp_db_path):
     if run_bootstrap_algousdt is None:
         pytest.skip("Modulo bootstrap_algousdt_data nao implementado")
 
-    try:
-        from core.model2.time_utils import ts_to_datetime_brt
-    except ImportError:
-        pytest.skip("time_utils nao disponível")
+    from core.model2.time_utils import ts_to_datetime_brt
 
     # Capturar dados
     result = run_bootstrap_algousdt(
@@ -304,7 +317,8 @@ def test_timestamps_utc_ms_com_conversao_brt(temp_db_path):
         mode="fetch",
     )
 
-    assert result is not None and len(result) > 0, "Bootstrap não retornou dados"
+    assert result is not None and isinstance(result, list) and len(result) > 0, "Bootstrap não retornou dados"
+    result = cast(list[Candle], result)
 
     # Validar conversão BRT para cada candle
     for candle in result[:5]:  # Testar primeiros 5
@@ -316,13 +330,15 @@ def test_timestamps_utc_ms_com_conversao_brt(temp_db_path):
 
         # Verificar offset BRT (-3h em relação a UTC, ou -2h em horário de verão)
         # Aceitar ambos os offsets (inverno: -3h, verão: -2h)
-        utc_offset_hours = dt_brt.utcoffset().total_seconds() / 3600
+        offset = dt_brt.utcoffset()
+        assert offset is not None, "Datetime BRT sem utcoffset"
+        utc_offset_hours = offset.total_seconds() / 3600
         assert utc_offset_hours in [-3.0, -2.0], (
             f"Offset BRT inválido: {utc_offset_hours}h (esperado -3h ou -2h)"
         )
 
 
-def test_detecta_gap_em_candles_e_alerta(temp_db_path, caplog):
+def test_detecta_gap_em_candles_e_alerta(temp_db_path: str, caplog: pytest.LogCaptureFixture) -> None:
     """
     RED: Faltam candles D1 => gerar alerta com range faltante e log stderr.
 
@@ -342,7 +358,7 @@ def test_detecta_gap_em_candles_e_alerta(temp_db_path, caplog):
         instance = MagicMock()
 
         # Retornar dados com gap intencional (faltam 10 dias)
-        d1_data = []
+        d1_data: list[Candle] = []
         start_date = datetime(2025, 4, 1, tzinfo=timezone.utc)
 
         # Primeiro bloco: 50 dias
@@ -401,12 +417,37 @@ def test_detecta_gap_em_candles_e_alerta(temp_db_path, caplog):
         assert len(lacuna_messages) > 0, f"Gap não foi logado. Logs: {caplog.text}"
 
 
+def test_bootstrap_usa_modelo2_db_por_padrao(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bootstrap deve usar MODEL2_DB_PATH quando nenhum db_path e informado."""
+    if run_bootstrap_algousdt is None:
+        pytest.skip("Modulo bootstrap_algousdt_data nao implementado")
+
+    model2_db = tmp_path / "modelo2_default.db"
+    monkeypatch.setattr(bootstrap_algousdt_data, "MODEL2_DB_PATH", str(model2_db))
+
+    result = run_bootstrap_algousdt(
+        symbol="ALGOUSDT",
+        timeframes=["D1"],
+        start_date="2025-04-01",
+        end_date="2025-04-05",
+        mode="fetch",
+    )
+
+    assert isinstance(result, list)
+    db = DatabaseManager(str(model2_db))
+    rows = db.get_ohlcv("d1", "ALGOUSDT")
+    assert len(rows) > 0, "MODEL2_DB_PATH default nao foi utilizado"
+
+
 # ============================================================================
 # GRUPO 3: IDEMPOTÊNCIA E INSERT OR REPLACE (2 testes)
 # ============================================================================
 
 
-def test_rerun_bootstrap_sem_duplicatas(temp_db_path):
+def test_rerun_bootstrap_sem_duplicatas(temp_db_path: str) -> None:
     """
     RED: Rodar bootstrap 2x na mesma DB => sem duplicatas, count igual.
 
@@ -429,8 +470,6 @@ def test_rerun_bootstrap_sem_duplicatas(temp_db_path):
     )
 
     assert result1 is not None, "Primeira execução retornou None"
-    count1 = len(result1) if isinstance(result1, list) else result1.get("synced_count", 0)
-
     # Verificar inserção em DB
     db = DatabaseManager(temp_db_path)
     rows_before = db.get_ohlcv("d1", "ALGOUSDT")
@@ -460,7 +499,7 @@ def test_rerun_bootstrap_sem_duplicatas(temp_db_path):
         assert row["close"] == rows_before[i]["close"], "Close price mudou (não foi upsert)"
 
 
-def test_insert_or_replace_atualiza_valor_existente(temp_db_path):
+def test_insert_or_replace_atualiza_valor_existente(temp_db_path: str) -> None:
     """
     RED: Atualizar candle existente (msg close price) => reflete em DB.
 
@@ -517,7 +556,7 @@ def test_insert_or_replace_atualiza_valor_existente(temp_db_path):
         }
         mock_bc.return_value = instance
 
-        result = run_bootstrap_algousdt(
+        _result = run_bootstrap_algousdt(
             source_db_path=temp_db_path,
             symbol="ALGOUSDT",
             timeframes=["D1"],
@@ -538,7 +577,7 @@ def test_insert_or_replace_atualiza_valor_existente(temp_db_path):
 # ============================================================================
 
 
-def test_daily_pipeline_stage_0_disparado_quando_algousdt_vazio(temp_db_path):
+def test_daily_pipeline_stage_0_disparado_quando_algousdt_vazio(tmp_path: Path) -> None:
     """
     RED: Se ohlcv_d1 ALGOUSDT vazio, daily_pipeline executa bootstrap stage 0.
 
@@ -548,39 +587,78 @@ def test_daily_pipeline_stage_0_disparado_quando_algousdt_vazio(temp_db_path):
     E: scan (stage 1) só começa após stage 0 completar
     E: latency_metrics registra ambos os stages
     """
-    # Este teste requer a integração do stage 0 em daily_pipeline
-    # Por enquanto, validar que a função de bootstrap existe e é chamável
     if run_bootstrap_algousdt is None:
         pytest.skip("Modulo bootstrap_algousdt_data nao implementado")
 
-    db = DatabaseManager(temp_db_path)
+    db_path = tmp_path / "test_modelo2.db"
+    db = DatabaseManager(str(db_path))
     rows_initial = db.get_ohlcv("d1", "ALGOUSDT")
     assert len(rows_initial) == 0, "DB deve estar vazio para este teste"
 
-    # Simular que bootstrap foi chamado (RED: esta função não existe ainda)
-    # Quando implementado, daily_pipeline internamente fará isso
-    with patch("scripts.model2.bootstrap_algousdt_data.run_bootstrap_algousdt") as mock_bootstrap:
-        mock_bootstrap.return_value = [
-            {
-                "symbol": "ALGOUSDT",
-                "timeframe": "D1",
-                "timestamp": int(datetime(2025, 4, 1, tzinfo=timezone.utc).timestamp() * 1000),
-                "open": 0.50,
-                "high": 0.52,
-                "low": 0.49,
-                "close": 0.51,
-                "volume": 1000000.0,
-                "quote_volume": 510000.0,
-                "trades_count": 5000,
-            }
-        ]
+    calls: list[str] = []
+    with patch.object(daily_pipeline, "run_bootstrap_algousdt") as mock_bootstrap:
+        def _bootstrap_fake(**_: Any) -> list[Candle]:
+            return [
+                {
+                    "symbol": "ALGOUSDT",
+                    "timeframe": "D1",
+                    "timestamp": int(datetime(2025, 4, 1, tzinfo=timezone.utc).timestamp() * 1000),
+                    "open": 0.50,
+                    "high": 0.52,
+                    "low": 0.49,
+                    "close": 0.51,
+                    "volume": 1000000.0,
+                    "quote_volume": 510000.0,
+                    "trades_count": 5000,
+                }
+            ]
 
-        # Aqui iria a chamada ao daily_pipeline, que deveria invocar bootstrap
-        # Para este teste RED, apenas validamos que bootstrap é callable
-        assert callable(run_bootstrap_algousdt), "run_bootstrap_algousdt não é callable"
+        mock_bootstrap.side_effect = _bootstrap_fake
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(daily_pipeline, "sync_ohlcv_from_binance", _fake_pipeline_stage(calls, "sync_ohlcv"))
+        monkeypatch.setattr(daily_pipeline, "run_up", _fake_pipeline_stage(calls, "migrate"))
+        monkeypatch.setattr(daily_pipeline, "run_scan", _fake_pipeline_stage(calls, "scan"))
+        monkeypatch.setattr(daily_pipeline, "run_tracking", _fake_pipeline_stage(calls, "track"))
+        monkeypatch.setattr(daily_pipeline, "run_validation", _fake_pipeline_stage(calls, "validate"))
+        monkeypatch.setattr(daily_pipeline, "run_resolution", _fake_pipeline_stage(calls, "resolve"))
+        monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_pipeline_stage(calls, "bridge"))
+        monkeypatch.setattr(daily_pipeline, "run_persist_training_episodes", _fake_pipeline_stage(calls, "persist_training_episodes"))
+        monkeypatch.setattr(daily_pipeline, "flush_deferred_rewards", _fake_pipeline_stage(calls, "flush_deferred_rewards"))
+        monkeypatch.setattr(daily_pipeline, "run_train_entry_agents", _fake_pipeline_stage(calls, "train_entry_agents"))
+        monkeypatch.setattr(daily_pipeline, "run_entry_rl_filter", _fake_pipeline_stage(calls, "entry_rl_filter"))
+        monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_pipeline_stage(calls, "order_layer"))
+        monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_pipeline_stage(calls, "export_signals"))
+        monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_pipeline_stage(calls, "rl_signal_generation"))
+        monkeypatch.setattr(daily_pipeline, "run_ensemble_signal_generation", _fake_pipeline_stage(calls, "ensemble_signal_generation"))
+        monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_pipeline_stage(calls, "export_dashboard"))
+        monkeypatch.setattr(daily_pipeline, "run_daily_report", _fake_pipeline_stage(calls, "daily_report"))
+
+        summary = daily_pipeline.run_daily_pipeline(
+            source_db_path=db_path,
+            model2_db_path=db_path,
+            legacy_db_path=db_path,
+            symbols=["ALGOUSDT"],
+            timeframe="D1",
+            scan_candles_limit=120,
+            validation_candles_limit=240,
+            resolution_candles_limit=240,
+            limit=200,
+            dry_run=False,
+            continue_on_error=False,
+            retention_days=30,
+            output_dir=tmp_path / "results",
+        )
+        monkeypatch.undo()
+
+    assert mock_bootstrap.call_count == 1, "stage 0 nao foi disparado"
+    assert calls[:4] == ["sync_ohlcv", "migrate", "scan", "track"]
+    assert "bootstrap_stage_0" in summary["stages"], "summary sem stage 0"
+    assert summary["stages"]["bootstrap_stage_0"]["status"] == "ok"
+    assert summary["stages"]["bootstrap_stage_0"]["stage_elapsed_ms"] >= 0
+    assert list(summary["stages"].keys()).index("bootstrap_stage_0") < list(summary["stages"].keys()).index("scan")
 
 
-def test_daily_pipeline_stage_0_pula_se_algousdt_tem_240_d1(temp_db_path):
+def test_daily_pipeline_stage_0_pula_se_algousdt_tem_240_d1(tmp_path: Path) -> None:
     """
     RED: Se ohlcv_d1 ALGOUSDT >= 240, stage 0 é pulado.
 
@@ -592,11 +670,12 @@ def test_daily_pipeline_stage_0_pula_se_algousdt_tem_240_d1(temp_db_path):
     if run_bootstrap_algousdt is None:
         pytest.skip("Modulo bootstrap_algousdt_data nao implementado")
 
-    db = DatabaseManager(temp_db_path)
+    db_path = tmp_path / "test_modelo2.db"
+    db = DatabaseManager(str(db_path))
 
     # Setup: inserir 250 candles D1
     start_date = datetime(2025, 4, 1, tzinfo=timezone.utc)
-    rows = []
+    rows: list[Candle] = []
     for i in range(250):
         rows.append({
             "timestamp": int((start_date + timedelta(days=i)).timestamp() * 1000),
@@ -614,9 +693,48 @@ def test_daily_pipeline_stage_0_pula_se_algousdt_tem_240_d1(temp_db_path):
     rows_in_db = db.get_ohlcv("d1", "ALGOUSDT")
     assert len(rows_in_db) >= 240, f"Setup falhou: apenas {len(rows_in_db)} rows"
 
-    # Quando daily_pipeline for chamado, deveria pular bootstrap
-    # Este teste valida que a lógica de skip existe (será implementada)
-    assert len(rows_in_db) >= 240, "Validação: DB tem >= 240 D1s"
+    calls: list[str] = []
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(daily_pipeline, "sync_ohlcv_from_binance", _fake_pipeline_stage(calls, "sync_ohlcv"))
+    monkeypatch.setattr(daily_pipeline, "run_up", _fake_pipeline_stage(calls, "migrate"))
+    monkeypatch.setattr(daily_pipeline, "run_scan", _fake_pipeline_stage(calls, "scan"))
+    monkeypatch.setattr(daily_pipeline, "run_tracking", _fake_pipeline_stage(calls, "track"))
+    monkeypatch.setattr(daily_pipeline, "run_validation", _fake_pipeline_stage(calls, "validate"))
+    monkeypatch.setattr(daily_pipeline, "run_resolution", _fake_pipeline_stage(calls, "resolve"))
+    monkeypatch.setattr(daily_pipeline, "run_bridge", _fake_pipeline_stage(calls, "bridge"))
+    monkeypatch.setattr(daily_pipeline, "run_persist_training_episodes", _fake_pipeline_stage(calls, "persist_training_episodes"))
+    monkeypatch.setattr(daily_pipeline, "flush_deferred_rewards", _fake_pipeline_stage(calls, "flush_deferred_rewards"))
+    monkeypatch.setattr(daily_pipeline, "run_train_entry_agents", _fake_pipeline_stage(calls, "train_entry_agents"))
+    monkeypatch.setattr(daily_pipeline, "run_entry_rl_filter", _fake_pipeline_stage(calls, "entry_rl_filter"))
+    monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_pipeline_stage(calls, "order_layer"))
+    monkeypatch.setattr(daily_pipeline, "run_export_signals", _fake_pipeline_stage(calls, "export_signals"))
+    monkeypatch.setattr(daily_pipeline, "run_rl_signal_generation", _fake_pipeline_stage(calls, "rl_signal_generation"))
+    monkeypatch.setattr(daily_pipeline, "run_ensemble_signal_generation", _fake_pipeline_stage(calls, "ensemble_signal_generation"))
+    monkeypatch.setattr(daily_pipeline, "run_export_dashboard", _fake_pipeline_stage(calls, "export_dashboard"))
+    monkeypatch.setattr(daily_pipeline, "run_daily_report", _fake_pipeline_stage(calls, "daily_report"))
+
+    with patch.object(daily_pipeline, "run_bootstrap_algousdt") as mock_bootstrap:
+        summary = daily_pipeline.run_daily_pipeline(
+            source_db_path=db_path,
+            model2_db_path=db_path,
+            legacy_db_path=db_path,
+            symbols=["ALGOUSDT"],
+            timeframe="D1",
+            scan_candles_limit=120,
+            validation_candles_limit=240,
+            resolution_candles_limit=240,
+            limit=200,
+            dry_run=False,
+            continue_on_error=False,
+            retention_days=30,
+            output_dir=tmp_path / "results",
+        )
+
+    monkeypatch.undo()
+    assert mock_bootstrap.call_count == 0, "stage 0 deveria ser pulado"
+    assert summary["stages"]["bootstrap_stage_0"]["status"] == "skipped"
+    assert summary["stages"]["bootstrap_stage_0"]["reason"] == "algousdt_d1_ready"
+    assert calls[:3] == ["sync_ohlcv", "migrate", "scan"]
 
 
 # ============================================================================
@@ -624,7 +742,7 @@ def test_daily_pipeline_stage_0_pula_se_algousdt_tem_240_d1(temp_db_path):
 # ============================================================================
 
 
-def test_bootstrap_output_summary_json_completo(temp_db_path):
+def test_bootstrap_output_summary_json_completo(temp_db_path: str) -> None:
     """
     RED: Saída bootstrap é JSON com status, count, errors, timestamp.
 
@@ -663,6 +781,7 @@ def test_bootstrap_output_summary_json_completo(temp_db_path):
 
     # Resultado pode ser dict (summary) ou list (dados)
     # Se for list, extrair summary
+    summary: dict[str, Any]
     if isinstance(result, dict):
         summary = result
     else:
@@ -704,7 +823,7 @@ def test_bootstrap_output_summary_json_completo(temp_db_path):
 # ============================================================================
 
 
-def test_compatibilidade_com_m2_025_nao_afeta_stages_existentes(temp_db_path):
+def test_compatibilidade_com_m2_025_nao_afeta_stages_existentes(temp_db_path: str) -> None:
     """
     RED: Bootstrap não regride stages 1-17 de daily_pipeline.
 

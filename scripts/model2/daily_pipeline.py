@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.model2.bridge import run_bridge
+from scripts.model2.bootstrap_algousdt_data import run_bootstrap_algousdt
 from scripts.model2.daily_report import run_daily_report
 from scripts.model2.export_dashboard import run_export_dashboard
 from scripts.model2.export_signals import run_export_signals
@@ -36,6 +37,7 @@ from core.model2.latency_metrics import (
     record_cycle_latencies,
     summarize_pipeline_benchmark,
 )
+from data.database import DatabaseManager
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "results" / "model2" / "runtime"
 
@@ -91,6 +93,82 @@ def _resolve_repo_path(value: str | Path) -> Path:
 
 def _single_symbol_or_none(symbols: list[str]) -> str | None:
     return symbols[0] if len(symbols) == 1 else None
+
+
+def _count_algousdt_d1(db_path: Path) -> int:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db = DatabaseManager(str(db_path))
+    db.init_db()
+    return len(db.get_ohlcv("d1", "ALGOUSDT"))
+
+
+def _run_bootstrap_stage_0(
+    *,
+    source_db_path: Path,
+    model2_db_path: Path,
+    symbols: list[str],
+    output_dir: Path,
+) -> dict[str, Any]:
+    if "ALGOUSDT" not in symbols:
+        return {
+            "status": "skipped_not_applicable",
+            "reason": "symbol_not_requested",
+        }
+
+    existing_source_d1 = _count_algousdt_d1(source_db_path)
+    existing_model2_d1 = _count_algousdt_d1(model2_db_path)
+    if existing_source_d1 >= 240 and existing_model2_d1 >= 240:
+        return {
+            "status": "skipped",
+            "reason": "algousdt_d1_ready",
+            "existing_source_d1_rows": existing_source_d1,
+            "existing_model2_d1_rows": existing_model2_d1,
+        }
+
+    candles = run_bootstrap_algousdt(
+        db_path=model2_db_path,
+        symbol="ALGOUSDT",
+        timeframes=["D1", "H4", "H1", "M5"],
+        start_date="2025-04-01",
+        end_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        mode="fetch",
+    )
+
+    rows_by_timeframe: dict[str, int] = {}
+    if isinstance(candles, list):
+        if source_db_path != model2_db_path:
+            source_db_path.parent.mkdir(parents=True, exist_ok=True)
+            source_db = DatabaseManager(str(source_db_path))
+            source_db.init_db()
+        for candle in candles:
+            timeframe = str(candle.get("timeframe", "")).upper()
+            if not timeframe:
+                continue
+            rows_by_timeframe[timeframe] = rows_by_timeframe.get(timeframe, 0) + 1
+        if source_db_path != model2_db_path:
+            for timeframe in ["D1", "H4", "H1", "M5"]:
+                timeframe_rows = [
+                    {
+                        key: value
+                        for key, value in candle.items()
+                        if key != "timeframe"
+                    }
+                    for candle in candles
+                    if str(candle.get("timeframe", "")).upper() == timeframe
+                ]
+                if timeframe_rows:
+                    source_db.insert_ohlcv(timeframe.lower(), timeframe_rows)
+
+    return {
+        "status": "ok",
+        "symbol": "ALGOUSDT",
+        "existing_source_d1_rows": existing_source_d1,
+        "existing_model2_d1_rows": existing_model2_d1,
+        "rows_by_timeframe": rows_by_timeframe,
+        "bootstrapped_timeframes": sorted(rows_by_timeframe.keys()),
+        "source_db_synced": source_db_path != model2_db_path,
+        "output_dir": str(output_dir),
+    }
 
 
 def _run_stage(
@@ -170,6 +248,23 @@ def run_daily_pipeline(
                 "output_dir": resolved_output_dir,
             },
         ),
+    ]
+
+    if "ALGOUSDT" in symbols_to_use:
+        stage_definitions.append(
+            (
+                "bootstrap_stage_0",
+                _run_bootstrap_stage_0,
+                {
+                    "source_db_path": resolved_source_db,
+                    "model2_db_path": resolved_model2_db,
+                    "symbols": symbols_to_use,
+                    "output_dir": resolved_output_dir,
+                },
+            )
+        )
+
+    stage_definitions.extend([
         (
             "scan",
             run_scan,
@@ -330,7 +425,7 @@ def run_daily_pipeline(
                 "output_dir": resolved_output_dir,
             },
         ),
-    ]
+    ])
 
     if not dry_run:
         stage_definitions.append(

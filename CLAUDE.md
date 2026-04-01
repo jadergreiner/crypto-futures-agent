@@ -24,6 +24,7 @@ python main.py --train                           # Treina modelo RL
 
 # Pipeline Modelo 2.0
 python scripts/model2/daily_pipeline.py --timeframe M5 --symbol BTCUSDT
+python scripts/model2/bootstrap_algousdt_data.py --symbol ALGOUSDT --timeframes D1,H4,H1,M5 --start-date 2025-04-01 --end-date 2026-03-31
 python scripts/model2/live_cycle.py --execution-mode shadow --live-symbol BTCUSDT
 python scripts/model2/scan.py                   # Escaneia oportunidades
 python scripts/model2/track.py                  # Rastreia teses
@@ -127,6 +128,16 @@ fills e detecta saídas externas. O risk gate é validado aqui antes de qualquer
 - `db/modelo2.db` — DB canônico M2 com tabelas:
   - `opportunities`, `opportunity_events` — ciclo de vida das teses
   - `technical_signals`, `signal_executions`, `signal_execution_events` — ciclo de execução
+
+## Bootstrap historico ALGOUSDT
+
+- Script canonico: `scripts/model2/bootstrap_algousdt_data.py`
+- DB alvo default: `db/modelo2.db`
+- Timeframes suportados: `D1`, `H4`, `H1`, `M5`
+- Validacoes: timestamps UTC ms, conversao BRT, deteccao de gaps,
+  idempotencia via `INSERT OR REPLACE`
+- Integracao operacional: `daily_pipeline.py` executa `bootstrap_stage_0`
+  para `ALGOUSDT` quando `ohlcv_d1` tiver menos de 240 candles.
 
 ## Componentes RL
 

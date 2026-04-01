@@ -23,6 +23,118 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-310] M2-ALGO.1 Fechamento Project Manager - 2026-04-01
+
+- Agente: 8.project-manager
+- Item: M2-ALGO.1
+- Status backlog: CONCLUIDO
+- Decisao: ACEITE
+- Valor validado:
+  - bootstrap de 12 meses para ALGOUSDT entregue;
+  - persistencia canonica em `db/modelo2.db` entregue;
+  - `bootstrap_stage_0` operacional antes do `scan` entregue.
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py`
+    `tests/test_model2_daily_pipeline.py`
+    `tests/test_docs_model2_sync.py` -> 31 passed
+  - `mypy --strict core/model2/time_utils.py`
+    `scripts/model2/bootstrap_algousdt_data.py`
+    `scripts/model2/daily_pipeline.py`
+    `tests/test_model2_m2_algo_1_bootstrap_data.py`
+    `tests/test_model2_daily_pipeline.py` -> Success
+
+### [SYNC-309] M2-ALGO.1 Governanca Doc Advocate - 2026-04-01
+
+- Agente: 7.doc-advocate
+- Item: M2-ALGO.1
+- Status backlog: REVISADO_APROVADO
+- Escopo documental validado:
+  - `CLAUDE.md` com comando canonico e DB alvo do bootstrap;
+  - `docs/RUNBOOK_M2_OPERACAO.md` com stage 0, CLI e troubleshooting;
+  - `docs/BACKLOG.md` com trilha PO->SA->SE->TL->DOC coerente;
+  - `docs/SYNCHRONIZATION.md` com auditoria completa da task.
+- Evidencias:
+  - `markdownlint docs/*.md` -> ok
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+
+### [SYNC-308] M2-ALGO.1 Aprovacao Tech Lead - 2026-04-01
+
+- Agente: 6.tech-lead
+- Item: M2-ALGO.1
+- Status backlog: REVISADO_APROVADO
+- Decisao: APROVADO
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py`
+    -> 12 passed
+  - `pytest -q tests/test_model2_daily_pipeline.py` -> 6 passed
+  - `mypy --strict core/model2/time_utils.py`
+    `scripts/model2/bootstrap_algousdt_data.py`
+    `scripts/model2/daily_pipeline.py`
+    `tests/test_model2_m2_algo_1_bootstrap_data.py`
+    `tests/test_model2_daily_pipeline.py` -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+
+### [SYNC-306] M2-ALGO.1 Revisao Tech Lead apos retorno - 2026-04-01
+
+- Agente: 6.tech-lead
+- Item: M2-ALGO.1
+- Status backlog: IMPLEMENTADO
+- Decisao: DEVOLVIDO_PARA_REVISAO
+- Motivo:
+  - `bootstrap_stage_0` persiste em `db/modelo2.db`, mas `scan` continua
+    lendo `source_db_path`, quebrando a integracao real quando os DBs diferem;
+  - houve alteracao indevida no status de `M2-021.2` fora do escopo.
+
+### [SYNC-307] M2-ALGO.1 Correcao do retorno TL2 - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-ALGO.1
+- Status backlog: IMPLEMENTADO
+- Escopo sincronizado:
+  - `bootstrap_stage_0` replica OHLCV para `source_db_path` quando a fonte
+    do scanner difere do DB canônico M2;
+  - `M2-021.2` voltou ao status anterior, eliminando regressao fora do escopo.
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py`
+    -> 12 passed
+  - `pytest -q tests/test_model2_daily_pipeline.py` -> 6 passed
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+
+### [SYNC-305] M2-ALGO.1 Retorno Software Engineer - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-ALGO.1
+- Status backlog: IMPLEMENTADO
+- Escopo sincronizado:
+  - `scripts/model2/bootstrap_algousdt_data.py` usa `db/modelo2.db` por
+    padrao, mantendo alias legado de parametro;
+  - `scripts/model2/daily_pipeline.py` ganhou `bootstrap_stage_0` auditavel
+    para `ALGOUSDT`, com disparo real antes do `scan` e skip registrado;
+  - `core/model2/time_utils.py` expõe `ts_to_datetime_brt` para validacao
+    timezone-aware em BRT;
+  - `CLAUDE.md` e `docs/RUNBOOK_M2_OPERACAO.md` atualizados com CLI,
+    comportamento do stage 0 e troubleshooting.
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py`
+    -> 12 passed
+  - `pytest -q tests/test_model2_daily_pipeline.py` -> 5 passed
+  - `mypy --strict core/model2/time_utils.py`
+    `scripts/model2/bootstrap_algousdt_data.py`
+    `scripts/model2/daily_pipeline.py`
+    `tests/test_model2_m2_algo_1_bootstrap_data.py` -> Success
+
+### [SYNC-304] M2-ALGO.1 Revisao Tech Lead - 2026-04-01
+
+- Agente: 6.tech-lead
+- Item: M2-ALGO.1
+- Status backlog: IMPLEMENTADO
+- Decisao: DEVOLVIDO_PARA_REVISAO
+- Motivo:
+  - suite especifica e `mypy --strict` reproduzidos com sucesso;
+  - faltou integrar stage 0 real em `daily_pipeline.py`;
+  - CLI ainda inicializa DB legado por padrao, nao `db/modelo2.db`;
+  - `CLAUDE.md` e `docs/RUNBOOK_M2_OPERACAO.md` seguem sem sync.
+
 ### [SYNC-303] M2-020.9 Refinamento tecnico Solution Architect - 2026-03-31
 
 - Agente: 3.solution-architect

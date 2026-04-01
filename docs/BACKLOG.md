@@ -6167,7 +6167,7 @@ completo.
 
 ### TAREFA M2-ALGO.1 - Bootstrap de dados historicos para treino ALGOUSDT
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-04-01
@@ -6334,6 +6334,50 @@ SE: GREEN-REFACTOR concluido em 2026-04-01. Implementacao entregue:
 - docs/CLAUDE.md: Adicionar secao "Bootstrap de dados historicos"
 - docs/RUNBOOK_M2_OPERACAO.md: CLI command examples + stage 0 behavior
 - docs/SYNCHRONIZATION.md: Registrar [SYNC] para M2-ALGO.1
+
+TL: DEVOLVIDO. Suite e mypy verdes, mas falta integrar stage 0 real,
+persistir em modelo2.db por padrao e sincronizar docs requeridas.
+
+SE: Retorno da devolucao TL concluido em 2026-04-01. Ajustado
+`bootstrap_algousdt_data.py` para usar `db/modelo2.db` por padrao,
+implementado `bootstrap_stage_0` real e auditavel em `daily_pipeline.py`,
+adicionado `ts_to_datetime_brt` em `core/model2/time_utils.py` e fechada a
+sync de `CLAUDE.md`/`docs/RUNBOOK_M2_OPERACAO.md`. Evidencias:
+`pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py` -> 12 passed;
+`pytest -q tests/test_model2_daily_pipeline.py` -> 5 passed;
+`mypy --strict core/model2/time_utils.py
+scripts/model2/bootstrap_algousdt_data.py scripts/model2/daily_pipeline.py
+tests/test_model2_m2_algo_1_bootstrap_data.py` -> Success;
+`pytest -q tests/test_docs_model2_sync.py` -> 13 passed.
+
+TL: DEVOLVIDO. Stage 0 grava em modelo2.db, mas scan ainda le source_db;
+alem disso houve regressao indevida no status de M2-021.2.
+
+SE: Retorno da devolucao TL2 concluido em 2026-04-01. `bootstrap_stage_0`
+agora sincroniza `source_db_path` e `model2_db_path` quando os caminhos
+divergem, e a regressao indevida em `M2-021.2` foi revertida. Evidencias:
+`pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py` -> 12 passed;
+`pytest -q tests/test_model2_daily_pipeline.py` -> 6 passed;
+`mypy --strict core/model2/time_utils.py
+scripts/model2/bootstrap_algousdt_data.py scripts/model2/daily_pipeline.py
+tests/test_model2_m2_algo_1_bootstrap_data.py tests/test_model2_daily_pipeline.py`
+-> Success; `pytest -q tests/test_docs_model2_sync.py` -> 13 passed.
+
+TL: APROVADO. Stage 0 integrado, DB canonico/fonte sincronizados e docs
+essenciais atualizadas sem regressao nova no escopo.
+
+DOC: Docs oficiais sincronizadas com bootstrap ALGOUSDT, stage 0 e trilha
+[SYNC-309] prontas para aceite executivo.
+
+PM: ACEITE. Valor prometido pelo PO confirmado em operacao: bootstrap de 12
+meses para ALGOUSDT, persistencia canonica em `db/modelo2.db` e stage 0 do
+pipeline apto a preparar a base antes do scan, com evidencias finais em
+`pytest -q tests/test_model2_m2_algo_1_bootstrap_data.py
+tests/test_model2_daily_pipeline.py tests/test_docs_model2_sync.py` e
+`mypy --strict core/model2/time_utils.py
+scripts/model2/bootstrap_algousdt_data.py scripts/model2/daily_pipeline.py
+tests/test_model2_m2_algo_1_bootstrap_data.py
+tests/test_model2_daily_pipeline.py`. Status final: CONCLUIDO.
 
 **Contexto e motivacao:**
 

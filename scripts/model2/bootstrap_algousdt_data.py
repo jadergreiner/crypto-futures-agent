@@ -56,7 +56,8 @@ def _utc_now_ms() -> int:
 
 def run_bootstrap_algousdt(
     *,
-    source_db_path: str | Path,
+    db_path: str | Path | None = None,
+    source_db_path: str | Path | None = None,
     symbol: str,
     timeframes: list[str],
     start_date: str,
@@ -67,7 +68,8 @@ def run_bootstrap_algousdt(
     Executar bootstrap de dados históricos.
 
     Args:
-        source_db_path: Caminho para DB legado (crypto_agent.db)
+        db_path: Caminho para DB canonico M2.
+        source_db_path: Alias legado para compatibilidade retroativa.
         symbol: Símbolo (ex: "ALGOUSDT")
         timeframes: Lista de timeframes ["D1", "H4", "H1", "M5"]
         start_date: Data inicial "YYYY-MM-DD"
@@ -77,7 +79,8 @@ def run_bootstrap_algousdt(
     Returns:
         Lista de candles ou dict com summary
     """
-    resolved_source_db = _resolve_repo_path(source_db_path)
+    target_db_path = db_path or source_db_path or MODEL2_DB_PATH
+    resolved_model2_db = _resolve_repo_path(target_db_path)
 
     # Criar cliente e collector
     try:
@@ -91,7 +94,7 @@ def run_bootstrap_algousdt(
         }
 
     # Inicializar DB
-    db = DatabaseManager(str(resolved_source_db))
+    db = DatabaseManager(str(resolved_model2_db))
     db.init_db()
 
     # Criar bootstrapper
@@ -191,8 +194,8 @@ def main() -> int:
     parser.add_argument(
         "--db-path",
         type=str,
-        default=str(DB_PATH),
-        help=f"Caminho para DB legado (default: {DB_PATH})",
+        default=str(MODEL2_DB_PATH),
+        help=f"Caminho para DB canonico M2 (default: {MODEL2_DB_PATH})",
     )
     parser.add_argument(
         "--output-dir",
@@ -226,7 +229,7 @@ def main() -> int:
     )
 
     result = run_bootstrap_algousdt(
-        source_db_path=args.db_path,
+        db_path=args.db_path,
         symbol=args.symbol,
         timeframes=timeframes,
         start_date=args.start_date,
@@ -240,7 +243,8 @@ def main() -> int:
         summary = result
     else:
         # Lista de candles retornada - criar summary
-        db = DatabaseManager(args.db_path)
+        resolved_db_path = _resolve_repo_path(args.db_path)
+        db = DatabaseManager(str(resolved_db_path))
         summary = {
             "status": "ok",
             "symbols": [args.symbol],
