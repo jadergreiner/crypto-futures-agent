@@ -885,7 +885,7 @@ def test_run_live_execute_blocks_signal_outside_live_gates_without_order_call(tm
     )
 
     assert summary["staged"][0]["status"] == "BLOCKED"
-    assert summary["staged"][0]["reason"] == "symbol_not_enabled"
+    assert summary["staged"][0]["reason"] == "symbol_not_authorized"
     assert exchange.market_calls == 0
     assert summary["processed_ready"] == []
 
@@ -894,7 +894,7 @@ def test_run_live_execute_blocks_signal_outside_live_gates_without_order_call(tm
             "SELECT status, gate_reason FROM signal_executions WHERE technical_signal_id = ?",
             (signal_id,),
         ).fetchone()
-    assert row == ("BLOCKED", "symbol_not_enabled")
+    assert row == ("BLOCKED", "symbol_not_authorized")
 
 
 def test_run_live_execute_blocks_when_inference_state_is_invalid(tmp_path: Path, monkeypatch) -> None:

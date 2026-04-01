@@ -23,6 +23,27 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-311] M2-ALGO.2 Governanca Doc Advocate - 2026-04-01
+
+- Agente: 7.doc-advocate
+- Item: M2-ALGO.2
+- Status backlog: REVISADO_APROVADO
+- Escopo documental validado:
+  - `docs/BACKLOG.md` com trilha PO -> SA -> QA -> SE -> TL -> DOC;
+  - `docs/SYNCHRONIZATION.md` com registro [SYNC-311] para auditoria.
+- Valor PO validado:
+  - fallback seguro de OHLCV desbloqueia acumulacao de episodios elegiveis
+    para ALGOUSDT quando `source_db` nao retorna candle;
+  - guardrails de risco preservados sem alteracao de schema.
+- Evidencias:
+  - `pytest -q tests/test_model2_m2_algo_2_persist_episodes.py`
+    -> 8 passed
+  - `mypy --strict scripts/model2/persist_training_episodes.py`
+    -> Success
+  - `pytest -q tests/` -> 361 passed
+  - `markdownlint docs/*.md` -> ok
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+
 ### [SYNC-310] M2-ALGO.1 Fechamento Project Manager - 2026-04-01
 
 - Agente: 8.project-manager

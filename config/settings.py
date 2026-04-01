@@ -54,6 +54,30 @@ def _normalize_symbol_scope(
 
     return tuple(dict.fromkeys(normalized))
 
+
+def _parse_symbol_float_map(raw_value: str | None) -> dict[str, float]:
+    """Converte pares SYMBOL:valor em um mapa normalizado de thresholds."""
+    if raw_value is None:
+        return {}
+
+    parsed: dict[str, float] = {}
+    for token in str(raw_value).split(","):
+        item = str(token).strip()
+        if not item:
+            continue
+        if ":" not in item:
+            continue
+        symbol_raw, value_raw = item.split(":", 1)
+        symbol = str(symbol_raw).strip().upper()
+        if not symbol:
+            continue
+        try:
+            value = float(str(value_raw).strip())
+        except ValueError:
+            continue
+        parsed[symbol] = value
+    return parsed
+
 # Binance API Configuration
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET", "")
@@ -99,6 +123,19 @@ M2_LIVE_SYMBOLS = _normalize_symbol_scope(
 )
 M2_RUNTIME_SYMBOLS = M2_LIVE_SYMBOLS if M2_LIVE_SYMBOLS else tuple(_ALL_SYMBOLS)
 M2_SYMBOLS = M2_RUNTIME_SYMBOLS
+M2_MODEL_FIRST_SCAN_SYMBOLS = _normalize_symbol_scope(
+    os.getenv("M2_MODEL_FIRST_SCAN_SYMBOLS", "ALGOUSDT"),
+    fallback_symbols=M2_RUNTIME_SYMBOLS,
+)
+M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE = float(
+    os.getenv("M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE", "0.55")
+)
+M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE_BY_SYMBOL = _parse_symbol_float_map(
+    os.getenv(
+        "M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE_BY_SYMBOL",
+        "ALGOUSDT:0.35",
+    )
+)
 M2_MAX_DAILY_ENTRIES = int(os.getenv("M2_MAX_DAILY_ENTRIES", "10"))
 M2_MAX_MARGIN_PER_POSITION_USD = float(os.getenv("M2_MAX_MARGIN_PER_POSITION_USD", "15.0"))
 M2_MAX_SIGNAL_AGE_MINUTES = int(os.getenv("M2_MAX_SIGNAL_AGE_MINUTES", "240"))

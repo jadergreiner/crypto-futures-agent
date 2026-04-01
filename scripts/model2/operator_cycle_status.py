@@ -258,6 +258,83 @@ def _safe_json_loads(raw_value: Any) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def _extract_nested_value(payload: dict[str, Any], path: tuple[str, ...]) -> Any:
+    """Resolve valor aninhado quando o caminho existir por completo."""
+    current: Any = payload
+    for key in path:
+        if not isinstance(current, dict) or key not in current:
+            return None
+        current = current[key]
+    return current
+
+
+def _normalize_status_source(raw_value: Any) -> str | None:
+    """Normaliza origem textual de decisao para o contrato do status."""
+    normalized = str(raw_value or "").strip().upper()
+    if not normalized:
+        return None
+    aliases = {
+        "RL_MODEL": "RL_MODEL",
+        "FALLBACK": "FALLBACK_MODELO_RL",
+        "FALLBACK_MODELO_RL": "FALLBACK_MODELO_RL",
+        "FALLBACK_MODEL": "FALLBACK_MODELO_RL",
+        "FALLBACK_RL": "FALLBACK_MODELO_RL",
+    }
+    return aliases.get(normalized, normalized)
+
+
+def _resolve_decision_status_source(
+    *,
+    reason_code: Any,
+    input_json: dict[str, Any],
+    output_json: dict[str, Any],
+) -> str:
+    """Deriva a origem observavel da decisao sem confundir fallbacks."""
+    source_paths = (
+        ("source",),
+        ("origin",),
+        ("metadata", "source"),
+        ("metadata", "origin"),
+        ("decision", "source"),
+        ("decision", "origin"),
+        ("decision", "metadata", "source"),
+        ("decision", "metadata", "origin"),
+    )
+    for container in (output_json, input_json):
+        for path in source_paths:
+            normalized = _normalize_status_source(_extract_nested_value(container, path))
+            if normalized is not None:
+                return normalized
+
+    fallback_paths = (
+        ("rl_fallback",),
+        ("metadata", "rl_fallback"),
+        ("decision", "rl_fallback"),
+        ("decision", "metadata", "rl_fallback"),
+    )
+    for container in (output_json, input_json):
+        for path in fallback_paths:
+            if _extract_nested_value(container, path) is True:
+                return "FALLBACK_MODELO_RL"
+
+    fallback_reasons = {
+        "INFERENCE_UNAVAILABLE",
+        "INVALID_MODEL_INFERENCE_STATE",
+    }
+    normalized_reason = str(reason_code or "").strip().upper()
+    if normalized_reason in fallback_reasons:
+        return "FALLBACK_MODELO_INFERENCIA"
+
+    return "RL_MODEL"
+
+
+def _format_confidence_for_status(confidence: float | None) -> str:
+    """Formata confianca preservando 0.0 como valor valido."""
+    if confidence is None:
+        return "N/A"
+    return f"{confidence:.0%}"
+
+
 def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | None:
     """Busca trilha detalhada da decisao mais recente por simbolo."""
     try:
@@ -280,6 +357,8 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
                 select_cols.append("decision_timestamp")
             if "input_json" in cols:
                 select_cols.append("input_json")
+            if "output_json" in cols:
+                select_cols.append("output_json")
             row = conn.execute(
                 f"SELECT {', '.join(select_cols)} FROM model_decisions "
                 "WHERE symbol = ? ORDER BY id DESC LIMIT 1",
@@ -289,16 +368,18 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
                 return None
             payload = dict(zip(select_cols, row))
             input_json = _safe_json_loads(payload.get("input_json"))
+            output_json = _safe_json_loads(payload.get("output_json"))
             raw_market_state = input_json.get("market_state")
             raw_risk_state = input_json.get("risk_state")
             market_state: dict[str, Any] = raw_market_state if isinstance(raw_market_state, dict) else {}
             risk_state: dict[str, Any] = raw_risk_state if isinstance(raw_risk_state, dict) else {}
             signal_ts_ms = _normalize_ts_ms(market_state.get("signal_timestamp"))
             decision_ts_ms = _normalize_ts_ms(payload.get("decision_timestamp"))
+            confidence = _to_float_or_none(payload.get("confidence"))
             return {
                 "decision_id": _to_int_or_none(payload.get("id")),
                 "action": str(payload.get("action") or "HOLD"),
-                "confidence": float(payload.get("confidence") or 0.0),
+                "confidence": confidence,
                 "sl_target": _to_float_or_none(payload.get("sl_target")),
                 "tp_target": _to_float_or_none(payload.get("tp_target")),
                 "entry_price": _to_float_or_none(market_state.get("entry_price")),
@@ -309,7 +390,11 @@ def _query_last_decision_trace(symbol: str, db_path: str) -> dict[str, Any] | No
                 "signal_timestamp_ms": signal_ts_ms,
                 "signal_age_ms": _to_int_or_none(risk_state.get("signal_age_ms")),
                 "max_signal_age_ms": _to_int_or_none(risk_state.get("max_signal_age_ms")),
-                "source": "RL_MODEL",
+                "source": _resolve_decision_status_source(
+                    reason_code=payload.get("reason_code"),
+                    input_json=input_json,
+                    output_json=output_json,
+                ),
             }
     except Exception:
         return None
@@ -537,7 +622,7 @@ def _query_confidence_from_db(symbol: str, db_path: str) -> float | None:
     return None
 
 
-def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]:
+def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float | None]:
     """Retorna (action, confidence) da decisão mais recente no DB."""
     try:
         with sqlite3.connect(db_path, timeout=5) as conn:
@@ -548,11 +633,11 @@ def _query_last_decision_from_db(symbol: str, db_path: str) -> tuple[str, float]
             ).fetchone()
         if row:
             action = str(row[0] or "HOLD")
-            confidence = float(row[1]) if row[1] is not None else 0.0
+            confidence = float(row[1]) if row[1] is not None else None
             return action, confidence
     except Exception:
         pass
-    return "HOLD", 0.0
+    return "HOLD", None
 
 
 def _query_risk_state_from_db(symbol: str, db_path: str) -> dict[str, Any] | None:
@@ -812,7 +897,7 @@ def _build_symbol_report(
     # Prioridade: model_decisions DB > live_execute JSON
     action_db, confidence_db = _query_last_decision_from_db(symbol, db_path)
     decision = action_db
-    confidence: float = confidence_db
+    confidence: float | None = confidence_db
     decision_trace = _query_last_decision_trace(symbol, db_path)
     execution_trace = _query_last_execution_trace(
         symbol=symbol,
@@ -832,11 +917,14 @@ def _build_symbol_report(
                     decision = "OPEN_SHORT"
                 else:
                     decision = raw_action
+                confidence = _to_float_or_none(item.get("confidence", confidence))
                 break
 
     icons = {"OPEN_LONG": "🟢", "OPEN_SHORT": "🔴", "HOLD": "⏸", "REDUCE": "🟡", "CLOSE": "⛔"}
     icon = icons.get(decision, "❓")
-    conf_str = f"{confidence:.0%}" if confidence else "N/A"
+    if decision_trace is not None:
+        confidence = _to_float_or_none(decision_trace.get("confidence"))
+    conf_str = _format_confidence_for_status(confidence)
     decision_parts = [f"{icon} {decision} (confianca: {conf_str})"]
     if decision_trace is not None:
         decision_parts.extend(
@@ -848,7 +936,7 @@ def _build_symbol_report(
             ]
         )
     else:
-        decision_parts.append("source=FALLBACK")
+        decision_parts.append("source=FALLBACK_STATUS_SEM_DECISION_TRACE")
     decision_line = " | ".join(decision_parts)
 
     # --- Frescor verificavel ---

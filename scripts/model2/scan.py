@@ -5,13 +5,12 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
-
-from core.model2.time_utils import ts_ms_to_brt_str
 
 pd = importlib.import_module("pandas")
 
@@ -19,8 +18,26 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from config.settings import DB_PATH, M2_SYMBOLS, MODEL2_DB_PATH
-from core.model2 import DetectorInput, Model2ThesisRepository, detect_initial_short_failure
+from core.model2.time_utils import ts_ms_to_brt_str
+from config.settings import (
+    DB_PATH,
+    M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE,
+    M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE_BY_SYMBOL,
+    M2_MODEL_FIRST_SCAN_SYMBOLS,
+    M2_SYMBOLS,
+    MODEL2_DB_PATH,
+)
+from core.model2 import (
+    ACTION_OPEN_LONG,
+    ACTION_OPEN_SHORT,
+    DetectorInput,
+    DetectionResult,
+    Model2ThesisRepository,
+    ModelDecisionInput,
+    ModelInferenceService,
+    TechnicalSignalInferenceProvider,
+    detect_initial_short_failure,
+)
 from core.model2.ohlcv_cache import OhlcvCacheProvider, build_cache_key
 from indicators.smc import SmartMoneyConcepts
 from scripts.model2.io_utils import atomic_write_json
@@ -32,6 +49,10 @@ TIMEFRAME_TO_TABLE = {
     "H1": "ohlcv_h1",
     "M5": "ohlcv_m5",
 }
+M2_020_2_SCAN_RULE_ID = "M2-020.2-RULE-RL-MODEL-FIRST-SCAN"
+M2_020_2_SCAN_THESIS_TYPE = "DECISAO_MODELO_RL"
+M2_020_2_SCAN_THRESHOLD = float(M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE)
+M2_020_2_SCAN_THRESHOLD_BY_SYMBOL = dict(M2_MODEL_FIRST_SCAN_MIN_CONFIDENCE_BY_SYMBOL)
 
 
 def _utc_now_ms() -> int:
@@ -43,6 +64,252 @@ def _resolve_repo_path(value: str | Path) -> Path:
     if path.is_absolute():
         return path
     return (REPO_ROOT / path).resolve()
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _pick_first_float(*values: Any) -> float | None:
+    for value in values:
+        parsed = _safe_float(value)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _resolve_model_first_confidence_threshold(symbol: str) -> float:
+    """Resolve threshold do model-first priorizando configuracao por simbolo."""
+    normalized_symbol = str(symbol).strip().upper()
+    if normalized_symbol in M2_020_2_SCAN_THRESHOLD_BY_SYMBOL:
+        return float(M2_020_2_SCAN_THRESHOLD_BY_SYMBOL[normalized_symbol])
+    return float(M2_020_2_SCAN_THRESHOLD)
+
+
+def _infer_base_risk_distance(
+    *,
+    close_price: float,
+    latest_candle: dict[str, Any],
+    latest_indicator: dict[str, Any],
+) -> float:
+    high_price = _pick_first_float(latest_candle.get("high"), close_price) or close_price
+    low_price = _pick_first_float(latest_candle.get("low"), close_price) or close_price
+    candle_range = max(0.0, high_price - low_price)
+
+    atr_distance = _pick_first_float(
+        latest_indicator.get("atr"),
+        latest_indicator.get("atr_14"),
+        latest_indicator.get("atr14"),
+    )
+    if atr_distance is None:
+        atr_normalized = _pick_first_float(
+            latest_indicator.get("atr_normalized"),
+            latest_indicator.get("atr_normalized_pct"),
+        )
+        if atr_normalized is not None and atr_normalized > 0:
+            atr_distance = close_price * (
+                atr_normalized / 100.0 if atr_normalized > 1.0 else atr_normalized
+            )
+
+    return max(close_price * 0.003, candle_range, atr_distance or 0.0)
+
+
+def _build_model_first_market_state(
+    *,
+    symbol: str,
+    timeframe: str,
+    candles_df: Any,
+    indicators: list[dict[str, Any]],
+    smc: dict[str, Any],
+    scan_timestamp: int,
+) -> ModelDecisionInput | None:
+    if candles_df.empty:
+        return None
+
+    latest_candle = dict(candles_df.iloc[-1].to_dict())
+    latest_indicator = dict(indicators[-1]) if indicators else {}
+    close_price = _pick_first_float(
+        latest_candle.get("close"),
+        latest_candle.get("open"),
+    )
+    if close_price is None or close_price <= 0:
+        return None
+
+    risk_distance = _infer_base_risk_distance(
+        close_price=close_price,
+        latest_candle=latest_candle,
+        latest_indicator=latest_indicator,
+    )
+    stop_loss = close_price - risk_distance
+    take_profit = close_price + risk_distance
+    volume = _pick_first_float(latest_candle.get("volume"), 0.0) or 0.0
+    signal_timestamp = int(latest_candle.get("timestamp") or scan_timestamp)
+    structure = smc.get("structure") or smc.get("market_structure") or {}
+    market_structure = "unknown"
+    if isinstance(structure, dict):
+        market_structure = str(structure.get("type") or "unknown")
+
+    market_state = {
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "signal_side": "",
+        "signal_timestamp": signal_timestamp,
+        "entry_price": close_price,
+        "close_price": close_price,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "volume": volume,
+        "rsi": _pick_first_float(
+            latest_indicator.get("rsi"),
+            latest_indicator.get("rsi_14"),
+        ),
+        "macd_line": _pick_first_float(
+            latest_indicator.get("macd_line"),
+            latest_indicator.get("macd"),
+        ),
+        "macd_signal": _pick_first_float(latest_indicator.get("macd_signal")),
+        "atr_normalized": _pick_first_float(
+            latest_indicator.get("atr_normalized"),
+            latest_indicator.get("atr_normalized_pct"),
+        ),
+        "market_context": {
+            "close_price": close_price,
+            "h1_close": close_price,
+            "h4_close": close_price,
+            "d1_close": close_price,
+            "market_structure": market_structure,
+        },
+    }
+    return ModelDecisionInput(
+        symbol=symbol,
+        timeframe=timeframe,
+        decision_timestamp=scan_timestamp,
+        model_version="m2-model-first-scan-v1",
+        market_state=market_state,
+        position_state={},
+        risk_state={
+            "signal_age_ms": max(0, scan_timestamp - signal_timestamp),
+        },
+    )
+
+
+def _detect_model_first_opportunity(
+    *,
+    symbol: str,
+    timeframe: str,
+    candles_df: Any,
+    indicators: list[dict[str, Any]],
+    smc: dict[str, Any],
+    scan_timestamp: int,
+    inference_service: ModelInferenceService,
+    confidence_threshold: float,
+) -> DetectionResult | None:
+    model_input = _build_model_first_market_state(
+        symbol=symbol,
+        timeframe=timeframe,
+        candles_df=candles_df,
+        indicators=indicators,
+        smc=smc,
+        scan_timestamp=scan_timestamp,
+    )
+    if model_input is None:
+        return None
+
+    inference_result = inference_service.infer(model_input)
+    if not inference_result.accepted or inference_result.decision is None:
+        return None
+
+    decision = inference_result.decision
+    decision_metadata = dict(decision.metadata)
+    if bool(decision_metadata.get("rl_fallback")):
+        return None
+    if float(decision.confidence) < float(confidence_threshold):
+        return None
+
+    if decision.action == ACTION_OPEN_LONG:
+        side = "LONG"
+    elif decision.action == ACTION_OPEN_SHORT:
+        side = "SHORT"
+    else:
+        return None
+
+    latest_candle = dict(candles_df.iloc[-1].to_dict())
+    entry_price = _pick_first_float(
+        model_input.market_state.get("entry_price"),
+        latest_candle.get("close"),
+    )
+    stop_loss = _safe_float(decision.sl_target)
+    take_profit = _safe_float(decision.tp_target)
+    if (
+        entry_price is None
+        or stop_loss is None
+        or take_profit is None
+        or entry_price <= 0
+    ):
+        return None
+
+    zone_low = min(entry_price, stop_loss, take_profit)
+    zone_high = max(entry_price, stop_loss, take_profit)
+    trigger_price = entry_price
+    invalidation_price = stop_loss
+    rejection_candle = {
+        "timestamp": int(latest_candle.get("timestamp") or scan_timestamp),
+        "open": _pick_first_float(latest_candle.get("open"), entry_price),
+        "high": _pick_first_float(latest_candle.get("high"), entry_price),
+        "low": _pick_first_float(latest_candle.get("low"), entry_price),
+        "close": _pick_first_float(latest_candle.get("close"), entry_price),
+        "volume": _pick_first_float(latest_candle.get("volume"), 0.0),
+    }
+    metadata = {
+        "source": "rl_model_first_scan",
+        "technical_zone": {
+            "source": "rl_model",
+            "zone_id": None,
+            "timestamp": rejection_candle["timestamp"],
+            "zone_low": zone_low,
+            "zone_high": zone_high,
+            "status": "MODEL_FIRST",
+        },
+        "rejection_candle": rejection_candle,
+        "context": {
+            "market_structure": str(
+                (model_input.market_state.get("market_context") or {}).get(
+                    "market_structure",
+                    "unknown",
+                )
+            ),
+            "model_first": True,
+        },
+        "model_decision": {
+            "action": decision.action,
+            "confidence": float(decision.confidence),
+            "reason_code": decision.reason_code,
+            "model_version": decision.model_version,
+            "metadata": decision_metadata,
+        },
+        "parameters": {
+            "confidence_threshold": float(confidence_threshold),
+            "scan_timestamp": int(scan_timestamp),
+        },
+    }
+    return DetectionResult(
+        detected=True,
+        symbol=symbol,
+        timeframe=timeframe,
+        side=side,
+        thesis_type=M2_020_2_SCAN_THESIS_TYPE,
+        zone_low=zone_low,
+        zone_high=zone_high,
+        trigger_price=trigger_price,
+        invalidation_price=invalidation_price,
+        metadata=metadata,
+        rule_id=M2_020_2_SCAN_RULE_ID,
+    )
 
 
 def _load_candles(conn: sqlite3.Connection, symbol: str, timeframe: str, limit: int) -> Any:
@@ -146,6 +413,10 @@ def run_scan(
     detected = 0
     persisted = 0
     items: list[dict[str, Any]] = []
+    model_first_symbols = {str(symbol).strip().upper() for symbol in M2_MODEL_FIRST_SCAN_SYMBOLS}
+    model_first_service = ModelInferenceService(
+        provider=TechnicalSignalInferenceProvider(model_first=True)
+    ) if model_first_symbols else None
 
     try:
         for symbol in symbols:
@@ -189,32 +460,81 @@ def run_scan(
                 limit=candles_limit,
             )
             smc = SmartMoneyConcepts.calculate_all_smc(candles_df)
-            detector_input = DetectorInput(
-                symbol=symbol,
-                timeframe=timeframe,
-                candles=candles_df.to_dict(orient="records"),
-                indicators=indicators,
-                smc=smc,
-                scan_timestamp=_utc_now_ms(),
-            )
-            result = detect_initial_short_failure(detector_input)
+            scan_timestamp = _utc_now_ms()
+
+            if symbol.upper() in model_first_symbols and model_first_service is not None:
+                confidence_threshold = _resolve_model_first_confidence_threshold(symbol)
+                result = _detect_model_first_opportunity(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    candles_df=candles_df,
+                    indicators=indicators,
+                    smc=smc,
+                    scan_timestamp=scan_timestamp,
+                    inference_service=model_first_service,
+                    confidence_threshold=confidence_threshold,
+                )
+                entry["model_first_confidence_threshold"] = confidence_threshold
+            else:
+                detector_input = DetectorInput(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    candles=candles_df.to_dict(orient="records"),
+                    indicators=indicators,
+                    smc=smc,
+                    scan_timestamp=scan_timestamp,
+                )
+                result = detect_initial_short_failure(detector_input)
+
             if result is None:
                 items.append(entry)
                 continue
 
             detected += 1
-            entry["status"] = "DETECTED"
+            is_model_first_result = str(result.rule_id) == M2_020_2_SCAN_RULE_ID
+            entry["status"] = "DETECTED_MODEL_FIRST" if is_model_first_result else "DETECTED"
             entry["thesis_type"] = result.thesis_type
+            entry["side"] = result.side
             entry["trigger_price"] = result.trigger_price
             entry["invalidation_price"] = result.invalidation_price
+            if is_model_first_result:
+                model_decision = dict(result.metadata.get("model_decision") or {})
+                entry["decision_source"] = "rl_model_first"
+                entry["decision_confidence"] = model_decision.get("confidence")
+                entry["decision_reason"] = model_decision.get("reason_code")
             if not dry_run:
                 save_result = repository.create_initial_thesis(result, now_ms=_utc_now_ms())
                 if save_result.created_now:
                     persisted += 1
-                    entry["status"] = "PERSISTED"
+                    entry["status"] = "PERSISTED_MODEL_FIRST" if is_model_first_result else "PERSISTED"
                 else:
-                    entry["status"] = "IDEMPOTENT_HIT"
+                    entry["status"] = "IDEMPOTENT_MODEL_FIRST" if is_model_first_result else "IDEMPOTENT_HIT"
                 entry["opportunity_id"] = save_result.opportunity_id
+
+                if is_model_first_result:
+                    monitoring_result = repository.transition_to_monitoring(
+                        opportunity_id=save_result.opportunity_id,
+                        now_ms=_utc_now_ms(),
+                        rule_id=M2_020_2_SCAN_RULE_ID,
+                    )
+                    validation_result = repository.transition_to_validated(
+                        opportunity_id=save_result.opportunity_id,
+                        now_ms=_utc_now_ms(),
+                        rule_id=M2_020_2_SCAN_RULE_ID,
+                        payload={
+                            "source": "rl_model_first_scan",
+                            "side": result.side,
+                            "confidence": (result.metadata.get("model_decision") or {}).get("confidence"),
+                        },
+                    )
+                    entry["monitoring_reason"] = monitoring_result.reason
+                    entry["validation_reason"] = validation_result.reason
+                    if validation_result.current_status == "VALIDADA":
+                        entry["status"] = (
+                            "PERSISTED_MODEL_FIRST_VALIDATED"
+                            if save_result.created_now
+                            else "IDEMPOTENT_MODEL_FIRST_VALIDATED"
+                        )
 
             items.append(entry)
     finally:

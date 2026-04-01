@@ -130,7 +130,13 @@ def _reward_label(
     return reward, label, "pnl_realized"
 
 
-def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dict[str, Any] | None:
+def _latest_candle(
+    conn: sqlite3.Connection,
+    symbol: str,
+    timeframe: str,
+    *,
+    fallback_conn: sqlite3.Connection | None = None,
+) -> dict[str, Any] | None:
     table = TIMEFRAME_TO_TABLE[timeframe]
     row = conn.execute(
         f"""
@@ -142,6 +148,20 @@ def _latest_candle(conn: sqlite3.Connection, symbol: str, timeframe: str) -> dic
         """,
         (symbol,),
     ).fetchone()
+    if row is None and fallback_conn is not None:
+        try:
+            row = fallback_conn.execute(
+                f"""
+                SELECT timestamp, open, high, low, close, volume
+                FROM {table}
+                WHERE symbol = ?
+                ORDER BY timestamp DESC
+                LIMIT 1
+                """,
+                (symbol,),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            row = None
     if row is None:
         return None
     return {
@@ -444,6 +464,14 @@ def flush_deferred_rewards(
                         f"SELECT close FROM {table_name} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
                         (symbol, event_ts),
                     ).fetchone()
+                    if base_row is None:
+                        try:
+                            base_row = m2_conn.execute(
+                                f"SELECT close FROM {table_name} WHERE symbol = ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                                (symbol, event_ts),
+                            ).fetchone()
+                        except sqlite3.OperationalError:
+                            base_row = None
                     close_t_raw = float(base_row[0]) if base_row else 0.0
                 else:
                     close_t_raw = 0.0
@@ -459,6 +487,16 @@ def flush_deferred_rewards(
                 f"SELECT close FROM {table} WHERE symbol = ? AND timestamp > ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
                 (symbol, event_ts, lookup_ms),
             ).fetchone()
+
+            if candle_row is None:
+                # Fallback fail-safe: ALGOUSDT pode existir apenas no DB canonico M2.
+                try:
+                    candle_row = m2_conn.execute(
+                        f"SELECT close FROM {table} WHERE symbol = ? AND timestamp > ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT 1",
+                        (symbol, event_ts, lookup_ms),
+                    ).fetchone()
+                except sqlite3.OperationalError:
+                    candle_row = None
 
             if candle_row is None:
                 pending += 1
@@ -738,7 +776,12 @@ def _persist_hold_decision_episodes(
         features: dict[str, Any] = {
             "close_t": close_price,
             "signal_side": signal_side,
-            "latest_candle": _latest_candle(src_conn, symbol=symbol, timeframe=timeframe),
+            "latest_candle": _latest_candle(
+                src_conn,
+                symbol=symbol,
+                timeframe=timeframe,
+                fallback_conn=m2_conn,
+            ),
         }
 
         m2_conn.execute(
@@ -851,7 +894,12 @@ def run_persist_training_episodes(
             payload = _safe_json_dict(row["payload_json"])
             signal_snapshot = payload.get("signal_snapshot") if isinstance(payload.get("signal_snapshot"), dict) else {}
             gate_payload = payload.get("gate") if isinstance(payload.get("gate"), dict) else {}
-            latest_candle = _latest_candle(source_conn, symbol=symbol, timeframe=timeframe)
+            latest_candle = _latest_candle(
+                source_conn,
+                symbol=symbol,
+                timeframe=timeframe,
+                fallback_conn=model2_conn,
+            )
 
             entry_price = float(row["entry_price"]) if row["entry_price"] is not None else None
             exit_price = float(row["exit_price"]) if row["exit_price"] is not None else None
@@ -981,7 +1029,12 @@ def run_persist_training_episodes(
                 "label": "context",
                 "reward_proxy": None,
                 "features": {
-                    "latest_candle": _latest_candle(source_conn, symbol=symbol, timeframe=timeframe),
+                    "latest_candle": _latest_candle(
+                        source_conn,
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        fallback_conn=model2_conn,
+                    ),
                     "opportunities_by_status": _counts_by_status(model2_conn, "opportunities", symbol, timeframe),
                     "technical_signals_by_status": _counts_by_status(model2_conn, "technical_signals", symbol, timeframe),
                     "signal_executions_by_status": _counts_by_status(model2_conn, "signal_executions", symbol, timeframe),
