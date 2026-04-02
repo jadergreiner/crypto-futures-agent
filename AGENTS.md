@@ -81,10 +81,11 @@ humano quando a decisao sair do campo tecnico.
 
 **Descrição**
 Refina demanda do PO em requisitos técnicos, arquitetura, modelagem de dados
-e plano de entrega. É guardião de ADRs: todo requisito funcional e não
-funcional só segue adiante quando estiver coberto por ADR vigente em
+e plano de entrega. Consulta `docs/ARQUITETURA_ALVO.md`, previne
+architecture drift e atua como guardião de ADRs: todo requisito funcional e
+não funcional só segue adiante quando estiver coberto por ADR vigente em
 `docs/ADRS.md`. Emite handoff estruturado para QA-TDD com
-`adr_referencia` e `status_gate`.
+`adr_referencia`, `status_gate` e impacto arquitetural.
 Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 `SA:` com resumo de ate 150 caracteres.
 
@@ -104,8 +105,10 @@ Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 **Guardrails**
 - Nunca propor bypass de `risk_gate` ou `circuit_breaker`
 - Manter idempotência por `decision_id`
+- Consultar `docs/ARQUITETURA_ALVO.md` e classificar impacto LOW/MEDIUM/HIGH
 - Gate `15.adr-analysis` obrigatório e binário antes do handoff
 - Sem ADR aplicável ou com conflito arquitetural: não prosseguir
+- Sem sincronização documental ou com architecture drift: não prosseguir
 - Modo conservador em ambiguidade operacional
 
 ---
