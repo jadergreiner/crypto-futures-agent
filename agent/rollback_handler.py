@@ -187,12 +187,20 @@ class RollbackHandler:
             logger.error(f"Falha ao disparar rollback: {e}")
             raise RuntimeError(f"Rollback dispatcher erro: {e}")
 
-    def fallback_to_heuristics(self) -> bool:
+    def fallback_to_heuristics(
+        self,
+        *,
+        reason: Optional[str] = None,
+        model_step: Optional[int] = None,
+        metrics_snapshot: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """
-        Alternaativa de chamada: ativa fallback direto.
+        Ativa fallback apenas com contexto explicito e auditavel.
 
         Returns:
-            True se heurísticas estão ativas
+            True se heurísticas já estavam ativas ou se rollback auditável
+            foi disparado com sucesso; False se a tentativa manual for
+            bloqueada por falta de contexto fail-safe.
         """
         if self.is_on_fallback:
             logger.info(
@@ -201,13 +209,18 @@ class RollbackHandler:
             )
             return True
 
-        # Ativar sem disparar via should_rollback
-        self.is_on_fallback = True
-        self.rollback_timestamp = datetime.utcnow().isoformat()
-        self._activate_heuristic_fallback()
+        if reason is None or model_step is None:
+            logger.warning(
+                "Fallback manual bloqueado: informe reason e model_step "
+                "para trilha auditavel de rollback."
+            )
+            return False
 
-        logger.warning("Fallback para heurísticas ativado (manual)")
-        return True
+        return self.trigger_rollback(
+            reason=reason,
+            model_step=model_step,
+            metrics_snapshot=metrics_snapshot,
+        )
 
     def get_rollback_status(self) -> Dict[str, Any]:
         """
@@ -288,16 +301,16 @@ class RollbackHandler:
             f"Anterior: {old_state}. Requer aprovação explícita de Angel."
         )
 
-    def get_rollback_log_summary(self) -> Dict[str, int]:
+    def get_rollback_log_summary(self) -> Dict[str, Any]:
         """
         Resume histórico de rollbacks na sessão.
 
         Returns:
-            Dict {total_rollbacks, última_ocorrência, motivos}
+            Dict com total, ultimo evento e breakdown por motivo.
         """
         rollback_files = list(self.rollback_log_dir.glob("rollback_*.json"))
 
-        summary = {
+        summary: Dict[str, Any] = {
             "total_rollbacks_logged": len(rollback_files),
             "last_rollback_time": None,
             "most_common_reason": None,
@@ -311,7 +324,7 @@ class RollbackHandler:
                 summary["last_rollback_time"] = latest.get("timestamp")
 
             # Contar razões
-            reasons = {}
+            reasons: Dict[str, int] = {}
             for rf in rollback_files:
                 try:
                     with open(rf, "r") as f:
@@ -322,7 +335,10 @@ class RollbackHandler:
                     pass
 
             if reasons:
-                summary["most_common_reason"] = max(reasons, key=reasons.get)
+                summary["most_common_reason"] = max(
+                    reasons,
+                    key=lambda reason_key: reasons[reason_key],
+                )
                 summary["reason_breakdown"] = reasons
 
         return summary

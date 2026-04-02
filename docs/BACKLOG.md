@@ -216,7 +216,9 @@ Dependências: BLID-067 (E.9 scripts prontos) ✅
 
 ### TAREFA M2-020.13 - Desativar estrategia legada
 
-Status: Em analise
+Status: CONCLUIDO
+
+Score PO: 4.05 (ValorReal=4, Valor=5, Urg=4, Risco=5, Esf=3)
 
 Entrega:
 
@@ -227,6 +229,60 @@ Critérios de aceite:
 
 1. Nao ha caminho estrategico antigo interferindo na decisao live.
 2. Regressao funcional ausente em testes relevantes.
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Valor direto: o operador passa a confiar que a decisao exibida veio do
+  modelo, sem contaminacao de estrategia legada ou fallback heuristico.
+- Evidencia atual: `status_operational_20260331.md` mostra
+  `Source: RL_MODEL`, mas o runtime ainda exibe `signal_side`,
+  `fallback_action` e logs de `execution.heuristic_signals`.
+- Meta de fechamento: `iniciar.bat` e artefatos mostram origem puramente
+  model-driven, sem mistura com caminho legado no fluxo nominal.
+
+PO: Desativar estrategia legada para remover fallback mascarado no ciclo
+M2. Ao fim deste desenvolvimento estarei feliz se o iniciar.bat exibir
+origem puramente model-driven, sem ambiguidade nem heuristica antiga.
+
+SA: Remover fallback heuristico do fluxo nominal com auditoria de origem,
+sem mudar schema; guardrails e decision_id preservados.
+
+QA: Suite RED criada em
+`tests/test_model2_m2_020_13_disable_legacy_strategy.py` com 12 testes
+(6 unitarios, 3 integracao, 3 regressao_risco). Resultado inicial:
+5 failed, 7 passed. Falhas cobrem perda de auditoria em
+`ModelInferenceService`, mascaramento de `source=RL_MODEL` no status e
+ativacao manual indevida de `fallback_to_heuristics`.
+
+SE: GREEN concluido em 2026-04-01. `core/model2/model_decision.py`
+e `core/model2/model_inference_service.py` agora preservam `origin`,
+`contaminated`, `decision_id`, `baseline_comparative` e
+`rl_fallback_reason` no contrato auditavel; o
+`operator_cycle_status.py` rebaixa `source` quando ha
+`action_source=signal_side` ou `rl_fallback=True`; e
+`agent/rollback_handler.py` bloqueia fallback manual sem contexto
+explicito de rollback. Evidencias: `pytest -q
+tests/test_model2_m2_020_13_disable_legacy_strategy.py` -> 12 passed;
+`pytest -q tests/` -> 361 passed; `mypy --strict
+core/model2/model_decision.py core/model2/model_inference_service.py
+scripts/model2/operator_cycle_status.py agent/rollback_handler.py
+tests/test_model2_m2_020_13_disable_legacy_strategy.py` -> Success;
+`pytest -q tests/test_docs_model2_sync.py` -> 13 passed.
+
+TL: APROVADO. Origem auditavel sem mascarar fallback; rollback
+nominal bloqueado; testes, regressao e mypy reproduzidos.
+
+DOC: Governanca documental concluida com alinhamento de
+`ARQUITETURA_ALVO.md`, `REGRAS_DE_NEGOCIO.md`, `BACKLOG.md` e
+`SYNCHRONIZATION.md` sobre origem nominal RL e rollback explicito
+[SYNC-322].
+
+PM: ACEITE em 2026-04-01. Valor PO ENTREGUE com `iniciar.bat`
+exibindo origem nominal puramente model-driven, sem heuristica antiga
+mascarada como decisao oficial; `source` e rebaixado quando ha
+contaminacao ou rollback explicito. Gate ADR:
+`APROVADO_POR_ADR` por aderencia a ADR-001, ADR-002, ADR-004,
+ADR-009 e ADR-025, sem conflito arquitetural e sem schema novo.
 
 ### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
 

@@ -664,3 +664,19 @@ ordens ou decisoes em execucao.
    operacional e exige bloqueio fail-safe imediato.
 5. Toda triagem ou escalada deve preservar rastreabilidade por
    `decision_id`, `reason_code` e modo operacional.
+
+### RN-043 - Isolamento do Fallback Heuristico Nominal (M2-020.13)
+
+A decisao oficial exibida ao operador deve permanecer model-driven e sem
+contaminacao do legado heuristico no fluxo nominal.
+
+1. `origin=RL_MODEL` so pode aparecer quando `action_source='rl_action'`
+   e `rl_fallback=False`.
+2. `signal_side` e `fallback_action` podem existir somente em auditoria ou
+   em `baseline_comparative`, nunca como decisao oficial do ciclo.
+3. `execution.heuristic_signals` so pode ser ativado por rollback
+   explicito, auditavel e fail-safe.
+4. Toda divergencia deve registrar `contaminated`, `decision_id` e
+   `rl_fallback_reason` no `payload_json` existente, sem schema novo.
+5. `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`
+   permanecem obrigatorios em qualquer fallback.

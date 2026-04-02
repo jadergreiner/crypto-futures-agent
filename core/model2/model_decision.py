@@ -159,6 +159,21 @@ def parse_model_decision_payload(
                 "OPEN_SHORT exige tp < sl",
             )
 
+    metadata = dict(payload.get("metadata", {}))
+    for key in (
+        "origin",
+        "contaminated",
+        "decision_id",
+        "baseline_comparative",
+        "fail_safe",
+        "audit_trail",
+        "rl_fallback_reason",
+        "action_source",
+        "rl_fallback",
+    ):
+        if key in payload:
+            metadata[key] = payload[key]
+
     return ModelDecision(
         action=action,
         confidence=confidence,
@@ -169,7 +184,7 @@ def parse_model_decision_payload(
         decision_timestamp=model_input.decision_timestamp,
         symbol=model_input.symbol,
         model_version=model_input.model_version,
-        metadata=dict(payload.get("metadata", {})),
+        metadata=metadata,
     )
 
 
@@ -195,14 +210,29 @@ def evaluate_model_decision_payload(
             },
         )
 
+    detail_payload: dict[str, Any] = {
+        "action": decision.action,
+        "symbol": decision.symbol,
+        "model_version": decision.model_version,
+    }
+    for key in (
+        "origin",
+        "contaminated",
+        "decision_id",
+        "baseline_comparative",
+        "fail_safe",
+        "audit_trail",
+        "rl_fallback_reason",
+        "action_source",
+        "rl_fallback",
+    ):
+        if key in decision.metadata:
+            detail_payload[key] = decision.metadata[key]
+
     return ModelDecisionOutcome(
         allow_execution=True,
         decision=decision,
         reason="decision_payload_valid",
         rule_id=M2_020_1_RULE_ID,
-        details={
-            "action": decision.action,
-            "symbol": decision.symbol,
-            "model_version": decision.model_version,
-        },
+        details=detail_payload,
     )

@@ -289,7 +289,7 @@ def _resolve_decision_status_source(
     input_json: dict[str, Any],
     output_json: dict[str, Any],
 ) -> str:
-    """Deriva a origem observavel da decisao sem confundir fallbacks."""
+    """Deriva a origem observavel sem mascarar fallback como RL_MODEL."""
     source_paths = (
         ("source",),
         ("origin",),
@@ -300,22 +300,57 @@ def _resolve_decision_status_source(
         ("decision", "metadata", "source"),
         ("decision", "metadata", "origin"),
     )
-    for container in (output_json, input_json):
-        for path in source_paths:
-            normalized = _normalize_status_source(_extract_nested_value(container, path))
-            if normalized is not None:
-                return normalized
-
+    action_source_paths = (
+        ("action_source",),
+        ("metadata", "action_source"),
+        ("decision", "action_source"),
+        ("decision", "metadata", "action_source"),
+    )
     fallback_paths = (
         ("rl_fallback",),
         ("metadata", "rl_fallback"),
         ("decision", "rl_fallback"),
         ("decision", "metadata", "rl_fallback"),
     )
+    contaminated_paths = (
+        ("contaminated",),
+        ("metadata", "contaminated"),
+        ("decision", "contaminated"),
+        ("decision", "metadata", "contaminated"),
+    )
+
+    explicit_source: str | None = None
+    for container in (output_json, input_json):
+        for path in source_paths:
+            normalized = _normalize_status_source(
+                _extract_nested_value(container, path)
+            )
+            if normalized is None:
+                continue
+            if normalized != "RL_MODEL":
+                return normalized
+            if explicit_source is None:
+                explicit_source = normalized
+
+    for container in (output_json, input_json):
+        for path in action_source_paths:
+            raw_action_source = _extract_nested_value(container, path)
+            normalized_action_source = str(raw_action_source or "").strip().lower()
+            if normalized_action_source and normalized_action_source != "rl_action":
+                return "FALLBACK_MODELO_RL"
+
     for container in (output_json, input_json):
         for path in fallback_paths:
             if _extract_nested_value(container, path) is True:
                 return "FALLBACK_MODELO_RL"
+
+    for container in (output_json, input_json):
+        for path in contaminated_paths:
+            if _extract_nested_value(container, path) is True:
+                return "FALLBACK_MODELO_RL"
+
+    if explicit_source is not None:
+        return explicit_source
 
     fallback_reasons = {
         "INFERENCE_UNAVAILABLE",

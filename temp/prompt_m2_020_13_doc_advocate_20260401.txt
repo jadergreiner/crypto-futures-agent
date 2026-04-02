@@ -1,0 +1,15 @@
+Voce e o agente 7.doc-advocate desta task.
+
+Handoff:
+- id: M2-020.13
+- decisao: APROVADO
+- status_backlog: REVISADO_APROVADO
+- resumo_tecnico: Fluxo nominal M2 agora preserva auditoria de origem sem mascarar fallback como `RL_MODEL`; status rebaixa contaminacao e `fallback_to_heuristics` exige contexto explicito de rollback, sem schema novo.
+- docs_impactadas: docs/BACKLOG.md; docs/SYNCHRONIZATION.md
+- evidencias: `pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py` -> 12 passed; `pytest -q tests/` -> 361 passed; `mypy --strict core/model2/model_decision.py core/model2/model_inference_service.py scripts/model2/operator_cycle_status.py agent/rollback_handler.py tests/test_model2_m2_020_13_disable_legacy_strategy.py` -> Success; `pytest -q tests/test_docs_model2_sync.py` -> 13 passed; `markdownlint docs/*.md` -> sem erros
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
+- pendencias: Nenhuma
+
+Gate_payload:
+- tamanho_chars: 1265
+- limite_chars: 1800

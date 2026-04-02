@@ -536,6 +536,9 @@ class TechnicalSignalInferenceProvider:
                 risk_state=dict(raw.get("risk_state") or {}),
             )
 
+        if model_input is None:
+            raise ValueError("model_input ou signal sao obrigatorios")
+
         signal_side = str(model_input.market_state.get("signal_side") or "").upper()
         symbol = str(model_input.symbol).upper()
         fallback_action = self._resolve_action_from_signal_side(signal_side)
@@ -552,6 +555,8 @@ class TechnicalSignalInferenceProvider:
             features=features,
             signal_side=signal_side,
         )
+        loader_is_fallback = bool(getattr(loader, "is_fallback", False))
+        loader_fallback_reason = str(getattr(loader, "fallback_reason", ""))
 
         if self._model_first:
             action = self._resolve_action_from_rl_action(rl_action)
@@ -566,18 +571,13 @@ class TechnicalSignalInferenceProvider:
             test_action_source = "rl_action" if test_action_source == "rl_model" else test_action_source
             action_source = test_action_source
 
-        # Se teste injetou rl_fallback, substituir loader por um mock
+        # Se teste injetou rl_fallback, sobrescrever apenas o estado auditavel
         if test_rl_fallback is not None:
-            class _MockLoader:
-                def __init__(self, fallback_status):
-                    self.is_fallback = bool(fallback_status)
-                    self.fallback_reason = "test_injection"
-                def predict_confidence(self, *, features, signal_side):
-                    return loader.predict_confidence(features=features, signal_side=signal_side)
-            loader = _MockLoader(test_rl_fallback)
+            loader_is_fallback = bool(test_rl_fallback)
+            loader_fallback_reason = "test_injection"
 
         # Auditoria de origem da decisão
-        is_rl_model_origin = action_source == "rl_action" and not loader.is_fallback
+        is_rl_model_origin = action_source == "rl_action" and not loader_is_fallback
         origin = "RL_MODEL" if is_rl_model_origin else "FALLBACK"
         contaminated = not is_rl_model_origin
         fail_safe = not test_model_available  # Test injeção: True quando modelo indisponível
@@ -663,8 +663,8 @@ class TechnicalSignalInferenceProvider:
                 "rl_action": str(rl_action),
                 "rl_confidence": float(rl_confidence),
                 "protection_sizing_source": protection_sizing_source,
-                "rl_fallback": bool(loader.is_fallback),
-                "rl_fallback_reason": loader.fallback_reason,
+                "rl_fallback": loader_is_fallback,
+                "rl_fallback_reason": loader_fallback_reason,
             },
         }
 

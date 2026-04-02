@@ -94,6 +94,10 @@ Implementacao de RL por simbolo (Iniciativa M2-019):
    `train_entry_agents` -> `entry_rl_filter` -> `order_layer`
 6. `entry_rl_filter` aplica threshold, fallback e cancelamento auditavel
    antes de liberar sinal para execucao
+7. No fluxo nominal, `origin=RL_MODEL` so e valido quando
+   `action_source='rl_action'` e `rl_fallback=False`.
+8. `signal_side`, `fallback_action` e `execution.heuristic_signals`
+   ficam restritos a auditoria ou rollback fail-safe explicito.
 
 Entradas:
 

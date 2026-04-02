@@ -23,6 +23,160 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-323] M2-020.13 Fechamento Project Manager - 2026-04-01
+
+- Agente: 8.project-manager
+- Item: M2-020.13
+- Decisao final: ACEITE
+- Status backlog: CONCLUIDO
+- Gate ADR: APROVADO_POR_ADR
+- ADRs validadas:
+  - ADR-001 - Arquitetura model-driven
+  - ADR-002 - Safety envelope inviolavel
+  - ADR-004 - Idempotencia de execucao
+  - ADR-009 - Auditabilidade ponta a ponta
+  - ADR-025 - RL Decision per Symbol (M2-019)
+- Valor entregue ao PO:
+  - `iniciar.bat` passa a expor origem nominal puramente model-driven;
+  - `source` contaminado nao e promovido como `RL_MODEL`;
+  - fallback heuristico fica restrito a rollback explicito e auditavel.
+- Evidencias reproduzidas no gate final:
+  - `pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> 12 passed
+  - `pytest -q tests/` -> 361 passed
+  - `mypy --strict core/model2/model_decision.py
+    core/model2/model_inference_service.py
+    scripts/model2/operator_cycle_status.py agent/rollback_handler.py
+    tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+
+### [SYNC-322] M2-020.13 Governanca Doc Advocate - 2026-04-01
+
+- Agente: 7.doc-advocate
+- Item: M2-020.13
+- Status backlog: REVISADO_APROVADO
+- Docs revisadas/atualizadas:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/BACKLOG.md`
+  - `docs/SYNCHRONIZATION.md`
+- Consolidacao aplicada:
+  - fluxo nominal documentado como `RL_MODEL` apenas quando
+    `action_source='rl_action'` e `rl_fallback=False`;
+  - legado heuristico mantido apenas em auditoria ou rollback
+    explicito e fail-safe;
+  - valor prometido pelo PO fica rastreavel entre backlog, regras e
+    arquitetura alvo.
+- Validacao documental:
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+
+### [SYNC-321] M2-020.13 Aprovacao Tech Lead - 2026-04-01
+
+- Agente: 6.tech-lead
+- Item: M2-020.13
+- Status backlog: REVISADO_APROVADO
+- Decisao: APROVADO
+- Verificacao reproduzida localmente:
+  - `pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> 12 passed
+  - `pytest -q tests/` -> 361 passed
+  - `mypy --strict core/model2/model_decision.py
+    core/model2/model_inference_service.py
+    scripts/model2/operator_cycle_status.py agent/rollback_handler.py
+    tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+- Parecer: origem nominal model-driven validada, fallback heuristico
+  agora exige contexto explicito de rollback e guardrails permanecem
+  ativos sem mudanca de schema.
+
+### [SYNC-320] M2-020.13 Implementacao Software Engineer - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-020.13
+- Status backlog: IMPLEMENTADO
+- Codigo ajustado:
+  - `core/model2/model_decision.py` e
+    `core/model2/model_inference_service.py` preservam `origin`,
+    `contaminated`, `decision_id`, `baseline_comparative` e
+    `rl_fallback_reason` no payload validado e auditavel;
+  - `scripts/model2/operator_cycle_status.py` rebaixa `source` para
+    fallback quando `action_source != rl_action`, `rl_fallback=True`
+    ou ha contaminacao explicita;
+  - `agent/rollback_handler.py` passa a permitir fallback heuristico
+    apenas com contexto explicito e auditavel de rollback.
+- Guardrails preservados: `risk_gate`, `circuit_breaker`, fail-safe e
+  idempotencia por `decision_id` sem mudanca de schema.
+- Evidencias verificadas:
+  - `pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> 12 passed
+  - `pytest -q tests/` -> 361 passed
+  - `mypy --strict core/model2/model_decision.py
+    core/model2/model_inference_service.py
+    scripts/model2/operator_cycle_status.py agent/rollback_handler.py
+    tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+    -> Success
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+
+### [SYNC-319] M2-020.13 Suite RED QA-TDD - 2026-04-01
+
+- Agente: 4.qa-tdd
+- Item: M2-020.13
+- Status backlog: TESTES_PRONTOS
+- Arquivo de teste:
+  `tests/test_model2_m2_020_13_disable_legacy_strategy.py`
+- Resultado RED: 5 failed, 7 passed
+- Cobertura criada:
+  - RF-001/002: contrato de `origin` e `contaminated` no provider;
+  - RF-003/004: auditoria persistivel em `ModelInferenceService` sem
+    schema novo;
+  - RF-005/006: status operacional nao mascara fallback como
+    `source=RL_MODEL` nem promove decisao legada;
+  - RNF-001/002/003: fallback heuristico apenas em rollback fail-safe,
+    com trilha auditavel e `decision_id` estavel.
+- Falhas confirmadas:
+  - `ModelInferenceService` ainda perde `origin`, `contaminated`,
+    `decision_id` e `baseline_comparative` no resultado validado;
+  - `operator_cycle_status` ainda exibe `source=RL_MODEL` quando o
+    payload traz `action_source=signal_side` ou `rl_fallback=True`;
+  - `fallback_to_heuristics()` ainda ativa heuristica manual sem
+    contexto explicito de rollback auditavel.
+
+### [SYNC-318] M2-020.13 Refinamento tecnico Solution Architect - 2026-04-01
+
+- Agente: 3.solution-architect
+- Item: M2-020.13
+- Status backlog: Em analise
+- Gate ADR (15.adr-analysis): APROVADO_POR_ADR
+- ADRs aplicaveis: ADR-001, ADR-002, ADR-004, ADR-009, ADR-025
+- Escopo refinado para QA-TDD:
+  - remover acoplamento legado de `signal_side` e `fallback_action` do
+    caminho nominal de decisao;
+  - manter observabilidade de origem, `contaminated` e comparativo
+    baseline sem mascarar fallback;
+  - preservar fail-safe, `risk_gate`, `circuit_breaker` e idempotencia.
+- Restricoes mantidas: sem mudanca de schema e sem bypass de guardrails.
+
+### [SYNC-317] M2-020.13 Priorizacao Product Owner - 2026-04-01
+
+- Agente: 2.product-owner
+- Item: M2-020.13
+- Status backlog: Em analise
+- Decisao PO: GO_COM_RESTRICOES
+- Valor em `iniciar.bat`:
+  - Mudanca perceptivel esperada: decisao exibida ao operador sem
+    contaminacao de estrategia legada ou fallback heuristico mascarado.
+  - Evidencia atual: `status_operational_20260331.md` mostra
+    `Source: RL_MODEL`, mas artefatos ainda carregam `signal_side`,
+    `fallback_action` e logs de `execution.heuristic_signals`.
+  - Lacuna: ainda falta evidenciar no fluxo nominal a remocao completa
+    do caminho legado e do fallback antigo.
+
 ### [SYNC-316] M2-022.6 Fechamento Project Manager - 2026-04-01
 
 - Agente: 8.project-manager

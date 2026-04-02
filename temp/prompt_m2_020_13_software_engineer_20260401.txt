@@ -1,0 +1,182 @@
+PROMPT PARA SOFTWARE ENGINEER — M2-020.13
+
+1) Contexto da Task
+
+ID: M2-020.13
+Objetivo: eliminar contaminacao de fallback heuristico no fluxo nominal
+M2 e provar no iniciar.bat que a decisao exibida veio do modelo, sem
+ambiguidade operacional.
+
+Escopo in:
+- core/model2/model_inference_service.py
+- scripts/model2/operator_cycle_status.py
+- agent/rollback_handler.py
+
+Escopo out:
+- sem mudanca de schema
+- sem bypass de risk_gate / circuit_breaker
+- sem refatoracao ampla fora do contrato da task
+
+Arquivos alterados na fase QA-TDD:
+- tests/test_model2_m2_020_13_disable_legacy_strategy.py
+- docs/BACKLOG.md
+- docs/SYNCHRONIZATION.md
+
+Evidencia de testes executados e resultado:
+- python -m pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py
+  -> 5 failed, 7 passed in 29.37s (RED confirmado)
+- mypy --strict tests/test_model2_m2_020_13_disable_legacy_strategy.py
+  -> Success: no issues found in 1 source file
+- python -m pytest -q tests/test_docs_model2_sync.py; markdownlint docs/*.md
+  -> 13 passed in 14.85s
+
+Falhas RED ja comprovadas:
+1. ModelInferenceService perde origin, contaminated, decision_id e
+   baseline_comparative no resultado validado.
+2. operator_cycle_status ainda exibe source=RL_MODEL quando o payload
+   traz action_source=signal_side ou rl_fallback=True.
+3. RollbackHandler.fallback_to_heuristics() ainda ativa heuristica
+   manual sem contexto explicito de rollback auditavel.
+
+Resumo de risco de regressao:
+- Baixo a moderado, porque o ajuste e localizado em auditoria,
+  normalizacao de source/status e gate de fallback.
+- Risco principal: mascarar fallback como RL_MODEL ou perder
+  observabilidade no payload_json.
+- Nao pode regredir: decision_id, fail-safe, risk_gate,
+  circuit_breaker, rastreabilidade do ciclo.
+
+2) Suite Completa de Testes
+
+Arquivo: tests/test_model2_m2_020_13_disable_legacy_strategy.py
+
+3) Requisitos a Implementar
+
+RF-001 — contrato de origem no provider
+- origin=RL_MODEL somente quando:
+  - action_source == 'rl_action'
+  - rl_fallback == False
+- Qualquer outro caso:
+  - origin=FALLBACK
+  - contaminated=True
+
+RF-002 — legado fora da decisao oficial
+- signal_side e fallback_action nao podem ser tratados como decisao
+  oficial no fluxo nominal.
+- Eles podem existir apenas em auditoria e/ou baseline_comparative.
+
+RF-003 — auditoria persistivel sem schema novo
+Preservar em payload_json/resultado validado:
+- decision_id
+- origin
+- contaminated
+- baseline_comparative
+- rl_fallback_reason
+
+RF-004 — status operacional fiel
+No scripts/model2/operator_cycle_status.py:
+- se action_source=signal_side, o source do status nao pode sair como
+  RL_MODEL
+- se rl_fallback=True, o source do status nao pode sair como RL_MODEL
+
+RF-005 — fallback heuristico so em rollback explicito
+No agent/rollback_handler.py:
+- execution.heuristic_signals so pode ser ativado em rollback fail-safe
+  explicito e auditavel
+- o caminho nominal nao pode acionar heuristica manualmente
+
+RF-006 — invariantes preservados
+- risk_gate continua ATIVO
+- circuit_breaker continua ATIVO
+- decision_id continua IDEMPOTENTE
+- sem mudanca de schema
+
+Mapeamento testes -> requisitos
+- test_provider_marca_rl_model_apenas_quando_acao_veio_do_modelo
+  -> RF-001
+- test_provider_marca_fallback_quando_signal_side_vira_fonte_oficial
+  -> RF-001 / RF-002
+- test_provider_marca_fallback_quando_loader_esta_em_rl_fallback
+  -> RF-001 / RF-003
+- test_provider_mantem_baseline_comparative_apenas_como_auditoria
+  -> RF-002 / RF-003
+- test_model_inference_service_preserva_campos_auditaveis_no_metadata
+  -> RF-003
+- test_model_inference_service_expoe_auditoria_nos_details_sem_schema_novo
+  -> RF-003
+- test_status_operacional_rebaixa_source_quando_action_source_e_signal_side
+  -> RF-004
+- test_status_operacional_rebaixa_source_quando_rl_fallback_esta_ativo
+  -> RF-004
+- test_status_operacional_nao_expoe_signal_side_nem_fallback_action_no_resumo
+  -> RF-002 / RF-004
+- test_trigger_rollback_gera_trilha_auditavel_com_contexto_explicito
+  -> RF-005 / RF-006
+- test_fallback_to_heuristics_sem_contexto_explicito_nao_ativa_fluxo_nominal
+  -> RF-005
+- test_decision_id_permanece_estavel_em_fail_safe_auditavel
+  -> RF-006
+
+4) Guardrails & Invariantes
+- Nunca desabilitar risk/risk_gate.py
+- Nunca desabilitar risk/circuit_breaker.py
+- Preservar decision_id em todos os caminhos de decisao/fail-safe
+- Sem schema novo em model_decisions, technical_signals ou signal_executions
+- Em ambiguidade operacional, comportamento fail-safe
+- Nao resolver a task apagando auditoria; o correto e reclassificar/orientar
+  a origem e manter rastreabilidade
+
+5) Plano Green-Refactor
+1. Corrigir a persistencia/auditoria da inferencia
+   - revisar ModelInferenceService.infer() e/ou
+     evaluate_model_decision_payload()
+   - garantir que origin, contaminated, decision_id,
+     baseline_comparative e rl_fallback_reason sobrevivam ao payload
+     validado e fiquem acessiveis para persistencia em payload_json
+   - manter compatibilidade com o contrato atual e sem schema novo
+
+2. Corrigir a resolucao de source no status
+   - endurecer _resolve_decision_status_source() para rebaixar a
+     origem quando houver:
+     - action_source=signal_side
+     - rl_fallback=True
+   - evitar que origin/source=RL_MODEL mascarado passe na frente de
+     sinais de contaminacao
+
+3. Bloquear heuristica manual no caminho nominal
+   - ajustar RollbackHandler.fallback_to_heuristics() para nao ativar
+     fallback sem contexto explicito e auditavel de rollback
+   - manter trigger_rollback() como caminho oficial de ativacao
+   - se necessario, retornar False quando nao houver reason/step
+     valido ou exigir estado previo coerente
+
+4. Refactor minimo
+   - manter mudanca localizada
+   - sem alterar comportamento de risco fora do escopo
+   - sem tocar em treino/docs alem do necessario para a task
+
+Objetivo do GREEN: zerar as 5 falhas mantendo os 7 testes que ja passam.
+
+6) Checklist de Aceite
+- [ ] tests/test_model2_m2_020_13_disable_legacy_strategy.py fica verde
+- [ ] origin=RL_MODEL so aparece quando a decisao veio de rl_action e
+      sem rl_fallback
+- [ ] ModelInferenceService preserva os campos de auditoria sem schema novo
+- [ ] operator_cycle_status nao mascara fallback como RL_MODEL
+- [ ] fallback_to_heuristics() nao ativa heuristica fora de rollback
+      explicito e auditavel
+- [ ] risk_gate, circuit_breaker e decision_id permanecem preservados
+- [ ] sem regressao funcional nas suites relevantes
+- [ ] atualizar docs/BACKLOG.md de TESTES_PRONTOS para
+      EM_DESENVOLVIMENTO ao iniciar e IMPLEMENTADO ao concluir
+- [ ] registrar a implementacao em docs/SYNCHRONIZATION.md com novo [SYNC]
+
+7) Comandos de Validacao
+
+pytest -q tests/test_model2_m2_020_13_disable_legacy_strategy.py
+pytest -q tests/
+mypy --strict core/model2/model_inference_service.py \
+  scripts/model2/operator_cycle_status.py \
+  agent/rollback_handler.py
+python -m pytest -q tests/test_docs_model2_sync.py
+markdownlint docs/*.md
