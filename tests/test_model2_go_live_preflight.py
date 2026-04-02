@@ -503,6 +503,124 @@ def test_preflight_modo_live_nao_exige_testnet_credentials() -> None:
     assert result["details"]["reason"] == "not_paper_mode"
 
 
+def test_preflight_modo_paper_aceita_execution_mode_canonico_sem_rewrite_para_shadow(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=paper\n"
+        "M2_EXECUTION_MODE=paper\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "BINANCE_API_KEY=test_key\n"
+        "BINANCE_API_SECRET=test_secret\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check4 = next(item for item in summary["checks"] if item["id"] == "4")
+    assert check4["status"] == "ok"
+    assert check4["evidence"]["M2_EXECUTION_MODE"] == "paper"
+
+
+def test_preflight_modo_live_aceita_execution_mode_canonico_com_subset_explicito(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=live\n"
+        "M2_EXECUTION_MODE=live\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check4 = next(item for item in summary["checks"] if item["id"] == "4")
+    assert check4["status"] == "ok"
+    assert check4["evidence"]["M2_EXECUTION_MODE"] == "live"
+
+
+def test_preflight_modo_paper_bloqueia_contexto_sem_credencial_adequada(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=paper\n"
+        "M2_EXECUTION_MODE=paper\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "BINANCE_API_KEY=live_key\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check6 = next(item for item in summary["checks"] if item["id"] == "6")
+    creds = check6["evidence"]["testnet_credentials"]
+    assert check6["status"] == "alert"
+    assert creds["reason"] == "paper_missing_credentials"
+
+
 def test_check3_alert_when_required_migration_missing(tmp_path: Path) -> None:
     db_path = tmp_path / "db" / "modelo2.db"
     _create_min_live_schema(db_path)

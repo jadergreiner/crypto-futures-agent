@@ -1,0 +1,603 @@
+## Prompt para `5.software-engineer` — M2-022.3
+
+### 1) Contexto da Task
+
+- **id:** `M2-022.3`
+- **objetivo:** isolar o risco por contexto operacional e bloquear
+  combinacoes inseguras entre `shadow`, `paper` e `live` antes de
+  qualquer ordem
+- **escopo_in:** gate de admissao em `core/model2/live_execution.py`;
+  normalizacao de contexto em `core/model2/live_service.py`; validacao
+  preflight em `scripts/model2/go_live_preflight.py`
+- **escopo_out:** schema novo; bypass de `risk_gate` /
+  `circuit_breaker`; mudanca ampla da arquitetura M2
+- **impacto_arquitetural:** `MEDIUM`
+
+### Arquivos QA ja alterados
+
+- `tests/test_model2_risk_isolation.py` ✅ novo
+- `tests/test_model2_go_live_preflight.py` ✅ novos casos RED
+- `tests/test_model2_m2_028_9_coverage_targets.py` ✅ ajuste de
+  compatibilidade (`paper` -> `sandbox`)
+- `docs/BACKLOG.md` ✅ status `TESTES_PRONTOS`
+- `docs/SYNCHRONIZATION.md` ✅ trilha `[SYNC-328]`
+
+### Evidencia RED ja verificada
+
+1. `pytest -q tests/test_model2_risk_isolation.py`
+   - **resultado:** `3 failed, 9 passed in 4.14s`
+   - **falhas esperadas:**
+     - `test_gate_accepts_paper_as_canonical_execution_mode_with_audit_fields`
+     - `test_gate_blocks_wallet_daily_limit_per_execution_mode`
+     - `test_live_service_snapshot_guardrail_state_exposes_context_envelope`
+
+2. `pytest -q tests/test_model2_go_live_preflight.py -k "paper or shadow or live"`
+   - **resultado:** `3 failed, 23 passed in 21.96s`
+   - **falhas esperadas:**
+     - `test_preflight_modo_paper_aceita_execution_mode_canonico_sem_rewrite_para_shadow`
+     - `test_preflight_modo_live_aceita_execution_mode_canonico_com_subset_explicito`
+     - `test_preflight_modo_paper_bloqueia_contexto_sem_credencial_adequada`
+
+3. `pytest -q tests/test_model2_m2_028_9_coverage_targets.py`
+   - **resultado:** `25 passed in 3.16s`
+
+4. `markdownlint docs/BACKLOG.md docs/SYNCHRONIZATION.md`
+   - **resultado:** sem saida / sem erro
+
+### Resumo de risco de regressao
+
+- **Alto:** ampliar o contrato do gate em `live_execution.py` sem quebrar
+  `shadow/live`
+- **Medio:** parar de forcar `M2_EXECUTION_MODE=shadow` no preflight sem
+  abrir brecha permissiva
+- **Baixo:** ajuste documental e compatibilidade de testes
+
+---
+
+### 2) ADR de Referencia
+
+- **status_gate:** `APROVADO_POR_ADR`
+- **adr_referencia:** `ADR-002`; `ADR-004`; `ADR-007`; `ADR-009`
+
+### Mapeamento ADR -> decisao tecnica
+
+- **ADR-002 — Safety envelope inviolavel**
+  - `risk_gate` e `circuit_breaker` devem continuar ativos
+  - em duvida operacional: **bloquear**
+- **ADR-004 — Idempotencia de execucao**
+  - preservar `decision_id`
+  - nao duplicar efeito entre contextos
+- **ADR-007 — Promocao para live por evidencia**
+  - `paper` e `live` precisam de contrato explicito e preflight seguro
+- **ADR-009 — Auditabilidade ponta a ponta**
+  - todo bloqueio deve manter `reason_code`, `severity`,
+    `recommended_action`, `decision_id`
+
+---
+
+### 3) Suite Completa de Testes
+
+#### 3.1 `tests/test_model2_risk_isolation.py`
+
+```python
+"""Suite RED — M2-022.3: isolamento de risco por contexto operacional.
+
+Rastreabilidade RF/RNF -> ADR -> testes:
+- RF-001 -> modos canonicos `shadow`, `paper`, `live` com fail-safe auditavel
+- RF-002 -> bloqueio de contexto inconsistente entre credenciais e modo
+- RF-003 -> envelope de risco diferenciado por contexto operacional
+- RF-004 -> separacao de limites por simbolo/carteira com escopo por modo
+- RF-005 -> trilha auditavel com `decision_id`, `reason_code`, `severity`
+- RNF-001 -> sem bypass de `risk_gate` ou `circuit_breaker`
+- RNF-002 -> sem alteracao de schema
+
+ADRs: ADR-002, ADR-004, ADR-007, ADR-009.
+"""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+from typing import Any
+
+from core.model2.live_execution import LiveExecutionGateInput, evaluate_live_execution_gate
+from core.model2.live_service import Model2LiveExecutionService
+from core.model2.shadow_load_validation import validate_risk_context_isolation
+from risk.circuit_breaker import CircuitBreaker
+from risk.risk_gate import RiskGate
+from scripts.model2.go_live_preflight import _check_guardrails_functional
+
+
+def _base_gate_input(**overrides: object) -> LiveExecutionGateInput:
+    base = LiveExecutionGateInput(
+        technical_signal_id=10,
+        opportunity_id=20,
+        symbol="BTCUSDT",
+        timeframe="M5",
+        signal_side="SHORT",
+        technical_signal_status="CONSUMED",
+        signal_timestamp=1_700_000_000_000,
+        short_only=False,
+        funding_rate=-0.0001,
+        basis_value=0.001,
+        funding_rate_max_for_short=0.0005,
+        execution_mode="live",
+        live_symbols=("BTCUSDT",),
+        authorized_symbols=("BTCUSDT",),
+        available_balance_usd=150.0,
+        max_margin_per_position_usd=15.0,
+        recent_entries_today=0,
+        max_daily_entries=3,
+        symbol_active_execution_count=0,
+        open_position_qty=0.0,
+        open_position_side="",
+        cooldown_active=False,
+        signal_age_ms=30_000,
+        max_signal_age_ms=240_000,
+        risk_gate_status="ativo",
+        risk_gate_allows_order=True,
+        risk_gate_drawdown_pct=0.0,
+        circuit_breaker_state="normal",
+        circuit_breaker_allows_trading=True,
+        circuit_breaker_drawdown_pct=0.0,
+        decision_id=101,
+        execution_id=202,
+    )
+    return LiveExecutionGateInput(**{**base.__dict__, **overrides})
+
+
+def _service_for_mode(execution_mode: str) -> Model2LiveExecutionService:
+    service = Model2LiveExecutionService.__new__(Model2LiveExecutionService)
+    service.config = SimpleNamespace(
+        execution_mode=execution_mode,
+        live_symbols=("BTCUSDT",),
+        authorized_symbols=("BTCUSDT",),
+        short_only=False,
+        max_daily_entries=3,
+        max_margin_per_position_usd=15.0,
+        max_signal_age_ms=240_000,
+        symbol_cooldown_ms=120_000,
+        funding_rate_max_for_short=0.0005,
+    )
+    service.exchange = None
+    service.repository = SimpleNamespace(
+        count_live_entries_today=lambda **kwargs: 2 if kwargs["execution_mode"] == "paper" else 0,
+        count_active_live_executions_for_symbol=(
+            lambda **kwargs: 1 if kwargs["execution_mode"] == "paper" else 0
+        ),
+        has_recent_live_entry_for_symbol=lambda **kwargs: False,
+        get_latest_funding_rate=lambda **kwargs: None,
+        get_latest_basis_value=lambda **kwargs: None,
+    )
+    service._risk_gate = RiskGate()
+    service._circuit_breaker = CircuitBreaker()
+    service._guardrail_balance_initialized = False
+    service._fetch_available_balance_with_retry = lambda exchange: None
+    service._read_market_state_with_retry = lambda **kwargs: {"symbol": kwargs["symbol"]}
+    service._extract_funding_and_basis = (
+        lambda candidate, market_state=None: (None, None)
+    )
+    return service
+
+
+def _candidate() -> dict[str, Any]:
+    return {
+        "id": 10,
+        "opportunity_id": 20,
+        "symbol": "BTCUSDT",
+        "timeframe": "M5",
+        "signal_side": "SHORT",
+        "status": "CONSUMED",
+        "signal_timestamp": 1_700_000_000_000,
+        "decision_id": 101,
+        "payload_json": "{}",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Unitarios (6)
+# ---------------------------------------------------------------------------
+
+
+def test_gate_accepts_paper_as_canonical_execution_mode_with_audit_fields() -> None:
+    """RF-001: `paper` deve ser canônico, auditável e sem cair em shadow."""
+    decision = evaluate_live_execution_gate(
+        _base_gate_input(
+            execution_mode="paper",
+            available_balance_usd=None,
+        )
+    )
+
+    assert decision.allow_execution is True
+    assert decision.reason == "ready_for_live_execution"
+    assert decision.details["execution_mode"] == "paper"
+    assert decision.details["decision_id"] == 101
+    assert decision.details["execution_id"] == 202
+
+
+def test_gate_blocks_invalid_execution_mode_with_fail_safe_audit_fields() -> None:
+    """RF-001: modo fora do contrato deve bloquear com trilha auditavel."""
+    decision = evaluate_live_execution_gate(
+        _base_gate_input(execution_mode="sandbox")
+    )
+
+    assert decision.allow_execution is False
+    assert decision.reason == "unsupported_execution_mode"
+    assert decision.details["reason_code"] == "unsupported_execution_mode"
+    assert decision.details["severity"] in {"HIGH", "CRITICAL"}
+    assert decision.details["recommended_action"] == "bloquear_operacao"
+
+
+def test_validate_risk_context_isolation_blocks_shadow_with_live_credentials() -> None:
+    """RF-002: shadow nao pode compartilhar credenciais/contexto live."""
+    result = validate_risk_context_isolation(
+        execution_mode="shadow",
+        has_live_api_key=True,
+        has_paper_api_key=False,
+    )
+
+    assert result["allowed"] is False
+    assert result["reason_code"] == "risk_context_isolation_blocked"
+
+
+def test_validate_risk_context_isolation_blocks_paper_without_paper_credentials() -> None:
+    """RF-002: paper deve bloquear quando só existir contexto de live."""
+    result = validate_risk_context_isolation(
+        execution_mode="paper",
+        has_live_api_key=True,
+        has_paper_api_key=False,
+    )
+
+    assert result["allowed"] is False
+    assert result["reason_code"] == "paper_missing_credentials"
+
+
+def test_build_config_preserves_paper_without_shadow_fallback() -> None:
+    """RF-003: build_config deve manter `paper` explícito no contrato."""
+    config = Model2LiveExecutionService.build_config(
+        execution_mode="paper",
+        live_symbols=("btcusdt",),
+        short_only=False,
+        max_daily_entries=3,
+        max_margin_per_position_usd=15.0,
+        max_signal_age_ms=240_000,
+        symbol_cooldown_ms=120_000,
+        funding_rate_max_for_short=0.0005,
+    )
+
+    assert config.execution_mode == "paper"
+    assert config.live_symbols == ("BTCUSDT",)
+    assert config.authorized_symbols == ("BTCUSDT",)
+
+
+def test_gate_blocks_wallet_daily_limit_per_execution_mode() -> None:
+    """RF-004: limite diario por carteira/modo deve bloquear antes da ordem."""
+    decision = evaluate_live_execution_gate(
+        _base_gate_input(
+            execution_mode="paper",
+            available_balance_usd=None,
+            recent_entries_today=3,
+            max_daily_entries=3,
+        )
+    )
+
+    assert decision.allow_execution is False
+    assert decision.reason == "daily_entry_limit_reached"
+    assert decision.details["recent_entries_today"] == 3
+    assert decision.details["max_daily_entries"] == 3
+    assert decision.details["execution_mode"] == "paper"
+
+
+# ---------------------------------------------------------------------------
+# Integracao (3)
+# ---------------------------------------------------------------------------
+
+
+def test_live_service_build_gate_input_preserves_paper_scoping() -> None:
+    """INT-001: `live_service` deve manter contagem e modo em escopo `paper`."""
+    service = _service_for_mode("paper")
+
+    gate_input = service._build_gate_input(_candidate(), now_ms=1_700_000_060_000)
+
+    assert gate_input.execution_mode == "paper"
+    assert gate_input.recent_entries_today == 2
+    assert gate_input.symbol_active_execution_count == 1
+
+
+def test_live_service_snapshot_guardrail_state_exposes_context_envelope() -> None:
+    """INT-002: snapshot deve diferenciar `shadow`, `paper` e `live`."""
+    shadow_service = _service_for_mode("shadow")
+    paper_service = _service_for_mode("paper")
+    live_service = _service_for_mode("live")
+
+    shadow_state = shadow_service._snapshot_guardrail_state(None)
+    paper_state = paper_service._snapshot_guardrail_state(None)
+    live_state = live_service._snapshot_guardrail_state(250.0)
+
+    assert shadow_state["context_envelope"] == "shadow_no_real_order"
+    assert paper_state["context_envelope"] == "paper_testnet_validated"
+    assert live_state["context_envelope"] == "live_full_guardrails"
+
+
+def test_live_service_snapshot_guardrail_state_live_without_balance_is_fail_safe() -> None:
+    """INT-003: live sem saldo deve continuar conservador e bloquear a ordem."""
+    service = _service_for_mode("live")
+
+    state = service._snapshot_guardrail_state(None)
+
+    assert state["risk_gate_status"] == "unavailable"
+    assert state["risk_gate_allows_order"] is False
+    assert state["circuit_breaker_allows_trading"] is False
+
+
+# ---------------------------------------------------------------------------
+# Regressao / risco (3)
+# ---------------------------------------------------------------------------
+
+
+def test_preflight_guardrails_functional_keeps_risk_gate_and_circuit_breaker_active() -> None:
+    """RR-001: preflight deve continuar provando que os guardrails estão ativos."""
+    result = _check_guardrails_functional()
+
+    assert result["ok"] is True
+    assert result["details"]["risk_gate"]["instantiated"] is True
+    assert result["details"]["circuit_breaker"]["instantiated"] is True
+
+
+def test_blocked_gate_decision_keeps_decision_execution_and_audit_fields() -> None:
+    """RR-002: qualquer bloqueio deve preservar correlacao e severidade."""
+    decision = evaluate_live_execution_gate(
+        _base_gate_input(execution_mode="invalido")
+    )
+
+    assert decision.details["reason_code"] == "unsupported_execution_mode"
+    assert "severity" in decision.details
+    assert "recommended_action" in decision.details
+
+
+def test_validate_risk_context_isolation_allows_live_when_context_matches() -> None:
+    """RR-003: live continua permitido quando o contexto operacional é coerente."""
+    result = validate_risk_context_isolation(
+        execution_mode="live",
+        has_live_api_key=True,
+        has_paper_api_key=False,
+    )
+
+    assert result["allowed"] is True
+    assert result["reason_code"] == "ok"
+```
+
+#### 3.2 Adicoes em `tests/test_model2_go_live_preflight.py`
+
+```python
+def test_preflight_modo_paper_aceita_execution_mode_canonico_sem_rewrite_para_shadow(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=paper\n"
+        "M2_EXECUTION_MODE=paper\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "BINANCE_API_KEY=test_key\n"
+        "BINANCE_API_SECRET=test_secret\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check4 = next(item for item in summary["checks"] if item["id"] == "4")
+    assert check4["status"] == "ok"
+    assert check4["evidence"]["M2_EXECUTION_MODE"] == "paper"
+
+
+def test_preflight_modo_live_aceita_execution_mode_canonico_com_subset_explicito(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=live\n"
+        "M2_EXECUTION_MODE=live\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check4 = next(item for item in summary["checks"] if item["id"] == "4")
+    assert check4["status"] == "ok"
+    assert check4["evidence"]["M2_EXECUTION_MODE"] == "live"
+
+
+def test_preflight_modo_paper_bloqueia_contexto_sem_credencial_adequada(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "db" / "modelo2.db"
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "TRADING_MODE=paper\n"
+        "M2_EXECUTION_MODE=paper\n"
+        "M2_LIVE_SYMBOLS=BTCUSDT\n"
+        "BINANCE_API_KEY=live_key\n"
+        "M2_MAX_DAILY_ENTRIES=10\n"
+        "M2_MAX_MARGIN_PER_POSITION_USD=1.0\n"
+        "M2_MAX_SIGNAL_AGE_MINUTES=240\n"
+        "M2_SYMBOL_COOLDOWN_MINUTES=240\n"
+        "M2_CANARY_LEVERAGE=5\n"
+        "M2_FUNDING_RATE_MAX_FOR_SHORT=0.0005\n",
+        encoding="utf-8",
+    )
+
+    summary = run_go_live_preflight(
+        model2_db_path=db_path,
+        output_dir=tmp_path / "results",
+        env_file=env_file,
+        apply_fixes=False,
+        continue_on_error=True,
+        live_symbols=("BTCUSDT",),
+        db_write_probe=lambda _: None,
+        migrate_fn=_stub_migrate,
+        live_execute_fn=_stub_execute,
+        live_reconcile_fn=_stub_reconcile,
+        live_dashboard_fn=_stub_dashboard,
+        live_healthcheck_fn=_stub_healthcheck,
+    )
+
+    check6 = next(item for item in summary["checks"] if item["id"] == "6")
+    creds = check6["evidence"]["testnet_credentials"]
+    assert check6["status"] == "alert"
+    assert creds["reason"] == "paper_missing_credentials"
+```
+
+#### 3.3 Ajuste de compatibilidade em
+`tests/test_model2_m2_028_9_coverage_targets.py`
+
+```python
+def test_live_gate_rejeita_execution_mode_nao_suportado() -> None:
+    decision = evaluate_live_execution_gate(_live_gate_input(execution_mode="sandbox"))
+
+    assert decision.allow_execution is False
+    assert decision.reason == "unsupported_execution_mode"
+```
+
+---
+
+### 4) Requisitos a Implementar
+
+| Teste / bloco | Requisito | ADR | Arquivo-alvo |
+|---|---|---:|---|
+| `test_gate_accepts_paper_as_canonical_execution_mode_with_audit_fields` | aceitar `paper` como modo canônico | ADR-002, ADR-009 | `core/model2/live_execution.py` |
+| `test_gate_blocks_wallet_daily_limit_per_execution_mode` | reintroduzir bloqueio por limite diário por **carteira/mode** sem confundir com limite por símbolo | ADR-002, ADR-007 | `core/model2/live_execution.py` |
+| `test_live_service_snapshot_guardrail_state_exposes_context_envelope` | explicitar envelope por contexto (`shadow`, `paper`, `live`) | ADR-002, ADR-009 | `core/model2/live_service.py` |
+| `test_preflight_modo_paper_aceita_execution_mode_canonico_sem_rewrite_para_shadow` | parar de forçar `shadow`; aceitar `paper` | ADR-007 | `scripts/model2/go_live_preflight.py` |
+| `test_preflight_modo_live_aceita_execution_mode_canonico_com_subset_explicito` | aceitar `live` como contrato canônico quando explicitado | ADR-007 | `scripts/model2/go_live_preflight.py` |
+| `test_preflight_modo_paper_bloqueia_contexto_sem_credencial_adequada` | reason code explícito para inconsistência de credenciais/contexto | ADR-002, ADR-009 | `scripts/model2/go_live_preflight.py` + `core/model2/shadow_load_validation.py` |
+
+### Implementacao esperada
+
+1. Em `core/model2/live_execution.py`
+   - aceitar `execution_mode in {"shadow", "paper", "live"}`
+   - manter bloqueio fail-safe para qualquer outro valor
+   - adicionar bloqueio por limite diario por carteira/mode
+   - preservar `decision_id`, `execution_id`, `reason_code`, `severity`,
+     `recommended_action`
+
+2. Em `core/model2/live_service.py`
+   - **nao colapsar** `paper` em `shadow`
+   - normalizar contexto para `shadow|paper|live`
+   - enriquecer `_snapshot_guardrail_state()` com algo como
+     `context_envelope`
+   - manter `risk_gate` e `circuit_breaker` ativos em todos os caminhos
+
+3. Em `scripts/model2/go_live_preflight.py`
+   - trocar a regra de “`M2_EXECUTION_MODE=shadow` obrigatório” por
+     contrato canônico `shadow|paper|live`
+   - diferenciar validações para `paper` vs `live`
+   - bloquear inconsistência de credenciais com `reason_code` explícito
+     (`paper_missing_credentials` ou equivalente canônico)
+   - continuar fail-safe
+
+4. Em `config/settings.py`
+   - só ajustar se necessário para suportar separação explícita de contexto
+     sem quebrar compatibilidade retroativa
+
+---
+
+### 5) Guardrails & Invariantes
+
+- **NUNCA** desabilitar `risk/risk_gate.py`
+- **NUNCA** desabilitar `risk/circuit_breaker.py`
+- preservar `decision_id` como correlação idempotente
+- **sem alteração de schema**
+- **sem bypass permissivo**
+- em ambiguidade: **bloquear**
+- manter logs/comentários em **pt-BR**
+- não romper compatibilidade de `shadow` e `live` já existentes
+
+---
+
+### 6) Plano Green-Refactor
+
+#### Green mínimo
+
+1. Fazer `evaluate_live_execution_gate()` aceitar `paper`
+2. Introduzir regra explícita para limite diário por carteira/mode
+3. Enriquecer `_snapshot_guardrail_state()` com envelope contextual
+4. Ajustar `run_go_live_preflight()` para aceitar
+   `M2_EXECUTION_MODE in {"shadow", "paper", "live"}`
+
+#### Refactor seguro
+
+1. centralizar normalização do modo em helper único
+2. evitar strings mágicas repetidas
+3. manter `reason_code` canônico e auditável
+4. revisar se `paper` está sendo tratado como `shadow` em qualquer outro
+   ponto de `live_service.py`
+
+---
+
+### 7) Checklist de Aceite
+
+- [ ] `pytest -q tests/test_model2_risk_isolation.py` verde
+- [ ] `pytest -q tests/test_model2_go_live_preflight.py -k "paper or shadow or live"` verde
+- [ ] `pytest -q tests/test_model2_m2_028_9_coverage_targets.py` continua verde
+- [ ] `mypy --strict core/model2/live_execution.py core/model2/live_service.py scripts/model2/go_live_preflight.py` verde
+- [ ] `paper` deixa de cair em `unsupported_execution_mode`
+- [ ] `shadow` e `paper` bloqueiam contexto live inconsistente antes de qualquer ordem
+- [ ] envelope por contexto fica explícito e auditável
+- [ ] guardrails de risco permanecem ativos
+
+---
+
+### 8) Comandos de Validação
+
+```bash
+pytest -q tests/test_model2_risk_isolation.py
+pytest -q tests/test_model2_go_live_preflight.py -k "paper or shadow or live"
+pytest -q tests/test_model2_m2_028_9_coverage_targets.py
+mypy --strict core/model2/live_execution.py core/model2/live_service.py scripts/model2/go_live_preflight.py
+```
+
+> Entregáveis esperados na sua devolutiva:
+>
+> 1. **Lista de arquivos alterados**
+> 2. **Resumo curto de risco de regressão**
+> 3. **Evidência objetiva dos comandos executados e respectivos resultados**

@@ -196,13 +196,33 @@ Aliases em `risk/states.py`: `NORMAL = CLOSED`, `TRANCADO = OPEN`.
 Toda transicao gera `CircuitBreakerTransition` (frozen dataclass) com
 `from_state`, `to_state`, `reason`, `timestamp_utc`.
 
-## 9) Referencias canonicas
+## 9) M2-020.14 - Leitura do fluxo nominal em `iniciar.bat`
+
+```mermaid
+flowchart LR
+  A[iniciar.bat] --> B[Estado consolidado]
+  B --> C[Decisao direta do modelo]
+  C --> D[source=RL_MODEL]
+  D --> E[risk_gate + circuit_breaker]
+  E -->|ok| F[Execucao e reconciliacao]
+  E -->|bloqueio| G[reason_code auditavel]
+  F --> H[decision_id persistido]
+  G --> H
+```
+
+Contrato de leitura:
+
+1. Este diagrama representa a origem nominal puramente model-driven.
+2. O legado heuristico so aparece em rollback explicito ou auditoria.
+3. `decision_id` e `reason_code` permanecem obrigatorios.
+
+## 10) Referencias canonicas
 
 1. `docs/ARQUITETURA_ALVO.md`
 2. `docs/REGRAS_DE_NEGOCIO.md`
 3. `docs/MODELAGEM_DE_DADOS.md`
 
-## 10) Controles de resiliencia contratuais (PKG-PO10-0326)
+## 11) Controles de resiliencia contratuais (PKG-PO10-0326)
 
 ```mermaid
 flowchart TD
@@ -218,7 +238,7 @@ flowchart TD
   H --> I[Fail-safe sem bypass de guardrails]
 ```
 
-## 11) Governanca documental do pacote M2-025 (M2-025.15)
+## 12) Governanca documental do pacote M2-025 (M2-025.15)
 
 Fechamento auditavel da trilha documental sem mudanca de runtime.
 

@@ -55,6 +55,7 @@ from .live_execution import (
     SIGNAL_EXECUTION_STATUS_PROTECTED,
     SIGNAL_EXECUTION_STATUS_READY,
     evaluate_live_execution_gate,
+    normalize_execution_mode,
 )
 from .model_decision import (
     ACTION_CLOSE,
@@ -697,7 +698,7 @@ class Model2LiveExecutionService:
                 }
 
             # Montar report
-            execution_mode = "live" if self.config.execution_mode == "live" else "shadow"
+            execution_mode = normalize_execution_mode(self.config.execution_mode)
 
             report = SymbolReport(
                 symbol=symbol,
@@ -873,11 +874,21 @@ class Model2LiveExecutionService:
         leverage: int | None = None,
         authorized_symbols: tuple[str, ...] | None = None,
     ) -> LiveExecutionConfig:
-        normalized_live_symbols = tuple(symbol.upper() for symbol in live_symbols)
+        normalized_execution_mode = normalize_execution_mode(execution_mode)
+        normalized_live_symbols = tuple(
+            dict.fromkeys(symbol.upper() for symbol in live_symbols if str(symbol).strip())
+        )
+        normalized_authorized_symbols = tuple(
+            dict.fromkeys(
+                symbol.upper()
+                for symbol in (authorized_symbols or normalized_live_symbols)
+                if str(symbol).strip()
+            )
+        )
         return LiveExecutionConfig(
-            execution_mode=str(execution_mode).strip().lower(),
+            execution_mode=normalized_execution_mode,
             live_symbols=normalized_live_symbols,
-            authorized_symbols=authorized_symbols or normalized_live_symbols,
+            authorized_symbols=normalized_authorized_symbols,
             short_only=bool(short_only),
             max_daily_entries=int(max_daily_entries),
             max_margin_per_position_usd=float(max_margin_per_position_usd),
@@ -1145,7 +1156,14 @@ class Model2LiveExecutionService:
         return payload
 
     def _snapshot_guardrail_state(self, available_balance: float | None) -> dict[str, Any]:
-        if self.config.execution_mode != "live":
+        execution_mode = normalize_execution_mode(self.config.execution_mode)
+        context_envelope = {
+            "shadow": "shadow_no_real_order",
+            "paper": "paper_testnet_validated",
+            "live": "live_full_guardrails",
+        }.get(execution_mode, "shadow_no_real_order")
+
+        if execution_mode != "live":
             return {
                 "risk_gate_status": RiskGateStatus.ACTIVE.value,
                 "risk_gate_allows_order": True,
@@ -1153,6 +1171,7 @@ class Model2LiveExecutionService:
                 "circuit_breaker_state": CircuitBreakerState.NORMAL.value,
                 "circuit_breaker_allows_trading": True,
                 "circuit_breaker_drawdown_pct": 0.0,
+                "context_envelope": context_envelope,
             }
 
         if available_balance is None:
@@ -1163,6 +1182,7 @@ class Model2LiveExecutionService:
                 "circuit_breaker_state": "unavailable",
                 "circuit_breaker_allows_trading": False,
                 "circuit_breaker_drawdown_pct": None,
+                "context_envelope": context_envelope,
             }
 
         normalized_balance = float(available_balance)
@@ -1189,6 +1209,7 @@ class Model2LiveExecutionService:
                     circuit_breaker_status.get("trading_allowed", self._circuit_breaker.can_trade())
                 ),
                 "circuit_breaker_drawdown_pct": self._to_float(circuit_breaker_status.get("drawdown_pct")),
+                "context_envelope": context_envelope,
             }
         except AttributeError as exc:
             logging.getLogger(__name__).error(
@@ -1203,6 +1224,7 @@ class Model2LiveExecutionService:
                 "circuit_breaker_state": "unavailable",
                 "circuit_breaker_allows_trading": False,
                 "circuit_breaker_drawdown_pct": None,
+                "context_envelope": context_envelope,
             }
 
     def _check_model_degradation(self, execution: dict[str, Any]) -> dict[str, Any]:

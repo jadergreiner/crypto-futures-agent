@@ -24,6 +24,24 @@ Comando de preflight:
 python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
 ```
 
+## M2-022.3 - Contrato operacional por contexto
+
+Ao trocar o contexto via `iniciar.bat`, tratar `M2_EXECUTION_MODE` como
+contrato canonico `shadow|paper|live`.
+
+1. `shadow`: sem ordem real, sem promover credencial live e com
+   `context_envelope=shadow_no_real_order`.
+2. `paper`: exige runtime explicito (`TRADING_MODE=paper` e
+   `M2_EXECUTION_MODE=paper`), credencial coerente e
+   `context_envelope=paper_testnet_validated`.
+3. `live`: exige guardrails completos, saldo valido e
+   `context_envelope=live_full_guardrails`.
+4. Qualquer modo fora do contrato, credencial inconsistente ou limite
+   diario estourado deve bloquear antes da ordem com `reason_code`
+   auditavel.
+5. `decision_id` e `execution_id` sao a correlacao canonica do bloqueio
+   ou da execucao no fluxo M2-022.3.
+
 ## Fluxo operacional
 
 1. Construir estado de mercado.
@@ -32,6 +50,22 @@ python scripts/model2/go_live_preflight.py --live-symbol BTCUSDT
 4. Executar acao permitida.
 5. Reconciliar estado com exchange.
 6. Persistir decisao, eventos e episodio.
+
+## M2-020.14 - Leitura operacional no `iniciar.bat`
+
+Ao observar o status operacional do `iniciar.bat`, usar a leitura abaixo
+como contrato oficial do fluxo nominal:
+
+1. `source=RL_MODEL` indica decisao direta do modelo aprovada pelo
+   envelope de seguranca.
+2. `decision_id` e o identificador canonico para cruzar decisao,
+   execucao, reconciliacao e episodios.
+3. `reason_code` explica bloqueios, degradacao ou retorno fail-safe.
+4. `signal_side`, `fallback_action` ou legado heuristico so podem
+   aparecer como auditoria ou rollback explicito, nunca como origem
+   oficial da decisao.
+5. Esse e o contrato de origem nominal puramente model-driven da
+   M2-020.14.
 
 ## Bootstrap historico ALGOUSDT
 

@@ -23,6 +23,197 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-332] M2-022.3 Fechamento Project Manager - 2026-04-02
+
+- Agente: 8.project-manager
+- Item: M2-022.3
+- Decisao final: ACEITE
+- Status backlog final: CONCLUIDO
+- Valor validado: troca segura entre `shadow`, `paper` e `live` no
+  `iniciar.bat`, com bloqueio fail-safe e limite correto por contexto.
+- Evidencias revalidadas no fechamento:
+  - `pytest -q tests/test_model2_risk_isolation.py`
+    -> 12 passed in 5.03s
+  - `pytest -q tests/test_model2_go_live_preflight.py -k
+    "paper or shadow or live"` -> 26 passed in 23.85s
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed in 11.06s
+  - `pytest -q tests/` -> 364 passed in 136.13s
+- Proxima acao: commit/push final para `main` e inicio do proximo item.
+
+### [SYNC-331] M2-022.3 Governanca Doc Advocate - 2026-04-02
+
+- Agente: 7.doc-advocate
+- Item: M2-022.3
+- Status backlog: REVISADO_APROVADO
+- Docs revisadas/atualizadas:
+  - `docs/BACKLOG.md`
+  - `docs/RUNBOOK_M2_OPERACAO.md`
+  - `docs/SYNCHRONIZATION.md`
+- Consolidacao aplicada:
+  - backlog recebeu `DOC:` confirmando a sincronizacao final do contrato
+    `shadow|paper|live`;
+  - o runbook passou a explicitar `M2_EXECUTION_MODE`,
+    `context_envelope` e bloqueios fail-safe por contexto;
+  - a trilha auditavel para `decision_id` e `execution_id` ficou pronta
+    para aceite do Project Manager.
+- Validacao documental:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+- Validacao de valor:
+  - `ENTREGUE`: o operador agora troca `shadow`, `paper` e `live`
+    com bloqueio fail-safe antes da ordem e limite diario por
+    `execution_mode`.
+- Proximo handoff: `8.project-manager`
+
+### [SYNC-330] M2-022.3 Aprovacao Tech Lead - 2026-04-02
+
+- Agente: 6.tech-lead
+- Item: M2-022.3
+- Status backlog: REVISADO_APROVADO
+- Decisao: APROVADO
+- Evidencias reproduzidas localmente:
+  - `pytest -q tests/test_model2_risk_isolation.py`
+    -> 12 passed in 5.68s
+  - `pytest -q tests/test_model2_go_live_preflight.py -k
+    "paper or shadow or live"` -> 26 passed in 24.72s
+  - `mypy --strict core/model2/live_execution.py
+    core/model2/live_service.py scripts/model2/go_live_preflight.py`
+    -> Success: no issues found in 3 source files
+  - `pytest -q tests/` -> 364 passed in 128.62s
+- Guardrails validados: `risk_gate`, `circuit_breaker` e `decision_id`
+  permanecem ativos; contrato `shadow|paper|live` segue fail-safe.
+- Proximo handoff: `7.doc-advocate` revisar `docs/BACKLOG.md` e
+  `docs/SYNCHRONIZATION.md`, avaliando reforco operacional no runbook.
+
+### [SYNC-329] M2-022.3 Implementacao Software Engineer - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-022.3
+- Status backlog: IMPLEMENTADO
+- Codigo ajustado:
+  - `core/model2/live_execution.py` agora aceita `shadow|paper|live`,
+    restaura o bloqueio por limite diario por `execution_mode` e
+    preserva a trilha auditavel com `decision_id` e `execution_id`.
+  - `core/model2/live_service.py` deixa de colapsar `paper` em
+    `shadow` no contexto operacional e explicita `context_envelope`.
+  - `scripts/model2/go_live_preflight.py` valida o contrato canônico,
+    mantem autofix fail-safe para `shadow` sem runtime explicito e
+    bloqueia credenciais inconsistentes em `paper`.
+- Guardrails preservados: `risk_gate`, `circuit_breaker`, fail-safe e
+  idempotencia por `decision_id`, sem mudanca de schema.
+- Evidencias verificadas:
+  - `pytest -q tests/test_model2_risk_isolation.py` -> 12 passed
+  - `pytest -q tests/test_model2_go_live_preflight.py -k
+    "paper or shadow or live"` -> 26 passed
+  - `pytest -q tests/test_model2_m2_028_9_coverage_targets.py`
+    -> 25 passed
+  - `mypy --strict core/model2/live_execution.py
+    core/model2/live_service.py scripts/model2/go_live_preflight.py`
+    -> Success
+  - `pytest -q tests/` -> 364 passed
+
+### [SYNC-328] M2-022.3 Suite RED QA-TDD - 2026-04-01
+
+- Agente: 4.qa-tdd
+- Item: M2-022.3
+- Status backlog: TESTES_PRONTOS
+- Suite criada:
+  - `tests/test_model2_risk_isolation.py`
+  - reforco em `tests/test_model2_go_live_preflight.py`
+- Cobertura dos requisitos:
+  - modo canonico `shadow|paper|live` no gate de admissao;
+  - isolamento de credenciais/contexto com fail-safe auditavel;
+  - diferenciacao do envelope de risco e limites por `execution_mode`.
+- Evidencias RED verificadas:
+  - `pytest -q tests/test_model2_risk_isolation.py` -> 3 failed, 9 passed
+  - `pytest -q tests/test_model2_go_live_preflight.py -k
+    "paper or shadow or live"` -> 3 failed, 23 passed
+- Falhas esperadas nesta fase:
+  - `live_execution.py` ainda reduz o contrato a `shadow|live`;
+  - `go_live_preflight.py` ainda exige `M2_EXECUTION_MODE=shadow`;
+  - `live_service.py` ainda nao explicita envelope dedicado para `paper`.
+
+### [SYNC-327] M2-022.3 Refinamento tecnico Solution Architect - 2026-04-01
+
+- Agente: 3.solution-architect
+- Item: M2-022.3
+- Status backlog: Em analise
+- Gate ADR (15.adr-analysis): APROVADO_POR_ADR
+- ADRs aplicaveis: ADR-002, ADR-004, ADR-007, ADR-009
+- Direcao arquitetural:
+  - contrato canonico unico para `shadow`, `paper` e `live`;
+  - segregacao explicita entre credenciais, limite por simbolo e carteira;
+  - bloqueio fail-safe para contexto inconsistente, sem mudanca de schema.
+- Evidencia tecnica base:
+  - `model_state_builder.py` aceita `paper|shadow|live`;
+  - `live_execution.py` ainda reduz o gate a `shadow|live`;
+  - `shadow_load_validation.py` ja prova o bloqueio de chaves live em
+    `shadow`.
+
+### [SYNC-326] M2-022.3 Priorizacao Product Owner - 2026-04-01
+
+- Agente: 2.product-owner
+- Item: M2-022.3
+- Status backlog: Em analise
+- Decisao PO: GO_COM_RESTRICOES
+- Valor em `iniciar.bat`:
+  - Mudanca perceptivel esperada: troca segura entre `shadow`, `paper`
+    e `live`, com limite correto por contexto antes de qualquer ordem.
+  - Evidencia atual: `iniciar.bat` exibe `Modo: !M2_MODE!`; o
+    `logs/agent.log` registra `STARTING OPERATION - MODE: LIVE` e
+    bloqueios do `Risk Gate`.
+  - Lacuna: ainda nao ha prova de isolamento explicito por
+    simbolo/carteira nem bloqueio dedicado para contexto inconsistente.
+
+### [SYNC-325] M2-020.14 Consolidacao documental implementada - 2026-04-01
+
+- Agente: 5.software-engineer
+- Item: M2-020.14
+- Status backlog: IMPLEMENTADO
+- Docs revisadas/atualizadas:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/ADRS.md`
+  - `docs/DIAGRAMAS.md`
+  - `docs/MODELAGEM_DE_DADOS.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/RUNBOOK_M2_OPERACAO.md`
+  - `docs/PRD.md`
+- Consolidacao aplicada:
+  - fluxo nominal reforcado como decisao direta do modelo;
+  - `source=RL_MODEL` mantido apenas para origem nominal puramente
+    model-driven;
+  - legado heuristico restrito a rollback explicito, auditoria e
+    diagnostico;
+  - sem mudanca de schema, runtime ou bypass de `risk_gate` /
+    `circuit_breaker`.
+- Evidencias verificadas:
+  - `pytest -q tests/test_docs_m2_020_14_new_architecture_consolidation.py`
+    -> 9 passed
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+  - `markdownlint docs/*.md` -> sem erros
+
+### [SYNC-324] M2-020.14 Refinamento do escopo documental - 2026-04-01
+
+- Agente: 3.solution-architect
+- Item: M2-020.14
+- Status backlog: Em analise
+- Escopo documental ampliado:
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/ADRS.md`
+  - `docs/DIAGRAMAS.md`
+  - `docs/MODELAGEM_DE_DADOS.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/RUNBOOK_M2_OPERACAO.md`
+  - `docs/PRD.md`
+- Trilha TDD documental iniciada:
+  - suite RED criada em
+    `tests/test_docs_m2_020_14_new_architecture_consolidation.py`
+  - foco em consistencia model-driven, observabilidade operacional e
+    ausencia de drift entre fontes de verdade.
+- Validacao inicial:
+  - `pytest -q tests/test_docs_m2_020_14_new_architecture_consolidation.py`
+    -> 6 failed, 2 passed (RED esperado)
+
 ### [SYNC-323] M2-020.13 Fechamento Project Manager - 2026-04-01
 
 - Agente: 8.project-manager

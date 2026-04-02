@@ -127,3 +127,27 @@ Guardrails:
 1. `risk_gate` permanece ativo em todos os fluxos.
 2. `circuit_breaker` permanece ativo em todos os fluxos.
 3. `decision_id` permanece como invariante idempotente e auditavel.
+
+## ADR-041 - Consolidacao documental da nova arquitetura (M2-020.14)
+
+**Status:** ACEITO
+
+Decisao:
+
+1. Formalizar que a leitura oficial do fluxo nominal em `iniciar.bat`
+   deve refletir origem nominal puramente model-driven.
+2. `source=RL_MODEL` representa apenas decisao direta do modelo quando
+   nao houver contaminacao por `signal_side`, `fallback_action` ou
+   rollback heuristico.
+3. O legado heuristico fica restrito a rollback explicito, auditoria ou
+   diagnostico; nunca ao caminho nominal.
+4. O escopo documental sincronizado inclui `docs/ARQUITETURA_ALVO.md`,
+   `docs/ADRS.md`, `docs/DIAGRAMAS.md`, `docs/MODELAGEM_DE_DADOS.md`,
+   `docs/REGRAS_DE_NEGOCIO.md`, `docs/RUNBOOK_M2_OPERACAO.md` e
+   `docs/PRD.md`.
+
+Guardrails:
+
+1. `risk_gate` e `circuit_breaker` permanecem ativos.
+2. `decision_id` segue como correlacao idempotente obrigatoria.
+3. Esta task nao cria schema novo nem altera logica de runtime.

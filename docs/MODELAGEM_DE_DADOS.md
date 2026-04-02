@@ -207,6 +207,23 @@ Indice:
 4. JSON valido em todos os campos `*_json`.
 5. Nenhum segredo em payload persistido.
 
+## M2-020.14 - Contrato documental de origem model-driven
+
+A M2-020.14 nao altera schema, mas consolida o significado operacional
+dos campos ja existentes.
+
+Campos e uso canonico:
+
+1. `model_decisions.input_json` e `output_json` preservam `origin`,
+   `contaminated`, `decision_id`, `model_version` e `reason_code`.
+2. `signal_executions.payload_json` reflete `source=RL_MODEL` somente
+   quando o fluxo nominal estiver em origem puramente model-driven.
+3. `signal_execution_events.payload_json` registra severidade e acao
+   recomendada para triagem do operador.
+4. `iniciar.bat` deve ler esses mesmos contratos sem reinterpretacao
+   heuristica.
+5. Nao ha criacao de novas tabelas, colunas, indices ou migracoes.
+
 ## PKG-PO10-0326 - Impacto de dados
 
 1. Sem criacao de novas tabelas ou colunas.

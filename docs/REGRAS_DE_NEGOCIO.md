@@ -24,6 +24,21 @@ Nao existe regra estrategica externa para definir direcao de trade.
 Toda intencao de entrada, reducao, saida ou espera deve vir da inferencia do
 modelo.
 
+### RN-029 - Decisao oficial exibida ao operador (M2-020.14)
+
+A decisao oficial exibida ao operador no fluxo model-driven deve manter
+coerencia com a arquitetura vigente e com o que aparece em `iniciar.bat`.
+
+1. `source=RL_MODEL` so pode representar a decisao direta do modelo no
+   fluxo nominal.
+2. Se houver `signal_side`, `fallback_action` ou rollback heuristico,
+   a leitura deve ser rebaixada para auditoria ou fallback e nunca
+   promovida como decisao oficial.
+3. `risk_gate` e `circuit_breaker` permanecem ativos antes de qualquer
+   execucao.
+4. `decision_id` e `reason_code` devem permanecer visiveis para
+   observabilidade e auditoria.
+
 ### RN-002 - HOLD e decisao valida
 
 Ficar fora do mercado (`HOLD`) e acao de negocio legitima e deve ser tratada

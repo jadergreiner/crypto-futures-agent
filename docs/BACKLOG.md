@@ -286,23 +286,43 @@ ADR-009 e ADR-025, sem conflito arquitetural e sem schema novo.
 
 ### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
 
-Status: Em analise
+Status: IMPLEMENTADO
 
 Entrega:
 
 1. Atualizar docs tecnicos e runbook para fluxo model-driven.
 2. Atualizar trilha de sincronizacao documental.
 
+Escopo documental ampliado:
+
+- `docs/ADRS.md`
+- `docs/DIAGRAMAS.md`
+- `docs/MODELAGEM_DE_DADOS.md`
+
 Critérios de aceite:
 
 1. Arquitetura, regras e operacao estao consistentes entre docs.
 2. Fontes de verdade do M2 refletem decisao direta do modelo.
+3. `ARQUITETURA_ALVO`, `ADRS`, `DIAGRAMAS` e `MODELAGEM_DE_DADOS`
+   permanecem sincronizados e sem drift.
+
+SA: Escopo documental ampliado para
+`ARQUITETURA/ADRS/DIAGRAMAS/MODELAGEM/RUNBOOK/SYNC`, sem mudanca de
+schema ou logica runtime; foco em coerencia model-driven e audit trail.
+
+SE: Consolidacao documental implementada em 2026-04-01 com atualizacao de
+`docs/ARQUITETURA_ALVO.md`, `docs/ADRS.md`, `docs/DIAGRAMAS.md`,
+`docs/MODELAGEM_DE_DADOS.md`, `docs/REGRAS_DE_NEGOCIO.md`,
+`docs/RUNBOOK_M2_OPERACAO.md` e `docs/PRD.md`. Evidencias:
+`pytest -q tests/test_docs_m2_020_14_new_architecture_consolidation.py`
+-> 9 passed; `pytest -q tests/test_docs_model2_sync.py` -> 13 passed;
+`markdownlint docs/*.md` -> sem erros.
 
 ## INICIATIVA M2-021 - Hardening Operacional do Live M2
 
 ### TAREFA M2-022.3 - Isolamento de risco por contexto operacional
 
-Status: Em analise
+Status: CONCLUIDO
 
 Sprint: M2-022
 Prioridade: P1
@@ -317,10 +337,10 @@ Implementar isolamento de risco por contexto operacional:
 
 Criterios de Aceite:
 
-- [ ] Risk gate valida contexto e aplica limite apropriado.
-- [ ] Transicao de shadow para live nao permite degradacao de proteção.
-- [ ] Contexto falso nao permite acesso a chaves reais.
-- [ ] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
+- [x] Risk gate valida contexto e aplica limite apropriado.
+- [x] Transicao de shadow para live nao permite degradacao de proteção.
+- [x] Contexto falso nao permite acesso a chaves reais.
+- [x] Cobertura: `tests/test_model2_risk_isolation.py` >= 90%.
 
 Dependencias:
 
@@ -330,10 +350,57 @@ Dependencias:
 Impacto:
 
 - Previne accidental live trading em shadow
-- Mantém fail-safe em cada mudança de contexto
+- Mantem fail-safe em cada mudanca de contexto
 
-PO: Isolamento de risco por contexto para evitar acidentes de transicao
-shadow->live e vulnerabilidades operacionais.
+Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Valor direto: o operador evita mudanca insegura entre `shadow`,
+  `paper` e `live`, com bloqueio fail-safe antes de qualquer ordem e
+  limites corretos por simbolo/carteira.
+- Evidencia atual: `iniciar.bat` exibe `Modo: !M2_MODE!`;
+  `logs/agent.log` ja mostra `STARTING OPERATION - MODE: LIVE` e
+  bloqueios do `Risk Gate`, mas ainda sem isolamento explicito por
+  contexto.
+- Meta de fechamento: trocar o contexto no `iniciar.bat` sem risco de
+  usar chave real indevida ou degradar protecao do `risk_gate`.
+
+PO: Priorizar M2-022.3 para bloquear transicoes inseguras entre
+shadow/paper/live. Ao fim deste desenvolvimento estarei feliz se o
+iniciar.bat impedir contexto inconsistente antes da ordem e aplicar o
+limite correto com trilha auditavel.
+
+SA: Gate unico de contexto para shadow/paper/live com fail-safe,
+credenciais segregadas e limites por simbolo/carteira, sem mudar schema.
+
+QA: Suite RED criada em `tests/test_model2_risk_isolation.py` com 12
+testes (6 unitarios, 3 integracao, 3 regressao_risco) e reforco em
+`tests/test_model2_go_live_preflight.py` para `paper/shadow/live`.
+Evidencia inicial verificada: `pytest -q tests/test_model2_risk_isolation.py`
+-> 3 failed, 9 passed; `pytest -q tests/test_model2_go_live_preflight.py -k
+"paper or shadow or live"` -> 3 failed, 23 passed. Status:
+TESTES_PRONTOS.
+
+SE: Implementacao concluida em 2026-04-01 com ajustes em
+`core/model2/live_execution.py`, `core/model2/live_service.py` e
+`scripts/model2/go_live_preflight.py`. Evidencias:
+`pytest -q tests/test_model2_risk_isolation.py` -> 12 passed;
+`pytest -q tests/test_model2_go_live_preflight.py -k
+"paper or shadow or live"` -> 26 passed;
+`pytest -q tests/test_model2_m2_028_9_coverage_targets.py`
+-> 25 passed; `pytest -q tests/` -> 364 passed; `mypy --strict`
+nos 3 arquivos alterados -> Success.
+
+TL: APROVADO em 2026-04-02. Reproducao independente valida 12/12,
+26/26, 364/364 e mypy strict; guardrails e fail-safe preservados.
+
+DOC: BACKLOG, RUNBOOK_M2_OPERACAO e SYNCHRONIZATION sincronizados com o
+contrato `shadow|paper|live`, bloqueios fail-safe por contexto e trilha
+auditavel por `decision_id`/`execution_id`; pronto para aceite final.
+
+PM: ACEITE final concedido em 2026-04-02 com valor entregue e validado
+para a troca segura entre `shadow`, `paper` e `live` no `iniciar.bat`.
 
 ### TAREFA M2-022.4 - Padronizar handling de erros e timeouts
 

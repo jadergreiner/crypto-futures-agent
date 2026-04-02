@@ -72,6 +72,20 @@ M2_009_2_RULE_ID = "M2-009.2-RULE-LIVE-GATE"
 M2_009_3_RULE_ID = "M2-009.3-RULE-MARKET-ENTRY"
 M2_009_4_RULE_ID = "M2-009.4-RULE-PROTECTION-FAILSAFE"
 M2_010_1_RULE_ID = "M2-010.1-RULE-LIVE-RECONCILE"
+SUPPORTED_EXECUTION_MODES = frozenset({"shadow", "paper", "live"})
+
+
+def normalize_execution_mode(value: Any, *, default: str = "shadow") -> str:
+    """Normaliza o modo operacional para o contrato canônico do M2."""
+    normalized = str(value or "").strip().lower()
+    if normalized in SUPPORTED_EXECUTION_MODES:
+        return normalized
+
+    fallback = str(default or "shadow").strip().lower()
+    if fallback in SUPPORTED_EXECUTION_MODES:
+        return fallback
+    return "shadow"
+
 
 # Catalogo canônico de reason codes para hardening operacional M2-024.
 # Mínimo 20 entries para cobertura adequada de casos operacionais.
@@ -86,6 +100,18 @@ REASON_CODE_CATALOG: dict[str, str] = {
     "invalid_requested_quantity": "ops.invalid_requested_quantity",
     "timeout": "ops.timeout",
     "reconciliation_divergence": "ops.reconciliation_divergence",
+    "unsupported_execution_mode": "ops.unsupported_execution_mode",
+    "risk_gate_state_unavailable": "ops.risk_gate_state_unavailable",
+    "circuit_breaker_state_unavailable": "ops.circuit_breaker_state_unavailable",
+    "daily_entry_limit_reached": "ops.daily_entry_limit_reached",
+    "symbol_not_enabled": "ops.symbol_not_enabled",
+    "active_execution_exists": "ops.active_execution_exists",
+    "open_position_exists": "ops.open_position_exists",
+    "symbol_in_cooldown": "ops.symbol_in_cooldown",
+    "invalid_margin_limit": "ops.invalid_margin_limit",
+    "funding_unfavorable": "ops.funding_unfavorable",
+    "negative_basis": "ops.negative_basis",
+    "balance_unavailable": "ops.balance_unavailable",
     # Expansão M2-024.2: 11+ entries adicionais
     "entrada_validada": "ops.entrada_validada",
     "ordem_enviada": "ops.ordem_enviada",
@@ -141,6 +167,18 @@ REASON_CODE_SEVERITY: dict[str, str] = {
     "invalid_requested_quantity": "HIGH",
     "timeout": "HIGH",
     "reconciliation_divergence": "CRITICAL",
+    "unsupported_execution_mode": "HIGH",
+    "risk_gate_state_unavailable": "HIGH",
+    "circuit_breaker_state_unavailable": "HIGH",
+    "daily_entry_limit_reached": "HIGH",
+    "symbol_not_enabled": "MEDIUM",
+    "active_execution_exists": "MEDIUM",
+    "open_position_exists": "MEDIUM",
+    "symbol_in_cooldown": "MEDIUM",
+    "invalid_margin_limit": "HIGH",
+    "funding_unfavorable": "MEDIUM",
+    "negative_basis": "MEDIUM",
+    "balance_unavailable": "HIGH",
     # Expansão M2-024.2
     "entrada_validada": "INFO",
     "ordem_enviada": "INFO",
@@ -192,6 +230,18 @@ REASON_CODE_ACTION: dict[str, str] = {
     "invalid_requested_quantity": "bloquear_operacao",
     "timeout": "aplicar_retry_controlado",
     "reconciliation_divergence": "interromper_e_reconciliar",
+    "unsupported_execution_mode": "bloquear_operacao",
+    "risk_gate_state_unavailable": "bloquear_operacao",
+    "circuit_breaker_state_unavailable": "bloquear_operacao",
+    "daily_entry_limit_reached": "bloquear_operacao",
+    "symbol_not_enabled": "descartar_sinal",
+    "active_execution_exists": "aguardar_execucao_ativa",
+    "open_position_exists": "reconciliar_posicao",
+    "symbol_in_cooldown": "aguardar_cooldown",
+    "invalid_margin_limit": "bloquear_operacao",
+    "funding_unfavorable": "aguardar_janela_favoravel",
+    "negative_basis": "aguardar_reversao_base",
+    "balance_unavailable": "bloquear_operacao",
     # Expansão M2-024.2
     "entrada_validada": "continuar_fluxo",
     "ordem_enviada": "monitorar_preenchimento",
@@ -409,10 +459,12 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
     """Evaluate whether a CONSUMED technical signal can enter live execution."""
 
     execution_mode = str(gate_input.execution_mode).strip().lower()
-    if execution_mode not in {"shadow", "live"}:
+    if execution_mode not in SUPPORTED_EXECUTION_MODES:
         return _blocked(
             "unsupported_execution_mode",
             execution_mode=gate_input.execution_mode,
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
         )
 
     if gate_input.technical_signal_status != TECHNICAL_SIGNAL_STATUS_CONSUMED:
@@ -538,8 +590,18 @@ def evaluate_live_execution_gate(gate_input: LiveExecutionGateInput) -> LiveExec
             symbol=gate_input.symbol,
         )
 
-    # NOTE: Daily entry limit removido em 2026-03-21 para permitir aprendizagem
-    # do modelo em mercado real. Foco agora e evolucao e captura de episodios.
+    if (
+        int(gate_input.max_daily_entries) > 0
+        and int(gate_input.recent_entries_today) >= int(gate_input.max_daily_entries)
+    ):
+        return _blocked(
+            "daily_entry_limit_reached",
+            recent_entries_today=int(gate_input.recent_entries_today),
+            max_daily_entries=int(gate_input.max_daily_entries),
+            execution_mode=execution_mode,
+            decision_id=gate_input.decision_id,
+            execution_id=gate_input.execution_id,
+        )
 
     if gate_input.max_margin_per_position_usd <= 0:
         return _blocked(

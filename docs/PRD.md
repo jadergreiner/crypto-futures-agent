@@ -170,6 +170,16 @@ executa com rastreabilidade ponta a ponta, combinando:
 | Learning loop | persiste episodios e rewards para retreino | Em ativacao |
 | Promocao governada | gate GO/NO-GO e rollback de modelo | Em ativacao |
 
+### 5.3.1 M2-020.14 - Promessa operacional e observabilidade
+
+A M2-020.14 consolida a documentacao para que a operacao enxergue em
+`iniciar.bat` exatamente o contrato atual do produto:
+
+- decisao direta do modelo como origem oficial do fluxo nominal;
+- observabilidade via `decision_id`, `reason_code` e `source=RL_MODEL`;
+- origem nominal puramente model-driven, sem ambiguidade com legado;
+- `risk_gate` e `circuit_breaker` preservados como guardrails.
+
 ### 5.4 Fora de escopo na release atual
 
 - Operacao spot.

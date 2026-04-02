@@ -24,6 +24,21 @@ Decisao do modelo (acoes permitidas):
 3. Em duvida operacional, bloquear operacao (fail-safe).
 4. Toda decisao e evento relevante devem ser auditaveis.
 
+## M2-020.14 - Consolidacao documental da nova arquitetura
+
+A M2-020.14 consolida a leitura oficial do fluxo nominal sem alterar
+schema, contratos de seguranca ou logica de runtime:
+
+1. a decisao direta do modelo continua sendo a unica fonte da acao
+   oficial exibida ao operador;
+2. a origem nominal puramente model-driven so vale quando
+   `origin=RL_MODEL`, `action_source='rl_action'` e
+   `rl_fallback=False`;
+3. `legado heuristico`, `signal_side` e `fallback_action` ficam
+   restritos a rollback explicito, diagnostico e auditoria;
+4. `risk_gate`, `circuit_breaker` e `decision_id` seguem como
+   invariantes de fail-safe e rastreabilidade.
+
 ## Fluxo Live Ponta-a-Ponta
 
 O ciclo live segue um fluxo unico, auditavel e ponta-a-ponta entre as

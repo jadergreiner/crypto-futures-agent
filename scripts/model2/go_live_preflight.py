@@ -29,6 +29,8 @@ from config.settings import (
     M2_SYMBOL_COOLDOWN_MINUTES,
     MODEL2_DB_PATH,
 )
+from core.model2.live_execution import SUPPORTED_EXECUTION_MODES, normalize_execution_mode
+from core.model2.shadow_load_validation import validate_risk_context_isolation
 from scripts.model2.healthcheck_live_execution import run_live_healthcheck
 from scripts.model2.live_dashboard import run_live_dashboard
 from scripts.model2.live_execute import run_live_execute
@@ -86,6 +88,38 @@ def _resolve_repo_path(value: str | Path) -> Path:
 
 def _normalize_live_symbols(symbols: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(symbol.strip().upper() for symbol in symbols if symbol and symbol.strip())
+
+
+def _resolve_execution_mode_contract(env_values: dict[str, str]) -> dict[str, str | bool]:
+    """Resolve o contrato canônico de `M2_EXECUTION_MODE` para o preflight."""
+    trading_mode = str(env_values.get("TRADING_MODE", "")).strip().lower()
+    raw_mode = str(env_values.get("M2_EXECUTION_MODE", "")).strip().lower()
+    has_explicit_runtime = trading_mode in {"paper", "live"}
+    is_supported_mode = raw_mode in SUPPORTED_EXECUTION_MODES
+
+    if is_supported_mode and (raw_mode == "shadow" or has_explicit_runtime):
+        normalized_mode = raw_mode
+        ok = True
+        reason = "ok"
+    else:
+        normalized_mode = normalize_execution_mode(
+            trading_mode if has_explicit_runtime else "shadow"
+        )
+        ok = False
+        reason = (
+            "unsupported_execution_mode"
+            if raw_mode and not is_supported_mode
+            else "explicit_runtime_contract_required"
+        )
+
+    return {
+        "trading_mode": trading_mode or "undefined",
+        "raw_mode": raw_mode or "undefined",
+        "normalized_mode": normalized_mode,
+        "has_explicit_runtime": has_explicit_runtime,
+        "ok": ok,
+        "reason": reason,
+    }
 
 
 def _load_env_values(env_file: Path) -> dict[str, str]:
@@ -557,32 +591,68 @@ def _check_operational_alerts_ready(env_values: dict[str, str]) -> dict[str, Any
 
 
 def _check_testnet_credentials_ready(env_values: dict[str, str]) -> dict[str, Any]:
-    """Valida credenciais minimas para testnet quando TRADING_MODE=paper."""
-    trading_mode = str(env_values.get("TRADING_MODE", "")).strip().lower()
+    """Valida isolamento de credenciais entre `shadow`, `paper` e `live`."""
+    contract = _resolve_execution_mode_contract(env_values)
+    trading_mode = str(contract["trading_mode"])
+    execution_mode = str(contract["normalized_mode"])
     api_key = str(env_values.get("BINANCE_API_KEY", "")).strip()
     api_secret = str(env_values.get("BINANCE_API_SECRET", "")).strip()
+    has_live_api_key = bool(api_key)
+    has_paper_api_key = bool(api_key) and bool(api_secret)
+    requires_paper_credentials = trading_mode == "paper" or execution_mode == "paper"
 
-    if trading_mode != "paper":
+    if trading_mode == "live" or execution_mode == "live":
         return {
             "ok": True,
             "details": {
-                "trading_mode": trading_mode or "undefined",
+                "trading_mode": trading_mode,
+                "execution_mode": execution_mode,
                 "requires_testnet_credentials": False,
-                "binance_api_key_configured": bool(api_key),
+                "binance_api_key_configured": has_live_api_key,
                 "binance_api_secret_configured": bool(api_secret),
                 "reason": "not_paper_mode",
             },
         }
 
-    configured = bool(api_key) and bool(api_secret)
+    if requires_paper_credentials:
+        isolation_result = validate_risk_context_isolation(
+            execution_mode="paper",
+            has_live_api_key=has_live_api_key,
+            has_paper_api_key=has_paper_api_key,
+        )
+        configured = has_live_api_key and bool(api_secret)
+        allowed = configured and bool(isolation_result["allowed"])
+        reason = "ok" if allowed else "paper_missing_credentials"
+        if configured and not bool(isolation_result["allowed"]):
+            reason = str(isolation_result["reason_code"])
+
+        return {
+            "ok": allowed,
+            "details": {
+                "trading_mode": trading_mode,
+                "execution_mode": execution_mode,
+                "requires_testnet_credentials": True,
+                "binance_api_key_configured": has_live_api_key,
+                "binance_api_secret_configured": bool(api_secret),
+                "reason": reason,
+            },
+        }
+
+    isolation_result = validate_risk_context_isolation(
+        execution_mode="shadow",
+        has_live_api_key=has_live_api_key,
+        has_paper_api_key=has_paper_api_key,
+    )
+    allowed = bool(isolation_result["allowed"])
     return {
-        "ok": configured,
+        "ok": allowed,
         "details": {
-            "trading_mode": "paper",
-            "requires_testnet_credentials": True,
-            "binance_api_key_configured": bool(api_key),
+            "trading_mode": trading_mode,
+            "execution_mode": execution_mode,
+            "requires_testnet_credentials": False,
+            "binance_api_key_configured": has_live_api_key,
             "binance_api_secret_configured": bool(api_secret),
-            "reason": "ok" if configured else "missing_testnet_credentials",
+            "reason": str(isolation_result["reason_code"] if not allowed else "not_paper_mode"),
         },
     }
 
@@ -901,8 +971,11 @@ def run_go_live_preflight(
         env_values = _load_env_values(resolved_env_file)
         env_updates: dict[str, str] = {}
         chosen_symbols = selected_symbols or _normalize_live_symbols(tuple(env_values.get("M2_LIVE_SYMBOLS", "").split(",")))
-        if env_values.get("M2_EXECUTION_MODE", "").strip().lower() != "shadow":
-            env_updates["M2_EXECUTION_MODE"] = "shadow"
+        execution_mode_contract = _resolve_execution_mode_contract(env_values)
+        current_execution_mode = str(env_values.get("M2_EXECUTION_MODE", "")).strip().lower()
+        desired_execution_mode = str(execution_mode_contract["normalized_mode"])
+        if current_execution_mode != desired_execution_mode:
+            env_updates["M2_EXECUTION_MODE"] = desired_execution_mode
 
         if chosen_symbols:
             env_updates["M2_LIVE_SYMBOLS"] = ",".join(chosen_symbols)
@@ -939,13 +1012,19 @@ def run_go_live_preflight(
                 if current != desired:
                     next_actions.append(f"Set {key}={desired} in {resolved_env_file}.")
 
-        execution_mode_ok = env_values.get("M2_EXECUTION_MODE", "").strip().lower() == "shadow"
+        execution_mode_contract = _resolve_execution_mode_contract(env_values)
+        execution_mode_ok = bool(execution_mode_contract["ok"])
         add_check(
             check_id="4",
-            description="Validar M2_EXECUTION_MODE=shadow.",
+            description="Validar contrato canônico de M2_EXECUTION_MODE (shadow|paper|live).",
             status="ok" if execution_mode_ok else "alert",
-            evidence={"M2_EXECUTION_MODE": env_values.get("M2_EXECUTION_MODE", "")},
-            error=None if execution_mode_ok else "M2_EXECUTION_MODE is not shadow.",
+            evidence={
+                "M2_EXECUTION_MODE": env_values.get("M2_EXECUTION_MODE", ""),
+                "TRADING_MODE": env_values.get("TRADING_MODE", ""),
+                "canonical_modes": sorted(SUPPORTED_EXECUTION_MODES),
+                "reason": execution_mode_contract["reason"],
+            },
+            error=None if execution_mode_ok else "M2_EXECUTION_MODE precisa seguir o contrato canônico shadow|paper|live com runtime explícito.",
         )
 
         explicit_symbols = _normalize_live_symbols(tuple((env_values.get("M2_LIVE_SYMBOLS", "") or "").split(",")))

@@ -209,7 +209,7 @@ def test_orphan_position_reason_code_tem_severidade_e_acao() -> None:
 
 
 def test_live_gate_rejeita_execution_mode_nao_suportado() -> None:
-    decision = evaluate_live_execution_gate(_live_gate_input(execution_mode="paper"))
+    decision = evaluate_live_execution_gate(_live_gate_input(execution_mode="sandbox"))
 
     assert decision.allow_execution is False
     assert decision.reason == "unsupported_execution_mode"
