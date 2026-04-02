@@ -9,6 +9,24 @@ Este arquivo documenta todos os agentes customizados disponíveis no projeto cry
 
 ## Agentes Disponíveis
 
+## Skills Críticas de Governança
+
+### Skill 15: ADR Analysis (`.github/skills/15.adr-analysis/SKILL.md`)
+
+**Descrição**
+Gate arquitetural binário e obrigatório para mudanças de código e testes.
+Valida aderência a `docs/ADRS.md` e bloqueia continuidade ou merge quando
+não houver ADR aplicável ou existir conflito com ADR vigente.
+
+**Uso transversal**
+- `3.solution-architect`: guardião de ADRs; valida RF/RNF antes do handoff
+- `5.software-engineer`: cobra especificação e ADR de referência antes do código
+- `6.tech-lead`: assegura aderência da implementação às ADRs relacionadas
+- `8.project-manager`: último gate antes de autorizar merge/ACEITE
+- `9.dev-cycle`: pausa o ciclo quando o gate ADR bloquear
+
+---
+
 ### 1. Agent: Backlog Development (`.github/agents/1.backlog-development.agent.md` + `.github/skills/1.backlog-development/SKILL.md`)
 
 **Descrição**
@@ -63,7 +81,10 @@ humano quando a decisao sair do campo tecnico.
 
 **Descrição**
 Refina demanda do PO em requisitos técnicos, arquitetura, modelagem de dados
-e plano de entrega. Emite handoff estruturado para QA-TDD.
+e plano de entrega. É guardião de ADRs: todo requisito funcional e não
+funcional só segue adiante quando estiver coberto por ADR vigente em
+`docs/ADRS.md`. Emite handoff estruturado para QA-TDD com
+`adr_referencia` e `status_gate`.
 Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 `SA:` com resumo de ate 150 caracteres.
 
@@ -73,7 +94,7 @@ Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 
 **Saída**
 - Atualizacao de `docs/BACKLOG.md` no item analisado (`Em analise` + `SA:`)
-- Prompt executável para QA-TDD
+- Prompt executável para QA-TDD com `adr_referencia` e `status_gate`
 
 **Acionamento**
 - Invocado automaticamente pelo Product Owner
@@ -83,6 +104,8 @@ Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 **Guardrails**
 - Nunca propor bypass de `risk_gate` ou `circuit_breaker`
 - Manter idempotência por `decision_id`
+- Gate `15.adr-analysis` obrigatório e binário antes do handoff
+- Sem ADR aplicável ou com conflito arquitetural: não prosseguir
 - Modo conservador em ambiguidade operacional
 
 ---
@@ -90,19 +113,21 @@ Ao finalizar, mantem o item em `Em analise` no backlog e registra comentario
 ### 4. Agent: QA - TDD (`.github/agents/4.qa-tdd.agent.md` + `.github/skills/4.qa-tdd/SKILL.md`)
 
 **Descrição**
-Escreve testes unitários orientados a requisitos (Red Phase), atualiza backlog
-e gera prompt executável para Software Engineer implementar com TDD.
+Escreve testes unitários orientados a requisitos (Red Phase), valida a
+rastreabilidade ADR vinda do Arquiteto, atualiza backlog e gera prompt
+executável para Software Engineer implementar com TDD.
 
 **Entrada**
 - Prompt estruturado do Solution Architect
 - Requisitos funcionais/não-funcionais verificáveis
+- `adr_referencia` e `status_gate` validados pelo SA
 - Componentes/módulos afetados
 - Invariantes obrigatórios (risk_gate, circuit_breaker, decision_id)
 
 **Saída**
 - Suite completa de testes (RED phase — testes que falham)
 - Atualização de `docs/BACKLOG.md`
-- Prompt executável para Software Engineer
+- Prompt executável para Software Engineer com `adr_referencia`
 
 **Acionamento**
 - Invocado automaticamente pelo Solution Architect
@@ -110,19 +135,22 @@ e gera prompt executável para Software Engineer implementar com TDD.
 - User-invocable: ✅ Sim
 
 **Responsabilidades**
-1. Escrever testes unitários que falham inicialmente
-2. Validar cobertura 100% de requisitos
-3. Atualizar backlog com status `TESTES_PRONTOS`
-4. Gerar prompt para Software Engineer contendo:
+1. Validar `adr_referencia` e bloquear se faltar cobertura ADR para RF/RNF
+2. Escrever testes unitários que falham inicialmente
+3. Validar cobertura 100% de requisitos
+4. Atualizar backlog com status `TESTES_PRONTOS`
+5. Gerar prompt para Software Engineer contendo:
    - Suite completa de testes
    - Contexto de requisitos
+   - `adr_referencia` e rastreabilidade arquitetural
    - Guardrails de risco
    - Plano Green-Refactor
 
 **Guardrails**
 - Nunca mockear `risk_gate` ou `circuit_breaker`
 - Preservar `decision_id` idempotência
-- Cada teste = um requisito
+- Cada teste = um requisito coberto por ADR válida
+- Sem `adr_referencia` ou com conflito arquitetural: não prosseguir
 - Nomenclatura: `test_<funcionalidade>_<condicao>_<resultado>`
 
 ---
@@ -131,8 +159,10 @@ e gera prompt executável para Software Engineer implementar com TDD.
 
 **Descrição**
 Implementa código Python orientado a testes (TDD Green-Refactor), modelagem
-de banco de dados (DBA) e calibração de modelos ML. Atualiza backlog para
-`EM_DESENVOLVIMENTO` ao iniciar e para `IMPLEMENTADO` ao concluir.
+de banco de dados (DBA) e calibração de modelos ML. Antes de escrever código,
+cobra a especificação técnica e qual ADR deve seguir como padrão.
+Atualiza backlog para `EM_DESENVOLVIMENTO` ao iniciar e para `IMPLEMENTADO`
+ao concluir.
 
 **Entrada**
 - Prompt estruturado do QA-TDD com suite de testes em fase RED
@@ -158,6 +188,8 @@ de banco de dados (DBA) e calibração de modelos ML. Atualiza backlog para
 **Guardrails**
 - Nunca desabilitar `risk_gate` ou `circuit_breaker`
 - Preservar `decision_id` idempotência
+- Não implementar sem `adr_referencia` válida do ciclo SA -> QA
+- Em conflito com ADR vigente: bloquear implementação
 - `mypy --strict` zero erros nos módulos alterados
 - Sem credenciais ou hardcode de valores fora de `config/`
 
@@ -167,7 +199,8 @@ de banco de dados (DBA) e calibração de modelos ML. Atualiza backlog para
 
 **Descrição**
 Realiza code review da entrega do Software Engineer. Verifica cobertura de
-testes, qualidade de código, guardrails de risco e conformidade com requisitos.
+testes, qualidade de código, guardrails de risco, conformidade com requisitos
+e aderência às ADRs relacionadas pelo Arquiteto.
 Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 
 **Entrada**
@@ -190,13 +223,14 @@ Emite decisão binária: APROVADO ou DEVOLVIDO_PARA_REVISAO.
 1. Reproduzir testes localmente (não confiar só no relatório)
 2. Revisar código: qualidade, segurança, guardrails de risco
 3. Revisar testes: cobertura, estrutura AAA, determinismo
-4. Verificar conformidade com `docs/REGRAS_DE_NEGOCIO.md`
+4. Verificar conformidade com `docs/REGRAS_DE_NEGOCIO.md` e ADRs do SA
 5. Atualizar `docs/BACKLOG.md` com decisão final
 6. Em caso APROVADO, emitir prompt executável para `7.doc-advocate`
 
 **Guardrails**
 - Decisão binária: APROVADO ou DEVOLVIDO (sem aprovação parcial)
 - Guardrail ausente → DEVOLVIDO automático
+- Sem rastreabilidade ADR ou com conflito arquitetural → DEVOLVIDO
 - Nunca aprovar sem reprodução local dos testes
 - Fail-safe: em dúvida sobre risco → DEVOLVIDO
 
@@ -237,8 +271,9 @@ docs existentes sem criar documentação nova.
 **Descrição**
 Valida a atividade ponta-a-ponta e decide o `ACEITE` final para fechamento.
 Executa ajustes finais quando necessário, atualiza backlog para `CONCLUIDO`,
-realiza commit/push para `main`, garante árvore local limpa e assegura que o
-valor capturado pelo Product Owner foi de fato entregue.
+realiza commit/push para `main`, garante árvore local limpa, assegura que o
+valor capturado pelo Product Owner foi de fato entregue e atua como último
+gate antes de autorizar merge, exigindo validação ADR pelo Tech Lead.
 
 **Entrada**
 - Relatório executivo do Doc Advocate
@@ -260,6 +295,7 @@ valor capturado pelo Product Owner foi de fato entregue.
 **Guardrails**
 - Não emitir ACEITE sem validar trilha completa da demanda
 - Não emitir ACEITE sem validar que o valor prometido pelo Product Owner foi entregue
+- Não autorizar merge sem validação ADR explícita do Tech Lead
 - Não fechar atividade sem atualizar backlog para `CONCLUIDO`
 - Não encerrar com árvore local suja
 - Em dúvida de conformidade: DEVOLVER para ajuste
@@ -273,8 +309,8 @@ Orquestra ponta-a-ponta o fluxo completo de desenvolvimento (stages 1-8),
 recebendo uma task de backlog e executando automaticamente Backlog
 Development -> Product Owner -> Solution Architect -> QA-TDD ->
 Software Engineer -> Tech Lead -> Doc Advocate -> Project Manager.
-Aplica gate de valor real em `iniciar.bat`, interrompe em devolucao e
-retoma no stage correto apos correcao.
+Aplica gate de valor real em `iniciar.bat`, executa gate ADR obrigatório no
+stage 3, interrompe em devolucao e retoma no stage correto apos correcao.
 
 **Entrada**
 - BLID/tarefa existente no backlog
@@ -293,7 +329,9 @@ retoma no stage correto apos correcao.
 **Guardrails**
 - Nunca bypass de `risk_gate` ou `circuit_breaker`
 - Preservar idempotência por `decision_id`
-- Parada imediata em `DEVOLVIDO_PARA_REVISAO` ou `DEVOLVER_PARA_AJUSTE`
+- Gate ADR obrigatório no stage 3 e preservado até o fechamento
+- Parada imediata em `DEVOLVIDO_PARA_REVISAO`, `DEVOLVER_PARA_AJUSTE`,
+  `BLOQUEADO_SEM_ADR` ou `BLOQUEADO_CONFLITO_ADR`
 - Retomada localizada no stage devolvido
 
 ---
@@ -462,8 +500,8 @@ resultado = runSubagent(
 
 ---
 
-**Última atualização**: 2026-03-29
-**Alterações mais recentes**: o último gate do Project Manager passou a exigir
-validação explícita de que o valor prometido pelo Product Owner foi entregue,
-com handoff do Doc Advocate carregando status e evidência desse valor para o
-ACEITE final.
+**Última atualização**: 2026-04-01
+**Alterações mais recentes**: incorporado o gate arquitetural da skill
+`15.adr-analysis` nos agentes Solution Architect, Software Engineer,
+Tech Lead, Project Manager e Dev Cycle, com rastreabilidade de ADR até o
+último gate antes do merge.
