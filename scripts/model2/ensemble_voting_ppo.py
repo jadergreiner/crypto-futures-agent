@@ -18,7 +18,8 @@ import json
 import logging
 import argparse
 from pathlib import Path
-from typing import Tuple, List, Dict, Any
+import torch as th
+from typing import Tuple, List, Dict, Any, Optional, Union
 
 import numpy as np
 from stable_baselines3 import PPO
@@ -52,7 +53,7 @@ class EnsembleVotingPPO:
         mlp_weight: float = 0.48,
         lstm_weight: float = 0.52,
         voting_method: str = 'soft'
-    ):
+    ) -> None:
         """
         Inicializa ensemble.
 
@@ -86,43 +87,47 @@ class EnsembleVotingPPO:
 
     def predict_soft_voting(
         self,
-        observation: np.ndarray,
+        observation: np.ndarray[Any, np.dtype[Any]],
         deterministic: bool = True
-    ) -> Tuple[int, None]:
+    ) -> Tuple[int, Optional[Tuple[Any, ...]]]:
         """
-        Predicao via soft voting (media ponderada de Q-values/logits).
+        Predicao via soft voting (media ponderada de probabilidades).
 
         Args:
             observation: State observation from environment
             deterministic: Use deterministic policy (greedy)
 
         Returns:
-            (action, None) - action escolhida via votacao ponderada
+            (action, None) - action escolhida via votacao ponderada de probabilidades
         """
-        # Get actions e logits/probabilities de ambos modelos
-        mlp_action, mlp_state = self.mlp_model.predict(
-            observation, deterministic=deterministic, state=None
-        )
-        lstm_action, lstm_state = self.lstm_model.predict(
-            observation, deterministic=deterministic, state=None
-        )
+        # Obter probabilidades de ambos os modelos
+        # MLP
+        policy_mlp: Any = self.mlp_model.policy
+        mlp_obs, _ = policy_mlp.obs_to_tensor(observation)
+        with th.no_grad():
+            mlp_dist = policy_mlp.get_distribution(mlp_obs)
+            mlp_probs = mlp_dist.distribution.probs.cpu().numpy().reshape(-1)
 
-        # Soft voting: se ambos concordam, aceitar
-        # Se discordam, usar modelo com melhor peso (LSTM)
-        if mlp_action == lstm_action:
-            # Consenso: ambos modelos concordam
-            action = int(mlp_action)
-        else:
-            # Discordancia: usar LSTM (weight > MLP)
-            action = int(lstm_action) if self.lstm_weight > self.mlp_weight else int(mlp_action)
+        # LSTM
+        policy_lstm: Any = self.lstm_model.policy
+        lstm_obs, _ = policy_lstm.obs_to_tensor(observation)
+        with th.no_grad():
+            lstm_dist = policy_lstm.get_distribution(lstm_obs)
+            lstm_probs = lstm_dist.distribution.probs.cpu().numpy().reshape(-1)
 
-        return action, None
+        # Soft voting: média ponderada das probabilidades
+        combined_probs = (mlp_probs * self.mlp_weight) + (lstm_probs * self.lstm_weight)
+        
+        # Escolher acao com maior probabilidada combinada
+        action_val: int = int(np.argmax(combined_probs))
+
+        return action_val, None
 
     def predict_hard_voting(
         self,
-        observation: np.ndarray,
+        observation: np.ndarray[Any, np.dtype[Any]],
         deterministic: bool = True
-    ) -> Tuple[int, None]:
+    ) -> Tuple[int, Optional[Tuple[Any, ...]]]:
         """
         Predicao via hard voting (votacao majoritaria com pesos).
 
@@ -157,9 +162,9 @@ class EnsembleVotingPPO:
 
     def predict(
         self,
-        observation: np.ndarray,
+        observation: np.ndarray[Any, np.dtype[Any]],
         deterministic: bool = True
-    ) -> Tuple[int, None]:
+    ) -> Tuple[int, Optional[Tuple[Any, ...]]]:
         """
         Predicao ensemble usando metodo configurado.
 
@@ -212,14 +217,14 @@ def evaluate_ensemble(
     for episode in range(n_episodes):
         obs, info = env.reset()
         done = False
-        total_reward = 0
+        total_reward: float = 0.0
         steps = 0
 
         while not done:
             action, _ = ensemble.predict(obs, deterministic=deterministic)
             obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
-            total_reward += reward
+            total_reward += float(reward)
             steps += 1
 
         episode_rewards.append(total_reward)
@@ -245,7 +250,7 @@ def evaluate_ensemble(
     return metrics
 
 
-def main():
+def main() -> None:
     """CLI para ensemble voting."""
     parser = argparse.ArgumentParser(description='Ensemble Voting PPO (E.9)')
     parser.add_argument(
@@ -299,11 +304,11 @@ def main():
 
     # Criar environment com dados mock para avaliacao standalone
     logger.info("Inicializando LSTMSignalEnvironment...")
-    _mock_signals = [{'id': i, 'symbol': 'BTCUSDT', 'direction': 'LONG',
+    _mock_signals: List[Dict[str, Any]] = [{'id': i, 'symbol': 'BTCUSDT', 'direction': 'LONG',
                       'entry_price': 50000.0, 'stop_loss': 49000.0,
                       'take_profit': 52000.0, 'outcome': 'WIN',
                       'pnl_pct': 0.04} for i in range(10)]
-    _mock_evolutions: dict[int, list[dict]] = {i: [] for i in range(10)}
+    _mock_evolutions: Dict[int, List[Dict[str, Any]]] = {i: [] for i in range(10)}
     from agent.signal_environment import SignalReplayEnv
     env = LSTMSignalEnvironment(SignalReplayEnv(_mock_signals, _mock_evolutions))
 

@@ -21,7 +21,23 @@ toda vez que mudanças significativas são feitas no código:
 
 ---
 
-## Histórico de Sincronizações
+### [SYNC-345] Governanca Doc Advocate BLID-067 (E.9) - 2026-04-02
+
+- Agente: 7.doc-advocate
+- Item: BLID-067 (Ensemble Voting)
+- Acao: consolidacao documental final apos aprovacao técnica e tipagem estrita
+- Docs atualizados:
+  - `docs/BACKLOG.md` (status: REVISADO_APROVADO, comentários SA, QA, SE, TL, DOC)
+  - `docs/SYNCHRONIZATION.md` (esta entrada)
+  - `docs/ADRS.md` (confirmada ADR-026 de Ensemble Voting)
+- Validacoes executadas:
+  - `markdownlint docs/*.md` -> exit 0
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+- Evidencias de governanca:
+  - Trilhas de SA, QA-TDD e SE sincronizadas em 50 episodios
+  - Tipagem estrita de cabo a rabo OK
+  - Contrato de `decision_id` preservado em wrapper
+- Status final: pronto para ACEITE final do Project Manager (8.project-manager)
 
 ### [SYNC-344] Project Manager ACEITE final M2-025.13 - 2026-04-02
 

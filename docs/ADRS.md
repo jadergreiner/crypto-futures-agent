@@ -151,3 +151,40 @@ Guardrails:
 1. `risk_gate` e `circuit_breaker` permanecem ativos.
 2. `decision_id` segue como correlacao idempotente obrigatoria.
 3. Esta task nao cria schema novo nem altera logica de runtime.
+
+## ADR-026 - Ensemble Voting (MLP + LSTM)
+
+**Status:** ACEITO
+
+**Decisão:**
+
+1. Adotar votação ensemble entre modelos MLP e LSTM (otimizados em E.8) para
+   aumentar a robustez das decisões de entrada.
+2. Suportar dois métodos de votação:
+   - **Soft Voting (Probabilístico)**: Média ponderada das probabilidades de
+     ação (preferencial para precisão em regimes de alta confiança).
+   - **Hard Voting (Majoritário)**: Votação baseada na decisão binária ponderada
+     pelos pesos de performance histórica (preferencial para resiliência a
+     outliers).
+3. Pesos iniciais baseados no score E.7: MLP (0.48) e LSTM (0.52).
+4. Implementar gate de consenso: a decisão só é admitida se o `confidence_score`
+   (função do suporte ponderado) atingir o `min_confidence` configurado (default
+   0.6).
+
+**Guardrails:**
+
+1. **Fallback Automático**: Em caso de falha no carregamento do ensemble ou
+   confiança abaixo do limiar, o sistema deve retroceder para o modelo
+   determinístico (SMC) ou bloquear a entrada (fail-safe).
+2. **Auditabilidade**: Cada decisão ensemble deve registrar o `voting_summary`
+   incluindo votos individuais e nível de consenso no `payload_json`.
+3. **Idempotência**: O `decision_id` deve ser preservado em todo o fluxo de
+   votação e inferência.
+
+**Critérios de Benchmark (E.5 -> E.9):**
+
+1. A validação do ensemble exige benchmark comparativo entre modelos isolados
+   e o ensemble em pelo menos 50 episódios (amostragem estatisticamente
+   relevante).
+2. O aceite para produção exige ganho de Sharpe Ratio >= 15% em relação ao
+   melhor modelo isolado (baseline E.8).

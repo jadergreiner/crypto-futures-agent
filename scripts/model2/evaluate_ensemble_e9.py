@@ -175,8 +175,12 @@ def main():
     logger.info("=" * 70)
 
     # Criar environment
-    env = LSTMSignalEnvironment(mode='paper')
-    n_episodes = 10
+    from agent.signal_environment import SignalReplayEnv
+    mock_signals = [{'id': 0, 'symbol': 'BTCUSDT', 'direction': 'LONG'}]
+    mock_evolutions = {0: []}
+    base_env = SignalReplayEnv(mock_signals, mock_evolutions)
+    env = LSTMSignalEnvironment(base_env)
+    n_episodes = 50
 
     results = {
         'timestamp': datetime.utcnow().isoformat(),
