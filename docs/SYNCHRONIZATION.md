@@ -23,6 +23,88 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-342] Software Engineer GREEN da M2-025.13 - 2026-04-02
+
+- Agente: 5.software-engineer
+- Item: M2-025.13
+- Status backlog: IMPLEMENTADO
+- Modulos ajustados:
+  - `scripts/model2/go_live_preflight.py`
+  - `scripts/model2/healthcheck_live_execution.py`
+  - `scripts/model2/persist_training_episodes.py`
+  - `scripts/model2/operator_cycle_status.py`
+  - `scripts/model2/live_dashboard.py`
+- Entrega tecnica:
+  - `testnet_evidence` agora publica `symbol_status` por simbolo
+  - healthcheck bloqueia falso `ok` quando falta ou falha a cadeia por
+    simbolo
+  - persistencia publica `training_evidence_by_symbol` em modo fail-safe
+  - status operacional exibe linha `Evidencia` com
+    `evidence_gate=BLOCKED|OPEN`
+- Evidencias verificadas:
+  - `pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+    -> 11 passed em 14.99s
+  - `mypy --strict` nos 6 modulos alterados -> Success
+  - `pytest -q tests/` -> 364 passed em 87.47s
+- Proxima acao: handoff para `6.tech-lead`.
+
+### [SYNC-343] Doc Advocate consolidation M2-025.13 - 2026-04-02
+
+- Agente: 7.doc-advocate
+- Item: M2-025.13
+- Acao: consolidacao documental apos aprovacao tecnica e atualizacao de backlog
+- Docs atualizadas:
+  - `docs/BACKLOG.md` (adicionado `TL:` e `DOC:`)
+  - `docs/SYNCHRONIZATION.md` (esta entrada)
+- Validacoes executadas:
+  - `markdownlint docs/*.md` -> exit 0
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+- Status final: pronto para handoff ao Project Manager (8.project-manager)
+
+### [SYNC-341] QA-TDD RED da M2-025.13 - 2026-04-02
+
+- Agente: 4.qa-tdd
+- Item: M2-025.13
+- Status backlog: TESTES_PRONTOS
+- Suite criada:
+  `tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+- Evidencias verificadas:
+  - `pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+    -> 10 failed, 1 passed em 13.45s
+  - `mypy --strict tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+    -> Success
+- Principais gaps RED:
+  - preflight sem `symbol_status` por simbolo em `testnet_evidence`
+  - `healthcheck_live_execution.py` retorna `ok` sem gate por simbolo
+  - `persist_training_episodes.py` nao publica evidencia de treino por
+    simbolo e quebra sem `ohlcv_m5`
+  - `operator_cycle_status.py` nao explicita linha/gate de evidencia
+- Proxima acao: handoff para `5.software-engineer`.
+
+### [SYNC-340] Gate arquitetural M2-025.13 - 2026-04-02
+
+- Agente: 3.solution-architect
+- Item: M2-025.13
+- Status backlog: Em analise
+- `status_gate`: `APROVADO_POR_ADR`
+- `adr_referencia`: `ADR-002`, `ADR-003`, `ADR-004`, `ADR-006`,
+  `ADR-007`, `ADR-008`, `ADR-009`
+- Impacto arquitetural: `LOW`, sem schema novo e com reuso de
+  `go_live_preflight.py`, `healthcheck_live_execution.py`,
+  `persist_training_episodes.py` e `operator_cycle_status.py`
+- Proxima acao: handoff estruturado para `4.qa-tdd`.
+
+### [SYNC-339] Priorizacao PO de M2-025.13 - 2026-04-02
+
+- Agente: 9.dev-cycle / 2.product-owner
+- Item: M2-025.13
+- Status backlog: Em analise
+- Decisao: priorizado para o proximo refinamento tecnico
+- Valor esperado em `iniciar.bat`: trilha auditavel por simbolo com
+  captura, decisao, episodio e treino sem lacunas em validacao testnet.
+- Dependencias confirmadas: `M2-018.2` e `M2-025.12` concluidas.
+- Proxima acao: handoff para `3.solution-architect`.
+
 ### [SYNC-338] M2-022.4 ACEITE final e fechamento operacional - 2026-04-02
 
 - Agente: 8.project-manager

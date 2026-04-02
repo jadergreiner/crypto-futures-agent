@@ -1,0 +1,27 @@
+Acoes recomendadas para Project Manager — M2-025.13
+
+1) Verificar status local (git)
+
+# Mostrar alterações
+git status --short
+
+# Revisar diff rapidamente
+git --no-pager diff --name-only HEAD
+
+2) Commitar mudanças (assumindo branch local main)
+
+# Adicionar all e commitar com formato padrao
+git add -A
+git commit -m "[SYNC] M2-025.13: Doc Advocate + TL approval; backlog CONCLUIDO"
+
+3) Push para remote main
+
+git push origin main
+
+4) Passos pós-push
+- Confirmar PR/merge se houver política (aqui assumimos push direto)
+- Atualizar trackers/boards com status CONCLUIDO
+- Notificar PO/SA/QA/SE/TL via canal apropriado com resumo curto
+
+Resumo curto para notificação:
+"M2-025.13 ACEITE: trilha de evidencias por simbolo implementada e validada (11/11 tests, mypy, regressao), docs sincronizadas. Backlog atualizado para CONCLUIDO."

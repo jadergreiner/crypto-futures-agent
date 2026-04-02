@@ -831,6 +831,32 @@ def _build_aud24h_human(*, started: int, running_block: int, conclusive: bool) -
     return "janela sem anomalias"
 
 
+def _build_symbol_evidence_contract(
+    *,
+    tf_statuses: list[TimeframeCandleStatus],
+    decision_trace: dict[str, Any] | None,
+    episode_trace: dict[str, Any] | None,
+    eligibility_for_training: str,
+) -> dict[str, str]:
+    """Resume a trilha capture->decision->episode->training para leitura operacional."""
+    capture_ok = any(
+        item.scan_count > 0 or item.persisted_count > 0 or item.display_time != "N/A"
+        for item in tf_statuses
+    )
+    decision_ok = decision_trace is not None
+    episode_ok = episode_trace is not None
+    training_ok = str(eligibility_for_training).upper() == "ELIGIBLE"
+    overall_status = "ok" if all((capture_ok, decision_ok, episode_ok, training_ok)) else "alert"
+    return {
+        "capture": "ok" if capture_ok else "missing",
+        "decision": "ok" if decision_ok else "missing",
+        "episode": "ok" if episode_ok else "missing",
+        "training": "ok" if training_ok else "missing",
+        "overall_status": overall_status,
+        "evidence_gate": "OPEN" if overall_status == "ok" else "BLOCKED",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Construção do relatório por símbolo
 # ---------------------------------------------------------------------------
@@ -1094,6 +1120,20 @@ def _build_symbol_report(
         f"episode_type={episode_type} | "
         f"eligibility_for_training={eligibility_for_training}"
     )
+    evidence_contract = _build_symbol_evidence_contract(
+        tf_statuses=tf_statuses,
+        decision_trace=decision_trace,
+        episode_trace=episode_trace,
+        eligibility_for_training=eligibility_for_training,
+    )
+    evidence_line = (
+        f"capture={evidence_contract['capture']} | "
+        f"decision={evidence_contract['decision']} | "
+        f"episode={evidence_contract['episode']} | "
+        f"training={evidence_contract['training']} | "
+        f"overall_status={evidence_contract['overall_status']} | "
+        f"evidence_gate={evidence_contract['evidence_gate']}"
+    )
 
     # --- Treino ---
     from core.model2.cycle_report import _progress_bar
@@ -1227,6 +1267,7 @@ def _build_symbol_report(
         f"  Candles  : {candles_line}",
         f"  Decisao  : {decision_line}",
         f"  Episodio : {episode_line}",
+        f"  Evidencia : {evidence_line}",
         f"  Frescor  : {frescor_line}",
         f"  Features : {features_line}",
         f"  Protecao : {protection_line}",

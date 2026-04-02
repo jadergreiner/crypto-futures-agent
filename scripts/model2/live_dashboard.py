@@ -48,6 +48,51 @@ def _ensure_model2_live_dashboard_schema(conn: sqlite3.Connection) -> None:
         )
 
 
+def _table_has_symbol_rows(conn: sqlite3.Connection, *, table_name: str, symbol: str) -> bool:
+    try:
+        row = conn.execute(
+            f"SELECT 1 FROM {table_name} WHERE symbol = ? LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _build_symbol_status(conn: sqlite3.Connection) -> dict[str, dict[str, str]]:
+    """Publica um contrato minimo por simbolo para o healthcheck fail-safe."""
+    symbols: set[str] = set()
+    for table_name in ("signal_executions", "technical_signals"):
+        try:
+            rows = conn.execute(f"SELECT DISTINCT symbol FROM {table_name}").fetchall()
+        except Exception:
+            continue
+        for row in rows:
+            raw_symbol = str(row[0] or "").strip().upper()
+            if raw_symbol:
+                symbols.add(raw_symbol)
+
+    symbol_status: dict[str, dict[str, str]] = {}
+    for symbol in sorted(symbols):
+        capture_ok = _table_has_symbol_rows(conn, table_name="technical_signals", symbol=symbol) or _table_has_symbol_rows(
+            conn,
+            table_name="signal_executions",
+            symbol=symbol,
+        )
+        decision_ok = _table_has_symbol_rows(conn, table_name="signal_executions", symbol=symbol)
+        episode_ok = decision_ok
+        training_ok = decision_ok
+        overall_status = "ok" if all((capture_ok, decision_ok, episode_ok, training_ok)) else "partial"
+        symbol_status[symbol] = {
+            "capture": "ok" if capture_ok else "missing",
+            "decision": "ok" if decision_ok else "missing",
+            "episode": "ok" if episode_ok else "missing",
+            "training": "ok" if training_ok else "missing",
+            "overall_status": overall_status,
+        }
+    return symbol_status
+
+
 def run_live_dashboard(
     *,
     model2_db_path: str | Path,
@@ -59,6 +104,7 @@ def run_live_dashboard(
 
     with sqlite3.connect(resolved_model2_db) as conn:
         _ensure_model2_live_dashboard_schema(conn)
+        symbol_status = _build_symbol_status(conn)
 
     now_ms = _utc_now_ms()
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -85,6 +131,7 @@ def run_live_dashboard(
         "unprotected_filled_count": snapshot.unprotected_filled_count,
         "stale_entry_sent_count": snapshot.stale_entry_sent_count,
         "open_position_mismatches_count": snapshot.open_position_mismatches_count,
+        "symbol_status": symbol_status,
         "avg_signal_to_entry_sent_ms": snapshot.avg_signal_to_entry_sent_ms,
         "avg_entry_sent_to_filled_ms": snapshot.avg_entry_sent_to_filled_ms,
         "avg_filled_to_protected_ms": snapshot.avg_filled_to_protected_ms,

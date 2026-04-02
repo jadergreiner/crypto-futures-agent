@@ -138,16 +138,20 @@ def _latest_candle(
     fallback_conn: sqlite3.Connection | None = None,
 ) -> dict[str, Any] | None:
     table = TIMEFRAME_TO_TABLE[timeframe]
-    row = conn.execute(
-        f"""
-        SELECT timestamp, open, high, low, close, volume
-        FROM {table}
-        WHERE symbol = ?
-        ORDER BY timestamp DESC
-        LIMIT 1
-        """,
-        (symbol,),
-    ).fetchone()
+    try:
+        row = conn.execute(
+            f"""
+            SELECT timestamp, open, high, low, close, volume
+            FROM {table}
+            WHERE symbol = ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """,
+            (symbol,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        row = None
+
     if row is None and fallback_conn is not None:
         try:
             row = fallback_conn.execute(
@@ -721,6 +725,80 @@ def _latest_execution_episode_by_symbol(
     return snapshots
 
 
+def _resolve_mode_isolation_status(*, source_db_path: Path, model2_db_path: Path) -> str:
+    """Resume se a coleta e a persistencia usam bases isoladas ou compartilhadas."""
+    try:
+        if source_db_path.resolve() == model2_db_path.resolve():
+            return "shared_db_runtime"
+    except Exception:
+        return "unknown"
+    return "isolated_db_paths"
+
+
+def _build_training_evidence_by_symbol(
+    conn: sqlite3.Connection,
+    *,
+    symbols: list[str],
+    timeframe: str,
+    source_db_path: Path,
+    model2_db_path: Path,
+) -> dict[str, dict[str, Any]]:
+    """Publica evidencia auditavel de treino por simbolo com comportamento fail-safe."""
+    evidence: dict[str, dict[str, Any]] = {}
+    mode_isolation = _resolve_mode_isolation_status(
+        source_db_path=source_db_path,
+        model2_db_path=model2_db_path,
+    )
+
+    for symbol in symbols:
+        row = conn.execute(
+            """
+            SELECT id, execution_id, label, reward_proxy, reward_source, status
+            FROM training_episodes
+            WHERE symbol = ?
+              AND timeframe = ?
+            ORDER BY event_timestamp DESC, id DESC
+            LIMIT 1
+            """,
+            (symbol, timeframe),
+        ).fetchone()
+        if row is None:
+            evidence[str(symbol)] = {
+                "episode_id": None,
+                "reward_source": "none",
+                "eligibility_status": "missing_episode",
+                "mode_isolation": mode_isolation,
+                "overall_status": "alert",
+            }
+            continue
+
+        episode_id = int(row[0]) if row[0] is not None else None
+        execution_id = int(row[1]) if row[1] is not None else 0
+        label = str(row[2] or "")
+        reward_proxy = float(row[3]) if row[3] is not None else None
+        reward_source = str(row[4] or "none")
+        status = str(row[5] or "")
+
+        if status.upper() == "CYCLE_CONTEXT" or label.lower() == "context":
+            eligibility_status = "blocked_context_only"
+        elif reward_proxy is None:
+            eligibility_status = "blocked_missing_reward"
+        elif execution_id <= 0 and status.upper() != "HOLD_DECISION":
+            eligibility_status = "blocked_no_execution_link"
+        else:
+            eligibility_status = "eligible"
+
+        overall_status = "ok" if eligibility_status == "eligible" and reward_source != "none" else "alert"
+        evidence[str(symbol)] = {
+            "episode_id": episode_id,
+            "reward_source": reward_source,
+            "eligibility_status": eligibility_status,
+            "mode_isolation": mode_isolation,
+            "overall_status": overall_status,
+        }
+    return evidence
+
+
 def _persist_hold_decision_episodes(
     m2_conn: sqlite3.Connection,
     src_conn: sqlite3.Connection,
@@ -832,6 +910,7 @@ def run_persist_training_episodes(
     cursor_file = resolved_output_dir / "model2_training_episodes_cursor.json"
     last_cursor_ms = _load_cursor(cursor_file)
     latest_execution_episode_by_symbol: dict[str, dict[str, Any]] = {}
+    training_evidence_by_symbol: dict[str, dict[str, Any]] = {}
 
     with sqlite3.connect(resolved_source_db) as source_conn, sqlite3.connect(resolved_model2_db) as model2_conn:
         source_conn.row_factory = sqlite3.Row
@@ -1116,6 +1195,13 @@ def run_persist_training_episodes(
             symbols=symbol_filter,
             timeframe=timeframe,
         )
+        training_evidence_by_symbol = _build_training_evidence_by_symbol(
+            model2_conn,
+            symbols=symbol_filter,
+            timeframe=timeframe,
+            source_db_path=resolved_source_db,
+            model2_db_path=resolved_model2_db,
+        )
 
     jsonl_path.write_text("\n".join(jsonl_lines) + ("\n" if jsonl_lines else ""), encoding="utf-8")
     if execution_rows:
@@ -1134,6 +1220,7 @@ def run_persist_training_episodes(
         "execution_episodes_persisted": int(inserted_rows),
         "context_episodes_persisted": int(context_episodes),
         "latest_execution_episode_by_symbol": latest_execution_episode_by_symbol,
+        "training_evidence_by_symbol": training_evidence_by_symbol,
         "jsonl_file": str(jsonl_path),
         "cursor_file": str(cursor_file),
     }

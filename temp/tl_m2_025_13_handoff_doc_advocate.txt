@@ -1,0 +1,56 @@
+Você é o agente 7.doc-advocate desta task.
+
+Handoff:
+- id: M2-025.13
+- decisao: APROVADO
+- status_backlog: REVISADO_APROVADO
+- resumo_tecnico: Trilha de evidências por símbolo (capture→decision→episode→training) implementada em testnet com gate fail-safe, sem alteração de schema, idempotência preservada em decision_id, guardrails invioláveis ativados.
+- docs_impactadas: docs/BACKLOG.md; docs/SYNCHRONIZATION.md
+- evidencias: pytest 11/11 passed; mypy --strict Success (6 files); pytest regression 364 passed; markdownlint exit 0
+- adr_referencia: ADR-002; ADR-003; ADR-004; ADR-006; ADR-007; ADR-008; ADR-009
+- adr_status: VALIDADO
+- guardrails: risk_gate=ATIVO; circuit_breaker=ATIVO; decision_id=IDEMPOTENTE
+- impacto_arquitetural: LOW
+- impacto_dados: nenhum
+- riscos_residuais: ACEITAVEL
+- pendencias: Nenhuma
+
+Gate_payload:
+- tamanho_chars: 1200
+- limite_chars: 1800
+
+---
+
+CONTEXTO ADICIONAL PARA DOC ADVOCATE:
+
+Arquivos modificados:
+- scripts/model2/go_live_preflight.py
+- scripts/model2/healthcheck_live_execution.py
+- scripts/model2/persist_training_episodes.py
+- scripts/model2/operator_cycle_status.py
+- scripts/model2/live_dashboard.py
+- docs/BACKLOG.md
+- docs/SYNCHRONIZATION.md
+
+Matriz de rastreabilidade:
+- R1 -> T001/T002/T003/T004 -> scripts/model2/go_live_preflight.py, live_dashboard.py
+- R3/R5 -> T005/T006 -> scripts/model2/healthcheck_live_execution.py
+- R2/R4/R5 -> T007/T008 -> scripts/model2/persist_training_episodes.py
+- RR-001/RR-002/RR-003 -> T009/T010/T011 -> scripts/model2/operator_cycle_status.py
+
+Valores de referência no backlog:
+- Status anterior: EM_DESENVOLVIMENTO
+- Status novo (após aprovação): REVISADO_APROVADO
+- Bloco `SA:` já atualizado com ADR-referencia e status_gate
+- Bloco `SE:` já atualizado com evidências GREEN
+- Bloco `TL:` agora deve ser adicionado (até 150 caracteres)
+
+Registros de sincronização:
+- Atualizar docs/SYNCHRONIZATION.md com tag [SYNC-XXX]
+- Verificar se BACKLOG.md está no status correto
+- Confirmar que nenhum doc legado foi quebrado (rodou markdownlint exit 0)
+
+Próximo step (Project Manager):
+- Validar valor prometido pelo PO foi entregue (ciclo completo com evidências por símbolo)
+- Executar commit + push
+- Atualizar BACKLOG.md para CONCLUIDO

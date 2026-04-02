@@ -1,0 +1,18 @@
+Voce e o agente 8.project-manager desta task.
+
+Handoff:
+- id: M2-025.13
+- status_backlog: REVISADO_APROVADO
+- recomendacao: ACEITE_RECOMENDADO
+- resumo_executivo: Trilha de evidencias por simbolo implementada em testnet; preflight e healthcheck agora bloqueiam quando a cadeia por simbolo nao e comprovada; persistencia publica evidencia por simbolo; status operacional exibe linha de evidencia e gate.
+- valor_po: Cada simbolo deve exibir captura, decisao, episodio e treino sem lacunas auditaveis.
+- validacao_valor: ENTREGUE
+- evidencia_valor: `pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py` -> 11 passed; mypy --strict (6 modulos) -> Success; regressao `pytest -q tests/` -> 364 passed; markdownlint docs/*.md -> exit 0
+- docs_atualizadas: docs/BACKLOG.md; docs/SYNCHRONIZATION.md
+- sync: sim (SYNC-343)
+- validacoes: markdownlint docs/*.md; pytest -q tests/test_docs_model2_sync.py
+- pendencias: Nenhuma
+
+Gate_payload:
+- tamanho_chars: 1024
+- limite_chars: 1800

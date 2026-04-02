@@ -286,7 +286,7 @@ ADR-009 e ADR-025, sem conflito arquitetural e sem schema novo.
 
 ### TAREFA M2-020.14 - Consolidar documentacao da nova arquitetura
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Entrega:
 
@@ -3724,25 +3724,67 @@ iniciar.bat (aud24h em Treino + fallback deterministico de decision_id);
 trilha ponta-a-ponta validada (PO->SA->QA->SE->TL->DOC), sync [SYNC-260]
 concluido.
 
-<!-- ### TAREFA M2-025.13 - Integracao testnet para dados e treino
+### TAREFA M2-025.13 - Integracao testnet para dados e treino
 
-Status: Em analise
+Status: IMPLEMENTADO
 
-Score PO: 3.90 (Valor=4, Urg=4, Risco=4, Esf=2)
+Score PO: 4.00 (ValorReal=4, Valor=4, Urg=4, Risco=4, Esf=2)
+Sprint: Sprint atual
+Prioridade: P1
 
 Descricao:
 Executar fluxo em testnet validando captura, decisao, episodio e treino com
-evidencias por simbolo.
+evidencias por simbolo antes de ampliar promocao para paper/live.
 
 Dependencias:
 
 - M2-018.2
 - M2-025.12
 
-PO: Score 3.90. Priorizado para validar ciclo completo em testnet com
-evidencias por simbolo e reduzir risco antes do live. Ao fim deste
-desenvolvimento estarei feliz se cada simbolo tiver logs de captura,
-decisao, episodio e treino sem lacunas. -->
+Qual o valor real capturado pela operacao em iniciar.bat?
+
+- Valor direto: o operador passa a ver o ciclo completo com captura,
+  decisao, episodio e treino sem lacunas auditaveis por simbolo.
+- Evidencia atual: ha cobertura local de treino/carga, mas falta prova
+  integrada em testnet no fluxo completo.
+- Meta de fechamento: `iniciar.bat` e artefatos do runtime mostram cada
+  simbolo com trilha completa e sem gaps operacionais.
+
+PO: Validar o ciclo completo em testnet antes de ampliar promocao do M2.
+Ao fim deste desenvolvimento estarei feliz se cada simbolo exibir captura,
+decisao, episodio e treino sem lacunas auditaveis.
+
+SA: Gate ADR aprovado; reusar preflight, healthcheck e evidencias por
+simbolo em testnet, sem schema novo e com fail-safe em qualquer lacuna.
+adr_referencia: ADR-002; ADR-003; ADR-004; ADR-006; ADR-007; ADR-008;
+ADR-009
+status_gate: APROVADO_POR_ADR
+Impacto arquitetural: LOW
+
+PM: ACEITE — Entrega validada tecnicamente e pronta para fechamento operacional. BACKLOG atualizado para `CONCLUIDO`.
+
+QA: Suite RED criada em
+`tests/test_model2_m2_025_13_testnet_data_training_evidence.py` com 11
+testes; resultado inicial verificado: 10 failed, 1 passed em 13.45s
+(RED esperado). Falhas cobrem ausencia de `symbol_status` no preflight,
+healthcheck falso `ok` sem gate por simbolo, falta de evidencia de
+`training_evidence_by_symbol` e ausencia de linha/gate de evidencia no
+`operator_cycle_status.py`. `mypy --strict` na suite: Success.
+Comando validacao:
+`pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+
+SE: GREEN concluido sem alterar schema e preservando `risk_gate`,
+`circuit_breaker` e idempotencia por `decision_id`. Foram adicionadas
+as evidencias por simbolo no preflight/dashboard, o bloqueio fail-safe
+no healthcheck, o resumo `training_evidence_by_symbol` e a linha
+`Evidencia` no status operacional. Validacoes verificadas:
+`pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+> 11 passed em 14.99s; `mypy --strict` nos 6 modulos alterados ->
+Success; `pytest -q tests/` -> 364 passed em 87.47s.
+
+TL: APROVADO — Trilha por símbolo implementada; testes verdes e guardrails preservados.
+
+DOC: docs sincronizadas apos aprovacao tecnica e prontas para aceite.
 
 ### TAREFA M2-025.6 - Correlacao episodio treino e execucao
 

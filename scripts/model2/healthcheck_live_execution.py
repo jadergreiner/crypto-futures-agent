@@ -57,6 +57,62 @@ def _run_alert_command(command: str, summary: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_symbol_status_contract(latest_payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """Valida trilha por simbolo sem permitir falso `ok` no healthcheck."""
+    violations: list[dict[str, Any]] = []
+    raw_symbol_status = latest_payload.get("symbol_status")
+    required_keys = {"capture", "decision", "episode", "training", "overall_status"}
+
+    if not isinstance(raw_symbol_status, dict) or not raw_symbol_status:
+        return [
+            {
+                "code": "missing_symbol_status_contract",
+                "message": "Live dashboard nao publicou a trilha capture/decision/episode/training por simbolo.",
+            }
+        ]
+
+    invalid_symbols: list[str] = []
+    incomplete_symbols: list[str] = []
+    for symbol, payload in raw_symbol_status.items():
+        if not isinstance(payload, dict):
+            invalid_symbols.append(str(symbol))
+            continue
+
+        payload_keys = {str(key) for key in payload.keys()}
+        missing_keys = sorted(required_keys - payload_keys)
+        if missing_keys:
+            invalid_symbols.append(f"{symbol}:missing={','.join(missing_keys)}")
+            continue
+
+        step_values = [
+            str(payload.get("capture") or "").strip().lower(),
+            str(payload.get("decision") or "").strip().lower(),
+            str(payload.get("episode") or "").strip().lower(),
+            str(payload.get("training") or "").strip().lower(),
+        ]
+        overall_status = str(payload.get("overall_status") or "").strip().lower()
+        if overall_status != "ok" or any(value != "ok" for value in step_values):
+            incomplete_symbols.append(str(symbol))
+
+    if invalid_symbols:
+        violations.append(
+            {
+                "code": "invalid_symbol_status_contract",
+                "message": "Live dashboard publicou `symbol_status` incompleto.",
+                "symbols": invalid_symbols,
+            }
+        )
+    if incomplete_symbols:
+        violations.append(
+            {
+                "code": "symbol_evidence_incomplete",
+                "message": "Um ou mais simbolos ainda nao provaram a cadeia completa de evidencia operacional.",
+                "symbols": incomplete_symbols,
+            }
+        )
+    return violations
+
+
 def run_live_healthcheck(
     *,
     runtime_dir: str | Path,
@@ -126,6 +182,8 @@ def run_live_healthcheck(
                 }
             )
 
+        violations.extend(_validate_symbol_status_contract(latest_payload))
+
     run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     violation_codes = {str(item.get("code", "")) for item in violations if isinstance(item, dict)}
     gate_result = PromotionEvaluator().evaluate_evidence_gate(
@@ -143,6 +201,9 @@ def run_live_healthcheck(
             and latest_payload is not None
             and "missing_live_dashboard" not in violation_codes
             and "invalid_live_dashboard" not in violation_codes
+            and "missing_symbol_status_contract" not in violation_codes
+            and "invalid_symbol_status_contract" not in violation_codes
+            and "symbol_evidence_incomplete" not in violation_codes
         ),
         evidence_ref=str(latest_path) if latest_path else None,
     )

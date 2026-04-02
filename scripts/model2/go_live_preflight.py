@@ -759,6 +759,87 @@ def _check_train_episodes(*, checkpoints_dir: Path, min_train_steps: int) -> dic
     }
 
 
+def _symbol_table_has_rows(conn: sqlite3.Connection, *, table_name: str, symbol: str) -> bool:
+    """Retorna True quando existir ao menos um registro do simbolo na tabela."""
+    try:
+        table_exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ? LIMIT 1",
+            (table_name,),
+        ).fetchone()
+        if table_exists is None:
+            return False
+
+        columns = {
+            str(row[1]).lower()
+            for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+        }
+        if "symbol" not in columns:
+            return False
+
+        row = conn.execute(
+            f"SELECT 1 FROM {table_name} WHERE symbol = ? LIMIT 1",
+            (symbol,),
+        ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def _build_testnet_symbol_status(
+    *,
+    db_path: Path,
+    symbols: tuple[str, ...],
+    candle_freshness_result: dict[str, Any],
+    train_checkpoint_result: dict[str, Any],
+    train_episodes_result: dict[str, Any],
+) -> dict[str, dict[str, str]]:
+    """Monta a trilha auditavel capture->decision->episode->training por simbolo."""
+    normalized_symbols = _normalize_live_symbols(symbols)
+    if not normalized_symbols:
+        return {}
+
+    statuses: dict[str, dict[str, str]] = {}
+    try:
+        with sqlite3.connect(db_path) as conn:
+            for symbol in normalized_symbols:
+                capture_ok = bool(candle_freshness_result.get("passed")) or any(
+                    _symbol_table_has_rows(conn, table_name=table_name, symbol=symbol)
+                    for table_name in ("opportunities", "technical_signals", "signal_executions")
+                )
+                decision_ok = any(
+                    _symbol_table_has_rows(conn, table_name=table_name, symbol=symbol)
+                    for table_name in ("model_decisions", "signal_executions")
+                )
+                episode_ok = _symbol_table_has_rows(
+                    conn,
+                    table_name="training_episodes",
+                    symbol=symbol,
+                )
+                training_ok = (
+                    episode_ok
+                    and bool(train_checkpoint_result.get("passed"))
+                    and bool(train_episodes_result.get("passed"))
+                )
+                overall_status = "ok" if all((capture_ok, decision_ok, episode_ok, training_ok)) else "alert"
+                statuses[symbol] = {
+                    "capture": "ok" if capture_ok else "missing",
+                    "decision": "ok" if decision_ok else "missing",
+                    "episode": "ok" if episode_ok else "missing",
+                    "training": "ok" if training_ok else "missing",
+                    "overall_status": overall_status,
+                }
+    except Exception:
+        for symbol in normalized_symbols:
+            statuses[symbol] = {
+                "capture": "missing",
+                "decision": "missing",
+                "episode": "missing",
+                "training": "missing",
+                "overall_status": "alert",
+            }
+    return statuses
+
+
 def run_go_live_preflight(
     *,
     model2_db_path: str | Path | None = None,
@@ -1324,6 +1405,14 @@ def run_go_live_preflight(
                     error=None if runbook_ok else "Runbook file is missing or unreadable.",
                 )
 
+    symbol_status = _build_testnet_symbol_status(
+        db_path=resolved_db,
+        symbols=selected_symbols,
+        candle_freshness_result=candle_freshness_result,
+        train_checkpoint_result=train_checkpoint_result,
+        train_episodes_result=train_episodes_result,
+    )
+
     overall_status = "ok" if all(check["status"] == "ok" for check in checks if check["status"] != "skipped") else "alert"
     if data_consistency_fail:
         overall_status = "alert"
@@ -1344,12 +1433,25 @@ def run_go_live_preflight(
     testnet_credentials_evidence = (
         check6_evidence.get("testnet_credentials", {}) if isinstance(check6_evidence, dict) else {}
     )
+    requires_symbol_evidence_gate = (
+        bool(testnet_credentials_evidence.get("requires_testnet_credentials"))
+        or str(testnet_credentials_evidence.get("trading_mode", "")).strip().lower() == "live"
+        or str(testnet_credentials_evidence.get("execution_mode", "")).strip().lower() == "live"
+    )
+    if requires_symbol_evidence_gate and any(
+        str(status.get("overall_status", "alert")).lower() != "ok"
+        for status in symbol_status.values()
+    ):
+        data_consistency_fail = True
+        overall_status = "alert"
+
     testnet_evidence: dict[str, Any] = {
         "decision_execution_correlation": {
             "required_fields": ["decision_id", "execution_id", "reason_code", "severity", "recommended_action"],
             "status": "required_for_m2_024_12",
         },
         "testnet_credentials": testnet_credentials_evidence,
+        "symbol_status": symbol_status,
     }
     summary: dict[str, Any] = {
         "status": overall_status,
