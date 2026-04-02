@@ -3726,7 +3726,7 @@ concluido.
 
 ### TAREFA M2-025.13 - Integracao testnet para dados e treino
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Score PO: 4.00 (ValorReal=4, Valor=4, Urg=4, Risco=4, Esf=2)
 Sprint: Sprint atual
@@ -3761,7 +3761,10 @@ ADR-009
 status_gate: APROVADO_POR_ADR
 Impacto arquitetural: LOW
 
-PM: ACEITE — Entrega validada tecnicamente e pronta para fechamento operacional. BACKLOG atualizado para `CONCLUIDO`.
+PM: ACEITE em 2026-04-02. Valor do PO entregue com trilha auditavel
+por simbolo no fluxo capture -> decision -> episode -> training em
+testnet; fechamento operacional concluido com docs sincronizadas e
+arvore local limpa.
 
 QA: Suite RED criada em
 `tests/test_model2_m2_025_13_testnet_data_training_evidence.py` com 11

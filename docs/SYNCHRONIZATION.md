@@ -23,6 +23,24 @@ toda vez que mudanças significativas são feitas no código:
 
 ## Histórico de Sincronizações
 
+### [SYNC-344] Project Manager ACEITE final M2-025.13 - 2026-04-02
+
+- Agente: 8.project-manager
+- Item: M2-025.13
+- Decisao final: ACEITE
+- Status backlog final: CONCLUIDO
+- Valor validado: evidencias auditaveis por simbolo do ciclo capture ->
+  decision -> episode -> training persistidas em testnet e prontas para
+  rastreio operacional.
+- Evidencias de fechamento:
+  - `git status --short` inicial -> apenas 4 arquivos temporarios em
+    `temp/`
+  - `pytest -q tests/test_model2_m2_025_13_testnet_data_training_evidence.py`
+    -> validado no fechamento PM
+  - `markdownlint docs/*.md` e
+    `pytest -q tests/test_docs_model2_sync.py` -> revalidados apos sync
+- Proxima acao: encerrar a task e seguir para o proximo item priorizado.
+
 ### [SYNC-342] Software Engineer GREEN da M2-025.13 - 2026-04-02
 
 - Agente: 5.software-engineer
