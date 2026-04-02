@@ -119,15 +119,31 @@ def execute_with_category_retry(
     category: str,
     max_attempts: int,
 ) -> dict[str, object]:
-    attempts = 1 if category == "permanent" else max(1, int(max_attempts))
+    retryable_categories = {"timeout", "transient"}
+    normalized_category = str(category or "unknown").strip().lower()
+    should_retry = normalized_category in retryable_categories
+    attempts = max(1, int(max_attempts)) if should_retry else 1
+
     last_error: str | None = None
     for _ in range(attempts):
         try:
             fn()
-            return {"ok": True, "error": None}
+            return {
+                "ok": True,
+                "error": None,
+                "category": normalized_category,
+                "attempts": attempts,
+                "should_retry": should_retry,
+            }
         except Exception as exc:  # noqa: BLE001 - contrato de retry
             last_error = str(exc)
-    return {"ok": False, "error": last_error}
+    return {
+        "ok": False,
+        "error": last_error,
+        "category": normalized_category,
+        "attempts": attempts,
+        "should_retry": should_retry,
+    }
 
 
 def compute_reconciliation_health_indicators(

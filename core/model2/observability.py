@@ -52,7 +52,7 @@ def registrar_latencia(
             db_path = "db/modelo2.db"
 
     ts = int(time.time() * 1000)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=5)
     try:
         conn.execute(
             """
@@ -199,7 +199,7 @@ class Model2ObservabilityService:
         self.db_path = db_path
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=5)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn

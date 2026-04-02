@@ -196,7 +196,7 @@ class Model2ThesisRepository:
         self.db_path = db_path
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=5)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA busy_timeout = 5000")
@@ -2539,7 +2539,7 @@ class Model2ExecutionRepository:
     def _connect(self) -> sqlite3.Connection:
         import sqlite3 as _sqlite3
 
-        conn = _sqlite3.connect(self.db_path)
+        conn = _sqlite3.connect(self.db_path, timeout=5)
         conn.row_factory = _sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         return conn

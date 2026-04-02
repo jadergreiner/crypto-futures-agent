@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Sequence, TypedDict
 
+from .error_handling import classify_execution_error
+
 
 class LatencySLOResult(TypedDict):
     latency_ok: bool
@@ -172,19 +174,32 @@ def classify_operational_error(
     decision_id: int,
     execution_id: int,
 ) -> ErrorClassificationResult:
-    """Classifica erro operacional em transitorio/permanente com correlacao."""
+    """Classifica erro operacional com contrato padronizado e correlacao."""
     normalized_kind = error_kind.strip().lower()
-    if normalized_kind in {"timeout", "connection", "temporario", "transient"}:
-        category = "transient"
-        reason_code = "timeout" if normalized_kind == "timeout" else "transient_error"
+    if normalized_kind == "timeout":
+        error: Exception = TimeoutError(error_kind)
+    elif normalized_kind in {"connection", "temporario", "transient"}:
+        error = ConnectionError(error_kind)
+    elif normalized_kind in {"validation", "payload", "schema"}:
+        error = ValueError(error_kind)
+    elif normalized_kind in {"unknown", "nao_mapeado"}:
+        error = Exception(error_kind)
     else:
-        category = "permanent"
-        reason_code = "permanent_error"
+        error = RuntimeError(error_kind)
+
+    payload = classify_execution_error(
+        error,
+        source=source,
+        operation="shadow_load_validation",
+        decision_id=decision_id,
+        execution_id=execution_id,
+    )
+    category = "transient" if payload["category"] == "timeout" else str(payload["category"])
 
     return {
-        "source": source,
+        "source": str(payload["source"]),
         "category": category,
-        "reason_code": reason_code,
+        "reason_code": str(payload["reason_code"]),
         "decision_id": decision_id,
         "execution_id": execution_id,
     }

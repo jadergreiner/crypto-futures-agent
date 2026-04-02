@@ -277,6 +277,8 @@ Executa ajustes finais quando necessário, atualiza backlog para `CONCLUIDO`,
 realiza commit/push para `main`, garante árvore local limpa, assegura que o
 valor capturado pelo Product Owner foi de fato entregue e atua como último
 gate antes de autorizar merge, exigindo validação ADR pelo Tech Lead.
+No fechamento operacional, deve usar a skill `10.close` e, quando houver
+alterações, delegar para a skill `9.commit`.
 
 **Entrada**
 - Relatório executivo do Doc Advocate
@@ -301,6 +303,7 @@ gate antes de autorizar merge, exigindo validação ADR pelo Tech Lead.
 - Não autorizar merge sem validação ADR explícita do Tech Lead
 - Não fechar atividade sem atualizar backlog para `CONCLUIDO`
 - Não encerrar com árvore local suja
+- No fechamento, executar `10.close` e `9.commit` sem pular validações
 - Em dúvida de conformidade: DEVOLVER para ajuste
 
 ---
@@ -503,8 +506,9 @@ resultado = runSubagent(
 
 ---
 
-**Última atualização**: 2026-04-01
+**Última atualização**: 2026-04-02
 **Alterações mais recentes**: incorporado o gate arquitetural da skill
 `15.adr-analysis` nos agentes Solution Architect, Software Engineer,
 Tech Lead, Project Manager e Dev Cycle, com rastreabilidade de ADR até o
-último gate antes do merge.
+último gate antes do merge; o agente `8.project-manager` agora também
+usa `10.close` e delega para `9.commit` no fechamento operacional.

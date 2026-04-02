@@ -158,7 +158,7 @@ def validate_schema_pre_exec(db_path: Path) -> dict[str, Any]:
             "timestamp_utc": timestamp,
         }
 
-    with sqlite3.connect(db_path) as conn:
+    with sqlite3.connect(db_path, timeout=5) as conn:
         found: set[str] = {
             str(row[0])
             for row in conn.execute(

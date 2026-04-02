@@ -53,7 +53,7 @@ def count_validated_signals(*, model2_db_path: str | Path, symbol: str) -> int:
     db_path = Path(model2_db_path)
     if not db_path.exists():
         return 0
-    with sqlite3.connect(db_path) as conn:
+    with sqlite3.connect(db_path, timeout=5) as conn:
         row = conn.execute(
             """
             SELECT COUNT(*)

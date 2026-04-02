@@ -58,7 +58,7 @@ def query_operational_status(db_path: str, symbol: Optional[str] = None) -> dict
     }
 
     try:
-        with sqlite3.connect(db_path) as conn:
+        with sqlite3.connect(db_path, timeout=5) as conn:
             # Oportunidades ativas
             sym_filter = "AND symbol = ?" if symbol else ""
             params_sym: list[Any] = [symbol] if symbol else []
@@ -139,7 +139,7 @@ def query_by_symbol(db_path: str, symbol: str, limit: int = MAX_ROWS_PER_QUERY) 
     rows: list[dict[str, Any]] = []
     effective_limit = min(limit, MAX_ROWS_PER_QUERY)
     try:
-        with sqlite3.connect(db_path) as conn:
+        with sqlite3.connect(db_path, timeout=5) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 """
@@ -186,7 +186,7 @@ def query_by_period(
     params: list[Any] = [start_ms, end_ms] + ([symbol] if symbol else [])
 
     try:
-        with sqlite3.connect(db_path) as conn:
+        with sqlite3.connect(db_path, timeout=5) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 f"""

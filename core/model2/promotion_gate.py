@@ -153,7 +153,7 @@ class PromotionEvaluator:
         resolved_db_path = Path(db_path) if db_path is not None else self._model2_db_path
         event_type = "ROLLBACK_EVENT" if result.rollback_to_paper else "EVALUATION"
 
-        with sqlite3.connect(resolved_db_path) as conn:
+        with sqlite3.connect(resolved_db_path, timeout=5) as conn:
             conn.execute("PRAGMA foreign_keys = ON")
             cursor = conn.execute(
                 """

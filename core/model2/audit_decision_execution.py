@@ -62,7 +62,7 @@ class AuditDecisionExecutionRepository:
         ts_str = record.timestamp_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         try:
-            with sqlite3.connect(self._db_path) as conn:
+            with sqlite3.connect(self._db_path, timeout=5) as conn:
                 conn.execute(
                     """
                     INSERT INTO audit_decision_execution
@@ -92,7 +92,7 @@ class AuditDecisionExecutionRepository:
     ) -> list[AuditDecisionExecution]:
         """Retorna todos os registros correlacionados a um decision_id."""
         rows: list[AuditDecisionExecution] = []
-        with sqlite3.connect(self._db_path) as conn:
+        with sqlite3.connect(self._db_path, timeout=5) as conn:
             cursor = conn.execute(
                 """
                 SELECT decision_id, execution_id, signal_id, timestamp_utc,
@@ -113,7 +113,7 @@ class AuditDecisionExecutionRepository:
     ) -> list[AuditDecisionExecution]:
         """Retorna todos os registros correlacionados a um execution_id."""
         rows: list[AuditDecisionExecution] = []
-        with sqlite3.connect(self._db_path) as conn:
+        with sqlite3.connect(self._db_path, timeout=5) as conn:
             cursor = conn.execute(
                 """
                 SELECT decision_id, execution_id, signal_id, timestamp_utc,

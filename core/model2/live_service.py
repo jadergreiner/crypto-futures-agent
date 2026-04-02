@@ -69,6 +69,7 @@ from .model_decision import (
 from .model_inference_service import ModelInferenceService
 from .model_state_builder import M2_020_3_RULE_ID, build_model_decision_input
 from .repository import Model2ThesisRepository
+from .error_handling import build_error_event, classify_execution_error
 from .io_retry import exchange_retry_with_budget, ExchangeRetryBudgetError
 from .market_reader import RetryPolicy, read_market_with_retry
 from .volatility_sizing import (
@@ -211,16 +212,24 @@ class Model2LiveExecutionService:
         return True, "ok"
 
     @staticmethod
-    def classify_unknown_execution_error(error: Exception) -> dict[str, Any]:
-        """Classifica erro nao mapeado em contrato fail-safe padrao."""
-        return {
-            "reason_code": "unknown_execution_error",
-            "severity": "CRITICAL",
-            "recommended_action": "bloquear_operacao",
-            "status": "FAILED",
-            "error_type": type(error).__name__,
-            "error_message": str(error),
-        }
+    def classify_unknown_execution_error(
+        error: Exception,
+        *,
+        decision_id: int | None = None,
+        execution_id: int | None = None,
+        source: str = "live",
+        operation: str = "unknown_execution",
+    ) -> dict[str, Any]:
+        """Classifica erro nao mapeado em contrato fail-safe padronizado."""
+        return dict(
+            classify_execution_error(
+                error,
+                source=source,
+                operation=operation,
+                decision_id=decision_id,
+                execution_id=execution_id,
+            )
+        )
 
     def emit_execution_error_contract_event(
         self,
@@ -233,17 +242,24 @@ class Model2LiveExecutionService:
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Monta payload de erro padronizado para auditoria operacional."""
-        payload: dict[str, Any] = {
-            "event_type": "execution_error_contract",
-            "status": "FAILED" if str(severity).upper() in {"HIGH", "CRITICAL"} else "BLOCKED",
-            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
-            "reason_code": str(reason_code),
-            "severity": str(severity).upper(),
-            "recommended_action": str(recommended_action),
-            "decision_id": decision_id,
-            "execution_id": execution_id,
-            "metadata": dict(metadata or {}),
-        }
+        payload = build_error_event(
+            {
+                "source": str((metadata or {}).get("source", "live")),
+                "operation": str((metadata or {}).get("operation", "execution")),
+                "category": str((metadata or {}).get("category", "unknown")),
+                "reason_code": str(reason_code),
+                "severity": str(severity).upper(),
+                "recommended_action": str(recommended_action),
+                "should_retry": bool((metadata or {}).get("should_retry", False)),
+                "timeout_seconds": float((metadata or {}).get("timeout_seconds", 0.0)),
+                "decision_id": decision_id,
+                "execution_id": execution_id,
+                "error_type": str((metadata or {}).get("error_type", "UnknownError")),
+                "error_message": str((metadata or {}).get("error_message", "")),
+                "details": dict(metadata or {}),
+            }
+        )
+        payload["timestamp"] = int(datetime.now(timezone.utc).timestamp() * 1000)
         return payload
 
     def rehydrate_runtime_state(self, *, symbol: str | None = None) -> dict[str, Any]:
