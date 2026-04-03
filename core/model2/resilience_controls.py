@@ -277,8 +277,7 @@ def reset_retry_counters() -> None:
     Uso tipico: testes unitarios que precisam de estado limpo entre casos,
     ou reinicio do ciclo operacional no inicio de cada sessao live.
     """
-    global _retry_counters
-    _retry_counters = {}
+    _retry_counters.clear()
 
 
 def compute_reconciliation_health_indicators(

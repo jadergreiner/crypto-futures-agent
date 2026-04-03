@@ -10,12 +10,18 @@ import importlib
 from types import ModuleType
 from unittest.mock import patch
 
+import pytest
+
 
 def _mod() -> ModuleType:
-    import importlib as _il
-    m = _il.import_module("core.model2.resilience_controls")
-    _il.reload(m)
-    return m
+    return importlib.import_module("core.model2.resilience_controls")
+
+
+@pytest.fixture(autouse=True)
+def limpar_contadores() -> None:
+    """Reseta contadores antes de cada teste para garantir isolamento."""
+    mod = _mod()
+    mod.reset_retry_counters()
 
 
 # ---------------------------------------------------------------------------
