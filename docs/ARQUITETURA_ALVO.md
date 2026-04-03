@@ -250,11 +250,25 @@ Resiliencia e fail-safe de pipeline (M2-027):
 - `REASON_CODE_CATALOG` expandido com `orphan_position` (M2-027.3).
 - `core/model2/resilience_controls.py` (PKG-PO10-0326) — funcoes puras para
   contrato de resiliencia operacional:
-  - drift gate pre-admissao (`evaluate_position_drift_gate`)
-  - degradacao por latencia (`evaluate_latency_degradation`)
+  - drift gate pre-admissao (`evaluate_position_drift_gate`) — bloqueia
+    nova admissao quando drift entre `position_qty` local e observado
+    supera `threshold_pct`; retorna `allow`, `reason_code`
+    ('position_drift_blocked' ou None), `decision_id` e `drift_pct`;
+    baseline protege contra divisao por zero (M2-023.2, ADR-002/007)
+  - degradacao por latencia (`evaluate_latency_degradation`) — avalia
+    entrada no modo degradado (p95_ms > p95_limit_ms ou p99_ms >
+    p99_limit_ms) e saida do modo: `exit_ready=True` somente quando
+    `stable_window_count` medicoes consecutivas ficam abaixo do SLO;
+    janela vazia ou insuficiente retorna `exit_ready=False`; retrocompat
+    com chamadas sem janela (M2-023.3, ADR-002/007)
   - restart idempotente (`plan_restart_from_snapshot`)
   - fila priorizada (`prioritize_events`)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
+  - trilha ponta-a-ponta do DB por decision_id
+    (`build_risk_gate_audit_trail`) — consulta `signal_executions JOIN
+    signal_execution_events` retornando lista com execution_id,
+    reason_code, symbol, timestamp_ms e metadata; fail-safe sem excecao
+    (M2-023.6, ADR-002/007)
   - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
   - retry por categoria (`execute_with_category_retry`)
   - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
@@ -391,7 +405,22 @@ Componentes:
 - Em indisponibilidade de DB/consulta, o contrato mantem fail-safe:
   bloco renderizavel com lacuna explicita e sem mascaramento.
 
-**M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
+**BLID-104 (Prontidao de promocao por simbolo)**:
+
+- Linha `Promocao` adicionada ao bloco por simbolo em
+  `operator_cycle_status.py` via helper
+  `_build_promotion_readiness_line(symbol, risk_state, tf_statuses)`.
+- Deriva tres pilares de evidencia dos dados ja disponiveis no ciclo:
+  `risk_evidence_ok` (CB=normal e RG=ok), `stability_evidence_ok`
+  (todos os timeframes frescos), `consistency_evidence_ok` (ao menos
+  1 timeframe fresco).
+- Chama `PromotionEvaluator().evaluate_evidence_gate()` (ADR-007).
+- GO exibe `[PRONTO PARA PROMOCAO]`; NO_GO exibe razao principal
+  (max 60 chars).
+- `decision_id` estavel por janela de 5 minutos (idempotente).
+- Fail-safe: qualquer excecao retorna "N/A" sem propagar (ADR-002).
+
+
 
 - `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`
   em `core/model2/cycle_report.py` (M2-025.3): detecta lacuna por janela

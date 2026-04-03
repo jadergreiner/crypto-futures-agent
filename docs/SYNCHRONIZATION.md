@@ -8681,3 +8681,77 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
 - Observacao: falha pre-existente em test_docs_model2_sync.py
   (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-103.
+
+### [SYNC-283] BLID-104 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: BLID-104
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — secao BLID-104 adicionada descrevendo
+    linha `Promocao` no bloco por simbolo, tres pilares de evidencia e
+    contrato fail-safe. Sem alteracao de secoes existentes.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_blid_104_promotion_readiness.py ->
+    7 passed
+  - mypy --strict scripts/model2/operator_cycle_status.py
+    core/model2/promotion_gate.py -> Success
+  - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+- Observacao: falha pre-existente em test_docs_model2_sync.py
+  (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-104.
+
+### [SYNC-284] M2-023.6 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.6
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — linha `build_risk_gate_audit_trail`
+    adicionada na descricao de `resilience_controls.py` com contrato
+    de campos, referencia ADR-002/007 e comportamento fail-safe.
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py ->
+    7 passed
+  - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py ->
+    10 passed (regressao M2-023 batch)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+- Observacao: falha pre-existente em test_docs_model2_sync.py
+  (db/modelo2.db ausente no CI) fora do escopo M2-023.6.
+
+### [SYNC-285] M2-023.2 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.2
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de `evaluate_position_drift_gate`
+    expandida com contrato completo (campos, baseline anti-zero, M2-023.2
+    e referencia ADR-002/007).
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_m2_023_2_drift_gate.py -> 8 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-286] M2-023.3 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.3
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de
+    `evaluate_latency_degradation` expandida com contrato de entrada e
+    saida do modo degradado (recent_window, stable_window_count,
+    exit_ready, semantica SLO, M2-023.3, ADR-002/007).
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success

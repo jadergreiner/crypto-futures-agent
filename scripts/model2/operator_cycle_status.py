@@ -9,6 +9,7 @@ import json
 import os
 import sqlite3
 import sys
+import time
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -40,6 +41,7 @@ from core.model2.cycle_report import (
     resolve_candle_freshness_contract,
 )
 from core.model2.training_audit import summarize_training_audit_window
+from core.model2.promotion_gate import PromotionEvaluator
 from config.settings import M2_EXECUTION_MODE
 
 try:
@@ -191,6 +193,8 @@ class TimeframeCandleStatus:
 
 
 BLID_101_STATUS_CONTRACT = "BLID-101-v1"
+
+PROMOTION_WINDOW_SECONDS = 300  # janela de 5 min para decision_id idempotente
 
 
 def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
@@ -904,6 +908,72 @@ def _has_scan_entry_for_symbol(
     return False
 
 
+def _build_promotion_readiness_line(
+    *,
+    symbol: str,
+    risk_state: Optional[dict[str, Any]],
+    tf_statuses: List["TimeframeCandleStatus"],
+) -> str:
+    """Avalia prontidao de promocao shadow->paper para o simbolo (ADR-007/009).
+
+    Deriva os tres pilares de evidencia a partir dos dados ja disponiveis
+    no ciclo de status e chama PromotionEvaluator.evaluate_evidence_gate().
+    Fail-safe: nunca propaga excecao; retorna "N/A" em caso de erro.
+
+    Args:
+        symbol: Simbolo operacional (ex.: "BTCUSDT").
+        risk_state: Dicionario de estado de risco ou None.
+        tf_statuses: Lista de TimeframeCandleStatus por timeframe.
+
+    Returns:
+        String formatada com decisao GO/NO_GO e resumo de razoes.
+    """
+    try:
+        # Pilar 1 — risco: CB em estado normal e risk_gate ok
+        if risk_state is None:
+            risk_evidence_ok = False
+        else:
+            cb_state = str(risk_state.get("circuit_breaker_state", "N/A"))
+            rg_status = str(risk_state.get("risk_gate_status", "N/A"))
+            risk_evidence_ok = cb_state == "normal" and rg_status == "ok"
+
+        # Pilar 2 — estabilidade: todos os timeframes com estado fresh
+        if not tf_statuses:
+            stability_evidence_ok = False
+        else:
+            stability_evidence_ok = all(
+                tf.state == "fresh" for tf in tf_statuses
+            )
+
+        # Pilar 3 — consistencia: pelo menos 1 timeframe fresco
+        consistency_evidence_ok = any(
+            tf.state == "fresh" for tf in tf_statuses
+        )
+
+        # decision_key estavel por simbolo + janela de 5 min (idempotente)
+        window_index = int(time.time()) // PROMOTION_WINDOW_SECONDS
+        decision_key = f"promo_gate_{symbol}_{window_index}"
+
+        result = PromotionEvaluator().evaluate_evidence_gate(
+            decision_id=decision_key,
+            risk_evidence_ok=risk_evidence_ok,
+            stability_evidence_ok=stability_evidence_ok,
+            consistency_evidence_ok=consistency_evidence_ok,
+            evidence_ref=None,
+        )
+
+        if result.go:
+            return f"GO | [PRONTO PARA PROMOCAO]"
+
+        # Resumir primeira razao (max 60 chars) para nao poluir o display
+        first_reason = result.reasons[0] if result.reasons else "sem_razao"
+        first_reason = first_reason[:60]
+        return f"NO_GO | {first_reason}"
+
+    except Exception:
+        return "N/A"
+
+
 def _build_symbol_report(
     *,
     symbol: str,
@@ -1224,6 +1294,13 @@ def _build_symbol_report(
 
     risk_line = _build_risk_line(risk_state, decision)
 
+    # --- Prontidao de Promocao (BLID-104, ADR-007) ---
+    promotion_line = _build_promotion_readiness_line(
+        symbol=symbol,
+        risk_state=risk_state,
+        tf_statuses=tf_statuses,
+    )
+
     # --- Posição Binance ---
     has_position = False
     position_line = "SEM POSICAO"
@@ -1286,6 +1363,7 @@ def _build_symbol_report(
         f"  Treino   : {train_line} | {audit_train_line}",
         f"  Posicao  : {position_line}",
         f"  Risk     : {risk_line}",
+        f"  Promocao : {promotion_line}",
         sep,
     ]
     return "\n".join(lines)

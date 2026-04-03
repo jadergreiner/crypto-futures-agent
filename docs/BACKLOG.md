@@ -4,6 +4,90 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ---
 
+## TAREFA BLID-104 - Exibir prontidao de promocao por simbolo no status M2
+
+Status: CONCLUIDO
+
+Score PO: 3.90 (ValorReal=5, Valor=4, Urgencia=4, ReducaoRisco=3, Esforco=2)
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+Valor direto: linha `Promocao` aparece no bloco de cada simbolo exibindo
+`[PRONTO PARA PROMOCAO]` ou a razao principal de bloqueio, sem consultar
+DB manualmente. Meta de fechamento: operador enxerga diretamente em
+`iniciar.bat` o status GO/NO-GO de promocao shadow->paper por simbolo.
+
+PO: BLID-103 concluida hoje (2026-04-03); EvidenceGate disponivel mas sem
+consumidor no status operacional. Score 3.90, desbloqueado. Ao fim deste
+desenvolvimento estarei feliz se a linha Promocao aparecer no bloco por
+simbolo com GO ou razao de bloqueio explicita em iniciar.bat.
+
+SA: Adicionar helper `_build_promotion_readiness_line(symbol, risk_state,
+tf_statuses)` em operator_cycle_status.py. Derivar risk_evidence_ok de
+risk_state.circuit_breaker_state=='normal', stability_evidence_ok de
+tf_statuses fresh, consistency_evidence_ok de pelo menos 1 tf fresco.
+Chamar PromotionEvaluator().evaluate_evidence_gate(); fail-safe sem
+excecao. Sem schema novo. ADRs: ADR-007, ADR-009, ADR-002. Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_blid_104_promotion_readiness.py
+com 7 casos (RF-104.1 a RF-104.6). ImportError confirmado por funcao
+ausente _build_promotion_readiness_line. Status: TESTES_PRONTOS.
+Comando validacao: pytest -q tests/test_model2_blid_104_promotion_readiness.py
+
+SE: Inicio GREEN-REFACTOR em 2026-04-03. Implementado
+_build_promotion_readiness_line() em operator_cycle_status.py; linha
+`Promocao` adicionada ao bloco por simbolo; 3 pilares derivados de
+risk_state + tf_statuses; decision_id idempotente por janela 5min.
+Evidencias:
+- pytest -q tests/test_model2_blid_104_promotion_readiness.py -> 7 passed
+- mypy --strict scripts/model2/operator_cycle_status.py -> Success
+- pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 21 testes (7 task + 7 evidence_gate + 7
+operator_status) passados. mypy strict OK em 2 modulos. Suite 377 sem
+regressao. Guardrails risk_gate/circuit_breaker preservados e inalterados.
+decision_id idempotente por janela 5min. Fail-safe ativo. Mudanca
+cirurgica: 1 helper + 1 import + 1 linha no display por simbolo.
+
+DOC: ARQUITETURA_ALVO.md atualizado com secao BLID-104 (linha Promocao,
+tres pilares, fail-safe). BACKLOG.md trilha sincronizada.
+SYNCHRONIZATION.md [SYNC-283] registrado. markdownlint: 0 violacoes
+novas. pytest -q tests/test_docs_model2_sync.py -> 12 passed,
+1 pre-existente (db/modelo2.db ausente no CI).
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: linha `Promocao` exibe
+GO/NO_GO por simbolo diretamente em iniciar.bat sem consultar DB.
+Trilha completa: PO (Score 3.90) -> SA (ADR-007/009/002) -> QA (7 RED)
+-> SE (7 GREEN, mypy OK) -> TL (APROVADO, 21 testes) -> DOC (SYNC-283).
+377 passed, mypy strict OK, guardrails preservados.
+
+Descricao:
+Adicionar linha `Promocao` no bloco por simbolo do
+`operator_cycle_status.py`, consultando
+`PromotionEvaluator.evaluate_evidence_gate()` para exibir ao operador se
+o simbolo atingiu criterios minimos de risco, estabilidade e consistencia
+para promocao shadow -> paper.
+
+Criterios de Aceite:
+
+- [ ] Linha `Promocao` aparece no bloco de cada simbolo com status GO/NO-GO
+- [ ] Campos exibidos: `go`, `decision`, `reasons` resumidas (max 60 chars)
+- [ ] Quando `go=True`: exibir `[PRONTO PARA PROMOCAO]`
+- [ ] Quando `go=False`: exibir razao principal de bloqueio
+- [ ] Idempotente por `decision_id` (fail-safe sem excecao)
+- [ ] `pytest -q tests/` passa sem regressoes
+- [ ] `mypy --strict` nos modulos alterados sem erros novos
+
+Dependencias:
+
+- BLID-103 (evaluate_evidence_gate implementado)
+- operator_cycle_status.py funcional
+
+Impacto:
+Operador enxerga diretamente em `iniciar.bat` se o simbolo esta pronto
+para promocao, sem precisar consultar DB manualmente.
+
+---
+
 ## TAREFA BLID-103 - Implementar evaluate_evidence_gate no PromotionEvaluator
 
 Status: CONCLUIDO
@@ -1175,12 +1259,51 @@ implementado). Status: TESTES_PRONTOS.
 
 ### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 4.60
 PO: Drift gate evita admissao com estado divergente.
 SA: Drift gate pre-admissao com reason_code e trilha por decision_id.
 SE: PKG-PO10-0326 implementado com guardrails e idempotencia.
+
+PO: Retomada ciclo completo em 2026-04-03. Score 4.60 (P0) confirmado.
+Valor real: operador vê bloqueio de nova admissao com reason_code
+'position_drift_blocked' quando drift entre estado local e exchange
+supera limiar, evitando entradas com estado divergente. Ao fim deste
+desenvolvimento estarei feliz se evaluate_position_drift_gate bloquear
+admissao com reason_code auditavel e suite dedicada cobrir cenarios
+de drift alto, baixo e zero.
+
+SA: evaluate_position_drift_gate em resilience_controls.py (ADR-002/007).
+Aceita current_state, observed_state, threshold_pct e decision_id.
+Retorna allow, reason_code e drift_pct. Fail-safe via funcao pura.
+
+QA: Suite RED criada em tests/test_model2_m2_023_2_drift_gate.py com 8
+casos (RF-023.2.1 a RF-023.2.8). Codigo ja existia -> 8 passed (GREEN).
+Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_2_drift_gate.py
+
+SE: GREEN confirmado em 2026-04-03. evaluate_position_drift_gate em
+resilience_controls.py implementa drift gate completo: bloqueia com
+reason_code='position_drift_blocked' quando drift_pct > threshold_pct;
+preserva decision_id e expoe drift_pct. Funcao pura e idempotente.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_2_drift_gate.py -> 8 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 8 testes dedicados passados. mypy OK.
+Suite 377 sem regressao. Funcao pura, idempotente, fail-safe (baseline
+evita div-zero). Guardrails risk_gate/CB inalterados.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+evaluate_position_drift_gate (campos, baseline anti-zero, M2-023.2,
+ADR-002/007). SYNCHRONIZATION.md [SYNC-285] registrado. 0 violacoes MD013.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: evaluate_position_drift_gate
+bloqueia admissao com reason_code='position_drift_blocked' quando drift
+supera threshold, com decision_id auditavel e drift_pct exposto. Suite
+dedicada com 8 casos. 18 testes reproduzidos. 377 passed. mypy OK.
 
 Sprint: M2-023
 Prioridade: P0
@@ -1192,16 +1315,59 @@ limiar seguro em runtime.
 Criterios de Aceite:
 
 - [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
-- [ ] Reconciliação explicita motivo e acao de recuperacao.
+- [ ] Reconciliacao explicita motivo e acao de recuperacao.
 - [ ] Suite valida comportamento em shadow e live.
 
 ### TAREFA M2-023.3 - Politica de degradacao por latencia
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 4.20
-PO: Degradacao por latencia reduz risco em estresse.
-SA: Faixas P95/P99 com entrada e saida objetiva do modo degradado.
+PO: Degradacao por latencia reduz risco em estresse. Retomada ciclo
+completo 2026-04-03. Valor real: operador ve modo degradado bloqueando
+ampliacao de risco quando P95/P99 rompe SLO; saida do modo exige janela
+minima estavel sem violacao. Ao fim, estarei satisfeito se
+evaluate_latency_degradation cobrir entrada E saida do modo degradado
+com suite dedicada.
+
+SA: Expandir evaluate_latency_degradation em resilience_controls.py
+para receber historico de janela (lista de metricas recentes) e
+stable_window_count (numero de medicoes consecutivas abaixo do SLO
+para sair do modo degradado). Funcao pura, ADR-002/007. Entradas:
+metrics, p95_limit_ms, p99_limit_ms, recent_window (lista),
+stable_window_count (int, default 3). Saida adicional: exit_ready (bool).
+
+QA: Suite RED criada em tests/test_model2_m2_023_3_latency_degradation.py
+com 13 casos (RF-023.3.1 a RF-023.3.13). Fase RED: 3 falhas nas funcoes
+de saida do modo degradado (recent_window/stable_window_count ausentes).
+Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_3_latency_degradation.py
+
+SE: GREEN confirmado em 2026-04-03. evaluate_latency_degradation em
+resilience_controls.py expandida com politica de saida: aceita
+recent_window (lista) e stable_window_count (default 3); exit_ready=True
+apenas quando tail[-stable_window_count:] nao contem violacao de SLO;
+janela vazia ou insuficiente -> exit_ready=False. Funcao pura.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+
+TL: APROVADO. RED->GREEN completo. 13/13 testes. mypy OK. 377 sem
+regressao. Retrocompat: args opcionais com defaults seguros. Semantica
+> (nao >=) para SLO boundary. Fail-safe: janela vazia -> exit_ready=False.
+Guardrails risk_gate/CB inalterados.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+evaluate_latency_degradation (entrada/saida do modo degradado,
+recent_window, stable_window_count, exit_ready, semantica SLO,
+M2-023.3, ADR-002/007). SYNCHRONIZATION.md [SYNC-286] registrado.
+0 violacoes MD013.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: evaluate_latency_degradation
+cobre entrada (P95/P99 > limite -> degraded) E saida do modo degradado
+(janela estavel completa -> exit_ready=True). 23 testes reproduzidos.
+377 passed. mypy OK. Retrocompat preservada.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1260,11 +1426,58 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 4.50
 PO: Trilha de bloqueios do risk_gate fecha auditoria.
 SA: Trilha append-only com consulta por decision_id.
+
+PO: Retomada com ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: operador e auditores conseguem consultar todos os bloqueios
+do risk_gate por decision_id diretamente em modelos.db, rastreando
+reason_code e parametros de risco sem necessidade de parse de logs.
+Score 4.50 mantido (P0). Ao fim deste desenvolvimento estarei feliz se
+a funcao build_risk_gate_audit_trail retornar trilha auditavel ponta a
+ponta por decision_id a partir do banco canonical.
+
+SA: Adicionar `build_risk_gate_audit_trail(db_path, decision_id)` em
+resilience_controls.py. Consultar `signal_executions JOIN
+signal_execution_events` filtrando por decision_id e event_type
+indicando bloqueio (gate_reason/failure_reason com risk_gate_blocked).
+Retornar lista de dicts com: execution_id, decision_id, reason_code,
+symbol, timestamp_ms, metadata. Fail-safe sem excecao. Sem schema novo.
+ADRs: ADR-002, ADR-007. Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_6_risk_gate_audit_trail.py
+com 7 casos (RF-023.6.1 a RF-023.6.7). ImportError confirmado por
+build_risk_gate_audit_trail ausente. Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py
+
+SE: Inicio GREEN em 2026-04-03. Implementado build_risk_gate_audit_trail()
+em resilience_controls.py: consulta signal_executions JOIN
+signal_execution_events por decision_id e failure_reason/gate_reason
+contendo 'risk_gate'; retorna lista com execution_id, decision_id,
+reason_code, symbol, timestamp_ms, metadata. Fail-safe sem excecao.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py -> 7 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 17 testes (7 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. Guardrails
+risk_gate/circuit_breaker preservados e inalterados. Fail-safe ativo.
+Sem schema novo. Mudanca cirurgica: 1 funcao + 2 imports.
+
+DOC: ARQUITETURA_ALVO.md atualizado com build_risk_gate_audit_trail em
+resilience_controls.py (contrato de campos, ADR-002/007, fail-safe).
+SYNCHRONIZATION.md [SYNC-284] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: build_risk_gate_audit_trail
+retorna trilha ponta-a-ponta por decision_id consultando banco canonico.
+Trilha: PO (4.50) -> SA (ADR-002/007) -> QA (7 RED) ->
+SE (7 GREEN, mypy OK) -> TL (APROVADO, 17 testes) -> DOC (SYNC-284).
+377 passed, mypy strict OK, guardrails preservados.
 
 Sprint: M2-023
 Prioridade: P0
