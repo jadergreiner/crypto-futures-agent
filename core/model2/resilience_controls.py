@@ -177,7 +177,7 @@ def cross_validate_signal_context_position(
     position_side = str(position.get("side", "")).upper()
 
     # Verificar double-exposure: posicao ja aberta na mesma direcao
-    if is_open and side and side == position_side:
+    if is_open and side in ("LONG", "SHORT") and side == position_side:
         return {
             "allow": False,
             "reason_code": "position_already_open",
@@ -267,11 +267,7 @@ def execute_with_category_retry(
             )
             # Aplica backoff se ha proxima tentativa retentavel
             if should_retry and attempt_idx < max_att - 1:
-                delay = (
-                    bo[attempt_idx]
-                    if attempt_idx < len(bo)
-                    else bo[-1]
-                )
+                delay = bo[min(attempt_idx, len(bo) - 1)]
                 time.sleep(delay)
 
     # Exauriu tentativas: acumula e retorna resultado de falha

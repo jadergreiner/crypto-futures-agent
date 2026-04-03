@@ -87,8 +87,8 @@ def test_execute_transient_chama_sleep_entre_tentativas() -> None:
     with patch("time.sleep") as mock_sleep:
         mod.execute_with_category_retry(fn, category="transient", max_attempts=3)
 
-    assert mock_sleep.call_count >= 1, (
-        "Sleep deve ser chamado ao menos 1x entre retries transientes"
+    assert mock_sleep.call_count == 2, (
+        "Sleep deve ser chamado 2x entre 3 tentativas (2 falhas + 1 sucesso)"
     )
 
 
@@ -242,7 +242,7 @@ def test_execute_timeout_categoria_retenta_igual_transient() -> None:
                                                     max_attempts=3)
 
     assert resultado["ok"] is True
-    assert len(chamadas) >= 2, "Timeout deve retry ate sucesso"
+    assert len(chamadas) == 2, "Timeout deve tentar 2x (1 falha + 1 sucesso)"
 
 
 # ---------------------------------------------------------------------------
