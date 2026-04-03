@@ -6,7 +6,7 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ## TAREFA BLID-104 - Exibir prontidao de promocao por simbolo no status M2
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Score PO: 3.90 (ValorReal=5, Valor=4, Urgencia=4, ReducaoRisco=3, Esforco=2)
 
@@ -41,6 +41,24 @@ Evidencias:
 - pytest -q tests/test_model2_blid_104_promotion_readiness.py -> 7 passed
 - mypy --strict scripts/model2/operator_cycle_status.py -> Success
 - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 21 testes (7 task + 7 evidence_gate + 7
+operator_status) passados. mypy strict OK em 2 modulos. Suite 377 sem
+regressao. Guardrails risk_gate/circuit_breaker preservados e inalterados.
+decision_id idempotente por janela 5min. Fail-safe ativo. Mudanca
+cirurgica: 1 helper + 1 import + 1 linha no display por simbolo.
+
+DOC: ARQUITETURA_ALVO.md atualizado com secao BLID-104 (linha Promocao,
+tres pilares, fail-safe). BACKLOG.md trilha sincronizada.
+SYNCHRONIZATION.md [SYNC-283] registrado. markdownlint: 0 violacoes
+novas. pytest -q tests/test_docs_model2_sync.py -> 12 passed,
+1 pre-existente (db/modelo2.db ausente no CI).
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: linha `Promocao` exibe
+GO/NO_GO por simbolo diretamente em iniciar.bat sem consultar DB.
+Trilha completa: PO (Score 3.90) -> SA (ADR-007/009/002) -> QA (7 RED)
+-> SE (7 GREEN, mypy OK) -> TL (APROVADO, 21 testes) -> DOC (SYNC-283).
+377 passed, mypy strict OK, guardrails preservados.
 
 Descricao:
 Adicionar linha `Promocao` no bloco por simbolo do

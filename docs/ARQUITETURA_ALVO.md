@@ -391,7 +391,22 @@ Componentes:
 - Em indisponibilidade de DB/consulta, o contrato mantem fail-safe:
   bloco renderizavel com lacuna explicita e sem mascaramento.
 
-**M2-025.3/025.9 (Deteccao de lacuna e CB de dados stale)**:
+**BLID-104 (Prontidao de promocao por simbolo)**:
+
+- Linha `Promocao` adicionada ao bloco por simbolo em
+  `operator_cycle_status.py` via helper
+  `_build_promotion_readiness_line(symbol, risk_state, tf_statuses)`.
+- Deriva tres pilares de evidencia dos dados ja disponiveis no ciclo:
+  `risk_evidence_ok` (CB=normal e RG=ok), `stability_evidence_ok`
+  (todos os timeframes frescos), `consistency_evidence_ok` (ao menos
+  1 timeframe fresco).
+- Chama `PromotionEvaluator().evaluate_evidence_gate()` (ADR-007).
+- GO exibe `[PRONTO PARA PROMOCAO]`; NO_GO exibe razao principal
+  (max 60 chars).
+- `decision_id` estavel por janela de 5 minutos (idempotente).
+- Fail-safe: qualquer excecao retorna "N/A" sem propagar (ADR-002).
+
+
 
 - `detect_candle_gap(symbol, timeframe, last_candle_ts_ms, gap_window_ms)`
   em `core/model2/cycle_report.py` (M2-025.3): detecta lacuna por janela

@@ -8681,3 +8681,23 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
 - Observacao: falha pre-existente em test_docs_model2_sync.py
   (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-103.
+
+### [SYNC-283] BLID-104 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: BLID-104
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — secao BLID-104 adicionada descrevendo
+    linha `Promocao` no bloco por simbolo, tres pilares de evidencia e
+    contrato fail-safe. Sem alteracao de secoes existentes.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_blid_104_promotion_readiness.py ->
+    7 passed
+  - mypy --strict scripts/model2/operator_cycle_status.py
+    core/model2/promotion_gate.py -> Success
+  - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+- Observacao: falha pre-existente em test_docs_model2_sync.py
+  (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-104.
