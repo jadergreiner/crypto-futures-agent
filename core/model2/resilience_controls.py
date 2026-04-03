@@ -35,6 +35,11 @@ _RETRYABLE_CATEGORIES: frozenset[str] = frozenset({"timeout", "transient"})
 # Backoff padrao entre tentativas transientes (segundos)
 _DEFAULT_BACKOFF: tuple[float, ...] = (1.0, 2.0, 4.0)
 
+# ---------------------------------------------------------------------------
+# M2-023.5: tempos de processamento acumulados por classe de evento
+# ---------------------------------------------------------------------------
+_event_processing_times: dict[str, list[float]] = {}
+
 
 def _to_int(value: object, default: int = 0) -> int:
     if isinstance(value, bool):
@@ -179,6 +184,72 @@ def plan_restart_from_snapshot(
 def prioritize_events(events: list[dict[str, str]]) -> list[dict[str, str]]:
     priority_rank = {"CRITICAL": 0, "HIGH": 1, "WARN": 2}
     return sorted(events, key=lambda e: priority_rank.get(str(e.get("priority")), 9))
+
+
+def record_event_processing_time(priority: str, elapsed_ms: float) -> None:
+    """Registra o tempo de processamento de um evento por classe de prioridade.
+
+    Acumula medicoes em _event_processing_times para posterior consulta via
+    get_event_processing_metrics. Fail-safe: nao lanca excecao.
+
+    Args:
+        priority: Classe do evento (ex.: 'CRITICAL', 'HIGH', 'WARN').
+        elapsed_ms: Tempo de processamento em milissegundos (pode ser 0 ou neg).
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    try:
+        if priority not in _event_processing_times:
+            _event_processing_times[priority] = []
+        _event_processing_times[priority].append(float(elapsed_ms))
+    except Exception:
+        logger.warning(
+            "record_event_processing_time: erro ao registrar tempo "
+            "para classe '%s'; ignorado.",
+            priority,
+            exc_info=True,
+        )
+
+
+def get_event_processing_metrics() -> dict[str, dict[str, float]]:
+    """Retorna metricas de tempo de processamento acumuladas por classe.
+
+    Para cada classe de evento registrada, retorna mean_ms (media dos tempos)
+    e count (numero de registros). Fail-safe: retorna {} sem excecao.
+
+    Returns:
+        Dict mapeando classe -> {'mean_ms': float, 'count': float}.
+        Retorna {} quando nenhum registro existir.
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    try:
+        result: dict[str, dict[str, float]] = {}
+        for cls, times in _event_processing_times.items():
+            if times:
+                result[cls] = {
+                    "mean_ms": mean(times),
+                    "count": float(len(times)),
+                }
+        return result
+    except Exception:
+        logger.warning(
+            "get_event_processing_metrics: erro ao calcular metricas; "
+            "retornando {}.",
+            exc_info=True,
+        )
+        return {}
+
+
+def reset_event_processing_times() -> None:
+    """Zera os registros de tempo de processamento acumulados.
+
+    Uso tipico: testes unitarios que precisam de estado limpo, ou reinicio
+    do ciclo operacional no inicio de cada sessao live.
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    _event_processing_times.clear()
 
 
 def query_risk_gate_audit_by_decision_id(

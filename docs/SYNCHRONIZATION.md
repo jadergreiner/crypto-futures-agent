@@ -8831,3 +8831,22 @@ REVISADO_APROVADO
     -> 10 passed
   - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-291] M2-023.5 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.5 (Fila priorizada para eventos criticos)
+- Status backlog: REVISADO_APROVADO (em governanca final)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de `prioritize_events`
+    expandida com contrato completo de metricas: `record_event_
+    processing_time`, `get_event_processing_metrics`, `reset_event_
+    processing_times`, acumulacao em `_event_processing_times`,
+    mean_ms/count, fail-safe, M2-023.5, ADR-002/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+    -> 10 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success

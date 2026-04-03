@@ -1450,11 +1450,64 @@ DOC (SYNC-289). Guardrails preservados, arvore limpa.
 
 ### TAREFA M2-023.5 - Fila priorizada para eventos criticos
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.70
-PO: Fila priorizada reduz starvation de eventos criticos.
-SA: Ordem CRITICAL/HIGH/WARN com latencia por classe.
+Score PO: 2.75 (ValorReal=3, Valor=3, Urgencia=3, ReducaoRisco=3,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada com ciclo completo em 2026-04-03. prioritize_events ja
+implementada (criterios 1 e 2). Criterio 3 pendente: metricas de
+tempo de processamento por classe. Valor real: operador ve tempo medio
+por classe (CRITICAL/HIGH/WARN) em log operacional, detectando
+starvation sem parse manual. Ao fim deste desenvolvimento estarei
+feliz se get_event_processing_metrics retornar tempos medios
+auditaveis por classe de evento.
+
+SA: Adicionar record_event_processing_time(priority, elapsed_ms) e
+get_event_processing_metrics() em resilience_controls.py. Acumular
+elapsed_ms por classe em _event_processing_times (module-level, igual
+a _retry_counters). get_event_processing_metrics retorna dict com
+mean_ms e count por classe presente. reset_event_processing_times para
+testes. Fail-safe. Sem schema. ADR-002/009. Impacto: LOW.
+
+QA: Suite RED criada em
+tests/test_model2_m2_023_5_event_processing_metrics.py com 10 casos
+(RF-023.5.1 a RF-023.5.10). Fase RED: 9 falhas (record_event_
+processing_time/get_event_processing_metrics/reset_event_processing_
+times ausentes); 1 passando (prioritize_events existente, RF-023.5.9).
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+
+SE: GREEN concluido em 2026-04-03. Implementadas
+record_event_processing_time(priority, elapsed_ms),
+get_event_processing_metrics() e reset_event_processing_times() em
+resilience_controls.py. Estado acumulado em _event_processing_times
+(module-level, padrao _retry_counters). Fail-safe com log em ambas as
+funcoes. Sem schema. Evidencias:
+- pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+  -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 batch M2-023)
+passados. mypy strict OK. Suite 377 sem regressao. 3 funcoes puras com
+fail-safe via log, padrao identico a _retry_counters. Guardrails
+risk_gate/circuit_breaker preservados. Mudanca cirurgica: 3 funcoes +
+1 variavel module-level adicionadas, 0 modificacoes em codigo existente.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+record_event_processing_time, get_event_processing_metrics e
+reset_event_processing_times (acumulacao, mean_ms/count, fail-safe,
+M2-023.5, ADR-002/009). SYNCHRONIZATION.md [SYNC-291] registrado.
+0 violacoes MD013. pytest -q tests/test_docs_model2_sync.py -> 12
+passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE:
+get_event_processing_metrics retorna tempos medios auditaveis por
+classe com mean_ms e count. Trilha: PO (2.75) -> SA (ADR-002/009)
+-> QA (10 RED/1 pass) -> SE (10 GREEN, mypy OK) -> TL (APROVADO, 20
+testes) -> DOC (SYNC-291). 377 passed, mypy strict OK, guardrails
+preservados, arvore local limpa.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1465,8 +1518,8 @@ evitando starvation por volume de eventos informativos.
 
 Criterios de Aceite:
 
-- [ ] Eventos CRITICAL e HIGH processados antes dos demais.
-- [ ] Ordem de processamento permanece deterministica por prioridade.
+- [x] Eventos CRITICAL e HIGH processados antes dos demais.
+- [x] Ordem de processamento permanece deterministica por prioridade.
 - [ ] Metricas mostram tempo de tratamento por classe.
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate

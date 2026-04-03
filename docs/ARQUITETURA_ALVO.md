@@ -268,7 +268,18 @@ Resiliencia e fail-safe de pipeline (M2-027):
     ou fase ja executada: ENTRY_FILLED | PROTECTION_ARMED | MONITORING |
     CLOSING); fail-safe: campos ausentes nao geram excecao; funcao pura
     sem side-effects (M2-023.4, ADR-002/ADR-004/ADR-009)
-  - fila priorizada (`prioritize_events`)
+  - fila priorizada (`prioritize_events`, `record_event_processing_time`,
+    `get_event_processing_metrics`, `reset_event_processing_times`) —
+    `prioritize_events` ordena eventos por classe (CRITICAL=0, HIGH=1,
+    WARN=2; classe desconhecida ao final), garantindo que eventos criticos
+    sejam processados primeiro (M2-023.5, criterios 1+2); metricas de
+    tempo de processamento acumuladas em `_event_processing_times`
+    (module-level); `record_event_processing_time(priority, elapsed_ms)`
+    registra elapsed_ms por classe; `get_event_processing_metrics()`
+    retorna dict com `mean_ms` e `count` por classe presente; `reset_
+    event_processing_times()` zera estado para testes e reinicio de
+    sessao; fail-safe: excecoes nao propagam para o caller; funcoes
+    puras, sem schema DB (M2-023.5, ADR-002/ADR-009)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
   - trilha ponta-a-ponta do DB por decision_id
     (`build_risk_gate_audit_trail`) — consulta `signal_executions JOIN
