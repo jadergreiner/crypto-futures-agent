@@ -427,6 +427,11 @@ def check_reconciliation_health_alerts(
                     "threshold_exceeded": limit,
                 })
     except Exception:
+        logger.warning(
+            "check_reconciliation_health_alerts: erro inesperado "
+            "ao avaliar indicadores; retornando lista vazia.",
+            exc_info=True,
+        )
         return []
     return alerts
 

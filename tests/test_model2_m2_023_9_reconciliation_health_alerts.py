@@ -58,7 +58,7 @@ def test_drift_mean_acima_do_limite_gera_alerta_warn() -> None:
     assert len(alerts) >= 1
     drift_alerts = [a for a in alerts if a["indicator_name"] == "drift_mean"]
     assert len(drift_alerts) == 1
-    assert drift_alerts[0]["severity"] in ("WARN", "HIGH", "CRITICAL")
+    assert drift_alerts[0]["severity"] == "WARN"
 
 
 # ---------------------------------------------------------------------------
