@@ -8794,3 +8794,21 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_7_cross_validate.py -> 10 passed
   - Suite M2-023 completa (58 testes) -> 58 passed
   - mypy --strict core/model2/resilience_controls.py -> Success
+### [SYNC-289] M2-023.4 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.4 (Snapshot de estado para restart seguro)
+- Status backlog: CONCLUIDO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `plan_restart_from_snapshot` documentado: valid_snapshot,
+    fases executadas (ENTRY_FILLED | PROTECTION_ARMED | MONITORING
+    | CLOSING), send_new_order conservador, fail-safe, funcao pura,
+    M2-023.4, ADR-002/004/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13
+  - Suite M2-023 completa (58 testes) -> 58 passed
+  - mypy --strict core/model2/resilience_controls.py -> Success

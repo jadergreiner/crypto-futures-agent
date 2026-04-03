@@ -261,7 +261,13 @@ Resiliencia e fail-safe de pipeline (M2-027):
     `stable_window_count` medicoes consecutivas ficam abaixo do SLO;
     janela vazia ou insuficiente retorna `exit_ready=False`; retrocompat
     com chamadas sem janela (M2-023.3, ADR-002/007)
-  - restart idempotente (`plan_restart_from_snapshot`)
+  - restart idempotente (`plan_restart_from_snapshot`) — valida snapshot
+    obrigatorio com `decision_id`, `phase` e `heartbeat_ms`; retorna
+    `valid_snapshot` (bool), campos auditaveis e `send_new_order`
+    conservador (False quando `has_open_order=True`, snapshot invalido
+    ou fase ja executada: ENTRY_FILLED | PROTECTION_ARMED | MONITORING |
+    CLOSING); fail-safe: campos ausentes nao geram excecao; funcao pura
+    sem side-effects (M2-023.4, ADR-002/ADR-004/ADR-009)
   - fila priorizada (`prioritize_events`)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
   - trilha ponta-a-ponta do DB por decision_id

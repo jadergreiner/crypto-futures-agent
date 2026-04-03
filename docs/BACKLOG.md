@@ -1384,24 +1384,69 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.4 - Snapshot de estado para restart seguro
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 4.00
-PO: Snapshot reduz duplicidade e acelera recuperacao.
-SA: Snapshot com decision_id, fase e heartbeat; replay idempotente.
+Score PO: 3.85 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=5,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: apos restart, decision_id e phase do snapshot aparecem no
+plano de retomada para que o operador valide estado antes de continuar,
+sem risco de double-entry. Ao fim deste desenvolvimento estarei feliz
+se plan_restart_from_snapshot retornar valid_snapshot, decision_id,
+phase e heartbeat_ms com send_new_order determinado corretamente.
+
+SA: Corrigir plan_restart_from_snapshot em resilience_controls.py:
+extrair e validar decision_id/phase/heartbeat_ms; retornar
+valid_snapshot, campos auditaveis e send_new_order correto (False quando
+has_open_order=True ou fase ja executada). Funcao pura. ADR-002/004/009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_4_snapshot_restart.py
+com 13 casos (RF-023.4.1 a RF-023.4.11). Fase RED: 8 falhas por campos
+ausentes (valid_snapshot, decision_id, phase, heartbeat_ms). Status:
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_4_snapshot_restart.py
+
+SE: GREEN concluido em 2026-04-03. plan_restart_from_snapshot
+reescrita: valida snapshot, retorna valid_snapshot/decision_id/phase/
+heartbeat_ms, corrige bug send_new_order (antes sempre False). Logica
+conservadora: False quando has_open_order=True, snapshot invalido ou
+fase ja executada. Funcao pura sem side-effects. Evidencias:
+- pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13 passed
+- Suite M2-023 completa (58 testes) -> 58 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+
+TL: APROVADO. Reproducao local: 13+58 testes passados. mypy strict OK.
+Bug corrigido: send_new_order usava logica `False if ... else False`.
+Logica triple conservadora correta. frozenset local preserva funcao
+pura. Retrocompat mantida. Guardrails risk_gate/circuit_breaker
+preservados e inalterados. Fail-safe ativo.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+plan_restart_from_snapshot (valid_snapshot, fases executadas,
+send_new_order, M2-023.4, ADR-002/004/009). SYNCHRONIZATION.md
+[SYNC-289] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
 
 Descricao:
-Criar snapshot minimo de estado operacional para retomada segura apos restart
-sem duplicar execucao.
+Criar snapshot minimo de estado operacional para retomada segura apos
+restart sem duplicar execucao.
 
 Criterios de Aceite:
 
-- [ ] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
-- [ ] Restart reaplica estado sem duplicidade de ordem.
-- [ ] Testes cobrem desligamento abrupto e retomada limpa.
+- [x] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
+- [x] Restart reaplica estado sem duplicidade de ordem.
+- [x] Testes cobrem desligamento abrupto e retomada limpa.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: valid_snapshot valida os
+3 campos; decision_id e phase auditaveis na saida; send_new_order
+False em todos os cenarios de risco (has_open_order, fase executada,
+snapshot invalido). Trilha: PO (3.85) -> SA (ADR-002/004/009) -> QA
+(13 RED) -> SE (13 GREEN, mypy OK) -> TL (APROVADO, 71 testes) ->
+DOC (SYNC-289). Guardrails preservados, arvore limpa.
 
 ### TAREFA M2-023.5 - Fila priorizada para eventos criticos
 

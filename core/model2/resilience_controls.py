@@ -126,12 +126,53 @@ def plan_restart_from_snapshot(
     snapshot: dict[str, int | str],
     has_open_order: bool,
 ) -> dict[str, object]:
-    _ = snapshot.get("decision_id")
-    _ = snapshot.get("phase")
-    _ = snapshot.get("heartbeat_ms")
+    """Planeja retomada segura a partir de snapshot de estado operacional.
+
+    Valida o snapshot e determina se uma nova ordem deve ser enviada,
+    garantindo idempotencia no restart sem duplicidade de execucao.
+
+    Fases que indicam posicao ja executada (nao geram nova ordem):
+    ENTRY_FILLED, PROTECTION_ARMED, MONITORING, CLOSING.
+
+    Funcao pura e deterministica (M2-023.4, ADR-002/004/009).
+    Fail-safe: campos ausentes nao lancam excecao.
+
+    Args:
+        snapshot: dict com 'decision_id', 'phase' e 'heartbeat_ms'.
+        has_open_order: True se ja existe ordem aberta rastreada.
+
+    Returns:
+        Dict com: replay_mode, valid_snapshot, send_new_order,
+        decision_id, phase, heartbeat_ms.
+    """
+    decision_id = snapshot.get("decision_id")
+    phase = str(snapshot.get("phase", ""))
+    heartbeat_ms = snapshot.get("heartbeat_ms")
+
+    # Snapshot valido exige os tres campos preenchidos
+    valid_snapshot = bool(decision_id and phase and heartbeat_ms)
+
+    # Fases que indicam posicao ja existente: nao reenviar ordem
+    _executed_phases = frozenset(
+        {"ENTRY_FILLED", "PROTECTION_ARMED", "MONITORING", "CLOSING"}
+    )
+    phase_already_executed = phase in _executed_phases
+
+    # Fail-safe: nao enviar nova ordem se snapshot invalido, ordem ja aberta
+    # ou fase indica posicao ja executada
+    send_new_order = (
+        valid_snapshot
+        and not has_open_order
+        and not phase_already_executed
+    )
+
     return {
         "replay_mode": "idempotent_resume",
-        "send_new_order": False if not has_open_order else False,
+        "valid_snapshot": valid_snapshot,
+        "send_new_order": send_new_order,
+        "decision_id": int(decision_id) if decision_id else 0,
+        "phase": phase,
+        "heartbeat_ms": int(heartbeat_ms) if heartbeat_ms else 0,
     }
 
 
