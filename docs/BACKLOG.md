@@ -1384,24 +1384,69 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.4 - Snapshot de estado para restart seguro
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 4.00
-PO: Snapshot reduz duplicidade e acelera recuperacao.
-SA: Snapshot com decision_id, fase e heartbeat; replay idempotente.
+Score PO: 3.85 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=5,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: apos restart, decision_id e phase do snapshot aparecem no
+plano de retomada para que o operador valide estado antes de continuar,
+sem risco de double-entry. Ao fim deste desenvolvimento estarei feliz
+se plan_restart_from_snapshot retornar valid_snapshot, decision_id,
+phase e heartbeat_ms com send_new_order determinado corretamente.
+
+SA: Corrigir plan_restart_from_snapshot em resilience_controls.py:
+extrair e validar decision_id/phase/heartbeat_ms; retornar
+valid_snapshot, campos auditaveis e send_new_order correto (False quando
+has_open_order=True ou fase ja executada). Funcao pura. ADR-002/004/009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_4_snapshot_restart.py
+com 13 casos (RF-023.4.1 a RF-023.4.11). Fase RED: 8 falhas por campos
+ausentes (valid_snapshot, decision_id, phase, heartbeat_ms). Status:
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_4_snapshot_restart.py
+
+SE: GREEN concluido em 2026-04-03. plan_restart_from_snapshot
+reescrita: valida snapshot, retorna valid_snapshot/decision_id/phase/
+heartbeat_ms, corrige bug send_new_order (antes sempre False). Logica
+conservadora: False quando has_open_order=True, snapshot invalido ou
+fase ja executada. Funcao pura sem side-effects. Evidencias:
+- pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13 passed
+- Suite M2-023 completa (58 testes) -> 58 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+
+TL: APROVADO. Reproducao local: 13+58 testes passados. mypy strict OK.
+Bug corrigido: send_new_order usava logica `False if ... else False`.
+Logica triple conservadora correta. frozenset local preserva funcao
+pura. Retrocompat mantida. Guardrails risk_gate/circuit_breaker
+preservados e inalterados. Fail-safe ativo.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+plan_restart_from_snapshot (valid_snapshot, fases executadas,
+send_new_order, M2-023.4, ADR-002/004/009). SYNCHRONIZATION.md
+[SYNC-289] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
 
 Descricao:
-Criar snapshot minimo de estado operacional para retomada segura apos restart
-sem duplicar execucao.
+Criar snapshot minimo de estado operacional para retomada segura apos
+restart sem duplicar execucao.
 
 Criterios de Aceite:
 
-- [ ] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
-- [ ] Restart reaplica estado sem duplicidade de ordem.
-- [ ] Testes cobrem desligamento abrupto e retomada limpa.
+- [x] Snapshot inclui decision_id ativo, fase do ciclo e ultimo heartbeat.
+- [x] Restart reaplica estado sem duplicidade de ordem.
+- [x] Testes cobrem desligamento abrupto e retomada limpa.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: valid_snapshot valida os
+3 campos; decision_id e phase auditaveis na saida; send_new_order
+False em todos os cenarios de risco (has_open_order, fase executada,
+snapshot invalido). Trilha: PO (3.85) -> SA (ADR-002/004/009) -> QA
+(13 RED) -> SE (13 GREEN, mypy OK) -> TL (APROVADO, 71 testes) ->
+DOC (SYNC-289). Guardrails preservados, arvore limpa.
 
 ### TAREFA M2-023.5 - Fila priorizada para eventos criticos
 
@@ -1494,32 +1539,120 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.95
-PO: Validacao cruzada reforca admissao conservadora.
-SA: Contradicao critica bloqueia admissao em fail-safe.
+Score PO: 3.85 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=5,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: position.is_open ignorado na implementacao anterior
+permitia double-exposure silenciosa; agora cross_validate bloqueia
+com reason_code auditavel e decision_id rastreavel em todos os casos.
+Ao fim deste desenvolvimento estarei feliz se cross_validate_signal_
+context_position bloquear com reason_code auditavel tanto conflito de
+tendencia quanto double-exposure, retornando decision_id rastreavel.
+
+SA: Expandir cross_validate_signal_context_position em
+resilience_controls.py para aceitar decision_id, verificar is_open+side
+de posicao (double-exposure), retornar decision_id auditavel. Funcao
+pura, retrocompat via decision_id=0. Sem schema DB. ADR-002/004/009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_7_cross_validate.py
+com 10 casos (RF-023.7.1 a RF-023.7.10). Fase RED: 10 falhas (decision_
+id nao aceito como parametro, position.is_open ignorado). Status:
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_7_cross_validate.py
+
+SE: GREEN concluido em 2026-04-03. cross_validate_signal_context_
+position expandida: aceita decision_id (default=0), verifica double-
+exposure (is_open+side), retorna allow/reason_code/decision_id.
+Retrocompat preservada. Funcao pura sem side-effects. Evidencias:
+- pytest -q tests/test_model2_m2_023_7_cross_validate.py -> 10 passed
+- Suite M2-023 completa (58 testes) -> 58 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+
+TL: APROVADO. Reproducao local: 58 testes passados. mypy strict OK.
+Guarda `and side` evita falso positivo com campo vazio. Prioridade
+correta: double-exposure antes de conflito de tendencia. Retrocompat
+via decision_id=0. Guardrails risk_gate/circuit_breaker preservados.
+Fail-safe: campos ausentes -> allow=True (sem conflito detectado).
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+cross_validate_signal_context_position (double-exposure, reason_codes,
+decision_id, M2-023.7, ADR-002/004/009). SYNCHRONIZATION.md
+[SYNC-288] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
 
 Descricao:
-Executar validacao cruzada entre sinal tecnico, contexto de mercado e estado
-de posicao imediatamente antes da admissao da ordem.
+Executar validacao cruzada entre sinal tecnico, contexto de mercado e
+estado de posicao imediatamente antes da admissao da ordem.
 
 Criterios de Aceite:
 
-- [ ] Divergencia critica bloqueia admissao com motivo explicito.
-- [ ] Contrato de validacao e deterministico e idempotente.
-- [ ] Cobertura inclui caminhos de contradicao e fallback conservador.
+- [x] Divergencia critica bloqueia admissao com motivo explicito.
+- [x] Contrato de validacao e deterministico e idempotente.
+- [x] Cobertura inclui caminhos de contradicao e fallback conservador.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: double-exposure agora
+bloqueada com reason_code='position_already_open'; conflito de tendencia
+continua com 'cross_validation_conflict'; decision_id auditavel em todos
+os casos. Trilha: PO (3.85) -> SA (ADR-002/004/009) -> QA (10 RED) ->
+SE (10 GREEN, mypy OK) -> TL (APROVADO, 58 testes) -> DOC (SYNC-288).
+Guardrails preservados, funcao pura, arvore local limpa.
 
 ### TAREFA M2-023.8 - Politica de retries orientada a categoria
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 4.10
-PO: Retry por categoria reduz loops improdutivos.
-SA: Retry so em erro transitorio com budget e acao.
+Score PO: 3.60 (ValorReal=4, Valor=4, Urgencia=3, ReducaoRisco=5,
+Esforco=3) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: falhas permanentes nao geram loops inutil de retry; retries
+transientes tem backoff auditavel; build_retry_category_report() expoe
+contagens por categoria em logs operacionais sem consulta manual.
+Ao fim deste desenvolvimento estarei feliz se actual_attempts refletir
+tentativas reais e build_retry_category_report() retornar contadores
+consultaveis por categoria.
+
+SA: Expandir execute_with_category_retry em resilience_controls.py para
+retornar actual_attempts (real), aplicar time.sleep entre retries
+transientes e adicionar build_retry_category_report() +
+reset_retry_counters(). Reason_code mapeado para catalogo canonico.
+Fail-safe preservado. Sem schema DB. ADRs: ADR-002, ADR-004, ADR-009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_8_retry_category.py
+com 10 casos (RF-023.8.1 a RF-023.8.10). Fase RED: 6 falhas (actual_
+attempts, sleep, build_retry_category_report, reset_retry_counters,
+reason_code ausentes). Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_8_retry_category.py
+
+SE: GREEN concluido em 2026-04-03. execute_with_category_retry expandido
+em resilience_controls.py: actual_attempts correto, time.sleep com
+backoff configuravel, reason_code auditavel, build_retry_category_report
+retorna dict de contagens, reset_retry_counters limpa estado. Retrocompat
+preservada (ok/category/should_retry inalterados). global desnecessario
+removido (REFACTOR). Evidencias:
+- pytest -q tests/test_model2_m2_023_8_retry_category.py -> 10 passed
+- pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. actual_attempts real
+validado, sleep ausente em permanent confirmado, build_retry_category_
+report e reset_retry_counters funcionais, global desnecessario removido.
+Guardrails risk_gate/circuit_breaker preservados e inalterados. Fail-safe
+ativo. Mudanca cirurgica em 1 funcao + 2 novas funcoes + imports.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+execute_with_category_retry (actual_attempts, backoff, build_retry_
+category_report, reset_retry_counters, M2-023.8, ADR-002/004/009).
+SYNCHRONIZATION.md [SYNC-287] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1530,9 +1663,16 @@ permanentes e reduzir ruido operacional.
 
 Criterios de Aceite:
 
-- [ ] Categorias transitoria/permanente orientam retries de forma explicita.
-- [ ] Falha permanente interrompe fluxo sem loop de retry.
-- [ ] Relatorio operacional exibe contagem por categoria.
+- [x] Categorias transitoria/permanente orientam retries de forma explicita.
+- [x] Falha permanente interrompe fluxo sem loop de retry.
+- [x] Relatorio operacional exibe contagem por categoria.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: execute_with_category_retry
+retorna actual_attempts correto, aplica backoff em transient/timeout,
+build_retry_category_report() expoe contagens auditaveis por categoria.
+Trilha: PO (3.60) -> SA (ADR-002/004/009) -> QA (10 RED) -> SE (10 GREEN,
+mypy OK) -> TL (APROVADO, 20 testes) -> DOC (SYNC-287). 377 passed, mypy
+strict OK, guardrails preservados, arvore local limpa.
 
 ### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
 

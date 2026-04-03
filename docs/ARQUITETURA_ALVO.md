@@ -261,7 +261,13 @@ Resiliencia e fail-safe de pipeline (M2-027):
     `stable_window_count` medicoes consecutivas ficam abaixo do SLO;
     janela vazia ou insuficiente retorna `exit_ready=False`; retrocompat
     com chamadas sem janela (M2-023.3, ADR-002/007)
-  - restart idempotente (`plan_restart_from_snapshot`)
+  - restart idempotente (`plan_restart_from_snapshot`) — valida snapshot
+    obrigatorio com `decision_id`, `phase` e `heartbeat_ms`; retorna
+    `valid_snapshot` (bool), campos auditaveis e `send_new_order`
+    conservador (False quando `has_open_order=True`, snapshot invalido
+    ou fase ja executada: ENTRY_FILLED | PROTECTION_ARMED | MONITORING |
+    CLOSING); fail-safe: campos ausentes nao geram excecao; funcao pura
+    sem side-effects (M2-023.4, ADR-002/ADR-004/ADR-009)
   - fila priorizada (`prioritize_events`)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
   - trilha ponta-a-ponta do DB por decision_id
@@ -269,8 +275,23 @@ Resiliencia e fail-safe de pipeline (M2-027):
     signal_execution_events` retornando lista com execution_id,
     reason_code, symbol, timestamp_ms e metadata; fail-safe sem excecao
     (M2-023.6, ADR-002/007)
-  - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
-  - retry por categoria (`execute_with_category_retry`)
+  - validacao cruzada antes da admissao
+    (`cross_validate_signal_context_position`) — bloqueia quando sinal
+    contradiz tendencia de mercado (LONG+DOWN ou SHORT+UP) ou quando
+    posicao ja esta aberta na mesma direcao (double-exposure); retorna
+    `allow`, `reason_code` (`cross_validation_conflict` |
+    `position_already_open` | None) e `decision_id` auditavel; funcao
+    pura, fail-safe com campos ausentes, retrocompat via `decision_id=0`
+    (M2-023.7, ADR-002/ADR-004/ADR-009)
+  - retry orientado a categoria (`execute_with_category_retry`) —
+    separa categorias retentaveis (transient/timeout) de permanentes;
+    retorna `actual_attempts` (tentativas reais), `max_attempts`,
+    `reason_code` auditavel e `should_retry`; backoff configuravel via
+    `backoff_seconds` entre tentativas transientes; acumula contadores
+    por categoria; fail-safe: excecao nunca propaga para o caller;
+    `build_retry_category_report()` retorna dict de contagens acumuladas;
+    `reset_retry_counters()` zera estado para testes e reinicio de sessao
+    (M2-023.8, ADR-002/ADR-004/ADR-009)
   - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
   - validacao de runbook (`validate_contingency_runbook`)
   - validacao de schema por conjunto de tabelas (`validate_schema_tables`)

@@ -2,15 +2,38 @@
 
 Funcoes puras e deterministicas para suportar contratos de testes.
 Nao desabilita risk_gate/circuit_breaker; apenas fornece avaliadores.
+
+M2-023.8: execute_with_category_retry aprimorado com:
+- actual_attempts: tentativas reais realizadas
+- backoff com time.sleep entre retries transientes
+- contadores acumulados por categoria (_retry_counters)
+- build_retry_category_report: relatorio operacional de contagens
+- reset_retry_counters: limpeza de estado para testes
+- reason_code no resultado para auditabilidade (ADR-009)
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
+import time
 from pathlib import Path
 from statistics import mean
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# M2-023.8: contadores acumulados de retry por categoria (module-level)
+# ---------------------------------------------------------------------------
+_retry_counters: dict[str, int] = {}
+
+# Categorias que permitem retry (ADR-004)
+_RETRYABLE_CATEGORIES: frozenset[str] = frozenset({"timeout", "transient"})
+
+# Backoff padrao entre tentativas transientes (segundos)
+_DEFAULT_BACKOFF: tuple[float, ...] = (1.0, 2.0, 4.0)
 
 
 def _to_int(value: object, default: int = 0) -> int:
@@ -103,12 +126,53 @@ def plan_restart_from_snapshot(
     snapshot: dict[str, int | str],
     has_open_order: bool,
 ) -> dict[str, object]:
-    _ = snapshot.get("decision_id")
-    _ = snapshot.get("phase")
-    _ = snapshot.get("heartbeat_ms")
+    """Planeja retomada segura a partir de snapshot de estado operacional.
+
+    Valida o snapshot e determina se uma nova ordem deve ser enviada,
+    garantindo idempotencia no restart sem duplicidade de execucao.
+
+    Fases que indicam posicao ja executada (nao geram nova ordem):
+    ENTRY_FILLED, PROTECTION_ARMED, MONITORING, CLOSING.
+
+    Funcao pura e deterministica (M2-023.4, ADR-002/004/009).
+    Fail-safe: campos ausentes nao lancam excecao.
+
+    Args:
+        snapshot: dict com 'decision_id', 'phase' e 'heartbeat_ms'.
+        has_open_order: True se ja existe ordem aberta rastreada.
+
+    Returns:
+        Dict com: replay_mode, valid_snapshot, send_new_order,
+        decision_id, phase, heartbeat_ms.
+    """
+    decision_id = snapshot.get("decision_id")
+    phase = str(snapshot.get("phase", ""))
+    heartbeat_ms = snapshot.get("heartbeat_ms")
+
+    # Snapshot valido exige os tres campos preenchidos
+    valid_snapshot = bool(decision_id and phase and heartbeat_ms)
+
+    # Fases que indicam posicao ja existente: nao reenviar ordem
+    _executed_phases = frozenset(
+        {"ENTRY_FILLED", "PROTECTION_ARMED", "MONITORING", "CLOSING"}
+    )
+    phase_already_executed = phase in _executed_phases
+
+    # Fail-safe: nao enviar nova ordem se snapshot invalido, ordem ja aberta
+    # ou fase indica posicao ja executada
+    send_new_order = (
+        valid_snapshot
+        and not has_open_order
+        and not phase_already_executed
+    )
+
     return {
         "replay_mode": "idempotent_resume",
-        "send_new_order": False if not has_open_order else False,
+        "valid_snapshot": valid_snapshot,
+        "send_new_order": send_new_order,
+        "decision_id": int(decision_id) if decision_id else 0,
+        "phase": phase,
+        "heartbeat_ms": int(heartbeat_ms) if heartbeat_ms else 0,
     }
 
 
@@ -128,14 +192,55 @@ def cross_validate_signal_context_position(
     signal: dict[str, object],
     context: dict[str, object],
     position: dict[str, object],
+    decision_id: int = 0,
 ) -> dict[str, object]:
-    _ = position.get("is_open", False)
+    """Validacao cruzada de sinal, contexto e posicao antes da admissao.
+
+    Bloqueia admissao quando:
+    1. Sinal contradiz tendencia de mercado (LONG+DOWN ou SHORT+UP).
+    2. Posicao ja esta aberta na mesma direcao (evita double-exposure).
+
+    Funcao pura e deterministica (M2-023.7, ADR-002/004/009).
+    Fail-safe: campos ausentes nao lancam excecao; assume sem conflito.
+
+    Args:
+        signal: dict com 'side' (LONG|SHORT) e metadados do sinal.
+        context: dict com 'trend' (UP|DOWN) do contexto de mercado.
+        position: dict com 'is_open' (bool) e 'side' (LONG|SHORT) da posicao.
+        decision_id: identificador da decisao para auditabilidade (ADR-004).
+
+    Returns:
+        Dict com: allow (bool), reason_code (str|None), decision_id (int).
+    """
     side = str(signal.get("side", "")).upper()
     trend = str(context.get("trend", "")).upper()
-    conflict = (side == "LONG" and trend == "DOWN") or (side == "SHORT" and trend == "UP")
+    is_open = bool(position.get("is_open", False))
+    position_side = str(position.get("side", "")).upper()
+
+    # Verificar double-exposure: posicao ja aberta na mesma direcao
+    if is_open and side in ("LONG", "SHORT") and side == position_side:
+        return {
+            "allow": False,
+            "reason_code": "position_already_open",
+            "decision_id": int(decision_id),
+        }
+
+    # Verificar contradicao critica entre sinal e tendencia de mercado
+    trend_conflict = (
+        (side == "LONG" and trend == "DOWN")
+        or (side == "SHORT" and trend == "UP")
+    )
+    if trend_conflict:
+        return {
+            "allow": False,
+            "reason_code": "cross_validation_conflict",
+            "decision_id": int(decision_id),
+        }
+
     return {
-        "allow": not conflict,
-        "reason_code": "cross_validation_conflict" if conflict else None,
+        "allow": True,
+        "reason_code": None,
+        "decision_id": int(decision_id),
     }
 
 
@@ -143,32 +248,114 @@ def execute_with_category_retry(
     fn: Callable[[], object],
     category: str,
     max_attempts: int,
+    backoff_seconds: tuple[float, ...] | None = None,
 ) -> dict[str, object]:
-    retryable_categories = {"timeout", "transient"}
-    normalized_category = str(category or "unknown").strip().lower()
-    should_retry = normalized_category in retryable_categories
-    attempts = max(1, int(max_attempts)) if should_retry else 1
+    """Executa fn() com politica de retry orientada a categoria de erro.
+
+    Categorias retentaveis (transient/timeout): retry ate max_attempts com
+    backoff exponencial entre tentativas.
+    Categoria permanent: interrompe apos 1 tentativa (sem retry).
+
+    Acumula contadores globais por categoria para relatorio operacional
+    via build_retry_category_report() (M2-023.8, ADR-009).
+
+    Args:
+        fn: callable sem argumentos a executar.
+        category: categoria do erro esperado (transient/timeout/permanent).
+        max_attempts: maximo de tentativas permitidas.
+        backoff_seconds: delays entre tentativas (default: _DEFAULT_BACKOFF).
+
+    Returns:
+        Dict com: ok, error, category, should_retry, actual_attempts,
+        max_attempts, reason_code.
+    """
+    normalized = str(category or "unknown").strip().lower()
+    should_retry = normalized in _RETRYABLE_CATEGORIES
+    max_att = max(1, int(max_attempts)) if should_retry else 1
+    bo = backoff_seconds if backoff_seconds is not None else _DEFAULT_BACKOFF
 
     last_error: str | None = None
-    for _ in range(attempts):
+    actual_attempts = 0
+
+    for attempt_idx in range(max_att):
+        actual_attempts += 1
         try:
             fn()
+            # Sucesso: acumula tentativas na categoria e retorna
+            _retry_counters[normalized] = (
+                _retry_counters.get(normalized, 0) + actual_attempts
+            )
+            logger.debug(
+                "execute_with_category_retry: ok em %d/%d tentativas "
+                "[categoria=%s]",
+                actual_attempts, max_att, normalized,
+            )
             return {
                 "ok": True,
                 "error": None,
-                "category": normalized_category,
-                "attempts": attempts,
+                "category": normalized,
                 "should_retry": should_retry,
+                "actual_attempts": actual_attempts,
+                "max_attempts": max_att,
+                "reason_code": None,
             }
-        except Exception as exc:  # noqa: BLE001 - contrato de retry
+        except Exception as exc:  # noqa: BLE001 - contrato de retry fail-safe
             last_error = str(exc)
+            logger.debug(
+                "execute_with_category_retry: falha tentativa %d/%d "
+                "[categoria=%s]: %s",
+                actual_attempts, max_att, normalized, exc,
+            )
+            # Aplica backoff se ha proxima tentativa retentavel
+            if should_retry and attempt_idx < max_att - 1:
+                delay = bo[min(attempt_idx, len(bo) - 1)]
+                time.sleep(delay)
+
+    # Exauriu tentativas: acumula e retorna resultado de falha
+    _retry_counters[normalized] = (
+        _retry_counters.get(normalized, 0) + actual_attempts
+    )
+    # Reason code: permanent usa codigo bloqueante; transient usa timeout
+    reason_code = (
+        "permanent_error"
+        if normalized == "permanent"
+        else "transient_error"
+    )
+    logger.warning(
+        "execute_with_category_retry: falha final apos %d tentativas "
+        "[categoria=%s reason=%s]: %s",
+        actual_attempts, normalized, reason_code, last_error,
+    )
     return {
         "ok": False,
         "error": last_error,
-        "category": normalized_category,
-        "attempts": attempts,
+        "category": normalized,
         "should_retry": should_retry,
+        "actual_attempts": actual_attempts,
+        "max_attempts": max_att,
+        "reason_code": reason_code,
     }
+
+
+def build_retry_category_report() -> dict[str, int]:
+    """Retorna relatorio operacional de tentativas acumuladas por categoria.
+
+    Usado para auditoria e monitoramento de loops de retry no ciclo live
+    (M2-023.8, ADR-009). Nao altera nem reseta o estado acumulado.
+
+    Returns:
+        Dict {categoria: total_de_tentativas} acumulado desde o ultimo reset.
+    """
+    return dict(_retry_counters)
+
+
+def reset_retry_counters() -> None:
+    """Zera contadores acumulados de retry por categoria.
+
+    Uso tipico: testes unitarios que precisam de estado limpo entre casos,
+    ou reinicio do ciclo operacional no inicio de cada sessao live.
+    """
+    _retry_counters.clear()
 
 
 def compute_reconciliation_health_indicators(

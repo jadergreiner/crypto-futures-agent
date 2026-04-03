@@ -8755,3 +8755,60 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
   - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-287] M2-023.8 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.8 (Politica de retries orientada a categoria)
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `execute_with_category_retry` documentado: actual_attempts,
+    backoff_seconds, reason_code auditavel, build_retry_category_report,
+    reset_retry_counters, fail-safe e retrocompat (M2-023.8,
+    ADR-002/004/009).
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_8_retry_category.py -> 10 passed
+  - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-288] M2-023.7 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.7 (Validacao cruzada de sinais antes da ordem)
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `cross_validate_signal_context_position` documentado: double-
+    exposure, reason_codes (cross_validation_conflict |
+    position_already_open), decision_id auditavel, retrocompat,
+    fail-safe, M2-023.7, ADR-002/004/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_7_cross_validate.py -> 10 passed
+  - Suite M2-023 completa (58 testes) -> 58 passed
+  - mypy --strict core/model2/resilience_controls.py -> Success
+### [SYNC-289] M2-023.4 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.4 (Snapshot de estado para restart seguro)
+- Status backlog: CONCLUIDO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `plan_restart_from_snapshot` documentado: valid_snapshot,
+    fases executadas (ENTRY_FILLED | PROTECTION_ARMED | MONITORING
+    | CLOSING), send_new_order conservador, fail-safe, funcao pura,
+    M2-023.4, ADR-002/004/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13
+  - Suite M2-023 completa (58 testes) -> 58 passed
+  - mypy --strict core/model2/resilience_controls.py -> Success
