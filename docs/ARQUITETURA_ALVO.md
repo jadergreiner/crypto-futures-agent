@@ -622,6 +622,32 @@ Componentes:
    `promotion_gate` no summary de runtime com decisao GO/NO_GO e motivos,
    tornando a trilha observavel no ciclo operacional iniciado por `iniciar.bat`.
 
+**M2-020.10 (Retreino automatico governado — ciclo continuo)**:
+
+1. `scripts/model2/continuous_learning_controller.py` — controlador
+   de gatilho de retreino automatico:
+   - `should_run_continuous_cycle(min_new_episodes, symbols)`: avalia
+     threshold de episodios novos por simbolo e intervalo minimo;
+     retorna `(bool, reason_str)` fail-safe sem lancar excecao
+   - `mark_run_executed(symbol, state_file)`: persiste timestamp de
+     ultima execucao para controle de janela temporal
+   - Estado por simbolo em JSON (STATE_FILE); idempotente por janela
+   - Threshold padrao via `RETRAIN_EPISODE_THRESHOLD` de `cycle_report`
+2. `scripts/model2/continuous_learning_cycle.py` — ciclo continuo com
+   gate de promocao:
+   - `run_continuous_learning_cycle_once(db_path, symbol, timeframe)`:
+     pipeline completo (probe de decisao, drift, treino, gate)
+   - Fases auditaveis via `_run_stage` (nome, funcao, kwargs);
+     falha de fase nao interrompe trilha de execucao
+   - `PromotionEvaluator.evaluate()` pos-treino: so promove quando
+     `win_rate >= 55%`, `episodes >= 30`, `drawdown <= 5%`
+   - Resultado persistido em `training_runs` (go_no_go, metrics_json)
+3. `core/model2/continuous_cycle.py` — integracao PromotionGate:
+   - Liga resultado de treino ao gate antes de qualquer promocao
+   - Fail-safe: excecao em gate retorna NO_GO conservador
+4. Guardrails: `risk_gate=ATIVO`, `circuit_breaker=ATIVO`,
+   `decision_id=IDEMPOTENTE` (M2-020.10, ADR-006/ADR-007)
+
 **M2-028.10 (Governanca e runbook do pacote M2-028)**:
 
 1. Consolidacao de promocao GO/NO-GO em dois gates auditaveis:

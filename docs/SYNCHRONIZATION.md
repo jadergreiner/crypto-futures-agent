@@ -8850,3 +8850,24 @@ REVISADO_APROVADO
     -> 10 passed
   - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-348] M2-020.10 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-020.10 (Habilitar retreino automatico governado)
+- Status: CONCLUIDO (em fechamento com stage 8)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — secao M2-020.10 adicionada com
+    contrato completo de continuous_learning_controller (should_run_
+    continuous_cycle, mark_run_executed), continuous_learning_cycle
+    (pipeline de fases, PromotionEvaluator), continuous_cycle (gate
+    de promocao), guardrails ADR-006/ADR-007.
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL/DOC/PM
+    registrada; status atualizado para CONCLUIDO.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_020_10_retrain_automation_red.py
+    -> 5 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict scripts/model2/continuous_learning_controller.py
+    scripts/model2/continuous_learning_cycle.py -> Success

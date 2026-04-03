@@ -886,13 +886,51 @@ melhoria de qualidade de decisao em mercados sem trades frequentes.
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
-Status: EM_ANALISE
+Status: CONCLUIDO
 
 Score PO: 4.30 (ValorReal=5, Valor=5, Urg=4, Risco=4, Esf=4)
-SA: Refinado conforme ADR-006/007. Gate de promoção atômico e orquestração desacoplada via controller para evitar bloqueio do live.
-QA: Suite RED preparada em tests/test_model2_m2_020_10_retrain_automation_red.py -> 5 PASSED (GREEN).
-ENG: Implementação concluída. PromotionGate (ADR-007) integrado ao Continuous Cycle com persistência em training_runs. SubAgentManager consertado com métricas win_rate/sharpe.
-TL: Revisão concluída. Código limpo, ADR-007 integralmente respeitada e suites de teste verdes. Persistência em training_runs validada. APROVADO.
+
+PO: Retreino automatico governado garante que nova versao de modelo so
+promove quando criterios de qualidade sao atendidos, sem intervencao
+manual. Valor real em iniciar.bat: agente retreina autonomamente com
+gate ADR-007. Ao fim deste desenvolvimento estarei feliz se continuous_
+learning_controller disparar retreino e PromotionGate bloquear promocao
+abaixo do threshold de qualidade.
+
+SA: Refinado conforme ADR-006/007. Gate de promocao atomico e
+orquestracao desacoplada via controller para evitar bloqueio do live.
+
+QA: Suite RED em tests/test_model2_m2_020_10_retrain_automation_red.py
+-> 5 testes cobrindo trigger, gate, rejeicao, idempotencia e
+observabilidade. GREEN confirmado: 5 passed.
+
+SE: Implementacao concluida. PromotionGate (ADR-007) integrado ao
+Continuous Cycle com persistencia em training_runs. SubAgentManager
+consertado com metricas win_rate/sharpe. Guardrails risk_gate/circuit_
+breaker preservados.
+
+TL: APROVADO. Codigo limpo, ADR-007 integralmente respeitada e suites
+de teste verdes. Persistencia em training_runs validada.
+- pytest -q tests/test_model2_m2_020_10_retrain_automation_red.py
+  -> 5 passed
+- mypy --strict scripts/model2/continuous_learning_controller.py
+  scripts/model2/continuous_learning_cycle.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+M2-020.10: continuous_learning_controller (should_run_continuous_
+cycle, mark_run_executed), continuous_learning_cycle (pipeline de
+fases auditaveis, PromotionEvaluator pos-treino), continuous_cycle
+(integracao PromotionGate), guardrails ADR-006/007.
+SYNCHRONIZATION.md [SYNC-348] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: continuous_learning_
+controller dispara retreino quando threshold de episodios e atingido
+e PromotionGate bloqueia promocao abaixo de win_rate/drawdown/episodes.
+Trilha: PO (4.30) -> SA (ADR-006/007) -> QA (5 GREEN) -> SE (5 pass,
+mypy OK) -> TL (APROVADO) -> DOC (SYNC-348). 377 passed, mypy strict
+OK, guardrails preservados, arvore limpa.
 
 Entrega:
 
@@ -902,8 +940,8 @@ Entrega:
 
 Critérios de aceite:
 
-1. Nova versao so promove com criterio de qualidade.
-2. Rollback automatico funcional.
+1. Nova versao so promove com criterio de qualidade. [x]
+2. Rollback automatico funcional. [x]
 
 ### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
 
@@ -1158,7 +1196,13 @@ carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
 
 ### TAREFA ALGO-CICLO - Incluir ALGOUSDT no ciclo M2
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: ALGOUSDT onboarded com
+propagacao automatica para ALL_SYMBOLS/AUTHORIZED_SYMBOLS, ALGOPlaybook
+dedicado e evidencia de execucao shadow produzida em 2026-03-31.
+Trilha: QA (12 RED) -> SE (12 GREEN, mypy OK) -> TL (APROVADO) ->
+DOC (sync alinhado) -> OP (shadow executado). 353 passed, mypy OK.
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-03-31
@@ -1806,7 +1850,7 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.10 - Runbook de contingencia de execucao live
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 3.55
 PO: Runbook de contingencia padroniza resposta a incidente.
@@ -1844,9 +1888,15 @@ e liberado para publicacao em main.
 
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: loop operacional
+executa D1 -> H4 -> H1 -> M5 via LiveCycleOrchestrator; --timeframe D1
+opera sem H4 implicito; cobertura multi-timeframe completa.
+Trilha: PO -> SA -> QA (5 RED) -> SE (5 GREEN) -> TL (APROVADO) ->
+DOC (SYNC-268). 316 passed, mypy strict OK, arvore limpa.
 
 Prioridade proposta: Media
 Sprint proposto: A definir pelo PO
