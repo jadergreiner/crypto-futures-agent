@@ -6,6 +6,7 @@ Nao desabilita risk_gate/circuit_breaker; apenas fornece avaliadores.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 from statistics import mean
@@ -255,15 +256,13 @@ def build_risk_gate_audit_trail(
         finally:
             conn.close()
 
-        import json as _json
-
         for row in rows:
             reason: str = str(row["reason_code"] or "risk_gate_blocked")
-            # Normalizar reason_code para catalogo canônico quando possivel
-            if not any(r in reason for r in _RISK_GATE_REASON_CODES):
+            # Normalizar reason_code para catalogo canonico quando possivel
+            if reason not in _RISK_GATE_REASON_CODES:
                 reason = "risk_gate_blocked"
             try:
-                metadata: dict[str, Any] = _json.loads(str(row["payload_json"] or "{}"))
+                metadata: dict[str, Any] = json.loads(str(row["payload_json"] or "{}"))
             except Exception:
                 metadata = {}
             trail.append({

@@ -950,12 +950,12 @@ def _build_promotion_readiness_line(
             tf.state == "fresh" for tf in tf_statuses
         )
 
-        # decision_id estavel por simbolo + janela de 5 min (idempotente)
+        # decision_key estavel por simbolo + janela de 5 min (idempotente)
         window_5min = int(time.time()) // PROMOTION_WINDOW_SECONDS
-        decision_id = f"promo_gate_{symbol}_{window_5min}"
+        decision_key = f"promo_gate_{symbol}_{window_5min}"
 
         result = PromotionEvaluator().evaluate_evidence_gate(
-            decision_id=decision_id,
+            decision_id=decision_key,
             risk_evidence_ok=risk_evidence_ok,
             stability_evidence_ok=stability_evidence_ok,
             consistency_evidence_ok=consistency_evidence_ok,
