@@ -259,6 +259,9 @@ def build_risk_gate_audit_trail(
 
         for row in rows:
             reason: str = str(row["reason_code"] or "risk_gate_blocked")
+            # Normalizar reason_code para catalogo canônico quando possivel
+            if not any(r in reason for r in _RISK_GATE_REASON_CODES):
+                reason = "risk_gate_blocked"
             try:
                 metadata: dict[str, Any] = _json.loads(str(row["payload_json"] or "{}"))
             except Exception:

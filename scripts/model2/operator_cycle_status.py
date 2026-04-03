@@ -9,6 +9,7 @@ import json
 import os
 import sqlite3
 import sys
+import time
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -192,6 +193,8 @@ class TimeframeCandleStatus:
 
 
 BLID_101_STATUS_CONTRACT = "BLID-101-v1"
+
+PROMOTION_WINDOW_SECONDS = 300  # janela de 5 min para decision_id idempotente
 
 
 def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
@@ -926,8 +929,6 @@ def _build_promotion_readiness_line(
         String formatada com decisao GO/NO_GO e resumo de razoes.
     """
     try:
-        import time as _time
-
         # Pilar 1 — risco: CB em estado normal e risk_gate ok
         if risk_state is None:
             risk_evidence_ok = False
@@ -950,7 +951,7 @@ def _build_promotion_readiness_line(
         )
 
         # decision_id estavel por simbolo + janela de 5 min (idempotente)
-        window_5min = int(_time.time()) // 300
+        window_5min = int(time.time()) // PROMOTION_WINDOW_SECONDS
         decision_id = f"promo_gate_{symbol}_{window_5min}"
 
         result = PromotionEvaluator().evaluate_evidence_gate(
