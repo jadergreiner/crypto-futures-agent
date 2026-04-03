@@ -268,7 +268,18 @@ Resiliencia e fail-safe de pipeline (M2-027):
     ou fase ja executada: ENTRY_FILLED | PROTECTION_ARMED | MONITORING |
     CLOSING); fail-safe: campos ausentes nao geram excecao; funcao pura
     sem side-effects (M2-023.4, ADR-002/ADR-004/ADR-009)
-  - fila priorizada (`prioritize_events`)
+  - fila priorizada (`prioritize_events`, `record_event_processing_time`,
+    `get_event_processing_metrics`, `reset_event_processing_times`) —
+    `prioritize_events` ordena eventos por classe (CRITICAL=0, HIGH=1,
+    WARN=2; classe desconhecida ao final), garantindo que eventos criticos
+    sejam processados primeiro (M2-023.5, criterios 1+2); metricas de
+    tempo de processamento acumuladas em `_event_processing_times`
+    (module-level); `record_event_processing_time(priority, elapsed_ms)`
+    registra elapsed_ms por classe; `get_event_processing_metrics()`
+    retorna dict com `mean_ms` e `count` por classe presente; `reset_
+    event_processing_times()` zera estado para testes e reinicio de
+    sessao; fail-safe: excecoes nao propagam para o caller; funcoes
+    puras, sem schema DB (M2-023.5, ADR-002/ADR-009)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
   - trilha ponta-a-ponta do DB por decision_id
     (`build_risk_gate_audit_trail`) — consulta `signal_executions JOIN
@@ -292,7 +303,18 @@ Resiliencia e fail-safe de pipeline (M2-027):
     `build_retry_category_report()` retorna dict de contagens acumuladas;
     `reset_retry_counters()` zera estado para testes e reinicio de sessao
     (M2-023.8, ADR-002/ADR-004/ADR-009)
-  - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
+  - indicadores de reconciliacao (`compute_reconciliation_health_indicators`
+    e `check_reconciliation_health_alerts`) — `compute_reconciliation_
+    health_indicators` agrega drift_mean, confirmation_p95_ms e
+    adjustment_rate a partir de amostras; `check_reconciliation_health_
+    alerts(metrics, thresholds)` compara cada metrica com o limite
+    correspondente (drift_mean_limit, p95_limit_ms,
+    adjustment_rate_limit) e retorna lista de dicts com severity,
+    indicator_name, value e threshold_exceeded para cada metrica que
+    ultrapassar o limite; limites sao configurados externamente (nao
+    hardcoded); fail-safe: metricas ou limites ausentes retornam lista
+    vazia sem excecao; funcao pura e deterministica
+    (M2-023.9, ADR-002/ADR-009)
   - validacao de runbook (`validate_contingency_runbook`)
   - validacao de schema por conjunto de tabelas (`validate_schema_tables`)
   - reconciliacao fail-safe de lado/quantidade da posicao em
@@ -599,6 +621,32 @@ Componentes:
 2. `scripts/model2/healthcheck_live_execution.py` passa a gerar bloco
    `promotion_gate` no summary de runtime com decisao GO/NO_GO e motivos,
    tornando a trilha observavel no ciclo operacional iniciado por `iniciar.bat`.
+
+**M2-020.10 (Retreino automatico governado — ciclo continuo)**:
+
+1. `scripts/model2/continuous_learning_controller.py` — controlador
+   de gatilho de retreino automatico:
+   - `should_run_continuous_cycle(min_new_episodes, symbols)`: avalia
+     threshold de episodios novos por simbolo e intervalo minimo;
+     retorna `(bool, reason_str)` fail-safe sem lancar excecao
+   - `mark_run_executed(symbol, state_file)`: persiste timestamp de
+     ultima execucao para controle de janela temporal
+   - Estado por simbolo em JSON (STATE_FILE); idempotente por janela
+   - Threshold padrao via `RETRAIN_EPISODE_THRESHOLD` de `cycle_report`
+2. `scripts/model2/continuous_learning_cycle.py` — ciclo continuo com
+   gate de promocao:
+   - `run_continuous_learning_cycle_once(db_path, symbol, timeframe)`:
+     pipeline completo (probe de decisao, drift, treino, gate)
+   - Fases auditaveis via `_run_stage` (nome, funcao, kwargs);
+     falha de fase nao interrompe trilha de execucao
+   - `PromotionEvaluator.evaluate()` pos-treino: so promove quando
+     `win_rate >= 55%`, `episodes >= 30`, `drawdown <= 5%`
+   - Resultado persistido em `training_runs` (go_no_go, metrics_json)
+3. `core/model2/continuous_cycle.py` — integracao PromotionGate:
+   - Liga resultado de treino ao gate antes de qualquer promocao
+   - Fail-safe: excecao em gate retorna NO_GO conservador
+4. Guardrails: `risk_gate=ATIVO`, `circuit_breaker=ATIVO`,
+   `decision_id=IDEMPOTENTE` (M2-020.10, ADR-006/ADR-007)
 
 **M2-028.10 (Governanca e runbook do pacote M2-028)**:
 

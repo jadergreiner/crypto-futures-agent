@@ -886,13 +886,51 @@ melhoria de qualidade de decisao em mercados sem trades frequentes.
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
-Status: EM_ANALISE
+Status: CONCLUIDO
 
 Score PO: 4.30 (ValorReal=5, Valor=5, Urg=4, Risco=4, Esf=4)
-SA: Refinado conforme ADR-006/007. Gate de promoção atômico e orquestração desacoplada via controller para evitar bloqueio do live.
-QA: Suite RED preparada em tests/test_model2_m2_020_10_retrain_automation_red.py -> 5 PASSED (GREEN).
-ENG: Implementação concluída. PromotionGate (ADR-007) integrado ao Continuous Cycle com persistência em training_runs. SubAgentManager consertado com métricas win_rate/sharpe.
-TL: Revisão concluída. Código limpo, ADR-007 integralmente respeitada e suites de teste verdes. Persistência em training_runs validada. APROVADO.
+
+PO: Retreino automatico governado garante que nova versao de modelo so
+promove quando criterios de qualidade sao atendidos, sem intervencao
+manual. Valor real em iniciar.bat: agente retreina autonomamente com
+gate ADR-007. Ao fim deste desenvolvimento estarei feliz se continuous_
+learning_controller disparar retreino e PromotionGate bloquear promocao
+abaixo do threshold de qualidade.
+
+SA: Refinado conforme ADR-006/007. Gate de promocao atomico e
+orquestracao desacoplada via controller para evitar bloqueio do live.
+
+QA: Suite RED em tests/test_model2_m2_020_10_retrain_automation_red.py
+-> 5 testes cobrindo trigger, gate, rejeicao, idempotencia e
+observabilidade. GREEN confirmado: 5 passed.
+
+SE: Implementacao concluida. PromotionGate (ADR-007) integrado ao
+Continuous Cycle com persistencia em training_runs. SubAgentManager
+consertado com metricas win_rate/sharpe. Guardrails risk_gate/circuit_
+breaker preservados.
+
+TL: APROVADO. Codigo limpo, ADR-007 integralmente respeitada e suites
+de teste verdes. Persistencia em training_runs validada.
+- pytest -q tests/test_model2_m2_020_10_retrain_automation_red.py
+  -> 5 passed
+- mypy --strict scripts/model2/continuous_learning_controller.py
+  scripts/model2/continuous_learning_cycle.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+M2-020.10: continuous_learning_controller (should_run_continuous_
+cycle, mark_run_executed), continuous_learning_cycle (pipeline de
+fases auditaveis, PromotionEvaluator pos-treino), continuous_cycle
+(integracao PromotionGate), guardrails ADR-006/007.
+SYNCHRONIZATION.md [SYNC-348] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: continuous_learning_
+controller dispara retreino quando threshold de episodios e atingido
+e PromotionGate bloqueia promocao abaixo de win_rate/drawdown/episodes.
+Trilha: PO (4.30) -> SA (ADR-006/007) -> QA (5 GREEN) -> SE (5 pass,
+mypy OK) -> TL (APROVADO) -> DOC (SYNC-348). 377 passed, mypy strict
+OK, guardrails preservados, arvore limpa.
 
 Entrega:
 
@@ -902,12 +940,15 @@ Entrega:
 
 Critérios de aceite:
 
-1. Nova versao so promove com criterio de qualidade.
-2. Rollback automatico funcional.
+1. Nova versao so promove com criterio de qualidade. [x]
+2. Rollback automatico funcional. [x]
 
 ### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-022.4 (CONCLUIDO) que padronizou
+error handling e reason codes com categorias transitorio/permanente.
 
 Entrega:
 
@@ -921,7 +962,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-022.4 e M2-023.8 (CONCLUIDO)
+que implementaram execute_with_category_retry e backoff configuravel.
 
 Entrega:
 
@@ -935,7 +979,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.2 (CONCLUIDO) que
+implementou evaluate_position_drift_gate com reason_code auditavel.
 
 Entrega:
 
@@ -949,7 +996,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.6 (CONCLUIDO) que
+implementou telemetria de latencia por simbolo e etapa.
 
 Entrega:
 
@@ -963,7 +1013,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.8 e BLID-076 (CONCLUIDO)
+que cobriram reconciliacao deterministica e saida externa.
 
 Entrega:
 
@@ -977,7 +1030,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.4 (CONCLUIDO) que
+validou recuperacao de snapshot pos-restart com idempotencia.
 
 Entrega:
 
@@ -991,7 +1047,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.12 (CONCLUIDO) que
+validou fluxo completo Testnet com evidencias deterministicas.
 
 Entrega:
 
@@ -1005,7 +1064,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.10 (CONCLUIDO) que
+consolidou runbook de contingencia de execucao live.
 
 Entrega:
 
@@ -1019,7 +1081,11 @@ Critérios de aceite:
 
 ### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Reconciliacao PROTECTED confirma ausencia em 2
+checks com espera auditavel antes de EXITED; preflight nao-paper mantido
+sem bloqueio por credenciais testnet. Trilha SE concluida conforme notas.
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -1087,20 +1153,20 @@ Contexto:
 
 ### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Entrega:
 
-1. Modificar `agent/sub_agent_manager.py`. [ ]
+1. Modificar `agent/sub_agent_manager.py`. [x]
 2. Adicionar train_entry_agent(symbol, episodes, total_timesteps)
-   usando EntryDecisionEnv. [ ]
+   usando EntryDecisionEnv. [x]
 3. Adicionar predict_entry(symbol, observation) retornando
-   Tuple[int, float] (acao, confianca). [ ]
-4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
+   Tuple[int, float] (acao, confianca). [x]
+4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [x]
 5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
-   gestao). [ ]
-6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
-7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [ ]
+   gestao). [x]
+6. load_all() carrega modelos de entrada e gestao separadamente. [x]
+7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [x]
 
 Dependencias: M2-019.1, M2-019.2
 
@@ -1119,22 +1185,39 @@ SE: `SubAgentManager` implementa `self._entry_agents`,
 `train_entry_agent(...)`, `predict_entry(...) -> tuple[int, float]`,
 fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
 
+TL: APROVADO em 2026-04-03. Reproducao local: 13 testes (M2-019.3 +
+M2-019.4) passados. mypy strict OK em agent/sub_agent_manager.py +
+agent/signal_reward.py (2 arquivos). Suite 377 sem regressao. Correcoes
+de tipagem: int() cast para PPO int args; torch.as_tensor para
+predict_values; -> None em __init__ de SignalRewardCalculator.
+Guardrails preservados, fallback conservador (0, 0.0).
+
+DOC: Ciclo documental concluido. BACKLOG atualizado com trilha
+completa. SYNCHRONIZATION.md [SYNC-349]. Sem novos artefatos de doc
+necessarios (funcionalidade interna de ML, sem impacto em regras de
+negocio ou arquitetura publica).
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: SubAgentManager suporta
+pipeline RL por simbolo com train_entry_agent, predict_entry e fallback
+conservador. Trilha: PO -> SA -> QA -> SE -> TL (APROVADO) -> DOC ->
+PM. 377 passed, mypy strict OK, arvore limpa.
+
 ---
 
 ### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Entrega:
 
 1. Criar `scripts/model2/train_entry_agents.py` compativel com
-   daily_pipeline. [ ]
-2. Para cada simbolo, carregar episodios via EpisodeLoader. [ ]
-3. Se episodios >= 20: treinar (5000 steps por ciclo). [ ]
-4. Se episodios < 20: retornar status=skipped para o simbolo. [ ]
-5. Dry_run nao salva modelos. [ ]
-6. Output JSON em `results/model2/runtime/`. [ ]
-7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
+   daily_pipeline. [x]
+2. Para cada simbolo, carregar episodios via EpisodeLoader. [x]
+3. Se episodios >= 20: treinar (5000 steps por ciclo). [x]
+4. Se episodios < 20: retornar status=skipped para o simbolo. [x]
+5. Dry_run nao salva modelos. [x]
+6. Output JSON em `results/model2/runtime/`. [x]
+7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [x]
 
 Dependencias: M2-019.2, M2-019.3
 
@@ -1150,15 +1233,27 @@ cobre skip `< 20`, treino `>= 20`, `dry_run`, JSON por simbolo e
 `continue_on_error=True`.
 
 SE: API `run_train_entry_agents(...)` exposta para uso programatico,
-carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
-`dry_run`, grava JSON em `results/model2/runtime/` e suporta
+carrega episodios via EpisodeLoader, aplica regra de corte `<20`,
+respeita `dry_run`, grava JSON em `results/model2/runtime/` e suporta
 `continue_on_error=True`.
+
+TL: APROVADO em 2026-04-03 (junto com M2-019.3). 13 testes, mypy
+strict OK, 377 suite verde.
+
+PM: ACEITE em 2026-04-03. Runner diario funcional e testado.
+Trilha: PO -> SA -> QA -> SE -> TL (APROVADO). 377 passed.
 
 ---
 
 ### TAREFA ALGO-CICLO - Incluir ALGOUSDT no ciclo M2
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: ALGOUSDT onboarded com
+propagacao automatica para ALL_SYMBOLS/AUTHORIZED_SYMBOLS, ALGOPlaybook
+dedicado e evidencia de execucao shadow produzida em 2026-03-31.
+Trilha: QA (12 RED) -> SE (12 GREEN, mypy OK) -> TL (APROVADO) ->
+DOC (sync alinhado) -> OP (shadow executado). 353 passed, mypy OK.
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-03-31
@@ -1213,12 +1308,21 @@ pronto para execucao.
 
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-03-31
 
 Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
+
+PM: ACEITE em 2026-04-03. Implementacao absorbed por M2-020.13
+(Desativar estrategia legada, CONCLUIDO 2026-04-01): ModelInference
+Service preserva origin, contaminated, baseline_comparative e
+rl_fallback_reason no contrato auditavel; operator_cycle_status
+rebaixa source quando ha contaminacao; rollback handler bloqueia
+fallback manual sem contexto explicito. Criteri de aceite verificados:
+21/21 testes do conjunto relevante passando, mypy strict OK em 3
+modulos, suite 377 sem regressao. Absorbed por M2-020.13/CONCLUIDO.
 
 Entrega:
 
@@ -1450,11 +1554,64 @@ DOC (SYNC-289). Guardrails preservados, arvore limpa.
 
 ### TAREFA M2-023.5 - Fila priorizada para eventos criticos
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.70
-PO: Fila priorizada reduz starvation de eventos criticos.
-SA: Ordem CRITICAL/HIGH/WARN com latencia por classe.
+Score PO: 2.75 (ValorReal=3, Valor=3, Urgencia=3, ReducaoRisco=3,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada com ciclo completo em 2026-04-03. prioritize_events ja
+implementada (criterios 1 e 2). Criterio 3 pendente: metricas de
+tempo de processamento por classe. Valor real: operador ve tempo medio
+por classe (CRITICAL/HIGH/WARN) em log operacional, detectando
+starvation sem parse manual. Ao fim deste desenvolvimento estarei
+feliz se get_event_processing_metrics retornar tempos medios
+auditaveis por classe de evento.
+
+SA: Adicionar record_event_processing_time(priority, elapsed_ms) e
+get_event_processing_metrics() em resilience_controls.py. Acumular
+elapsed_ms por classe em _event_processing_times (module-level, igual
+a _retry_counters). get_event_processing_metrics retorna dict com
+mean_ms e count por classe presente. reset_event_processing_times para
+testes. Fail-safe. Sem schema. ADR-002/009. Impacto: LOW.
+
+QA: Suite RED criada em
+tests/test_model2_m2_023_5_event_processing_metrics.py com 10 casos
+(RF-023.5.1 a RF-023.5.10). Fase RED: 9 falhas (record_event_
+processing_time/get_event_processing_metrics/reset_event_processing_
+times ausentes); 1 passando (prioritize_events existente, RF-023.5.9).
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+
+SE: GREEN concluido em 2026-04-03. Implementadas
+record_event_processing_time(priority, elapsed_ms),
+get_event_processing_metrics() e reset_event_processing_times() em
+resilience_controls.py. Estado acumulado em _event_processing_times
+(module-level, padrao _retry_counters). Fail-safe com log em ambas as
+funcoes. Sem schema. Evidencias:
+- pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+  -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 batch M2-023)
+passados. mypy strict OK. Suite 377 sem regressao. 3 funcoes puras com
+fail-safe via log, padrao identico a _retry_counters. Guardrails
+risk_gate/circuit_breaker preservados. Mudanca cirurgica: 3 funcoes +
+1 variavel module-level adicionadas, 0 modificacoes em codigo existente.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+record_event_processing_time, get_event_processing_metrics e
+reset_event_processing_times (acumulacao, mean_ms/count, fail-safe,
+M2-023.5, ADR-002/009). SYNCHRONIZATION.md [SYNC-291] registrado.
+0 violacoes MD013. pytest -q tests/test_docs_model2_sync.py -> 12
+passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE:
+get_event_processing_metrics retorna tempos medios auditaveis por
+classe com mean_ms e count. Trilha: PO (2.75) -> SA (ADR-002/009)
+-> QA (10 RED/1 pass) -> SE (10 GREEN, mypy OK) -> TL (APROVADO, 20
+testes) -> DOC (SYNC-291). 377 passed, mypy strict OK, guardrails
+preservados, arvore local limpa.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1465,8 +1622,8 @@ evitando starvation por volume de eventos informativos.
 
 Criterios de Aceite:
 
-- [ ] Eventos CRITICAL e HIGH processados antes dos demais.
-- [ ] Ordem de processamento permanece deterministica por prioridade.
+- [x] Eventos CRITICAL e HIGH processados antes dos demais.
+- [x] Ordem de processamento permanece deterministica por prioridade.
 - [ ] Metricas mostram tempo de tratamento por classe.
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
@@ -1676,11 +1833,67 @@ strict OK, guardrails preservados, arvore local limpa.
 
 ### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.80
-PO: Indicadores de reconciliacao antecipam drift e atraso.
-SA: Expor drift medio, p95 e taxa de ajuste com alerta.
+Score PO: 3.70 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=4,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada com ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: operador ve drift_mean, confirmation_p95_ms e
+adjustment_rate com alertas explicitos quando qualquer limite for
+ultrapassado, sem abrir SQL ou logs brutos para detectar degradacao de
+reconciliacao. Ao fim deste desenvolvimento estarei feliz se
+check_reconciliation_health_alerts emitir alertas auditaveis com
+severity, indicator_name e threshold_exceeded sempre que alguma metrica
+ultrapassar o limite configurado.
+
+SA: Adicionar check_reconciliation_health_alerts(metrics, thresholds)
+em resilience_controls.py. Funcao pura: recebe dict de metricas
+(drift_mean, confirmation_p95_ms, adjustment_rate) e dict de limites;
+retorna lista de dicts com severity, indicator_name, value e
+threshold_exceeded. Fail-safe: metricas ou limites ausentes retornam
+lista vazia sem excecao. Sem schema DB. ADR-002/009. Impacto: LOW.
+
+QA: Suite RED criada em
+tests/test_model2_m2_023_9_reconciliation_health_alerts.py com 10
+casos (RF-023.9.1 a RF-023.9.10). Fase RED: 10 falhas
+(check_reconciliation_health_alerts ausente). TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+
+SE: GREEN concluido em 2026-04-03. Implementado
+check_reconciliation_health_alerts(metrics, thresholds) em
+resilience_controls.py: funcao pura com mapeamento indicador->limite
+(drift_mean->drift_mean_limit, confirmation_p95_ms->p95_limit_ms,
+adjustment_rate->adjustment_rate_limit). Retorna lista de dicts com
+severity/indicator_name/value/threshold_exceeded. Fail-safe sem
+excecao. Retrocompat preservada (compute_reconciliation_health_
+indicators inalterada). Evidencias:
+- pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+  -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. Funcao pura com
+fail-safe via try/except. Mapeamento indicador->limite correto e
+retrocompat preservada. Guardrails risk_gate/circuit_breaker
+preservados e inalterados. Mudanca cirurgica: 1 funcao adicionada,
+0 alteracoes no codigo existente.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+check_reconciliation_health_alerts (mapeamento indicador->limite,
+campos severity/indicator_name/value/threshold_exceeded, limites
+externos, fail-safe, M2-023.9, ADR-002/009).
+SYNCHRONIZATION.md [SYNC-290] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE:
+check_reconciliation_health_alerts retorna alertas auditaveis com
+severity/indicator_name/value/threshold_exceeded para cada metrica
+acima do limite configurado. Trilha: PO (3.70) -> SA (ADR-002/009)
+-> QA (10 RED) -> SE (10 GREEN, mypy OK) -> TL (APROVADO, 20 testes)
+-> DOC (SYNC-290). 377 passed, mypy strict OK, guardrails preservados,
+arvore local limpa.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1697,7 +1910,7 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.10 - Runbook de contingencia de execucao live
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 3.55
 PO: Runbook de contingencia padroniza resposta a incidente.
@@ -1735,9 +1948,15 @@ e liberado para publicacao em main.
 
 ### TAREFA BLID-089 - Captura e persistencia de candles D1
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 3.85 (Valor=5, Urg=4, Risco=4, Esf=2)
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: loop operacional
+executa D1 -> H4 -> H1 -> M5 via LiveCycleOrchestrator; --timeframe D1
+opera sem H4 implicito; cobertura multi-timeframe completa.
+Trilha: PO -> SA -> QA (5 RED) -> SE (5 GREEN) -> TL (APROVADO) ->
+DOC (SYNC-268). 316 passed, mypy strict OK, arvore limpa.
 
 Prioridade proposta: Media
 Sprint proposto: A definir pelo PO

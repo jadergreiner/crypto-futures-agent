@@ -8812,3 +8812,85 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13
   - Suite M2-023 completa (58 testes) -> 58 passed
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-290] M2-023.9 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.9 (Indicadores de saude de reconciliacao)
+- Status backlog: REVISADO_APROVADO (em governanca final)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `check_reconciliation_health_alerts` documentado: mapeamento
+    indicador->limite, campos de alerta (severity, indicator_name,
+    value, threshold_exceeded), limites configurados externamente,
+    fail-safe, funcao pura, M2-023.9, ADR-002/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+    -> 10 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-291] M2-023.5 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.5 (Fila priorizada para eventos criticos)
+- Status backlog: REVISADO_APROVADO (em governanca final)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de `prioritize_events`
+    expandida com contrato completo de metricas: `record_event_
+    processing_time`, `get_event_processing_metrics`, `reset_event_
+    processing_times`, acumulacao em `_event_processing_times`,
+    mean_ms/count, fail-safe, M2-023.5, ADR-002/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_5_event_processing_metrics.py
+    -> 10 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-348] M2-020.10 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-020.10 (Habilitar retreino automatico governado)
+- Status: CONCLUIDO (em fechamento com stage 8)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — secao M2-020.10 adicionada com
+    contrato completo de continuous_learning_controller (should_run_
+    continuous_cycle, mark_run_executed), continuous_learning_cycle
+    (pipeline de fases, PromotionEvaluator), continuous_cycle (gate
+    de promocao), guardrails ADR-006/ADR-007.
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL/DOC/PM
+    registrada; status atualizado para CONCLUIDO.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_020_10_retrain_automation_red.py
+    -> 5 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict scripts/model2/continuous_learning_controller.py
+    scripts/model2/continuous_learning_cycle.py -> Success
+
+### [SYNC-349] M2-019.3/4 e M2-020.9 Fechamento - 2026-04-03
+
+- Agente: 7.doc-advocate + 8.project-manager
+- Itens: M2-019.3, M2-019.4, M2-020.9, M2-021.2 a M2-021.9
+- Status: CONCLUIDO
+- Codigo alterado:
+  - `agent/sub_agent_manager.py` — correcoes de tipagem: int() cast
+    para PPO int args (n_steps, batch_size, n_epochs, verbose);
+    torch.as_tensor() para predict_values; refatoracao de imports.
+  - `agent/signal_reward.py` — `-> None` em `__init__` de
+    `SignalRewardCalculator`.
+- Docs atualizadas:
+  - `docs/BACKLOG.md` — M2-019.3/4 CONCLUIDO com TL/PM; M2-020.9
+    CONCLUIDO (absorbed M2-020.13); M2-021.2 a M2-021.9 fechados
+    (absorbed por sprints M2-022/023/024); trilhas PM registradas.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias:
+  - pytest -q tests/test_model2_m2_019_3_sub_agent_manager.py
+    tests/test_model2_m2_019_4_train_entry_agents.py -> 13 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente
+  - mypy --strict agent/sub_agent_manager.py
+    agent/signal_reward.py -> Success

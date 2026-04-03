@@ -35,6 +35,11 @@ _RETRYABLE_CATEGORIES: frozenset[str] = frozenset({"timeout", "transient"})
 # Backoff padrao entre tentativas transientes (segundos)
 _DEFAULT_BACKOFF: tuple[float, ...] = (1.0, 2.0, 4.0)
 
+# ---------------------------------------------------------------------------
+# M2-023.5: tempos de processamento acumulados por classe de evento
+# ---------------------------------------------------------------------------
+_event_processing_times: dict[str, list[float]] = {}
+
 
 def _to_int(value: object, default: int = 0) -> int:
     if isinstance(value, bool):
@@ -179,6 +184,72 @@ def plan_restart_from_snapshot(
 def prioritize_events(events: list[dict[str, str]]) -> list[dict[str, str]]:
     priority_rank = {"CRITICAL": 0, "HIGH": 1, "WARN": 2}
     return sorted(events, key=lambda e: priority_rank.get(str(e.get("priority")), 9))
+
+
+def record_event_processing_time(priority: str, elapsed_ms: float) -> None:
+    """Registra o tempo de processamento de um evento por classe de prioridade.
+
+    Acumula medicoes em _event_processing_times para posterior consulta via
+    get_event_processing_metrics. Fail-safe: nao lanca excecao.
+
+    Args:
+        priority: Classe do evento (ex.: 'CRITICAL', 'HIGH', 'WARN').
+        elapsed_ms: Tempo de processamento em milissegundos (pode ser 0 ou neg).
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    try:
+        if priority not in _event_processing_times:
+            _event_processing_times[priority] = []
+        _event_processing_times[priority].append(float(elapsed_ms))
+    except Exception:
+        logger.warning(
+            "record_event_processing_time: erro ao registrar tempo "
+            "para classe '%s'; ignorado.",
+            priority,
+            exc_info=True,
+        )
+
+
+def get_event_processing_metrics() -> dict[str, dict[str, float]]:
+    """Retorna metricas de tempo de processamento acumuladas por classe.
+
+    Para cada classe de evento registrada, retorna mean_ms (media dos tempos)
+    e count (numero de registros). Fail-safe: retorna {} sem excecao.
+
+    Returns:
+        Dict mapeando classe -> {'mean_ms': float, 'count': float}.
+        Retorna {} quando nenhum registro existir.
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    try:
+        result: dict[str, dict[str, float]] = {}
+        for cls, times in _event_processing_times.items():
+            if times:
+                result[cls] = {
+                    "mean_ms": mean(times),
+                    "count": float(len(times)),
+                }
+        return result
+    except Exception:
+        logger.warning(
+            "get_event_processing_metrics: erro ao calcular metricas; "
+            "retornando {}.",
+            exc_info=True,
+        )
+        return {}
+
+
+def reset_event_processing_times() -> None:
+    """Zera os registros de tempo de processamento acumulados.
+
+    Uso tipico: testes unitarios que precisam de estado limpo, ou reinicio
+    do ciclo operacional no inicio de cada sessao live.
+
+    (M2-023.5, ADR-002/ADR-009)
+    """
+    _event_processing_times.clear()
 
 
 def query_risk_gate_audit_by_decision_id(
@@ -372,6 +443,68 @@ def compute_reconciliation_health_indicators(
         "confirmation_p95_ms": confirms[p95_index],
         "adjustment_rate": adjusted_count / float(len(samples)),
     }
+
+
+def check_reconciliation_health_alerts(
+    metrics: dict[str, float],
+    thresholds: dict[str, float],
+) -> list[dict[str, object]]:
+    """Verifica indicadores de saude de reconciliacao e emite alertas.
+
+    Compara cada metrica com o limite correspondente e retorna uma lista
+    de alertas para cada indicador que ultrapassar o limite configurado.
+
+    Funcao pura e deterministica (M2-023.9, ADR-002/009).
+    Fail-safe: metricas ou limites ausentes nao geram alertas nem excecao.
+
+    Mapeamento de metricas para limites:
+        - drift_mean       → drift_mean_limit
+        - confirmation_p95_ms → p95_limit_ms
+        - adjustment_rate  → adjustment_rate_limit
+
+    Args:
+        metrics: dict com valores numericos das metricas de reconciliacao.
+            Chaves esperadas: drift_mean, confirmation_p95_ms, adjustment_rate.
+        thresholds: dict com os limites maximos aceitaveis por metrica.
+            Chaves esperadas: drift_mean_limit, p95_limit_ms,
+            adjustment_rate_limit.
+
+    Returns:
+        Lista de dicts com os campos por alerta:
+            - severity: str ('WARN')
+            - indicator_name: str (nome da metrica)
+            - value: float (valor atual)
+            - threshold_exceeded: float (limite que foi ultrapassado)
+    """
+    _INDICATOR_THRESHOLD_MAP: dict[str, str] = {
+        "drift_mean": "drift_mean_limit",
+        "confirmation_p95_ms": "p95_limit_ms",
+        "adjustment_rate": "adjustment_rate_limit",
+    }
+    alerts: list[dict[str, object]] = []
+    try:
+        for indicator, threshold_key in _INDICATOR_THRESHOLD_MAP.items():
+            if indicator not in metrics:
+                continue
+            if threshold_key not in thresholds:
+                continue
+            value = _to_float(metrics.get(indicator))
+            limit = _to_float(thresholds.get(threshold_key))
+            if value > limit:
+                alerts.append({
+                    "severity": "WARN",
+                    "indicator_name": indicator,
+                    "value": value,
+                    "threshold_exceeded": limit,
+                })
+    except Exception:
+        logger.warning(
+            "check_reconciliation_health_alerts: erro inesperado "
+            "ao avaliar indicadores; retornando lista vazia.",
+            exc_info=True,
+        )
+        return []
+    return alerts
 
 
 def validate_contingency_runbook(runbook_path: Path) -> dict[str, object]:
