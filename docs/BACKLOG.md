@@ -1515,11 +1515,54 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.8 - Politica de retries orientada a categoria
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 4.10
-PO: Retry por categoria reduz loops improdutivos.
-SA: Retry so em erro transitorio com budget e acao.
+Score PO: 3.60 (ValorReal=4, Valor=4, Urgencia=3, ReducaoRisco=5,
+Esforco=3) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: falhas permanentes nao geram loops inutil de retry; retries
+transientes tem backoff auditavel; build_retry_category_report() expoe
+contagens por categoria em logs operacionais sem consulta manual.
+Ao fim deste desenvolvimento estarei feliz se actual_attempts refletir
+tentativas reais e build_retry_category_report() retornar contadores
+consultaveis por categoria.
+
+SA: Expandir execute_with_category_retry em resilience_controls.py para
+retornar actual_attempts (real), aplicar time.sleep entre retries
+transientes e adicionar build_retry_category_report() +
+reset_retry_counters(). Reason_code mapeado para catalogo canonico.
+Fail-safe preservado. Sem schema DB. ADRs: ADR-002, ADR-004, ADR-009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_8_retry_category.py
+com 10 casos (RF-023.8.1 a RF-023.8.10). Fase RED: 6 falhas (actual_
+attempts, sleep, build_retry_category_report, reset_retry_counters,
+reason_code ausentes). Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_8_retry_category.py
+
+SE: GREEN concluido em 2026-04-03. execute_with_category_retry expandido
+em resilience_controls.py: actual_attempts correto, time.sleep com
+backoff configuravel, reason_code auditavel, build_retry_category_report
+retorna dict de contagens, reset_retry_counters limpa estado. Retrocompat
+preservada (ok/category/should_retry inalterados). global desnecessario
+removido (REFACTOR). Evidencias:
+- pytest -q tests/test_model2_m2_023_8_retry_category.py -> 10 passed
+- pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. actual_attempts real
+validado, sleep ausente em permanent confirmado, build_retry_category_
+report e reset_retry_counters funcionais, global desnecessario removido.
+Guardrails risk_gate/circuit_breaker preservados e inalterados. Fail-safe
+ativo. Mudanca cirurgica em 1 funcao + 2 novas funcoes + imports.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+execute_with_category_retry (actual_attempts, backoff, build_retry_
+category_report, reset_retry_counters, M2-023.8, ADR-002/004/009).
+SYNCHRONIZATION.md [SYNC-287] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
@@ -1530,9 +1573,16 @@ permanentes e reduzir ruido operacional.
 
 Criterios de Aceite:
 
-- [ ] Categorias transitoria/permanente orientam retries de forma explicita.
-- [ ] Falha permanente interrompe fluxo sem loop de retry.
-- [ ] Relatorio operacional exibe contagem por categoria.
+- [x] Categorias transitoria/permanente orientam retries de forma explicita.
+- [x] Falha permanente interrompe fluxo sem loop de retry.
+- [x] Relatorio operacional exibe contagem por categoria.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: execute_with_category_retry
+retorna actual_attempts correto, aplica backoff em transient/timeout,
+build_retry_category_report() expoe contagens auditaveis por categoria.
+Trilha: PO (3.60) -> SA (ADR-002/004/009) -> QA (10 RED) -> SE (10 GREEN,
+mypy OK) -> TL (APROVADO, 20 testes) -> DOC (SYNC-287). 377 passed, mypy
+strict OK, guardrails preservados, arvore local limpa.
 
 ### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
 

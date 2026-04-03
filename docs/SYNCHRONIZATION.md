@@ -8755,3 +8755,23 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
   - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-287] M2-023.8 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.8 (Politica de retries orientada a categoria)
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `execute_with_category_retry` documentado: actual_attempts,
+    backoff_seconds, reason_code auditavel, build_retry_category_report,
+    reset_retry_counters, fail-safe e retrocompat (M2-023.8,
+    ADR-002/004/009).
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_8_retry_category.py -> 10 passed
+  - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success

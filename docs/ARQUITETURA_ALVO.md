@@ -270,7 +270,15 @@ Resiliencia e fail-safe de pipeline (M2-027):
     reason_code, symbol, timestamp_ms e metadata; fail-safe sem excecao
     (M2-023.6, ADR-002/007)
   - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
-  - retry por categoria (`execute_with_category_retry`)
+  - retry orientado a categoria (`execute_with_category_retry`) —
+    separa categorias retentaveis (transient/timeout) de permanentes;
+    retorna `actual_attempts` (tentativas reais), `max_attempts`,
+    `reason_code` auditavel e `should_retry`; backoff configuravel via
+    `backoff_seconds` entre tentativas transientes; acumula contadores
+    por categoria; fail-safe: excecao nunca propaga para o caller;
+    `build_retry_category_report()` retorna dict de contagens acumuladas;
+    `reset_retry_counters()` zera estado para testes e reinicio de sessao
+    (M2-023.8, ADR-002/ADR-004/ADR-009)
   - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
   - validacao de runbook (`validate_contingency_runbook`)
   - validacao de schema por conjunto de tabelas (`validate_schema_tables`)

@@ -2,15 +2,38 @@
 
 Funcoes puras e deterministicas para suportar contratos de testes.
 Nao desabilita risk_gate/circuit_breaker; apenas fornece avaliadores.
+
+M2-023.8: execute_with_category_retry aprimorado com:
+- actual_attempts: tentativas reais realizadas
+- backoff com time.sleep entre retries transientes
+- contadores acumulados por categoria (_retry_counters)
+- build_retry_category_report: relatorio operacional de contagens
+- reset_retry_counters: limpeza de estado para testes
+- reason_code no resultado para auditabilidade (ADR-009)
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
+import time
 from pathlib import Path
 from statistics import mean
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# M2-023.8: contadores acumulados de retry por categoria (module-level)
+# ---------------------------------------------------------------------------
+_retry_counters: dict[str, int] = {}
+
+# Categorias que permitem retry (ADR-004)
+_RETRYABLE_CATEGORIES: frozenset[str] = frozenset({"timeout", "transient"})
+
+# Backoff padrao entre tentativas transientes (segundos)
+_DEFAULT_BACKOFF: tuple[float, ...] = (1.0, 2.0, 4.0)
 
 
 def _to_int(value: object, default: int = 0) -> int:
@@ -143,32 +166,119 @@ def execute_with_category_retry(
     fn: Callable[[], object],
     category: str,
     max_attempts: int,
+    backoff_seconds: tuple[float, ...] | None = None,
 ) -> dict[str, object]:
-    retryable_categories = {"timeout", "transient"}
-    normalized_category = str(category or "unknown").strip().lower()
-    should_retry = normalized_category in retryable_categories
-    attempts = max(1, int(max_attempts)) if should_retry else 1
+    """Executa fn() com politica de retry orientada a categoria de erro.
+
+    Categorias retentaveis (transient/timeout): retry ate max_attempts com
+    backoff exponencial entre tentativas.
+    Categoria permanent: interrompe apos 1 tentativa (sem retry).
+
+    Acumula contadores globais por categoria para relatorio operacional
+    via build_retry_category_report() (M2-023.8, ADR-009).
+
+    Args:
+        fn: callable sem argumentos a executar.
+        category: categoria do erro esperado (transient/timeout/permanent).
+        max_attempts: maximo de tentativas permitidas.
+        backoff_seconds: delays entre tentativas (default: _DEFAULT_BACKOFF).
+
+    Returns:
+        Dict com: ok, error, category, should_retry, actual_attempts,
+        max_attempts, reason_code.
+    """
+    normalized = str(category or "unknown").strip().lower()
+    should_retry = normalized in _RETRYABLE_CATEGORIES
+    max_att = max(1, int(max_attempts)) if should_retry else 1
+    bo = backoff_seconds if backoff_seconds is not None else _DEFAULT_BACKOFF
 
     last_error: str | None = None
-    for _ in range(attempts):
+    actual_attempts = 0
+
+    for attempt_idx in range(max_att):
+        actual_attempts += 1
         try:
             fn()
+            # Sucesso: acumula tentativas na categoria e retorna
+            _retry_counters[normalized] = (
+                _retry_counters.get(normalized, 0) + actual_attempts
+            )
+            logger.debug(
+                "execute_with_category_retry: ok em %d/%d tentativas "
+                "[categoria=%s]",
+                actual_attempts, max_att, normalized,
+            )
             return {
                 "ok": True,
                 "error": None,
-                "category": normalized_category,
-                "attempts": attempts,
+                "category": normalized,
                 "should_retry": should_retry,
+                "actual_attempts": actual_attempts,
+                "max_attempts": max_att,
+                "reason_code": None,
             }
-        except Exception as exc:  # noqa: BLE001 - contrato de retry
+        except Exception as exc:  # noqa: BLE001 - contrato de retry fail-safe
             last_error = str(exc)
+            logger.debug(
+                "execute_with_category_retry: falha tentativa %d/%d "
+                "[categoria=%s]: %s",
+                actual_attempts, max_att, normalized, exc,
+            )
+            # Aplica backoff se ha proxima tentativa retentavel
+            if should_retry and attempt_idx < max_att - 1:
+                delay = (
+                    bo[attempt_idx]
+                    if attempt_idx < len(bo)
+                    else bo[-1]
+                )
+                time.sleep(delay)
+
+    # Exauriu tentativas: acumula e retorna resultado de falha
+    _retry_counters[normalized] = (
+        _retry_counters.get(normalized, 0) + actual_attempts
+    )
+    # Reason code: permanent usa codigo bloqueante; transient usa timeout
+    reason_code = (
+        "permanent_error"
+        if normalized == "permanent"
+        else "transient_error"
+    )
+    logger.warning(
+        "execute_with_category_retry: falha final apos %d tentativas "
+        "[categoria=%s reason=%s]: %s",
+        actual_attempts, normalized, reason_code, last_error,
+    )
     return {
         "ok": False,
         "error": last_error,
-        "category": normalized_category,
-        "attempts": attempts,
+        "category": normalized,
         "should_retry": should_retry,
+        "actual_attempts": actual_attempts,
+        "max_attempts": max_att,
+        "reason_code": reason_code,
     }
+
+
+def build_retry_category_report() -> dict[str, int]:
+    """Retorna relatorio operacional de tentativas acumuladas por categoria.
+
+    Usado para auditoria e monitoramento de loops de retry no ciclo live
+    (M2-023.8, ADR-009). Nao altera nem reseta o estado acumulado.
+
+    Returns:
+        Dict {categoria: total_de_tentativas} acumulado desde o ultimo reset.
+    """
+    return dict(_retry_counters)
+
+
+def reset_retry_counters() -> None:
+    """Zera contadores acumulados de retry por categoria.
+
+    Uso tipico: testes unitarios que precisam de estado limpo entre casos,
+    ou reinicio do ciclo operacional no inicio de cada sessao live.
+    """
+    global _retry_counters
+    _retry_counters = {}
 
 
 def compute_reconciliation_health_indicators(
