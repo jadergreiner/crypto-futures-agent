@@ -30,6 +30,7 @@ if str(REPO_ROOT) not in sys.path:
 from agent.lstm_environment import LSTMSignalEnvironment
 from scripts.model2.ensemble_voting_ppo import EnsembleVotingPPO
 from scripts.model2.io_utils import atomic_write_json
+from core.model2.ensemble_recalibrator import EnsembleRecalibrator
 
 # Setup logging — redireciona para arquivo para evitar OSError no pipe CMD
 import os as _os
@@ -241,7 +242,11 @@ class EnsembleSignalGenerator:
                     'mlp_vote': mlp_vote,
                     'lstm_vote': lstm_vote,
                     'consenso': float(consenso),
-                    'divergence': consenso < 1.0
+                    'divergence': consenso < 1.0,
+                    'applied_weights': {
+                        'mlp': float(self.mlp_weight),
+                        'lstm': float(self.lstm_weight)
+                    }
                 },
                 'metadata': {
                     'timestamp': datetime.utcnow().isoformat(),
@@ -621,10 +626,23 @@ def run_ensemble_signal_generation(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Inicializar gerador ensemble
+        # Inicializar gerador ensemble com recalibragem adaptativa (E.11)
+        recalibrator = EnsembleRecalibrator(db_path=model2_db_path)
+        
+        # Símbolo para calibração: se múltiplos, usar primeiro por padrão para pesos globais 
+        # (Ou refinar para per-symbol no futuro)
+        calib_symbol = str(symbols[0]).upper() if symbols else 'BTCUSDT'
+        weights = recalibrator.calculate_weights(symbol=calib_symbol, window_hours=48)
+        
+        logger.info(f"Recalibragem adaptativa (48h): {weights.get('reason', 'n/a')}")
+        logger.info(f"  Peso Sugerido MLP: {weights['mlp_weight']:.4f}")
+        logger.info(f"  Peso Sugerido LSTM: {weights['lstm_weight']:.4f}")
+
         generator = EnsembleSignalGenerator(
             voting_method=voting_method,
-            min_confidence=min_confidence
+            min_confidence=min_confidence,
+            mlp_weight=float(weights['mlp_weight']),
+            lstm_weight=float(weights['lstm_weight'])
         )
 
         logger.info(f"Metodo votacao: {voting_method}")

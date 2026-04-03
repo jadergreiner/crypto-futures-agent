@@ -598,17 +598,22 @@ Dados coletados por simbolo:
 6. Modo de execucao (shadow/live)
 7. Ensemble (metodo, confianca) — (M2-026.10)
 
-## M2-026 (Ensemble Signal Generation — Fase E.10)
+## M2-026 (Ensemble Signal Generation — Fase E.10 e E.11)
 
 A geracao de sinais em `daily_pipeline.py` utiliza o `EnsembleSignalGenerator`
 para consolidar decisões entre modelos MLP e LSTM:
 
-1. Votação Ponderada: MLP (weight: 0.48) e LSTM (weight: 0.52).
-2. Gate de Confianca: Decisão via ensemble exige `confidence >= 0.6`.
-3. Fallback Determinístico (SMC): Ativado automaticamente se a confiança
+1. Votação Ponderada: MLP (weight: 0.48) e LSTM (weight: 0.52) por padrão.
+2. **Recalibragem Adaptativa (BLID-110 - E.11)**: O `EnsembleRecalibrator`
+   ajusta os pesos dinamicamente com base no Win Rate das últimas 48h.
+   - Momentum: 0.7 (default) / 0.3 (performance recente).
+   - Fallback: Pesos default (0.48, 0.52) se dados < 5 trades.
+3. Gate de Confianca: Decisão via ensemble exige `confidence >= 0.6`.
+4. Fallback Determinístico (SMC): Ativado automaticamente se a confiança
    for insuficiente ou em erro de carregamento dos modelos.
-4. Trilha Auditável: Dados de votação persistidos no `payload_json` do sinal
-   para rastreabilidade operacional.
+5. **Trilha Auditável**: Dados de votação, incluindo `applied_weights`,
+   são persistidos no `payload_json` do sinal para rastreabilidade
+   operacional.
 
 ## Fluxo operacional atual
 

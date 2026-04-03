@@ -218,6 +218,8 @@ Campos e uso canonico:
    `contaminated`, `decision_id`, `model_version` e `reason_code`.
 2. `signal_executions.payload_json` reflete `source=RL_MODEL` somente
    quando o fluxo nominal estiver em origem puramente model-driven.
+   Em modo ensemble, deve incluir `applied_weights` (MLP/LSTM) para
+   auditabilidade de recalibragem 48h.
 3. `signal_execution_events.payload_json` registra severidade e acao
    recomendada para triagem do operador.
 4. `iniciar.bat` deve ler esses mesmos contratos sem reinterpretacao

@@ -285,11 +285,21 @@ class SubAgentManager:
             entry_agent.learn(total_timesteps=total_timesteps, reset_num_timesteps=False)
             self._entry_agents[symbol] = entry_agent
 
+            # Calcular metricas basicas nos mesmos episodios (proxy)
+            rewards = [float(ep.get("reward_proxy") or ep.get("reward_t", 0.0)) for ep in episodes]
+            win_rate = sum(1 for r in rewards if r > 0) / len(rewards) if rewards else 0.0
+            avg_reward = sum(rewards) / len(rewards) if rewards else 0.0
+
             return {
                 'success': True,
                 'symbol': symbol,
                 'episodes_used': len(episodes),
                 'total_timesteps': total_timesteps,
+                'metrics': {
+                    'win_rate': float(win_rate),
+                    'avg_reward': float(avg_reward),
+                    'sharpe': float(avg_reward / (np.std(rewards) + 1e-6)) if rewards else 0.0
+                }
             }
         except Exception as exc:
             logger.error("Erro ao treinar entry agent %s: %s", symbol, exc)

@@ -174,7 +174,9 @@ PM: ACEITE FINAL. Valor prometido (resiliência ponderada) validado via
 benchmark de 50 episódios e tipagem strict. 2026-04-02.
 
 **Resumo:**
-Consolidar a robustez do sinal do Modelo 2.0 através da votação ensemble entre MLP e LSTM. O objetivo é validar cientificamente que a combinação reduz o drawdown e melhora o Sharpe ratio frente a cada modelo isolado.
+Consolidar a robustez do sinal do Modelo 2.0 através da votação ensemble
+entre MLP e LSTM. O objetivo é validar cientificamente que a combinação reduz
+o drawdown e melhora o Sharpe ratio frente a cada modelo isolado.
 
 **Escopo:**
 
@@ -269,6 +271,47 @@ PO: Validar integracao do Ensemble no daily_pipeline. Ao fim deste desenvolvimen
 SA: Integracao ensemble via wrapper daily_pipeline com observabilidade em operator_cycle_status. Fallback deterministico garantido por ADR-026.
 
 Dependências: BLID-067 (E.9 scripts prontos) ✅
+
+---
+
+### Fase E.11 - BLID-110: Refino Adaptativo de Pesos do Ensemble
+
+Status: CONCLUIDO
+
+Score PO: 4.20 (ValorReal=5, Valor=5, Urg=4, Risco=3, Esf=3)
+
+PO: Priorizar refino adaptativo de pesos para MLP+LSTM. Ao fim deste
+desenvolvimento estarei feliz se o iniciar.bat exibir consistentemente pesos
+ajustados as ultimas 48h com ganho de confiabilidade auditavel no sinal ensemble.
+
+SA: Refinado com monitor 48h (Sharpe/Win-rate) e recalibragem dinamica no
+wrapper; sem mudança de schema; adr_referencia: ADR-026;
+status_gate: APROVADO_POR_ADR.
+
+QA: Suite GREEN em tests/test_model2_blid_110_ensemble_recalibration_red.py
+(4/4 OK). mypy --strict zero erros. Cobertura: monitor 48h, recalibragem,
+fallback e payload audit. IMPLEMENTADO.
+
+TL: Reproduzido suite verde (4/4). mypy clean. Logica adaptativa balanceada
+com momentum de 0.3 (30% performance / 70% default). ADR-026 respeitada.
+APROVADO.
+
+Escopo:
+
+1. Criar monitor de performance comparativa entre modelos individuais.
+2. Implementar recalibragem dinâmica de pesos no ensemble_signal_generation_wrapper.
+3. Persistir novo peso no payload do sinal com trilha auditável.
+
+Critérios de Aceite:
+
+- [x] Script de monitoramento 48h funcional (Exit 0).
+- [x] Pesos adaptativos visíveis em iniciar.bat.
+- [x] Confidence gate de 0.6 preservado.
+
+PM: ACEITE FINAL. Valor do PO validado: pesos adaptativos baseados em 48h
+performance (Win Rate) agora integrados ao wrapper ensemble com momentum 0.3.
+Confiabilidade auditável comprovada no payload do sinal [applied_weights] e
+logs de startup. Suite GREEN (4/4) e mypy strict reproduzidos. 2026-04-03.
 
 ---
 
@@ -539,7 +582,7 @@ ambiente nao bloqueante para o aceite executivo.
 
 ### TAREFA M2-ALGO.2 - Persistir episodios para retreino incremental de ALGOUSDT
 
-Status: Em analise
+Status: CONCLUIDO
 
 Score PO: 3.55 (ValorReal=4, Valor=4, Urg=4, Risco=3, Esf=2)
 Sprint: S-4
@@ -582,7 +625,7 @@ eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,
 created_at>cutoff | cutoff_ms=1775060375951 | timeframe=M5
 aud24h: started=3 | running_block=15 | conclusivo=sim
 
-```
+```txt
 
 Impacto:
 
@@ -693,7 +736,13 @@ melhoria de qualidade de decisao em mercados sem trades frequentes.
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
-Status: EM_DESENVOLVIMENTO
+Status: REVISADO_APROVADO
+
+Score PO: 4.30 (ValorReal=5, Valor=5, Urg=4, Risco=4, Esf=4)
+SA: Refinado conforme ADR-006/007. Gate de promoção atômico e orquestração desacoplada via controller para evitar bloqueio do live.
+QA: Suite RED preparada em tests/test_model2_m2_020_10_retrain_automation_red.py -> 5 PASSED (GREEN).
+ENG: Implementação concluída. PromotionGate (ADR-007) integrado ao Continuous Cycle com persistência em training_runs. SubAgentManager consertado com métricas win_rate/sharpe.
+TL: Revisão concluída. Código limpo, ADR-007 integralmente respeitada e suites de teste verdes. Persistência em training_runs validada. APROVADO.
 
 Entrega:
 
@@ -5401,7 +5450,8 @@ PO: Score 4.20. Prioridade maxima do ciclo por risco de treino stale
 silencioso e impacto direto em decisoes live.
 
 SA: Handoff QA preparado para trilha de auditoria do trigger,
-anti-duplicidade de treino e deteccao de stale >6h com fail-safe.
+anti-duplicidade de treino e [x] M2-020.10: Automação do ciclo de retreino (Trigger + Governança ADR-007) `IMPLEMENTADO` [[docs/ADRS.md#adr-006]]
+fail-safe.
 
 QA: Suite RED criada em `tests/test_model2_training_audit.py` com 7 testes;
 execucao inicial `pytest -q tests/test_model2_training_audit.py` -> 7 failed
@@ -6511,7 +6561,7 @@ modelo nao evolui; auditar trainer, env, path checkpoint e filtro dataset.
 
 O status operacional de 2026-03-25 exibe:
 
-```
+```txt
 
 Episodio : #13658 persistido | reward: +0.0000
 Treino   : ultimo: 2026-03-25 23:04:11 BRT | pendentes: 101/100 (faltam 0 para

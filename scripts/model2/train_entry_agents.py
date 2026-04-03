@@ -289,14 +289,16 @@ def run_train_entry_agents(
                 total_timesteps=int(total_timesteps),
             )
             if bool(train_result.get("success")):
+                trained_results[symbol] = {
+                    "episodes_used": episode_count,
+                    "steps_run": int(total_timesteps),
+                    "metrics": train_result.get("metrics", {})
+                }
                 summary["results"][symbol] = {
                     "status": "trained",
                     "episodes_used": episode_count,
                     "steps_run": int(total_timesteps),
-                }
-                trained_results[symbol] = {
-                    "episodes_used": episode_count,
-                    "steps_run": int(total_timesteps),
+                    "metrics": train_result.get("metrics", {})
                 }
                 trained_count += 1
             else:

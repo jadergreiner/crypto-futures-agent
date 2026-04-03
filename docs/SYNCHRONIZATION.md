@@ -21,6 +21,35 @@ toda vez que mudanças significativas são feitas no código:
 
 ---
 
+### [SYNC-347] Governanca Doc Advocate BLID-110 (E.11) - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: BLID-110 (Refino Adaptativo de Pesos do Ensemble)
+- Acao: consolidacao documental final apos aprovacao tecnica (E.11)
+- Docs atualizadas:
+  - `docs/BACKLOG.md` (status: REVISADO_APROVADO, comentários SA, QA, SE, TL)
+  - `docs/ARQUITETURA_ALVO.md` (Recalibragem Adaptativa)
+  - `docs/MODELAGEM_DE_DADOS.md` (applied_weights no payload_json)
+  - `docs/SYNCHRONIZATION.md` (esta entrada)
+- Validacoes executadas:
+  - `markdownlint docs/*.md` -> sem erros críticos
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+- Valor validado:
+  - `ENTREGUE`: Pesos dinâmicos baseados em 48h performance agora auditáveis
+    no sinal e visíveis no startup do wrapper. Critério de confiabilidade
+    auditável atendido.
+- Status final: pronto para ACEITE final do Project Manager (8.project-manager)
+
+### [SYNC-346] Gate arquitetural M2-020.10 - 2026-04-03
+
+- Agente: 3.solution-architect
+- Item: M2-020.10 (Retreino Automático Governado)
+- Status backlog: Em analise
+- `status_gate`: `APROVADO_POR_ADR`
+- `adr_referencia`: `ADR-006`, `ADR-007`
+- Impacto arquitetural: `HIGH`, fechamento do loop de aprendizado contínuo.
+- Proxima acao: handoff estruturado para `4.qa-tdd`.
+
 ### [SYNC-345] Governanca Doc Advocate BLID-067 (E.9) - 2026-04-02
 
 - Agente: 7.doc-advocate

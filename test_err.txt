@@ -1,0 +1,84 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-7.4.0, pluggy-1.6.0 -- C:\Users\Usuario\AppData\Local\Programs\Python\Python311\python.exe
+cachedir: .pytest_cache
+rootdir: C:\repo\crypto-futures-agent
+configfile: pytest.ini
+plugins: anyio-3.7.1, asyncio-0.21.0, cov-4.1.0
+asyncio: mode=Mode.STRICT
+collecting ... collected 5 items
+
+tests/test_model2_m2_020_10_retrain_automation_red.py::test_controller_triggers_retrain_when_episodes_above_threshold PASSED [ 20%]
+tests/test_model2_m2_020_10_retrain_automation_red.py::test_cycle_implements_promotion_gate_with_sharpe_comparison FAILED [ 40%]
+tests/test_model2_m2_020_10_retrain_automation_red.py::test_controller_prevents_simultaneous_runs PASSED [ 60%]
+tests/test_model2_m2_020_10_retrain_automation_red.py::test_promotion_gate_persists_decision_in_training_runs FAILED [ 80%]
+tests/test_model2_m2_020_10_retrain_automation_red.py::test_cycle_failsafe_on_training_error PASSED [100%]
+
+================================== FAILURES ===================================
+_________ test_cycle_implements_promotion_gate_with_sharpe_comparison _________
+
+mock_db = WindowsPath('C:/Users/Usuario/AppData/Local/Temp/pytest-of-Usuario/pytest-1367/test_cycle_implements_promotio0/db/modelo2.db')
+tmp_path = WindowsPath('C:/Users/Usuario/AppData/Local/Temp/pytest-of-Usuario/pytest-1367/test_cycle_implements_promotio0')
+
+    def test_cycle_implements_promotion_gate_with_sharpe_comparison(mock_db, tmp_path):
+        """T002: Validar que o ciclo rejeita um modelo se o Sharpe Ratio for menor que o baseline."""
+        # Este teste deve FALHAR (RED) porque a l¾gica de gate ainda nÒo existe no scripts/model2/continuous_learning_cycle.py
+    
+        # Mock dos scripts de treino para retornar mÚtricas simuladas
+        with patch("scripts.model2.continuous_learning_cycle.run_train_entry_agents") as mock_train:
+            # Simular que o treino gerou um modelo com Sharpe baixo (0.5 vs baseline 1.0)
+            mock_train.return_value = {"status": "ok", "metrics": {"sharpe": 0.5, "win_rate": 0.4}}
+    
+            # Simular que temos um modelo ativo com Sharpe 1.0
+            # (Isso exige que o script leia o baseline de algum lugar)
+    
+            summary = run_continuous_learning_cycle_once(
+                source_db_path=tmp_path / "source.db",
+                model2_db_path=mock_db,
+                symbols=["BTCUSDT"],
+                timeframe="M5",
+                output_dir=tmp_path / "output",
+                enable_retrain=True,
+                enable_collection=False,
+                enable_persist=False
+            )
+    
+            # Esperamos que o sumßrio indique que a promoþÒo foi REJEITADA
+            # Atualmente o ciclo nÒo possui essa chave "promotion_status"
+>           assert "promotion_status" in summary
+E           AssertionError: assert 'promotion_status' in {'decisions': {'BTCUSDT': {'status': 'skipped_no_signal', 'symbol': 'BTCUSDT', 'timeframe': 'M5'}}, 'drift_report': {'BTCUSDT': {'avg_confidence': None, 'confidence_samples': 0, 'hit_rate_delta': None, 'is_degraded': False, ...}}, 'drift_thresholds': {'evaluation_window': 30, 'min_avg_confidence': 0.45, 'min_hit_rate': 0.42, 'min_hit_rate_delta': -0.15, ...}, 'flow': ['coleta', 'persistencia', 'retreino_entry_agents', 'retreino_protection_head', 'decisao_probe', 'drift_report'], ...}
+
+tests\test_model2_m2_020_10_retrain_automation_red.py:80: AssertionError
+___________ test_promotion_gate_persists_decision_in_training_runs ____________
+
+mock_db = WindowsPath('C:/Users/Usuario/AppData/Local/Temp/pytest-of-Usuario/pytest-1367/test_promotion_gate_persists_d0/db/modelo2.db')
+tmp_path = WindowsPath('C:/Users/Usuario/AppData/Local/Temp/pytest-of-Usuario/pytest-1367/test_promotion_gate_persists_d0')
+
+    def test_promotion_gate_persists_decision_in_training_runs(mock_db, tmp_path):
+        """T005: Verificar se a decisÒo do gate (GO/NO-GO) Ú persistida em training_runs."""
+        # RED: training_runs atualmente nÒo Ú populada pelo continuous_learning_cycle.py
+    
+        with patch("scripts.model2.continuous_learning_cycle.run_train_entry_agents") as mock_train:
+            mock_train.return_value = {"status": "ok", "metrics": {"sharpe": 2.0, "win_rate": 0.6}}
+    
+            run_continuous_learning_cycle_once(
+                source_db_path=tmp_path / "source.db",
+                model2_db_path=mock_db,
+                symbols=["BTCUSDT"],
+                timeframe="M5",
+                output_dir=tmp_path / "output",
+                enable_retrain=True,
+                enable_collection=False,
+                enable_persist=False
+            )
+    
+            with sqlite3.connect(str(mock_db)) as conn:
+                row = conn.execute("SELECT go_no_go, metrics_json FROM training_runs ORDER BY id DESC LIMIT 1").fetchone()
+    
+>           assert row is not None
+E           assert None is not None
+
+tests\test_model2_m2_020_10_retrain_automation_red.py:120: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_model2_m2_020_10_retrain_automation_red.py::test_cycle_implements_promotion_gate_with_sharpe_comparison
+FAILED tests/test_model2_m2_020_10_retrain_automation_red.py::test_promotion_gate_persists_decision_in_training_runs
+======================== 2 failed, 3 passed in 16.63s =========================
