@@ -918,6 +918,30 @@ SYMBOLS: Dict[str, Dict[str, Any]] = {
             "high_beta",
             "altseason_sensitive"
         ]
+    },
+    "IOTAUSDT": {
+        "papel": (
+            "IOTA. Protocolo DLT baseado em DAG (Tangle) para economia de "
+            "maquinas, IoT e transacoes sem taxas. Foco em interoperabilidade "
+            "e adocao industrial."
+        ),
+        "ciclo_proprio": (
+            "Segue o ciclo geral das altcoins com sensibilidade a narrativas "
+            "de IoT, maquinas autonomas e infraestrutura Web3 industrial. "
+            "Acumula lentamente em mercados laterais; amplia em altseason "
+            "com beta 2.2. Ciclos de acumulacao D1/H4 bem definidos."
+        ),
+        "correlacao_btc": [0.60, 0.80],
+        "beta_estimado": 2.2,
+        "classificacao": "mid_cap_l1",
+        "caracteristicas": [
+            "iot",
+            "dag_technology",
+            "feeless",
+            "machine_economy",
+            "industrial_adoption",
+            "layer1"
+        ]
     }
 }
 

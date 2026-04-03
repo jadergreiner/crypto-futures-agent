@@ -8922,3 +8922,39 @@ REVISADO_APROVADO
     tests/test_operator_cycle_status.py -> 14 passed
   - mypy --strict scripts/model2/daily_pipeline.py
     scripts/model2/operator_cycle_status.py -> Success
+
+### [SYNC-351] FEAT: onboarding IOTAUSDT no ciclo RL - 2026-04-03
+
+- Agente: Copilot Task Agent
+- Descricao: Inclui IOTAUSDT no ciclo completo do Modelo 2.0:
+  captura de cotacoes, historico, treino RL e geracao de trades.
+- Codigo alterado:
+  - `config/symbols.py` — entrada IOTAUSDT (mid_cap_l1, beta 2.2,
+    IoT/DAG/machine_economy, correlacao_btc [0.60, 0.80]).
+  - `playbooks/iota_playbook.py` — IOTAPlaybook com ajustes de
+    confluencia (iot_narrative, industrial_adoption, altseason,
+    risk_off_penalty), risco (position_size por ATR%) e ciclo.
+  - `playbooks/__init__.py` — import e __all__ de IOTAPlaybook.
+  - `scripts/model2/daily_pipeline.py` — funcao auxiliar
+    `_count_symbol_d1`, bootstrap stage `_run_bootstrap_iotausdt`
+    (idempotente, 240 candles D1 minimos) e stage
+    `bootstrap_iotausdt` adicionado ao pipeline quando IOTAUSDT
+    esta na lista de simbolos.
+- Testes adicionados:
+  - `tests/test_iotausdt_onboarding.py` — 21 casos cobrindo
+    config, propagacao, playbook (confluencia/risco/ciclo/should_
+    trade), registro no pipeline, e skip quando dados existem.
+- Evidencias tecnicas:
+  - pytest -q tests/test_iotausdt_onboarding.py -> 21 passed
+  - pytest -q tests/test_blid088_m5_pipeline_integration.py
+    tests/test_operator_cycle_status.py
+    tests/test_new_symbols.py
+    tests/test_config_settings_symbols.py -> 26 passed
+  - mypy --strict config/symbols.py playbooks/iota_playbook.py
+    scripts/model2/daily_pipeline.py -> Success
+- Instrucao operacional:
+  Adicionar IOTAUSDT ao .env:
+  `M2_LIVE_SYMBOLS=ALGOUSDT,BNBUSDT,BTCUSDT,ETHUSDT,IOTAUSDT`
+  O pipeline ira executar bootstrap automatico no primeiro ciclo
+  (busca historico D1/H4/H1/M5 desde 2025-04-01) e depois
+  sincronizar via sync_ohlcv a cada ciclo de 300s.
