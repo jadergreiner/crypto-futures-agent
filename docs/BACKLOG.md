@@ -4,6 +4,72 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ---
 
+## TAREFA BLID-104 - Exibir prontidao de promocao por simbolo no status M2
+
+Status: IMPLEMENTADO
+
+Score PO: 3.90 (ValorReal=5, Valor=4, Urgencia=4, ReducaoRisco=3, Esforco=2)
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+Valor direto: linha `Promocao` aparece no bloco de cada simbolo exibindo
+`[PRONTO PARA PROMOCAO]` ou a razao principal de bloqueio, sem consultar
+DB manualmente. Meta de fechamento: operador enxerga diretamente em
+`iniciar.bat` o status GO/NO-GO de promocao shadow->paper por simbolo.
+
+PO: BLID-103 concluida hoje (2026-04-03); EvidenceGate disponivel mas sem
+consumidor no status operacional. Score 3.90, desbloqueado. Ao fim deste
+desenvolvimento estarei feliz se a linha Promocao aparecer no bloco por
+simbolo com GO ou razao de bloqueio explicita em iniciar.bat.
+
+SA: Adicionar helper `_build_promotion_readiness_line(symbol, risk_state,
+tf_statuses)` em operator_cycle_status.py. Derivar risk_evidence_ok de
+risk_state.circuit_breaker_state=='normal', stability_evidence_ok de
+tf_statuses fresh, consistency_evidence_ok de pelo menos 1 tf fresco.
+Chamar PromotionEvaluator().evaluate_evidence_gate(); fail-safe sem
+excecao. Sem schema novo. ADRs: ADR-007, ADR-009, ADR-002. Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_blid_104_promotion_readiness.py
+com 7 casos (RF-104.1 a RF-104.6). ImportError confirmado por funcao
+ausente _build_promotion_readiness_line. Status: TESTES_PRONTOS.
+Comando validacao: pytest -q tests/test_model2_blid_104_promotion_readiness.py
+
+SE: Inicio GREEN-REFACTOR em 2026-04-03. Implementado
+_build_promotion_readiness_line() em operator_cycle_status.py; linha
+`Promocao` adicionada ao bloco por simbolo; 3 pilares derivados de
+risk_state + tf_statuses; decision_id idempotente por janela 5min.
+Evidencias:
+- pytest -q tests/test_model2_blid_104_promotion_readiness.py -> 7 passed
+- mypy --strict scripts/model2/operator_cycle_status.py -> Success
+- pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+
+Descricao:
+Adicionar linha `Promocao` no bloco por simbolo do
+`operator_cycle_status.py`, consultando
+`PromotionEvaluator.evaluate_evidence_gate()` para exibir ao operador se
+o simbolo atingiu criterios minimos de risco, estabilidade e consistencia
+para promocao shadow -> paper.
+
+Criterios de Aceite:
+
+- [ ] Linha `Promocao` aparece no bloco de cada simbolo com status GO/NO-GO
+- [ ] Campos exibidos: `go`, `decision`, `reasons` resumidas (max 60 chars)
+- [ ] Quando `go=True`: exibir `[PRONTO PARA PROMOCAO]`
+- [ ] Quando `go=False`: exibir razao principal de bloqueio
+- [ ] Idempotente por `decision_id` (fail-safe sem excecao)
+- [ ] `pytest -q tests/` passa sem regressoes
+- [ ] `mypy --strict` nos modulos alterados sem erros novos
+
+Dependencias:
+
+- BLID-103 (evaluate_evidence_gate implementado)
+- operator_cycle_status.py funcional
+
+Impacto:
+Operador enxerga diretamente em `iniciar.bat` se o simbolo esta pronto
+para promocao, sem precisar consultar DB manualmente.
+
+---
+
 ## TAREFA BLID-103 - Implementar evaluate_evidence_gate no PromotionEvaluator
 
 Status: CONCLUIDO
