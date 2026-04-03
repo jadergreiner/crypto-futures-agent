@@ -736,7 +736,7 @@ melhoria de qualidade de decisao em mercados sem trades frequentes.
 
 ### TAREFA M2-020.10 - Habilitar retreino automatico governado
 
-Status: REVISADO_APROVADO
+Status: EM_ANALISE
 
 Score PO: 4.30 (ValorReal=5, Valor=5, Urg=4, Risco=4, Esf=4)
 SA: Refinado conforme ADR-006/007. Gate de promoção atômico e orquestração desacoplada via controller para evitar bloqueio do live.
