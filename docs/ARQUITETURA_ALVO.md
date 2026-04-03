@@ -250,7 +250,11 @@ Resiliencia e fail-safe de pipeline (M2-027):
 - `REASON_CODE_CATALOG` expandido com `orphan_position` (M2-027.3).
 - `core/model2/resilience_controls.py` (PKG-PO10-0326) — funcoes puras para
   contrato de resiliencia operacional:
-  - drift gate pre-admissao (`evaluate_position_drift_gate`)
+  - drift gate pre-admissao (`evaluate_position_drift_gate`) — bloqueia
+    nova admissao quando drift entre `position_qty` local e observado
+    supera `threshold_pct`; retorna `allow`, `reason_code`
+    ('position_drift_blocked' ou None), `decision_id` e `drift_pct`;
+    baseline protege contra divisao por zero (M2-023.2, ADR-002/007)
   - degradacao por latencia (`evaluate_latency_degradation`)
   - restart idempotente (`plan_restart_from_snapshot`)
   - fila priorizada (`prioritize_events`)

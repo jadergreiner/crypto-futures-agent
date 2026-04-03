@@ -1259,12 +1259,51 @@ implementado). Status: TESTES_PRONTOS.
 
 ### TAREFA M2-023.2 - Gate de drift de posicao em tempo real
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 4.60
 PO: Drift gate evita admissao com estado divergente.
 SA: Drift gate pre-admissao com reason_code e trilha por decision_id.
 SE: PKG-PO10-0326 implementado com guardrails e idempotencia.
+
+PO: Retomada ciclo completo em 2026-04-03. Score 4.60 (P0) confirmado.
+Valor real: operador vê bloqueio de nova admissao com reason_code
+'position_drift_blocked' quando drift entre estado local e exchange
+supera limiar, evitando entradas com estado divergente. Ao fim deste
+desenvolvimento estarei feliz se evaluate_position_drift_gate bloquear
+admissao com reason_code auditavel e suite dedicada cobrir cenarios
+de drift alto, baixo e zero.
+
+SA: evaluate_position_drift_gate em resilience_controls.py (ADR-002/007).
+Aceita current_state, observed_state, threshold_pct e decision_id.
+Retorna allow, reason_code e drift_pct. Fail-safe via funcao pura.
+
+QA: Suite RED criada em tests/test_model2_m2_023_2_drift_gate.py com 8
+casos (RF-023.2.1 a RF-023.2.8). Codigo ja existia -> 8 passed (GREEN).
+Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_2_drift_gate.py
+
+SE: GREEN confirmado em 2026-04-03. evaluate_position_drift_gate em
+resilience_controls.py implementa drift gate completo: bloqueia com
+reason_code='position_drift_blocked' quando drift_pct > threshold_pct;
+preserva decision_id e expoe drift_pct. Funcao pura e idempotente.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_2_drift_gate.py -> 8 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 8 testes dedicados passados. mypy OK.
+Suite 377 sem regressao. Funcao pura, idempotente, fail-safe (baseline
+evita div-zero). Guardrails risk_gate/CB inalterados.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+evaluate_position_drift_gate (campos, baseline anti-zero, M2-023.2,
+ADR-002/007). SYNCHRONIZATION.md [SYNC-285] registrado. 0 violacoes MD013.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: evaluate_position_drift_gate
+bloqueia admissao com reason_code='position_drift_blocked' quando drift
+supera threshold, com decision_id auditavel e drift_pct exposto. Suite
+dedicada com 8 casos. 18 testes reproduzidos. 377 passed. mypy OK.
 
 Sprint: M2-023
 Prioridade: P0
@@ -1276,7 +1315,7 @@ limiar seguro em runtime.
 Criterios de Aceite:
 
 - [ ] Drift acima do limiar gera bloqueio imediato e evento auditavel.
-- [ ] Reconciliação explicita motivo e acao de recuperacao.
+- [ ] Reconciliacao explicita motivo e acao de recuperacao.
 - [ ] Suite valida comportamento em shadow e live.
 
 ### TAREFA M2-023.3 - Politica de degradacao por latencia

@@ -8722,3 +8722,19 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
 - Observacao: falha pre-existente em test_docs_model2_sync.py
   (db/modelo2.db ausente no CI) fora do escopo M2-023.6.
+
+### [SYNC-285] M2-023.2 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.2
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de `evaluate_position_drift_gate`
+    expandida com contrato completo (campos, baseline anti-zero, M2-023.2
+    e referencia ADR-002/007).
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_m2_023_2_drift_gate.py -> 8 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
