@@ -64,15 +64,38 @@ def evaluate_latency_degradation(
     metrics: dict[str, int],
     p95_limit_ms: int,
     p99_limit_ms: int,
+    recent_window: list[dict[str, int]] | None = None,
+    stable_window_count: int = 3,
 ) -> dict[str, object]:
-    p95 = int(metrics.get("p95_ms", 0))
-    p99 = int(metrics.get("p99_ms", 0))
+    """Avalia politica de degradacao por latencia P95/P99.
+
+    Entrada no modo degradado: p95_ms > p95_limit_ms ou
+    p99_ms > p99_limit_ms.
+    Saida do modo degradado: janela de 'stable_window_count' medicoes
+    consecutivas todas abaixo dos limites. Se 'recent_window' estiver
+    vazia ou for None, exit_ready=False.
+    """
+    p95 = _to_int(metrics.get("p95_ms", 0))
+    p99 = _to_int(metrics.get("p99_ms", 0))
     degraded = p95 > int(p95_limit_ms) or p99 > int(p99_limit_ms)
+
+    window = recent_window if recent_window is not None else []
+    if len(window) >= int(stable_window_count):
+        tail = window[-int(stable_window_count):]
+        exit_ready: bool = all(
+            _to_int(m.get("p95_ms", 0)) <= int(p95_limit_ms)
+            and _to_int(m.get("p99_ms", 0)) <= int(p99_limit_ms)
+            for m in tail
+        )
+    else:
+        exit_ready = False
+
     return {
         "mode": "degraded" if degraded else "normal",
         "entry_reason": "latency_slo_breached" if degraded else None,
         "p95_ms": p95,
         "p99_ms": p99,
+        "exit_ready": exit_ready,
     }
 
 

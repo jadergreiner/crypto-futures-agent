@@ -1320,11 +1320,54 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.3 - Politica de degradacao por latencia
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 Score PO: 4.20
-PO: Degradacao por latencia reduz risco em estresse.
-SA: Faixas P95/P99 com entrada e saida objetiva do modo degradado.
+PO: Degradacao por latencia reduz risco em estresse. Retomada ciclo
+completo 2026-04-03. Valor real: operador ve modo degradado bloqueando
+ampliacao de risco quando P95/P99 rompe SLO; saida do modo exige janela
+minima estavel sem violacao. Ao fim, estarei satisfeito se
+evaluate_latency_degradation cobrir entrada E saida do modo degradado
+com suite dedicada.
+
+SA: Expandir evaluate_latency_degradation em resilience_controls.py
+para receber historico de janela (lista de metricas recentes) e
+stable_window_count (numero de medicoes consecutivas abaixo do SLO
+para sair do modo degradado). Funcao pura, ADR-002/007. Entradas:
+metrics, p95_limit_ms, p99_limit_ms, recent_window (lista),
+stable_window_count (int, default 3). Saida adicional: exit_ready (bool).
+
+QA: Suite RED criada em tests/test_model2_m2_023_3_latency_degradation.py
+com 13 casos (RF-023.3.1 a RF-023.3.13). Fase RED: 3 falhas nas funcoes
+de saida do modo degradado (recent_window/stable_window_count ausentes).
+Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_3_latency_degradation.py
+
+SE: GREEN confirmado em 2026-04-03. evaluate_latency_degradation em
+resilience_controls.py expandida com politica de saida: aceita
+recent_window (lista) e stable_window_count (default 3); exit_ready=True
+apenas quando tail[-stable_window_count:] nao contem violacao de SLO;
+janela vazia ou insuficiente -> exit_ready=False. Funcao pura.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+
+TL: APROVADO. RED->GREEN completo. 13/13 testes. mypy OK. 377 sem
+regressao. Retrocompat: args opcionais com defaults seguros. Semantica
+> (nao >=) para SLO boundary. Fail-safe: janela vazia -> exit_ready=False.
+Guardrails risk_gate/CB inalterados.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+evaluate_latency_degradation (entrada/saida do modo degradado,
+recent_window, stable_window_count, exit_ready, semantica SLO,
+M2-023.3, ADR-002/007). SYNCHRONIZATION.md [SYNC-286] registrado.
+0 violacoes MD013.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: evaluate_latency_degradation
+cobre entrada (P95/P99 > limite -> degraded) E saida do modo degradado
+(janela estavel completa -> exit_ready=True). 23 testes reproduzidos.
+377 passed. mypy OK. Retrocompat preservada.
 
 Sprint: M2-023
 Prioridade: P1

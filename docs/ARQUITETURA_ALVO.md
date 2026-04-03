@@ -255,7 +255,12 @@ Resiliencia e fail-safe de pipeline (M2-027):
     supera `threshold_pct`; retorna `allow`, `reason_code`
     ('position_drift_blocked' ou None), `decision_id` e `drift_pct`;
     baseline protege contra divisao por zero (M2-023.2, ADR-002/007)
-  - degradacao por latencia (`evaluate_latency_degradation`)
+  - degradacao por latencia (`evaluate_latency_degradation`) — avalia
+    entrada no modo degradado (p95_ms > p95_limit_ms ou p99_ms >
+    p99_limit_ms) e saida do modo: `exit_ready=True` somente quando
+    `stable_window_count` medicoes consecutivas ficam abaixo do SLO;
+    janela vazia ou insuficiente retorna `exit_ready=False`; retrocompat
+    com chamadas sem janela (M2-023.3, ADR-002/007)
   - restart idempotente (`plan_restart_from_snapshot`)
   - fila priorizada (`prioritize_events`)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)

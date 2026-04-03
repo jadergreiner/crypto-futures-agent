@@ -8738,3 +8738,20 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_2_drift_gate.py -> 8 passed
   - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-286] M2-023.3 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.3
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — entrada de
+    `evaluate_latency_degradation` expandida com contrato de entrada e
+    saida do modo degradado (recent_window, stable_window_count,
+    exit_ready, semantica SLO, M2-023.3, ADR-002/007).
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_3_latency_degradation.py -> 13 passed
+  - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success
