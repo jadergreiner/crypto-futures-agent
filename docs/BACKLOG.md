@@ -4,6 +4,62 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ---
 
+## TAREFA BLID-103 - Implementar evaluate_evidence_gate no PromotionEvaluator
+
+Status: IMPLEMENTADO
+
+Score PO: 4.45 (ValorReal=5, Valor=5, Urg=4, ReducaoRisco=5, Esf=2)
+Sprint: S-5
+Prioridade: P0
+
+Descricao:
+Adicionar metodo `evaluate_evidence_gate` e dataclass `EvidenceGateResult`
+ao `PromotionEvaluator` em `core/model2/promotion_gate.py`. O metodo e
+chamado pelo healthcheck do ciclo M2 (`run_live_healthcheck`) e sua
+ausencia causa `AttributeError` interrompendo o healthcheck no `iniciar.bat`.
+
+Criterios de Aceite:
+
+- [ ] `EvidenceGateResult` dataclass com campos: go, decision, reasons,
+      decision_id, evidence_ref, risk_evidence_ok, stability_evidence_ok,
+      consistency_evidence_ok, evidence_sufficient, evaluated_at
+- [ ] `PromotionEvaluator.evaluate_evidence_gate()` aceita: decision_id,
+      risk_evidence_ok, stability_evidence_ok, consistency_evidence_ok,
+      evidence_ref
+- [ ] GO quando todos os tres pilares de evidencia sao True
+- [ ] NO_GO com reason_code especifico quando qualquer pilar falha
+- [ ] Idempotente por decision_id (fail-safe, sem excecao)
+- [ ] mypy --strict sem erros em core/model2/promotion_gate.py
+- [ ] Teste healthcheck_pos_ciclo passa GREEN
+
+Dependencias:
+
+- core/model2/promotion_gate.py (existente)
+- scripts/model2/healthcheck_live_execution.py (consumidor)
+- ADR-007 (promocao por evidencia)
+- ADR-009 (auditabilidade ponta a ponta)
+
+PO: Ao fim deste desenvolvimento estarei feliz se o healthcheck do ciclo
+M2 fechar sem AttributeError e exibir gate de evidencia com go=True
+quando risco, estabilidade e consistencia estiverem OK no iniciar.bat.
+
+SA: EvidenceGateResult + evaluate_evidence_gate em promotion_gate.py;
+fail-safe sem excecao; ADR-007/009; sem alteracao de schema ou classes
+existentes.
+
+QA: Suite RED criada em tests/test_model2_blid_103_evidence_gate.py com
+7 casos (5 unitarios, 1 integracao, 1 regressao_risco). Resultado:
+7 failed, 1 passed (RED esperado). Status: TESTES_PRONTOS.
+
+SE: GREEN concluido. EvidenceGateResult (dataclass frozen) e
+evaluate_evidence_gate adicionados em core/model2/promotion_gate.py.
+Evidencias: pytest -q tests/test_model2_blid_103_evidence_gate.py ->
+8 passed; pytest -q tests/test_model2_m2_018_2_testnet_integration.py ->
+6 passed; mypy --strict core/model2/promotion_gate.py -> Success;
+pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db).
+
+---
+
 ## PACOTE M2-025 - Confiabilidade de dados e treino no ciclo M2
 
 Objetivo:
