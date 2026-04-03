@@ -60,6 +60,12 @@ def test_daily_pipeline_m5_with_real_db_fixture(tmp_path: Path, monkeypatch) -> 
         _fake_stage("persist_training_episodes"),
         raising=False,
     )
+    monkeypatch.setattr(
+        daily_pipeline,
+        "flush_deferred_rewards",
+        _fake_stage("flush_deferred_rewards"),
+        raising=False,
+    )
     monkeypatch.setattr(daily_pipeline, "run_train_entry_agents", _fake_stage("train_entry_agents"), raising=False)
     monkeypatch.setattr(daily_pipeline, "run_entry_rl_filter", _fake_stage("entry_rl_filter"), raising=False)
     monkeypatch.setattr(daily_pipeline, "run_order_layer", _fake_stage("order_layer"), raising=False)
@@ -97,6 +103,14 @@ def test_daily_pipeline_m5_with_real_db_fixture(tmp_path: Path, monkeypatch) -> 
     assert summary["status"] == "ok"
     assert summary["filters"]["timeframe"] == "M5"
     assert Path(str(summary["output_file"])).exists()
+
+    # sync_ohlcv deve sincronizar todos os 4 timeframes a cada ciclo,
+    # independente do timeframe principal da pipeline (correção HOLD ALGOUSDT).
+    sync_calls = [kwargs for stage, kwargs in calls if stage == "sync_ohlcv"]
+    assert len(sync_calls) == 1, "sync_ohlcv deve ser chamado exatamente uma vez"
+    assert sync_calls[0]["timeframes"] == ["D1", "H4", "H1", "M5"], (
+        "sync_ohlcv deve sincronizar D1, H4, H1 e M5 para evitar candles stale"
+    )
 
     for stage_name, kwargs in calls:
         if "timeframe" in kwargs:

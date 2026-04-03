@@ -81,6 +81,72 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
+# Thresholds de frescor para candles de contexto (2x intervalo natural)
+# ---------------------------------------------------------------------------
+
+_CONTEXT_TF_STALE_THRESHOLD_MS: dict[str, int] = {
+    "D1": 48 * 60 * 60 * 1000,   # 48h = 2x 24h
+    "H4":  8 * 60 * 60 * 1000,   #  8h = 2x 4h
+    "H1":  2 * 60 * 60 * 1000,   #  2h = 2x 1h
+}
+
+_BRT_DISPLAY_FMT = "%Y-%m-%d %H:%M:%S BRT"
+
+
+def _check_context_candles_stale_alarm(
+    tf_statuses: "list[TimeframeCandleStatus]",
+    *,
+    now_utc: datetime | None = None,
+) -> str:
+    """Verifica frescor dos candles de contexto (H1/H4/D1).
+
+    Emite alarme quando qualquer timeframe ultrapassar 2x seu intervalo
+    natural sem atualizacao: H1 > 2h, H4 > 8h, D1 > 48h.
+
+    Args:
+        tf_statuses: Lista de TimeframeCandleStatus com display_time BRT.
+        now_utc: Instante de referencia UTC (padrao: agora).
+
+    Returns:
+        String de alarme se algum TF estiver stale alem do limite,
+        ou string vazia se todos estiverem dentro do esperado.
+    """
+    from zoneinfo import ZoneInfo
+    brt_tz = ZoneInfo("America/Sao_Paulo")
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+
+    stale_tfs: list[str] = []
+    for status in tf_statuses:
+        tf = status.timeframe.upper()
+        threshold_ms = _CONTEXT_TF_STALE_THRESHOLD_MS.get(tf)
+        if threshold_ms is None:
+            continue
+        display_time = status.display_time
+        if not display_time or display_time == "N/A":
+            stale_tfs.append(tf)
+            continue
+        try:
+            dt_naive = datetime.strptime(display_time, _BRT_DISPLAY_FMT)
+            dt_aware = dt_naive.replace(tzinfo=brt_tz)
+            age_ms = int(
+                (now_utc - dt_aware.astimezone(timezone.utc)).total_seconds()
+                * 1000
+            )
+            if age_ms > threshold_ms:
+                stale_tfs.append(tf)
+        except (ValueError, OverflowError, OSError):
+            pass
+
+    if not stale_tfs:
+        return ""
+    return (
+        f"[ALERTA-STALE] {','.join(stale_tfs)} "
+        "sem atualizacao alem do limite"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Helpers de artefatos JSON
 # ---------------------------------------------------------------------------
 
@@ -1023,6 +1089,9 @@ def _build_symbol_report(
     ]
     candles_line = "  ".join(_format_candle_status_contract(item) for item in tf_statuses)
     candles_line = f"{candles_line} | window_ms={DEFAULT_REPORT_FRESHNESS_WINDOW_MS}"
+    stale_alarm = _check_context_candles_stale_alarm(tf_statuses)
+    if stale_alarm:
+        candles_line = f"{candles_line} | {stale_alarm}"
 
     # --- Decisão e confiança ---
     # Prioridade: model_decisions DB > live_execute JSON

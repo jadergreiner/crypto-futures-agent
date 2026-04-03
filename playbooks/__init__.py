@@ -38,6 +38,7 @@ from .ogn_playbook import OGNPlaybook
 from .imx_playbook import IMXPlaybook
 from .skr_playbook import SKRPlaybook
 from .flux_playbook import FLUXPlaybook
+from .iota_playbook import IOTAPlaybook
 
 # Dynamic imports for modules with numeric names
 import importlib
@@ -56,5 +57,5 @@ __all__ = [
     'CELOPlaybook', 'HYPERPlaybook', 'MTLPlaybook', 'POLYXPlaybook', 'BONKPlaybook',
     'FILPlaybook', 'GRTPlaybook', 'ATAPlaybook', 'PENGUPlaybook', 'GPSPlaybook',
     'GUNPlaybook', 'POWERPlaybook', 'TWTPlaybook', 'LINKPlaybook',
-    'OGNPlaybook', 'IMXPlaybook', 'SKRPlaybook', 'FLUXPlaybook'
+    'OGNPlaybook', 'IMXPlaybook', 'SKRPlaybook', 'FLUXPlaybook', 'IOTAPlaybook'
 ]

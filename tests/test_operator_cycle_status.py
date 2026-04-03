@@ -1,12 +1,16 @@
 import json
 import sqlite3
 import tempfile
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import pytest
 
-from scripts.model2.operator_cycle_status import _build_symbol_report
-
+from scripts.model2.operator_cycle_status import (
+    _build_symbol_report,
+    _check_context_candles_stale_alarm,
+    TimeframeCandleStatus,
+)
 
 def _create_db_with_decision(input_json: dict | None = None) -> str:
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
@@ -199,3 +203,121 @@ def test_status_line_reflects_fallback_modelo_rl_quando_output_json_indica_rl_fa
     )
     assert "source=FALLBACK_MODELO_RL" in report
 
+
+
+# ---------------------------------------------------------------------------
+# Testes para _check_context_candles_stale_alarm
+# ---------------------------------------------------------------------------
+
+def _brt_display_fmt(dt_utc: datetime) -> str:
+    """Formata datetime UTC como string BRT no formato exibido pelo status."""
+    from zoneinfo import ZoneInfo
+    brt_tz = ZoneInfo("America/Sao_Paulo")
+    return dt_utc.astimezone(brt_tz).strftime("%Y-%m-%d %H:%M:%S BRT")
+
+
+def _make_tf_status(
+    timeframe: str,
+    age_seconds: float,
+    now_utc: datetime,
+) -> TimeframeCandleStatus:
+    display_time = _brt_display_fmt(now_utc - timedelta(seconds=age_seconds))
+    return TimeframeCandleStatus(
+        timeframe=timeframe,
+        display_time=display_time,
+        scan_count=1,
+        persisted_count=1,
+        state="stale",
+    )
+
+
+def test_sem_alarme_quando_todos_frescos() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        _make_tf_status("D1", 23 * 3600, now),   # 23h < 48h
+        _make_tf_status("H4", 7 * 3600, now),     # 7h < 8h
+        _make_tf_status("H1", 1 * 3600, now),     # 1h < 2h
+        _make_tf_status("M5", 60, now),            # M5 nao monitorado
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert result == "", f"esperado sem alarme, obteve: {result!r}"
+
+
+def test_alarme_quando_d1_stale() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        _make_tf_status("D1", 49 * 3600, now),   # 49h > 48h
+        _make_tf_status("H4", 7 * 3600, now),
+        _make_tf_status("H1", 1 * 3600, now),
+        _make_tf_status("M5", 60, now),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert "ALERTA-STALE" in result, f"alarme esperado para D1, obteve: {result!r}"
+    assert "D1" in result
+
+
+def test_alarme_quando_h4_stale() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        _make_tf_status("D1", 23 * 3600, now),
+        _make_tf_status("H4", 9 * 3600, now),    # 9h > 8h
+        _make_tf_status("H1", 1 * 3600, now),
+        _make_tf_status("M5", 60, now),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert "ALERTA-STALE" in result, f"alarme esperado para H4, obteve: {result!r}"
+    assert "H4" in result
+
+
+def test_alarme_quando_h1_stale() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        _make_tf_status("D1", 23 * 3600, now),
+        _make_tf_status("H4", 7 * 3600, now),
+        _make_tf_status("H1", 3 * 3600, now),    # 3h > 2h
+        _make_tf_status("M5", 60, now),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert "ALERTA-STALE" in result, f"alarme esperado para H1, obteve: {result!r}"
+    assert "H1" in result
+
+
+def test_alarme_multiplos_tfs_stale() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        _make_tf_status("D1", 50 * 3600, now),   # 50h > 48h
+        _make_tf_status("H4", 10 * 3600, now),   # 10h > 8h
+        _make_tf_status("H1", 3 * 3600, now),    # 3h > 2h
+        _make_tf_status("M5", 60, now),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert "ALERTA-STALE" in result
+    assert "D1" in result
+    assert "H4" in result
+    assert "H1" in result
+
+
+def test_alarme_quando_display_time_ausente() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    tf_statuses = [
+        TimeframeCandleStatus(
+            timeframe="H1",
+            display_time="N/A",
+            scan_count=0,
+            persisted_count=0,
+            state="absent",
+        ),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert "ALERTA-STALE" in result
+    assert "H1" in result
+
+
+def test_m5_nao_incluido_no_alarme() -> None:
+    now = datetime(2026, 4, 3, 20, 0, 0, tzinfo=timezone.utc)
+    # M5 muito antigo, mas nao deve acionar alarme (sem threshold definido)
+    tf_statuses = [
+        _make_tf_status("M5", 100 * 3600, now),
+    ]
+    result = _check_context_candles_stale_alarm(tf_statuses, now_utc=now)
+    assert result == "", f"M5 nao deve acionar alarme, obteve: {result!r}"
