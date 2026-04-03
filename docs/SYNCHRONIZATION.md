@@ -8812,3 +8812,22 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_4_snapshot_restart.py -> 13
   - Suite M2-023 completa (58 testes) -> 58 passed
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-290] M2-023.9 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.9 (Indicadores de saude de reconciliacao)
+- Status backlog: REVISADO_APROVADO (em governanca final)
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `check_reconciliation_health_alerts` documentado: mapeamento
+    indicador->limite, campos de alerta (severity, indicator_name,
+    value, threshold_exceeded), limites configurados externamente,
+    fail-safe, funcao pura, M2-023.9, ADR-002/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+    -> 10 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+  - mypy --strict core/model2/resilience_controls.py -> Success

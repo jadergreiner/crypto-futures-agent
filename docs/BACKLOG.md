@@ -1676,11 +1676,67 @@ strict OK, guardrails preservados, arvore local limpa.
 
 ### TAREFA M2-023.9 - Indicadores de saude de reconciliacao
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.80
-PO: Indicadores de reconciliacao antecipam drift e atraso.
-SA: Expor drift medio, p95 e taxa de ajuste com alerta.
+Score PO: 3.70 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=4,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada com ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: operador ve drift_mean, confirmation_p95_ms e
+adjustment_rate com alertas explicitos quando qualquer limite for
+ultrapassado, sem abrir SQL ou logs brutos para detectar degradacao de
+reconciliacao. Ao fim deste desenvolvimento estarei feliz se
+check_reconciliation_health_alerts emitir alertas auditaveis com
+severity, indicator_name e threshold_exceeded sempre que alguma metrica
+ultrapassar o limite configurado.
+
+SA: Adicionar check_reconciliation_health_alerts(metrics, thresholds)
+em resilience_controls.py. Funcao pura: recebe dict de metricas
+(drift_mean, confirmation_p95_ms, adjustment_rate) e dict de limites;
+retorna lista de dicts com severity, indicator_name, value e
+threshold_exceeded. Fail-safe: metricas ou limites ausentes retornam
+lista vazia sem excecao. Sem schema DB. ADR-002/009. Impacto: LOW.
+
+QA: Suite RED criada em
+tests/test_model2_m2_023_9_reconciliation_health_alerts.py com 10
+casos (RF-023.9.1 a RF-023.9.10). Fase RED: 10 falhas
+(check_reconciliation_health_alerts ausente). TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+
+SE: GREEN concluido em 2026-04-03. Implementado
+check_reconciliation_health_alerts(metrics, thresholds) em
+resilience_controls.py: funcao pura com mapeamento indicador->limite
+(drift_mean->drift_mean_limit, confirmation_p95_ms->p95_limit_ms,
+adjustment_rate->adjustment_rate_limit). Retorna lista de dicts com
+severity/indicator_name/value/threshold_exceeded. Fail-safe sem
+excecao. Retrocompat preservada (compute_reconciliation_health_
+indicators inalterada). Evidencias:
+- pytest -q tests/test_model2_m2_023_9_reconciliation_health_alerts.py
+  -> 10 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 20 testes (10 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. Funcao pura com
+fail-safe via try/except. Mapeamento indicador->limite correto e
+retrocompat preservada. Guardrails risk_gate/circuit_breaker
+preservados e inalterados. Mudanca cirurgica: 1 funcao adicionada,
+0 alteracoes no codigo existente.
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+check_reconciliation_health_alerts (mapeamento indicador->limite,
+campos severity/indicator_name/value/threshold_exceeded, limites
+externos, fail-safe, M2-023.9, ADR-002/009).
+SYNCHRONIZATION.md [SYNC-290] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE:
+check_reconciliation_health_alerts retorna alertas auditaveis com
+severity/indicator_name/value/threshold_exceeded para cada metrica
+acima do limite configurado. Trilha: PO (3.70) -> SA (ADR-002/009)
+-> QA (10 RED) -> SE (10 GREEN, mypy OK) -> TL (APROVADO, 20 testes)
+-> DOC (SYNC-290). 377 passed, mypy strict OK, guardrails preservados,
+arvore local limpa.
 
 Sprint: M2-023
 Prioridade: P1

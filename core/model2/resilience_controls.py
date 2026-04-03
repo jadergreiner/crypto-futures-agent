@@ -374,6 +374,63 @@ def compute_reconciliation_health_indicators(
     }
 
 
+def check_reconciliation_health_alerts(
+    metrics: dict[str, float],
+    thresholds: dict[str, float],
+) -> list[dict[str, object]]:
+    """Verifica indicadores de saude de reconciliacao e emite alertas.
+
+    Compara cada metrica com o limite correspondente e retorna uma lista
+    de alertas para cada indicador que ultrapassar o limite configurado.
+
+    Funcao pura e deterministica (M2-023.9, ADR-002/009).
+    Fail-safe: metricas ou limites ausentes nao geram alertas nem excecao.
+
+    Mapeamento de metricas para limites:
+        - drift_mean       → drift_mean_limit
+        - confirmation_p95_ms → p95_limit_ms
+        - adjustment_rate  → adjustment_rate_limit
+
+    Args:
+        metrics: dict com valores numericos das metricas de reconciliacao.
+            Chaves esperadas: drift_mean, confirmation_p95_ms, adjustment_rate.
+        thresholds: dict com os limites maximos aceitaveis por metrica.
+            Chaves esperadas: drift_mean_limit, p95_limit_ms,
+            adjustment_rate_limit.
+
+    Returns:
+        Lista de dicts com os campos por alerta:
+            - severity: str ('WARN')
+            - indicator_name: str (nome da metrica)
+            - value: float (valor atual)
+            - threshold_exceeded: float (limite que foi ultrapassado)
+    """
+    _INDICATOR_THRESHOLD_MAP: dict[str, str] = {
+        "drift_mean": "drift_mean_limit",
+        "confirmation_p95_ms": "p95_limit_ms",
+        "adjustment_rate": "adjustment_rate_limit",
+    }
+    alerts: list[dict[str, object]] = []
+    try:
+        for indicator, threshold_key in _INDICATOR_THRESHOLD_MAP.items():
+            if indicator not in metrics:
+                continue
+            if threshold_key not in thresholds:
+                continue
+            value = _to_float(metrics.get(indicator))
+            limit = _to_float(thresholds.get(threshold_key))
+            if value > limit:
+                alerts.append({
+                    "severity": "WARN",
+                    "indicator_name": indicator,
+                    "value": value,
+                    "threshold_exceeded": limit,
+                })
+    except Exception:
+        return []
+    return alerts
+
+
 def validate_contingency_runbook(runbook_path: Path) -> dict[str, object]:
     if not runbook_path.exists():
         return {"ready": False, "reason_code": "runbook_missing_or_invalid"}

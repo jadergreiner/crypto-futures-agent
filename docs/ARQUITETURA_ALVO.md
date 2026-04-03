@@ -292,7 +292,18 @@ Resiliencia e fail-safe de pipeline (M2-027):
     `build_retry_category_report()` retorna dict de contagens acumuladas;
     `reset_retry_counters()` zera estado para testes e reinicio de sessao
     (M2-023.8, ADR-002/ADR-004/ADR-009)
-  - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)
+  - indicadores de reconciliacao (`compute_reconciliation_health_indicators`
+    e `check_reconciliation_health_alerts`) — `compute_reconciliation_
+    health_indicators` agrega drift_mean, confirmation_p95_ms e
+    adjustment_rate a partir de amostras; `check_reconciliation_health_
+    alerts(metrics, thresholds)` compara cada metrica com o limite
+    correspondente (drift_mean_limit, p95_limit_ms,
+    adjustment_rate_limit) e retorna lista de dicts com severity,
+    indicator_name, value e threshold_exceeded para cada metrica que
+    ultrapassar o limite; limites sao configurados externamente (nao
+    hardcoded); fail-safe: metricas ou limites ausentes retornam lista
+    vazia sem excecao; funcao pura e deterministica
+    (M2-023.9, ADR-002/ADR-009)
   - validacao de runbook (`validate_contingency_runbook`)
   - validacao de schema por conjunto de tabelas (`validate_schema_tables`)
   - reconciliacao fail-safe de lado/quantidade da posicao em
