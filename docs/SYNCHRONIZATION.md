@@ -8894,3 +8894,31 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 pre-existente
   - mypy --strict agent/sub_agent_manager.py
     agent/signal_reward.py -> Success
+
+### [SYNC-350] FIX: sync_ohlcv todos TFs + alarme stale - 2026-04-03
+
+- Agente: Copilot Task Agent
+- Causa raiz: `daily_pipeline.py` sincronizava apenas o timeframe
+  principal da pipeline (M5), deixando H1/H4/D1 congelados apos
+  o bootstrap inicial. Isso causava `signal_age_ms` de 50h+,
+  feature `smc_rejection_strength=1.0` saturada e HOLD permanente
+  para ALGOUSDT.
+- Codigo alterado:
+  - `scripts/model2/daily_pipeline.py` — stage `sync_ohlcv` agora
+    sincroniza `["D1", "H4", "H1", "M5"]` a cada ciclo.
+  - `scripts/model2/operator_cycle_status.py` — nova funcao
+    `_check_context_candles_stale_alarm` e constante
+    `_CONTEXT_TF_STALE_THRESHOLD_MS` (H1>2h, H4>8h, D1>48h);
+    alarme `[ALERTA-STALE]` exibido na linha Candles do status.
+- Testes atualizados:
+  - `tests/test_blid088_m5_pipeline_integration.py` — verifica que
+    sync_ohlcv recebe `["D1","H4","H1","M5"]`; corrige monkeypatch
+    faltante de `flush_deferred_rewards`.
+  - `tests/test_operator_cycle_status.py` — 7 novos casos cobrindo
+    ausencia de alarme, alarme por D1/H4/H1 stale, multiplos TFs
+    stale, display_time ausente e exclusao de M5 do alarme.
+- Evidencias tecnicas:
+  - pytest -q tests/test_blid088_m5_pipeline_integration.py
+    tests/test_operator_cycle_status.py -> 14 passed
+  - mypy --strict scripts/model2/daily_pipeline.py
+    scripts/model2/operator_cycle_status.py -> Success

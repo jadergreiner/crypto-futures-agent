@@ -236,7 +236,7 @@ def run_daily_pipeline(
             {
                 "source_db_path": resolved_source_db,
                 "symbols": symbols_to_use,
-                "timeframes": [timeframe],
+                "timeframes": ["D1", "H4", "H1", "M5"],
                 "output_dir": resolved_output_dir,
             },
         ),
