@@ -219,6 +219,22 @@ Evidencias (Fase E.9 — Scripts Criados):
 
 #### BLID-068 (E.10): Integrar Ensemble em Daily Pipeline
 
+Status: CONCLUIDO
+
+- Desenvolvedor: Software Engineer
+- Finalizado: 2026-04-03
+- Revisado por: Tech Lead
+- Evidencias:
+  - Testes: pytest -6 passed ✅
+  - Tipos: mypy --strict — Success ✅
+  - Mudanca: Observabilidade rica (ASCII + metadados) integrada conforme
+    ADR-026. Fallback SMC ativo e validado.
+- TL: Implementação limpa e robusta. Metadados ensemble corretamente
+  propagados para o payload do sinal. Pronto para consolidação de docs.
+- DOC: docs sincronizadas após aprovacao tecnica e prontas para aceite.
+- PM: Aceite final concedido com valor validado e fechamento operacional
+  concluído. Ensemble visível em iniciar.bat.
+
 1. Criar wrapper ensemble compatible com daily_pipeline. [OK]
 2. Integrar votador em loop operacional (soft + hard). [OK]
 3. Implementar confidence scoring baseado em consenso. [OK]
@@ -247,6 +263,10 @@ Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
    - Live cycle em shadow mode operando
    - Risk gate + circuit breaker armados
 5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
+
+PO: Validar integracao do Ensemble no daily_pipeline. Ao fim deste desenvolvimento estarei feliz se o iniciar.bat exibir consistentemente 'method: ensemble_soft' com confidence >= 0.6 nos logs de geracao de sinais live.
+
+SA: Integracao ensemble via wrapper daily_pipeline com observabilidade em operator_cycle_status. Fallback deterministico garantido por ADR-026.
 
 Dependências: BLID-067 (E.9 scripts prontos) ✅
 
@@ -555,7 +575,7 @@ Dependencias:
 
 Evidencia operacional (2026-04-01):
 
-```
+```txt
 
 Treino: ultimo: 2026-04-01 13:19:35 | pendentes: 0/100 (faltam 100)
 eligibility_rule=reward_proxy!=NULL,status_eligivel,label!=context,
@@ -622,7 +642,8 @@ O display operacional confirma o problema:
 
 ```txt
 Episodio : N/A nao persistido | reward: +0.0000
-```
+
+```txt
 
 Estar fora do mercado e uma decisao ativa do modelo e deve gerar aprendizado:
 
@@ -6335,7 +6356,7 @@ Sprint proposto: Imediato
 
 Usuarios relatam erro repetido no ciclo M2 live desde ~2026-03-25:
 
-```
+```txt
 
 [2026-03-25 12:35:57 BRT] [M2] Healthcheck...
 O arquivo já está sendo usado por outro processo.

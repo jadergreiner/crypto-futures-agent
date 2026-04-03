@@ -108,6 +108,10 @@ class SymbolReport:
     # Modo de execucao
     execution_mode: str = "shadow"
 
+    # Ensemble (BLID-068 / E.10)
+    ensemble_method: Optional[str] = None
+    ensemble_confidence: Optional[float] = None
+
     # Circuit Breaker / Risk Gate — visibilidade para o operador
     circuit_breaker_state: str = ""
     circuit_breaker_drawdown_pct: float | None = None
@@ -183,6 +187,9 @@ def format_symbol_report(r: SymbolReport) -> str:
     # Linha de decisao
     conf_str = f"{r.confidence:.0%}" if r.confidence is not None else "N/A"
     decision_line = f"{icon} {r.decision} (confianca: {conf_str})"
+    if r.ensemble_method:
+        ens_conf = f"{r.ensemble_confidence:.0%}" if r.ensemble_confidence is not None else "N/A"
+        decision_line += f" | {r.ensemble_method} (ens_conf: {ens_conf})"
 
     # Linha de episodio/reward
     ep_label = f"#{r.episode_id}" if r.episode_id else "N/A"

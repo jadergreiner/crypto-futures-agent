@@ -111,9 +111,9 @@ class EnsembleSignalGenerator:
 
     @staticmethod
     def _adapt_observation_for_model(
-        observation: np.ndarray,
+        observation: np.ndarray[Any, Any],
         model: Any,
-    ) -> np.ndarray:
+    ) -> np.ndarray[Any, Any]:
         """Adapta observacao flat/seq para o contrato esperado pelo modelo."""
         expected_shape = EnsembleSignalGenerator._get_model_observation_shape(model)
         observation_array = np.asarray(observation, dtype=np.float32)
@@ -164,7 +164,7 @@ class EnsembleSignalGenerator:
 
     def generate_ensemble_signal(
         self,
-        observation: np.ndarray
+        observation: np.ndarray[Any, Any]
     ) -> Dict[str, Any]:
         """
         Gera sinal com votação ensemble.
@@ -292,7 +292,7 @@ class EnsembleSignalGenerator:
 
     def _generate_fallback_signal(
         self,
-        observation: np.ndarray
+        observation: np.ndarray[Any, Any]
     ) -> Dict[str, Any]:
         """Gera sinal fallback (determinístico ou constante)"""
         # Fallback: decisao aleatoria com confidence baixa
@@ -534,7 +534,7 @@ def _build_signal_snapshot(
     }
 
 
-def _snapshot_to_feature_vector(snapshot: Mapping[str, Any]) -> np.ndarray:
+def _snapshot_to_feature_vector(snapshot: Mapping[str, Any]) -> np.ndarray[Any, Any]:
     latest_candle = snapshot.get('latest_candle', {})
     volatility = snapshot.get('volatility', {})
     multi_timeframe = snapshot.get('multi_timeframe', {})
@@ -574,7 +574,7 @@ def _build_real_observation(
     payload: Mapping[str, Any],
     *,
     seq_len: int = ENSEMBLE_SEQUENCE_LEN,
-) -> np.ndarray:
+) -> np.ndarray[Any, Any]:
     snapshot = _build_signal_snapshot(row, payload)
     base_features = _snapshot_to_feature_vector(snapshot)
     repeated = np.tile(base_features, (seq_len, 1))

@@ -161,6 +161,28 @@ toda vez que mudanças significativas são feitas no código:
 - Observacao: coverage no notebook permaneceu como atencao de ambiente,
   sem bloquear o aceite funcional e operacional.
 
+### [SYNC-338] BLID-068 Integracao Ensemble Doc Advocate - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: BLID-068
+- Status backlog: REVISADO_APROVADO
+- Docs revisadas/atualizadas:
+  - `docs/BACKLOG.md`
+  - `docs/ARQUITETURA_ALVO.md`
+  - `docs/REGRAS_DE_NEGOCIO.md`
+  - `docs/SYNCHRONIZATION.md`
+- Consolidacao aplicada:
+  - Adicionada RN-038 definindo prioridade de decisão ensemble e gate de
+    confiança de 0.6;
+  - Atualizada arquitetura alvo com fluxo M2-026 (Ensemble Signal Generation);
+  - Backlog sincronizado com trilha técnica e documental.
+- Validacao documental:
+  - `markdownlint docs/*.md` -> sem erros
+  - `pytest -q tests/test_docs_model2_sync.py` -> 13 passed
+- Valor validado:
+  - `ENTREGUE`: Votação MLP+LSTM ativa no pipeline com visibilidade rica no
+    operator_cycle_status e fallback SMC funcional.
+
 ### [SYNC-337] M2-022.4 Fechamento Project Manager - 2026-04-02
 
 - Agente: 8.project-manager

@@ -13,7 +13,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Iterable, cast
 
 # Forçar UTF-8 no stdout para suportar emojis e caracteres Unicode no Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -981,6 +981,17 @@ def _build_symbol_report(
                 confidence = _to_float_or_none(item.get("confidence", confidence))
                 break
 
+    # Dados Ensemble (BLID-068)
+    ensemble_method: Optional[str] = None
+    ensemble_confidence: Optional[float] = None
+    if decision_trace is not None:
+        output_json = decision_trace.get("output_json")
+        if isinstance(output_json, dict):
+             ens_data = output_json.get("ensemble")
+             if isinstance(ens_data, dict):
+                 ensemble_method = ens_data.get("method")
+                 ensemble_confidence = _to_float_or_none(ens_data.get("confidence"))
+
     icons = {"OPEN_LONG": "🟢", "OPEN_SHORT": "🔴", "HOLD": "⏸", "REDUCE": "🟡", "CLOSE": "⛔"}
     icon = icons.get(decision, "❓")
     if decision_trace is not None:
@@ -1339,6 +1350,8 @@ def _build_symbol_line(
         last_train_time=last_train_time,
         pending_episodes=0,
         execution_mode=M2_EXECUTION_MODE,
+        ensemble_method=live_execute_summary.get("ensemble_method") if live_execute_summary else None,
+        ensemble_confidence=live_execute_summary.get("ensemble_confidence") if live_execute_summary else None,
     )
     return format_symbol_report(report)
 

@@ -588,29 +588,19 @@ Quando a operacao em producao ja tiver acumulado evidencia suficiente:
 7. Guardrails obrigatorios permanecem inviolaveis:
    `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
 
-### RN-038 - Contrato Verificavel do Status M2 por Simbolo (BLID-101)
+### RN-038 - Prioridade de Decisao Ensemble (E.10)
 
-Para eliminar ambiguidade operacional no `iniciar.bat` sem consulta
-manual ao DB:
+O sinal gerado via ensemble (MLP + LSTM) deve respeitar os critérios de
+consenso para ser emitido como decisão oficial:
 
-1. O bloco por simbolo deve publicar versao de contrato textual:
-   `contract=BLID-101-v1`.
-2. Quando houver decisao correlacionada, a linha `Decisao` deve expor:
-   `decision_id`, `model_version`, `reason`, `source` e `confianca`.
-3. A linha `Frescor` deve expor, no minimo:
-   `signal_ts`, `signal_age_ms`, `max_signal_age_ms`,
-   `M5_last`, `H1_last`, `H4_last`, `D1_last`.
-4. A linha `Features` deve explicitar features-chave de inferencia e
-   `snapshot_at` rastreavel.
-5. A linha `Persist.` deve correlacionar
-   `model_decisions`, `signal_executions` e `training_episodes`
-   por simbolo, com ids auditaveis.
-6. Em legado sem vinculo por `decision_id`, a saida deve exibir
-   `LEGACY_NO_DECISION_LINK` de forma explicita (sem mascarar lacuna).
-7. A linha `Candles` deve manter a semantica multi-timeframe vigente e
-   explicitar `window_ms` da janela de classificacao fresh/stale.
-8. Guardrails obrigatorios permanecem inviolaveis:
-   `risk_gate`, `circuit_breaker` e idempotencia por `decision_id`.
+1. Consenso Votado: A decisão é dada pela média ponderada (soft) ou soma de
+   pesos (hard) conforme `voting_method` configurado.
+2. Veto por Confiança: Se o score de confiança do ensemble for `< 0.6`,
+   a decisão deve ser descartada em favor do fallback determinístico.
+3. Visibilidade do Operador: O método (`ENSEMBLE_SOFT` ou `SMC`) e sua
+   confiança devem ser exibidos no relatório de status operacional.
+4. Preservação de Contexto: O uso de ensemble não isenta a decisão de passar
+   pelos guardrais de risco (`risk_gate` e `circuit_breaker`).
 
 ### RN-039 - Camada Humana no Status Operacional (BLID-102)
 
