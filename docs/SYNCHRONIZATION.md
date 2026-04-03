@@ -8659,3 +8659,25 @@ REVISADO_APROVADO
 - Observacao de risco residual:
   - Persistem 2 falhas preexistentes fora do escopo em
     `tests/test_cycle_report.py` (`TestCollectTrainingInfo`).
+
+### [SYNC-282] BLID-103 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: BLID-103
+- Status backlog: REVISADO_APROVADO
+- Docs verificadas (sem alteracao necessaria):
+  - `docs/ARQUITETURA_ALVO.md` — contrato evaluate_evidence_gate ja
+    descrito na secao promotion_gate (linha ~543-551). Sem alteracao.
+  - `docs/REGRAS_DE_NEGOCIO.md` — RN referente ao gate de evidencia ja
+    presente (linha ~323-328). Sem alteracao.
+  - `docs/BACKLOG.md` — atualizado com trilha PO/SA/QA/SE/TL e status
+    REVISADO_APROVADO.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_blid_103_evidence_gate.py -> 8 passed
+  - pytest -q tests/test_model2_m2_018_2_testnet_integration.py ->
+    6 passed
+  - mypy --strict core/model2/promotion_gate.py -> Success
+  - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+- Observacao: falha pre-existente em test_docs_model2_sync.py
+  (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-103.

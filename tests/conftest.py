@@ -57,6 +57,7 @@ MODEL_DRIVEN_TEST_PATTERNS = (
     "test_model2_m2_026_1_risk_gate_telemetry.py",
     "test_model2_m2_026_1_telemetry_real.py",
     "test_model2_blid_083_stage_workflow_matrix.py",
+    "test_model2_blid_103_evidence_gate.py",
 )
 
 
