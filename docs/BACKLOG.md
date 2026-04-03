@@ -945,7 +945,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.2 - Padronizar reason codes de bloqueio operacional
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-022.4 (CONCLUIDO) que padronizou
+error handling e reason codes com categorias transitorio/permanente.
 
 Entrega:
 
@@ -959,7 +962,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.3 - Reforcar retries/timeout com fail-safe explicito
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-022.4 e M2-023.8 (CONCLUIDO)
+que implementaram execute_with_category_retry e backoff configuravel.
 
 Entrega:
 
@@ -973,7 +979,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.4 - Detectar drift de dados de mercado em runtime
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.2 (CONCLUIDO) que
+implementou evaluate_position_drift_gate com reason_code auditavel.
 
 Entrega:
 
@@ -987,7 +996,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.5 - Instrumentar SLOs operacionais do ciclo live
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.6 (CONCLUIDO) que
+implementou telemetria de latencia por simbolo e etapa.
 
 Entrega:
 
@@ -1001,7 +1013,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.6 - Cobrir reconciliacao com cenarios de saida externa
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.8 e BLID-076 (CONCLUIDO)
+que cobriram reconciliacao deterministica e saida externa.
 
 Entrega:
 
@@ -1015,7 +1030,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.7 - Validar recuperacao apos restart do runtime
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.4 (CONCLUIDO) que
+validou recuperacao de snapshot pos-restart com idempotencia.
 
 Entrega:
 
@@ -1029,7 +1047,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.8 - Endurecer suite de integracao na Binance Testnet
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-024.12 (CONCLUIDO) que
+validou fluxo completo Testnet com evidencias deterministicas.
 
 Entrega:
 
@@ -1043,7 +1064,10 @@ Critérios de aceite:
 
 ### TAREFA M2-021.9 - Formalizar runbook de incidente operacional M2
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Absorbed por M2-023.10 (CONCLUIDO) que
+consolidou runbook de contingencia de execucao live.
 
 Entrega:
 
@@ -1057,7 +1081,11 @@ Critérios de aceite:
 
 ### TAREFA BLID-076 - Hardening de reconciliacao e cobertura M2-018.2
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
+
+PM: ACEITE em 2026-04-03. Reconciliacao PROTECTED confirma ausencia em 2
+checks com espera auditavel antes de EXITED; preflight nao-paper mantido
+sem bloqueio por credenciais testnet. Trilha SE concluida conforme notas.
 
 Sprint: A definir
 Prioridade: A definir pelo PO
@@ -1125,20 +1153,20 @@ Contexto:
 
 ### TAREFA M2-019.3 - Adaptar SubAgentManager para EntryDecisionEnv
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Entrega:
 
-1. Modificar `agent/sub_agent_manager.py`. [ ]
+1. Modificar `agent/sub_agent_manager.py`. [x]
 2. Adicionar train_entry_agent(symbol, episodes, total_timesteps)
-   usando EntryDecisionEnv. [ ]
+   usando EntryDecisionEnv. [x]
 3. Adicionar predict_entry(symbol, observation) retornando
-   Tuple[int, float] (acao, confianca). [ ]
-4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [ ]
+   Tuple[int, float] (acao, confianca). [x]
+4. Fallback: retornar (0, 0.0) — NEUTRAL — quando modelo nao existe. [x]
 5. Salvar modelos como {symbol}_entry_ppo.zip (separado dos de
-   gestao). [ ]
-6. load_all() carrega modelos de entrada e gestao separadamente. [ ]
-7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [ ]
+   gestao). [x]
+6. load_all() carrega modelos de entrada e gestao separadamente. [x]
+7. Ampliar `tests/test_sub_agent_manager.py` com casos de entrada. [x]
 
 Dependencias: M2-019.1, M2-019.2
 
@@ -1157,22 +1185,39 @@ SE: `SubAgentManager` implementa `self._entry_agents`,
 `train_entry_agent(...)`, `predict_entry(...) -> tuple[int, float]`,
 fallback `(0, 0.0)` e persistencia separada `_entry_ppo.zip`.
 
+TL: APROVADO em 2026-04-03. Reproducao local: 13 testes (M2-019.3 +
+M2-019.4) passados. mypy strict OK em agent/sub_agent_manager.py +
+agent/signal_reward.py (2 arquivos). Suite 377 sem regressao. Correcoes
+de tipagem: int() cast para PPO int args; torch.as_tensor para
+predict_values; -> None em __init__ de SignalRewardCalculator.
+Guardrails preservados, fallback conservador (0, 0.0).
+
+DOC: Ciclo documental concluido. BACKLOG atualizado com trilha
+completa. SYNCHRONIZATION.md [SYNC-349]. Sem novos artefatos de doc
+necessarios (funcionalidade interna de ML, sem impacto em regras de
+negocio ou arquitetura publica).
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: SubAgentManager suporta
+pipeline RL por simbolo com train_entry_agent, predict_entry e fallback
+conservador. Trilha: PO -> SA -> QA -> SE -> TL (APROVADO) -> DOC ->
+PM. 377 passed, mypy strict OK, arvore limpa.
+
 ---
 
 ### TAREFA M2-019.4 - Runner de treinamento diario por simbolo
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Entrega:
 
 1. Criar `scripts/model2/train_entry_agents.py` compativel com
-   daily_pipeline. [ ]
-2. Para cada simbolo, carregar episodios via EpisodeLoader. [ ]
-3. Se episodios >= 20: treinar (5000 steps por ciclo). [ ]
-4. Se episodios < 20: retornar status=skipped para o simbolo. [ ]
-5. Dry_run nao salva modelos. [ ]
-6. Output JSON em `results/model2/runtime/`. [ ]
-7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [ ]
+   daily_pipeline. [x]
+2. Para cada simbolo, carregar episodios via EpisodeLoader. [x]
+3. Se episodios >= 20: treinar (5000 steps por ciclo). [x]
+4. Se episodios < 20: retornar status=skipped para o simbolo. [x]
+5. Dry_run nao salva modelos. [x]
+6. Output JSON em `results/model2/runtime/`. [x]
+7. Teste de integracao: banco in-memory, 30 episodios, 1000 steps. [x]
 
 Dependencias: M2-019.2, M2-019.3
 
@@ -1188,9 +1233,15 @@ cobre skip `< 20`, treino `>= 20`, `dry_run`, JSON por simbolo e
 `continue_on_error=True`.
 
 SE: API `run_train_entry_agents(...)` exposta para uso programatico,
-carrega episodios via EpisodeLoader, aplica regra de corte `<20`, respeita
-`dry_run`, grava JSON em `results/model2/runtime/` e suporta
+carrega episodios via EpisodeLoader, aplica regra de corte `<20`,
+respeita `dry_run`, grava JSON em `results/model2/runtime/` e suporta
 `continue_on_error=True`.
+
+TL: APROVADO em 2026-04-03 (junto com M2-019.3). 13 testes, mypy
+strict OK, 377 suite verde.
+
+PM: ACEITE em 2026-04-03. Runner diario funcional e testado.
+Trilha: PO -> SA -> QA -> SE -> TL (APROVADO). 377 passed.
 
 ---
 
@@ -1257,12 +1308,21 @@ pronto para execucao.
 
 ### TAREFA M2-020.9 - Rodar shadow como decisor unico
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
 - Desenvolvedor: Software Engineer
 - Inicio: 2026-03-31
 
 Score PO: 4.25 (ValorReal=4, Valor=5, Urg=5, Risco=5, Esf=3)
+
+PM: ACEITE em 2026-04-03. Implementacao absorbed por M2-020.13
+(Desativar estrategia legada, CONCLUIDO 2026-04-01): ModelInference
+Service preserva origin, contaminated, baseline_comparative e
+rl_fallback_reason no contrato auditavel; operator_cycle_status
+rebaixa source quando ha contaminacao; rollback handler bloqueia
+fallback manual sem contexto explicito. Criteri de aceite verificados:
+21/21 testes do conjunto relevante passando, mypy strict OK em 3
+modulos, suite 377 sem regressao. Absorbed por M2-020.13/CONCLUIDO.
 
 Entrega:
 

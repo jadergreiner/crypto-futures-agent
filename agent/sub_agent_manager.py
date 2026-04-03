@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import json
 from pathlib import Path
 import numpy as np
+import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
@@ -18,7 +19,7 @@ from .signal_reward import SignalRewardCalculator
 logger = logging.getLogger(__name__)
 
 # Configurações padrão para sub-agentes
-DEFAULT_SUB_AGENT_CONFIG = {
+DEFAULT_SUB_AGENT_CONFIG: dict[str, int | float] = {
     'learning_rate': 3e-4,
     'n_steps': 2048,
     'batch_size': 64,
@@ -27,7 +28,7 @@ DEFAULT_SUB_AGENT_CONFIG = {
     'gae_lambda': 0.95,
     'clip_range': 0.2,
     'ent_coef': 0.01,
-    'verbose': 0
+    'verbose': 0,
 }
 
 # Mínimo de trades para começar treino de um sub-agente
@@ -86,15 +87,15 @@ class SubAgentManager:
         agent = PPO(
             policy='MlpPolicy',
             env=dummy_env,
-            learning_rate=DEFAULT_SUB_AGENT_CONFIG['learning_rate'],
-            n_steps=DEFAULT_SUB_AGENT_CONFIG['n_steps'],
-            batch_size=DEFAULT_SUB_AGENT_CONFIG['batch_size'],
-            n_epochs=DEFAULT_SUB_AGENT_CONFIG['n_epochs'],
-            gamma=DEFAULT_SUB_AGENT_CONFIG['gamma'],
-            gae_lambda=DEFAULT_SUB_AGENT_CONFIG['gae_lambda'],
-            clip_range=DEFAULT_SUB_AGENT_CONFIG['clip_range'],
-            ent_coef=DEFAULT_SUB_AGENT_CONFIG['ent_coef'],
-            verbose=DEFAULT_SUB_AGENT_CONFIG['verbose']
+            learning_rate=float(DEFAULT_SUB_AGENT_CONFIG['learning_rate']),
+            n_steps=int(DEFAULT_SUB_AGENT_CONFIG['n_steps']),
+            batch_size=int(DEFAULT_SUB_AGENT_CONFIG['batch_size']),
+            n_epochs=int(DEFAULT_SUB_AGENT_CONFIG['n_epochs']),
+            gamma=float(DEFAULT_SUB_AGENT_CONFIG['gamma']),
+            gae_lambda=float(DEFAULT_SUB_AGENT_CONFIG['gae_lambda']),
+            clip_range=float(DEFAULT_SUB_AGENT_CONFIG['clip_range']),
+            ent_coef=float(DEFAULT_SUB_AGENT_CONFIG['ent_coef']),
+            verbose=int(DEFAULT_SUB_AGENT_CONFIG['verbose'])
         )
 
         self.agents[symbol] = agent
@@ -208,10 +209,12 @@ class SubAgentManager:
 
             # Usar value function como proxy de qualidade
             # (valores altos = agente espera bom resultado)
-            value = agent.policy.predict_values(obs)
+            value = agent.policy.predict_values(
+                torch.as_tensor(obs, dtype=torch.float32)
+            )
 
             # Normalizar para [0, 1]
-            quality_score = self._normalize_value_to_score(value)
+            quality_score = self._normalize_value_to_score(float(value))
 
             logger.debug(f"Qualidade de sinal {symbol}: {quality_score:.2f}")
 
@@ -271,15 +274,15 @@ class SubAgentManager:
                 entry_agent = PPO(
                     policy='MlpPolicy',
                     env=vec_env,
-                    learning_rate=DEFAULT_SUB_AGENT_CONFIG['learning_rate'],
-                    n_steps=DEFAULT_SUB_AGENT_CONFIG['n_steps'],
-                    batch_size=DEFAULT_SUB_AGENT_CONFIG['batch_size'],
-                    n_epochs=DEFAULT_SUB_AGENT_CONFIG['n_epochs'],
-                    gamma=DEFAULT_SUB_AGENT_CONFIG['gamma'],
-                    gae_lambda=DEFAULT_SUB_AGENT_CONFIG['gae_lambda'],
-                    clip_range=DEFAULT_SUB_AGENT_CONFIG['clip_range'],
-                    ent_coef=DEFAULT_SUB_AGENT_CONFIG['ent_coef'],
-                    verbose=DEFAULT_SUB_AGENT_CONFIG['verbose'],
+                    learning_rate=float(DEFAULT_SUB_AGENT_CONFIG['learning_rate']),
+                    n_steps=int(DEFAULT_SUB_AGENT_CONFIG['n_steps']),
+                    batch_size=int(DEFAULT_SUB_AGENT_CONFIG['batch_size']),
+                    n_epochs=int(DEFAULT_SUB_AGENT_CONFIG['n_epochs']),
+                    gamma=float(DEFAULT_SUB_AGENT_CONFIG['gamma']),
+                    gae_lambda=float(DEFAULT_SUB_AGENT_CONFIG['gae_lambda']),
+                    clip_range=float(DEFAULT_SUB_AGENT_CONFIG['clip_range']),
+                    ent_coef=float(DEFAULT_SUB_AGENT_CONFIG['ent_coef']),
+                    verbose=int(DEFAULT_SUB_AGENT_CONFIG['verbose']),
                 )
 
             entry_agent.learn(total_timesteps=total_timesteps, reset_num_timesteps=False)
@@ -324,7 +327,9 @@ class SubAgentManager:
 
             confidence = 0.0
             try:
-                value = entry_agent.policy.predict_values(obs)
+                value = entry_agent.policy.predict_values(
+                    torch.as_tensor(obs, dtype=torch.float32)
+                )
                 if isinstance(value, np.ndarray):
                     confidence = float(np.clip(value.mean(), 0.0, 1.0))
                 else:

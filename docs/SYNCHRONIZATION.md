@@ -8871,3 +8871,26 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
   - mypy --strict scripts/model2/continuous_learning_controller.py
     scripts/model2/continuous_learning_cycle.py -> Success
+
+### [SYNC-349] M2-019.3/4 e M2-020.9 Fechamento - 2026-04-03
+
+- Agente: 7.doc-advocate + 8.project-manager
+- Itens: M2-019.3, M2-019.4, M2-020.9, M2-021.2 a M2-021.9
+- Status: CONCLUIDO
+- Codigo alterado:
+  - `agent/sub_agent_manager.py` — correcoes de tipagem: int() cast
+    para PPO int args (n_steps, batch_size, n_epochs, verbose);
+    torch.as_tensor() para predict_values; refatoracao de imports.
+  - `agent/signal_reward.py` — `-> None` em `__init__` de
+    `SignalRewardCalculator`.
+- Docs atualizadas:
+  - `docs/BACKLOG.md` — M2-019.3/4 CONCLUIDO com TL/PM; M2-020.9
+    CONCLUIDO (absorbed M2-020.13); M2-021.2 a M2-021.9 fechados
+    (absorbed por sprints M2-022/023/024); trilhas PM registradas.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias:
+  - pytest -q tests/test_model2_m2_019_3_sub_agent_manager.py
+    tests/test_model2_m2_019_4_train_entry_agents.py -> 13 passed
+  - pytest -q tests/ -> 377 passed, 1 pre-existente
+  - mypy --strict agent/sub_agent_manager.py
+    agent/signal_reward.py -> Success

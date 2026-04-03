@@ -36,7 +36,7 @@ class SignalRewardCalculator:
     6. Reward por gestão (trailing stop, parciais que protegeram lucro)
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Inicializa calculadora de reward para sinais."""
         logger.info("SignalRewardCalculator inicializado")
     
