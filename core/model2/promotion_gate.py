@@ -165,6 +165,9 @@ class PromotionEvaluator:
                     "ou contratos de simbolo incompletos"
                 )
         except Exception as exc:
+            # Fail-safe intencional (ADR-002): qualquer erro inesperado
+            # retorna NO_GO com motivo auditavel, sem propagar excecao.
+            # Padrao consistente com PromotionEvaluator.evaluate().
             return EvidenceGateResult(
                 go=False,
                 decision="NO_GO",

@@ -44,6 +44,10 @@ def test_evidence_gate_result_campos_obrigatorios_presentes() -> None:
     assert result.consistency_evidence_ok is True
     assert result.evidence_sufficient is True
     assert isinstance(result.evaluated_at, str)
+    # Verificar que o timestamp e ISO 8601 parseavel
+    from datetime import datetime as _dt
+    parsed = _dt.fromisoformat(result.evaluated_at)
+    assert parsed is not None
 
 
 def test_evaluate_evidence_gate_go_quando_tres_pilares_ok() -> None:
