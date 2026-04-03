@@ -135,7 +135,7 @@ def _check_context_candles_stale_alarm(
             )
             if age_ms > threshold_ms:
                 stale_tfs.append(tf)
-        except Exception:
+        except (ValueError, OverflowError, OSError):
             pass
 
     if not stale_tfs:

@@ -4,7 +4,7 @@ Foco em IoT, economia de maquinas e infraestrutura DLT sem taxas.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from .base_playbook import BasePlaybook
 
@@ -18,10 +18,10 @@ class IOTAPlaybook(BasePlaybook):
         super().__init__("IOTAUSDT")
 
     def get_confluence_adjustments(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, float]:
+        self, context: dict[str, Any]
+    ) -> dict[str, float]:
         """Ajustes de confluencia para IOTAUSDT."""
-        ajustes: Dict[str, float] = {}
+        ajustes: dict[str, float] = {}
 
         # Narrativa IoT/industria 4.0 impulsiona IOTA diretamente
         if context.get("iot_narrative"):
@@ -56,10 +56,10 @@ class IOTAPlaybook(BasePlaybook):
         return ajustes
 
     def get_risk_adjustments(
-        self, context: Dict[str, Any]
-    ) -> Dict[str, float]:
+        self, context: dict[str, Any]
+    ) -> dict[str, float]:
         """Ajustes de risco para IOTAUSDT (mid-cap, beta 2.2)."""
-        ajustes: Dict[str, float] = {
+        ajustes: dict[str, float] = {
             "position_size_multiplier": 0.8,
             "stop_multiplier": 1.2,
         }
@@ -81,7 +81,7 @@ class IOTAPlaybook(BasePlaybook):
 
         return ajustes
 
-    def get_cycle_phase(self, current_data: Dict[str, Any]) -> str:
+    def get_cycle_phase(self, current_data: dict[str, Any]) -> str:
         """Identifica fase de ciclo de IOTAUSDT."""
         narrative = current_data.get("market_narrative", "")
         d1_bias = current_data.get("d1_bias", "NEUTRO")

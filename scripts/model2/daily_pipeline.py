@@ -95,19 +95,16 @@ def _single_symbol_or_none(symbols: list[str]) -> str | None:
     return symbols[0] if len(symbols) == 1 else None
 
 
-def _count_algousdt_d1(db_path: Path) -> int:
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    db = DatabaseManager(str(db_path))
-    db.init_db()
-    return len(db.get_ohlcv("d1", "ALGOUSDT"))
-
-
 def _count_symbol_d1(db_path: Path, symbol: str) -> int:
     """Conta candles D1 persistidos para qualquer simbolo."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = DatabaseManager(str(db_path))
     db.init_db()
     return len(db.get_ohlcv("d1", symbol))
+
+
+def _count_algousdt_d1(db_path: Path) -> int:
+    return _count_symbol_d1(db_path, "ALGOUSDT")
 
 
 def _run_bootstrap_stage_0(
