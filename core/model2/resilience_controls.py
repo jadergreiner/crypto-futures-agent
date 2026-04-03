@@ -258,7 +258,10 @@ def build_risk_gate_audit_trail(
 
         for row in rows:
             reason: str = str(row["reason_code"] or "risk_gate_blocked")
-            # Normalizar reason_code para catalogo canonico quando possivel
+            # Normalizar reason_code para catalogo canonico. Reason codes
+            # desconhecidos (ex.: variantes historicas ou de modulos externos)
+            # sao mapeados para 'risk_gate_blocked' como fallback seguro para
+            # que a trilha permaneca consultavel sem quebrar contratos.
             if reason not in _RISK_GATE_REASON_CODES:
                 reason = "risk_gate_blocked"
             try:

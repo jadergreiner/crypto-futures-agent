@@ -951,8 +951,8 @@ def _build_promotion_readiness_line(
         )
 
         # decision_key estavel por simbolo + janela de 5 min (idempotente)
-        window_5min = int(time.time()) // PROMOTION_WINDOW_SECONDS
-        decision_key = f"promo_gate_{symbol}_{window_5min}"
+        window_index = int(time.time()) // PROMOTION_WINDOW_SECONDS
+        decision_key = f"promo_gate_{symbol}_{window_index}"
 
         result = PromotionEvaluator().evaluate_evidence_gate(
             decision_id=decision_key,
