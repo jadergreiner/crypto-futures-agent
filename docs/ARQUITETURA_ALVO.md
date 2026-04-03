@@ -269,7 +269,14 @@ Resiliencia e fail-safe de pipeline (M2-027):
     signal_execution_events` retornando lista com execution_id,
     reason_code, symbol, timestamp_ms e metadata; fail-safe sem excecao
     (M2-023.6, ADR-002/007)
-  - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
+  - validacao cruzada antes da admissao
+    (`cross_validate_signal_context_position`) — bloqueia quando sinal
+    contradiz tendencia de mercado (LONG+DOWN ou SHORT+UP) ou quando
+    posicao ja esta aberta na mesma direcao (double-exposure); retorna
+    `allow`, `reason_code` (`cross_validation_conflict` |
+    `position_already_open` | None) e `decision_id` auditavel; funcao
+    pura, fail-safe com campos ausentes, retrocompat via `decision_id=0`
+    (M2-023.7, ADR-002/ADR-004/ADR-009)
   - retry orientado a categoria (`execute_with_category_retry`) —
     separa categorias retentaveis (transient/timeout) de permanentes;
     retorna `actual_attempts` (tentativas reais), `max_attempts`,

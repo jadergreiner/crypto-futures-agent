@@ -1494,24 +1494,69 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.7 - Validacao cruzada de sinais antes da ordem
 
-Status: REVISADO_APROVADO
+Status: CONCLUIDO
 
-Score PO: 3.95
-PO: Validacao cruzada reforca admissao conservadora.
-SA: Contradicao critica bloqueia admissao em fail-safe.
+Score PO: 3.85 (ValorReal=4, Valor=4, Urgencia=4, ReducaoRisco=5,
+Esforco=2) — ciclo completo 2026-04-03.
+
+PO: Retomada ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: position.is_open ignorado na implementacao anterior
+permitia double-exposure silenciosa; agora cross_validate bloqueia
+com reason_code auditavel e decision_id rastreavel em todos os casos.
+Ao fim deste desenvolvimento estarei feliz se cross_validate_signal_
+context_position bloquear com reason_code auditavel tanto conflito de
+tendencia quanto double-exposure, retornando decision_id rastreavel.
+
+SA: Expandir cross_validate_signal_context_position em
+resilience_controls.py para aceitar decision_id, verificar is_open+side
+de posicao (double-exposure), retornar decision_id auditavel. Funcao
+pura, retrocompat via decision_id=0. Sem schema DB. ADR-002/004/009.
+Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_7_cross_validate.py
+com 10 casos (RF-023.7.1 a RF-023.7.10). Fase RED: 10 falhas (decision_
+id nao aceito como parametro, position.is_open ignorado). Status:
+TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_7_cross_validate.py
+
+SE: GREEN concluido em 2026-04-03. cross_validate_signal_context_
+position expandida: aceita decision_id (default=0), verifica double-
+exposure (is_open+side), retorna allow/reason_code/decision_id.
+Retrocompat preservada. Funcao pura sem side-effects. Evidencias:
+- pytest -q tests/test_model2_m2_023_7_cross_validate.py -> 10 passed
+- Suite M2-023 completa (58 testes) -> 58 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+
+TL: APROVADO. Reproducao local: 58 testes passados. mypy strict OK.
+Guarda `and side` evita falso positivo com campo vazio. Prioridade
+correta: double-exposure antes de conflito de tendencia. Retrocompat
+via decision_id=0. Guardrails risk_gate/circuit_breaker preservados.
+Fail-safe: campos ausentes -> allow=True (sem conflito detectado).
+
+DOC: ARQUITETURA_ALVO.md atualizado com contrato completo de
+cross_validate_signal_context_position (double-exposure, reason_codes,
+decision_id, M2-023.7, ADR-002/004/009). SYNCHRONIZATION.md
+[SYNC-288] registrado. 0 violacoes MD013.
 
 Sprint: M2-023
 Prioridade: P1
 
 Descricao:
-Executar validacao cruzada entre sinal tecnico, contexto de mercado e estado
-de posicao imediatamente antes da admissao da ordem.
+Executar validacao cruzada entre sinal tecnico, contexto de mercado e
+estado de posicao imediatamente antes da admissao da ordem.
 
 Criterios de Aceite:
 
-- [ ] Divergencia critica bloqueia admissao com motivo explicito.
-- [ ] Contrato de validacao e deterministico e idempotente.
-- [ ] Cobertura inclui caminhos de contradicao e fallback conservador.
+- [x] Divergencia critica bloqueia admissao com motivo explicito.
+- [x] Contrato de validacao e deterministico e idempotente.
+- [x] Cobertura inclui caminhos de contradicao e fallback conservador.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: double-exposure agora
+bloqueada com reason_code='position_already_open'; conflito de tendencia
+continua com 'cross_validation_conflict'; decision_id auditavel em todos
+os casos. Trilha: PO (3.85) -> SA (ADR-002/004/009) -> QA (10 RED) ->
+SE (10 GREEN, mypy OK) -> TL (APROVADO, 58 testes) -> DOC (SYNC-288).
+Guardrails preservados, funcao pura, arvore local limpa.
 
 ### TAREFA M2-023.8 - Politica de retries orientada a categoria
 

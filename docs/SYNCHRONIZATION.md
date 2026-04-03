@@ -8775,3 +8775,22 @@ REVISADO_APROVADO
   - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py -> 10 passed
   - pytest -q tests/ -> 377 passed (1 pre-existente db/modelo2.db)
   - mypy --strict core/model2/resilience_controls.py -> Success
+
+### [SYNC-288] M2-023.7 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.7 (Validacao cruzada de sinais antes da ordem)
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — contrato completo de
+    `cross_validate_signal_context_position` documentado: double-
+    exposure, reason_codes (cross_validation_conflict |
+    position_already_open), decision_id auditavel, retrocompat,
+    fail-safe, M2-023.7, ADR-002/004/009.
+  - `docs/BACKLOG.md` — trilha PO/SA/QA/SE/TL/DOC registrada com
+    criterios de aceite marcados como cumpridos.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas:
+  - pytest -q tests/test_model2_m2_023_7_cross_validate.py -> 10 passed
+  - Suite M2-023 completa (58 testes) -> 58 passed
+  - mypy --strict core/model2/resilience_controls.py -> Success

@@ -151,14 +151,55 @@ def cross_validate_signal_context_position(
     signal: dict[str, object],
     context: dict[str, object],
     position: dict[str, object],
+    decision_id: int = 0,
 ) -> dict[str, object]:
-    _ = position.get("is_open", False)
+    """Validacao cruzada de sinal, contexto e posicao antes da admissao.
+
+    Bloqueia admissao quando:
+    1. Sinal contradiz tendencia de mercado (LONG+DOWN ou SHORT+UP).
+    2. Posicao ja esta aberta na mesma direcao (evita double-exposure).
+
+    Funcao pura e deterministica (M2-023.7, ADR-002/004/009).
+    Fail-safe: campos ausentes nao lancam excecao; assume sem conflito.
+
+    Args:
+        signal: dict com 'side' (LONG|SHORT) e metadados do sinal.
+        context: dict com 'trend' (UP|DOWN) do contexto de mercado.
+        position: dict com 'is_open' (bool) e 'side' (LONG|SHORT) da posicao.
+        decision_id: identificador da decisao para auditabilidade (ADR-004).
+
+    Returns:
+        Dict com: allow (bool), reason_code (str|None), decision_id (int).
+    """
     side = str(signal.get("side", "")).upper()
     trend = str(context.get("trend", "")).upper()
-    conflict = (side == "LONG" and trend == "DOWN") or (side == "SHORT" and trend == "UP")
+    is_open = bool(position.get("is_open", False))
+    position_side = str(position.get("side", "")).upper()
+
+    # Verificar double-exposure: posicao ja aberta na mesma direcao
+    if is_open and side and side == position_side:
+        return {
+            "allow": False,
+            "reason_code": "position_already_open",
+            "decision_id": int(decision_id),
+        }
+
+    # Verificar contradicao critica entre sinal e tendencia de mercado
+    trend_conflict = (
+        (side == "LONG" and trend == "DOWN")
+        or (side == "SHORT" and trend == "UP")
+    )
+    if trend_conflict:
+        return {
+            "allow": False,
+            "reason_code": "cross_validation_conflict",
+            "decision_id": int(decision_id),
+        }
+
     return {
-        "allow": not conflict,
-        "reason_code": "cross_validation_conflict" if conflict else None,
+        "allow": True,
+        "reason_code": None,
+        "decision_id": int(decision_id),
     }
 
 
