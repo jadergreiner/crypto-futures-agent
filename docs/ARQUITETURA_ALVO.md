@@ -255,6 +255,11 @@ Resiliencia e fail-safe de pipeline (M2-027):
   - restart idempotente (`plan_restart_from_snapshot`)
   - fila priorizada (`prioritize_events`)
   - trilha filtrada por decision_id (`query_risk_gate_audit_by_decision_id`)
+  - trilha ponta-a-ponta do DB por decision_id
+    (`build_risk_gate_audit_trail`) — consulta `signal_executions JOIN
+    signal_execution_events` retornando lista com execution_id,
+    reason_code, symbol, timestamp_ms e metadata; fail-safe sem excecao
+    (M2-023.6, ADR-002/007)
   - validacao cruzada fail-safe (`cross_validate_signal_context_position`)
   - retry por categoria (`execute_with_category_retry`)
   - indicadores de reconciliacao (`compute_reconciliation_health_indicators`)

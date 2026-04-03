@@ -8701,3 +8701,24 @@ REVISADO_APROVADO
   - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
 - Observacao: falha pre-existente em test_docs_model2_sync.py
   (db/modelo2.db ausente no ambiente CI) esta fora do escopo BLID-104.
+
+### [SYNC-284] M2-023.6 Doc Advocate sync - 2026-04-03
+
+- Agente: 7.doc-advocate
+- Item: M2-023.6
+- Status backlog: REVISADO_APROVADO
+- Docs atualizadas:
+  - `docs/ARQUITETURA_ALVO.md` — linha `build_risk_gate_audit_trail`
+    adicionada na descricao de `resilience_controls.py` com contrato
+    de campos, referencia ADR-002/007 e comportamento fail-safe.
+  - `docs/BACKLOG.md` — trilha completa PO/SA/QA/SE/TL registrada.
+  - `docs/SYNCHRONIZATION.md` — esta entrada.
+- Evidencias tecnicas de base:
+  - pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py ->
+    7 passed
+  - pytest -q tests/test_model2_m2_023_2_to_10_and_027_2_red.py ->
+    10 passed (regressao M2-023 batch)
+  - mypy --strict core/model2/resilience_controls.py -> Success
+  - pytest -q tests/ -> 377 passed, 1 pre-existente (db/modelo2.db)
+- Observacao: falha pre-existente em test_docs_model2_sync.py
+  (db/modelo2.db ausente no CI) fora do escopo M2-023.6.

@@ -1344,7 +1344,7 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
 
-Status: IMPLEMENTADO
+Status: CONCLUIDO
 
 Score PO: 4.50
 PO: Trilha de bloqueios do risk_gate fecha auditoria.
@@ -1380,6 +1380,22 @@ Evidencias:
 - pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py -> 7 passed
 - mypy --strict core/model2/resilience_controls.py -> Success
 - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
+
+TL: APROVADO. Reproducao local: 17 testes (7 task + 10 M2-023 batch)
+passados. mypy strict OK. Suite 377 sem regressao. Guardrails
+risk_gate/circuit_breaker preservados e inalterados. Fail-safe ativo.
+Sem schema novo. Mudanca cirurgica: 1 funcao + 2 imports.
+
+DOC: ARQUITETURA_ALVO.md atualizado com build_risk_gate_audit_trail em
+resilience_controls.py (contrato de campos, ADR-002/007, fail-safe).
+SYNCHRONIZATION.md [SYNC-284] registrado. 0 violacoes MD013.
+pytest -q tests/test_docs_model2_sync.py -> 12 passed, 1 pre-existente.
+
+PM: ACEITE em 2026-04-03. Valor PO ENTREGUE: build_risk_gate_audit_trail
+retorna trilha ponta-a-ponta por decision_id consultando banco canonico.
+Trilha: PO (4.50) -> SA (ADR-002/007) -> QA (7 RED) ->
+SE (7 GREEN, mypy OK) -> TL (APROVADO, 17 testes) -> DOC (SYNC-284).
+377 passed, mypy strict OK, guardrails preservados.
 
 Sprint: M2-023
 Prioridade: P0
