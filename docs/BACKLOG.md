@@ -1344,11 +1344,42 @@ Criterios de Aceite:
 
 ### TAREFA M2-023.6 - Trilha de auditoria de bloqueios do risk gate
 
-Status: REVISADO_APROVADO
+Status: IMPLEMENTADO
 
 Score PO: 4.50
 PO: Trilha de bloqueios do risk_gate fecha auditoria.
 SA: Trilha append-only com consulta por decision_id.
+
+PO: Retomada com ciclo completo em 2026-04-03. Valor real capturado em
+iniciar.bat: operador e auditores conseguem consultar todos os bloqueios
+do risk_gate por decision_id diretamente em modelos.db, rastreando
+reason_code e parametros de risco sem necessidade de parse de logs.
+Score 4.50 mantido (P0). Ao fim deste desenvolvimento estarei feliz se
+a funcao build_risk_gate_audit_trail retornar trilha auditavel ponta a
+ponta por decision_id a partir do banco canonical.
+
+SA: Adicionar `build_risk_gate_audit_trail(db_path, decision_id)` em
+resilience_controls.py. Consultar `signal_executions JOIN
+signal_execution_events` filtrando por decision_id e event_type
+indicando bloqueio (gate_reason/failure_reason com risk_gate_blocked).
+Retornar lista de dicts com: execution_id, decision_id, reason_code,
+symbol, timestamp_ms, metadata. Fail-safe sem excecao. Sem schema novo.
+ADRs: ADR-002, ADR-007. Impacto: LOW.
+
+QA: Suite RED criada em tests/test_model2_m2_023_6_risk_gate_audit_trail.py
+com 7 casos (RF-023.6.1 a RF-023.6.7). ImportError confirmado por
+build_risk_gate_audit_trail ausente. Status: TESTES_PRONTOS.
+Comando: pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py
+
+SE: Inicio GREEN em 2026-04-03. Implementado build_risk_gate_audit_trail()
+em resilience_controls.py: consulta signal_executions JOIN
+signal_execution_events por decision_id e failure_reason/gate_reason
+contendo 'risk_gate'; retorna lista com execution_id, decision_id,
+reason_code, symbol, timestamp_ms, metadata. Fail-safe sem excecao.
+Evidencias:
+- pytest -q tests/test_model2_m2_023_6_risk_gate_audit_trail.py -> 7 passed
+- mypy --strict core/model2/resilience_controls.py -> Success
+- pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
 
 Sprint: M2-023
 Prioridade: P0
