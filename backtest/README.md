@@ -34,6 +34,22 @@ de 60 símbolos crypto (BTC, ETH, ALT coins) da Binance Futures.
 
 ---
 
+## Contrato CLI MVP (#59)
+
+Executar backtest determinístico mínimo com símbolo e janela de dias:
+
+```bash
+python main.py --backtest --backtest-symbol BTCUSDT --backtest-days 90 --backtest-seed 42
+```
+
+Saídas geradas:
+- JSON com trilha completa da execução (métricas, trades, status do risk gate)
+- TXT com resumo executivo (PnL líquido, drawdown, risk gate -3%)
+
+Compatibilidade: o modo legado com `--start-date` e `--end-date` continua suportado.
+
+---
+
 ## 🚀 S2-3 Squad Kickoff Status
 
 **Data:** 22 FEV 2026 14:30 UTC

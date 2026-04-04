@@ -81,6 +81,7 @@ class CryptoFuturesEnv(gym.Env):
         self.position = None  # None ou Dict com info da posição
         self.trades_history = []
         self.episode_trades = []
+        self.last_exit_step = -10_000
 
         # Portfolio tracking
         self.peak_capital = initial_capital
@@ -157,6 +158,7 @@ class CryptoFuturesEnv(gym.Env):
         self.capital = self.initial_capital
         self.position = None
         self.episode_trades = []
+        self.last_exit_step = -10_000
         self.peak_capital = self.initial_capital
         self.daily_start_capital = self.initial_capital
         self.flat_steps = 0  # Resetar contador de inatividade
@@ -291,6 +293,17 @@ class CryptoFuturesEnv(gym.Env):
             True se posição foi aberta
         """
         try:
+            # Filtro anti-churn: cooldown mínimo entre fechamento e nova entrada
+            entry_cooldown_steps = int(self.risk_manager.params.get('entry_cooldown_steps', 0) or 0)
+            if entry_cooldown_steps > 0 and (self.current_step - self.last_exit_step) < entry_cooldown_steps:
+                logger.debug(
+                    "Entry bloqueada por cooldown: step=%s, last_exit_step=%s, cooldown=%s",
+                    self.current_step,
+                    self.last_exit_step,
+                    entry_cooldown_steps,
+                )
+                return False
+
             # Pegar dados atuais
             h4_idx = self.current_step
             if h4_idx >= len(self.data['h4']):
@@ -378,20 +391,28 @@ class CryptoFuturesEnv(gym.Env):
             current_candle = self.data['h4'].iloc[h4_idx]
             exit_price = float(current_candle['close'])
 
-            # Calcular PnL
+            # Calcular PnL bruto
             if self.position['direction'] == "LONG":
-                pnl = (exit_price - self.position['entry_price']) * self.position['size']
+                pnl_bruto = (exit_price - self.position['entry_price']) * self.position['size']
             else:  # SHORT
-                pnl = (self.position['entry_price'] - exit_price) * self.position['size']
+                pnl_bruto = (self.position['entry_price'] - exit_price) * self.position['size']
 
-            pnl_pct = pnl / self.capital * 100
+            # Taxas aproximadas Binance Futures (entrada maker + saida taker)
+            entry_notional = self.position['entry_price'] * self.position['size']
+            exit_notional = exit_price * self.position['size']
+            entry_fee = entry_notional * 0.00075
+            exit_fee = exit_notional * 0.001
+            total_fees = entry_fee + exit_fee
+            pnl_liquido = pnl_bruto - total_fees
+
+            pnl_pct = pnl_liquido / self.capital * 100
 
             # Calcular R-multiple
             initial_risk = abs(self.position['entry_price'] - self.position['initial_stop']) * self.position['size']
-            r_multiple = pnl / initial_risk if initial_risk > 0 else 0
+            r_multiple = pnl_bruto / initial_risk if initial_risk > 0 else 0
 
             # Atualizar capital
-            self.capital += pnl
+            self.capital += pnl_liquido
 
             # Atualizar peak
             if self.capital > self.peak_capital:
@@ -402,9 +423,14 @@ class CryptoFuturesEnv(gym.Env):
                 'direction': self.position['direction'],
                 'entry_price': self.position['entry_price'],
                 'exit_price': exit_price,
+                'size': self.position['size'],
                 'entry_step': self.position['entry_step'],
                 'exit_step': self.current_step,
-                'pnl': pnl,
+                'pnl_bruto': pnl_bruto,
+                'fees': total_fees,
+                'entry_fee': entry_fee,
+                'exit_fee': exit_fee,
+                'pnl': pnl_liquido,
                 'pnl_pct': pnl_pct,
                 'r_multiple': r_multiple,
                 'exit_reason': reason
@@ -412,9 +438,12 @@ class CryptoFuturesEnv(gym.Env):
 
             self.episode_trades.append(trade_result)
             self.trades_history.append(trade_result)
+            self.last_exit_step = self.current_step
 
-            logger.info(f"Position closed: {reason}, PnL=${pnl:.2f} ({pnl_pct:.2f}%), "
-                       f"R={r_multiple:.2f}")
+            logger.info(
+                f"Position closed: {reason}, PnL_liq=${pnl_liquido:.2f}, "
+                f"fees=${total_fees:.2f}, R={r_multiple:.2f}"
+            )
 
             # Limpar posição
             self.position = None
@@ -652,11 +681,20 @@ class CryptoFuturesEnv(gym.Env):
 
     def _get_info(self) -> Dict[str, Any]:
         """Retorna informações adicionais."""
+        current_price = None
+        h4_data = self.data.get('h4')
+        if h4_data is not None and self.current_step < len(h4_data):
+            try:
+                current_price = float(h4_data.iloc[self.current_step]['close'])
+            except (TypeError, ValueError, KeyError):
+                current_price = None
+
         return {
             'step': self.current_step,
             'capital': self.capital,
             'has_position': self.position is not None,
-            'trades_count': len(self.episode_trades)
+            'trades_count': len(self.episode_trades),
+            'current_price': current_price,
         }
 
     def _check_termination(self) -> bool:

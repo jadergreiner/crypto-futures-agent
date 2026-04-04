@@ -4,6 +4,170 @@ Somente funcionalidades e tarefas do Modelo 2.0.
 
 ---
 
+## TAREFA ISSUE-59 - [S2-3] Implementar Backtesting Engine (F-12: Validacao Estrategia SMC)
+
+Status: Em analise
+
+Score PO: 4.80 (ValorReal=5, Valor=5, Urgencia=5, ReducaoRisco=5, Esforco=4)
+
+Sprint: S2-3
+Prioridade: P0
+
+Qual o valor real capturado pela operacao em iniciar.bat?
+Valor direto: capacidade de executar validacao historica deterministica antes
+de promover mudancas para `shadow/live`, reduzindo risco de falso positivo em
+estrategias SMC e evitando decisao por intuicao no fluxo operacional.
+
+PO: Issue #59 e prioridade maxima e bloqueador provavel para #65 e #66.
+Escopo minimo recomendado: engine deterministica + estado de trade com fees e
+Risk Gate -3% + metricas auditaveis + execucao via CLI de backtest com saida
+reprodutivel. Ao fim deste desenvolvimento estarei feliz se o operador executar
+backtest de 90 dias via `main.py` e receber relatorio confiavel (JSON + resumo)
+com criterios GO/NO-GO objetivos para liberar as proximas etapas SMC.
+
+Descricao:
+Consolidar o motor de backtesting da F-12 como artefato operacional confiavel,
+priorizando determinismo, auditabilidade e validacao de risco para destravar a
+cadeia SMC. A entrega deve privilegiar compatibilidade com os modulos atuais
+(`backtest/`, `main.py`, `risk/`) e reduzir divergencia entre especificacao da
+issue e implementacao existente.
+
+Criterios de Aceite:
+
+- [ ] Execucao CLI dedicada para backtest:
+  `python main.py --backtest-symbol BTCUSDT --backtest-days 90`
+- [ ] Backtest deterministico com seed fixa e resultados reproduziveis
+  no mesmo dataset
+- [ ] Risk gate de perda maxima (-3%) validado no fluxo de simulacao
+- [ ] PnL (realizado/liquido) e drawdown calculados com precisao e rastreabilidade
+- [ ] Saida dupla: JSON estruturado + resumo textual com metricas principais
+- [ ] Suite minima de testes da F-12 verde e sem regressao nos modulos de risco
+- [ ] Coverage de `backtest/` >= 80% nas suites da tarefa
+- [ ] Sem quebra de compatibilidade no caminho nominal de `iniciar.bat`
+
+Dependencias:
+
+- Issue #65 (integracao SMC <-> backtest) depende da maturidade da #59
+- Issue #66 (QA E2E SMC) depende indiretamente da #59 via #65
+- Issue #60, #61 e #63 sao proximas etapas funcionais; consumir #59 como base
+- ADR-002 (safety envelope), ADR-004 (idempotencia) e ADR-009 (auditabilidade)
+- Fonte de dados historicos e cache (`db/`, `backtest/cache`) disponiveis
+
+Hipoteses explicitas (para reduzir ambiguidade):
+
+- [ ] H1: manter nomenclatura/estrutura atual do repositorio
+  (ex.: `data_cache.py`) e mapear para o contrato da issue
+  sem refactor amplo
+- [ ] H2: considerar MVP de 1 simbolo e 90 dias para aceite inicial;
+  escalar para 60 simbolos em etapa seguinte
+- [ ] H3: priorizar assertividade de risco e corretude de metricas
+  antes de otimizar latencia extrema
+
+Riscos:
+
+- Divergencia entre especificacao historica da issue e arquivos reais atuais
+- Cobertura de testes dispersa (arquivos fora de `tests/backtest/`)
+  dificultar gate unico
+- Dependencia de dados/modelo local para reproducao integral do fluxo
+
+Recomendacao PO:
+Executar em duas ondas para menor risco:
+
+1) fechamento MVP operacional de backtest deterministico (esta task),
+2) hardening/performance multi-simbolo para suportar #65/#66 sem retrabalho.
+
+Plano de Implementacao (reorganizacao de features e recalibracao):
+
+Contexto atual (evidencia operacional 2026-04-03):
+
+- Backtest usando o mesmo pipeline/modelo do `iniciar.bat` validado.
+- Janela de 90 dias (BTCUSDT) com degradacao material:
+  retorno negativo, drawdown elevado, fees elevadas e risk gate acionado.
+- Walk-forward 30d e rolling 15d confirmam instabilidade por regime.
+
+Objetivo do plano:
+Recalibrar o modelo para reduzir churn e custo, preservar safety envelope e
+restaurar desempenho minimo aceitavel para evolucao das etapas SMC seguintes.
+
+Metas de aceite da recalibracao (gate binario):
+
+- [ ] Retorno agregado OOS > -15%
+- [ ] Max Drawdown agregado OOS < 25%
+- [ ] Risk Gate (-3%) nao acionado no agregado por ciclo validado
+- [ ] Queda de fees/trade vs baseline atual (mesmo periodo/seed)
+- [ ] Determinismo mantido (mesmo dataset + mesma seed => mesmo resultado)
+
+Fase 1 - Congelamento de baseline e protocolo:
+
+- [ ] Fixar baseline oficial (periodo, seed, simbolo, modelo, custos)
+- [ ] Registrar artefatos baseline em `tests/output/` (JSON + TXT)
+- [ ] Definir protocolo unico de comparacao (A/B + walk-forward + rolling)
+
+Fase 2 - Reorganizacao de features (sem refactor amplo):
+
+- [ ] Classificar features em 3 blocos:
+  estrutura/regime, gatilho de entrada, execucao/custo-risco
+- [ ] Remover redundancias e sinais de baixa informacao (feature pruning)
+- [ ] Padronizar conjunto minimo de features para treino e inferencia
+
+Fase 3 - Filtro anti-churn e controle de entrada:
+
+- [ ] Manter `entry_cooldown_steps` como controle oficial de churn
+- [ ] Executar grade curta `cooldown` (1..5) no mesmo periodo baseline
+- [ ] Selecionar parametro por metrica-alvo:
+  minimizar DD mantendo retorno > -15%
+- [ ] Registrar decisao e evidencias no backlog/doc de sincronizacao
+
+Fase 4 - Recalibracao de reward e risco (ADR-002/004/009):
+
+- [ ] Reforcar penalizacao de churn/custos no reward efetivo
+- [ ] Validar consistencia de fees e PnL liquido por trade (audit trail)
+- [ ] Endurecer rejeicao de entradas com stop estruturalmente invalido
+- [ ] Confirmar idempotencia da execucao e rastreabilidade por artefato
+
+Fase 5 - Retreino controlado e ablation:
+
+- [ ] Rodar treino/ajuste por etapas (A/B/C de features)
+- [ ] Comparar cada etapa contra baseline no mesmo protocolo
+- [ ] Interromper branch experimental que piorar DD e risk gate
+
+Fase 6 - Validacao robusta OOS:
+
+- [ ] Walk-forward 30d por janela
+- [ ] Rolling 15d para granularidade de regime
+- [ ] Repeticao em multiplas seeds (minimo 5) para reduzir sorte
+- [ ] Consolidado final com ranking por:
+  retorno, DD, fees, risk gate, estabilidade entre janelas
+
+Fase 7 - Gate de promocao e rollout seguro:
+
+- [ ] So promover configuracao que cumpra todos os gates de aceite
+- [ ] Executar sombra (shadow) antes de qualquer uso operacional ampliado
+- [ ] Se falhar gate, manter modelo atual e retornar para Fase 2/3
+
+Subtarefas executaveis (ordem sugerida):
+
+1. Congelar baseline e gerar snapshot oficial de metricas.
+2. Rodar grade de cooldown e escolher candidato por criterio alvo.
+3. Aplicar pruning de features com menor sinal/maior churn.
+4. Recalibrar reward/custos e validar PnL liquido auditavel.
+5. Retreinar variante candidata e comparar com baseline.
+6. Executar validacao OOS (30d + 15d rolling + seeds).
+7. Emitir decisao binaria GO/NO-GO para promocao.
+
+Riscos e mitigacoes:
+
+- Risco: overfitting ao periodo recente.
+  Mitigacao: multiplas janelas + seeds + gate por pior janela.
+- Risco: melhora de retorno com aumento de risco oculto.
+  Mitigacao: criterio composto obrigatorio (retorno + DD + risk gate).
+- Risco: queda de trade count artificial por filtro excessivo.
+  Mitigacao: acompanhar eficiencia por trade e custo relativo, nao so volume.
+- Risco: divergencia treino vs inferencia.
+  Mitigacao: manter mesmo contrato de features em treino/backtest/live.
+
+---
+
 ## TAREFA BLID-104 - Exibir prontidao de promocao por simbolo no status M2
 
 Status: CONCLUIDO
@@ -30,7 +194,7 @@ excecao. Sem schema novo. ADRs: ADR-007, ADR-009, ADR-002. Impacto: LOW.
 
 QA: Suite RED criada em tests/test_model2_blid_104_promotion_readiness.py
 com 7 casos (RF-104.1 a RF-104.6). ImportError confirmado por funcao
-ausente _build_promotion_readiness_line. Status: TESTES_PRONTOS.
+ausente_build_promotion_readiness_line. Status: TESTES_PRONTOS.
 Comando validacao: pytest -q tests/test_model2_blid_104_promotion_readiness.py
 
 SE: Inicio GREEN-REFACTOR em 2026-04-03. Implementado
@@ -38,6 +202,7 @@ _build_promotion_readiness_line() em operator_cycle_status.py; linha
 `Promocao` adicionada ao bloco por simbolo; 3 pilares derivados de
 risk_state + tf_statuses; decision_id idempotente por janela 5min.
 Evidencias:
+
 - pytest -q tests/test_model2_blid_104_promotion_readiness.py -> 7 passed
 - mypy --strict scripts/model2/operator_cycle_status.py -> Success
 - pytest -q tests/ -> 377 passed, 1 failed (pre-existente db/modelo2.db)
@@ -333,22 +498,41 @@ o drawdown e melhora o Sharpe ratio frente a cada modelo isolado.
 1. Implementar votador ensemble (soft + hard voting). ✅ (Scripts prontos)
 2. Avaliar ensemble vs modelos individuais em ambiente de teste controlado. [Pendente]
 3. Executar benchmark completo E.5 -> E.9 (de Optuna-Grid a Ensemble). [Pendente]
-4. Selecionar o melhor método de voting (soft/hard) e pesos ótimos para produção. [Pendente]
+4. Selecionar o melhor método de voting (soft/hard)
+   e pesos ótimos para produção. [Pendente]
 
 Critérios de Aceite:
 
 - [ ] Relatório de benchmark E.5->E.9 gerado com tabelas comparativas de Sharpe/Drawdown/Win-rate.
 - [ ] Ganho de robustez (consenso > 60%) comprovado no benchmark.
-- [ ] Scripts `evaluate_ensemble_e9.py` e `compare_e5_to_e9_final.py` executados com sucesso em ambiente real de análise.
+- [ ] Scripts `evaluate_ensemble_e9.py` e
+  `compare_e5_to_e9_final.py` executados com sucesso
+  em ambiente real de análise.
 - [ ] Recomendação explícita do método de voting para a Fase E.10 registrada.
 
 Qual o valor real capturado pela operação em iniciar.bat?
 
-- Valor direto: O operador confia na decisão do modelo pela redundância inteligente (Ensemble), onde o sistema não opera se houver divergência crítica entre modelos ou se a confiança estiver abaixo do esperado por falta de consenso.
-- Evidência atual: `scripts/model2/ensemble_signal_generation_wrapper.py` já existe (via BLID-068), mas o benchmark de valor real comparativo frente ao baseline E.5 ainda não foi visualizado nos logs de startup para provar o ganho de eficiência.
-- Meta de fechamento: `iniciar.bat` exibe `Ensemble: MLP + LSTM | Voting: [X] | Confidence: [Y]` e o operador valida que o Sharpe histórico superou o modelo isolado.
+- Valor direto: O operador confia na decisão do modelo
+  pela redundância inteligente (Ensemble), onde o sistema
+  não opera se houver divergência crítica entre modelos
+  ou se a confiança estiver abaixo do esperado por falta
+  de consenso.
+- Evidência atual:
+  `scripts/model2/ensemble_signal_generation_wrapper.py`
+  já existe (via BLID-068), mas o benchmark de valor real
+  comparativo frente ao baseline E.5 ainda não foi
+  visualizado nos logs de startup para provar o ganho
+  de eficiência.
+- Meta de fechamento: `iniciar.bat` exibe
+  `Ensemble: MLP + LSTM | Voting: [X] | Confidence: [Y]`
+  e o operador valida que o Sharpe histórico superou
+  o modelo isolado.
 
-PO: Validar o valor científico do ensemble MLP+LSTM para reduzir a variância operacional no ciclo M2. Ao fim deste desenvolvimento estarei feliz se o benchmark E.5->E.9 provar um ganho de robustez superior a 15% no Sharpe ponderado pelo risco.
+PO: Validar o valor científico do ensemble MLP+LSTM
+para reduzir a variância operacional no ciclo M2.
+Ao fim deste desenvolvimento estarei feliz se o
+benchmark E.5->E.9 provar um ganho de robustez
+superior a 15% no Sharpe ponderado pelo risco.
 
 SA: ADR-026 implementada formalizando a votação ensemble (soft/hard) e
 consenso; benchmark E.5 -> E.9 exige 50 episódios para validação de ganho.
@@ -416,9 +600,15 @@ Evidencias (Fase E.10 — BLID-068 CONCLUIDA — 2026-03-22):
    - Risk gate + circuit breaker armados
 5. Commit: [FEAT] BLID-068 E.10 Integrar votador ensemble no pipeline
 
-PO: Validar integracao do Ensemble no daily_pipeline. Ao fim deste desenvolvimento estarei feliz se o iniciar.bat exibir consistentemente 'method: ensemble_soft' com confidence >= 0.6 nos logs de geracao de sinais live.
+PO: Validar integracao do Ensemble no daily_pipeline.
+Ao fim deste desenvolvimento estarei feliz se o
+iniciar.bat exibir consistentemente
+'method: ensemble_soft' com confidence >= 0.6
+nos logs de geracao de sinais live.
 
-SA: Integracao ensemble via wrapper daily_pipeline com observabilidade em operator_cycle_status. Fallback deterministico garantido por ADR-026.
+SA: Integracao ensemble via wrapper daily_pipeline
+com observabilidade em operator_cycle_status.
+Fallback deterministico garantido por ADR-026.
 
 Dependências: BLID-067 (E.9 scripts prontos) ✅
 

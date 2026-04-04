@@ -1,0 +1,11 @@
+BACKTEST MVP - RESUMO
+Simbolo: BTCUSDT
+Periodo: 2026-01-03 -> 2026-04-03
+Capital Final: $10000.00
+PnL Liquido: $0.00
+Fees Totais: $0.00
+Drawdown Max: 0.00%
+Win Rate: 0.00%
+Risk Gate (-3%): CLEAR
+StopLoss Trigger: 0
+Threshold Trigger: 0

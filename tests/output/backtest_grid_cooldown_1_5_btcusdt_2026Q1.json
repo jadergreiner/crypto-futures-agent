@@ -1,0 +1,80 @@
+{
+  "symbol": "BTCUSDT",
+  "period": {
+    "start_date": "2026-01-03",
+    "end_date": "2026-04-03"
+  },
+  "seed": 42,
+  "threshold_return_gt_pct": -15.0,
+  "model_fallback": false,
+  "model_fallback_reason": "",
+  "results": [
+    {
+      "cooldown_steps": 1,
+      "trades": 107,
+      "return_pct": -12.37,
+      "max_drawdown_pct": 29.28,
+      "net_pnl_usd": -1236.59,
+      "fees_usd": 1889.72,
+      "win_rate_pct": 39.25,
+      "profit_factor": 0.907,
+      "risk_gate": "TRIGGERED"
+    },
+    {
+      "cooldown_steps": 2,
+      "trades": 100,
+      "return_pct": -4.45,
+      "max_drawdown_pct": 27.4,
+      "net_pnl_usd": -444.53,
+      "fees_usd": 1801.22,
+      "win_rate_pct": 37.0,
+      "profit_factor": 0.965,
+      "risk_gate": "TRIGGERED"
+    },
+    {
+      "cooldown_steps": 3,
+      "trades": 95,
+      "return_pct": -12.02,
+      "max_drawdown_pct": 27.62,
+      "net_pnl_usd": -1202.12,
+      "fees_usd": 1714.83,
+      "win_rate_pct": 38.95,
+      "profit_factor": 0.896,
+      "risk_gate": "TRIGGERED"
+    },
+    {
+      "cooldown_steps": 4,
+      "trades": 85,
+      "return_pct": -5.69,
+      "max_drawdown_pct": 21.93,
+      "net_pnl_usd": -568.51,
+      "fees_usd": 1597.17,
+      "win_rate_pct": 38.82,
+      "profit_factor": 0.948,
+      "risk_gate": "TRIGGERED"
+    },
+    {
+      "cooldown_steps": 5,
+      "trades": 85,
+      "return_pct": -15.19,
+      "max_drawdown_pct": 30.38,
+      "net_pnl_usd": -1519.06,
+      "fees_usd": 1440.38,
+      "win_rate_pct": 38.82,
+      "profit_factor": 0.85,
+      "risk_gate": "TRIGGERED"
+    }
+  ],
+  "eligible_count": 4,
+  "selected": {
+    "cooldown_steps": 4,
+    "trades": 85,
+    "return_pct": -5.69,
+    "max_drawdown_pct": 21.93,
+    "net_pnl_usd": -568.51,
+    "fees_usd": 1597.17,
+    "win_rate_pct": 38.82,
+    "profit_factor": 0.948,
+    "risk_gate": "TRIGGERED"
+  }
+}

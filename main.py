@@ -9,7 +9,8 @@ import sys
 import threading
 import time
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Optional
 import numpy as np
 
 # Suprimir warnings do TensorFlow/Keras antes de importar qualquer módulo que o use
@@ -31,6 +32,36 @@ from core.live_cycle_orchestrator import LiveCycleOrchestrator
 
 # Setup logger
 logger = AgentLogger.setup_logger()
+
+
+class LiveModelBacktestAdapter:
+    """Adaptador para usar o loader do ciclo live dentro do backtest.
+
+    Usa o mesmo RLModelLoader do runtime model2 e converte ações para
+    o espaço Discrete(5) do environment legado:
+    - HOLD  -> 0
+    - LONG  -> 1
+    - SHORT -> 2
+    """
+
+    _ACTION_MAP = {
+        "HOLD": 0,
+        "LONG": 1,
+        "SHORT": 2,
+    }
+
+    def __init__(self, loader):
+        self._loader = loader
+
+    def predict(self, obs, deterministic: bool = True):
+        del deterministic
+        features = np.asarray(obs, dtype=np.float32)
+        _confidence, rl_action = self._loader.predict_confidence(
+            features=features,
+            signal_side="",
+        )
+        action_id = self._ACTION_MAP.get(str(rl_action).upper(), 0)
+        return action_id, None
 
 
 def setup_database() -> DatabaseManager:
@@ -599,7 +630,15 @@ def start_operation(
             background_collector.stop()
 
 
-def run_backtest(start_date: str, end_date: str) -> None:
+def run_backtest(
+    start_date: Optional[str],
+    end_date: Optional[str],
+    symbol: str = "BTCUSDT",
+    days: Optional[int] = None,
+    seed: int = 42,
+    output_dir: str = "tests/output",
+    entry_cooldown_steps: int = 3,
+) -> None:
     """
     Executa backtest com modelo treinado.
 
@@ -607,26 +646,35 @@ def run_backtest(start_date: str, end_date: str) -> None:
         start_date: Data inicial (YYYY-MM-DD)
         end_date: Data final (YYYY-MM-DD)
     """
-    logger.info("="*60)
-    logger.info(f"RUNNING BACKTEST: {start_date} to {end_date}")
-    logger.info("="*60)
+    if days is not None and days <= 0:
+        raise ValueError("--backtest-days deve ser maior que zero")
+    if entry_cooldown_steps < 0:
+        raise ValueError("--backtest-entry-cooldown-steps não pode ser negativo")
+
+    if not start_date or not end_date:
+        if days is None:
+            raise ValueError("Informe --start-date/--end-date ou --backtest-days")
+        end_dt = datetime.utcnow().date()
+        start_dt = end_dt - timedelta(days=days)
+        start_date = start_dt.isoformat()
+        end_date = end_dt.isoformat()
+
+    logger.info("=" * 60)
+    logger.info(
+        "RUNNING BACKTEST: symbol=%s period=%s..%s seed=%s",
+        symbol,
+        start_date,
+        end_date,
+        seed,
+    )
+    logger.info("=" * 60)
 
     from backtest.backtester import Backtester
     from agent.data_loader import DataLoader
-    from agent.trainer import Trainer
     import os
 
     try:
-        # Verificar se existe modelo treinado
-        model_path = "models/crypto_agent_ppo_final.zip"
-        if not os.path.exists(model_path):
-            # Tentar modelo da fase 2
-            model_path = "models/phase2_refinement.zip"
-            if not os.path.exists(model_path):
-                logger.error("Nenhum modelo treinado encontrado. Execute --train primeiro.")
-                return
-
-        logger.info(f"Carregando modelo: {model_path}")
+        logger.info("Carregando modelo via RLModelLoader (mesmo pipeline do iniciar.bat)...")
 
         # Inicializar database
         db = setup_database()
@@ -634,23 +682,61 @@ def run_backtest(start_date: str, end_date: str) -> None:
         # Carregar dados
         logger.info("Carregando dados para backtest...")
         data_loader = DataLoader(db=db)
-        test_data = data_loader.load_validation_data(symbol="BTCUSDT", min_length=500)
+        min_length = 200
+        if days is not None:
+            min_length = max(200, days * 6)
+
+        # Backtest deve usar janela histórica completa (sem split 80/20 de validação),
+        # evitando fallback sintético falso-negativo quando há dados suficientes no banco.
+        test_data = data_loader.load_training_data(
+            symbol=symbol,
+            train_ratio=1.0,
+            min_length=min_length,
+        )
 
         summary = data_loader.get_data_summary(test_data)
-        logger.info(f"Dados carregados: H4={summary['h4']['length']} candles")
+        logger.info("Dados carregados: H4=%s candles", summary["h4"]["length"])
 
-        # Carregar modelo
-        trainer = Trainer()
-        trainer.load_model(model_path)
+        # Carregar modelo usando o mesmo pipeline do ciclo live (Model2):
+        # sub-agent por simbolo -> checkpoints padrao -> fallback deterministico.
+        from core.model2.rl_model_loader import RLModelLoader
+
+        symbol_checkpoint = Path("models") / "sub_agents" / f"{symbol.upper()}_entry_ppo.zip"
+        if symbol_checkpoint.exists():
+            loader = RLModelLoader(checkpoint_path=symbol_checkpoint)
+            logger.info(f"Modelo live por simbolo detectado: {symbol_checkpoint}")
+        else:
+            loader = RLModelLoader()
+            logger.info("Usando resolucao padrao de checkpoints do ciclo live (RLModelLoader)")
+
+        if loader.is_fallback:
+            logger.warning(
+                "RLModelLoader em fallback deterministico: %s",
+                loader.fallback_reason,
+            )
+        else:
+            logger.info("RLModelLoader carregado sem fallback")
+
+        model = LiveModelBacktestAdapter(loader)
 
         # Executar backtest
         backtester = Backtester(initial_capital=10000)
+        from config.risk_params import RISK_PARAMS
+        risk_params = dict(RISK_PARAMS)
+        risk_params["entry_cooldown_steps"] = int(entry_cooldown_steps)
+        logger.info("Filtro anti-churn ativo: entry_cooldown_steps=%s", entry_cooldown_steps)
         results = backtester.run(
             start_date=start_date,
             end_date=end_date,
-            model=trainer.model,
-            data=test_data
+            model=model,
+            data=test_data,
+            symbol=symbol,
+            seed=seed,
+            deterministic=True,
+            risk_stop_pct=-3.0,
+            risk_params=risk_params,
         )
+        json_path, txt_path = backtester.save_results(results, output_dir=output_dir)
 
         # Mostrar resultados
         logger.info("="*60)
@@ -667,11 +753,26 @@ def run_backtest(start_date: str, end_date: str) -> None:
         logger.info(f"  Sharpe Ratio: {results['metrics']['sharpe_ratio']:.2f}")
         logger.info(f"  Max Drawdown: {results['metrics']['max_drawdown_pct']:.2f}%")
         logger.info(f"  Avg R-Multiple: {results['metrics']['avg_r_multiple']:.2f}")
+        logger.info(f"  PnL Liquido: ${results['metrics']['net_pnl_usd']:.2f}")
+        logger.info(f"  Fees Totais: ${results['metrics']['total_fees_usd']:.2f}")
+        logger.info(f"  Risk Gate (-3%%): {results['risk_gate']['status']}")
+        if results['total_trades'] == 0:
+            logger.warning(
+                "Backtest sem trades. Esta execução não valida qualidade da estratégia "
+                "nem stressa o gate de risco com evidência suficiente."
+            )
 
         # Gerar relatório visual
         report_path = f"backtest_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        backtester.generate_report(results, save_path=report_path)
-        logger.info(f"[OK] Relatório salvo: {report_path}")
+        report_generated = backtester.generate_report(results, save_path=report_path)
+        if report_generated:
+            logger.info(f"[OK] Relatório salvo: {report_path}")
+        else:
+            logger.warning(
+                "Relatório visual não gerado por falta de trades/curva suficiente."
+            )
+        logger.info(f"[OK] JSON salvo: {json_path}")
+        logger.info(f"[OK] Resumo salvo: {txt_path}")
 
         logger.info("="*60)
         logger.info("BACKTEST CONCLUÍDO")
@@ -730,6 +831,41 @@ def main():
         '--end-date',
         type=str,
         help='Backtest end date (YYYY-MM-DD)'
+    )
+
+    parser.add_argument(
+        '--backtest-symbol',
+        type=str,
+        default='BTCUSDT',
+        help='Símbolo para backtest (default: BTCUSDT)'
+    )
+
+    parser.add_argument(
+        '--backtest-days',
+        type=int,
+        default=None,
+        help='Janela de dias para backtest (alternativa a --start-date/--end-date)'
+    )
+
+    parser.add_argument(
+        '--backtest-seed',
+        type=int,
+        default=42,
+        help='Seed determinística do backtest (default: 42)'
+    )
+
+    parser.add_argument(
+        '--backtest-output-dir',
+        type=str,
+        default='tests/output',
+        help='Diretório de saída dos artefatos JSON/TXT do backtest'
+    )
+
+    parser.add_argument(
+        '--backtest-entry-cooldown-steps',
+        type=int,
+        default=3,
+        help='Cooldown mínimo (em candles H4) entre saída e nova entrada no backtest'
     )
 
     parser.add_argument(
@@ -857,10 +993,22 @@ def main():
         sys.exit(0)
 
     if args.backtest:
-        if not args.start_date or not args.end_date:
-            logger.error("Backtest requires --start-date and --end-date")
+        has_range = bool(args.start_date and args.end_date)
+        has_days = args.backtest_days is not None
+        if not has_range and not has_days:
+            logger.error(
+                "Backtest requer --start-date/--end-date ou --backtest-days"
+            )
             sys.exit(1)
-        run_backtest(args.start_date, args.end_date)
+        run_backtest(
+            start_date=args.start_date,
+            end_date=args.end_date,
+            symbol=args.backtest_symbol,
+            days=args.backtest_days,
+            seed=args.backtest_seed,
+            output_dir=args.backtest_output_dir,
+            entry_cooldown_steps=args.backtest_entry_cooldown_steps,
+        )
         sys.exit(0)
 
     if args.monitor:
